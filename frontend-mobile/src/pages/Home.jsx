@@ -6,7 +6,7 @@ import { ChevronRight } from 'lucide-react'
 function InstrumentCard({ instrument, onClick }) {
   return (
     <div 
-      className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer"
+      className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden cursor-pointer"
       onClick={onClick}
     >
       <img 
@@ -15,9 +15,9 @@ function InstrumentCard({ instrument, onClick }) {
         className="w-full h-40 object-cover"
       />
       <div className="p-3">
-        <h3 className="font-medium text-sm text-gray-800 truncate">{instrument.name}</h3>
-        <p className="text-orange-500 font-bold mt-1">
-          ¥{instrument.monthlyRent}/月
+        <h3 className="font-medium text-sm text-brand-text truncate">{instrument.name}</h3>
+        <p className="text-brand-primary text-xl font-bold mt-1">
+          ¥{instrument.monthlyRent}<span className="text-brand-unit text-sm">/月</span>
         </p>
         <p className="text-gray-500 text-xs mt-1">
           押金: ¥{instrument.deposit}
@@ -36,9 +36,9 @@ export default function Home() {
     : instruments.filter(i => i.category === activeCategory)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-bg">
       {/* Header */}
-      <div className="bg-orange-500 text-white px-4 py-4">
+      <div className="bg-brand-primary text-white px-4 py-4">
         <h1 className="text-lg font-bold">乐器租赁</h1>
         <p className="text-sm opacity-90">精品乐器 轻松租回家</p>
       </div>
@@ -52,7 +52,7 @@ export default function Home() {
               onClick={() => setActiveCategory(cat)}
               className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 activeCategory === cat
-                  ? 'bg-orange-500 text-white'
+                  ? 'bg-brand-primary text-white'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >

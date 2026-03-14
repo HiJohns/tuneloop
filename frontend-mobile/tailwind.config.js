@@ -8,6 +8,14 @@ export default {
     extend: {
       screens: {
         'mobile': '480px'
+      },
+      colors: {
+        brand: {
+          primary: '#108ee9',
+          bg: '#F5F5F9',
+          text: '#1A1A1A',
+          unit: '#A6A6A6'
+        }
       }
     },
   },
