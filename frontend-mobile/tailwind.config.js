@@ -14,7 +14,10 @@ export default {
           primary: '#108ee9',
           bg: '#F5F5F9',
           text: '#1A1A1A',
-          unit: '#A6A6A6'
+          unit: '#A6A6A6',
+          warning: '#faad14',
+          danger: '#ff4d4f',
+          success: '#52c41a'
         }
       }
     },

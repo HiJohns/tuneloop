@@ -16,11 +16,11 @@ function InstrumentCard({ instrument, onClick }) {
         className="w-full h-40 object-cover"
       />
       <div className="p-3">
-        <h3 className="font-medium text-sm text-brand-text truncate">{instrument.name}</h3>
+        <h3 className="font-bold text-lg text-brand-text truncate">{instrument.name}</h3>
         <p className="text-brand-primary text-xl font-bold mt-1">
           ¥{defaultLevel.monthlyRent}<span className="text-brand-unit text-sm">/月</span>
         </p>
-        <p className="text-gray-500 text-xs mt-1">
+        <p className="text-gray-500 text-sm mt-1">
           押金: ¥{defaultLevel.deposit}
         </p>
       </div>
