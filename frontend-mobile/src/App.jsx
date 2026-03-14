@@ -3,6 +3,8 @@ import Home from './pages/Home'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
 import Success from './pages/Success'
+import Booking from './pages/Booking'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -12,6 +14,9 @@ function App() {
         <Route path="/instrument/:id" element={<Detail />} />
         <Route path="/checkout/:id" element={<Checkout />} />
         <Route path="/success" element={<Success />} />
+        <Route path="/booking" element={<Booking />} />
+        <Route path="/booking/:assetId" element={<Booking />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   )
