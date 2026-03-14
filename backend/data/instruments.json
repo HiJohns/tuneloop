@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "name": "雅马哈 U1 立式钢琴",
+    "category": "钢琴",
+    "monthlyRent": 800,
+    "deposit": 15000,
+    "description": "日本进口，音色优美，适合初学者和专业人士"
+  },
+  {
+    "id": 2,
+    "name": "卡马 F1 民谣吉他",
+    "category": "吉他",
+    "monthlyRent": 150,
+    "deposit": 2000,
+    "description": "单板面板，手感舒适，适合弹唱"
+  },
+  {
+    "id": 3,
+    "name": "敦煌 694KK 古筝",
+    "category": "古筝",
+    "monthlyRent": 300,
+    "deposit": 5000,
+    "description": "专业演奏级，音色清脆，外观精美"
+  },
+  {
+    "id": 4,
+    "name": "铃木小提琴 SV-200",
+    "category": "提琴",
+    "monthlyRent": 200,
+    "deposit": 3500,
+    "description": "实木手工制作，音质温暖，适合入门学习"
+  }
+]
