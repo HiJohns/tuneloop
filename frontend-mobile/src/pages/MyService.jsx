@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { myServiceOrders } from '../data/mockData'
-import { Badge } from 'antd'
+import { Badge, Tag } from 'antd'
 import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 
 function ServiceCard({ order }) {
@@ -8,38 +8,30 @@ function ServiceCard({ order }) {
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
-      <div className="flex justify-between items-start mb-3">
-        <div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
           <h3 className="font-medium text-brand-text">{order.assetName}</h3>
-          <p className="text-gray-500 text-sm mt-1">故障: {order.fault}</p>
+          <Tag color={order.status === "处理中" ? "blue" : "orange"}>
+            {order.status}
+          </Tag>
         </div>
-        <Badge 
-          status={isProcessing ? "processing" : "default"} 
-          text={order.status} 
-        />
-      </div>
-      
-      <div className="text-sm text-gray-600 space-y-2">
+        
+        <p className="text-gray-600 text-sm">故障: {order.fault}</p>
+        
         {order.status === "待派单" && (
-          <p className="text-gray-500">
-            备注: {order.site}
-          </p>
+          <p className="text-gray-500 text-sm">备注: {order.site}</p>
         )}
         
         {order.status === "处理中" && (
-          <div className="space-y-1">
-            <p>服务人员: {order.technician}</p>
-            <div className="flex items-center gap-2">
-              <Phone size={14} />
-              <span>{order.technicianPhone}</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">服务人员: {order.technician}</span>
+            <a href={`tel:${order.technicianPhone}`} className="text-brand-primary text-sm">
+              📞 {order.technicianPhone}
+            </a>
           </div>
         )}
         
-        <div className="flex items-center gap-2 text-gray-500 text-xs pt-2 border-t">
-          <Calendar size={14} />
-          <span>创建时间: {order.createdAt}</span>
-        </div>
+        <p className="text-gray-400 text-xs">创建时间: {order.createdAt}</p>
       </div>
     </div>
   )

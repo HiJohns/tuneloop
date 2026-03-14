@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { myAssets, myLeases } from '../data/mockData'
 import { User, MapPin, Bell, HelpCircle, ChevronRight, Wrench, RefreshCw } from 'lucide-react'
-import { Badge } from 'antd'
+import { Badge, Tag } from 'antd'
 
 function LeaseCard({ lease, onRenew }) {
   const isUrgent = lease.status === 'urgent'
@@ -31,16 +31,17 @@ function LeaseCard({ lease, onRenew }) {
       </div>
       
       {isUrgent ? (
-        <button
-          onClick={onRenew}
-          className="w-full bg-brand-primary text-white py-2.5 rounded-lg font-medium"
-        >
-          一键续租
-        </button>
+        <div className="flex items-center gap-2">
+          <Tag color="orange">{lease.daysLeft}天后到期</Tag>
+          <button
+            onClick={onRenew}
+            className="flex-1 bg-brand-primary text-white py-2 rounded-lg font-medium text-sm"
+          >
+            一键续租
+          </button>
+        </div>
       ) : (
-        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-          租约正常
-        </span>
+        <Tag color="green">租约正常</Tag>
       )}
     </div>
   )
@@ -78,42 +79,28 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Menu Items */}
+      {/* Common Functions */}
       <div className="p-4 space-y-2">
-        <h2 className="font-medium text-gray-800 mb-3">其他</h2>
-        
-        <div className="bg-white rounded-lg overflow-hidden">
-          <button className="w-full flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-3">
-              <MapPin size={20} className="text-gray-400" />
-              <span className="text-gray-800">收货地址</span>
-            </div>
-            <ChevronRight size={20} className="text-gray-400" />
-          </button>
-          
-          <button className="w-full flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-3">
-              <Bell size={20} className="text-gray-400" />
-              <span className="text-gray-800">消息通知</span>
-            </div>
-            <ChevronRight size={20} className="text-gray-400" />
-          </button>
-          
-          <button className="w-full flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-3">
-              <HelpCircle size={20} className="text-gray-400" />
-              <span className="text-gray-800">帮助中心</span>
-            </div>
-            <ChevronRight size={20} className="text-gray-400" />
-          </button>
-          
-          <button className="w-full flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-lg">ℹ️</span>
-              <span className="text-gray-800">关于我们</span>
-            </div>
-            <ChevronRight size={20} className="text-gray-400" />
-          </button>
+        <h2 className="font-medium text-gray-800 mb-3">常用功能</h2>
+        <div className="bg-white rounded-lg p-4">
+          <div className="grid grid-cols-4 gap-4">
+            <button className="flex flex-col items-center p-2">
+              <MapPin size={24} className="text-brand-primary" />
+              <span className="text-xs mt-1 text-gray-600">地址管理</span>
+            </button>
+            <button className="flex flex-col items-center p-2">
+              <Bell size={24} className="text-brand-primary" />
+              <span className="text-xs mt-1 text-gray-600">消息通知</span>
+            </button>
+            <button className="flex flex-col items-center p-2">
+              <HelpCircle size={24} className="text-brand-primary" />
+              <span className="text-xs mt-1 text-gray-600">帮助中心</span>
+            </button>
+            <button className="flex flex-col items-center p-2">
+              <span className="text-xl">ℹ️</span>
+              <span className="text-xs mt-1 text-gray-600">关于我们</span>
+            </button>
+          </div>
         </div>
       </div>
 
