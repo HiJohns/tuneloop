@@ -143,3 +143,23 @@ export const nearbySites = [
   { id: 2, name: "海淀区门店", distance: 3.5, address: "中关村大街1号" },
   { id: 3, name: "西城区门店", distance: 5.8, address: "金融街7号" }
 ];
+
+export const myServiceOrders = [
+  {
+    id: 1,
+    assetName: "雅马哈 U1 立式钢琴",
+    fault: "琴弦断裂",
+    status: "待派单",
+    site: "Site: 001 - 北京分店",
+    createdAt: "2026-03-10"
+  },
+  {
+    id: 2,
+    assetName: "卡马 F1 民谣吉他",
+    fault: "钢琴调律",
+    status: "处理中",
+    technician: "张师傅",
+    technicianPhone: "138****8888",
+    createdAt: "2026-03-08"
+  }
+];

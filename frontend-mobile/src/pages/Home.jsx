@@ -79,7 +79,7 @@ export default function Home() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
         <div className="flex justify-around py-3 max-w-[480px] mx-auto">
           <div 
-            className="flex flex-col items-center text-orange-500 cursor-pointer"
+            className="flex flex-col items-center text-brand-primary cursor-pointer"
             onClick={() => navigate('/')}
           >
             <span className="text-xl">🏠</span>
@@ -87,7 +87,7 @@ export default function Home() {
           </div>
           <div 
             className="flex flex-col items-center text-gray-400 cursor-pointer"
-            onClick={() => navigate('/booking')}
+            onClick={() => navigate('/service')}
           >
             <span className="text-xl">🔧</span>
             <span className="text-xs mt-1">维修</span>

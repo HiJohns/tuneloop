@@ -5,6 +5,7 @@ import Checkout from './pages/Checkout'
 import Success from './pages/Success'
 import Booking from './pages/Booking'
 import Profile from './pages/Profile'
+import MyService from './pages/MyService'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/booking" element={<Booking />} />
         <Route path="/booking/:assetId" element={<Booking />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/service" element={<MyService />} />
       </Routes>
     </BrowserRouter>
   )

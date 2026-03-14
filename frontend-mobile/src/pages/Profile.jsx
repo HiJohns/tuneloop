@@ -120,15 +120,21 @@ export default function Profile() {
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
         <div className="flex justify-around py-3 max-w-[480px] mx-auto">
-          <div className="flex flex-col items-center text-gray-400">
+          <div 
+            className="flex flex-col items-center text-gray-400 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <span>🏠</span>
             <span className="text-xs mt-1">首页</span>
           </div>
-          <div className="flex flex-col items-center text-gray-400">
-            <span>📋</span>
-            <span className="text-xs mt-1">订单</span>
+          <div 
+            className="flex flex-col items-center text-gray-400 cursor-pointer"
+            onClick={() => navigate('/service')}
+          >
+            <span>🔧</span>
+            <span className="text-xs mt-1">维修</span>
           </div>
-          <div className="flex flex-col items-center text-orange-500">
+          <div className="flex flex-col items-center text-brand-primary">
             <span>👤</span>
             <span className="text-xs mt-1">我的</span>
           </div>
