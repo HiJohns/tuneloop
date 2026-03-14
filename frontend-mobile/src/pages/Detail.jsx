@@ -60,6 +60,23 @@ export default function Detail() {
           </div>
         </div>
 
+        {/* 首期付款汇总 */}
+        <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-100">
+          <p className="font-medium text-sm text-orange-800 mb-1">首期付款汇总</p>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">首月租金</span>
+            <span className="font-medium">¥{currentLevel.monthlyRent}</span>
+          </div>
+          <div className="flex justify-between text-sm mt-1">
+            <span className="text-gray-600">押金</span>
+            <span className="font-medium">¥{currentLevel.deposit}</span>
+          </div>
+          <div className="border-t border-orange-200 mt-2 pt-2 flex justify-between font-bold">
+            <span className="text-orange-900">合计</span>
+            <span className="text-orange-600">¥{currentLevel.monthlyRent + currentLevel.deposit}</span>
+          </div>
+        </div>
+
         {/* Maintenance Services */}
         <div className="mt-4 p-3 bg-green-50 rounded-lg">
           <p className="font-medium text-sm text-green-800 mb-2">服务明细</p>
@@ -72,8 +89,13 @@ export default function Detail() {
 
         {/* Rent-to-Own */}
         <div className="mt-3 p-3 bg-purple-50 rounded-lg">
-          <p className="font-medium text-sm text-purple-800">租购转化</p>
-          <p className="text-purple-600 text-sm mt-0.5">租满12个月可直接获得所有权</p>
+          <p className="font-medium text-sm text-purple-800 flex items-center gap-1">
+            <span>🎁</span>
+            <span className="font-bold">租购转化</span>
+          </p>
+          <p className="text-purple-600 text-sm mt-0.5 font-bold">
+            租满12个月可直接获得所有权
+          </p>
         </div>
 
         {/* Key Points */}

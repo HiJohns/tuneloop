@@ -4,6 +4,7 @@ import { instruments, categories } from '../data/mockData'
 import { ChevronRight } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick }) {
+  const defaultLevel = instrument.levels[0]
   return (
     <div 
       className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden cursor-pointer"
@@ -17,10 +18,10 @@ function InstrumentCard({ instrument, onClick }) {
       <div className="p-3">
         <h3 className="font-medium text-sm text-brand-text truncate">{instrument.name}</h3>
         <p className="text-brand-primary text-xl font-bold mt-1">
-          ¥{instrument.monthlyRent}<span className="text-brand-unit text-sm">/月</span>
+          ¥{defaultLevel.monthlyRent}<span className="text-brand-unit text-sm">/月</span>
         </p>
         <p className="text-gray-500 text-xs mt-1">
-          押金: ¥{instrument.deposit}
+          押金: ¥{defaultLevel.deposit}
         </p>
       </div>
     </div>
