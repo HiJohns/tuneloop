@@ -100,13 +100,42 @@ export const myAssets = [
     id: 101,
     instrumentId: 1,
     name: "雅马哈 U1 立式钢琴",
-    image: "https://via.placeholder.com/150x150?text=MyPiano",
+    image: "https://images.unsplash.com/photo-1520529157262-d6c59239857d?q=80&w=400",
     startDate: "2026-01-15",
     endDate: "2026-07-15",
     rentMonths: 6,
     status: "租赁中",
     monthlyRent: 800
   }
+];
+
+export const myLeases = [
+  {
+    id: 1,
+    instrumentName: "雅马哈 U1 立式钢琴",
+    image: "https://images.unsplash.com/photo-1520529157262-d6c59239857d?q=80&w=400",
+    startDate: "2026-01-15",
+    endDate: "2026-07-15",
+    status: "normal",
+    monthlyRent: 800,
+    daysLeft: 90
+  },
+  {
+    id: 2,
+    instrumentName: "铃木小提琴 SV-200",
+    image: "https://images.unsplash.com/photo-1612228113110-3ac275ac34c0?q=80&w=400",
+    startDate: "2025-12-01",
+    endDate: "2026-03-21",
+    status: "urgent",
+    monthlyRent: 200,
+    daysLeft: 7
+  }
+];
+
+export const depositRules = [
+  { condition: "成色损耗 > 10%", penalty: "扣除¥500" },
+  { condition: "琴键损坏", penalty: "扣除¥300" },
+  { condition: "外观严重划痕", penalty: "扣除¥200" }
 ];
 
 export const nearbySites = [

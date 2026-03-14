@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { instruments, addresses } from '../data/mockData'
+import { instruments, addresses, depositRules } from '../data/mockData'
 import { ArrowLeft, MapPin } from 'lucide-react'
 
 export default function Checkout() {
@@ -114,6 +114,22 @@ export default function Checkout() {
           <div className="flex items-center gap-2 text-gray-500 text-sm">
             <MapPin size={16} />
             <span>{selectedAddress.detail}</span>
+          </div>
+        </div>
+
+        {/* Rental Agreement */}
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h3 className="font-bold text-orange-800 mb-2">📋 租用协议</h3>
+          <div className="text-sm text-orange-700 space-y-1">
+            <p className="font-medium">押金扣除规则:</p>
+            <ul className="list-disc pl-4">
+              {depositRules.map((rule, index) => (
+                <li key={index}>{rule.condition}: {rule.penalty}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-gray-500">
+              正常使用磨损不计入赔偿
+            </p>
           </div>
         </div>
       </div>

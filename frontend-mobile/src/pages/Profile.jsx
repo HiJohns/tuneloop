@@ -1,42 +1,47 @@
 import { useNavigate } from 'react-router-dom'
-import { myAssets } from '../data/mockData'
+import { myAssets, myLeases } from '../data/mockData'
 import { User, MapPin, Bell, HelpCircle, ChevronRight, Wrench, RefreshCw } from 'lucide-react'
+import { Badge } from 'antd'
 
-function AssetCard({ asset, onRenew, onMaintain }) {
+function LeaseCard({ lease, onRenew }) {
+  const isUrgent = lease.status === 'urgent'
+  
   return (
-    <div className="bg-white rounded-lg p-4 shadow-sm">
-      <div className="flex gap-3">
+    <div className={`${isUrgent ? 'bg-white rounded-xl shadow-lg border border-red-200 p-4' : 'bg-white rounded-xl shadow-sm p-4'}`}>
+      <div className="flex gap-3 mb-4">
         <img 
-          src={asset.image} 
-          alt={asset.name}
+          src={lease.image} 
+          alt={lease.instrumentName}
           className="w-20 h-20 object-cover rounded-lg"
         />
         <div className="flex-1">
-          <h3 className="font-medium">{asset.name}</h3>
-          <p className="text-gray-500 text-sm mt-1">
-            租期: {asset.startDate} 至 {asset.endDate}
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-medium">{lease.instrumentName}</h3>
+            {isUrgent && <Badge count={lease.daysLeft} overflowCount={7} style={{ backgroundColor: '#ff4d4f' }} />}
+          </div>
+          <p className="text-gray-500 text-sm">
+            租期: {lease.startDate} 至 {lease.endDate}
           </p>
-          <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded mt-2">
-            {asset.status}
-          </span>
+          {isUrgent && (
+            <p className="text-red-500 text-xs font-medium mt-1">
+              {lease.daysLeft}天后到期
+            </p>
+          )}
         </div>
       </div>
-      <div className="flex gap-2 mt-4">
+      
+      {isUrgent ? (
         <button
           onClick={onRenew}
-          className="flex-1 py-2 border border-orange-500 text-orange-500 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+          className="w-full bg-brand-primary text-white py-2.5 rounded-lg font-medium"
         >
-          <RefreshCw size={14} />
-          续租
+          一键续租
         </button>
-        <button
-          onClick={onMaintain}
-          className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1"
-        >
-          <Wrench size={14} />
-          申请维护
-        </button>
-      </div>
+      ) : (
+        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+          租约正常
+        </span>
+      )}
     </div>
   )
 }
@@ -45,9 +50,9 @@ export default function Profile() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-brand-bg pb-20">
       {/* Header */}
-      <div className="bg-orange-500 text-white px-4 py-6">
+      <div className="bg-brand-primary text-white px-4 py-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
             <User size={32} />
@@ -59,16 +64,15 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* My Assets */}
+      {/* My Leases */}
       <div className="p-4">
-        <h2 className="font-medium text-gray-800 mb-3">我的乐器</h2>
-        <div className="space-y-3">
-          {myAssets.map(asset => (
-            <AssetCard
-              key={asset.id}
-              asset={asset}
+        <h2 className="font-medium text-gray-800 mb-3">我的租约</h2>
+        <div className="space-y-4">
+          {myLeases.map(lease => (
+            <LeaseCard
+              key={lease.id}
+              lease={lease}
               onRenew={() => alert("续租功能开发中...")}
-              onMaintain={() => navigate('/booking')}
             />
           ))}
         </div>
