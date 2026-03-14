@@ -9,7 +9,12 @@ export const instruments = [
     minRentPeriod: 3,
     description: "日本进口，音色优美，适合初学者和专业人士",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-PI-2026-081",
+    site: "TuneLoop 总店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5
   },
   {
     id: 2,
@@ -21,7 +26,12 @@ export const instruments = [
     minRentPeriod: 1,
     description: "单板面板，手感舒适，适合弹唱",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-GT-2026-042",
+    site: "Thornhill 分店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5
   },
   {
     id: 3,
@@ -33,7 +43,12 @@ export const instruments = [
     minRentPeriod: 1,
     description: "专业演奏级，音色清脆，外观精美",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-GZ-2026-015",
+    site: "TuneLoop 总店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5
   },
   {
     id: 4,
@@ -45,7 +60,12 @@ export const instruments = [
     minRentPeriod: 1,
     description: "实木手工制作，音质温暖，适合入门学习",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-VN-2026-028",
+    site: "Thornhill 分店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5
   }
 ];
 

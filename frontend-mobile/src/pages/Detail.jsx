@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instruments } from '../data/mockData'
-import { ArrowLeft, Shield, Clock, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell } from 'lucide-react'
+import { Switch } from 'antd'
 
 export default function Detail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const instrument = instruments.find(i => i.id === parseInt(id))
+  const [smsReminder, setSmsReminder] = useState(true)
 
   if (!instrument) {
     return <div className="p-4">乐器不存在</div>
@@ -46,6 +49,19 @@ export default function Detail() {
 
         {/* Key Points */}
         <div className="mt-6 space-y-4">
+          {/* Asset Card */}
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="flex-1">
+              <p className="font-medium text-sm text-gray-800">资产信息</p>
+              <p className="text-gray-500 text-sm mt-1">SN: {instrument.sn}</p>
+              <p className="text-gray-500 text-sm">归属: {instrument.site}</p>
+            </div>
+            <div className="flex items-center gap-1 text-brand-primary">
+              <MapPin size={16} />
+              <span className="text-sm">距离我: {instrument.distance} km</span>
+            </div>
+          </div>
+
           <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
             <Shield className="text-blue-500 flex-shrink-0" size={20} />
             <div>
@@ -68,6 +84,15 @@ export default function Detail() {
               <p className="font-medium text-sm text-yellow-800">损耗标准</p>
               <p className="text-yellow-700 text-sm mt-0.5">{instrument.wearStandard}</p>
             </div>
+          </div>
+
+          {/* SMS Reminder */}
+          <div className="flex items-center justify-between p-3 bg-white border rounded-lg">
+            <div className="flex items-center gap-2">
+              <Bell size={18} className="text-gray-500" />
+              <span className="text-sm text-gray-700">开启到期前7天短信通知</span>
+            </div>
+            <Switch checked={smsReminder} onChange={setSmsReminder} />
           </div>
         </div>
       </div>
