@@ -1,8 +1,6 @@
 package main
 
 import (
-	"net/http"
-	"path/filepath"
 	"tuneloop-backend/handlers"
 
 	"github.com/gin-contrib/cors"
@@ -13,6 +11,12 @@ func main() {
 	r := gin.Default()
 	r.Use(cors.Default())
 
+	r.NoRoute(func(c *gin.Context) {
+		c.File("../frontend-mobile/dist/index.html")
+	})
+
+	r.Static("/assets", "../frontend-mobile/dist/assets")
+
 	api := r.Group("/api/v1")
 	{
 		api.GET("/instruments", handlers.GetInstruments)
@@ -20,9 +24,7 @@ func main() {
 		api.POST("/upload", handlers.HandleUpload)
 	}
 
-	r.Static("/", "../frontend-mobile/dist")
-
-	r.NoRoute(func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
 		c.File("../frontend-mobile/dist/index.html")
 	})
 
