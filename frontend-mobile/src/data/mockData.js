@@ -4,48 +4,80 @@ export const instruments = [
     name: "雅马哈 U1 立式钢琴",
     category: "钢琴",
     image: "https://images.unsplash.com/photo-1520529157262-d6c59239857d?q=80&w=400",
-    monthlyRent: 800,
-    deposit: 15000,
     minRentPeriod: 3,
     description: "日本进口，音色优美，适合初学者和专业人士",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-PI-2026-081",
+    site: "TuneLoop 总店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5,
+    levels: [
+      { name: "入门级", monthlyRent: 199, deposit: 3000, maintenance: ["外观清洗", "基础调律"] },
+      { name: "专业级", monthlyRent: 399, deposit: 8000, maintenance: ["深度维护", "精细调律"] },
+      { name: "大师级", monthlyRent: 899, deposit: 20000, maintenance: ["大师级养护", "专家调律"] }
+    ]
   },
   {
     id: 2,
     name: "卡马 F1 民谣吉他",
     category: "吉他",
-    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=400",
-    monthlyRent: 150,
-    deposit: 2000,
+    image: "https://images.unsplash.com/photo-1516110833967-0b5716ca1387?q=80&w=400",
     minRentPeriod: 1,
     description: "单板面板，手感舒适，适合弹唱",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-GT-2026-042",
+    site: "Thornhill 分店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5,
+    levels: [
+      { name: "入门级", monthlyRent: 99, deposit: 1500, maintenance: ["外观清洗", "基础调律"] },
+      { name: "专业级", monthlyRent: 199, deposit: 4000, maintenance: ["深度维护", "精细调律"] },
+      { name: "大师级", monthlyRent: 499, deposit: 10000, maintenance: ["大师级养护", "专家调律"] }
+    ]
   },
   {
     id: 3,
     name: "敦煌 694KK 古筝",
     category: "古筝",
-    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=400",
-    monthlyRent: 300,
-    deposit: 5000,
+    image: "https://images.unsplash.com/photo-1550985543-f4423c8d3659?q=80&w=400",
     minRentPeriod: 1,
     description: "专业演奏级，音色清脆，外观精美",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-GZ-2026-015",
+    site: "TuneLoop 总店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5,
+    levels: [
+      { name: "入门级", monthlyRent: 150, deposit: 2500, maintenance: ["外观清洗", "基础调律"] },
+      { name: "专业级", monthlyRent: 300, deposit: 5000, maintenance: ["深度维护", "精细调律"] },
+      { name: "大师级", monthlyRent: 600, deposit: 12000, maintenance: ["大师级养护", "专家调律"] }
+    ]
   },
   {
     id: 4,
     name: "铃木小提琴 SV-200",
     category: "提琴",
     image: "https://images.unsplash.com/photo-1612228113110-3ac275ac34c0?q=80&w=400",
-    monthlyRent: 200,
-    deposit: 3500,
     minRentPeriod: 1,
     description: "实木手工制作，音质温暖，适合入门学习",
     depositNote: "押金在归还乐器无损后7个工作日内退还",
-    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除"
+    wearStandard: "正常使用磨损不计入赔偿，严重损坏按维修费用扣除",
+    sn: "TL-VN-2026-028",
+    site: "Thornhill 分店",
+    lat: 43.8118,
+    lng: -79.4231,
+    distance: 1.5,
+    levels: [
+      { name: "入门级", monthlyRent: 120, deposit: 2000, maintenance: ["外观清洗", "基础调律"] },
+      { name: "专业级", monthlyRent: 250, deposit: 4500, maintenance: ["深度维护", "精细调律"] },
+      { name: "大师级", monthlyRent: 550, deposit: 10000, maintenance: ["大师级养护", "专家调律"] }
+    ]
   }
 ];
 
