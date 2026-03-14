@@ -3,7 +3,7 @@ export const instruments = [
     id: 1,
     name: "雅马哈 U1 立式钢琴",
     category: "钢琴",
-    image: "https://via.placeholder.com/300x200?text=Piano",
+    image: "https://images.unsplash.com/photo-1520529157262-d6c59239857d?q=80&w=400",
     monthlyRent: 800,
     deposit: 15000,
     minRentPeriod: 3,
@@ -15,7 +15,7 @@ export const instruments = [
     id: 2,
     name: "卡马 F1 民谣吉他",
     category: "吉他",
-    image: "https://via.placeholder.com/300x200?text=Guitar",
+    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=400",
     monthlyRent: 150,
     deposit: 2000,
     minRentPeriod: 1,
@@ -27,7 +27,7 @@ export const instruments = [
     id: 3,
     name: "敦煌 694KK 古筝",
     category: "古筝",
-    image: "https://via.placeholder.com/300x200?text=Guzheng",
+    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=400",
     monthlyRent: 300,
     deposit: 5000,
     minRentPeriod: 1,
@@ -39,7 +39,7 @@ export const instruments = [
     id: 4,
     name: "铃木小提琴 SV-200",
     category: "提琴",
-    image: "https://via.placeholder.com/300x200?text=Violin",
+    image: "https://images.unsplash.com/photo-1612228113110-3ac275ac34c0?q=80&w=400",
     monthlyRent: 200,
     deposit: 3500,
     minRentPeriod: 1,
@@ -100,7 +100,7 @@ export const myAssets = [
     id: 101,
     instrumentId: 1,
     name: "雅马哈 U1 立式钢琴",
-    image: "https://via.placeholder.com/150x150?text=MyPiano",
+    image: "https://images.unsplash.com/photo-1520529157262-d6c59239857d?q=80&w=400",
     startDate: "2026-01-15",
     endDate: "2026-07-15",
     rentMonths: 6,
@@ -109,8 +109,57 @@ export const myAssets = [
   }
 ];
 
+export const myLeases = [
+  {
+    id: 1,
+    instrumentName: "雅马哈 U1 立式钢琴",
+    image: "https://images.unsplash.com/photo-1520529157262-d6c59239857d?q=80&w=400",
+    startDate: "2026-01-15",
+    endDate: "2026-07-15",
+    status: "normal",
+    monthlyRent: 800,
+    daysLeft: 90
+  },
+  {
+    id: 2,
+    instrumentName: "铃木小提琴 SV-200",
+    image: "https://images.unsplash.com/photo-1612228113110-3ac275ac34c0?q=80&w=400",
+    startDate: "2025-12-01",
+    endDate: "2026-03-21",
+    status: "urgent",
+    monthlyRent: 200,
+    daysLeft: 7
+  }
+];
+
+export const depositRules = [
+  { condition: "成色损耗 > 10%", penalty: "扣除¥500" },
+  { condition: "琴键损坏", penalty: "扣除¥300" },
+  { condition: "外观严重划痕", penalty: "扣除¥200" }
+];
+
 export const nearbySites = [
   { id: 1, name: "朝阳区门店", distance: 1.2, address: "建国路88号" },
   { id: 2, name: "海淀区门店", distance: 3.5, address: "中关村大街1号" },
   { id: 3, name: "西城区门店", distance: 5.8, address: "金融街7号" }
+];
+
+export const myServiceOrders = [
+  {
+    id: 1,
+    assetName: "雅马哈 U1 立式钢琴",
+    fault: "琴弦断裂",
+    status: "待派单",
+    site: "Site: 001 - 北京分店",
+    createdAt: "2026-03-10"
+  },
+  {
+    id: 2,
+    assetName: "卡马 F1 民谣吉他",
+    fault: "钢琴调律",
+    status: "处理中",
+    technician: "张师傅",
+    technicianPhone: "138****8888",
+    createdAt: "2026-03-08"
+  }
 ];
