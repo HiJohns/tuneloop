@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	"path/filepath"
 	"tuneloop-backend/handlers"
 
 	"github.com/gin-contrib/cors"
@@ -18,5 +20,11 @@ func main() {
 		api.POST("/upload", handlers.HandleUpload)
 	}
 
-	r.Run(":8080")
+	r.Static("/", "../frontend-mobile/dist")
+
+	r.NoRoute(func(c *gin.Context) {
+		c.File("../frontend-mobile/dist/index.html")
+	})
+
+	r.Run(":5554")
 }
