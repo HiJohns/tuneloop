@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instruments } from '../data/mockData'
-import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell } from 'lucide-react'
-import { Switch } from 'antd'
+import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle } from 'lucide-react'
+import { Switch, Segmented, Tag } from 'antd'
 
 export default function Detail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const instrument = instruments.find(i => i.id === parseInt(id))
   const [smsReminder, setSmsReminder] = useState(true)
+  const [selectedLevel, setSelectedLevel] = useState("入门级")
+
+  const currentLevel = instrument.levels.find(l => l.name === selectedLevel)
 
   if (!instrument) {
     return <div className="p-4">乐器不存在</div>
@@ -36,15 +39,41 @@ export default function Detail() {
         <h1 className="text-xl font-bold text-gray-800">{instrument.name}</h1>
         <p className="text-gray-500 mt-1">{instrument.description}</p>
         
+        {/* Level Selector */}
+        <div className="mt-4">
+          <Segmented
+            options={["入门级", "专业级", "大师级"]}
+            value={selectedLevel}
+            onChange={setSelectedLevel}
+            className="w-full"
+          />
+        </div>
+        
         <div className="flex items-center gap-4 mt-4">
           <div>
             <p className="text-gray-500 text-sm">月租金</p>
-            <p className="text-orange-500 font-bold text-2xl">¥{instrument.monthlyRent}</p>
+            <p className="text-brand-primary font-bold text-2xl">¥{currentLevel.monthlyRent}</p>
           </div>
           <div>
             <p className="text-gray-500 text-sm">押金</p>
-            <p className="text-gray-800 font-bold text-xl">¥{instrument.deposit}</p>
+            <p className="text-gray-800 font-bold text-xl">¥{currentLevel.deposit}</p>
           </div>
+        </div>
+
+        {/* Maintenance Services */}
+        <div className="mt-4 p-3 bg-green-50 rounded-lg">
+          <p className="font-medium text-sm text-green-800 mb-2">服务明细</p>
+          <div className="flex flex-wrap gap-2">
+            {currentLevel.maintenance.map((item, idx) => (
+              <Tag key={idx} color="green" icon={<CheckCircle size={12} />}>{item}</Tag>
+            ))}
+          </div>
+        </div>
+
+        {/* Rent-to-Own */}
+        <div className="mt-3 p-3 bg-purple-50 rounded-lg">
+          <p className="font-medium text-sm text-purple-800">租购转化</p>
+          <p className="text-purple-600 text-sm mt-0.5">租满12个月可直接获得所有权</p>
         </div>
 
         {/* Key Points */}
@@ -67,6 +96,7 @@ export default function Detail() {
             <div>
               <p className="font-medium text-sm text-blue-800">押金说明</p>
               <p className="text-blue-600 text-sm mt-0.5">{instrument.depositNote}</p>
+              <p className="text-blue-500 text-xs mt-1">租约期满后，网点(Site)验收无误后3个工作日内原路退还</p>
             </div>
           </div>
 
