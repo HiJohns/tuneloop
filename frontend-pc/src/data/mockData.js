@@ -5,8 +5,16 @@ export const assets = [
     category: "钢琴",
     level: "大师级",
     status: "在租",
-    site: "TuneLoop 总店",
-    siteId: "Site-001"
+    site: "北京总店",
+    siteId: "Site-001",
+    value: 50000,
+    leaseEnd: "2026-03-20",
+    history: [
+      { date: "2025-06-01", action: "出租", renter: "李四" },
+      { date: "2025-08-15", action: "归还", renter: "李四" }
+    ],
+    repairCount: 0,
+    workOrder: null
   },
   {
     id: "TL-GT-2026-042",
@@ -14,17 +22,33 @@ export const assets = [
     category: "吉他",
     level: "专业级",
     status: "待租",
-    site: "Thornhill 分店",
-    siteId: "Site-002"
+    site: "上海分店",
+    siteId: "Site-002",
+    value: 3000,
+    leaseEnd: null,
+    history: [
+      { date: "2025-09-01", action: "入库", renter: null }
+    ],
+    repairCount: 0,
+    workOrder: null
   },
   {
     id: "TL-GZ-2026-015",
     name: "敦煌 694KK 古筝",
     category: "古筝",
     level: "入门级",
-    status: "维修中",
-    site: "TuneLoop 总店",
+    status: "已熔断",
+    site: "北京总店",
     siteId: "Site-001",
+    value: 2000,
+    leaseEnd: "2026-03-10",
+    history: [
+      { date: "2025-06-01", action: "出租", renter: "王五" },
+      { date: "2025-08-15", action: "归还", renter: "王五" },
+      { date: "2025-09-01", action: "维修", note: "琴码调整", renter: null },
+      { date: "2025-10-01", action: "维修", note: "琴弦更换", renter: null }
+    ],
+    repairCount: 2,
     workOrder: {
       id: "WO-001",
       jumps: 3,
@@ -36,21 +60,61 @@ export const assets = [
     name: "铃木小提琴 SV-200",
     category: "提琴",
     level: "专业级",
-    status: "待清理",
-    site: "Thornhill 分店",
-    siteId: "Site-002"
+    status: "维修中",
+    site: "上海分店",
+    siteId: "Site-002",
+    value: 8000,
+    leaseEnd: "2026-03-15",
+    history: [
+      { date: "2025-07-01", action: "出租", renter: "赵六" },
+      { date: "2025-10-01", action: "归还", renter: "赵六" },
+      { date: "2025-10-15", action: "维修", note: "琴弓更换", renter: null }
+    ],
+    repairCount: 1,
+    workOrder: {
+      id: "WO-002",
+      jumps: 2,
+      technician: "李师傅"
+    }
+  },
+  {
+    id: "TL-DR-2026-055",
+    name: "罗兰 TD-17 电子鼓",
+    category: "鼓",
+    level: "专业级",
+    status: "在租",
+    site: "北京总店",
+    siteId: "Site-001",
+    value: 15000,
+    leaseEnd: "2026-03-25",
+    history: [
+      { date: "2025-11-01", action: "出租", renter: "孙七" }
+    ],
+    repairCount: 0,
+    workOrder: null
+  },
+  {
+    id: "TL-KP-2026-012",
+    name: "卡哇伊 K-300 立式钢琴",
+    category: "钢琴",
+    level: "大师级",
+    status: "在租",
+    site: "北京总店",
+    siteId: "Site-001",
+    value: 45000,
+    leaseEnd: "2026-03-18",
+    history: [
+      { date: "2025-08-01", action: "出租", renter: "周八" }
+    ],
+    repairCount: 0,
+    workOrder: null
   }
 ];
 
 export const financeConfig = {
-  rentDepositRatio: {
-    "入门级": 0.1,
-    "专业级": 0.15,
-    "大师级": 0.2
-  },
-  renewalDiscount: {
-    "3个月": 1.0,
-    "6个月": 0.95,
-    "12个月": 0.9
+  levels: {
+    "入门级": { rent: 299, deposit: 1000, renewalDiscount: 0.95 },
+    "专业级": { rent: 599, deposit: 3000, renewalDiscount: 0.9 },
+    "大师级": { rent: 1299, deposit: 8000, renewalDiscount: 0.85 }
   }
 };

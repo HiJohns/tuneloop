@@ -1,11 +1,12 @@
-import { Table, Tag, Space } from 'antd'
+import { useState } from 'react'
+import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Modal, message, Badge } from 'antd'
 import { assets } from '../data/mockData'
 
 const statusColors = {
   "在租": "green",
   "待租": "blue",
   "维修中": "orange",
-  "待清理": "red"
+  "已熔断": "red"
 }
 
 const levelColors = {
@@ -14,7 +15,52 @@ const levelColors = {
   "大师级": "gold"
 }
 
+const sites = [
+  { value: "Site-001", label: "北京总店" },
+  { value: "Site-002", label: "上海分店" },
+  { value: "Site-003", label: "维修供应商" }
+]
+
 export default function Dashboard() {
+  const [form] = Form.useForm()
+  const [selectedSite, setSelectedSite] = useState(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedAsset, setSelectedAsset] = useState(null)
+  const [forceAssignModalOpen, setForceAssignModalOpen] = useState(false)
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const filteredAssets = selectedSite
+    ? assets.filter(a => a.siteId === selectedSite)
+    : assets
+
+  const totalValue = filteredAssets
+    .filter(a => a.status === "在租")
+    .reduce((sum, a) => sum + a.value, 0)
+
+  const expiringToday = filteredAssets.filter(a => 
+    a.leaseEnd && a.leaseEnd <= today && a.status === "在租"
+  ).length
+
+  const abnormalWorkOrders = filteredAssets.filter(a => 
+    a.workOrder && a.workOrder.jumps >= 3
+  ).length
+
+  const handleRowClick = (record) => {
+    setSelectedAsset(record)
+    setDrawerOpen(true)
+  }
+
+  const handleForceAssign = () => {
+    setDrawerOpen(false)
+    setForceAssignModalOpen(true)
+  }
+
+  const confirmForceAssign = () => {
+    message.success('强制指派成功，已打破熔断锁')
+    setForceAssignModalOpen(false)
+  }
+
   const columns = [
     {
       title: '资产ID',
@@ -43,26 +89,166 @@ export default function Dashboard() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <Tag color={statusColors[status]}>{status}</Tag>
-      )
+      render: (status) => {
+        const statusMap = {
+          "在租": { color: 'green', text: '在线' },
+          "待租": { color: 'blue', text: '在线' },
+          "维修中": { color: 'orange', text: '维修中' },
+          "已熔断": { color: 'red', text: '已熔断' }
+        }
+        const info = statusMap[status] || { color: 'default', text: status }
+        return <Badge status={info.color} text={info.text} />
+      }
     },
     {
       title: '所属网点',
       dataIndex: 'site',
       key: 'site',
     },
+    {
+      title: '估值',
+      dataIndex: 'value',
+      key: 'value',
+      render: (value) => `¥${value.toLocaleString()}`
+    }
   ]
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">资产看板</h2>
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="在租资产总额"
+              value={totalValue}
+              precision={0}
+              suffix="元"
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="今日到期租约"
+              value={expiringToday}
+              valueStyle={{ color: '#cf1322' }}
+              prefix={<Badge status="error" />}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="异常工单 (H≥3)"
+              value={abnormalWorkOrders}
+              valueStyle={{ color: '#faad14' }}
+              prefix={<Badge status="warning" />}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Form form={form} layout="inline" className="mb-4">
+        <Form.Item label="网点筛选" name="site">
+          <Select
+            placeholder="请选择网点"
+            allowClear
+            style={{ width: 200 }}
+            options={sites}
+            onChange={(value) => setSelectedSite(value)}
+          />
+        </Form.Item>
+      </Form>
+
       <Table 
         columns={columns} 
-        dataSource={assets} 
+        dataSource={filteredAssets} 
         rowKey="id"
         pagination={false}
+        onRow={(record) => ({
+          onClick: () => handleRowClick(record),
+          style: { cursor: 'pointer' }
+        })}
       />
+
+      <Drawer
+        title="资产详情"
+        placement="right"
+        width={500}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
+        {selectedAsset && (
+          <div>
+            <p><strong>资产ID:</strong> {selectedAsset.id}</p>
+            <p><strong>名称:</strong> {selectedAsset.name}</p>
+            <p><strong>级别:</strong> <Tag color={levelColors[selectedAsset.level]}>{selectedAsset.level}</Tag></p>
+            <p><strong>状态:</strong> <Tag color={statusColors[selectedAsset.status]}>{selectedAsset.status}</Tag></p>
+            <p><strong>估值:</strong> ¥{selectedAsset.value.toLocaleString()}</p>
+            <p><strong>网点:</strong> {selectedAsset.site}</p>
+            {selectedAsset.leaseEnd && (
+              <p><strong>到期日:</strong> {selectedAsset.leaseEnd}</p>
+            )}
+
+            {selectedAsset.workOrder && (
+              <div className="mt-4">
+                <p><strong>工单跳数:</strong> </p>
+                <Tag color={selectedAsset.workOrder.jumps >= 3 ? 'red' : 'orange'}>
+                  H = {selectedAsset.workOrder.jumps}
+                </Tag>
+                {selectedAsset.workOrder.jumps >= 3 && (
+                  <Button 
+                    type="primary" 
+                    danger 
+                    className="ml-4"
+                    onClick={handleForceAssign}
+                  >
+                    强制指派
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <p><strong>流转轨迹:</strong></p>
+              <Timeline
+                items={selectedAsset.history.map((h) => ({
+                  color: h.action === '维修' ? 'orange' : 'green',
+                  children: (
+                    <div>
+                      <p>{h.date} - {h.action}</p>
+                      {h.renter && <p>租户: {h.renter}</p>}
+                      {h.note && <p>备注: {h.note}</p>}
+                    </div>
+                  )
+                }))}
+              />
+              <p><strong>维修次数:</strong> {selectedAsset.repairCount} 次</p>
+            </div>
+          </div>
+        )}
+      </Drawer>
+
+      <Modal
+        title="强制指派确认"
+        open={forceAssignModalOpen}
+        onOk={confirmForceAssign}
+        onCancel={() => setForceAssignModalOpen(false)}
+        okText="确认强制指派"
+        cancelText="取消"
+      >
+        <p>确定要强制指派该工单吗？</p>
+        <p>此操作将打破熔断锁，允许重新分配工单。</p>
+      </Modal>
+    </div>
+  )
+}
+
+function Card({ children, className }) {
+  return (
+    <div className={`bg-white p-4 rounded shadow ${className}`}>
+      {children}
     </div>
   )
 }
