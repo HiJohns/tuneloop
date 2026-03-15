@@ -11,11 +11,19 @@ func main() {
 	r := gin.Default()
 	r.Use(cors.Default())
 
-	r.NoRoute(func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
+		c.File("../frontend-pc/dist/index.html")
+	})
+	r.Static("/assets", "../frontend-pc/dist/assets")
+
+	r.GET("/wx", func(c *gin.Context) {
 		c.File("../frontend-mobile/dist/index.html")
 	})
+	r.Static("/wx/assets", "../frontend-mobile/dist/assets")
 
-	r.Static("/assets", "../frontend-mobile/dist/assets")
+	r.NoRoute(func(c *gin.Context) {
+		c.File("../frontend-pc/dist/index.html")
+	})
 
 	api := r.Group("/api/v1")
 	{
@@ -23,10 +31,6 @@ func main() {
 		api.GET("/sites", handlers.GetSites)
 		api.POST("/upload", handlers.HandleUpload)
 	}
-
-	r.GET("/", func(c *gin.Context) {
-		c.File("../frontend-mobile/dist/index.html")
-	})
 
 	r.Run(":5554")
 }
