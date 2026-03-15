@@ -1,6 +1,6 @@
 export const instrumentImages = {
-  'guitar': '/instruments/guitar.webp',
-  'guzheng': '/instruments/guzheng.webp',
-  'piano': '/instruments/piano.webp',
-  'violin': '/instruments/violin.webp'
+  'guitar': '/wx/instruments/guitar.webp',
+  'guzheng': '/wx/instruments/guzheng.webp',
+  'piano': '/wx/instruments/piano.webp',
+  'violin': '/wx/instruments/violin.webp'
 }
