@@ -9,7 +9,7 @@ import MyService from './pages/MyService'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/wx">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/instrument/:id" element={<Detail />} />
