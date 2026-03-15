@@ -29,9 +29,9 @@ function MainLayout() {
   const location = useLocation()
 
   const items = [
-    { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
     { 
-      key: 'lease', icon: <BookOutlined />, label: '租约管理', 
+      key: 'business', icon: <BookOutlined />, label: '业务管理',
       children: [
         { key: '/lease/ledger', label: '租约台账' },
         { key: '/lease/deposit', label: '押金流水' },
@@ -39,25 +39,20 @@ function MainLayout() {
       ] 
     },
     { 
-      key: 'maintenance', icon: <ToolOutlined />, label: '维保调度', 
-      children: [
-        { key: '/workorders', label: '工单列表' },
-        { key: '/maintenance/suppliers', label: '供应商库' },
-        { key: '/maintenance/melt-rule', label: '熔断规则配置' }
-      ] 
-    },
-    { 
-      key: 'site', icon: <BankOutlined />, label: '资产网点', 
+      key: 'assets', icon: <BankOutlined />, label: '资产载体',
       children: [
         { key: '/site/stock', label: '乐器库存' },
         { key: '/site/management', label: 'Site网点管理(LBS)' }
       ] 
     },
     { 
-      key: 'settings', icon: <SettingOutlined />, label: '设置', 
+      key: 'system', icon: <SettingOutlined />, label: '系统配置',
       children: [
         { key: '/finance', label: '报价单配置' },
-        { key: '/settings/roles', label: '角色权限' }
+        { key: '/settings/roles', label: '角色权限' },
+        { key: '/workorders', label: '工单列表' },
+        { key: '/maintenance/suppliers', label: '供应商库' },
+        { key: '/maintenance/melt-rule', label: '熔断规则配置' }
       ] 
     }
   ]
@@ -71,16 +66,18 @@ function MainLayout() {
   
   // 找出打开的子菜单（简单的根据路径前缀判断）
   const openKeys = []
-  if (location.pathname.startsWith('/lease')) openKeys.push('lease')
-  else if (location.pathname.startsWith('/maintenance') || location.pathname === '/workorders') openKeys.push('maintenance')
-  else if (location.pathname.startsWith('/site')) openKeys.push('site')
-  else if (location.pathname.startsWith('/settings') || location.pathname === '/finance') openKeys.push('settings')
+  if (location.pathname === '/') openKeys.push('/')
+  else if (location.pathname.startsWith('/lease')) openKeys.push('business')
+  else if (location.pathname.startsWith('/site')) openKeys.push('assets')
+  else if (location.pathname.startsWith('/settings') || location.pathname === '/finance') openKeys.push('system')
+  else if (location.pathname.startsWith('/maintenance') || location.pathname === '/workorders') openKeys.push('system')
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider 
         width={200} 
         theme="dark"
+        style={{ backgroundColor: '#002140' }}
         collapsible 
         collapsed={collapsed} 
         onCollapse={(value) => setCollapsed(value)}

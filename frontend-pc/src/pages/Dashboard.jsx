@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Modal, message, Badge } from 'antd'
+import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Modal, message } from 'antd'
+import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { assets } from '../data/mockData'
 
 const statusColors = {
@@ -27,12 +28,17 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [forceAssignModalOpen, setForceAssignModalOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
 
   const filteredAssets = selectedSite
     ? assets.filter(a => a.siteId === selectedSite)
     : assets
+
+  const displayedAssets = statusFilter
+    ? filteredAssets.filter(a => a.status === statusFilter)
+    : filteredAssets
 
   const totalValue = filteredAssets
     .filter(a => a.status === "在租")
@@ -66,11 +72,28 @@ export default function Dashboard() {
       title: '资产ID',
       dataIndex: 'id',
       key: 'id',
+      fixed: 'left',
+      width: 120,
     },
     {
       title: '乐器名称',
       dataIndex: 'name',
       key: 'name',
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const statusMap = {
+          "在租": { color: 'green', text: '在线' },
+          "待租": { color: 'blue', text: '在线' },
+          "维修中": { color: 'blue', text: '维修中' },
+          "已熔断": { color: 'red', text: '已熔断' }
+        }
+        const info = statusMap[status] || { color: 'default', text: status }
+        return <Tag color={info.color}>{info.text}</Tag>
+      }
     },
     {
       title: '类别',
@@ -86,21 +109,6 @@ export default function Dashboard() {
       )
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const statusMap = {
-          "在租": { color: 'green', text: '在线' },
-          "待租": { color: 'blue', text: '在线' },
-          "维修中": { color: 'orange', text: '维修中' },
-          "已熔断": { color: 'red', text: '已熔断' }
-        }
-        const info = statusMap[status] || { color: 'default', text: status }
-        return <Badge status={info.color} text={info.text} />
-      }
-    },
-    {
       title: '所属网点',
       dataIndex: 'site',
       key: 'site',
@@ -109,7 +117,20 @@ export default function Dashboard() {
       title: '估值',
       dataIndex: 'value',
       key: 'value',
+      align: 'right',
       render: (value) => `¥${value.toLocaleString()}`
+    },
+    {
+      title: '操作',
+      key: 'action',
+      fixed: 'right',
+      width: 120,
+      render: (_, record) => (
+        <Space>
+          <Button type="link" icon={<EyeOutlined />} onClick={() => handleRowClick(record)}>详情</Button>
+          <Button type="link" icon={<EditOutlined />}>编辑</Button>
+        </Space>
+      )
     }
   ]
 
@@ -138,16 +159,38 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col span={8}>
-          <Card>
+          <Card
+            onClick={() => setStatusFilter('已熔断')}
+            style={{ 
+              cursor: 'pointer',
+              borderColor: '#ff4d4f',
+              background: '#fff1f0',
+              transition: 'all 0.3s',
+              borderWidth: 2
+            }}
+            hoverable
+          >
             <Statistic
               title="异常工单 (H≥3)"
               value={abnormalWorkOrders}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ 
+                color: '#faad14',
+                fontWeight: 'bold'
+              }}
               prefix={<Badge status="warning" />}
             />
           </Card>
         </Col>
       </Row>
+
+      {statusFilter && (
+        <div className="mb-4">
+          <Space>
+            <span>当前过滤: 状态 = {statusFilter}</span>
+            <Button onClick={() => setStatusFilter(null)} size="small">清除过滤</Button>
+          </Space>
+        </div>
+      )}
 
       <Form form={form} layout="inline" className="mb-4">
         <Form.Item label="网点筛选" name="site">
@@ -163,9 +206,10 @@ export default function Dashboard() {
 
       <Table 
         columns={columns} 
-        dataSource={filteredAssets} 
+        dataSource={displayedAssets} 
         rowKey="id"
         pagination={false}
+        scroll={{ x: 1000 }}
         onRow={(record) => ({
           onClick: () => handleRowClick(record),
           style: { cursor: 'pointer' }
