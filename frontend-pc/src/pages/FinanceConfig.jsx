@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, InputNumber, Button, message, Table, Tag } from 'antd'
+import { Card, InputNumber, Button, message, Table, Tag, Tooltip } from 'antd'
 
 const defaultConfig = {
   levels: {
@@ -39,7 +39,7 @@ export default function FinanceConfig() {
   }
 
   const handleSave = () => {
-    message.success('财务配置已保存')
+    message.success('配置已更新，即时生效')
   }
 
   const columns = [
@@ -53,6 +53,7 @@ export default function FinanceConfig() {
       title: '月租金 (元)',
       dataIndex: 'rent',
       key: 'rent',
+      align: 'right',
       render: (rent, record) => (
         <InputNumber
           value={rent}
@@ -69,6 +70,7 @@ export default function FinanceConfig() {
       title: '押金 (元)',
       dataIndex: 'deposit',
       key: 'deposit',
+      align: 'right',
       render: (deposit, record) => (
         <InputNumber
           value={deposit}
@@ -82,7 +84,14 @@ export default function FinanceConfig() {
       )
     },
     {
-      title: '续租折扣',
+      title: (
+        <span>
+          续租折扣
+          <Tooltip title="95% 表示续租时租金按原价 9.5 折计算">
+            <span className="ml-1 cursor-help text-gray-400">ℹ️</span>
+          </Tooltip>
+        </span>
+      ),
       dataIndex: 'renewalDiscount',
       key: 'renewalDiscount',
       render: (discount, record) => (
@@ -91,7 +100,13 @@ export default function FinanceConfig() {
           min={0}
           max={1}
           step={0.05}
-          onChange={(value) => handleChange(record.level, 'renewalDiscount', value)}
+          onChange={(value) => {
+            if (value > 1) {
+              message.warning('折扣不能超过100%')
+              return
+            }
+            handleChange(record.level, 'renewalDiscount', value)
+          }}
           style={{ width: 100 }}
           formatter={value => `${(value * 100).toFixed(0)}%`}
           parser={value => value.replace('%', '') / 100}
@@ -118,7 +133,7 @@ export default function FinanceConfig() {
         <Table 
           columns={columns} 
           dataSource={dataSource} 
-          pagination={false}
+          pagination={{ total: dataSource.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
         />
 
         <Button type="primary" className="mt-4" onClick={handleSave}>
