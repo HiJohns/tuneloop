@@ -133,7 +133,7 @@ export default function FinanceConfig() {
         <Table 
           columns={columns} 
           dataSource={dataSource} 
-          pagination={false}
+          pagination={{ total: dataSource.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
         />
 
         <Button type="primary" className="mt-4" onClick={handleSave}>

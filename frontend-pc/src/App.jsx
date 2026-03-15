@@ -96,7 +96,7 @@ function MainLayout() {
       </Sider>
       <Layout>
         <Header className="bg-white px-6 shadow flex items-center">
-          <h1 className="text-xl font-bold m-0">资产管理</h1>
+          <div style={{ width: 4, height: 24, backgroundColor: '#002140', marginRight: 12, borderRadius: 2 }} /><h1 className="text-xl font-bold m-0" style={{ fontSize: 20 }}>资产管理</h1>
         </Header>
         <Content className="p-6 bg-gray-100 overflow-y-auto">
           <Routes>
