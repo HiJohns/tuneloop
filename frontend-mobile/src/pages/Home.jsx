@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { instruments, categories } from '../data/mockData'
 import { ChevronRight, Search, Heart } from 'lucide-react'
-import { Skeleton, Toast } from 'antd-mobile'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   const defaultLevel = instrument.levels[0]
@@ -136,9 +135,10 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4">
             {Array(6).fill(0).map((_, i) => (
               <div key={i} className="bg-white rounded-xl overflow-hidden">
-                <Skeleton.Image style={{ width: '100%', height: 160 }} />
+                <div className="w-full h-40 bg-gray-200 animate-pulse"></div>
                 <div className="p-3 space-y-2">
-                  <Skeleton.Paragraph lineCount={2} />
+                  <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
                 </div>
               </div>
             ))}
