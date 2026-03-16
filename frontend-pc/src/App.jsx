@@ -106,7 +106,6 @@ function MainLayout() {
             
             <Route path="/workorders" element={<WorkOrderList />} />
             <Route path="/maintenance/suppliers" element={<SupplierDB />} />
-            <Route path="/maintenance/melt-rule" element={<MeltRuleConfig />} />
             
             <Route path="/site/stock" element={<InstrumentStock />} />
             <Route path="/site/management" element={<SiteManagement />} />
