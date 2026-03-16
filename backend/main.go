@@ -16,7 +16,7 @@ func main() {
 	})
 	r.Static("/assets", "../frontend-pc/dist/assets")
 
-	r.GET("/wx", func(c *gin.Context) {
+	r.GET("/wx/*path", func(c *gin.Context) {
 		c.File("../frontend-mobile/dist/index.html")
 	})
 	r.Static("/wx/assets", "../frontend-mobile/dist/assets")
