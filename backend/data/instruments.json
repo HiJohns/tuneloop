@@ -3,6 +3,7 @@
     "id": 1,
     "name": "雅马哈 U1 立式钢琴",
     "category": "钢琴",
+    "rent_to_own_months": 12,
     "levels": [
       { "name": "入门级", "monthly_price": 199, "deposit": 3000, "maintenance": ["外观清洗", "基础调律"] },
       { "name": "专业级", "monthly_price": 399, "deposit": 8000, "maintenance": ["深度维护", "精细调律"] },
@@ -14,6 +15,7 @@
     "id": 2,
     "name": "卡马 F1 民谣吉他",
     "category": "吉他",
+    "rent_to_own_months": 12,
     "levels": [
       { "name": "入门级", "monthly_price": 99, "deposit": 1500, "maintenance": ["外观清洗", "基础调律"] },
       { "name": "专业级", "monthly_price": 199, "deposit": 4000, "maintenance": ["深度维护", "精细调律"] },
@@ -25,6 +27,7 @@
     "id": 3,
     "name": "敦煌 694KK 古筝",
     "category": "古筝",
+    "rent_to_own_months": 12,
     "levels": [
       { "name": "入门级", "monthly_price": 150, "deposit": 2500, "maintenance": ["外观清洗", "基础调律"] },
       { "name": "专业级", "monthly_price": 300, "deposit": 5000, "maintenance": ["深度维护", "精细调律"] },
@@ -36,6 +39,7 @@
     "id": 4,
     "name": "铃木小提琴 SV-200",
     "category": "提琴",
+    "rent_to_own_months": 12,
     "levels": [
       { "name": "入门级", "monthly_price": 120, "deposit": 2000, "maintenance": ["外观清洗", "基础调律"] },
       { "name": "专业级", "monthly_price": 250, "deposit": 4500, "maintenance": ["深度维护", "精细调律"] },
