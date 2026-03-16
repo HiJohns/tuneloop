@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { assets } from '../data/mockData'
 
 const statusColors = {
@@ -27,6 +28,17 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [statusFilter, setStatusFilter] = useState(null)
+  const navigate = useNavigate()
+
+  const handleCardClick = (filterType) => {
+    if (filterType === '在租') {
+      navigate('/site/stock?status=在租')
+    } else if (filterType === '维修中') {
+      navigate('/site/stock?status=维修中')
+    } else if (filterType === '逾期') {
+      navigate('/site/stock?overdue=true')
+    }
+  }
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -125,7 +137,7 @@ export default function Dashboard() {
     <div>
       <Row gutter={16} className="mb-6">
         <Col span={8}>
-          <Card>
+          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('在租')}>
             <Statistic
               title="在租资产总额"
               value={totalValue}
@@ -148,11 +160,12 @@ export default function Dashboard() {
         <Col span={8}>
           <Card
             style={{ 
-              cursor: 'default',
+              cursor: 'pointer',
               borderColor: '#ff4d4f',
               background: '#fff1f0',
               transition: 'all 0.3s'
             }}
+            onClick={() => handleCardClick('逾期')}
           >
             <Statistic
               title="逾期未归还"
