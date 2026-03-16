@@ -106,6 +106,26 @@ export const assets = [
     ],
     repairCount: 0,
     workOrder: null
+  },
+  {
+    id: "TL-SY-2026-033",
+    name: "雅马哈 YZ-125 萨克斯",
+    category: "管乐",
+    level: "专业级",
+    status: "已熔断",
+    site: "维修供应商",
+    siteId: "Site-003",
+    value: 12000,
+    leaseEnd: null,
+    ownershipStatus: "已转售",
+    history: [
+      { date: "2025-05-01", action: "出租", renter: "陈九" },
+      { date: "2025-09-01", action: "归还", renter: "陈九" },
+      { date: "2025-09-15", action: "维修", note: "按键损坏", renter: null },
+      { date: "2025-10-01", action: "熔断", note: "无法修复，已熔断处理", renter: null }
+    ],
+    repairCount: 1,
+    workOrder: null
   }
 ];
 
