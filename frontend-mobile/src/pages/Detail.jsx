@@ -45,7 +45,11 @@ export default function Detail() {
         {/* Level Selector */}
         <div className="mt-4">
           <Segmented
-            options={["入门级", "专业级", "大师级"]}
+            options={[
+              { label: <div className="text-center leading-4 py-1">入门级<div className="text-xs text-gray-500">¥{(instrument.levels.find(l => l.name === "入门级")?.monthlyRent || 0)}/月</div></div>, value: "入门级" },
+              { label: <div className="text-center leading-4 py-1">专业级<div className="text-xs text-gray-500">¥{(instrument.levels.find(l => l.name === "专业级")?.monthlyRent || 0)}/月</div></div>, value: "专业级" },
+              { label: <div className="text-center leading-4 py-1">大师级<div className="text-xs text-gray-500">¥{(instrument.levels.find(l => l.name === "大师级")?.monthlyRent || 0)}/月</div></div>, value: "大师级" }
+            ]}
             value={selectedLevel}
             onChange={setSelectedLevel}
             className="w-full"
@@ -166,6 +170,11 @@ export default function Detail() {
 
       {/* Bottom Action */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+        <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <p className="text-center font-bold text-lg text-brand-primary">
+            首期预付：¥{firstPayment} <span className="text-sm font-normal">(含押金，押金可退)</span>
+          </p>
+        </div>
         <button 
           onClick={() => navigate(`/checkout/${instrument.id}`)}
           className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium"
