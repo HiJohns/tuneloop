@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Tabs, Timeline, Button, Tag, Space } from 'antd'
-import { ArrowLeft, EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { ArrowLeft } from 'lucide-react'
 import { assets } from '../data/mockData'
 
 const { TabPane } = Tabs
