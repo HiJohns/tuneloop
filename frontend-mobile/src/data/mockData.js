@@ -150,7 +150,9 @@ export const myLeases = [
     endDate: "2026-07-15",
     status: "normal",
     monthlyRent: 800,
-    daysLeft: 90
+    daysLeft: 90,
+    rentMonths: 3,
+    totalMonths: 12
   },
   {
     id: 2,
@@ -160,7 +162,9 @@ export const myLeases = [
     endDate: "2026-03-21",
     status: "urgent",
     monthlyRent: 200,
-    daysLeft: 7
+    daysLeft: 7,
+    rentMonths: 4,
+    totalMonths: 12
   }
 ];
 
