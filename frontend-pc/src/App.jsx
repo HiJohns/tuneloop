@@ -17,6 +17,7 @@ import SupplierDB from './pages/SupplierDB'
 import InstrumentStock from './pages/InstrumentStock'
 import SiteManagement from './pages/SiteManagement'
 import RolePermission from './pages/RolePermission'
+import AssetDetail from './pages/AssetDetail'
 
 const { Header, Content, Sider } = Layout
 
@@ -127,8 +128,9 @@ function MainLayout() {
             <Route path="/lease/ledger" element={<LeaseLedger />} />
             <Route path="/finance" element={<FinanceConfig />} />
             <Route path="/finance/quotes" element={<div className="bg-white p-6 rounded shadow">报价单管理待实现</div>} />
-            <Route path="/site/stock" element={<InstrumentStock />} />
-            <Route path="/site/management" element={<SiteManagement />} />
+             <Route path="/site/stock" element={<InstrumentStock />} />
+             <Route path="/site/stock/:id" element={<AssetDetail />} />
+             <Route path="/site/management" element={<SiteManagement />} />
             
             {/* 保留其他路由以防报错 */}
             <Route path="/lease/deposit" element={<DepositFlow />} />

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Table, Tag, Button, Space } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { assets } from '../data/mockData'
 
 const statusColors = {
@@ -20,6 +20,7 @@ export default function InstrumentStock() {
   const [searchParams] = useSearchParams()
   const statusParam = searchParams.get('status')
   const overdueParam = searchParams.get('overdue')
+  const navigate = useNavigate()
   
   const filteredAssets = useMemo(() => {
     let result = assets
@@ -130,12 +131,16 @@ export default function InstrumentStock() {
           </Space>
         </div>
       )}
-      <Table 
-        columns={columns} 
-        dataSource={filteredAssets} 
-        rowKey="id"
-        pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-      />
+       <Table 
+         columns={columns} 
+         dataSource={filteredAssets} 
+         rowKey="id"
+         pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+         onRow={(record) => ({
+           onClick: () => navigate(`/site/stock/${record.id}`),
+           style: { cursor: 'pointer' }
+         })}
+       />
     </div>
   )
 }
