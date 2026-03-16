@@ -1,27 +1,41 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { instruments, categories } from '../data/mockData'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Search } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick }) {
   const defaultLevel = instrument.levels[0]
+  const firstPayment = defaultLevel.monthlyRent + defaultLevel.deposit
+  const promotionTag = defaultLevel.name === "大师级" ? "限量" : 
+                       defaultLevel.name === "入门级" ? "热销" : ""
+  
   return (
     <div 
-      className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden cursor-pointer"
+      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
       onClick={onClick}
     >
-      <img 
-        src={instrument.image} 
-        alt={instrument.name}
-        className="w-full h-40 object-contain bg-gray-100"
-      />
+      <div className="relative">
+        <img 
+          src={instrument.image} 
+          alt={instrument.name}
+          className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+        />
+        {promotionTag && (
+          <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
+            {promotionTag}
+          </div>
+        )}
+      </div>
       <div className="p-3">
-        <h3 className="font-bold text-lg text-brand-text truncate">{instrument.name}</h3>
-        <p className="text-brand-primary text-xl font-bold mt-1">
+        <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
+        <p className="text-brand-primary text-lg font-bold">
           ¥{defaultLevel.monthlyRent}<span className="text-brand-unit text-sm">/月</span>
         </p>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-gray-500 text-sm">
           押金: ¥{defaultLevel.deposit}
+        </p>
+        <p className="text-gray-400 text-xs">
+          首期实付 ¥{firstPayment} (含押金)
         </p>
       </div>
     </div>
@@ -39,27 +53,41 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Header */}
-      <div className="bg-brand-primary text-white px-4 py-4">
-        <h1 className="text-lg font-bold">乐器租赁</h1>
-        <p className="text-sm opacity-90">精品乐器 轻松租回家</p>
+      <div className="bg-brand-primary text-white px-4 py-4 flex justify-between items-center">
+        <div>
+          <h1 className="text-lg font-bold">乐器租赁</h1>
+          <p className="text-sm opacity-90">精品乐器 轻松租回家</p>
+        </div>
+        <button className="text-white">
+          <Search size={20} />
+        </button>
       </div>
 
       {/* Category Tabs */}
       <div className="bg-white border-b overflow-x-auto">
         <div className="flex px-4 py-3 gap-4">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                activeCategory === cat
-                  ? 'bg-brand-primary text-white transform scale-105 border-b-2 border-brand-primary'
-                  : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {categories.map(cat => {
+            const icons = {
+              "钢琴": "🎹",
+              "吉他": "🎸", 
+              "古筝": "🎻",
+              "提琴": "🎻",
+              "全部": "全部"
+            }
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  activeCategory === cat
+                    ? 'bg-brand-primary text-white transform scale-105 border-b-2 border-brand-primary'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {icons[cat] || ""} {cat}
+              </button>
+            )
+          })}
         </div>
       </div>
 
