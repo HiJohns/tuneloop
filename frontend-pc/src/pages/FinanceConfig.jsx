@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, InputNumber, Button, message, Table, Tag, Tooltip } from 'antd'
+import { Card, InputNumber, Button, message, Table, Tag, Tooltip, Input } from 'antd'
 
 const defaultConfig = {
   levels: {
@@ -113,14 +113,20 @@ export default function FinanceConfig() {
         />
       )
     },
-    {
-      title: '包含服务包内容',
-      dataIndex: 'maintenance',
-      key: 'maintenance',
-      render: (maintenance, record) => (
-        <span className="text-sm text-gray-600">{maintenance}</span>
-      )
-    }
+     {
+       title: '包含服务包内容',
+       dataIndex: 'maintenance',
+       key: 'maintenance',
+       render: (maintenance, record) => (
+         <Input
+           value={maintenance}
+           size="small"
+           onChange={(e) => handleChange(record.level, 'maintenance', e.target.value)}
+           placeholder="输入服务包内容"
+           style={{ width: 200 }}
+         />
+       )
+     }
   ]
 
   const dataSource = Object.entries(config.levels).map(([level, values]) => ({

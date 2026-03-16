@@ -165,6 +165,30 @@ export const myLeases = [
     daysLeft: 7,
     rentMonths: 4,
     totalMonths: 12
+  },
+  {
+    id: 3,
+    instrumentName: "卡马 F1 民谣吉他",
+    image: "https://picsum.photos/seed/guitar/400/400",
+    startDate: "2025-09-01",
+    endDate: "2025-11-01",
+    status: "expired",
+    monthlyRent: 199,
+    daysLeft: 0,
+    rentMonths: 6,
+    totalMonths: 12
+  },
+  {
+    id: 4,
+    instrumentName: "敦煌 694KK 古筝",
+    image: "https://picsum.photos/seed/guzheng/400/400",
+    startDate: "2025-05-01",
+    endDate: "2025-08-15",
+    status: "熔断",
+    monthlyRent: 300,
+    daysLeft: 0,
+    rentMonths: 8,
+    totalMonths: 12
   }
 ];
 

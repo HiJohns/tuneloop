@@ -16,15 +16,18 @@ export default function Checkout() {
   }
 
   const rentOptions = [3, 6, 12]
+  const defaultLevel = instrument.levels[0]
   
   const calculatePayment = (months) => {
-    const baseRent = instrument.monthlyRent * months
-    const discount = months >= 12 ? 0.95 : 1
+    const monthlyRent = defaultLevel?.monthlyRent || 0
+    const deposit = defaultLevel?.deposit || 0
+    const baseRent = monthlyRent * (months || 3)
+    const discount = (months || 3) >= 12 ? 0.95 : 1
     const finalRent = Math.round(baseRent * discount)
     return {
       rent: finalRent,
-      deposit: instrument.deposit,
-      total: finalRent + instrument.deposit
+      deposit: deposit,
+      total: finalRent + deposit
     }
   }
 
@@ -52,7 +55,7 @@ export default function Checkout() {
             />
             <div>
               <p className="font-medium">{instrument.name}</p>
-              <p className="text-orange-500 text-sm">¥{instrument.monthlyRent}/月</p>
+              <p className="text-orange-500 text-sm">¥{(defaultLevel?.monthlyRent || 0)}/月</p>
             </div>
           </div>
         </div>

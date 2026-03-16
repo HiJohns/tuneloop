@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Table, Tag, Button, Space } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { assets } from '../data/mockData'
 
 const statusColors = {
@@ -20,6 +20,7 @@ export default function InstrumentStock() {
   const [searchParams] = useSearchParams()
   const statusParam = searchParams.get('status')
   const overdueParam = searchParams.get('overdue')
+  const navigate = useNavigate()
   
   const filteredAssets = useMemo(() => {
     let result = assets
@@ -43,21 +44,6 @@ export default function InstrumentStock() {
       key: 'id',
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        const statusMap = {
-          "在租": { color: 'green', text: '在线' },
-          "待租": { color: 'blue', text: '在线' },
-          "维修中": { color: 'orange', text: '维修中' },
-          "已熔断": { color: 'red', text: '已熔断' }
-        }
-        const info = statusMap[status] || { color: 'default', text: status }
-        return <Tag color={info.color}>{info.text}</Tag>
-      }
-    },
-    {
       title: '乐器名称',
       dataIndex: 'name',
       key: 'name',
@@ -73,16 +59,22 @@ export default function InstrumentStock() {
       key: 'level',
     },
     {
-      title: '所有权状态',
-      dataIndex: 'ownershipStatus',
-      key: 'ownershipStatus',
-      render: (status) => {
-        const ownershipMap = {
-          "租赁中": { color: 'blue', text: '在线' },
-          "已转售": { color: 'blue', text: '已转售' },
-          "待租": { color: 'default', text: '待租' }
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status, record) => {
+        const getUnifiedStatus = (record) => {
+          if (record.ownershipStatus === "已转售") return { color: 'blue', text: '已售出' }
+          const statusMap = {
+            "在租": { color: 'green', text: '在租' },
+            "待租": { color: 'blue', text: '待租' },
+            "维修中": { color: 'orange', text: '维修中' },
+            "已熔断": { color: 'red', text: '已熔断' }
+          }
+          return statusMap[status] || { color: 'default', text: status }
         }
-        const info = ownershipMap[status] || { color: 'default', text: status }
+        
+        const info = getUnifiedStatus(record)
         return <Tag color={info.color}>{info.text}</Tag>
       }
     },
@@ -130,12 +122,16 @@ export default function InstrumentStock() {
           </Space>
         </div>
       )}
-      <Table 
-        columns={columns} 
-        dataSource={filteredAssets} 
-        rowKey="id"
-        pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-      />
+       <Table 
+         columns={columns} 
+         dataSource={filteredAssets} 
+         rowKey="id"
+         pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+         onRow={(record) => ({
+           onClick: () => navigate(`/site/stock/${record.id}`),
+           style: { cursor: 'pointer' }
+         })}
+       />
     </div>
   )
 }
