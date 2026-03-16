@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"tuneloop-backend/handlers"
 
 	"github.com/gin-contrib/cors"
@@ -13,6 +14,11 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getAbsPath(relativePath string) string {
+	execDir, _ := os.Getwd()
+	return filepath.Join(execDir, relativePath)
 }
 
 func setupAPIRoutes(r *gin.Engine) {
@@ -33,33 +39,35 @@ func main() {
 	pcRouter := gin.Default()
 	pcRouter.Use(cors.Default())
 
+	pcDistPath := getAbsPath("../frontend-pc/dist")
 	pcRouter.GET("/", func(c *gin.Context) {
-		c.File("../frontend-pc/dist/index.html")
+		c.File(filepath.Join(pcDistPath, "index.html"))
 	})
-	pcRouter.Static("/assets", "../frontend-pc/dist/assets")
-	pcRouter.StaticFile("/favicon.ico", "../frontend-pc/dist/favicon.ico")
-	pcRouter.StaticFile("/favicon.svg", "../frontend-pc/dist/favicon.svg")
+	pcRouter.Static("/assets", filepath.Join(pcDistPath, "assets"))
+	pcRouter.StaticFile("/favicon.ico", filepath.Join(pcDistPath, "favicon.ico"))
+	pcRouter.StaticFile("/favicon.svg", filepath.Join(pcDistPath, "favicon.svg"))
 	setupAPIRoutes(pcRouter)
 
 	// SPA support: return index.html for non-static routes
 	pcRouter.NoRoute(func(c *gin.Context) {
-		c.File("../frontend-pc/dist/index.html")
+		c.File(filepath.Join(pcDistPath, "index.html"))
 	})
 
 	// Mobile Service (Port 5553)
 	mobileRouter := gin.Default()
 	mobileRouter.Use(cors.Default())
 
+	mobileDistPath := getAbsPath("../frontend-mobile/dist")
 	mobileRouter.GET("/", func(c *gin.Context) {
-		c.File("../frontend-mobile/dist/index.html")
+		c.File(filepath.Join(mobileDistPath, "index.html"))
 	})
-	mobileRouter.Static("/assets", "../frontend-mobile/dist/assets")
+	mobileRouter.Static("/assets", filepath.Join(mobileDistPath, "assets"))
 	mobileRouter.Static("/instruments", "../frontend-mobile/public/instruments")
 	setupAPIRoutes(mobileRouter)
 
 	// SPA support: return index.html for non-static routes
 	mobileRouter.NoRoute(func(c *gin.Context) {
-		c.File("../frontend-mobile/dist/index.html")
+		c.File(filepath.Join(mobileDistPath, "index.html"))
 	})
 
 	// Start PC server in a goroutine
