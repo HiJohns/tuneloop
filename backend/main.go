@@ -20,6 +20,7 @@ func main() {
 		c.File("../frontend-mobile/dist/index.html")
 	})
 	r.Static("/wx/assets", "../frontend-mobile/dist/assets")
+	r.Static("/wx/instruments", "../frontend-mobile/public/instruments")
 
 	r.NoRoute(func(c *gin.Context) {
 		c.File("../frontend-pc/dist/index.html")
