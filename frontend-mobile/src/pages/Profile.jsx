@@ -36,7 +36,7 @@ function LeaseCard({ lease, onRenew }) {
       <div className="mb-3">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
           <span>已租 {lease.rentMonths}/{lease.totalMonths} 个月</span>
-          <span>再租 {remainingMonths} 个月，乐器归您</span>
+          <span>🎁 再租 {remainingMonths} 个月，乐器归您</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
@@ -46,7 +46,7 @@ function LeaseCard({ lease, onRenew }) {
         </div>
       </div>
       
-      {isUrgent ? (
+      {lease.status === 'urgent' && (
         <div className="flex items-center gap-2">
           <Tag color="orange">{lease.daysLeft}天后到期</Tag>
           <button
@@ -56,8 +56,15 @@ function LeaseCard({ lease, onRenew }) {
             一键续租
           </button>
         </div>
-      ) : (
+      )}
+      {lease.status === 'normal' && (
         <Tag color="green">租约正常</Tag>
+      )}
+      {lease.status === 'expired' && (
+        <Tag color="red">已到期</Tag>
+      )}
+      {lease.status === '熔断' && (
+        <Tag style={{ backgroundColor: '#8B0000', color: 'white' }}>已熔断</Tag>
       )}
     </div>
   )
