@@ -51,9 +51,9 @@ export default function Home() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                 activeCategory === cat
-                  ? 'bg-brand-primary text-white'
+                  ? 'bg-brand-primary text-white transform scale-105 border-b-2 border-brand-primary'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >

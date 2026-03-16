@@ -11,7 +11,7 @@ export default {
       },
       colors: {
         brand: {
-          primary: '#108ee9',
+          primary: '#002140',
           bg: '#F5F5F9',
           text: '#1A1A1A',
           unit: '#A6A6A6',
