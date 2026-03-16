@@ -13,7 +13,7 @@ function InstrumentCard({ instrument, onClick }) {
       <img 
         src={instrument.image} 
         alt={instrument.name}
-        className="w-full h-40 object-cover"
+        className="w-full h-40 object-contain bg-gray-100"
       />
       <div className="p-3">
         <h3 className="font-bold text-lg text-brand-text truncate">{instrument.name}</h3>

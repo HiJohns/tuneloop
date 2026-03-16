@@ -24,7 +24,7 @@ export default function Detail() {
         <img 
           src={instrument.image} 
           alt={instrument.name}
-          className="w-full h-64 object-cover"
+          className="w-full h-64 object-contain bg-gray-100"
         />
         <button 
           onClick={() => navigate(-1)}
