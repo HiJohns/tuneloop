@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { instruments, categories } from '../data/mockData'
-import { ChevronRight, Search } from 'lucide-react'
+import { ChevronRight, Search, Heart } from 'lucide-react'
+import { Skeleton, Toast } from 'antd-mobile'
 
-function InstrumentCard({ instrument, onClick }) {
+function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   const defaultLevel = instrument.levels[0]
   const firstPayment = defaultLevel.monthlyRent + defaultLevel.deposit
   const promotionTag = defaultLevel.name === "大师级" ? "限量" : 
                        defaultLevel.name === "入门级" ? "热销" : ""
+  
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation()
+    onToggleFavorite(instrument.id)
+  }
   
   return (
     <div 
@@ -25,6 +31,12 @@ function InstrumentCard({ instrument, onClick }) {
             {promotionTag}
           </div>
         )}
+        <button
+          onClick={handleFavoriteClick}
+          className="absolute top-2 right-2 text-white bg-black/30 rounded-full p-1"
+        >
+          <Heart size={16} fill={isFavorite ? "red" : "none"} color={isFavorite ? "red" : "white"} />
+        </button>
       </div>
       <div className="p-3">
         <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
@@ -45,6 +57,33 @@ function InstrumentCard({ instrument, onClick }) {
 export default function Home() {
   const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState("全部")
+  const [loading, setLoading] = useState(true)
+  const [favorites, setFavorites] = useState([])
+  const [toast, setToast] = useState({ visible: false, message: "" })
+
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => setLoading(false), 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const toggleFavorite = (instrumentId) => {
+    setFavorites(prev => {
+      const newFavorites = prev.includes(instrumentId)
+        ? prev.filter(id => id !== instrumentId)
+        : [...prev, instrumentId]
+      
+      setToast({
+        visible: true,
+        message: newFavorites.includes(instrumentId) ? "已加入我的收藏" : "已取消收藏"
+      })
+      
+      // Auto hide toast
+      setTimeout(() => setToast({ visible: false, message: "" }), 2000)
+      
+      return newFavorites
+    })
+  }
 
   const filteredInstruments = activeCategory === "全部" 
     ? instruments 
@@ -93,16 +132,42 @@ export default function Home() {
 
       {/* Instrument Grid */}
       <div className="p-4">
-        <div className="grid grid-cols-2 gap-4">
-          {filteredInstruments.map(instrument => (
-            <InstrumentCard
-              key={instrument.id}
-              instrument={instrument}
-              onClick={() => navigate(`/instrument/${instrument.id}`)}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 gap-4">
+            {Array(6).fill(0).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl overflow-hidden">
+                <Skeleton.Image style={{ width: '100%', height: 160 }} />
+                <div className="p-3 space-y-2">
+                  <Skeleton.Paragraph lineCount={2} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredInstruments.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            暂无更多乐器
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {filteredInstruments.map(instrument => (
+              <InstrumentCard
+                key={instrument.id}
+                instrument={instrument}
+                onClick={() => navigate(`/instrument/${instrument.id}`)}
+                isFavorite={favorites.includes(instrument.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Toast */}
+      {toast.visible && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-4 py-2 rounded">
+          {toast.message}
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
