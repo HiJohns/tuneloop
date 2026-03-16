@@ -37,6 +37,8 @@ func main() {
 		c.File("../frontend-pc/dist/index.html")
 	})
 	pcRouter.Static("/assets", "../frontend-pc/dist/assets")
+	pcRouter.StaticFile("/favicon.ico", "../frontend-pc/dist/favicon.ico")
+	pcRouter.StaticFile("/favicon.svg", "../frontend-pc/dist/favicon.svg")
 	setupAPIRoutes(pcRouter)
 
 	// SPA support: return index.html for non-static routes
