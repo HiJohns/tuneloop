@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Modal, message } from 'antd'
+import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { assets } from '../data/mockData'
 
 const statusColors = {
   "在租": "green",
   "待租": "blue",
-  "维修中": "orange",
-  "已熔断": "red"
+  "维修中": "orange"
 }
 
 const levelColors = {
@@ -27,7 +26,6 @@ export default function Dashboard() {
   const [selectedSite, setSelectedSite] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState(null)
-  const [forceAssignModalOpen, setForceAssignModalOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
@@ -48,23 +46,13 @@ export default function Dashboard() {
     a.leaseEnd && a.leaseEnd <= today && a.status === "在租"
   ).length
 
-  const abnormalWorkOrders = filteredAssets.filter(a => 
-    a.workOrder && a.workOrder.jumps >= 3
+  const overdueAssets = filteredAssets.filter(a => 
+    a.leaseEnd && a.leaseEnd < today && a.status === "在租"
   ).length
 
   const handleRowClick = (record) => {
     setSelectedAsset(record)
     setDrawerOpen(true)
-  }
-
-  const handleForceAssign = () => {
-    setDrawerOpen(false)
-    setForceAssignModalOpen(true)
-  }
-
-  const confirmForceAssign = () => {
-    message.success('强制指派成功，已打破熔断锁')
-    setForceAssignModalOpen(false)
   }
 
   const columns = [
@@ -88,8 +76,7 @@ export default function Dashboard() {
         const statusMap = {
           "在租": { color: 'green', text: '在线' },
           "待租": { color: 'blue', text: '在线' },
-          "维修中": { color: 'blue', text: '维修中' },
-          "已熔断": { color: 'red', text: '已熔断' }
+          "维修中": { color: 'blue', text: '维修中' }
         }
         const info = statusMap[status] || { color: 'default', text: status }
         return <Tag color={info.color}>{info.text}</Tag>
@@ -160,19 +147,16 @@ export default function Dashboard() {
         </Col>
         <Col span={8}>
           <Card
-            onClick={() => setStatusFilter('已熔断')}
             style={{ 
-              cursor: 'pointer',
+              cursor: 'default',
               borderColor: '#ff4d4f',
               background: '#fff1f0',
-              transition: 'all 0.3s',
-              borderWidth: 2
+              transition: 'all 0.3s'
             }}
-            hoverable
           >
             <Statistic
-              title="异常工单 (H≥3)"
-              value={abnormalWorkOrders}
+              title="逾期未归还"
+              value={overdueAssets}
               valueStyle={{ 
                 color: '#faad14',
                 fontWeight: 'bold'
@@ -235,25 +219,6 @@ export default function Dashboard() {
               <p><strong>到期日:</strong> {selectedAsset.leaseEnd}</p>
             )}
 
-            {selectedAsset.workOrder && (
-              <div className="mt-4">
-                <p><strong>工单跳数:</strong> </p>
-                <Tag color={selectedAsset.workOrder.jumps >= 3 ? 'red' : 'orange'}>
-                  H = {selectedAsset.workOrder.jumps}
-                </Tag>
-                {selectedAsset.workOrder.jumps >= 3 && (
-                  <Button 
-                    type="primary" 
-                    danger 
-                    className="ml-4"
-                    onClick={handleForceAssign}
-                  >
-                    强制指派
-                  </Button>
-                )}
-              </div>
-            )}
-
             <div className="mt-4">
               <p><strong>流转轨迹:</strong></p>
               <Timeline
@@ -274,17 +239,7 @@ export default function Dashboard() {
         )}
       </Drawer>
 
-      <Modal
-        title="强制指派确认"
-        open={forceAssignModalOpen}
-        onOk={confirmForceAssign}
-        onCancel={() => setForceAssignModalOpen(false)}
-        okText="确认强制指派"
-        cancelText="取消"
-      >
-        <p>确定要强制指派该工单吗？</p>
-        <p>此操作将打破熔断锁，允许重新分配工单。</p>
-      </Modal>
+
     </div>
   )
 }

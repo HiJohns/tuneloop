@@ -5,6 +5,8 @@ import { Badge, Tag } from 'antd'
 
 function LeaseCard({ lease, onRenew }) {
   const isUrgent = lease.status === 'urgent'
+  const progress = (lease.rentMonths / lease.totalMonths) * 100
+  const remainingMonths = lease.totalMonths - lease.rentMonths
   
   return (
     <div className={`${isUrgent ? 'bg-white rounded-xl shadow-lg border border-red-200 p-4' : 'bg-white rounded-xl shadow-sm p-4'}`}>
@@ -27,6 +29,20 @@ function LeaseCard({ lease, onRenew }) {
               {lease.daysLeft}天后到期
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Ownership Progress */}
+      <div className="mb-3">
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
+          <span>已租 {lease.rentMonths}/{lease.totalMonths} 个月</span>
+          <span>再租 {remainingMonths} 个月，乐器归您</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-brand-primary h-2 rounded-full transition-all"
+            style={{ width: `${progress}%` }}
+          ></div>
         </div>
       </div>
       

@@ -9,6 +9,7 @@ export const assets = [
     siteId: "Site-001",
     value: 50000,
     leaseEnd: "2026-03-20",
+    ownershipStatus: "租赁中",
     history: [
       { date: "2025-06-01", action: "出租", renter: "李四" },
       { date: "2025-08-15", action: "归还", renter: "李四" }
@@ -26,6 +27,7 @@ export const assets = [
     siteId: "Site-002",
     value: 3000,
     leaseEnd: null,
+    ownershipStatus: "待租",
     history: [
       { date: "2025-09-01", action: "入库", renter: null }
     ],
@@ -37,11 +39,12 @@ export const assets = [
     name: "敦煌 694KK 古筝",
     category: "古筝",
     level: "入门级",
-    status: "已熔断",
+    status: "在租",
     site: "北京总店",
     siteId: "Site-001",
     value: 2000,
     leaseEnd: "2026-03-10",
+    ownershipStatus: "已转售",
     history: [
       { date: "2025-06-01", action: "出租", renter: "王五" },
       { date: "2025-08-15", action: "归还", renter: "王五" },
@@ -49,11 +52,7 @@ export const assets = [
       { date: "2025-10-01", action: "维修", note: "琴弦更换", renter: null }
     ],
     repairCount: 2,
-    workOrder: {
-      id: "WO-001",
-      jumps: 3,
-      technician: "张师傅"
-    }
+    workOrder: null
   },
   {
     id: "TL-VN-2026-028",
@@ -65,17 +64,14 @@ export const assets = [
     siteId: "Site-002",
     value: 8000,
     leaseEnd: "2026-03-15",
+    ownershipStatus: "租赁中",
     history: [
       { date: "2025-07-01", action: "出租", renter: "赵六" },
       { date: "2025-10-01", action: "归还", renter: "赵六" },
       { date: "2025-10-15", action: "维修", note: "琴弓更换", renter: null }
     ],
     repairCount: 1,
-    workOrder: {
-      id: "WO-002",
-      jumps: 2,
-      technician: "李师傅"
-    }
+    workOrder: null
   },
   {
     id: "TL-DR-2026-055",
@@ -87,6 +83,7 @@ export const assets = [
     siteId: "Site-001",
     value: 15000,
     leaseEnd: "2026-03-25",
+    ownershipStatus: "租赁中",
     history: [
       { date: "2025-11-01", action: "出租", renter: "孙七" }
     ],
@@ -103,6 +100,7 @@ export const assets = [
     siteId: "Site-001",
     value: 45000,
     leaseEnd: "2026-03-18",
+    ownershipStatus: "租赁中",
     history: [
       { date: "2025-08-01", action: "出租", renter: "周八" }
     ],

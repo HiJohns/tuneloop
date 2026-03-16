@@ -16,7 +16,6 @@ import LeaseLedger from './pages/LeaseLedger'
 import DepositFlow from './pages/DepositFlow'
 import ExpireWarning from './pages/ExpireWarning'
 import SupplierDB from './pages/SupplierDB'
-import MeltRuleConfig from './pages/MeltRuleConfig'
 import InstrumentStock from './pages/InstrumentStock'
 import SiteManagement from './pages/SiteManagement'
 import RolePermission from './pages/RolePermission'
@@ -51,8 +50,7 @@ function MainLayout() {
         { key: '/finance', label: '报价单配置' },
         { key: '/settings/roles', label: '角色权限' },
         { key: '/workorders', label: '工单列表' },
-        { key: '/maintenance/suppliers', label: '供应商库' },
-        { key: '/maintenance/melt-rule', label: '熔断规则配置' }
+        { key: '/maintenance/suppliers', label: '维保师傅管理' }
       ] 
     }
   ]

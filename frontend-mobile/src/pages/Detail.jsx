@@ -10,8 +10,11 @@ export default function Detail() {
   const instrument = instruments.find(i => i.id === parseInt(id))
   const [smsReminder, setSmsReminder] = useState(true)
   const [selectedLevel, setSelectedLevel] = useState("入门级")
+  const [noDeposit, setNoDeposit] = useState(false)
 
   const currentLevel = instrument.levels.find(l => l.name === selectedLevel)
+  const deposit = noDeposit ? 0 : currentLevel.deposit
+  const firstPayment = currentLevel.monthlyRent + deposit
 
   if (!instrument) {
     return <div className="p-4">乐器不存在</div>
@@ -55,8 +58,20 @@ export default function Detail() {
             <p className="text-brand-primary font-bold text-2xl">¥{currentLevel.monthlyRent}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-sm">押金</p>
-            <p className="text-gray-800 font-bold text-xl">¥{currentLevel.deposit}</p>
+            <p className="text-gray-500 text-sm">
+              押金
+              <Switch 
+                size="small" 
+                checked={noDeposit} 
+                onChange={setNoDeposit} 
+                className="ml-2"
+              />
+              <span className="text-xs ml-1">免押金</span>
+            </p>
+            <p className="text-gray-800 font-bold text-xl">
+              ¥{deposit}
+              {noDeposit && <span className="text-xs ml-1 text-green-600">(信用担保)</span>}
+            </p>
           </div>
         </div>
 
@@ -68,12 +83,12 @@ export default function Detail() {
             <span className="font-medium">¥{currentLevel.monthlyRent}</span>
           </div>
           <div className="flex justify-between text-sm mt-1">
-            <span className="text-gray-600">押金</span>
-            <span className="font-medium">¥{currentLevel.deposit}</span>
+            <span className="text-gray-600">押金{noDeposit && '（免）'}</span>
+            <span className="font-medium">¥{deposit}</span>
           </div>
           <div className="border-t border-orange-200 mt-2 pt-2 flex justify-between font-bold">
             <span className="text-orange-900">合计</span>
-            <span className="text-orange-600">¥{currentLevel.monthlyRent + currentLevel.deposit}</span>
+            <span className="text-orange-600">¥{firstPayment}</span>
           </div>
         </div>
 

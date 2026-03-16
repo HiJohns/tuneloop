@@ -3,9 +3,9 @@ import { Card, InputNumber, Button, message, Table, Tag, Tooltip } from 'antd'
 
 const defaultConfig = {
   levels: {
-    "入门级": { rent: 299, deposit: 1000, renewalDiscount: 0.95 },
-    "专业级": { rent: 599, deposit: 3000, renewalDiscount: 0.9 },
-    "大师级": { rent: 1299, deposit: 8000, renewalDiscount: 0.85 }
+    "入门级": { rent: 299, deposit: 1000, renewalDiscount: 0.95, maintenance: "外观清洗、基础调律" },
+    "专业级": { rent: 599, deposit: 3000, renewalDiscount: 0.9, maintenance: "深度清洁、精细调律" },
+    "大师级": { rent: 1299, deposit: 8000, renewalDiscount: 0.85, maintenance: "大师级养护、专家精调" }
   }
 }
 
@@ -111,6 +111,14 @@ export default function FinanceConfig() {
           formatter={value => `${(value * 100).toFixed(0)}%`}
           parser={value => value.replace('%', '') / 100}
         />
+      )
+    },
+    {
+      title: '包含服务包内容',
+      dataIndex: 'maintenance',
+      key: 'maintenance',
+      render: (maintenance, record) => (
+        <span className="text-sm text-gray-600">{maintenance}</span>
       )
     }
   ]
