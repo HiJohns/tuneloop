@@ -49,6 +49,25 @@ func setupAPIRoutes(r *gin.Engine) {
 		api.GET("/merchant/inventory", inventoryHandler.ListInventory)
 		api.POST("/merchant/inventory/transfer", inventoryHandler.TransferInventory)
 		api.GET("/merchant/inventory/transfers", inventoryHandler.ListTransfers)
+
+		// Ownership Management
+		maintHandler := handlers.NewMaintenanceHandler()
+		api.GET("/user/ownership/:id", handlers.GetOwnershipInfo)
+		api.GET("/user/ownership/:id/download", handlers.DownloadOwnershipCertificate)
+		api.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
+		api.PUT("/orders/:id/terminate", handlers.TerminateOrder)
+
+		// Maintenance APIs
+		api.POST("/maintenance", maintHandler.SubmitRepair)
+		api.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
+		api.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
+
+		// Merchant Maintenance
+		api.GET("/merchant/maintenance", maintHandler.ListMerchantMaintenance)
+		api.PUT("/merchant/maintenance/:id/accept", maintHandler.AcceptMaintenance)
+		api.PUT("/merchant/maintenance/:id/assign", maintHandler.AssignTechnician)
+		api.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
+		api.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
 	}
 }
 

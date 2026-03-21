@@ -97,3 +97,20 @@ type BrandConfig struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+type OwnershipCertificate struct {
+	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID        string    `gorm:"type:uuid;uniqueIndex;not null" json:"order_id"`
+	UserID         string    `gorm:"type:uuid;index" json:"user_id"`
+	InstrumentID   string    `gorm:"type:uuid;index" json:"instrument_id"`
+	TransferDate   time.Time `json:"transfer_date"`
+	CertificateURL string    `gorm:"type:varchar(500)" json:"certificate_url"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type Technician struct {
+	ID     string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SiteID string `gorm:"type:uuid;index" json:"site_id"`
+	Name   string `gorm:"type:varchar(100)" json:"name"`
+	Phone  string `gorm:"type:varchar(50)" json:"phone"`
+}
