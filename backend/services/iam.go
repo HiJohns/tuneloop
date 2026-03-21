@@ -28,8 +28,16 @@ type PublicKeyResponse struct {
 }
 
 func NewIAMService() *IAMService {
+	baseURL := os.Getenv("BEACONIAM_INTERNAL_URL")
+	if baseURL == "" {
+		baseURL = os.Getenv("BEACONIAM_EXTERNAL_URL")
+	}
+	if baseURL == "" {
+		baseURL = os.Getenv("IAM_URL")
+	}
+
 	return &IAMService{
-		baseURL:      os.Getenv("IAM_URL"),
+		baseURL:      baseURL,
 		clientID:     os.Getenv("IAM_CLIENT_ID"),
 		clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
