@@ -27,9 +27,9 @@ func LoadConfig() *Config {
 	return &Config{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnv("DB_PORT", "5432"),
-		User:     getEnv("DB_USER", "tuneloop"),
-		Password: getEnv("DB_PASSWORD", ""),
-		DBName:   getEnv("DB_NAME", "tuneloop"),
+		User:     getEnv("TUNELOOP_DB_USERNAME", "tuneloop"),
+		Password: getEnv("TUNELOOP_DB_PASSWORD", ""),
+		DBName:   getEnv("TUNELOOP_DB", "tuneloop"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 }
