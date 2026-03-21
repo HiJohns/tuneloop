@@ -25,10 +25,10 @@ type Config struct {
 
 func LoadConfig() *Config {
 	return &Config{
-		Host:     getEnv("DB_HOST", "localhost"),
-		Port:     getEnv("DB_PORT", "5432"),
-		User:     getEnv("TUNELOOP_DB_USERNAME", "tuneloop"),
-		Password: getEnv("TUNELOOP_DB_PASSWORD", ""),
+		Host:     getEnv("POSTGRES_HOST", "localhost"),
+		Port:     getEnv("POSTGRES_PORT", "5432"),
+		User:     getEnv("POSTGRES_USER", "tuneloop"),
+		Password: getEnv("POSTGRES_PASSWORD", ""),
 		DBName:   getEnv("TUNELOOP_DB", "tuneloop"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
