@@ -23,6 +23,9 @@ func getAbsPath(relativePath string) string {
 }
 
 func setupAPIRoutes(r *gin.Engine) {
+	siteHandler := handlers.NewSiteHandler()
+	inventoryHandler := handlers.NewInventoryHandler()
+
 	api := r.Group("/api")
 	{
 		api.GET("/instruments", handlers.GetInstruments)
@@ -33,6 +36,19 @@ func setupAPIRoutes(r *gin.Engine) {
 		api.GET("/overdue-leases", handlers.GetOverdueLeases)
 		api.POST("/orders/preview", handlers.PreviewOrder)
 		api.POST("/orders", handlers.CreateOrder)
+
+		// Site Management
+		api.GET("/common/sites", siteHandler.ListSites)
+		api.GET("/common/sites/nearby", siteHandler.GetNearbySites)
+		api.GET("/common/sites/:id", siteHandler.GetSiteDetail)
+		api.POST("/merchant/sites", siteHandler.CreateSite)
+		api.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
+		api.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
+
+		// Inventory Management
+		api.GET("/merchant/inventory", inventoryHandler.ListInventory)
+		api.POST("/merchant/inventory/transfer", inventoryHandler.TransferInventory)
+		api.GET("/merchant/inventory/transfers", inventoryHandler.ListTransfers)
 	}
 }
 
