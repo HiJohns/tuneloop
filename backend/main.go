@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"tuneloop-backend/handlers"
+	"tuneloop-backend/internal/tasks"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -22,12 +23,16 @@ func getAbsPath(relativePath string) string {
 }
 
 func setupAPIRoutes(r *gin.Engine) {
-	api := r.Group("/api/v1")
+	api := r.Group("/api")
 	{
 		api.GET("/instruments", handlers.GetInstruments)
+		api.GET("/instruments/:id", handlers.GetInstruments)
+		api.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		api.GET("/sites", handlers.GetSites)
 		api.POST("/upload", handlers.HandleUpload)
 		api.GET("/overdue-leases", handlers.GetOverdueLeases)
+		api.POST("/orders/preview", handlers.PreviewOrder)
+		api.POST("/orders", handlers.CreateOrder)
 	}
 }
 
@@ -72,6 +77,10 @@ func main() {
 
 	// Start PC server in a goroutine
 	go pcRouter.Run(":" + pcPort)
+
+	// Start lease accumulator task
+	leaseAccumulator := tasks.NewLeaseAccumulator()
+	leaseAccumulator.Start()
 
 	// Start Mobile server (blocking)
 	mobileRouter.Run(":" + mobilePort)
