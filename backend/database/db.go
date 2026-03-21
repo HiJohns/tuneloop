@@ -12,6 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var dbInstance *gorm.DB
+
 type Config struct {
 	Host     string
 	Port     string
@@ -85,5 +87,17 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Site{},
 		&models.MaintenanceTicket{},
 		&models.BrandConfig{},
+		&models.OwnershipCertificate{},
 	)
+}
+
+func SetDB(db *gorm.DB) {
+	dbInstance = db
+}
+
+func GetDB() *gorm.DB {
+	if dbInstance == nil {
+		panic("database not initialized, call InitDB first")
+	}
+	return dbInstance
 }
