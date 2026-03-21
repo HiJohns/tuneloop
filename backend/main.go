@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
@@ -22,6 +23,24 @@ func getEnv(key, defaultValue string) string {
 func getAbsPath(relativePath string) string {
 	execDir, _ := os.Getwd()
 	return filepath.Join(execDir, relativePath)
+}
+
+func extractPort(url string) string {
+	if strings.HasPrefix(url, "http://") {
+		url = strings.TrimPrefix(url, "http://")
+		parts := strings.Split(url, ":")
+		if len(parts) > 1 {
+			return parts[1]
+		}
+	}
+	if strings.HasPrefix(url, "https://") {
+		url = strings.TrimPrefix(url, "https://")
+		parts := strings.Split(url, ":")
+		if len(parts) > 1 {
+			return parts[1]
+		}
+	}
+	return "5554"
 }
 
 func setupAPIRoutes(r *gin.Engine) {
@@ -87,8 +106,10 @@ func main() {
 		fmt.Printf("Warning: migration failed: %v\n", err)
 	}
 
-	pcPort := getEnv("PC_PORT", "5554")
-	mobilePort := getEnv("MOBILE_PORT", "5553")
+	wwwURL := getEnv("TUNELOOP_WWW_URL", "http://localhost:5554")
+	wxURL := getEnv("TUNELOOP_WX_URL", "http://localhost:5553")
+	pcPort := extractPort(wwwURL)
+	mobilePort := extractPort(wxURL)
 
 	// PC Service (Port 5554)
 	pcRouter := gin.Default()

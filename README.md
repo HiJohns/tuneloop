@@ -264,31 +264,32 @@ const { config } = useBrand();
 
 ### 后端 (.env)
 ```bash
-# IAM 配置
-IAM_URL=https://iam.example.com
+# PostgreSQL Database
+POSTGRES_HOST=localhost          # Database host (default: localhost)
+POSTGRES_PORT=5432              # Database port (default: 5432)
+POSTGRES_USER=tuneloop          # Database username (default: tuneloop)
+POSTGRES_PASSWORD=your_password # Database password
+TUNELOOP_DB=tuneloop            # Database name (default: tuneloop)
+DB_SSLMODE=disable              # SSL mode (default: disable)
+
+# Beacon IAM Integration
+BEACONIAM_EXTERNAL_URL=https://iam.example.com  # External IAM URL (frontend redirect)
+BEACONIAM_INTERNAL_URL=http://localhost:8080    # Internal IAM URL (backend API calls)
 IAM_CLIENT_ID=tuneloop
 IAM_CLIENT_SECRET=your_secret_key
 
-# 数据库
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=tuneloop
-DB_PASSWORD=your_password
-DB_NAME=tuneloop
-DB_SSLMODE=disable
-
-# 服务端口
-PC_PORT=5554
-MOBILE_PORT=5553
+# Service URLs
+TUNELOOP_WWW_URL=http://localhost:5554  # PC Web service URL (default)
+TUNELOOP_WX_URL=http://localhost:5553   # WeChat mobile service URL (default)
 ```
 
 ### 前端 (.env)
 ```bash
-# IAM
+# IAM (uses external URL for frontend redirect)
 VITE_IAM_URL=https://iam.example.com
 VITE_CLIENT_ID=tuneloop
 
-# API
+# API (backend service)
 VITE_API_BASE=http://localhost:5554/api
 ```
 

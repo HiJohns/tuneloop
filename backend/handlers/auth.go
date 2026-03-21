@@ -26,9 +26,17 @@ type TokenResponse struct {
 }
 
 func NewAuthHandler(db *gorm.DB) *AuthHandler {
+	iamURL := os.Getenv("BEACONIAM_INTERNAL_URL")
+	if iamURL == "" {
+		iamURL = os.Getenv("BEACONIAM_EXTERNAL_URL")
+	}
+	if iamURL == "" {
+		iamURL = os.Getenv("IAM_URL")
+	}
+
 	return &AuthHandler{
 		iamService: &IAMService{
-			baseURL:      os.Getenv("IAM_URL"),
+			baseURL:      iamURL,
 			clientID:     os.Getenv("IAM_CLIENT_ID"),
 			clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
 		},
