@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
 
@@ -72,6 +74,19 @@ func setupAPIRoutes(r *gin.Engine) {
 }
 
 func main() {
+	// 初始化数据库
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		panic("failed to initialize database: " + err.Error())
+	}
+	database.SetDB(db)
+
+	// 运行迁移
+	if err := database.RunMigrations(db); err != nil {
+		fmt.Printf("Warning: migration failed: %v\n", err)
+	}
+
 	pcPort := getEnv("PC_PORT", "5554")
 	mobilePort := getEnv("MOBILE_PORT", "5553")
 
