@@ -10,9 +10,15 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	gormPostgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/joho/godotenv"
 )
 
 var dbInstance *gorm.DB
+
+func init() {
+	godotenv.Load()
+}
 
 type Config struct {
 	Host     string

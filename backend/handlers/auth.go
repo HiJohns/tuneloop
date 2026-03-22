@@ -9,14 +9,8 @@ import (
 )
 
 type AuthHandler struct {
-	iamService *IAMService
+	iamService *services.IAMService
 	db         *gorm.DB
-}
-
-type IAMService struct {
-	baseURL      string
-	clientID     string
-	clientSecret string
 }
 
 type TokenResponse struct {
@@ -27,13 +21,10 @@ type TokenResponse struct {
 }
 
 func NewAuthHandler(db *gorm.DB) *AuthHandler {
+	iamSvc := services.NewIAMService()
 	return &AuthHandler{
-		iamService: &IAMService{
-			baseURL:      services.GetIAMInternalURL(),
-			clientID:     os.Getenv("IAM_CLIENT_ID"),
-			clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
-		},
-		db: db,
+		iamService: iamSvc,
+		db:         db,
 	}
 }
 
@@ -107,22 +98,4 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		"code": 20000,
 		"data": tokenResp,
 	})
-}
-
-func (s *IAMService) ExchangeCode(code string) (*TokenResponse, error) {
-	return &TokenResponse{
-		AccessToken:  "mock_access_token_for_code_" + code,
-		RefreshToken: "mock_refresh_token_for_code_" + code,
-		ExpiresIn:    2592000,
-		TokenType:    "Bearer",
-	}, nil
-}
-
-func (s *IAMService) RefreshToken(refreshToken string) (*TokenResponse, error) {
-	return &TokenResponse{
-		AccessToken:  "new_access_token_for_refresh_" + refreshToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    2592000,
-		TokenType:    "Bearer",
-	}, nil
 }

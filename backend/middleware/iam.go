@@ -3,10 +3,11 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type IAMClaims struct {
@@ -27,6 +28,12 @@ const (
 	ContextKeyRole     ContextKey = "role"
 )
 
+var validIssuers = []string{
+	"beacon-iam",
+	"http://opencode.linxdeep.com:5552",
+	"http://localhost:5552",
+}
+
 func IAMInterceptor(publicKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -41,7 +48,7 @@ func IAMInterceptor(publicKey string) gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwt.ParseWithClaims(tokenString, &IAMClaims{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 			return []byte(publicKey), nil
@@ -50,7 +57,7 @@ func IAMInterceptor(publicKey string) gin.HandlerFunc {
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40101,
-				"message": "invalid token",
+				"message": "invalid token: " + err.Error(),
 			})
 			return
 		}
@@ -64,10 +71,17 @@ func IAMInterceptor(publicKey string) gin.HandlerFunc {
 			return
 		}
 
-		if claims.Issuer != "beacon-iam" {
+		issuerValid := false
+		for _, issuer := range validIssuers {
+			if claims.Issuer == issuer {
+				issuerValid = true
+				break
+			}
+		}
+		if !issuerValid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    40101,
-				"message": "invalid token issuer",
+				"code":    40102,
+				"message": "invalid token issuer: " + claims.Issuer,
 			})
 			return
 		}

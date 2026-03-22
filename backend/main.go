@@ -49,9 +49,14 @@ func extractPort(urlStr string) string {
 func setupAPIRoutes(r *gin.Engine) {
 	siteHandler := handlers.NewSiteHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
+	authHandler := handlers.NewAuthHandler(database.GetDB())
 
 	api := r.Group("/api")
 	{
+		// Auth routes
+		api.GET("/auth/callback", authHandler.Callback)
+		api.POST("/auth/refresh", authHandler.Refresh)
+
 		api.GET("/instruments", handlers.GetInstruments)
 		api.GET("/instruments/:id", handlers.GetInstruments)
 		api.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
