@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
@@ -25,22 +25,24 @@ func getAbsPath(relativePath string) string {
 	return filepath.Join(execDir, relativePath)
 }
 
-func extractPort(url string) string {
-	if strings.HasPrefix(url, "http://") {
-		url = strings.TrimPrefix(url, "http://")
-		parts := strings.Split(url, ":")
-		if len(parts) > 1 {
-			return parts[1]
-		}
+func extractPort(urlStr string) string {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "5554"
 	}
-	if strings.HasPrefix(url, "https://") {
-		url = strings.TrimPrefix(url, "https://")
-		parts := strings.Split(url, ":")
-		if len(parts) > 1 {
-			return parts[1]
-		}
+
+	if u.Port() != "" {
+		return u.Port()
 	}
-	return "5554"
+
+	switch u.Scheme {
+	case "https":
+		return "443"
+	case "http":
+		return "80"
+	default:
+		return "5554"
+	}
 }
 
 func setupAPIRoutes(r *gin.Engine) {
