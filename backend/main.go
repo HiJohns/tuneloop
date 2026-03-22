@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
+	"tuneloop-backend/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,22 +26,24 @@ func getAbsPath(relativePath string) string {
 	return filepath.Join(execDir, relativePath)
 }
 
-func extractPort(url string) string {
-	if strings.HasPrefix(url, "http://") {
-		url = strings.TrimPrefix(url, "http://")
-		parts := strings.Split(url, ":")
-		if len(parts) > 1 {
-			return parts[1]
-		}
+func extractPort(urlStr string) string {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "5554"
 	}
-	if strings.HasPrefix(url, "https://") {
-		url = strings.TrimPrefix(url, "https://")
-		parts := strings.Split(url, ":")
-		if len(parts) > 1 {
-			return parts[1]
-		}
+
+	if u.Port() != "" {
+		return u.Port()
 	}
-	return "5554"
+
+	switch u.Scheme {
+	case "https":
+		return "443"
+	case "http":
+		return "80"
+	default:
+		return "5554"
+	}
 }
 
 func setupAPIRoutes(r *gin.Engine) {
@@ -104,6 +107,11 @@ func main() {
 	// 运行迁移
 	if err := database.RunMigrations(db); err != nil {
 		fmt.Printf("Warning: migration failed: %v\n", err)
+	}
+
+	// IAM Bootstrap
+	if err := services.BootstrapIAM(db); err != nil {
+		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
 	}
 
 	wwwURL := getEnv("TUNELOOP_WWW_URL", "http://localhost:5554")

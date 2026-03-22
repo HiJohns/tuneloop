@@ -114,3 +114,13 @@ type Technician struct {
 	Name   string `gorm:"type:varchar(100)" json:"name"`
 	Phone  string `gorm:"type:varchar(50)" json:"phone"`
 }
+
+type Client struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ClientID     string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"client_id"`
+	ClientSecret string    `gorm:"type:varchar(255)" json:"client_secret"`
+	Name         string    `gorm:"type:varchar(100)" json:"name"`
+	RedirectURIs string    `gorm:"type:text" json:"redirect_uris"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

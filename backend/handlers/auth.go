@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"os"
+	"tuneloop-backend/services"
 )
 
 type AuthHandler struct {
@@ -26,22 +27,31 @@ type TokenResponse struct {
 }
 
 func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	iamURL := os.Getenv("BEACONIAM_INTERNAL_URL")
-	if iamURL == "" {
-		iamURL = os.Getenv("BEACONIAM_EXTERNAL_URL")
-	}
-	if iamURL == "" {
-		iamURL = os.Getenv("IAM_URL")
-	}
-
 	return &AuthHandler{
 		iamService: &IAMService{
-			baseURL:      iamURL,
+			baseURL:      services.GetIAMInternalURL(),
 			clientID:     os.Getenv("IAM_CLIENT_ID"),
 			clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
 		},
 		db: db,
 	}
+}
+
+func (h *AuthHandler) GetOIDCAuthorizationURL(c *gin.Context) {
+	externalURL := services.GetIAMExternalURL()
+	clientID := os.Getenv("IAM_CLIENT_ID")
+	redirectURI := os.Getenv("IAM_REDIRECT_URI")
+
+	if redirectURI == "" {
+		redirectURI = externalURL + "/authorize?client_id=" + clientID
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"authorization_url": redirectURI,
+		},
+	})
 }
 
 func (h *AuthHandler) Callback(c *gin.Context) {
