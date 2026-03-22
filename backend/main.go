@@ -8,6 +8,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
+	"tuneloop-backend/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -106,6 +107,11 @@ func main() {
 	// 运行迁移
 	if err := database.RunMigrations(db); err != nil {
 		fmt.Printf("Warning: migration failed: %v\n", err)
+	}
+
+	// IAM Bootstrap
+	if err := services.BootstrapIAM(db); err != nil {
+		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
 	}
 
 	wwwURL := getEnv("TUNELOOP_WWW_URL", "http://localhost:5554")
