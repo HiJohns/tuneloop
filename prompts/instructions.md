@@ -1,1 +1,1 @@
-/home/coder/instructions.md
+/home/coder/.config/opencode/prompts/instructions.md
