@@ -143,23 +143,7 @@ export default function WorkOrderList() {
           style: record.jumps >= 3 ? { backgroundColor: '#fff1f0' } : {}
         })}
       />
-      )}
       
-      <Table 
-        columns={columns} 
-        dataSource={workOrders}
-        pagination={{
-          total: workOrders.length,
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`
-        }}
-        rowKey="key"
-        onRow={(record) => ({
-          style: record.jumps >= 3 ? { backgroundColor: '#fff1f0' } : {}
-        })}
-      />
-
       <Modal
         title="强制解锁确认"
         open={unlockModalOpen}
