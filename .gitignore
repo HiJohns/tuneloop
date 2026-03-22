@@ -1,0 +1,14 @@
+*.swp
+.env
+
+# Build artifacts in dist directories (hashed filenames change with each build)
+frontend-pc/dist/assets/index-*.js
+frontend-pc/dist/assets/index-*.css
+frontend-mobile/dist/assets/index-*.js
+frontend-mobile/dist/assets/index-*.css
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
