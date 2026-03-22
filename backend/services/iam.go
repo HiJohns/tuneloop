@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+var (
+	iamInternalURL = os.Getenv("BEACONIAM_INTERNAL_URL")
+	iamExternalURL = os.Getenv("BEACONIAM_EXTERNAL_URL")
+)
+
 type IAMService struct {
 	baseURL      string
 	clientID     string
@@ -27,17 +32,29 @@ type PublicKeyResponse struct {
 	PublicKey string `json:"public_key"`
 }
 
-func NewIAMService() *IAMService {
-	baseURL := os.Getenv("BEACONIAM_INTERNAL_URL")
-	if baseURL == "" {
-		baseURL = os.Getenv("BEACONIAM_EXTERNAL_URL")
+func GetIAMInternalURL() string {
+	if iamInternalURL != "" {
+		return iamInternalURL
 	}
-	if baseURL == "" {
-		baseURL = os.Getenv("IAM_URL")
+	if iamExternalURL != "" {
+		return iamExternalURL
 	}
+	return os.Getenv("IAM_URL")
+}
 
+func GetIAMExternalURL() string {
+	if iamExternalURL != "" {
+		return iamExternalURL
+	}
+	if iamInternalURL != "" {
+		return iamInternalURL
+	}
+	return os.Getenv("IAM_URL")
+}
+
+func NewIAMService() *IAMService {
 	return &IAMService{
-		baseURL:      baseURL,
+		baseURL:      GetIAMInternalURL(),
 		clientID:     os.Getenv("IAM_CLIENT_ID"),
 		clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
