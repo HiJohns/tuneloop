@@ -1,19 +1,17 @@
-import { useState, useMemo } from 'react'
-import { Table, Tag, Button, Space } from 'antd'
+import { useState, useMemo, useEffect } from 'react'
+import { Table, Tag, Button, Space, Spin } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { assets } from '../data/mockData'
+import { inventoryApi } from '../services/api'
 
 const statusColors = {
   "在租": "green",
   "待租": "blue",
   "维修中": "orange",
-  "已熔断": "red"
-}
-
-const ownershipColors = {
-  "租赁中": "blue",
-  "已转售": "blue"
+  "已熔断": "red",
+  "rented": "green",
+  "available": "blue",
+  "maintenance": "orange",
 }
 
 export default function InstrumentStock() {
@@ -21,7 +19,25 @@ export default function InstrumentStock() {
   const statusParam = searchParams.get('status')
   const overdueParam = searchParams.get('overdue')
   const navigate = useNavigate()
-  
+  const [assets, setAssets] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const data = await inventoryApi.list()
+      setAssets(data || [])
+    } catch (error) {
+      console.error('Failed to load inventory:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredAssets = useMemo(() => {
     let result = assets
     
@@ -31,11 +47,11 @@ export default function InstrumentStock() {
     
     if (overdueParam === 'true') {
       const today = new Date().toISOString().split('T')[0]
-      result = result.filter(a => a.leaseEnd && a.leaseEnd < today && a.status === '在租')
+      result = result.filter(a => a.leaseEnd && a.leaseEnd < today && (a.status === '在租' || a.status === 'rented'))
     }
     
     return result
-  }, [statusParam, overdueParam])
+  }, [assets, statusParam, overdueParam])
   
   const columns = [
     {
@@ -64,11 +80,13 @@ export default function InstrumentStock() {
       key: 'status',
       render: (status, record) => {
         const getUnifiedStatus = (record) => {
-          if (record.ownershipStatus === "已转售") return { color: 'blue', text: '已售出' }
           const statusMap = {
             "在租": { color: 'green', text: '在租' },
+            "rented": { color: 'green', text: '在租' },
             "待租": { color: 'blue', text: '待租' },
+            "available": { color: 'blue', text: '待租' },
             "维修中": { color: 'orange', text: '维修中' },
+            "maintenance": { color: 'orange', text: '维修中' },
             "已熔断": { color: 'red', text: '已熔断' }
           }
           return statusMap[status] || { color: 'default', text: status }
@@ -88,7 +106,7 @@ export default function InstrumentStock() {
       dataIndex: 'value',
       key: 'value',
       align: 'right',
-      render: (value) => `¥${value.toLocaleString()}`
+      render: (value) => `¥${(value || 0).toLocaleString()}`
     },
     {
       title: '操作',
@@ -102,6 +120,14 @@ export default function InstrumentStock() {
       )
     }
   ]
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <Spin size="large" />
+      </div>
+    )
+  }
 
   return (
     <div>

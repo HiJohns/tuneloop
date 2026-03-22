@@ -1,26 +1,23 @@
-import { useState } from 'react'
-import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge } from 'antd'
+import { useState, useEffect } from 'react'
+import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { assets } from '../data/mockData'
+import { inventoryApi } from '../services/api'
 
 const statusColors = {
   "在租": "green",
   "待租": "blue",
-  "维修中": "orange"
+  "维修中": "orange",
+  "available": "blue",
+  "rented": "green",
+  "maintenance": "orange",
 }
 
 const levelColors = {
   "入门级": "default",
   "专业级": "blue",
-  "大师级": "gold"
+  "大师级": "gold",
 }
-
-const sites = [
-  { value: "Site-001", label: "北京总店" },
-  { value: "Site-002", label: "上海分店" },
-  { value: "Site-003", label: "维修供应商" }
-]
 
 export default function Dashboard() {
   const [form] = Form.useForm()
@@ -28,13 +25,39 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [statusFilter, setStatusFilter] = useState(null)
+  const [sites, setSites] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [assets, setAssets] = useState([])
   const navigate = useNavigate()
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [inventoryData, sitesData] = await Promise.all([
+        inventoryApi.list(),
+        sitesApi.list(),
+      ])
+      setAssets(inventoryData || [])
+      setSites((sitesData || []).map(s => ({
+        value: s.id,
+        label: s.name,
+      })))
+    } catch (error) {
+      console.error('Failed to load data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCardClick = (filterType) => {
     if (filterType === '在租') {
-      navigate('/site/stock?status=在租')
+      navigate('/site/stock?status=rented')
     } else if (filterType === '维修中') {
-      navigate('/site/stock?status=维修中')
+      navigate('/site/stock?status=maintenance')
     } else if (filterType === '逾期') {
       navigate('/site/stock?overdue=true')
     }
@@ -51,15 +74,15 @@ export default function Dashboard() {
     : filteredAssets
 
   const totalValue = filteredAssets
-    .filter(a => a.status === "在租")
-    .reduce((sum, a) => sum + a.value, 0)
+    .filter(a => a.status === "在租" || a.status === "rented")
+    .reduce((sum, a) => sum + (a.value || 0), 0)
 
   const expiringToday = filteredAssets.filter(a => 
-    a.leaseEnd && a.leaseEnd <= today && a.status === "在租"
+    a.leaseEnd && a.leaseEnd <= today && (a.status === "在租" || a.status === "rented")
   ).length
 
   const overdueAssets = filteredAssets.filter(a => 
-    a.leaseEnd && a.leaseEnd < today && a.status === "在租"
+    a.leaseEnd && a.leaseEnd < today && (a.status === "在租" || a.status === "rented")
   ).length
 
   const handleRowClick = (record) => {
@@ -87,8 +110,11 @@ export default function Dashboard() {
       render: (status) => {
         const statusMap = {
           "在租": { color: 'green', text: '在线' },
+          "rented": { color: 'green', text: '在租' },
           "待租": { color: 'blue', text: '在线' },
-          "维修中": { color: 'blue', text: '维修中' }
+          "available": { color: 'blue', text: '待租' },
+          "维修中": { color: 'orange', text: '维修中' },
+          "maintenance": { color: 'orange', text: '维修中' }
         }
         const info = statusMap[status] || { color: 'default', text: status }
         return <Tag color={info.color}>{info.text}</Tag>
@@ -117,7 +143,7 @@ export default function Dashboard() {
       dataIndex: 'value',
       key: 'value',
       align: 'right',
-      render: (value) => `¥${value.toLocaleString()}`
+      render: (value) => `¥${(value || 0).toLocaleString()}`
     },
     {
       title: '操作',
@@ -132,6 +158,14 @@ export default function Dashboard() {
       )
     }
   ]
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        <Spin size="large" />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -226,40 +260,21 @@ export default function Dashboard() {
             <p><strong>名称:</strong> {selectedAsset.name}</p>
             <p><strong>级别:</strong> <Tag color={levelColors[selectedAsset.level]}>{selectedAsset.level}</Tag></p>
             <p><strong>状态:</strong> <Tag color={statusColors[selectedAsset.status]}>{selectedAsset.status}</Tag></p>
-            <p><strong>估值:</strong> ¥{selectedAsset.value.toLocaleString()}</p>
+            <p><strong>估值:</strong> ¥{(selectedAsset.value || 0).toLocaleString()}</p>
             <p><strong>网点:</strong> {selectedAsset.site}</p>
             {selectedAsset.leaseEnd && (
               <p><strong>到期日:</strong> {selectedAsset.leaseEnd}</p>
             )}
-
-            <div className="mt-4">
-              <p><strong>流转轨迹:</strong></p>
-              <Timeline
-                items={selectedAsset.history.map((h) => ({
-                  color: h.action === '维修' ? 'orange' : 'green',
-                  children: (
-                    <div>
-                      <p>{h.date} - {h.action}</p>
-                      {h.renter && <p>租户: {h.renter}</p>}
-                      {h.note && <p>备注: {h.note}</p>}
-                    </div>
-                  )
-                }))}
-              />
-              <p><strong>维修次数:</strong> {selectedAsset.repairCount} 次</p>
-            </div>
           </div>
         )}
       </Drawer>
-
-
     </div>
   )
 }
 
-function Card({ children, className }) {
+function Card({ children, className, ...props }) {
   return (
-    <div className={`bg-white p-4 rounded shadow ${className}`}>
+    <div className={`bg-white p-4 rounded shadow ${className}`} {...props}>
       {children}
     </div>
   )

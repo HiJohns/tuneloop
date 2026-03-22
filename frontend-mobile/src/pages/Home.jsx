@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { instruments, categories } from '../data/mockData'
+import { api, instrumentsApi } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
@@ -59,11 +59,27 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState([])
   const [toast, setToast] = useState({ visible: false, message: "" })
+  const [instruments, setInstruments] = useState([])
+  const [categories, setCategories] = useState(["全部"])
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 1000)
-    return () => clearTimeout(timer)
+    const fetchInstruments = async () => {
+      try {
+        setLoading(true)
+        const data = await instrumentsApi.list()
+        setInstruments(data)
+        
+        const uniqueCategories = ["全部", ...new Set(data.map(i => i.category))]
+        setCategories(uniqueCategories)
+        
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch instruments:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchInstruments()
   }, [])
 
   const toggleFavorite = (instrumentId) => {

@@ -1,34 +1,81 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { maintenancePackages, nearbySites } from '../data/mockData'
+import { api, sitesApi, maintenanceApi } from '../services/api'
 import ImageUploader from '../components/ImageUploader'
 import SiteSelector from '../components/SiteSelector'
 import { ArrowLeft, Clock, Calendar } from 'lucide-react'
 
 export default function Booking() {
   const navigate = useNavigate()
+  const [maintenancePackages, setMaintenancePackages] = useState([])
+  const [nearbySites, setNearbySites] = useState([])
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [selectedSite, setSelectedSite] = useState(null)
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
+  const [loading, setLoading] = useState(true)
   
   const timeSlots = [
     { value: "morning", label: "上午 (9:00-12:00)" },
     { value: "afternoon", label: "下午 (14:00-18:00)" }
   ]
 
+  useEffect(() => {
+    const fetchBookingData = async () => {
+      try {
+        setLoading(true)
+        
+        const packagesRes = await api.get('/config/maintenance-packages')
+        setMaintenancePackages(packagesRes || [])
+        
+        const position = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve(pos.coords),
+            () => resolve({ latitude: 43.8118, longitude: -79.4231 }),
+            { timeout: 5000 }
+          )
+        })
+        
+        const sitesRes = await sitesApi.nearby({
+          lat: position.latitude,
+          lng: position.longitude
+        })
+        setNearbySites(sitesRes || [])
+        
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch booking data:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchBookingData()
+  }, [])
+
   const getToday = () => {
     const today = new Date()
     return today.toISOString().split('T')[0]
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedPackage || !selectedSite || !selectedDate || !selectedTime) {
       alert("请填写完整信息")
       return
     }
-    alert("预约成功！")
-    navigate('/')
+    
+    try {
+      await maintenanceApi.submit({
+        service_id: selectedPackage.id,
+        site_id: selectedSite.id,
+        date: selectedDate,
+        time: selectedTime
+      })
+      alert("预约成功！")
+      navigate('/')
+    } catch (error) {
+      console.error('Failed to submit maintenance:', error)
+      alert("预约失败，请重试")
+    }
   }
 
   return (
@@ -42,6 +89,8 @@ export default function Booking() {
       </div>
 
       <div className="p-4 space-y-4">
+        {loading && <div className="text-center py-8 text-gray-500">加载中...</div>}
+        
         {/* Package Selection */}
         <div className="bg-white rounded-lg p-4">
           <h2 className="font-medium text-gray-800 mb-3">选择服务</h2>

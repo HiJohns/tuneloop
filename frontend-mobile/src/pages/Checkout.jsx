@@ -1,15 +1,48 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { instruments, addresses, depositRules } from '../data/mockData'
+import { api, instrumentsApi } from '../services/api'
 import { ArrowLeft, MapPin } from 'lucide-react'
 
 export default function Checkout() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const instrument = instruments.find(i => i.id === parseInt(id))
+  const [instrument, setInstrument] = useState(null)
+  const [addresses, setAddresses] = useState([])
+  const [depositRules, setDepositRules] = useState([])
+  const [loading, setLoading] = useState(true)
   
   const [rentMonths, setRentMonths] = useState(3)
-  const [selectedAddress, setSelectedAddress] = useState(addresses[0])
+  const [selectedAddress, setSelectedAddress] = useState(null)
+
+  useEffect(() => {
+    const fetchCheckoutData = async () => {
+      try {
+        setLoading(true)
+        const instrumentData = await instrumentsApi.get(id)
+        setInstrument(instrumentData)
+        
+        const addrRes = await api.get('/user/addresses')
+        setAddresses(addrRes || [])
+        if (addrRes && addrRes.length > 0) {
+          setSelectedAddress(addrRes[0])
+        }
+        
+        const rulesRes = await api.get('/config/deposit-rules')
+        setDepositRules(rulesRes || [])
+        
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch checkout data:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchCheckoutData()
+  }, [id])
+
+  if (loading) {
+    return <div className="p-4">加载中...</div>
+  }
 
   if (!instrument) {
     return <div className="p-4">乐器不存在</div>

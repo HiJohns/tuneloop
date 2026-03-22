@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { instruments } from '../data/mockData'
+import { api, instrumentsApi, ordersApi } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X } from 'lucide-react'
 import { Switch, Segmented, Tag, Modal, Button } from 'antd'
-
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5553'
 
 const TERM_OPTIONS = [
   { label: '3个月', value: 3, discount: 1.0 },
@@ -24,7 +22,8 @@ const SERVICE_ITEMS = [
 export default function Detail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const instrument = instruments.find(i => i.id === parseInt(id))
+  const [instrument, setInstrument] = useState(null)
+  const [loading, setLoading] = useState(true)
   
   const [selectedLevel, setSelectedLevel] = useState('专业级')
   const [selectedTerm, setSelectedTerm] = useState(12)
@@ -37,6 +36,22 @@ export default function Detail() {
   const [calculatedDeposit, setCalculatedDeposit] = useState(0)
   const [depositWaived, setDepositWaived] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
+
+  useEffect(() => {
+    const fetchInstrument = async () => {
+      try {
+        setLoading(true)
+        const data = await instrumentsApi.get(id)
+        setInstrument(data)
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch instrument:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchInstrument()
+  }, [id])
 
   useEffect(() => {
     const creditScore = userCreditScore
@@ -81,30 +96,21 @@ export default function Detail() {
     const levelMap = { '入门级': 'entry', '专业级': 'professional', '大师级': 'master' }
     
     try {
-      const response = await fetch(`${API_BASE}/api/orders/preview`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instrument_id: instrument.id,
-          level: levelMap[selectedLevel],
-          lease_term: selectedTerm,
-          deposit_mode: noDeposit ? 'free' : 'standard',
-        }),
+      const result = await ordersApi.preview({
+        instrument_id: instrument.id,
+        level: levelMap[selectedLevel],
+        lease_term: selectedTerm,
+        deposit_mode: noDeposit ? 'free' : 'standard',
       })
-
-      const result = await response.json()
-      if (result.code === 20000) {
-        navigate(`/checkout/${instrument.id}`, { 
-          state: { 
-            pricing: result.data,
-            level: selectedLevel,
-            term: selectedTerm,
-            instrument 
-          } 
-        })
-      }
+      
+      navigate(`/checkout/${instrument.id}`, { 
+        state: { 
+          pricing: result,
+          level: selectedLevel,
+          term: selectedTerm,
+          instrument 
+        } 
+      })
     } catch (error) {
       console.error('Preview failed:', error)
       navigate(`/checkout/${instrument.id}`, {
@@ -121,6 +127,10 @@ export default function Detail() {
         }
       })
     }
+  }
+
+  if (loading) {
+    return <div className="p-4">加载中...</div>
   }
 
   if (!instrument) {

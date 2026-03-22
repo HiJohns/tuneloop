@@ -2,12 +2,23 @@ package services
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"sync"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	godotenv.Load()
+}
 
 var (
 	iamInternalURL = os.Getenv("BEACONIAM_INTERNAL_URL")
@@ -19,6 +30,10 @@ type IAMService struct {
 	clientID     string
 	clientSecret string
 	httpClient   *http.Client
+	publicKey    *rsa.PublicKey
+	keyOnce      sync.Once
+	keyError     error
+	keyLoaded    bool
 }
 
 type TokenResponse struct {
@@ -29,7 +44,16 @@ type TokenResponse struct {
 }
 
 type PublicKeyResponse struct {
-	PublicKey string `json:"public_key"`
+	Alg string `json:"alg"`
+	Kty string `json:"kty"`
+}
+
+type JWTClaims struct {
+	UserID   string `json:"sub"`
+	TenantID string `json:"tid"`
+	Role     string `json:"role"`
+	IsOwner  bool   `json:"is_owner"`
+	jwt.RegisteredClaims
 }
 
 func GetIAMInternalURL() string {
@@ -59,6 +83,76 @@ func NewIAMService() *IAMService {
 		clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
+}
+
+func (s *IAMService) loadPublicKey() error {
+	s.keyOnce.Do(func() {
+		s.keyError = s.fetchAndParsePublicKey()
+		s.keyLoaded = s.keyError == nil
+	})
+	return s.keyError
+}
+
+func (s *IAMService) fetchAndParsePublicKey() error {
+	resp, err := s.httpClient.Get(
+		fmt.Sprintf("%s/api/v1/auth/public-key.pem", s.baseURL),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to fetch public key: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("public key endpoint returned status: %d", resp.StatusCode)
+	}
+
+	pemData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read public key: %w", err)
+	}
+
+	block, _ := pem.Decode(pemData)
+	if block == nil {
+		return fmt.Errorf("failed to decode PEM block")
+	}
+
+	pubKey, err := jwt.ParseRSAPublicKeyFromPEM(pemData)
+	if err != nil {
+		return fmt.Errorf("failed to parse RSA public key: %w", err)
+	}
+
+	s.publicKey = pubKey
+	return nil
+}
+
+func (s *IAMService) IsRS256Enabled() bool {
+	if err := s.loadPublicKey(); err != nil {
+		return false
+	}
+	return s.publicKey != nil
+}
+
+func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
+	if err := s.loadPublicKey(); err != nil {
+		return nil, fmt.Errorf("failed to load public key: %w", err)
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
+			return s.publicKey, nil
+		}
+		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token")
 }
 
 func (s *IAMService) ExchangeCode(code string) (*TokenResponse, error) {
@@ -91,24 +185,24 @@ func (s *IAMService) ExchangeCode(code string) (*TokenResponse, error) {
 	return &tokenResp, nil
 }
 
-func (s *IAMService) GetPublicKey() (string, error) {
+func (s *IAMService) GetPublicKeyInfo() (*PublicKeyResponse, error) {
 	resp, err := s.httpClient.Get(
 		fmt.Sprintf("%s/api/v1/auth/public-key", s.baseURL),
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch public key: %w", err)
+		return nil, fmt.Errorf("failed to fetch public key info: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("public key endpoint returned status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("public key endpoint returned status: %d", resp.StatusCode)
 	}
 
 	var result PublicKeyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to parse public key response: %w", err)
+		return nil, fmt.Errorf("failed to parse public key response: %w", err)
 	}
-	return result.PublicKey, nil
+	return &result, nil
 }
 
 func (s *IAMService) RefreshToken(refreshToken string) (*TokenResponse, error) {

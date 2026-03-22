@@ -18,8 +18,8 @@ func TerminateOrder(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	
+	db := database.GetDB().WithContext(c.Request.Context())
+
 	var order models.Order
 	if err := db.First(&order, "id = ?", orderID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -30,9 +30,9 @@ func TerminateOrder(c *gin.Context) {
 	}
 
 	tx := db.Begin()
-	
+
 	order.Status = "terminated"
-	if err := tx.Save(&order).Error; err != nil {
+	if err := tx.WithContext(c.Request.Context()).Save(&order).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
@@ -40,11 +40,11 @@ func TerminateOrder(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var instrument models.Instrument
-	if err := tx.First(&instrument, "id = ?", order.InstrumentID).Error; err == nil {
+	if err := tx.WithContext(c.Request.Context()).First(&instrument, "id = ?", order.InstrumentID).Error; err == nil {
 		instrument.StockStatus = "available"
-		if err := tx.Save(&instrument).Error; err != nil {
+		if err := tx.WithContext(c.Request.Context()).Save(&instrument).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
@@ -64,9 +64,9 @@ func TerminateOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"order_id":        order.ID,
-			"status":          "terminated",
-			"deposit_refunded": depositRefunded,
+			"order_id":           order.ID,
+			"status":             "terminated",
+			"deposit_refunded":   depositRefunded,
 			"inventory_released": true,
 		},
 	})

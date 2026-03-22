@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { myAssets, myLeases } from '../data/mockData'
+import { api } from '../services/api'
 import { User, MapPin, Bell, HelpCircle, ChevronRight, Wrench, RefreshCw } from 'lucide-react'
 import { Badge, Tag } from 'antd'
 
@@ -72,6 +73,24 @@ function LeaseCard({ lease, onRenew }) {
 
 export default function Profile() {
   const navigate = useNavigate()
+  const [myLeases, setMyLeases] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchLeases = async () => {
+      try {
+        setLoading(true)
+        const data = await api.get('/user/leases')
+        setMyLeases(data || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch leases:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchLeases()
+  }, [])
 
   return (
     <div className="min-h-screen bg-brand-bg pb-20">
@@ -91,15 +110,19 @@ export default function Profile() {
       {/* My Leases */}
       <div className="p-4">
         <h2 className="font-medium text-gray-800 mb-3">我的租约</h2>
-        <div className="space-y-4">
-          {myLeases.map(lease => (
-            <LeaseCard
-              key={lease.id}
-              lease={lease}
-              onRenew={() => alert("续租功能开发中...")}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">加载中...</div>
+        ) : (
+          <div className="space-y-4">
+            {myLeases.map(lease => (
+              <LeaseCard
+                key={lease.id}
+                lease={lease}
+                onRenew={() => alert("续租功能开发中...")}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Common Functions */}

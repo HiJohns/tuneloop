@@ -5,9 +5,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
 
 	"github.com/gin-contrib/cors"
@@ -46,62 +48,73 @@ func extractPort(urlStr string) string {
 	}
 }
 
-func setupAPIRoutes(r *gin.Engine) {
+func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	siteHandler := handlers.NewSiteHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
 
 	api := r.Group("/api")
+
+	api.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	api.GET("/auth/callback", authHandler.Callback)
+	api.POST("/auth/refresh", authHandler.Refresh)
+
+	authRequired := api.Group("")
+	authRequired.Use(middleware.IAMInterceptor(iamService))
 	{
-		// Auth routes
-		api.GET("/auth/callback", authHandler.Callback)
-		api.POST("/auth/refresh", authHandler.Refresh)
+		authRequired.GET("/instruments", handlers.GetInstruments)
+		authRequired.GET("/instruments/:id", handlers.GetInstruments)
+		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
+		authRequired.POST("/upload", handlers.HandleUpload)
+		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
+		authRequired.POST("/orders/preview", handlers.PreviewOrder)
+		authRequired.POST("/orders", handlers.CreateOrder)
 
-		api.GET("/instruments", handlers.GetInstruments)
-		api.GET("/instruments/:id", handlers.GetInstruments)
-		api.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
-		api.GET("/sites", handlers.GetSites)
-		api.POST("/upload", handlers.HandleUpload)
-		api.GET("/overdue-leases", handlers.GetOverdueLeases)
-		api.POST("/orders/preview", handlers.PreviewOrder)
-		api.POST("/orders", handlers.CreateOrder)
+		siteRequired := authRequired.Group("")
+		{
+			siteRequired.GET("/common/sites", siteHandler.ListSites)
+			siteRequired.GET("/common/sites/nearby", siteHandler.GetNearbySites)
+			siteRequired.GET("/common/sites/:id", siteHandler.GetSiteDetail)
+			siteRequired.POST("/merchant/sites", siteHandler.CreateSite)
+			siteRequired.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
+			siteRequired.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
+		}
 
-		// Site Management
-		api.GET("/common/sites", siteHandler.ListSites)
-		api.GET("/common/sites/nearby", siteHandler.GetNearbySites)
-		api.GET("/common/sites/:id", siteHandler.GetSiteDetail)
-		api.POST("/merchant/sites", siteHandler.CreateSite)
-		api.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
-		api.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
+		inventoryRequired := authRequired.Group("")
+		{
+			inventoryRequired.GET("/merchant/inventory", inventoryHandler.ListInventory)
+			inventoryRequired.POST("/merchant/inventory/transfer", inventoryHandler.TransferInventory)
+			inventoryRequired.GET("/merchant/inventory/transfers", inventoryHandler.ListTransfers)
+		}
 
-		// Inventory Management
-		api.GET("/merchant/inventory", inventoryHandler.ListInventory)
-		api.POST("/merchant/inventory/transfer", inventoryHandler.TransferInventory)
-		api.GET("/merchant/inventory/transfers", inventoryHandler.ListTransfers)
+		userRequired := authRequired.Group("")
+		{
+			userRequired.GET("/user/ownership/:id", handlers.GetOwnershipInfo)
+			userRequired.GET("/user/ownership/:id/download", handlers.DownloadOwnershipCertificate)
+			userRequired.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
+			userRequired.PUT("/orders/:id/terminate", handlers.TerminateOrder)
+		}
 
-		// Ownership Management
 		maintHandler := handlers.NewMaintenanceHandler()
-		api.GET("/user/ownership/:id", handlers.GetOwnershipInfo)
-		api.GET("/user/ownership/:id/download", handlers.DownloadOwnershipCertificate)
-		api.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
-		api.PUT("/orders/:id/terminate", handlers.TerminateOrder)
+		authRequired.POST("/maintenance", maintHandler.SubmitRepair)
+		authRequired.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
+		authRequired.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
 
-		// Maintenance APIs
-		api.POST("/maintenance", maintHandler.SubmitRepair)
-		api.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
-		api.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
-
-		// Merchant Maintenance
-		api.GET("/merchant/maintenance", maintHandler.ListMerchantMaintenance)
-		api.PUT("/merchant/maintenance/:id/accept", maintHandler.AcceptMaintenance)
-		api.PUT("/merchant/maintenance/:id/assign", maintHandler.AssignTechnician)
-		api.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
-		api.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
+		merchantMaint := authRequired.Group("")
+		{
+			merchantMaint.GET("/merchant/maintenance", maintHandler.ListMerchantMaintenance)
+			merchantMaint.PUT("/merchant/maintenance/:id/accept", maintHandler.AcceptMaintenance)
+			merchantMaint.PUT("/merchant/maintenance/:id/assign", maintHandler.AssignTechnician)
+			merchantMaint.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
+			merchantMaint.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
+		}
 	}
 }
 
 func main() {
-	// 初始化数据库
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
@@ -109,22 +122,21 @@ func main() {
 	}
 	database.SetDB(db)
 
-	// 运行迁移
 	if err := database.RunMigrations(db); err != nil {
 		fmt.Printf("Warning: migration failed: %v\n", err)
 	}
 
-	// IAM Bootstrap
 	if err := services.BootstrapIAM(db); err != nil {
 		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
 	}
+
+	iamService := services.NewIAMService()
 
 	wwwURL := getEnv("TUNELOOP_WWW_URL", "http://localhost:5554")
 	wxURL := getEnv("TUNELOOP_WX_URL", "http://localhost:5553")
 	pcPort := extractPort(wwwURL)
 	mobilePort := extractPort(wxURL)
 
-	// PC Service (Port 5554)
 	pcRouter := gin.Default()
 	pcRouter.Use(cors.Default())
 
@@ -135,14 +147,19 @@ func main() {
 	pcRouter.Static("/assets", filepath.Join(pcDistPath, "assets"))
 	pcRouter.StaticFile("/favicon.ico", filepath.Join(pcDistPath, "favicon.ico"))
 	pcRouter.StaticFile("/favicon.svg", filepath.Join(pcDistPath, "favicon.svg"))
-	setupAPIRoutes(pcRouter)
+	setupAPIRoutes(pcRouter, iamService)
 
-	// SPA support: return index.html for non-static routes
 	pcRouter.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(404, gin.H{
+				"code":    40400,
+				"message": "endpoint not found: " + c.Request.URL.Path,
+			})
+			return
+		}
 		c.File(filepath.Join(pcDistPath, "index.html"))
 	})
 
-	// Mobile Service (Port 5553)
 	mobileRouter := gin.Default()
 	mobileRouter.Use(cors.Default())
 
@@ -152,20 +169,23 @@ func main() {
 	})
 	mobileRouter.Static("/assets", filepath.Join(mobileDistPath, "assets"))
 	mobileRouter.Static("/instruments", "../frontend-mobile/public/instruments")
-	setupAPIRoutes(mobileRouter)
+	setupAPIRoutes(mobileRouter, iamService)
 
-	// SPA support: return index.html for non-static routes
 	mobileRouter.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(404, gin.H{
+				"code":    40400,
+				"message": "endpoint not found: " + c.Request.URL.Path,
+			})
+			return
+		}
 		c.File(filepath.Join(mobileDistPath, "index.html"))
 	})
 
-	// Start PC server in a goroutine
 	go pcRouter.Run(":" + pcPort)
 
-	// Start lease accumulator task
 	leaseAccumulator := tasks.NewLeaseAccumulator()
 	leaseAccumulator.Start()
 
-	// Start Mobile server (blocking)
 	mobileRouter.Run(":" + mobilePort)
 }

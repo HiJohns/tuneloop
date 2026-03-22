@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { myServiceOrders } from '../data/mockData'
+import { api } from '../services/api'
 import { Badge, Tag } from 'antd'
 import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 
@@ -39,6 +40,24 @@ function ServiceCard({ order }) {
 
 export default function MyService() {
   const navigate = useNavigate()
+  const [myServiceOrders, setMyServiceOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchServiceOrders = async () => {
+      try {
+        setLoading(true)
+        const data = await api.get('/user/service-orders')
+        setMyServiceOrders(data || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch service orders:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchServiceOrders()
+  }, [])
   
   return (
     <div className="min-h-screen bg-brand-bg pb-20">
@@ -52,9 +71,13 @@ export default function MyService() {
       
       {/* Service Orders List */}
       <div className="p-4 space-y-4">
-        {myServiceOrders.map(order => (
-          <ServiceCard key={order.id} order={order} />
-        ))}
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">加载中...</div>
+        ) : (
+          myServiceOrders.map(order => (
+            <ServiceCard key={order.id} order={order} />
+          ))
+        )}
       </div>
       
       {/* Bottom Navigation */}

@@ -33,8 +33,8 @@ func (h *MaintenanceHandler) SubmitRepair(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	
+	db := database.GetDB().WithContext(c.Request.Context())
+
 	ticket := models.MaintenanceTicket{
 		OrderID:            req.OrderID,
 		InstrumentID:       req.InstrumentID,
@@ -56,7 +56,7 @@ func (h *MaintenanceHandler) SubmitRepair(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"ticket_id": ticket.ID,
-			"status":   ticket.Status,
+			"status":    ticket.Status,
 		},
 	})
 }
@@ -71,8 +71,8 @@ func (h *MaintenanceHandler) GetMaintenanceDetail(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	
+	db := database.GetDB().WithContext(c.Request.Context())
+
 	var ticket models.MaintenanceTicket
 	if err := db.First(&ticket, "id = ?", ticketID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -105,8 +105,8 @@ func (h *MaintenanceHandler) CancelMaintenance(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	
+	db := database.GetDB().WithContext(c.Request.Context())
+
 	result := db.Model(&models.MaintenanceTicket{}).Where("id = ?", ticketID).Update("status", "cancelled")
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -124,18 +124,18 @@ func (h *MaintenanceHandler) CancelMaintenance(c *gin.Context) {
 
 func (h *MaintenanceHandler) ListMerchantMaintenance(c *gin.Context) {
 	status := c.Query("status")
-	
-	db := database.GetDB()
-	
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
 	var tickets []models.MaintenanceTicket
 	query := db.Model(&models.MaintenanceTicket{})
-	
+
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
-	
+
 	query.Order("created_at DESC").Find(&tickets)
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
@@ -152,9 +152,9 @@ func (h *MaintenanceHandler) AcceptMaintenance(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
+	db := database.GetDB().WithContext(c.Request.Context())
 	db.Model(&models.MaintenanceTicket{}).Where("id = ?", ticketID).Update("status", "processing")
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"status": "processing"},
@@ -163,7 +163,7 @@ func (h *MaintenanceHandler) AcceptMaintenance(c *gin.Context) {
 
 func (h *MaintenanceHandler) AssignTechnician(c *gin.Context) {
 	ticketID := c.Param("id")
-	
+
 	var req struct {
 		TechnicianID string `json:"technician_id"`
 	}
@@ -172,12 +172,12 @@ func (h *MaintenanceHandler) AssignTechnician(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
+	db := database.GetDB().WithContext(c.Request.Context())
 	db.Model(&models.MaintenanceTicket{}).Where("id = ?", ticketID).Updates(map[string]interface{}{
 		"technician_id": req.TechnicianID,
 		"status":        "processing",
 	})
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"status": "processing", "technician_id": req.TechnicianID},
@@ -186,7 +186,7 @@ func (h *MaintenanceHandler) AssignTechnician(c *gin.Context) {
 
 func (h *MaintenanceHandler) UpdateProgress(c *gin.Context) {
 	ticketID := c.Param("id")
-	
+
 	var req struct {
 		ProgressNotes string `json:"progress_notes"`
 		Status        string `json:"status"`
@@ -196,13 +196,13 @@ func (h *MaintenanceHandler) UpdateProgress(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
+	db := database.GetDB().WithContext(c.Request.Context())
 	updates := map[string]interface{}{"progress_notes": req.ProgressNotes}
 	if req.Status != "" {
 		updates["status"] = req.Status
 	}
 	db.Model(&models.MaintenanceTicket{}).Where("id = ?", ticketID).Updates(updates)
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": updates,
@@ -211,7 +211,7 @@ func (h *MaintenanceHandler) UpdateProgress(c *gin.Context) {
 
 func (h *MaintenanceHandler) SendQuote(c *gin.Context) {
 	ticketID := c.Param("id")
-	
+
 	var req struct {
 		EstimatedCost float64 `json:"estimated_cost"`
 	}
@@ -220,9 +220,9 @@ func (h *MaintenanceHandler) SendQuote(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
+	db := database.GetDB().WithContext(c.Request.Context())
 	db.Model(&models.MaintenanceTicket{}).Where("id = ?", ticketID).Update("estimated_cost", req.EstimatedCost)
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"estimated_cost": req.EstimatedCost},

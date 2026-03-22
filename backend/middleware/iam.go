@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
+
+	"tuneloop-backend/database"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -26,6 +28,7 @@ const (
 	ContextKeyOrgID    ContextKey = "org_id"
 	ContextKeyUserID   ContextKey = "user_id"
 	ContextKeyRole     ContextKey = "role"
+	ContextKeyIsOwner  ContextKey = "is_owner"
 )
 
 var validIssuers = []string{
@@ -34,8 +37,30 @@ var validIssuers = []string{
 	"http://localhost:5552",
 }
 
-func IAMInterceptor(publicKey string) gin.HandlerFunc {
+var publicRoutes = []string{
+	"/health",
+	"/api/health",
+	"/api/auth/callback",
+	"/api/auth/refresh",
+	"/api/auth/login",
+}
+
+func isPublicRoute(path string) bool {
+	for _, route := range publicRoutes {
+		if strings.HasPrefix(path, route) {
+			return true
+		}
+	}
+	return false
+}
+
+func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if isPublicRoute(c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -47,26 +72,11 @@ func IAMInterceptor(publicKey string) gin.HandlerFunc {
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		token, err := jwt.ParseWithClaims(tokenString, &IAMClaims{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(publicKey), nil
-		})
-
-		if err != nil || !token.Valid {
+		claims, err := iamService.ValidateToken(tokenString)
+		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40101,
 				"message": "invalid token: " + err.Error(),
-			})
-			return
-		}
-
-		claims, ok := token.Claims.(*IAMClaims)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    40101,
-				"message": "invalid token claims",
 			})
 			return
 		}
@@ -81,17 +91,68 @@ func IAMInterceptor(publicKey string) gin.HandlerFunc {
 		if !issuerValid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40102,
-				"message": "invalid token issuer: " + claims.Issuer,
+				"message": "invalid token issuer",
 			})
 			return
 		}
 
-		ctx := context.WithValue(c.Request.Context(), ContextKeyTenantID, claims.Tid)
-		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.Oid)
+		ctx := database.SetTenantID(c.Request.Context(), claims.TenantID)
+		ctx = context.WithValue(ctx, ContextKeyTenantID, claims.TenantID)
+		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.TenantID)
 		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
+		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)
 
+		c.Next()
+	}
+}
+
+func RequireAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if isPublicRoute(c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    40100,
+				"message": "authentication required",
+			})
+			return
+		}
+		c.Next()
+	}
+}
+
+func RequireRole(roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole := GetRole(c.Request.Context())
+		for _, role := range roles {
+			if userRole == role {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"code":    40300,
+			"message": "insufficient permissions",
+		})
+	}
+}
+
+func RequireOwner() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		isOwner, ok := c.Request.Context().Value(ContextKeyIsOwner).(bool)
+		if !ok || !isOwner {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"code":    40301,
+				"message": "owner privileges required",
+			})
+			return
+		}
 		c.Next()
 	}
 }
@@ -122,4 +183,11 @@ func GetRole(ctx context.Context) string {
 		return role
 	}
 	return ""
+}
+
+func IsOwner(ctx context.Context) bool {
+	if own, ok := ctx.Value(ContextKeyIsOwner).(bool); ok {
+		return own
+	}
+	return false
 }

@@ -21,6 +21,7 @@ type User struct {
 
 type Category struct {
 	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
 	Icon      string    `json:"icon"`
 	ParentID  *string   `gorm:"type:uuid" json:"parent_id"`
@@ -29,6 +30,8 @@ type Category struct {
 
 type Instrument struct {
 	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string    `gorm:"type:uuid;index" json:"org_id"`
 	Name           string    `gorm:"type:varchar(255);not null" json:"name"`
 	Brand          string    `gorm:"type:varchar(100)" json:"brand"`
 	Level          string    `gorm:"type:varchar(20);not null" json:"level"`
@@ -45,6 +48,8 @@ type Instrument struct {
 
 type Order struct {
 	ID                string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID          string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID             string    `gorm:"type:uuid;index" json:"org_id"`
 	UserID            string    `gorm:"type:uuid;not null;index" json:"user_id"`
 	InstrumentID      string    `gorm:"type:uuid;not null" json:"instrument_id"`
 	Level             string    `gorm:"type:varchar(20);not null" json:"level"`
@@ -62,6 +67,8 @@ type Order struct {
 
 type Site struct {
 	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID         string    `gorm:"type:uuid;index" json:"org_id"`
 	Name          string    `gorm:"type:varchar(255);not null" json:"name"`
 	Address       string    `gorm:"type:varchar(500)" json:"address"`
 	Latitude      float64   `gorm:"type:decimal(10,6)" json:"latitude"`
@@ -74,6 +81,8 @@ type Site struct {
 
 type MaintenanceTicket struct {
 	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID           string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID              string    `gorm:"type:uuid;index" json:"org_id"`
 	OrderID            string    `gorm:"type:uuid;not null" json:"order_id"`
 	InstrumentID       string    `gorm:"type:uuid;not null" json:"instrument_id"`
 	UserID             string    `gorm:"type:uuid;not null;index" json:"user_id"`
@@ -89,6 +98,7 @@ type MaintenanceTicket struct {
 
 type BrandConfig struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index" json:"tenant_id"`
 	ClientID     string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"client_id"`
 	PrimaryColor string    `gorm:"type:varchar(20);default:'#6366F1'" json:"primary_color"`
 	LogoURL      string    `gorm:"type:varchar(500)" json:"logo_url"`
@@ -100,6 +110,8 @@ type BrandConfig struct {
 
 type OwnershipCertificate struct {
 	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string    `gorm:"type:uuid;index" json:"org_id"`
 	OrderID        string    `gorm:"type:uuid;uniqueIndex;not null" json:"order_id"`
 	UserID         string    `gorm:"type:uuid;index" json:"user_id"`
 	InstrumentID   string    `gorm:"type:uuid;index" json:"instrument_id"`
@@ -109,10 +121,35 @@ type OwnershipCertificate struct {
 }
 
 type Technician struct {
-	ID     string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	SiteID string `gorm:"type:uuid;index" json:"site_id"`
-	Name   string `gorm:"type:varchar(100)" json:"name"`
-	Phone  string `gorm:"type:varchar(50)" json:"phone"`
+	ID       string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID    string `gorm:"type:uuid;index" json:"org_id"`
+	SiteID   string `gorm:"type:uuid;index" json:"site_id"`
+	Name     string `gorm:"type:varchar(100)" json:"name"`
+	Phone    string `gorm:"type:varchar(50)" json:"phone"`
+}
+
+type SiteImage struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SiteID    string    `gorm:"type:uuid;not null" json:"site_id"`
+	URL       string    `gorm:"type:varchar(500);not null" json:"url"`
+	SortOrder int       `gorm:"default:0" json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type InventoryTransfer struct {
+	ID          string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID    string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID       string     `gorm:"type:uuid;index" json:"org_id"`
+	AssetID     string     `gorm:"type:uuid;index;not null" json:"asset_id"`
+	FromSiteID  string     `gorm:"type:uuid;not null" json:"from_site_id"`
+	ToSiteID    string     `gorm:"type:uuid;not null" json:"to_site_id"`
+	Reason      string     `gorm:"type:text" json:"reason"`
+	Status      string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	CreatedBy   string     `gorm:"type:uuid" json:"created_by"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 }
 
 type Client struct {

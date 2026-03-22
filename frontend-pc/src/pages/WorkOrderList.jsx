@@ -1,24 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Table, Tag, Alert, Button, Modal, message, Timeline } from 'antd'
 import { LockOutlined, HistoryOutlined } from '@ant-design/icons'
-import { assets } from '../data/mockData'
+import { api } from '../services/api'
 
 export default function WorkOrderList() {
   const [unlockModalOpen, setUnlockModalOpen] = useState(false)
   const [trackModalOpen, setTrackModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [workOrders, setWorkOrders] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const workOrders = assets
-    .filter(a => a.workOrder)
-    .map(a => ({
-      key: a.workOrder.id,
-      assetId: a.id,
-      assetName: a.name,
-      workOrderId: a.workOrder.id,
-      jumps: a.workOrder.jumps,
-      technician: a.workOrder.technician,
-      status: a.status
-    }))
+  useEffect(() => {
+    const fetchWorkOrders = async () => {
+      try {
+        setLoading(true)
+        const data = await api.get('/merchant/work-orders')
+        setWorkOrders(data || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch work orders:', error)
+        setLoading(false)
+      }
+    }
+    
+    fetchWorkOrders()
+  }, [])
 
   const columns = [
     {
@@ -114,6 +120,7 @@ export default function WorkOrderList() {
       </h2>
       
       {workOrders.some(wo => wo.jumps >= 3) && (
+      {workOrders.some(wo => wo.jumps >= 3) && (
         <Alert
           message="工单锁定提醒"
           description="以下工单已达到最大跳数(H=3)，系统将强制锁定，仅限当前工人执行。"
@@ -121,6 +128,22 @@ export default function WorkOrderList() {
           showIcon
           className="mb-4"
         />
+      )}
+      
+      <Table 
+        columns={columns} 
+        dataSource={workOrders}
+        loading={loading}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showTotal: (total) => `共 ${total} 条`
+        }}
+        rowKey="key"
+        onRow={(record) => ({
+          style: record.jumps >= 3 ? { backgroundColor: '#fff1f0' } : {}
+        })}
+      />
       )}
       
       <Table 

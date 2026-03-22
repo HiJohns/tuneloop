@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"tuneloop-backend/database"
 	"tuneloop-backend/internal/engine"
 	"tuneloop-backend/internal/service"
 	"tuneloop-backend/models"
-	"tuneloop-backend/database"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,8 +47,8 @@ func DownloadOwnershipCertificate(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB()
-	
+	db := database.GetDB().WithContext(c.Request.Context())
+
 	var cert models.OwnershipCertificate
 	if err := db.First(&cert, "order_id = ?", orderID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -59,18 +59,18 @@ func DownloadOwnershipCertificate(c *gin.Context) {
 	}
 
 	var instrument models.Instrument
-	db.First(&instrument, "id = ?", cert.InstrumentID)
-	
+	db.WithContext(c.Request.Context()).First(&instrument, "id = ?", cert.InstrumentID)
+
 	var user models.User
-	db.First(&user, "id = ?", cert.UserID)
+	db.WithContext(c.Request.Context()).First(&user, "id = ?", cert.UserID)
 
 	certData := &service.CertificateData{
-		CertificateID: cert.ID,
+		CertificateID:  cert.ID,
 		InstrumentName: instrument.Name,
-		InstrumentSN:  "SN-" + instrument.ID[:8],
-		OwnerName:     user.Name,
-		OwnerPhone:    user.Phone,
-		TransferDate:  cert.TransferDate,
+		InstrumentSN:   "SN-" + instrument.ID[:8],
+		OwnerName:      user.Name,
+		OwnerPhone:     user.Phone,
+		TransferDate:   cert.TransferDate,
 	}
 
 	pdfBytes, err := service.GenerateOwnershipCertificate(certData)
