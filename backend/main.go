@@ -100,8 +100,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 
 		maintHandler := handlers.NewMaintenanceHandler()
 		authRequired.POST("/maintenance", maintHandler.SubmitRepair)
+		authRequired.POST("/maintenance/report", maintHandler.ReportRepair)
 		authRequired.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
 		authRequired.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
+		authRequired.PUT("/maintenance/tickets/:id/status", maintHandler.UpdateTicketStatus)
 
 		merchantMaint := authRequired.Group("")
 		{

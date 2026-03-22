@@ -79,21 +79,31 @@ type Site struct {
 	CreatedAt     time.Time `json:"created_at"`
 }
 
+const (
+	TicketStatusPending    = "PENDING"
+	TicketStatusProcessing = "PROCESSING"
+	TicketStatusCompleted  = "COMPLETED"
+)
+
 type MaintenanceTicket struct {
-	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID           string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID              string    `gorm:"type:uuid;index" json:"org_id"`
-	OrderID            string    `gorm:"type:uuid;not null" json:"order_id"`
-	InstrumentID       string    `gorm:"type:uuid;not null" json:"instrument_id"`
-	UserID             string    `gorm:"type:uuid;not null;index" json:"user_id"`
-	ProblemDescription string    `gorm:"type:text" json:"problem_description"`
-	Images             string    `gorm:"type:jsonb;default:'[]'" json:"images"`
-	ServiceType        string    `gorm:"type:varchar(20)" json:"service_type"`
-	Status             string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
-	AssignedSiteID     string    `gorm:"type:uuid" json:"assigned_site_id"`
-	EstimatedCost      float64   `gorm:"type:decimal(10,2);default:0" json:"estimated_cost"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID                 string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID           string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID              string     `gorm:"type:uuid;index" json:"org_id"`
+	OrderID            string     `gorm:"type:uuid;not null" json:"order_id"`
+	InstrumentID       string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	UserID             string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	ProblemDescription string     `gorm:"type:text" json:"problem_description"`
+	Images             string     `gorm:"type:jsonb;default:'[]'" json:"images"`
+	ServiceType        string     `gorm:"type:varchar(20)" json:"service_type"`
+	Status             string     `gorm:"type:varchar(20);default:'PENDING';index" json:"status"`
+	AssignedSiteID     string     `gorm:"type:uuid" json:"assigned_site_id"`
+	TechnicianID       string     `gorm:"type:uuid;index" json:"technician_id"`
+	RepairReport       string     `gorm:"type:text" json:"repair_report"`
+	RepairPhotos       string     `gorm:"type:jsonb;default:'[]'" json:"repair_photos"`
+	EstimatedCost      float64    `gorm:"type:decimal(10,2);default:0" json:"estimated_cost"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+	CompletedAt        *time.Time `gorm:"index" json:"completed_at,omitempty"`
 }
 
 type BrandConfig struct {
