@@ -120,7 +120,6 @@ export default function WorkOrderList() {
       </h2>
       
       {workOrders.some(wo => wo.jumps >= 3) && (
-      {workOrders.some(wo => wo.jumps >= 3) && (
         <Alert
           message="工单锁定提醒"
           description="以下工单已达到最大跳数(H=3)，系统将强制锁定，仅限当前工人执行。"
