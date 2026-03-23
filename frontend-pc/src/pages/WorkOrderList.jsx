@@ -120,7 +120,6 @@ export default function WorkOrderList() {
       </h2>
       
       {workOrders.some(wo => wo.jumps >= 3) && (
-      {workOrders.some(wo => wo.jumps >= 3) && (
         <Alert
           message="工单锁定提醒"
           description="以下工单已达到最大跳数(H=3)，系统将强制锁定，仅限当前工人执行。"
@@ -144,23 +143,7 @@ export default function WorkOrderList() {
           style: record.jumps >= 3 ? { backgroundColor: '#fff1f0' } : {}
         })}
       />
-      )}
       
-      <Table 
-        columns={columns} 
-        dataSource={workOrders}
-        pagination={{
-          total: workOrders.length,
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`
-        }}
-        rowKey="key"
-        onRow={(record) => ({
-          style: record.jumps >= 3 ? { backgroundColor: '#fff1f0' } : {}
-        })}
-      />
-
       <Modal
         title="强制解锁确认"
         open={unlockModalOpen}
