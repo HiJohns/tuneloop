@@ -104,6 +104,26 @@ export const permissionApi = {
   deleteRole: (id) => api.delete(`/admin/roles/${id}`),
 }
 
+export const leaseApi = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/merchant/leases${query ? '?' + query : ''}`)
+  },
+  get: (id) => api.get(`/merchant/leases/${id}`),
+  create: (data) => api.post('/merchant/leases', data),
+  update: (id, data) => api.put(`/merchant/leases/${id}`, data),
+  terminate: (id) => api.delete(`/merchant/leases/${id}`),
+}
+
+export const depositApi = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/merchant/deposits${query ? '?' + query : ''}`)
+  },
+  create: (data) => api.post('/merchant/deposits', data),
+  update: (id, data) => api.put(`/merchant/deposits/${id}`, data),
+}
+
 export const iamAdminApi = {
   // Client Management
   getClients: () => api.get('/system/clients'),

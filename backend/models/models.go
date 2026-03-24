@@ -171,3 +171,31 @@ type Client struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+type Lease struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	UserID        string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	InstrumentID  string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	StartDate     string    `gorm:"type:date;not null" json:"start_date"`
+	EndDate       string    `gorm:"type:date;not null" json:"end_date"`
+	MonthlyRent   float64   `gorm:"type:decimal(10,2);not null" json:"monthly_rent"`
+	DepositAmount float64   `gorm:"type:decimal(10,2);not null" json:"deposit_amount"`
+	Status        string    `gorm:"type:varchar(20);default:'active';index" json:"status"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type Deposit struct {
+	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID        string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	LeaseID         string    `gorm:"type:uuid;index;not null" json:"lease_id"`
+	UserID          string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Type            string    `gorm:"type:varchar(20);not null" json:"type"`
+	Status          string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	TransactionDate string    `gorm:"type:date;not null" json:"transaction_date"`
+	Notes           string    `gorm:"type:text" json:"notes"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}

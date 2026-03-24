@@ -128,6 +128,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			authRequired.PUT("/admin/roles/:id/permissions", permHandler.UpdateRolePermissions)
 			authRequired.POST("/admin/roles", permHandler.CreateRole)
 			authRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
+
+			leaseHandler := handlers.NewLeaseHandler(database.GetDB())
+			authRequired.GET("/merchant/leases", leaseHandler.ListLeases)
+			authRequired.GET("/merchant/leases/:id", leaseHandler.GetLease)
+			authRequired.POST("/merchant/leases", leaseHandler.CreateLease)
+			authRequired.PUT("/merchant/leases/:id", leaseHandler.UpdateLease)
+			authRequired.DELETE("/merchant/leases/:id", leaseHandler.TerminateLease)
+
+			depositHandler := handlers.NewDepositHandler(database.GetDB())
+			authRequired.GET("/merchant/deposits", depositHandler.ListDeposits)
+			authRequired.POST("/merchant/deposits", depositHandler.CreateDeposit)
+			authRequired.PUT("/merchant/deposits/:id", depositHandler.UpdateDeposit)
 		}
 	}
 }
