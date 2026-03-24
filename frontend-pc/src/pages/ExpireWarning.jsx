@@ -1,3 +1,10 @@
 export default function ExpireWarning() {
-  return <div><h2 className="text-xl font-bold mb-4">到期预警</h2><p>到期预警内容待实现...</p></div>
+  return (
+    <div className="p-6">
+      <div className="text-center py-16">
+        <div className="text-2xl mb-4">数据正在同步中...</div>
+        <div className="text-gray-500">模块开发中，敬请期待</div>
+      </div>
+    </div>
+  )
 }

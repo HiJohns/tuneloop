@@ -1,42 +1,30 @@
-import { useState } from 'react'
-import { Card, Table, Button, Modal } from 'antd'
-
-const sites = [
-  {
-    id: 'Site-001',
-    name: '北京总店',
-    address: '北京市朝阳区建国路88号',
-    lat: 39.9042,
-    lng: 116.4074,
-    manager: '张经理',
-    phone: '138****8888',
-    instruments: 156
-  },
-  {
-    id: 'Site-002',
-    name: '上海分店',
-    address: '上海市浦东新区陆家嘴东路100号',
-    lat: 31.2304,
-    lng: 121.4737,
-    manager: '李经理',
-    phone: '139****9999',
-    instruments: 89
-  },
-  {
-    id: 'Site-003',
-    name: '维修供应商',
-    address: '天津市滨海新区经济技术开发区',
-    lat: 39.0851,
-    lng: 117.7445,
-    manager: '王师傅',
-    phone: '136****6666',
-    instruments: 23
-  }
-]
+import { useState, useEffect } from 'react'
+import { Card, Table, Button, Modal, Spin, Empty } from 'antd'
+import { api } from '../services/api'
 
 export default function SiteManagement() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedSite, setSelectedSite] = useState(null)
+  const [sites, setSites] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchSites()
+  }, [])
+
+  const fetchSites = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await api.get('/admin/sites')
+      setSites(response || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const columns = [
     {
@@ -87,6 +75,26 @@ export default function SiteManagement() {
     }
   ]
 
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <Spin size="large" />
+        <div className="mt-4 text-gray-500">数据正在同步中...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <Empty description="数据加载失败" />
+        <Button type="primary" onClick={fetchSites} className="mt-4">
+          重试
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Site网点管理</h2>
@@ -97,6 +105,7 @@ export default function SiteManagement() {
           dataSource={sites} 
           rowKey="id"
           pagination={{ total: sites.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+          locale={{ emptyText: '暂无网点数据' }}
         />
       </Card>
 

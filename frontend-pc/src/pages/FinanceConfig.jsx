@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, InputNumber, Button, message, Table, Tag, Tooltip, Input } from 'antd'
-
-const defaultConfig = {
-  levels: {
-    "入门级": { rent: 299, deposit: 1000, renewalDiscount: 0.95, maintenance: "外观清洗、基础调律" },
-    "专业级": { rent: 599, deposit: 3000, renewalDiscount: 0.9, maintenance: "深度清洁、精细调律" },
-    "大师级": { rent: 1299, deposit: 8000, renewalDiscount: 0.85, maintenance: "大师级养护、专家精调" }
-  }
-}
+import { Card, InputNumber, Button, message, Table, Tag, Tooltip, Input, Spin, Empty } from 'antd'
+import { api } from '../services/api'
 
 const levelColors = {
   "入门级": "default",
@@ -15,15 +8,35 @@ const levelColors = {
   "大师级": "gold"
 }
 
+const defaultEmptyConfig = {
+  levels: {}
+}
+
 export default function FinanceConfig() {
-  const [config, setConfig] = useState(() => {
-    const saved = localStorage.getItem('financeConfig')
-    return saved ? JSON.parse(saved) : defaultConfig
-  })
+  const [config, setConfig] = useState(defaultEmptyConfig)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    localStorage.setItem('financeConfig', JSON.stringify(config))
-  }, [config])
+    loadFinanceConfig()
+  }, [])
+
+  const loadFinanceConfig = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await api.get('/admin/finance-config')
+      if (response && response.levels) {
+        setConfig({ levels: response.levels })
+      } else {
+        throw new Error('Invalid config data')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleChange = (level, field, value) => {
     setConfig({
@@ -38,8 +51,13 @@ export default function FinanceConfig() {
     })
   }
 
-  const handleSave = () => {
-    message.success('配置已更新，即时生效')
+  const handleSave = async () => {
+    try {
+      await api.put('/admin/finance-config', config)
+      message.success('配置已更新，即时生效')
+    } catch (error) {
+      message.error('保存失败: ' + error.message)
+    }
   }
 
   const columns = [
@@ -134,6 +152,26 @@ export default function FinanceConfig() {
     level,
     ...values
   }))
+
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <Spin size="large" />
+        <div className="mt-4 text-gray-500">数据正在同步中...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <Empty description="配置加载失败" />
+        <Button type="primary" onClick={loadFinanceConfig} className="mt-4">
+          重试
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div>
