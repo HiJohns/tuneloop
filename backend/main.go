@@ -67,6 +67,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
 	{
+		// Category Management
+		categoryHandler := handlers.NewCategoryHandler(database.GetDB())
+		authRequired.GET("/categories", categoryHandler.GetCategories)
+		authRequired.POST("/categories", categoryHandler.CreateCategory)
+		authRequired.PUT("/categories/:id", categoryHandler.UpdateCategory)
+		authRequired.DELETE("/categories/:id", categoryHandler.DeleteCategory)
+
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
