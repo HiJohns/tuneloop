@@ -1,3 +1,4 @@
+import CategoryList from './pages/admin/category/List'
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin } from 'antd'
@@ -59,6 +60,7 @@ function MainLayout() {
       children: [
         { key: '/', label: '仪表盘 (Dashboard)' },
         { key: '/assets', label: '资产管理' },
+        { key: '/instruments/categories', label: '乐器分类管理' },
         { key: '/lease/ledger', label: '租约管理' }
       ]
     },
@@ -79,6 +81,7 @@ function MainLayout() {
     {
       key: 'system', icon: <SettingOutlined />, label: '系统管理',
       children: [
+        { key: '/instruments/categories', label: '乐器分类管理' },
         { key: '/system/clients', label: '客户端管理' },
         { key: '/system/tenants', label: '租户管理' }
       ]
@@ -95,6 +98,7 @@ function MainLayout() {
   if (['/', '/assets', '/lease/ledger'].includes(location.pathname)) openKeys = ['core']
   else if (['/finance', '/finance/quotes'].includes(location.pathname)) openKeys = ['config']
   else if (['/site/stock', '/site/management'].includes(location.pathname)) openKeys = ['data']
+  else if (['/instruments/categories'].includes(location.pathname)) openKeys = ['core']
   else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/site/stock/')) openKeys = ['data']
 
@@ -110,7 +114,8 @@ function MainLayout() {
     '/site/stock': { title: '乐器库存', parent: '基础数据' },
     '/site/management': { title: 'Site网点管理', parent: '基础数据' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
-    '/system/tenants': { title: '租户管理', parent: '系统管理' }
+    '/system/tenants': { title: '租户管理', parent: '系统管理' },
+    '/instruments/categories': { title: '乐器分类管理', parent: '核心业务' }
   }
 
   if (routeMap[location.pathname]) {
@@ -183,6 +188,7 @@ function MainLayout() {
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
+\            <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
           </Routes>
