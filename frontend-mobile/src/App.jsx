@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { UserProvider, useUser } from './context/UserContext'
 import Home from './pages/Home'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
@@ -50,6 +51,22 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function RoleBasedHome() {
+  const { isTechnician, loading } = useUser()
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-lg mb-2">加载中...</div>
+        </div>
+      </div>
+    )
+  }
+  
+  return isTechnician() ? <Navigate to="/service" replace /> : <Home />
+}
+
 function OAuthCallback() {
   const [loading, setLoading] = useState(true)
 
@@ -86,7 +103,8 @@ function OAuthCallback() {
         const data = await response.json()
         
         if (data.access_token) {
-          storeToken(data.access_token, data.expires_in || 3600)
+          // Set token expiry to 30 days (30 * 24 * 60 * 60 seconds) as required
+          storeToken(data.access_token, data.expires_in || (30 * 24 * 3600))
           
           if (data.user_info) {
             localStorage.setItem('user_info', JSON.stringify(data.user_info))
@@ -131,19 +149,21 @@ function App() {
   }, [])
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/callback" element={<OAuthCallback />} />
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/instrument/:id" element={<ProtectedRoute><Detail /></ProtectedRoute>} />
-        <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-        <Route path="/success" element={<Success />} />
-        <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-        <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
-      </Routes>
-    </BrowserRouter>
+    <UserProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/callback" element={<OAuthCallback />} />
+          <Route path="/" element={<ProtectedRoute><RoleBasedHome /></ProtectedRoute>} />
+          <Route path="/instrument/:id" element={<ProtectedRoute><Detail /></ProtectedRoute>} />
+          <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+          <Route path="/success" element={<Success />} />
+          <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+          <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   )
 }
 
