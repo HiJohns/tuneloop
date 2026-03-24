@@ -94,3 +94,27 @@ export const ownershipApi = {
 }
 
 export default api
+
+export const permissionApi = {
+  getPermissions: () => api.get('/admin/permissions'),
+  getRoles: () => api.get('/admin/roles'),
+  getRolePermissions: (id) => api.get(`/admin/roles/${id}/permissions`),
+  updateRolePermissions: (id, permissions) => api.put(`/admin/roles/${id}/permissions`, { permissions }),
+  createRole: (data) => api.post('/admin/roles', data),
+  deleteRole: (id) => api.delete(`/admin/roles/${id}`),
+}
+
+export const iamAdminApi = {
+  // Client Management
+  getClients: () => api.get('/system/clients'),
+  createClient: (data) => api.post('/system/clients', data),
+  updateClient: (id, data) => api.put(`/system/clients/${id}`, data),
+  deleteClient: (id) => api.delete(`/system/clients/${id}`),
+  
+  // Tenant Management
+  getTenants: () => api.get('/system/tenants'),
+  createTenant: (data) => api.post('/system/tenants', data),
+  getTenant: (id) => api.get(`/system/tenants/${id}`),
+  updateTenant: (id, data) => api.put(`/system/tenants/${id}`, data),
+  deleteTenant: (id) => api.delete(`/system/tenants/${id}`),
+}

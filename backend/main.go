@@ -60,7 +60,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	})
 
 	api.GET("/auth/callback", authHandler.Callback)
-    api.POST("/auth/callback", authHandler.Callback)
+	api.POST("/auth/callback", authHandler.Callback)
 	api.POST("/auth/refresh", authHandler.Refresh)
 
 	authRequired := api.Group("")
@@ -114,12 +114,20 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			merchantMaint.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
 			merchantMaint.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
 
-		techMaint := authRequired.Group("")
-		{
-			techMaint.GET("/technician/tickets", maintHandler.ListTechnicianTickets)
-			techMaint.PUT("/technician/tickets/:id/accept", maintHandler.AcceptTicket)
-			techMaint.POST("/technician/tickets/:id/complete", maintHandler.CompleteTicket)
-		}
+			techMaint := authRequired.Group("")
+			{
+				techMaint.GET("/technician/tickets", maintHandler.ListTechnicianTickets)
+				techMaint.PUT("/technician/tickets/:id/accept", maintHandler.AcceptTicket)
+				techMaint.POST("/technician/tickets/:id/complete", maintHandler.CompleteTicket)
+			}
+
+			permHandler := handlers.NewPermissionHandler(database.GetDB())
+			authRequired.GET("/admin/permissions", permHandler.GetPermissions)
+			authRequired.GET("/admin/roles", permHandler.GetRoles)
+			authRequired.GET("/admin/roles/:id/permissions", permHandler.GetRolePermissions)
+			authRequired.PUT("/admin/roles/:id/permissions", permHandler.UpdateRolePermissions)
+			authRequired.POST("/admin/roles", permHandler.CreateRole)
+			authRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
 		}
 	}
 }
