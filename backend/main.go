@@ -77,6 +77,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
+
+		// Stock Management
+		stockHandler := handlers.NewStockHandler(database.GetDB())
+		authRequired.GET("/instruments/:id/stock", stockHandler.GetInstrumentStock)
+		authRequired.PUT("/instruments/:id/stock", stockHandler.UpdateInstrumentStock)
+		authRequired.GET("/stock/transaction-log", stockHandler.GetStockTransactionLog)
+
 		uploadHandler := handlers.NewUploadHandler()
 		authRequired.POST("/upload", uploadHandler.HandleUpload)
 		authRequired.GET("/instruments/:id/reviews", handlers.GetInstrumentReviews)
