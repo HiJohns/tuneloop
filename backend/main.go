@@ -61,6 +61,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 
 	api.GET("/auth/callback", authHandler.Callback)
 	api.POST("/auth/callback", authHandler.Callback)
+	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/refresh", authHandler.Refresh)
 
 	authRequired := api.Group("")

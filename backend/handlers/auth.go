@@ -83,6 +83,34 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	})
 }
 
+func (h *AuthHandler) PostLogin(c *gin.Context) {
+	var req struct {
+		Username    string `json:"username" binding:"required"`
+		Password    string `json:"password" binding:"required"`
+		RedirectURI string `json:"redirect_uri"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// For now, return a simple authorization code
+	// In production, this would validate credentials and generate a proper code
+	authCode := "auth-code-" + req.Username + "-" + c.GetString("tenant_id")
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"code":         authCode,
+			"redirect_uri": req.RedirectURI,
+		},
+	})
+}
+
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`

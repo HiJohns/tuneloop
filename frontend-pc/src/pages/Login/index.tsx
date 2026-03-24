@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Card, Spin } from 'antd';
+import { Button, Card, Spin, message } from 'antd';
 import { useBrand } from '../components/BrandProvider';
 
 const LoginPage: React.FC = () => {
@@ -7,10 +7,15 @@ const LoginPage: React.FC = () => {
   const [redirecting, setRedirecting] = useState(false);
 
   const handleLogin = () => {
+    // Save the original URL before redirecting
+    const originalUrl = window.location.href;
+    sessionStorage.setItem('original_request_url', originalUrl);
+    
     setRedirecting(true);
     const iamUrl = import.meta.env.VITE_IAM_URL;
     const redirectUri = encodeURIComponent(window.location.origin + '/callback');
-    window.location.href = `${iamUrl}/oauth/authorize?client_id=${import.meta.env.VITE_CLIENT_ID}&redirect_uri=${redirectUri}`;
+    const state = btoa(JSON.stringify({ originalUrl }));
+    window.location.href = `${iamUrl}/oauth/authorize?client_id=${import.meta.env.VITE_CLIENT_ID}&redirect_uri=${redirectUri}&state=${encodeURIComponent(state)}`;
   };
 
   if (redirecting) {
