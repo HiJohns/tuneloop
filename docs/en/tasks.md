@@ -1,6 +1,6 @@
 # TuneLoop Engineering Task List
 
-**Version**: v2.0  
+**Version**: v2.1  
 **Generated Date**: 2026-03-24  
 **Source**: `docs/features.csv` (188 feature points)  
 **Model**: kimi-k2-thinking
@@ -162,251 +162,635 @@
 
 ---
 
-## 📱 Phase 2: Complete User Features
+## 🔄 Phase 2: Rental Closed Loop (Lease-to-Return)
 
-### 2.1 [Mobile-5553] WeChat Mini Program
+> Complete rental lifecycle from user ordering → payment → merchant accepting → delivery → user returning → deposit refund
 
-#### Rental Function Module
-- **M-005**: Rental Order Process【Core】
-  - Rental period selection: daily (1-30 days), weekly (1-4 weeks), monthly (1-12 months), supports custom days
-  - Rent calculation: auto calculate total rent = period × unit price, display discounts (long-term rental discounts)
-  - Deposit rules: charge by fixed ratio or fixed amount, clearly mark return conditions
-  - Delivery method selection: home delivery (select address, mark delivery fee) or store pickup (display store address, hours)
-  - Order confirmation: display rent, deposit, delivery fee, total amount, submit after confirmation
-  - Payment: integrate WeChat Pay, pay rent + deposit (full amount), auto cancel if payment timeout exceeds 15 minutes
+### 2.1 User Flow (Mini Program)
 
-- **M-006**: Renewal Function【Core】
-  - Initiate renewal request before order expires
+#### M-005: Rental Order Placement【Core】
+- **Module**: Rental Function
+- **Task Description**:
+  - Select specification, rental period (daily/weekly/monthly), quantity on instrument detail page
+  - Select delivery method (home delivery or store pickup)
+  - Select address (for delivery) or store (for pickup)
+  - Auto calculate rent, deposit, delivery fee
+  - Display cost breakdown: rent, deposit, delivery fee, total amount
+  - Submit order after confirmation
+- **Pages**: `pages/rental/order-confirm`
+- **API Dependencies**: `[Backend-API]-R-001` Create Rental Order API
+
+#### M-006: Order Payment【Core】
+- **Module**: Rental Function
+- **Task Description**:
+  - Invoke WeChat Pay to pay rent + deposit (full amount)
+  - Auto cancel order after 15 minutes payment timeout
+  - Update order status to "pending pickup" after successful payment
+  - Support retry payment (for failed or timeout payments)
+- **Pages**: `pages/rental/payment`
+- **API Dependencies**: `[Backend-API]-R-002` Payment API, `[Backend-API]-R-003` Order Status Query API
+
+#### M-007: Order List & View【Core】
+- **Module**: Order Center
+- **Task Description**:
+  - Display all rental orders
+  - Filter by category: all, pending payment, pending pickup, in rental, pending return, completed, cancelled
+  - Support filter by time (last 7 days/30 days/all), search by order number
+  - Display core info: order number, instrument image & name, order status, rental period, amount
+- **Pages**: `pages/order/rental-list`
+- **API Dependencies**: `[Backend-API]-R-004` Rental Order List API
+
+#### M-008: Order Detail & Operations【Core】
+- **Module**: Order Center
+- **Task Description**:
+  - Display order details: instrument info, rental period, rent, deposit, delivery method, address
+  - Display payment info: payment method, payment time, transaction number
+  - Display pickup/return info (time, location, status)
+  - Status-specific action buttons:
+    - Pending payment: pay, cancel order
+    - In rental: renewal request, return request
+    - Completed: view deposit refund progress
+- **Pages**: `pages/order/rental-detail`
+- **API Dependencies**: `[Backend-API]-R-005` Order Detail API, `[Backend-API]-R-010` Cancel Order API
+
+#### M-009: Renewal Request【Core】
+- **Module**: Rental Function
+- **Task Description**:
+  - Initiate renewal request in "My Orders" (only for in-rental orders)
   - Select renewal period, auto calculate renewal rent
-  - Pay renewal fee (deposit not required again)
+  - Display renewal details (no deposit required again)
+  - Pay renewal fee
+  - Sync order expiration time after renewal
   - Renewal request needs admin approval or auto-approval
+- **Pages**: `pages/order/rental-renew`
+- **API Dependencies**: `[Backend-API]-R-006` Renewal API, `[Backend-API]-R-007` Renewal Payment API
 
-- **M-007**: Return Request【Core】
+#### M-010: Return Request【Core】
+- **Module**: Rental Function
+- **Task Description**:
   - Initiate return request (support early or on-time return)
   - Select return method: home pickup (mark pickup fee) or store return
-  - Fill return note (instrument condition)
-  - Wait for admin confirmation, generate return order after confirmation
+  - Fill return notes (instrument condition, usage feedback)
+  - Wait for admin confirmation after submission
+- **Pages**: `pages/order/rental-return-apply`
+- **API Dependencies**: `[Backend-API]-R-008` Return Request API
 
-- **M-008**: Expiration Reminder【Utility】
-  - Push reminder 3 days and 1 day before expiration
-  - Overdue reminder: charge 1.5× daily rent for each overdue day
-  - Trigger risk control alert if overdue exceeds 7 days
+#### M-011: Deposit Refund View【Core】
+- **Module**: Personal Center - Deposit Management
+- **Task Description**:
+  - View deposit details in "Deposit Management"
+  - Display pending/refunded deposit list
+  - Show corresponding order number, amount, refund time
+  - Display "Apply for Refund" button when rental completed without damage
+  - Show deposit refund request review progress
+- **Pages**: `pages/user/deposit`
+- **API Dependencies**: `[Backend-API]-R-009` Deposit Query API, `[Backend-API]-R-012` Deposit Refund Request API
 
-#### Maintenance & Repair Module
-- **M-009**: Maintenance/Repair Package Display【Core】
-  - Display package categories: maintenance packages, repair packages
-  - Show package name, price, service content, duration, applicable instrument types
-  - Support custom quote (when no matching package exists)
+### 2.2 Admin Flow (Merchant Backend)
 
-- **M-010**: Repair Appointment【Core】
-  - Select service type (maintenance/repair), instrument type, specific model
-  - Fill fault description: text + images/video (max 5 images/1 video)
-  - Select service method: home pickup/delivery or store drop-off
-  - Select appointment time: precise to date + time slot (e.g., 9:00-12:00), display available slots
-  - Submit appointment, generate appointment order
+#### A-007: Rental Order Management List【Core】
+- **Module**: Rental Order Management
+- **Task Description**:
+  - Display all rental orders (platform view) or merchant's own orders (merchant view)
+  - Filter conditions: order number, user phone, order status, order time, instrument type
+  - Display core fields: order number, user info, instrument info, rental period, amount, payment status, delivery method
+  - Batch operations: batch export, batch status update, batch cancel
+- **Pages**: `pages/order/rental-manage`
+- **API Dependencies**: `[Backend-API]-R-004` Rental Order List API
 
-- **M-011**: Repair Progress Tracking【Core】
-  - Display progress status: pending→pending pickup→repairing→pending quote→pending confirmation→repair complete→pending return
-  - Real-time update: sync after admin operations, display operation time, operator
-  - Progress notes: view maintenance notes from admin
+#### A-008: Order Status Flow Operations【Core】
+- **Module**: Rental Order Management
+- **Task Description**:
+  - **Pending Payment**: manually cancel order, send payment reminder (SMS/mini program message)
+  - **Pending Pickup**: confirm pickup (record pickup time, pickup person), modify delivery/pickup info
+  - **In Rental**: process renewal requests (approve/reject), process return requests, set overdue billing (manual/auto)
+  - **Pending Return**: confirm return (record return time, instrument condition, any damage), deduct overdue fees (if applicable)
+  - **Completed**: review deposit refund request, initiate refund (WeChat Pay back to source)
+  - **Common**: add order notes, sync to mini program order detail
+-  **Approval Flow Settings**  : Renewal requests can be configured as auto-approve or manual review
+- **Pages**: `pages/order/rental-detail-manage`
+- **API Dependencies**: `[Backend-API]-R-013` Order Status Update API, `[Backend-API]-R-014` Renewal Review API, `[Backend-API]-R-015` Return Confirmation API
 
-- **M-012**: Quote Confirmation【Core】
-  - Receive quote push notification
-  - Display quote details: labor fee, parts fee, other fees
-  - User actions: confirm (proceed to payment) or reject (fill reason)
-  - Pay maintenance fee (WeChat Pay support)
+#### A-009: Overdue Order Management【Core】
+- **Module**: Rental Order Management
+- **Task Description**:
+  - Overdue order list: display overdue orders, overdue days, late fee amount
+  - Auto late fee calculation: calculate automatically by configured rules (e.g., 1.5× daily rent), support manual adjustment
+  - Collection reminder: manually send SMS/mini program message to remind user to return
+  - Support one-click overdue fee report generation
+- **Pages**: `pages/order/overdue-manage`
+- **API Dependencies**: `[Backend-API]-R-016` Overdue Order Query API, `[Backend-API]-R-017` Late Fee Calculation API
 
-#### Order Center Module
-- **M-013**: Order List【Core】
-  - Display by category: rental orders, repair orders
-  - Support filter by time (last 7 days/30 days/all), search by order number
-  - Status filter: all, pending payment, pending pickup, in progress, pending return, completed, cancelled, etc.
+#### A-010: Deposit Management【Core】
+- **Module**: Finance & Settlement Management
+- **Task Description**:
+  - Deposit list: display pending/refunded deposits, associated order, user, amount
+  - Deposit refund review: review user deposit refund request (check order status, instrument condition, overdue fees)
+  - Initiate refund: call WeChat Pay refund API after approval, record refund amount, time, status, transaction number
+  - Support batch refund (unified deposit refund for multiple orders)
+  - Refund record query and export
+- **Approval Flow**: Configurable multi-level review (e.g., require finance supervisor approval for amounts over threshold)
+- **Pages**: `pages/finance/deposit-manage`
+- **API Dependencies**: `[Backend-API]-R-018` Deposit Review API, `[Backend-API]-R-019` WeChat Pay Refund API
 
-- **M-014**: Order Detail【Core】
-  - Display basic info: order number, order time, order status
-  - Rental order detail: instrument info, rental period, rent, deposit, delivery method, payment info
-  - Repair order detail: instrument info, service type, fault description, quote, repair progress
-  - Payment/refund info display
-  - Action buttons: display based on status (pending payment→pay, in rental→renew/return request)
+### 2.3 Rental Closed Loop Backend API
 
-- **M-015**: Payment & Refund【Core】
-  - Support replay payment for pending payment orders
-  - Refund request: rental orders (full refund if not picked up, refund deposit minus rent after pickup), repair orders (full refund if not started)
-  - Display refund progress and status
+#### R-001: Create Rental Order API【Core】
+- **Endpoint**: POST /api/rental-orders
+- **Function Description**:
+  - Receive order parameters: user ID, instrument ID, spec ID, rental type, rental length, quantity, delivery method, address ID
+  - Calculate order amount: calculate rent by rental length and tiered pricing rules, calculate deposit by deposit rules
+  - Generate unique order number (support date-based generation, e.g., R2026032400001)
+  - Status initialization: "pending payment" after creation
+  - Stock pre-occupation (optional, prevent overselling)
+  - Return order detail and payment parameters
 
-#### Personal Center Module
-- **M-016**: Personal Info Management【Foundation】
-  - Display avatar, nickname, phone number, membership level
-  - Support modifying avatar and nickname
+#### R-002: Rental Order Payment API【Core】
+- **Endpoint**: POST /api/rental-orders/:orderId/pay
+- **Function Description**:
+  - Call WeChat Pay unified order interface
+  - Receive payment result callback, update order status to "pending pickup"
+  - Auto cancel order and release stock if payment timeout exceeds 15 minutes
 
-- **M-017**: Address Management【Foundation】
-  - Address list: display recipient, phone, detailed address, is default
-  - Actions: add, edit, delete address, set as default
-  - Address validation: auto-recognize province/city/district, support address search
+#### R-003: Rental Order Query API【Core】
+- **Endpoint**: GET /api/rental-orders
+- **Function Description**:
+  - Query current user's rental order list (mini program)
+  - Support filter by status, time
+  - Paginated return (10 per page)
+  - Return fields: order number, instrument info, rental period, amount, status, order time
 
-- **M-018**: Deposit Management【Core】
-  - Deposit details: display pending/refunded deposits, associated order, amount, refund time
-  - Deposit refund request: apply for deposit refund after rental completion without damage
+- **Endpoint**: GET /api/rental-orders/:orderId
+- **Function Description**: Query single order detail
 
-- **M-019**: Customer Service【Utility】
-  - Online customer service: redirect to WeChat customer service (enterprise/special account)
-  - Phone customer service: display merchant contact phone, one-click dial
-  - FAQ list
+- **Endpoint**: GET /api/rental-orders/all (Admin)
+- **Function Description**: Query all rental orders (platform/merchant view), support multi-dimensional filtering
 
-- **M-020**: Announcement Center【Utility】
-  - Display merchant announcements
-  - Categories: all, rental-related, maintenance-related, system notifications
-  - Read/unread marking, support deleting read announcements
+#### R-004: Renewal API【Core】
+- **Endpoint**: POST /api/rental-orders/:orderId/renew
+- **Function Description**:
+  - Receive renewal period parameter
+  - Calculate new expiration time based on current expiration and renewal period
+  - Calculate renewal rent (by tiered pricing, no deposit required)
+  - Generate renewal record with "pending payment" status
+  - Update main order expiration time after payment
 
-- **M-021**: Other Features【Utility】
-  - My collections: favorite instruments, repair packages
-  - Feedback: fill feedback content + images, admin can reply after submission
-  - Settings: notification switch, clear cache, about us
-  - Invitation code: generate exclusive invitation code, earn points when referrals make purchases
+#### R-005: Return Request API【Core】
+- **Endpoint**: POST /api/rental-orders/:orderId/return
+- **Function Description**:
+  - Receive return method, return time, notes
+  - Update order status to "pending return" (before merchant confirmation)
+  - Generate return request record
+  - Push message notification to merchant admin
+
+- **Endpoint**: POST /api/rental-orders/:orderId/return/confirm (Admin)
+- **Function Description**: Merchant confirms return, update status to "completed", trigger deposit refund flow
+
+#### R-006: Order Status Flow API【Core】
+- **Endpoint**: PUT /api/rental-orders/:orderId/status
+- **Function Description**:
+  - Update order status by different actions: pending payment→pending pickup→in rental→pending return→completed
+  - Record operator, operation time, notes for each status flow
+
+#### R-007: Late Fee Calculation API【Core】
+- **Endpoint**: GET /api/rental-orders/:orderId/late-fee
+- **Function Description**:
+  - Calculate overdue days (based on current time and order expiration)
+  - Calculate late fee amount by configured rules (e.g., 1.5× daily rent)
+  - Support manual late fee adjustment (admin can modify)
+  - Record late fee calculation log
+
+#### R-008: Deposit Management API【Core】
+- **Endpoint**: POST /api/deposit/refund-request
+- **Function Description**:
+  - Receive user deposit refund request
+  - Validate order status (must be completed without overdue/damage)
+  - Generate deposit refund record with "pending review" status
+
+- **Endpoint**: POST /api/deposit/refund-requests/:requestId/review (Admin)
+- **Function Description**: Admin reviews deposit refund, call WeChat refund API if approved
+
+#### R-009: Order Statistics API【Utility】
+- **Endpoint**: GET /api/rental-orders/stats
+- **Function Description**:
+  - Statistics on rental order data: today/yesterday/this month order count, transaction amount, total deposit
+  - Statistics by instrument type, rental period, time range
+  - Statistics by order status distribution
 
 ---
 
-## 💻 Phase 3: Complete Admin Features
+## 🔧 Phase 3: Maintenance Closed Loop (Maintenance-to-Finish)
 
-### 3.1 [Admin-5554] Admin Dashboard PC
+> Complete maintenance lifecycle from user repair request → merchant accepting → quoting → user payment → repair completion → instrument return
 
-#### Merchant Onboarding Review Module
-- **A-007**: Merchant Onboarding Application Review【Core】
-  - Review list: display all onboarding applications, support filtering (application number, merchant name, type, status)
-  - View details: view all submitted merchant info, qualification materials (zoomable)
-  - Approve: set merchant level, commission rate, deposit amount, auto-generate and push merchant backend account credentials
-  - Reject: fill rejection reason (preset or custom), merchant receives notification to resubmit
-  - Batch operations: batch rejection (need uniform reason), batch export application list
+### 3.1 User Flow (Mini Program)
 
-#### Merchant Backend Management Module
-- **A-008**: Merchant Login & Personal Center【Foundation】
-  - Merchant login: account password or verification code login, record login logs
-  - Personal center: display merchant info, account info, support modifying contact, phone, password
-  - Notifications: receive platform notifications and user order notifications
+#### M-012: Maintenance/Repair Package Display【Core】
+- **Module**: Instrument Maintenance/Repair
+- **Task Description**:
+  - Category display: maintenance packages (piano tuning, guitar string replacement, etc.), repair packages (fault repair, parts replacement, etc.)
+  - Display package info: name, price, service content, duration, applicable instrument types
+  - Support search and filter (by instrument type, service type)
+- **Pages**: `pages/maintenance/packages`
+- **API Dependencies**: `[Backend-API]-M-001` Maintenance Package List API
 
-- **A-009**: Merchant's Own Instrument Management【Core】
-  - Instrument categories: can only manage own primary categories (platform approved)
-  - Instrument info management: add, edit, delete own instruments (must be within platform range, need approval if exceeding)
-  - Instrument review management: view and reply to user reviews, handle negative reviews
+#### M-013: Maintenance/Repair Appointment【Core】
+- **Module**: Instrument Maintenance/Repair
+- **Task Description**:
+  - Select service type: maintenance / repair
+  - Select instrument type, specific model (optional, select from order history)
+  - Fill fault description: text description + upload images/video (max 5 images / 1 video)
+  - Select service method: home pickup/delivery (fill address, mark pickup fee) or store drop-off (select store, fill arrival time)
+  - Select appointment time: precise to date + time slot (e.g., 9:00-12:00), display available slots (from merchant calendar)
+  - Submit appointment: generate maintenance order with "pending acceptance" status
+- **Pages**: `pages/maintenance/appointment`
+- **API Dependencies**: `[Backend-API]-M-002` Create Maintenance Order API
 
-- **A-010**: Merchant Order Management【Core】
-  - Rental order management: view own orders, handle pickup confirmation, renewal/return requests, calculate overdue fees, refund deposits
-  - Repair order management: accept orders, update progress, submit quotes, confirm completion, arrange return
-  - Order statistics: view own order data, generate simple reports
+#### M-014: Maintenance Progress Tracking【Core】
+- **Module**: Instrument Maintenance/Repair
+- **Task Description**:
+  - Display progress status flow: pending acceptance → pending pickup → repairing → pending quote → pending confirmation → repair complete → pending return
+  - Real-time update: Auto sync after admin operations, display operation time, operator (configurable anonymous/real name)
+  - View maintenance notes added by admin (e.g., "Need to replace strings, estimated 1 day to complete")
+  - Support push message reminders (mini program subscription messages)
+- **Pages**: `pages/maintenance/progress`
+- **API Dependencies**: `[Backend-API]-M-003` Maintenance Order Detail API, `[Backend-API]-M-004` Progress Query API
 
-- **A-011**: Merchant Repair Package Management【Core】
-  - Package management: add, edit, delete own repair/maintenance packages
-  - Quote management: receive user custom repair appointments, submit quotes (must be within platform range)
+#### M-015: Maintenance Order List【Core】
+- **Module**: Order Center
+- **Task Description**:
+  - Display all maintenance orders
+  - Filter by category: all, pending acceptance, pending pickup, repairing, pending quote, pending payment, completed, cancelled
+  - Support filter by time (last 7 days/30 days/all), search by order number
+  - Display core info: order number, service type, appointment time, order status, amount
+- **Pages**: `pages/order/maintenance-list`
+- **API Dependencies**: `[Backend-API]-M-005` Maintenance Order List API
 
-- **A-012**: Merchant Finance & Settlement Management【Core】
-  - Commission details: view own commission details, export details
-  - Settlement management: view settlement sheets, confirm amounts, submit early settlement applications
-  - Deposit management: view deposit amount, status, submit refund applications
+#### M-016: Quote Confirmation & Payment【Core】
+- **Module**: Instrument Maintenance/Repair
+- **Task Description**:
+  - Receive quote push notification (mini program template message)
+  - View quote details: labor fee, parts fee, other fees, total amount
+  - User actions:
+    - **Confirm quote**: Proceed to payment, call WeChat Pay
+    - **Reject quote**: Fill rejection reason, cancel appointment (order status becomes "cancelled")
+  - After payment, order status auto flows to "repairing"
+- **Pages**: `pages/maintenance/quote-confirm`
+- **API Dependencies**: `[Backend-API]-M-006` Quote Confirmation API, `[Backend-API]-M-007` Maintenance Payment API
 
-- **A-013**: Store Configuration【Utility】
-  - Store info: complete store address, hours, contact, introduction, upload images
-  - Message settings: set order message push methods
-  - Violations & appeals: view violation records, submit appeals
+### 3.2 Admin Flow (Merchant Backend)
 
-#### Platform Admin Module
-- **A-014**: Merchant Information Management【Core】
-  - Merchant list: display all onboarded merchants, support various filtering
-  - Merchant details: view, edit merchant info (commission rate, level, status)
-  - Status management: normal/suspended/disabled (different permission levels)
-  - Qualification update: review merchant qualification update applications
+#### A-011: Maintenance Package Management【Foundation】
+- **Module**: Maintenance Order Management
+- **Task Description**:
+  - Add/edit/delete maintenance/repair packages
+  - Set package fields: name, price, service content, applicable instrument types, estimated duration
+  - Shelf on/off control: non-display in mini program when off
+  - Support upload service images, detailed description
+  - Can set quote templates (preset common fault quote details)
+- **Pages**: `pages/maintenance/package-manage`
+- **API Dependencies**: `[Backend-API]-M-008` Maintenance Package CRUD API
 
-- **A-015**: Merchant Permission Management【Core】
-  - Role assignment: merchant admin, order operator, finance operator, etc.
-  - Permission configuration: customize merchant backend feature permissions (differentiated by merchant level)
-  - Account management: reset password, disable account, unbind phone number
+#### A-012: Maintenance Order Management List【Core】
+- **Module**: Maintenance Order Management
+- **Task Description**:
+  - Display all maintenance orders (platform view) or merchant's own orders (merchant view)
+  - Filter conditions: order number, user phone, order status, appointment time, service type
+  - Display fields: order number, user info, instrument info, service type, fault description, quote amount, appointment time
+  - Batch operations: batch export, batch acceptance, batch cancellation
+  - Support quick actions on list page (accept, update status, submit quote)
+- **Pages**: `pages/maintenance/order-manage`
+- **API Dependencies**: `[Backend-API]-M-005` Maintenance Order List API
 
-- **A-016**: Commission & Settlement Management【Core】
-  - Commission rule setting: global commission, personalized commission, settlement cycle configuration
+#### A-013: Maintenance Order Status Flow Operations【Core】
+- **Module**: Maintenance Order Management
+- **Task Description**:
+  - **Pending acceptance**: View order detail and user-submitted fault description/images, click "Accept" (assign technician) or "Reject" (fill reason)
+  - **Pending pickup**: Confirm pickup (record pickup time, pickup person), arrange pickup logistics
+  - **Repairing**: Update repair progress, submit quote (fill labor fee, parts fee, other fee details)
+  - **Pending quote**: Wait for user confirmation (this status on mini program)
+  - **Pending payment**: User confirmed quote, waiting for payment (can send payment reminder)
+  - **Repair complete**: Confirm completion (record completion time), upload post-repair photos, arrange return (home/store)
+  - **Pending return**: User confirmed repair completion, waiting for instrument return
+  - **Order notes**: Add maintenance notes, sync to mini program progress page
+- **Pages**: `pages/maintenance/order-detail-manage`
+- **API Dependencies**: `[Backend-API]-M-009` Status Flow API, `[Backend-API]-M-010` Quote Submit API
+
+#### A-014: Repair Technician/Tuner Management【Core】
+- **Module**: Maintenance Order Management
+- **Task Description**:
+  - Upload/edit technician/tuner info: name, contact, professional skills, service area
+  - Set technician acceptance rules: match by instrument type, service area, workload
+  - Support auto-assignment (rule-based) or manual assignment (admin designated)
+  - View technician workload and order statistics
+- **Pages**: `pages/maintenance/technician-manage`
+- **API Dependencies**: `[Backend-API]-M-011` Technician Management API
+
+#### A-015: Quote Management【Core】
+- **Module**: Maintenance Order Management
+- **Task Description**:
+  - Receive user custom repair appointments (when no matching package)
+  - Submit quote: fill fee details (labor fee, parts fee, other fees), auto calculate total
+  - Quote range validation: must be within reasonable range set by platform (avoid malicious high prices)
+  - View user quote confirmation status (pending/confirmed/rejected)
+  - Handle quote rejection: contact user to negotiate adjusted quote or cancel order
+- **Pages**: `pages/maintenance/quote-manage`
+- **API Dependencies**: `[Backend-API]-M-010` Quote Submit API
+
+### 3.3 Maintenance Closed Loop Backend API
+
+#### M-001: Maintenance Package API【Foundation】
+- **Endpoint**: GET /api/maintenance-packages
+- **Function Description**: Query available maintenance/repair package list, support filter by instrument type, service type
+
+- **Endpoint**: POST /api/maintenance-packages (Admin)
+- **Function Description**: Add, update, delete maintenance packages
+
+#### M-002: Create Maintenance Order API【Core】
+- **Endpoint**: POST /api/maintenance-orders
+- **Function Description**:
+  - Receive parameters: user ID, service type, instrument info, fault description, images/video, appointment time, service method
+  - Generate unique maintenance order number (e.g., M2026032400001)
+  - Initial status: pending acceptance
+  - Push message notification to corresponding merchant admin
+
+#### M-003: Maintenance Order Query API【Core】
+- **Endpoint**: GET /api/maintenance-orders
+- **Function Description**:
+  - Mini program: query current user's maintenance order list
+  - Support filter by status, time
+  - Return fields: order number, service type, appointment time, order status, quote amount
+
+- **Endpoint**: GET /api/maintenance-orders/all (Admin)
+- **Function Description**: Query all maintenance orders (platform/merchant view), support multi-dimensional filtering
+
+- **Endpoint**: GET /api/maintenance-orders/:orderId
+- **Function Description**: Query single maintenance order detail, including progress flow, quote details
+
+#### M-004: Maintenance Progress Update API【Core】
+- **Endpoint**: PUT /api/maintenance-orders/:orderId/progress
+- **Function Description**:
+  - Admin updates repair progress status
+  - Add progress notes
+  - Trigger mini program real-time notification (subscription message)
+
+#### M-005: Quote Submit & Confirmation API【Core】
+- **Endpoint**: POST /api/maintenance-orders/:orderId/quote (Admin)
+- **Function Description**:
+  - Receive quote details: labor fee, parts fee, other fees
+  - Auto calculate total amount
+  - Validate quote is within reasonable range
+  - Update order status to "pending quote"
+  - Push mini program message to notify user confirmation
+
+- **Endpoint**: POST /api/maintenance-orders/:orderId/quote/confirm (Mini Program)
+- **Function Description**:
+  - User confirms or rejects quote
+  - Status flows to "pending payment" after confirmation
+  - Status becomes "cancelled" after rejection
+
+#### M-006: Maintenance Payment API【Core】
+- **Endpoint**: POST /api/maintenance-orders/:orderId/pay
+- **Function Description**:
+  - Invoke WeChat Pay
+  - Status auto flows to "repairing" after successful payment
+  - Close order on payment timeout
+
+#### M-007: Repair Complete & Return API【Core】
+- **Endpoint**: POST /api/maintenance-orders/:orderId/complete (Admin)
+- **Function Description**:
+  - Submit repair completion info: completion time, maintenance notes, post-repair photos
+  - Status flows to "repair complete"
+  - Push notification to user
+
+- **Endpoint**: POST /api/maintenance-orders/:orderId/return-confirm (Admin)
+- **Function Description**: Confirm instrument returned, close order
+
+#### M-008: Technician Management API【Foundation】
+- **Endpoint**: POST /api/repair-technicians (Admin)
+- **Function Description**:
+  - Add, edit, delete repair technician info
+  - Query technician list and order statistics
+  - Auto-assignment rule configuration
+
+#### M-009: Maintenance Statistics API【Utility】
+- **Endpoint**: GET /api/maintenance-orders/stats
+- **Function Description**:
+  - Statistics on maintenance order data: today/this month order count, revenue
+  - Statistics by service type, instrument type, time range
+  - Statistics by order status distribution
+
+---
+
+## 📝 Phase 4: Other Core Feature Modules
+
+### 4.1 Merchant Onboarding & Review Module (Merchant Onboarding)
+
+#### A-016: Merchant Onboarding Application【Core】
+- **Onboarding Type Selection**: Individual merchant (ID info) / Enterprise merchant (business license, legal representative info)
+- **Basic Info Form**:
+  - Merchant basic info: name (match qualification), contact person, contact phone (verified by SMS), contact email
+  - Business info: main instrument types (multi-select), business model (rental/maintenance/both), store address (map location), business hours
+  - Login info: set merchant backend login account (phone/custom), login password (strength validation)
+- **Qualification Materials Upload**:
+  - Individual merchant: ID front/back, holding ID photo, bank card photo
+  - Enterprise merchant: business license, legal representative ID, corporate account info, industry qualification (optional)
+  - Material requirements: JPG/PNG format, ≤5M per file, preview allowed, re-upload supported
+- **Agreement Signing**: Display "Merchant Onboarding Agreement", etc., must check "I have read and agree"
+- **Submission & Progress Tracking**: Generate application number after submission, can query review status (pending/reviewing/approved/rejected)
+- **Notification**: Push mini program message when review status changes
+- **Pages**: `pages/onboard/apply`, `pages/onboard/progress`
+- **API Dependencies**: `[Backend-API]-O-001` Onboarding Application API, `[Backend-API]-O-002` Progress Query API
+
+#### A-017: Merchant Onboarding Review【Core】
+- **Review List**: Display all onboarding applications, support filter by application number, merchant name, type, status
+- **View Details**: View all submitted merchant info, zoomable qualification materials
+- **Approve**: Set merchant level (default regular), commission rate (customizable), deposit amount, auto-generate and push merchant backend account credentials
+- **Reject**: Fill rejection reason (preset or custom), merchant receives notification to resubmit
+- **Batch Operations**: Batch reject (need uniform reason), batch export application list
+- **Pages**: `pages/onboard/review-list`, `pages/onboard/review-detail`
+- **API Dependencies**: `[Backend-API]-O-003` Review API
+
+#### A-018: Merchant Information Management【Core】
+- **Merchant List**: Display all onboarded merchants, support multi-dimensional filtering
+- **Merchant Details**: View complete info (basic info, qualification materials, business info, account info), support edit (commission rate, level, status)
+- **Status Management**:
+  - **Normal**: Merchant can operate normally
+  - **Suspended**: Suspend operation permissions (cannot add instruments or accept orders), can process existing orders
+  - **Disabled**: Completely disable all permissions, delete merchant backend account, must settle orders and commissions first
+- **Qualification Update**: Review merchant qualification update applications, log updates
+- **Pages**: `pages/merchant/list`, `pages/merchant/detail`
+- **API Dependencies**: `[Backend-API]-O-004` Merchant Information Management API
+
+### 4.2 Merchant Backend Management Module (Merchant Backend)
+
+#### A-019: Merchant Login & Personal Info【Foundation】
+- Login with assigned account password, support verification code login, password reset (bound phone)
+- Record login logs (time, IP, device)
+- Personal center displays merchant info (name, level, commission rate, deposit status)
+- Support modify contact person, contact info, password
+- View onboarding agreement, commission rules
+- Receive platform notifications and user order messages
+- **Pages**: `pages/merchant/login`, `pages/merchant/profile`
+
+#### A-020: Merchant Permission Management【Core】
+- **Role Assignment**: Merchant admin, order operator, finance operator, etc.
+- **Permission Configuration**: Platform customizes merchant backend feature permissions (e.g., allow rent modification, allow self refund)
+- **Account Management**: Reset merchant backend password, disable account, unbind phone
+- **Pages**: `pages/merchant/permission`
+- **API Dependencies**: `[Backend-API]-O-005` Merchant Permission Management API
+
+### 4.3 Personal Center Module (Personal Center)
+
+#### M-021: Personal Information Management【Foundation】
+- Display avatar, nickname, phone number, membership level
+- Support modify avatar, nickname
+- **Pages**: `pages/user/profile`
+
+#### M-022: Address Management【Foundation】
+- Address list: display recipient, phone, detailed address, is default
+- Operations: add, edit, delete address, set as default
+- Address validation: auto-recognize province/city/district, support address search
+- **Pages**: `pages/user/addresses`
+
+#### M-023: Collections & Feedback【Utility】
+- **My Collections**: Favorite instruments, maintenance packages
+- **Feedback**: Fill feedback content + images, admin can reply after submission
+- **Settings**: Notification switch, clear cache, about us
+- **Invitation Code**: Generate exclusive invitation code, earn points when referrals make purchases
+- **Pages**: `pages/user/collections`, `pages/user/feedback`, `pages/user/settings`
+
+### 4.4 System Configuration & Management【Utility】
+
+#### A-021: Finance & Data Statistics【Core】
+- **Commission & Settlement Management**:
+  - Commission rule setting: global commission, personalized commission, settlement cycle (weekly/monthly)
   - Commission details: view, filter, export all merchant commission details
   - Settlement operations: auto settlement, manual settlement, settlement review, exception handling
-  - Deposit management: deposit collection, refund, deduction operations
+  - Deposit management: deposit collection, refund, deduction
+- **Data Statistics**:
+  - Business overview: today/yesterday/this month order count, transaction amount, total deposit, refund amount
+  - Rental statistics: by instrument type, rental period, time range
+  - Maintenance statistics: by service type, instrument type, time range
+  - User statistics: new users, active users, repurchase rate
+- **Order Export**: Support export to Excel by time, order type, status
+- **Pages**: `pages/finance/commission`, `pages/data/stats`
+- **API Dependencies**: `[Backend-API]-S-001` Statistics API, `[Backend-API]-S-002` Settlement API
 
-- **A-017**: Rental Order Management【Core】
-  - Order list: display all rental orders, support filtering and batch operations
-  - Order operations: pending payment, pending pickup, in rental, pending return, completed status operations
-  - Overdue management: overdue order list, automatic overdue fee calculation, collection reminder
-
-- **A-018**: Repair Order Management【Core】
-  - Order list: display all repair orders, support filtering and batch operations
-  - Order operations: pending acceptance, pending pickup, repairing, pending quote, pending payment, repair completion status operations
-  - Repair package management: add, edit, delete platform-maintained repair packages
-  - Technician management: maintain repair technician/tuner info, support auto/manual assignment
-
-- **A-019**: User Management【Core】
-  - User list: display all users, support filter by phone, registration time, membership level
-  - User details: view user orders, addresses, deposit info
-  - Membership management: set membership levels and benefits (deposit reduction, rent discount)
-  - Address management: view, modify, delete user saved addresses
-
-- **A-020**: Finance & Data Statistics【Core】
-  - Deposit management: deposit list, refund operations, refund records
-  - Order export: export orders by conditions to Excel
-  - Data statistics: business overview, rental statistics, repair statistics, user statistics
-
-- **A-021**: System Configuration【Utility】
-  - Home page config: carousel image management, recommended instrument settings
-  - Announcement management: add, edit, delete announcements, auto-push to Mini Program after publish
-  - Basic settings: payment settings, fee settings, message settings, store management
+#### A-022: Homepage & Announcement Configuration【Utility】
+- **Homepage Configuration**:
+  - Carousel management: upload images, set jump links, sorting, display status
+  - Recommended instruments: manually set homepage recommendations
+- **Announcement Management**:
+  - Add/edit/delete announcements, set title, content, category, publish time, sticky
+  - Auto push to mini program announcement center after publish
+- **Basic Settings**:
+  - Payment settings: configure WeChat Pay merchant ID, key, payment timeout
+  - Fee settings: configure delivery fee, pickup fee, late fee rules, deposit rules
+  - Message settings: configure mini program message, SMS templates
+  - Store management: add/edit store address, business hours, contact phone
+- **Pages**: `pages/system/home-config`, `pages/system/announcement`, `pages/system/settings`
 
 ---
 
-## 🔧 Appendix: Task Priority Suggestion
+## 🔧 Appendix: Task Priority & Version Planning
 
-### High Priority (MVP Foundation, ~40 tasks)
+### P0 Priority (MVP Foundation, ~40 tasks) -【v1.0 Priority】
 1. **User Authentication Module** (M-001, B-001)
 2. **Instrument Display Closed Loop** (M-002, M-003, M-004, A-001-A-006, B-002, B-003, B-004)
-3. **Basic Rental Process** (Core part of M-005: order + payment)
-4. **Order Management** (M-013 list view, A-017 basic operations)
-5. **Stock Sync** (B-004 stock query)
+3. **Basic Rental Flow** (M-005 order, M-006 payment, M-007 order list, A-007 order list, A-008 partial status operations)
+4. **Order Management View** (M-008 order detail view, M-007 list)
+5. **Stock Sync** (B-004 stock query, A-005 stock management)
 
-### High+ Priority (Complete Business Features, ~60 tasks)
-1. Complete rental flow (renewal, return, reminder)
-2. Maintenance & repair flow
-3. Merchant onboarding & review
-4. Merchant backend management
-5. User review system
+### P1 Priority (Complete Business Features, ~60 tasks) -【v2.0-v3.0】
+1. Complete rental closed loop (renewal M-009, return M-010, deposit management M-011, A-009 overdue management, A-010 deposit management)
+2. Merchant Onboarding & Review (A-016, A-017, A-018)
+3. Merchant Self Management (A-019, A-020)
+4. Platform Admin Backend (A-008 complete order flow, A-011, A-012)
+5. User Review System
 
-### Medium Priority (Enhanced Features, ~70 tasks)
-1. Invitation code feature
-2. Membership level system
-3. Ad carousel management
-4. Complex data statistics and reporting
+### P2 Priority (Enhanced Features, ~70 tasks) -【v4.0】
+1. Complete maintenance closed loop (M-012 to M-016, A-011 to A-015)
+2. Technician Management & Assignment (A-014)
+3. Complete Personal Center (M-021, M-022, M-023)
+4. Commission & Settlement Management (A-021)
+5. Data Statistics & Reporting (A-021)
 
-### Low Priority (Optimization & Auxiliary, ~68 tasks)
-1. Excel import/export optimization
-2. Cache optimization
-3. Message push optimization
-4. UI beautification
+### P3 Priority (Optimization & Auxiliary, ~68 tasks) -【v5.0 Optimization】
+1. Invitation Code Feature (M-023)
+2. Membership Level System (A-021)
+3. Homepage Configuration & Announcements (A-022)
+4. Excel Import/Export Optimization (A-006)
+5. Cache Optimization & Performance Tuning
+6. UI/UX Detail Optimization
 
 ---
 
 ## 📍 Version Iteration Planning Suggestion
 
-### v1.0 MVP (Priority 4 weeks)
-- Complete user authentication, instrument display, basic rental ordering, order viewing
-- Admin backend complete instrument management, basic order operations
-- Goal: End-to-end demonstrable flow
+### v1.0 MVP (Priority 4 weeks) - Core Rental Loop Foundation
+- **Goal**: Achieve complete demonstrable flow from instrument display to rental order payment
+- **Included Modules**:
+  - User authentication & login
+  - Instrument category, list, detail display
+  - Admin backend: instrument, category, stock management
+  - Mini program: rental order placement, payment, order viewing
+  - Merchant backend: rental order list view, pickup confirmation
+- **Deliverable**: End-to-end demonstrable rental flow
 
-### v2.0 Merchant Onboarding (Week 5-6)
-- Complete merchant onboarding application, review, merchant backend foundation
-- Goal: Support merchant self-management
+### v2.0 Merchant Onboarding (Week 5-6) - Multi-Merchant System
+- **Goal**: Support merchant onboarding and self-management
+- **New Modules**:
+  - Merchant onboarding application and platform review
+  - Merchant backend: self-manage instruments, orders, store info
+  - Merchant roles and permission assignment
+- **Deliverable**: Multi-merchant operation model support
 
-### v3.0 Complete Rental (Week 7-8)
-- Complete renewal, return, overdue, deposit management
-- Goal: Complete rental lifecycle closed loop
+### v3.0 Rental Closed Loop (Week 7-8) - Complete Lifecycle
+- **Goal**: Achieve complete rental full-lifecycle management
+- **New Modules**:
+  - Renewal, return, overdue management
+  - Deposit management and refund
+  - Complete order status flow
+  - Data statistics and reporting
+- **Deliverable**: Complete rental lifecycle management
 
-### v4.0 Maintenance & Repair (Week 9-10)
-- Complete maintenance & repair full flow
-- Goal: Value-added service launch
+### v4.0 Maintenance Closed Loop (Week 9-10) - Value-Added Services
+- **Goal**: Launch maintenance and repair services
+- **New Modules**:
+  - Maintenance package management and display
+  - Full flow: appointment, quote confirmation, payment
+  - Technician management and assignment system
+- **Deliverable**: Maintenance value-added services online
 
-### v5.0 Platform Operations (Week 11-12)
-- Complete platform admin all features
-- Goal: Full operation launch
+### v5.0 Platform Operations (Week 11-12) - Full Operations Support
+- **Goal**: Complete platform operation capabilities
+- **New Modules**:
+  - Complete platform admin features (user management, finance settlement, system configuration)
+  - Membership system and points features
+  - Homepage configuration, announcement push
+  - Full data statistics and analysis
+- **Deliverable**: Fully operation-ready SaaS platform
+
+---
+
+## 📊 Supplementary Notes
+
+### Core Value of "Vertical Closed Loop" Thinking
+
+Compared to traditional "horizontal feature module development" (develop all mini program features first, then all admin features), **Vertical Closed Loop** emphasizes:
+
+1. **End-to-end delivery**: Each phase forms an independently runnable complete business flow (e.g., rental closed loop from order to return)
+2. **Fast validation**: Prioritize MVP closed loop to let team and users quickly validate core value feasibility
+3. **Risk reduction**: Avoid risk of "developed many features but can't form closed loop"
+4. **Incremental expansion**: Each closed loop is incremental expansion on previous one (Display → Rental → Maintenance → Platform)
+
+### Task Splitting Principles
+
+- **Atomicity**: Each task development cycle controlled in 2-4 hours, completable in one workday
+- **Independence**: Tasks as independent as possible to reduce dependency blocking
+- **Testability**: Each task completion has clear acceptance criteria
+- **Traceability**: All tasks linked to specific business requirements and user value
 
 ---
 
