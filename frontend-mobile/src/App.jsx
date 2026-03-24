@@ -9,6 +9,7 @@ import Booking from './pages/Booking'
 import Profile from './pages/Profile'
 import MyService from './pages/MyService'
 import CategoryPage from './pages/category'
+import InstrumentList from './pages/instrument/list'
 
 const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || 'http://opencode.linxdeep.com:5552'
 const CLIENT_ID = import.meta.env.VITE_IAM_CLIENT_ID || 'tuneloop'
@@ -156,6 +157,7 @@ function App() {
           <Route path="/callback" element={<OAuthCallback />} />
           <Route path="/" element={<ProtectedRoute><RoleBasedHome /></ProtectedRoute>} />
           <Route path="/categories" element={<ProtectedRoute><CategoryPage /></ProtectedRoute>} />
+          <Route path="/instruments" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
           <Route path="/instrument/:id" element={<ProtectedRoute><Detail /></ProtectedRoute>} />
           <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="/success" element={<Success />} />
