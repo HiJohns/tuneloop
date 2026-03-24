@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Progress, Table, Tag } from 'antd';
+import { Card, Row, Col, Statistic, Table, Tag, Alert, Button } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { api } from '../services/api';
 
 export default function AssetAuditDashboard() {
   const [stats, setStats] = useState({
@@ -9,56 +10,42 @@ export default function AssetAuditDashboard() {
     transferRate: 0,
     totalRevenue: 0
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [nearTransfer, setNearTransfer] = useState([]);
 
   useEffect(() => {
-    fetchDashboard();
+    fetchDashboardStats();
   }, []);
 
-  const fetchDashboard = async () => {
+  const fetchDashboardStats = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await fetch('/api/admin/dashboard');
-      const result = await response.json();
+      const result = await api.get('/admin/dashboard/stats');
       
-      if (result.code === 20000) {
+      if (result.code === 20000 && result.data) {
         const data = result.data;
         setStats({
-          totalAssets: data.overview?.total_assets || 1500,
-          rentalRate: data.overview?.rental_rate || 85.3,
-          transferRate: data.transfer_stats?.conversion_rate || 8.0,
-          totalRevenue: data.overview?.total_revenue || 2500000
+          totalAssets: data.total_assets || 0,
+          rentalRate: data.rental_rate || 0,
+          transferRate: data.transfer_rate || 0,
+          totalRevenue: data.total_revenue || 0
         });
+      } else {
+        throw new Error(result.message || 'Failed to fetch dashboard stats');
       }
-    } catch (error) {
-      setStats({
-        totalAssets: 1500,
-        rentalRate: 85.3,
-        transferRate: 8.0,
-        totalRevenue: 2500000
-      });
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const columns = [
-    {
-      title: 'SN码',
-      dataIndex: 'sn',
-      key: 'sn'
-    },
-    {
-      title: '乐器名称',
-      dataIndex: 'name',
-      key: 'name'
-    },
-    {
-      title: '当前用户',
-      dataIndex: 'user',
-      key: 'user'
-    },
+    { title: 'SN码', dataIndex: 'sn', key: 'sn' },
+    { title: '乐器名称', dataIndex: 'name', key: 'name' },
+    { title: '当前用户', dataIndex: 'user', key: 'user' },
     {
       title: '累计租期',
       dataIndex: 'months',
@@ -77,11 +64,35 @@ export default function AssetAuditDashboard() {
     }
   ];
 
-  const mockNearTransfer = [
-    { sn: 'SN-2024-0001', name: '雅马哈钢琴U1', user: '张三', months: 11, remaining: 1 },
-    { sn: 'SN-2024-0002', name: '斯坦威三角钢琴', user: '李四', months: 10, remaining: 2 },
-    { sn: 'SN-2024-0003', name: '小提琴CV-500', user: '王五', months: 9, remaining: 3 }
-  ];
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-16">
+          <div className="text-2xl mb-4">数据正在同步中...</div>
+          <div className="text-gray-500">请稍候，正在加载资产数据</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert
+          message="数据加载失败"
+          description={error}
+          type="error"
+          showIcon
+          className="mb-4"
+          action={
+            <Button onClick={fetchDashboard} type="primary">
+              重试
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -89,7 +100,7 @@ export default function AssetAuditDashboard() {
 
       <Row gutter={16} className="mb-6">
         <Col span={6}>
-          <Card loading={loading}>
+          <Card>
             <Statistic
               title="全网资产总数"
               value={stats.totalAssets}
@@ -98,88 +109,47 @@ export default function AssetAuditDashboard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card loading={loading}>
+          <Card>
             <Statistic
-              title="在租率"
+              title="租赁率"
               value={stats.rentalRate}
+              precision={1}
               suffix="%"
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowUpOutlined />}
             />
-            <Progress percent={stats.rentalRate} showInfo={false} strokeColor="#3f8600" />
           </Card>
         </Col>
         <Col span={6}>
-          <Card loading={loading}>
+          <Card>
             <Statistic
-              title="转售转化率"
+              title="转售率"
               value={stats.transferRate}
+              precision={1}
               suffix="%"
-              valueStyle={{ color: '#cf1322' }}
-              prefix={<ArrowUpOutlined />}
             />
-            <Progress percent={stats.transferRate * 5} showInfo={false} strokeColor="#cf1322" />
           </Card>
         </Col>
         <Col span={6}>
-          <Card loading={loading}>
+          <Card>
             <Statistic
-              title="累计租金收入"
+              title="累计收入"
               value={stats.totalRevenue}
+              precision={2}
               prefix="¥"
-              formatter={(value) => value.toLocaleString()}
             />
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={16} className="mb-6">
-        <Col span={12}>
-          <Card title="品类租出分布">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span>钢琴</span>
-                  <span>85%</span>
-                </div>
-                <Progress percent={85} strokeColor="#1890ff" />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span>小提琴</span>
-                  <span>72%</span>
-                </div>
-                <Progress percent={72} strokeColor="#52c41a" />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span>古筝</span>
-                  <span>90%</span>
-                </div>
-                <Progress percent={90} strokeColor="#faad14" />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span>吉他</span>
-                  <span>65%</span>
-                </div>
-                <Progress percent={65} strokeColor="#f5222d" />
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="即将转售资产">
-            <Table
-              columns={columns}
-              dataSource={mockNearTransfer}
-              rowKey="sn"
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-      </Row>
+      <Card>
+        <div className="text-lg font-bold mb-4">即将转售资产</div>
+        <Table
+          columns={columns}
+          dataSource={nearTransfer}
+          rowKey="sn"
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: '暂无即将转售的资产' }}
+        />
+      </Card>
     </div>
   );
 }
