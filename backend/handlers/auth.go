@@ -49,13 +49,24 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
 
-	if code == "" || state == "" {
+	if code == "" && c.Request.Method == "POST" {
+		var req struct {
+			Code string `json:"code"`
+		}
+		if err := c.ShouldBindJSON(&req); err == nil {
+			code = req.Code
+		}
+	}
+
+	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "missing required parameters: code and state",
+			"message": "missing required parameter: code",
 		})
 		return
 	}
+
+	_ = state
 
 	tokenResp, err := h.iamService.ExchangeCode(code)
 	if err != nil {

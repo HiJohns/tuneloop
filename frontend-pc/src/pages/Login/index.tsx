@@ -9,7 +9,7 @@ const LoginPage: React.FC = () => {
   const handleLogin = () => {
     setRedirecting(true);
     const iamUrl = import.meta.env.VITE_IAM_URL;
-    const redirectUri = encodeURIComponent(window.location.origin + '/api/auth/callback');
+    const redirectUri = encodeURIComponent(window.location.origin + '/callback');
     window.location.href = `${iamUrl}/oauth/authorize?client_id=${import.meta.env.VITE_CLIENT_ID}&redirect_uri=${redirectUri}`;
   };
 

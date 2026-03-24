@@ -10,7 +10,10 @@ function getToken() {
   
   if (!token || !expiry) return null
   
-  if (new Date().getTime() > parseInt(expiry)) {
+  const now = new Date().getTime()
+  const exp = parseInt(expiry)
+  
+  if (now > exp) {
     localStorage.removeItem('token')
     localStorage.removeItem('token_expiry')
     localStorage.removeItem('user_info')

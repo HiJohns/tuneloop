@@ -20,6 +20,8 @@ import InstrumentStock from './pages/InstrumentStock'
 import SiteManagement from './pages/SiteManagement'
 import RolePermission from './pages/RolePermission'
 import AssetDetail from './pages/AssetDetail'
+import ClientManagement from './pages/ClientManagement'
+import TenantManagement from './pages/TenantManagement'
 
 const { Header, Content, Sider } = Layout
 
@@ -73,6 +75,13 @@ function MainLayout() {
         { key: '/site/stock', label: '乐器库存' },
         { key: '/site/management', label: 'Site网点管理' }
       ]
+    },
+    {
+      key: 'system', icon: <SettingOutlined />, label: '系统管理',
+      children: [
+        { key: '/system/clients', label: '客户端管理' },
+        { key: '/system/tenants', label: '租户管理' }
+      ]
     }
   ]
 
@@ -86,6 +95,7 @@ function MainLayout() {
   if (['/', '/assets', '/lease/ledger'].includes(location.pathname)) openKeys = ['core']
   else if (['/finance', '/finance/quotes'].includes(location.pathname)) openKeys = ['config']
   else if (['/site/stock', '/site/management'].includes(location.pathname)) openKeys = ['data']
+  else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/site/stock/')) openKeys = ['data']
 
   let pageTitle = '管理后台'
@@ -98,7 +108,9 @@ function MainLayout() {
     '/finance': { title: '乐器定价配置', parent: '资产配置' },
     '/finance/quotes': { title: '报价单管理', parent: '资产配置' },
     '/site/stock': { title: '乐器库存', parent: '基础数据' },
-    '/site/management': { title: 'Site网点管理', parent: '基础数据' }
+    '/site/management': { title: 'Site网点管理', parent: '基础数据' },
+    '/system/clients': { title: '客户端管理', parent: '系统管理' },
+    '/system/tenants': { title: '租户管理', parent: '系统管理' }
   }
 
   if (routeMap[location.pathname]) {
@@ -171,6 +183,8 @@ function MainLayout() {
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
+            <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
+            <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>
@@ -180,6 +194,7 @@ function MainLayout() {
 
 function OAuthCallback() {
   const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -188,18 +203,23 @@ function OAuthCallback() {
     const error = params.get('error')
 
     if (error) {
-      console.error('OAuth error:', error)
-      navigate('/')
+      setErrorMsg(`OAuth Error: ${error}`)
+      setLoading(false)
+      setTimeout(() => navigate('/login'), 3000)
       return
     }
 
     if (!code) {
-      navigate('/')
+      setErrorMsg('Missing authorization code')
+      setLoading(false)
+      setTimeout(() => navigate('/login'), 3000)
       return
     }
 
     const exchangeCodeForToken = async () => {
       try {
+        setLoading(true)
+        
         const response = await fetch(`${API_BASE_URL}/auth/callback`, {
           method: 'POST',
           headers: {
@@ -209,35 +229,57 @@ function OAuthCallback() {
         })
 
         if (!response.ok) {
-          throw new Error('Failed to exchange code for token')
+          const errorText = await response.text()
+          throw new Error(`Token exchange failed: ${response.status} - ${errorText}`)
         }
 
-        const data = await response.json()
+        const responseData = await response.json()
+        const tokenData = responseData.data || responseData
         
-        if (data.access_token) {
-          storeToken(data.access_token, data.expires_in || 3600)
+        if (tokenData.access_token) {
+          const expiresIn = Math.max(tokenData.expires_in || 3600, 60)
+          storeToken(tokenData.access_token, expiresIn)
           
-          if (data.user_info) {
-            localStorage.setItem('user_info', JSON.stringify(data.user_info))
+          if (tokenData.user_info) {
+            localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
           }
-          if (data.role) {
-            localStorage.setItem('user_role', data.role)
+          if (tokenData.role) {
+            localStorage.setItem('user_role', tokenData.role)
           }
           
+          setLoading(false)
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
           sessionStorage.removeItem('post_auth_redirect')
-          navigate(redirectTo)
+          navigate(redirectTo, { replace: true })
         } else {
           throw new Error('No access token received')
         }
       } catch (error) {
-        console.error('Token exchange failed:', error)
-        navigate('/')
+        setLoading(false)
+        setErrorMsg(error.message || 'Authentication failed')
+        setTimeout(() => navigate('/login'), 5000)
       }
     }
 
     exchangeCodeForToken()
   }, [navigate])
+
+  if (errorMsg) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: '#f0f2f5',
+        flexDirection: 'column'
+      }}>
+        <h2 style={{ color: 'red' }}>Authentication Error</h2>
+        <p>{errorMsg}</p>
+        <p>Redirecting to login...</p>
+      </div>
+    )
+  }
 
   if (loading) {
     return <Spin fullscreen tip="正在完成登录..." />
