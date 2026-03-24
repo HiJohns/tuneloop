@@ -74,9 +74,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.PUT("/categories/:id", categoryHandler.UpdateCategory)
 		authRequired.DELETE("/categories/:id", categoryHandler.DeleteCategory)
 
-		authRequired.GET("/instruments", handlers.GetInstruments)
-		authRequired.GET("/instruments/:id", handlers.GetInstruments)
-		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
+		// Instrument Management
+		instrumentHandler := handlers.NewInstrumentHandler(database.GetDB())
+		authRequired.GET("/instruments", instrumentHandler.GetInstruments)
+		authRequired.GET("/instruments/:id", instrumentHandler.GetInstrument)
+		authRequired.POST("/instruments", instrumentHandler.CreateInstrument)
+		authRequired.PUT("/instruments/:id", instrumentHandler.UpdateInstrument)
+		authRequired.PUT("/instruments/:id/shelf-status", instrumentHandler.UpdateShelfStatus)
 
 		// Stock Management
 		stockHandler := handlers.NewStockHandler(database.GetDB())
