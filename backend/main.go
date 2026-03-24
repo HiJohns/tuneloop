@@ -53,6 +53,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
 
+	wxAuthHandler := handlers.NewWXAuthHandler()
 	api := r.Group("/api")
 
 	api.GET("/health", func(c *gin.Context) {
@@ -63,6 +64,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	api.POST("/auth/callback", authHandler.Callback)
 	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/refresh", authHandler.Refresh)
+	api.POST("/auth/wx-login", wxAuthHandler.WeChatLogin)
 
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
