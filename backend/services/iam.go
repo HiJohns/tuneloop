@@ -51,8 +51,10 @@ type PublicKeyResponse struct {
 type JWTClaims struct {
 	UserID   string `json:"sub"`
 	TenantID string `json:"tid"`
+	OrgID    string `json:"oid"`
 	Role     string `json:"role"`
-	IsOwner  bool   `json:"is_owner"`
+	IsOwner  bool   `json:"own"`
+	Name     string `json:"name"`
 	jwt.RegisteredClaims
 }
 

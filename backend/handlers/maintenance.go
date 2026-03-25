@@ -411,3 +411,176 @@ func (h *MaintenanceHandler) UpdateTicketStatus(c *gin.Context) {
 		},
 	})
 }
+
+// Technician endpoints
+
+type TechnicianTicketResponse struct {
+	ID               string    `json:"id"`
+	AssetName        string    `json:"asset_name"`
+	CustomerName     string    `json:"customer_name"`
+	CustomerPhone    string    `json:"customer_phone"`
+	Address          string    `json:"address"`
+	Fault            string    `json:"fault"`
+	Status           string    `json:"status"`
+	CreatedAt        string    `json:"created_at"`
+	RepairReport     string    `json:"repair_report"`
+}
+
+// ListTechnicianTickets - GET /technician/tickets
+func (h *MaintenanceHandler) ListTechnicianTickets(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "user not authenticated"})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var tickets []models.MaintenanceTicket
+	query := db.Model(&models.MaintenanceTicket{}).
+		Where("technician_id = ? OR status = ?", userID, models.TicketStatusPending).
+		Order("created_at DESC")
+
+	if err := query.Find(&tickets).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to fetch tickets"})
+		return
+	}
+
+	response := []TechnicianTicketResponse{}
+	for _, ticket := range tickets {
+		resp := TechnicianTicketResponse{
+			ID:            ticket.ID,
+			AssetName:     "Instrument",
+			CustomerName:  "Customer",
+			CustomerPhone: "",
+			Address:       "",
+			Fault:         ticket.ProblemDescription,
+			Status:        ticket.Status,
+			CreatedAt:     ticket.CreatedAt.Format("2006-01-02 15:04"),
+			RepairReport:  ticket.RepairReport,
+		}
+		response = append(response, resp)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": response,
+	})
+}
+
+// AcceptTicket - PUT /technician/tickets/:id/accept
+func (h *MaintenanceHandler) AcceptTicket(c *gin.Context) {
+	ticketID := c.Param("id")
+	if ticketID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "ticket id required"})
+		return
+	}
+
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "user not authenticated"})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var ticket models.MaintenanceTicket
+	if err := db.First(&ticket, "id = ?", ticketID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "ticket not found"})
+		return
+	}
+
+	if ticket.Status != models.TicketStatusPending {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "ticket is not in pending status"})
+		return
+	}
+
+	result := db.Model(&ticket).Where("id = ?", ticketID).Updates(map[string]interface{}{
+		"technician_id": userID,
+		"status":        models.TicketStatusProcessing,
+		"accepted_at":   time.Now(),
+	})
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to accept ticket"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"status": models.TicketStatusProcessing},
+	})
+}
+
+type CompleteTicketRequest struct {
+	Report    string   `json:"report" binding:"required"`
+	PartsUsed string   `json:"parts_used"`
+}
+
+// CompleteTicket - POST /technician/tickets/:id/complete
+func (h *MaintenanceHandler) CompleteTicket(c *gin.Context) {
+	ticketID := c.Param("id")
+	if ticketID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "ticket id required"})
+		return
+	}
+
+	var req CompleteTicketRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		return
+	}
+
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "user not authenticated"})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var ticket models.MaintenanceTicket
+	if err := db.First(&ticket, "id = ?", ticketID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "ticket not found"})
+		return
+	}
+
+	if ticket.TechnicianID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40301, "message": "not authorized to complete this ticket"})
+		return
+	}
+
+	if ticket.Status != models.TicketStatusProcessing {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "ticket is not in processing status"})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"status":         models.TicketStatusCompleted,
+		"repair_report":  req.Report,
+		"completed_at":   time.Now(),
+	}
+
+	if req.PartsUsed != "" {
+		updates["parts_used"] = req.PartsUsed
+	}
+
+	if err := db.Model(&ticket).Where("id = ?", ticketID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to complete ticket"})
+		return
+	}
+
+	// Update instrument status to available
+	if err := db.Model(&models.Instrument{}).Where("id = ?", ticket.InstrumentID).Update("stock_status", "available").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"id":     ticket.ID,
+			"status": models.TicketStatusCompleted,
+		},
+	})
+}

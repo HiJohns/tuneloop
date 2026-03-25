@@ -108,8 +108,8 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 
 		ctx := database.SetTenantID(c.Request.Context(), claims.TenantID)
 		ctx = context.WithValue(ctx, ContextKeyTenantID, claims.TenantID)
-		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.TenantID)
-		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
+		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.OrgID)
+		ctx = context.WithValue(ctx, ContextKeyUserID, claims.UserID)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)

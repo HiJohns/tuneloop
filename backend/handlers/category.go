@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -55,12 +54,12 @@ func (h *CategoryHandler) GetCategories(c *gin.Context) {
 		if category.ParentID == nil {
 			subCategories := getSubCategories(category.ID, categoryMap)
 			rootCategories = append(rootCategories, gin.H{
-				"id":           category.ID,
-				"name":         category.Name,
-				"icon":         category.Icon,
-				"parent_id":    category.ParentID,
-				"tenant_id":    category.TenantID,
-				"created_at":   category.CreatedAt,
+				"id":             category.ID,
+				"name":           category.Name,
+				"icon":           category.Icon,
+				"parent_id":      category.ParentID,
+				"tenant_id":      category.TenantID,
+				"created_at":     category.CreatedAt,
 				"sub_categories": subCategories,
 			})
 		}
@@ -263,8 +262,8 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"id":        categoryID,
-			"deleted":   true,
+			"id":         categoryID,
+			"deleted":    true,
 			"deleted_at": category.CreatedAt, // Using same field to avoid extra import
 		},
 	})
@@ -278,12 +277,12 @@ func getSubCategories(parentID string, categoryMap map[string]*models.Category) 
 		if category.ParentID != nil && *category.ParentID == parentID {
 			subSub := getSubCategories(category.ID, categoryMap)
 			sub = append(sub, gin.H{
-				"id":           category.ID,
-				"name":         category.Name,
-				"icon":         category.Icon,
-				"parent_id":    category.ParentID,
-				"tenant_id":    category.TenantID,
-				"created_at":   category.CreatedAt,
+				"id":             category.ID,
+				"name":           category.Name,
+				"icon":           category.Icon,
+				"parent_id":      category.ParentID,
+				"tenant_id":      category.TenantID,
+				"created_at":     category.CreatedAt,
 				"sub_categories": subSub,
 			})
 		}

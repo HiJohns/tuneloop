@@ -36,6 +36,7 @@ func PreviewOrder(c *gin.Context) {
 		CreditScore:  750,
 	}
 
+	pricingService := service.NewPricingService()
 	resp, err := pricingService.CalculatePrice(c.Request.Context(), pricingReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

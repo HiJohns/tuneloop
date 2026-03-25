@@ -36,7 +36,7 @@ func (h *InstrumentHandler) GetInstruments(c *gin.Context) {
 	brand := c.Query("brand")
 	status := c.Query("status") // "active", "inactive", "maintenance"
 	sort := c.DefaultQuery("sort", "created_at")
-	order := c.DefaultQuery("order", "desc")
+	_ = c.DefaultQuery("order", "desc") // Order parameter (not used in mock)
 
 	if page < 1 {
 		page = 1
@@ -48,26 +48,26 @@ func (h *InstrumentHandler) GetInstruments(c *gin.Context) {
 	// Mock instruments data
 	instruments := []gin.H{
 		{
-			"id":          "instrument_001",
-			"name":        "雅马哈钢琴 U1",
-			"brand":       "雅马哈",
-			"category_id": "category_001",
+			"id":            "instrument_001",
+			"name":          "雅马哈钢琴 U1",
+			"brand":         "雅马哈",
+			"category_id":   "category_001",
 			"category_name": "钢琴",
-			"model":       "U1",
-			"level":       "standard",
-			"description": "专业级立式钢琴，适合初学者到高级演奏者",
-			"images":      []string{"/images/piano1.jpg", "/images/piano2.jpg"},
-			"video":       "/videos/piano-demo.mp4",
-			"status":      "active",
+			"model":         "U1",
+			"level":         "standard",
+			"description":   "专业级立式钢琴，适合初学者到高级演奏者",
+			"images":        []string{"/images/piano1.jpg", "/images/piano2.jpg"},
+			"video":         "/videos/piano-demo.mp4",
+			"status":        "active",
 			"stock": gin.H{
-				"total":     10,
-				"available": 6,
-				"rented":    3,
+				"total":       10,
+				"available":   6,
+				"rented":      3,
 				"maintenance": 1,
 			},
 			"pricing": gin.H{
-				"daily":  150,
-				"weekly": 900,
+				"daily":   150,
+				"weekly":  900,
 				"monthly": 3750,
 				"deposit": 3000,
 			},
@@ -91,32 +91,32 @@ func (h *InstrumentHandler) GetInstruments(c *gin.Context) {
 					"stock":        5,
 				},
 			},
-			"rating":      4.8,
+			"rating":       4.8,
 			"review_count": 128,
-			"created_at":  time.Now().AddDate(0, 0, -30).Format(time.RFC3339),
-			"updated_at":  time.Now().AddDate(0, 0, -1).Format(time.RFC3339),
+			"created_at":   time.Now().AddDate(0, 0, -30).Format(time.RFC3339),
+			"updated_at":   time.Now().AddDate(0, 0, -1).Format(time.RFC3339),
 		},
 		{
-			"id":          "instrument_002",
-			"name":        "卡马吉他 D1C",
-			"brand":       "卡马",
-			"category_id": "category_002",
+			"id":            "instrument_002",
+			"name":          "卡马吉他 D1C",
+			"brand":         "卡马",
+			"category_id":   "category_002",
 			"category_name": "吉他",
-			"model":       "D1C",
-			"level":       "beginner",
-			"description": "入门级民谣吉他，性价比高，适合初学者",
-			"images":      []string{"/images/guitar1.jpg"},
-			"video":       "",
-			"status":      "active",
+			"model":         "D1C",
+			"level":         "beginner",
+			"description":   "入门级民谣吉他，性价比高，适合初学者",
+			"images":        []string{"/images/guitar1.jpg"},
+			"video":         "",
+			"status":        "active",
 			"stock": gin.H{
-				"total":     25,
-				"available": 20,
-				"rented":    4,
+				"total":       25,
+				"available":   20,
+				"rented":      4,
 				"maintenance": 1,
 			},
 			"pricing": gin.H{
-				"daily":  50,
-				"weekly": 300,
+				"daily":   50,
+				"weekly":  300,
 				"monthly": 1250,
 				"deposit": 1000,
 			},
@@ -131,32 +131,32 @@ func (h *InstrumentHandler) GetInstruments(c *gin.Context) {
 					"stock":        25,
 				},
 			},
-			"rating":      4.6,
+			"rating":       4.6,
 			"review_count": 89,
-			"created_at":  time.Now().AddDate(0, -1, -15).Format(time.RFC3339),
-			"updated_at":  time.Now().AddDate(0, 0, -2).Format(time.RFC3339),
+			"created_at":   time.Now().AddDate(0, -1, -15).Format(time.RFC3339),
+			"updated_at":   time.Now().AddDate(0, 0, -2).Format(time.RFC3339),
 		},
 		{
-			"id":          "instrument_003",
-			"name":        "敦煌古筝 696D",
-			"brand":       "敦煌",
-			"category_id": "category_003",
+			"id":            "instrument_003",
+			"name":          "敦煌古筝 696D",
+			"brand":         "敦煌",
+			"category_id":   "category_003",
 			"category_name": "古筝",
-			"model":       "696D",
-			"level":       "intermediate",
-			"description": "中级演奏古筝，音色优美，适合进阶学习者",
-			"images":      []string{"/images/guzheng1.jpg", "/images/guzheng2.jpg"},
-			"video":       "/videos/guzheng-demo.mp4",
-			"status":      "maintenance",
+			"model":         "696D",
+			"level":         "intermediate",
+			"description":   "中级演奏古筝，音色优美，适合进阶学习者",
+			"images":        []string{"/images/guzheng1.jpg", "/images/guzheng2.jpg"},
+			"video":         "/videos/guzheng-demo.mp4",
+			"status":        "maintenance",
 			"stock": gin.H{
-				"total":     5,
-				"available": 0,
-				"rented":    1,
+				"total":       5,
+				"available":   0,
+				"rented":      1,
 				"maintenance": 4,
 			},
 			"pricing": gin.H{
-				"daily":  80,
-				"weekly": 480,
+				"daily":   80,
+				"weekly":  480,
 				"monthly": 2000,
 				"deposit": 2000,
 			},
@@ -171,10 +171,10 @@ func (h *InstrumentHandler) GetInstruments(c *gin.Context) {
 					"stock":        5,
 				},
 			},
-			"rating":      4.9,
+			"rating":       4.9,
 			"review_count": 45,
-			"created_at":  time.Now().AddDate(0, -2, -20).Format(time.RFC3339),
-			"updated_at":  time.Now().AddDate(0, 0, -5).Format(time.RFC3339),
+			"created_at":   time.Now().AddDate(0, -2, -20).Format(time.RFC3339),
+			"updated_at":   time.Now().AddDate(0, 0, -5).Format(time.RFC3339),
 		},
 	}
 
@@ -256,20 +256,20 @@ func (h *InstrumentHandler) GetInstrument(c *gin.Context) {
 
 	// Mock instrument detail
 	instrument := gin.H{
-		"id":          id,
-		"name":        "雅马哈钢琴 U1",
-		"brand":       "雅马哈",
-		"category_id": "category_001",
+		"id":            id,
+		"name":          "雅马哈钢琴 U1",
+		"brand":         "雅马哈",
+		"category_id":   "category_001",
 		"category_name": "钢琴",
-		"model":       "U1",
-		"level":       "standard",
-		"description": "专业级立式钢琴，适合初学者到高级演奏者",
-		"material":    "实木",
-		"size":        "121cm",
-		"suitable":    "初学者到高级演奏者",
-		"images":      []string{"/images/piano1.jpg", "/images/piano2.jpg", "/images/piano3.jpg"},
-		"video":       "/videos/piano-demo.mp4",
-		"status":      "active",
+		"model":         "U1",
+		"level":         "standard",
+		"description":   "专业级立式钢琴，适合初学者到高级演奏者",
+		"material":      "实木",
+		"size":          "121cm",
+		"suitable":      "初学者到高级演奏者",
+		"images":        []string{"/images/piano1.jpg", "/images/piano2.jpg", "/images/piano3.jpg"},
+		"video":         "/videos/piano-demo.mp4",
+		"status":        "active",
 		"stock": gin.H{
 			"total":       10,
 			"available":   6,
@@ -316,11 +316,11 @@ func (h *InstrumentHandler) GetInstrument(c *gin.Context) {
 			{"type": "pickup", "name": "门店自提", "fee": 0},
 			{"type": "delivery", "name": "送货上门", "fee": 100},
 		},
-		"rating":      4.8,
+		"rating":       4.8,
 		"review_count": 128,
-		"sold_count":  45,
-		"created_at":  time.Now().AddDate(0, 0, -30).Format(time.RFC3339),
-		"updated_at":  time.Now().AddDate(0, 0, -1).Format(time.RFC3339),
+		"sold_count":   45,
+		"created_at":   time.Now().AddDate(0, 0, -30).Format(time.RFC3339),
+		"updated_at":   time.Now().AddDate(0, 0, -1).Format(time.RFC3339),
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -341,19 +341,19 @@ func (h *InstrumentHandler) CreateInstrument(c *gin.Context) {
 	}
 
 	var req struct {
-		Name        string  `json:"name" binding:"required"`
-		Brand       string  `json:"brand" binding:"required"`
-		CategoryID  string  `json:"category_id" binding:"required"`
-		Model       string  `json:"model"`
-		Level       string  `json:"level" binding:"required"`
-		Description string  `json:"description"`
-		Material    string  `json:"material"`
-		Size        string  `json:"size"`
-		Suitable    string  `json:"suitable"`
+		Name        string   `json:"name" binding:"required"`
+		Brand       string   `json:"brand" binding:"required"`
+		CategoryID  string   `json:"category_id" binding:"required"`
+		Model       string   `json:"model"`
+		Level       string   `json:"level" binding:"required"`
+		Description string   `json:"description"`
+		Material    string   `json:"material"`
+		Size        string   `json:"size"`
+		Suitable    string   `json:"suitable"`
 		Images      []string `json:"images"`
-		Video       string  `json:"video"`
-		Specs       []gin.H `json:"specs"`
-		Pricing     gin.H   `json:"pricing"`
+		Video       string   `json:"video"`
+		Specs       []gin.H  `json:"specs"`
+		Pricing     gin.H    `json:"pricing"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -385,11 +385,11 @@ func (h *InstrumentHandler) CreateInstrument(c *gin.Context) {
 			"rented":      0,
 			"maintenance": 0,
 		},
-		"specs":        req.Specs,
-		"pricing":      req.Pricing,
-		"created_at":   time.Now().Format(time.RFC3339),
-		"updated_at":   time.Now().Format(time.RFC3339),
-		"created_by":   c.GetString("user_id"),
+		"specs":      req.Specs,
+		"pricing":    req.Pricing,
+		"created_at": time.Now().Format(time.RFC3339),
+		"updated_at": time.Now().Format(time.RFC3339),
+		"created_by": c.GetString("user_id"),
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -435,20 +435,20 @@ func (h *InstrumentHandler) UpdateInstrument(c *gin.Context) {
 
 	// Mock updated instrument
 	instrument := gin.H{
-		"id":           id,
-		"name":         req.Name,
-		"brand":        req.Brand,
-		"category_id":  req.CategoryID,
-		"model":        req.Model,
-		"level":        req.Level,
-		"description":  req.Description,
-		"material":     req.Material,
-		"size":         req.Size,
-		"suitable":     req.Suitable,
-		"images":       req.Images,
-		"video":        req.Video,
-		"updated_at":   time.Now().Format(time.RFC3339),
-		"updated_by":   c.GetString("user_id"),
+		"id":          id,
+		"name":        req.Name,
+		"brand":       req.Brand,
+		"category_id": req.CategoryID,
+		"model":       req.Model,
+		"level":       req.Level,
+		"description": req.Description,
+		"material":    req.Material,
+		"size":        req.Size,
+		"suitable":    req.Suitable,
+		"images":      req.Images,
+		"video":       req.Video,
+		"updated_at":  time.Now().Format(time.RFC3339),
+		"updated_by":  c.GetString("user_id"),
 	}
 
 	c.JSON(http.StatusOK, gin.H{
