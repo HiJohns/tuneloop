@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin } from 'antd'
 import {
-  AppstoreOutlined,
+  
   SettingOutlined,
-  DatabaseOutlined,
+  
   LogoutOutlined
 } from '@ant-design/icons'
 
@@ -22,6 +22,11 @@ import RolePermission from './pages/RolePermission'
 import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
+import CategoryList from './pages/admin/category/List'
+import CategoryForm from './pages/admin/category/Form'
+import InstrumentList from './pages/admin/instrument/List'
+import InstrumentForm from './pages/admin/instrument/Form'
+import InstrumentDetail from './pages/admin/instrument/Detail'
 
 const { Header, Content, Sider } = Layout
 
@@ -55,25 +60,11 @@ function MainLayout() {
 
   const items = [
     {
-      key: 'core', icon: <AppstoreOutlined />, label: '核心业务',
+      key: 'instruments', icon: <SettingOutlined />, label: '乐器管理',
       children: [
-        { key: '/', label: '仪表盘 (Dashboard)' },
-        { key: '/assets', label: '资产管理' },
-        { key: '/lease/ledger', label: '租约管理' }
-      ]
-    },
-    {
-      key: 'config', icon: <SettingOutlined />, label: '资产配置',
-      children: [
-        { key: '/finance', label: '乐器定价配置' },
-        { key: '/finance/quotes', label: '报价单管理' }
-      ]
-    },
-    {
-      key: 'data', icon: <DatabaseOutlined />, label: '基础数据',
-      children: [
-        { key: '/site/stock', label: '乐器库存' },
-        { key: '/site/management', label: 'Site网点管理' }
+        { key: '/instruments/categories', label: '分类设置' },
+        { key: '/instruments/list', label: '乐器列表 🔥' },
+        { key: '/site/stock', label: '库存监控' }
       ]
     },
     {
@@ -92,23 +83,20 @@ function MainLayout() {
   const selectedKeys = [location.pathname]
   
   let openKeys = []
-  if (['/', '/assets', '/lease/ledger'].includes(location.pathname)) openKeys = ['core']
-  else if (['/finance', '/finance/quotes'].includes(location.pathname)) openKeys = ['config']
-  else if (['/site/stock', '/site/management'].includes(location.pathname)) openKeys = ['data']
+  if (['/', '/instruments/categories', '/instruments/list'].includes(location.pathname)) openKeys = ['instruments']
+  else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
   else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
-  else if (location.pathname.startsWith('/site/stock/')) openKeys = ['data']
 
   let pageTitle = '管理后台'
   let breadcrumbItems = [{ title: 'TuneLoop' }]
   
   const routeMap = {
-    '/': { title: '仪表盘 (Dashboard)', parent: '核心业务' },
-    '/assets': { title: '资产管理', parent: '核心业务' },
-    '/lease/ledger': { title: '租约管理', parent: '核心业务' },
-    '/finance': { title: '乐器定价配置', parent: '资产配置' },
-    '/finance/quotes': { title: '报价单管理', parent: '资产配置' },
-    '/site/stock': { title: '乐器库存', parent: '基础数据' },
-    '/site/management': { title: 'Site网点管理', parent: '基础数据' },
+    '/': { title: '仪表盘 (Dashboard)', parent: '乐器管理' },
+    '/instruments/categories': { title: '分类设置', parent: '乐器管理' },
+    '/instruments/list': { title: '乐器列表', parent: '乐器管理' },
+    '/site/stock': { title: '库存监控', parent: '乐器管理' },
+    '/system/clients': { title: '客户端管理', parent: '系统管理' },
+    '/system/tenants': { title: '租户管理', parent: '系统管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
     '/system/tenants': { title: '租户管理', parent: '系统管理' }
   }
@@ -177,14 +165,19 @@ function MainLayout() {
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
-            <Route path="/site/management" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
-            <Route path="/lease/deposit" element={<ProtectedRoute><DepositFlow /></ProtectedRoute>} />
-            <Route path="/lease/warning" element={<ProtectedRoute><ExpireWarning /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
+          
+            <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories/edit/:id" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
+            <Route path="/instruments/categories/add" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
+            <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
+            <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
+            <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
+            <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>
