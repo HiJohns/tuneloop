@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Table, Button, Input, Space, Tag, Image, Popconfirm, message } from 'antd'
+import CategoryForm from './Form'
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
 
 export default function CategoryList() {
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
   const [searchText, setSearchText] = useState('')
+  const [formVisible, setFormVisible] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   useEffect(() => {
@@ -163,7 +166,7 @@ export default function CategoryList() {
           <Button
             type="link"
             icon={<EditOutlined />}
-            onClick={() => editCategory(record.id)}
+            onClick={() => editCategory(record)}
           >
             编辑
           </Button>
@@ -186,17 +189,44 @@ export default function CategoryList() {
     message.info(`查看分类: ${id}`)
   }
 
-  const editCategory = (id) => {
-    message.info(`编辑分类: ${id}`)
-  }
-
-  const deleteCategory = (id) => {
-    message.success(`已删除分类: ${id}`)
-    fetchCategories()
+  const deleteCategory = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (!response.ok) throw new Error('删除失败')
+      
+      const result = await response.json()
+      if (result.code === 20000) {
+        message.success('删除成功')
+        fetchCategories()
+      } else {
+        throw new Error(result.message || '删除失败')
+      }
+    } catch (error) {
+      message.error(error.message || '删除失败')
+    }
   }
 
   const addCategory = () => {
-    message.info('打开新增分类表单')
+    setEditingCategory(null)
+    setFormVisible(true)
+  }
+
+  const editCategory = (record) => {
+    setEditingCategory(record)
+    setFormVisible(true)
+  }
+
+  const handleFormSubmit = (data) => {
+    message.success('分类保存成功')
+    fetchCategories()
+    setFormVisible(false)
+    setEditingCategory(null)
   }
 
   return (
@@ -254,6 +284,16 @@ export default function CategoryList() {
           },
           rowExpandable: (record) => record.level === 1 && record.sub_categories && record.sub_categories.length > 0
         }}
+      />
+      
+      <CategoryForm
+        visible={formVisible}
+        onCancel={() => {
+          setFormVisible(false)
+          setEditingCategory(null)
+        }}
+        onSubmit={handleFormSubmit}
+        initialData={editingCategory}
       />
     </div>
   )

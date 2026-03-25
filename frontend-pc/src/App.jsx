@@ -1,4 +1,6 @@
 import CategoryList from './pages/admin/category/List'
+import InstrumentList from './pages/admin/instrument/List'
+import InstrumentDetail from './pages/admin/instrument/Detail'
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin } from 'antd'
@@ -56,11 +58,12 @@ function MainLayout() {
 
   const items = [
     {
-      key: 'core', icon: <AppstoreOutlined />, label: '核心业务',
+      key: 'lease', icon: <SettingOutlined />, label: '租赁管理',
       children: [
         { key: '/', label: '仪表盘 (Dashboard)' },
         { key: '/assets', label: '资产管理' },
         { key: '/instruments/categories', label: '乐器分类管理' },
+        { key: '/instruments/list', label: '乐器管理' },
         { key: '/lease/ledger', label: '租约管理' }
       ]
     },
@@ -188,7 +191,9 @@ function MainLayout() {
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
-\            <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
+            <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
           </Routes>
