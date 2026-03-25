@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined } from '@ant-design/icons'
+import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Upload, Checkbox } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, UploadOutlined, DownloadOutlined, ExportOutlined } from '@ant-design/icons'
 import InstrumentForm from './Form'
+import ImportResultModal from '../../../components/ImportResultModal'
 
 const { Option } = Select
 
@@ -20,10 +21,17 @@ export default function InstrumentList() {
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
+  
+  // Import/Export state
+  const [importResultModalVisible, setImportResultModalVisible] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const [exportFieldModalVisible, setExportFieldModalVisible] = useState(false)
+  const [selectedExportFields, setSelectedExportFields] = useState([])
 
   useEffect(() => {
     fetchInstruments()
     fetchCategories()
+    setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'daily_rate', 'monthly_rate', 'deposit', 'stock', 'status'])
   }, [])
 
   const fetchInstruments = async () => {
@@ -403,6 +411,112 @@ export default function InstrumentList() {
     }
   }
 
+  // Import/Export handlers
+  const handleImport = async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/instruments/import`, {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) throw new Error('导入失败')
+      
+      const result = await response.json()
+      if (result.code === 20000) {
+        setImportResult({
+          success: result.data?.success || 0,
+          failed: result.data?.failed || 0,
+          total: result.data?.total || 0,
+          errors: result.data?.errors || []
+        })
+        setImportResultModalVisible(true)
+        fetchInstruments()
+        message.success('导入完成')
+      } else {
+        throw new Error(result.message || '导入失败')
+      }
+    } catch (error) {
+      message.error(error.message || '导入失败')
+      setImportResult({
+        success: 0,
+        failed: 1,
+        total: 1,
+        errors: [error.message]
+      })
+      setImportResultModalVisible(true)
+    }
+    
+    return false // Prevent automatic upload
+  }
+
+  const downloadTemplate = () => {
+    const template = [
+      ['name', 'brand', 'model', 'category_name', 'daily_rate', 'monthly_rate', 'deposit', 'stock', 'description'],
+      ['雅马哈立式钢琴', 'Yamaha', 'U1', '钢琴', '50', '1200', '5000', '5', '日本原装进口钢琴'],
+      ['马丁D-28吉他', 'Martin', 'D-28', '吉他', '30', '600', '2000', '8', '美国产经典民谣吉他']
+    ]
+    
+    const csvContent = template.map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'instruments_template.csv'
+    link.click()
+    message.success('模板下载成功')
+  }
+
+  const showExportFieldModal = () => {
+    setExportFieldModalVisible(true)
+  }
+
+  const handleExport = async () => {
+    if (selectedExportFields.length === 0) {
+      message.warning('请至少选择一个导出字段')
+      return
+    }
+    
+    try {
+      const params = new URLSearchParams({
+        fields: selectedExportFields.join(',')
+      })
+      
+      const response = await fetch(`${API_BASE_URL}/instruments/export?${params}`, {
+        method: 'GET'
+      })
+      
+      if (!response.ok) throw new Error('导出失败')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `instruments_export_${new Date().toISOString().split('T')[0]}.csv`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      
+      setExportFieldModalVisible(false)
+      message.success('导出成功')
+    } catch (error) {
+      message.error(error.message || '导出失败')
+    }
+  }
+
+  const fieldOptions = [
+    { label: '乐器名称', value: 'name' },
+    { label: '品牌', value: 'brand' },
+    { label: '型号', value: 'model' },
+    { label: '分类', value: 'category_name' },
+    { label: '日租金', value: 'daily_rate' },
+    { label: '月租金', value: 'monthly_rate' },
+    { label: '押金', value: 'deposit' },
+    { label: '库存', value: 'stock' },
+    { label: '状态', value: 'status' },
+    { label: '描述', value: 'description' }
+  ]
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -454,6 +568,23 @@ export default function InstrumentList() {
       {/* Toolbar */}
       <div className="mb-4 flex justify-between items-center">
         <Space>
+          <Upload
+            accept=".csv,.xlsx,.xls"
+            showUploadList={false}
+            beforeUpload={handleImport}
+          >
+            <Button
+              icon={<UploadOutlined />}
+            >
+              导入
+            </Button>
+          </Upload>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={downloadTemplate}
+          >
+            模板下载
+          </Button>
           <Input
             placeholder="搜索乐器名称..."
             prefix={<SearchOutlined className="text-gray-400" />}
@@ -483,13 +614,21 @@ export default function InstrumentList() {
           </Select>
         </Space>
         
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={addInstrument}
-        >
-          新增乐器
-        </Button>
+        <Space>
+          <Button
+            icon={<ExportOutlined />}
+            onClick={showExportFieldModal}
+          >
+            导出
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={addInstrument}
+          >
+            新增乐器
+          </Button>
+        </Space>
       </div>
 
       {/* Table */}
@@ -554,6 +693,39 @@ export default function InstrumentList() {
         </Form>
       </Modal>
       
+      {/* Export Field Selection Modal */}
+      <Modal
+        title="选择导出字段"
+        visible={exportFieldModalVisible}
+        onOk={handleExport}
+        onCancel={() => setExportFieldModalVisible(false)}
+        width={500}
+      >
+        <Checkbox.Group
+          value={selectedExportFields}
+          onChange={setSelectedExportFields}
+          style={{ width: '100%' }}
+        >
+          <Row gutter={[8, 8]}>
+            {fieldOptions.map(option => (
+              <Col span={12} key={option.value}>
+                <Checkbox value={option.value}>{option.label}</Checkbox>
+              </Col>
+            ))}
+          </Row>
+        </Checkbox.Group>
+      </Modal>
+
+      {/* Import Result Modal */}
+      <ImportResultModal
+        visible={importResultModalVisible}
+        onClose={() => {
+          setImportResultModalVisible(false)
+          setImportResult(null)
+        }}
+        importResult={importResult}
+      />
+
       <InstrumentForm
         visible={formVisible}
         onCancel={() => {
