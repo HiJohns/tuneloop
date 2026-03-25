@@ -3,7 +3,9 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"runtime"
 	"strings"
+	"time"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/service"
 
@@ -12,8 +14,21 @@ import (
 	"gorm.io/gorm"
 )
 
-// ImportInstruments handles Excel file upload and import
+// getMemoryUsage returns current memory usage in MB
+func getMemoryUsage() uint64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return m.Alloc / 1024 / 1024
+}
+
+// ImportInstruments handles Excel file upload and import with performance monitoring
 func ImportInstruments(c *gin.Context) {
+	// Performance monitoring start
+	startTime := time.Now()
+	startMemory := getMemoryUsage()
+	fmt.Printf("[PERF] Import started: file=%s, time=%s, memory=%dMB\n",
+		c.Request.FormValue("file"), startTime.Format(time.RFC3339), startMemory)
+
 	// Get tenant ID from context
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	if tenantID == "" {
@@ -45,8 +60,12 @@ func ImportInstruments(c *gin.Context) {
 		return
 	}
 
-	// Read Excel file
+	// Read Excel file with performance tracking
+	parseStart := time.Now()
 	excelFile, err := excelize.OpenReader(file)
+	parseDuration := time.Since(parseStart)
+	parseMemory := getMemoryUsage()
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40004,
@@ -54,6 +73,14 @@ func ImportInstruments(c *gin.Context) {
 		})
 		return
 	}
+
+	// Get total rows for reporting
+	sheetName := excelFile.GetSheetName(0)
+	rows, _ := excelFile.GetRows(sheetName)
+	totalRows := len(rows) - 1 // Subtract header row
+
+	fmt.Printf("[PERF] Parse completed: file=%s, duration=%.3fs, memory=%dMB, records=%d\n",
+		header.Filename, parseDuration.Seconds(), parseMemory, totalRows)
 
 	// Get database connection
 	db, exists := c.Get("db")
@@ -67,7 +94,14 @@ func ImportInstruments(c *gin.Context) {
 
 	// Create service and import
 	instrumentService := service.NewInstrumentService(db.(*gorm.DB))
+
+	// Note: Service needs to be modified to accept batch callbacks for monitoring
+	// For now, we measure the total import duration
+	importStart := time.Now()
 	result, err := instrumentService.ImportInstruments(excelFile, tenantID)
+	importDuration := time.Since(importStart)
+	endMemory := getMemoryUsage()
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40005,
@@ -76,11 +110,26 @@ func ImportInstruments(c *gin.Context) {
 		return
 	}
 
+	// Calculate throughput
+	throughput := 0.0
+	if importDuration.Seconds() > 0 {
+		throughput = float64(result.Total) / importDuration.Seconds()
+	}
+
+	// Log final performance metrics
+	totalDuration := time.Since(startTime)
+	fmt.Printf("[PERF] Import completed: file=%s, total_duration=%.3fs, "+
+		"import_duration=%.3fs, memory_start=%dMB, memory_end=%dMB, "+
+		"success=%d, failed=%d, throughput=%.1f records/s\n",
+		header.Filename, totalDuration.Seconds(), importDuration.Seconds(),
+		startMemory, endMemory, result.Success, result.Failed, throughput)
+
 	// Return result (supports partial success)
 	c.JSON(http.StatusOK, gin.H{
-		"code":    20000,
-		"data":    result,
-		"message": fmt.Sprintf("Import completed: %d success, %d failed", result.Success, result.Failed),
+		"code": 20000,
+		"data": result,
+		"message": fmt.Sprintf("Import completed: %d success, %d failed (%.1f records/s)",
+			result.Success, result.Failed, throughput),
 	})
 }
 
