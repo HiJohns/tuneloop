@@ -32,6 +32,8 @@ type Instrument struct {
 	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID          string    `gorm:"type:uuid;index" json:"org_id"`
+	CategoryID     string    `gorm:"type:uuid;index" json:"category_id"`
+	CategoryName   string    `gorm:"type:varchar(100)" json:"category_name"`
 	Name           string    `gorm:"type:varchar(255);not null" json:"name"`
 	Brand          string    `gorm:"type:varchar(100)" json:"brand"`
 	Level          string    `gorm:"type:varchar(20);not null" json:"level"`

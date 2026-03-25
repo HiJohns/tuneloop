@@ -20,18 +20,18 @@ func NewInstrumentService(db *gorm.DB) *InstrumentService {
 }
 
 var headerMap = map[string]string{
-	"name":           "乐器名称",
-	"brand":          "品牌",
-	"model":          "型号",
-	"category_name":  "分类名称",
-	"level":          "级别",
-	"daily_rate":     "日租金",
-	"monthly_rate":   "月租金",
-	"deposit":        "押金",
-	"stock":          "库存数量",
-	"status":         "状态",
-	"description":    "描述",
-	"images":         "图片URL",
+	"name":          "乐器名称",
+	"brand":         "品牌",
+	"model":         "型号",
+	"category_name": "分类名称",
+	"level":         "级别",
+	"daily_rate":    "日租金",
+	"monthly_rate":  "月租金",
+	"deposit":       "押金",
+	"stock":         "库存数量",
+	"status":        "状态",
+	"description":   "描述",
+	"images":        "图片URL",
 }
 
 var requiredFields = []string{"name", "category_name"}
@@ -49,10 +49,10 @@ var validStatuses = map[string]bool{
 }
 
 type ImportResult struct {
-	Total   int            `json:"total"`
-	Success int            `json:"success"`
-	Failed  int            `json:"failed"`
-	Errors  []ImportError  `json:"errors"`
+	Total   int           `json:"total"`
+	Success int           `json:"success"`
+	Failed  int           `json:"failed"`
+	Errors  []ImportError `json:"errors"`
 }
 
 type ImportError struct {
@@ -143,6 +143,19 @@ func (s *InstrumentService) ImportInstruments(file *excelize.File, tenantID stri
 			continue
 		}
 
+		categoryID, err := s.resolveCategory(instrument, tenantID, tx)
+		if err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, ImportError{
+				Row:   rowNum,
+				Error: fmt.Sprintf("分类解析失败: %v", err),
+			})
+			tx.Rollback()
+			tx = s.db.Begin()
+			continue
+		}
+		instrument.CategoryID = categoryID
+
 		if err := tx.Create(&instrument).Error; err != nil {
 			result.Failed++
 			result.Errors = append(result.Errors, ImportError{
@@ -173,7 +186,7 @@ func (s *InstrumentService) ImportInstruments(file *excelize.File, tenantID stri
 
 func (s *InstrumentService) parseHeaderRow(headerRow []string) map[string]int {
 	columnIndex := make(map[string]int)
-	
+
 	for i, header := range headerRow {
 		header = strings.TrimSpace(header)
 		for field, chineseHeader := range headerMap {
@@ -183,7 +196,7 @@ func (s *InstrumentService) parseHeaderRow(headerRow []string) map[string]int {
 			}
 		}
 	}
-	
+
 	return columnIndex
 }
 
@@ -194,11 +207,11 @@ func (s *InstrumentService) validateRequiredColumns(columnIndex map[string]int) 
 			missing = append(missing, headerMap[field])
 		}
 	}
-	
+
 	if len(missing) > 0 {
 		return fmt.Errorf("missing required columns: %s", strings.Join(missing, ", "))
 	}
-	
+
 	return nil
 }
 
@@ -255,7 +268,7 @@ func (s *InstrumentService) parseRow(row []string, columnIndex map[string]int, r
 		if instrument.Pricing == "" {
 			instrument.Pricing = fmt.Sprintf(`{"monthly_rate": %.2f}`, rate)
 		} else {
-			instrument.Pricing = fmt.Sprintf(`%s, "monthly_rate": %.2f`, 
+			instrument.Pricing = fmt.Sprintf(`%s, "monthly_rate": %.2f`,
 				strings.TrimSuffix(instrument.Pricing, "}"), rate) + "}"
 		}
 	}
@@ -268,7 +281,7 @@ func (s *InstrumentService) parseRow(row []string, columnIndex map[string]int, r
 		if instrument.Pricing == "" {
 			instrument.Pricing = fmt.Sprintf(`{"deposit": %.2f}`, deposit)
 		} else {
-			instrument.Pricing = fmt.Sprintf(`%s, "deposit": %.2f`, 
+			instrument.Pricing = fmt.Sprintf(`%s, "deposit": %.2f`,
 				strings.TrimSuffix(instrument.Pricing, "}"), deposit) + "}"
 		}
 	}
@@ -319,16 +332,16 @@ func (s *InstrumentService) parseFloat(value, field string, rowNum int) (float64
 
 func (s *InstrumentService) sanitizeValue(value string) string {
 	value = strings.TrimSpace(value)
-	
-	if strings.HasPrefix(value, "=") || strings.HasPrefix(value, "+") || 
-	   strings.HasPrefix(value, "-") || strings.HasPrefix(value, "@") {
+
+	if strings.HasPrefix(value, "=") || strings.HasPrefix(value, "+") ||
+		strings.HasPrefix(value, "-") || strings.HasPrefix(value, "@") {
 		return "'" + value
 	}
-	
+
 	if len(value) > 1000 {
 		return value[:1000]
 	}
-	
+
 	return value
 }
 
@@ -339,7 +352,7 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 	f.SetActiveSheet(index)
 
 	query := s.db.Where("tenant_id = ?", tenantID)
-	
+
 	if opts.Category != "" {
 		query = query.Where("category_name = ?", opts.Category)
 	}
@@ -347,7 +360,7 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 		query = query.Where("stock_status = ?", opts.Status)
 	}
 	if opts.SearchText != "" {
-		query = query.Where("name ILIKE ? OR brand ILIKE ?", 
+		query = query.Where("name ILIKE ? OR brand ILIKE ?",
 			"%"+opts.SearchText+"%", "%"+opts.SearchText+"%")
 	}
 
@@ -368,7 +381,7 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 	for i, field := range opts.Fields {
 		headers[i] = headerMap[field]
 	}
-	
+
 	for i, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheetName, cell, header)
@@ -389,6 +402,40 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 	}
 
 	return f, nil
+}
+
+func (s *InstrumentService) resolveCategory(instrument *models.Instrument, tenantID string, tx *gorm.DB) (string, error) {
+	categoryName := ""
+	for field, header := range headerMap {
+		if field == "category_name" {
+			categoryName = header
+			break
+		}
+	}
+
+	if categoryName == "" {
+		categoryName = "未分类"
+	} else {
+		var category models.Category
+		if err := tx.Where("tenant_id = ? AND name ILIKE ?", tenantID, categoryName).First(&category).Error; err != nil {
+			categoryName = "未分类"
+		} else {
+			return category.ID, nil
+		}
+	}
+
+	var defaultCategory models.Category
+	if err := tx.Where("tenant_id = ? AND name = ?", tenantID, categoryName).First(&defaultCategory).Error; err != nil {
+		defaultCategory = models.Category{
+			TenantID: tenantID,
+			Name:     categoryName,
+		}
+		if err := tx.Create(&defaultCategory).Error; err != nil {
+			return "", fmt.Errorf("failed to create default category: %w", err)
+		}
+	}
+
+	return defaultCategory.ID, nil
 }
 
 func (s *InstrumentService) getFieldValue(instrument *models.Instrument, field string) string {
