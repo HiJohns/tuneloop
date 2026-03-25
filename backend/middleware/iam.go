@@ -61,7 +61,17 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 			return
 		}
 
+		// 优先从 Authorization Header 读取
 		authHeader := c.GetHeader("Authorization")
+
+		// 如果没有 Authorization Header，尝试从 Cookie 读取
+		if authHeader == "" {
+			cookie, err := c.Cookie("token")
+			if err == nil && cookie != "" {
+				authHeader = "Bearer " + cookie
+			}
+		}
+
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40100,
