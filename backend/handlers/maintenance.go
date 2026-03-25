@@ -411,3 +411,174 @@ func (h *MaintenanceHandler) UpdateTicketStatus(c *gin.Context) {
 		},
 	})
 }
+
+// ListTechnicianTickets - GET /api/technician/tickets
+// List all tickets assigned to the current technician
+func (h *MaintenanceHandler) ListTechnicianTickets(c *gin.Context) {
+	technicianID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40101,
+			"message": "technician not identified",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var tickets []models.MaintenanceTicket
+	if err := db.Where("technician_id = ?", technicianID).Find(&tickets).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch tickets: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": tickets,
+	})
+}
+
+// AcceptTicket - PUT /api/technician/tickets/:id/accept
+// Technician accepts a ticket to work on
+func (h *MaintenanceHandler) AcceptTicket(c *gin.Context) {
+	ticketID := c.Param("id")
+	if ticketID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "ticket id required",
+		})
+		return
+	}
+
+	technicianID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40101,
+			"message": "technician not identified",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var ticket models.MaintenanceTicket
+	if err := db.First(&ticket, "id = ?", ticketID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "ticket not found",
+		})
+		return
+	}
+
+	// Update ticket status to processing and set technician
+	updates := map[string]interface{}{
+		"status":        models.TicketStatusProcessing,
+		"technician_id": technicianID,
+		"accepted_at":   time.Now(),
+	}
+
+	if err := db.Model(&ticket).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to accept ticket: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"id":      ticketID,
+			"status":  models.TicketStatusProcessing,
+			"message": "ticket accepted successfully",
+		},
+	})
+}
+
+// CompleteTicket - POST /api/technician/tickets/:id/complete
+// Technician marks a ticket as completed
+func (h *MaintenanceHandler) CompleteTicket(c *gin.Context) {
+	ticketID := c.Param("id")
+	if ticketID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "ticket id required",
+		})
+		return
+	}
+
+	technicianID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40101,
+			"message": "technician not identified",
+		})
+		return
+	}
+
+	var req struct {
+		Notes  string   `json:"notes"`
+		Photos []string `json:"photos"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Notes are optional, so we can continue without them
+		req.Notes = ""
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var ticket models.MaintenanceTicket
+	if err := db.First(&ticket, "id = ?", ticketID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "ticket not found",
+		})
+		return
+	}
+
+	// Verify technician is assigned to this ticket
+	if ticket.TechnicianID != technicianID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40301,
+			"message": "not authorized to complete this ticket",
+		})
+		return
+	}
+
+	// Update ticket as completed
+	updates := map[string]interface{}{
+		"status":       models.TicketStatusCompleted,
+		"completed_at": time.Now(),
+	}
+
+	if req.Notes != "" {
+		updates["completion_notes"] = req.Notes
+	}
+
+	if len(req.Photos) > 0 {
+		photosJSON := fmt.Sprintf(`["%s"]`, strings.Join(req.Photos, `","`))
+		updates["completion_photos"] = photosJSON
+	}
+
+	if err := db.Model(&ticket).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to complete ticket: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"id":           ticketID,
+			"status":       models.TicketStatusCompleted,
+			"completed_at": time.Now(),
+			"message":      "ticket completed successfully",
+		},
+	})
+}
