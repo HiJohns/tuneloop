@@ -1,4 +1,6 @@
-import { Modal, Row, Col, Alert, Typography, List } from 'antd'
+import { Modal, Alert, Typography, List } from 'antd'
+import Row from 'antd/es/grid/row'
+import Col from 'antd/es/grid/col'
 import { CheckCircleOutlined, CloseCircleOutlined, WarningOutlined } from '@ant-design/icons'
 
 const { Text, Paragraph } = Typography
