@@ -1,12 +1,29 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
-  const cookies = document.cookie.split(';')
-  for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=')
-    if (name === 'token') return value
+  // Try localStorage first (where IAM callback stores token)
+  const localStorageToken = localStorage.getItem('token')
+  if (localStorageToken) {
+    console.log('[Token] Retrieved from localStorage')
+    return localStorageToken
   }
-  return localStorage.getItem('token') || sessionStorage.getItem('token')
+  
+  // Try sessionStorage as fallback
+  const sessionStorageToken = sessionStorage.getItem('token')
+  if (sessionStorageToken) {
+    console.log('[Token] Retrieved from sessionStorage')
+    return sessionStorageToken
+  }
+  
+  // Try cookie as last resort (simplified parsing)
+  const cookieMatch = document.cookie.match(/token=([^;]+)/)
+  if (cookieMatch) {
+    console.log('[Token] Retrieved from Cookie')
+    return cookieMatch[1]
+  }
+  
+  console.log('[Token] No token found in any storage')
+  return null
 }
 
 async function request(endpoint, options = {}) {
