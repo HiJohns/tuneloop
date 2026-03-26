@@ -97,8 +97,6 @@ function MainLayout() {
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
     '/system/tenants': { title: '租户管理', parent: '系统管理' },
-    '/system/clients': { title: '客户端管理', parent: '系统管理' },
-    '/system/tenants': { title: '租户管理', parent: '系统管理' }
   }
 
   if (routeMap[location.pathname]) {
