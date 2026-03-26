@@ -3,10 +3,89 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 )
 
 func GetInstruments(c *gin.Context) {
-	c.File("data/instruments.json")
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	var instruments []models.Instrument
+	if err := db.Where("tenant_id = ?", tenantID).Find(&instruments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to fetch instruments",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": instruments,
+	})
+}
+
+func GetCategories(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	var categories []models.Category
+	if err := db.Where("tenant_id = ? AND visible = ?", tenantID, true).
+		Order("sort ASC").
+		Find(&categories).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to fetch categories",
+		})
+		return
+	}
+
+	categoryMap := make(map[string]map[string]interface{})
+	var result []map[string]interface{}
+
+	for _, cat := range categories {
+		categoryData := map[string]interface{}{
+			"id":        cat.ID,
+			"name":      cat.Name,
+			"icon":      cat.Icon,
+			"level":     cat.Level,
+			"sort":      cat.Sort,
+			"visible":   cat.Visible,
+			"parent_id": cat.ParentID,
+		}
+
+		if cat.ParentID == nil {
+			categoryData["sub_categories"] = []map[string]interface{}{}
+			categoryMap[cat.ID] = categoryData
+			result = append(result, categoryData)
+		}
+	}
+
+	for _, cat := range categories {
+		if cat.ParentID != nil {
+			if parent, exists := categoryMap[*cat.ParentID]; exists {
+				if subCats, ok := parent["sub_categories"].([]map[string]interface{}); ok {
+					parent["sub_categories"] = append(subCats, map[string]interface{}{
+						"id":      cat.ID,
+						"name":    cat.Name,
+						"icon":    cat.Icon,
+						"level":   cat.Level,
+						"sort":    cat.Sort,
+						"visible": cat.Visible,
+					})
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": result,
+	})
 }
 
 func GetSites(c *gin.Context) {

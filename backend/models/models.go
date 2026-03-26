@@ -25,6 +25,9 @@ type Category struct {
 	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
 	Icon      string    `json:"icon"`
 	ParentID  *string   `gorm:"type:uuid" json:"parent_id"`
+	Level     int       `gorm:"default:1" json:"level"`
+	Sort      int       `gorm:"default:0" json:"sort"`
+	Visible   bool      `gorm:"default:true" json:"visible"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
