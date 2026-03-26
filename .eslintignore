@@ -1,0 +1,5 @@
+# 忽略构建产物
+**/dist/
+**/node_modules/
+**/.git/
+backend/
