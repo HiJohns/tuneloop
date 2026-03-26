@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: parseInt(process.env.VITE_DEV_PORT || '5554'),
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    allowedHosts: ['opencode.linxdeep.com', 'localhost']
   }
 })
