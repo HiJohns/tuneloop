@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Upload, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, UploadOutlined, DownloadOutlined, ExportOutlined } from '@ant-design/icons'
+import { api } from '../../../services/api'
 import InstrumentForm from './Form'
 import ImportResultModal from '../../../components/ImportResultModal'
 
@@ -38,10 +39,7 @@ export default function InstrumentList() {
   const fetchInstruments = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/instruments`)
-      if (!response.ok) throw new Error('Failed to fetch instruments')
-      
-      const data = await response.json()
+      const data = await api.get('/instruments')
       if (data.code === 20000) {
         setInstruments(data.data || [])
       } else {
@@ -100,10 +98,7 @@ export default function InstrumentList() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`)
-      if (!response.ok) throw new Error('Failed to fetch categories')
-      
-      const data = await response.json()
+      const data = await api.get('/categories')
       if (data.code === 20000) {
         setCategories(data.data || [])
       }
@@ -254,16 +249,7 @@ export default function InstrumentList() {
 
   const deleteInstrument = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/instruments/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-      
-      if (!response.ok) throw new Error('删除失败')
-      
-      const result = await response.json()
+      const result = await api.delete(`/instruments/${id}`)
       if (result.code === 20000) {
         message.success('删除成功')
         fetchInstruments()
@@ -300,20 +286,11 @@ export default function InstrumentList() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/instruments/batch/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ids: selectedRowKeys,
-          status: status
-        })
+      const result = await api.put('/instruments/batch/status', {
+        ids: selectedRowKeys,
+        status: status
       })
       
-      if (!response.ok) throw new Error('批量操作失败')
-      
-      const result = await response.json()
       if (result.code === 20000) {
         message.success(`已成功更新 ${selectedRowKeys.length} 个乐器状态`)
         setSelectedRowKeys([])
@@ -340,17 +317,10 @@ export default function InstrumentList() {
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/instruments/batch`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ids: selectedRowKeys })
+          const result = await api.delete('/instruments/batch', {
+            ids: selectedRowKeys
           })
           
-          if (!response.ok) throw new Error('批量删除失败')
-          
-          const result = await response.json()
           if (result.code === 20000) {
             message.success(`已成功删除 ${selectedRowKeys.length} 个乐器`)
             setSelectedRowKeys([])
@@ -378,22 +348,13 @@ export default function InstrumentList() {
     try {
       const values = await batchPriceForm.validateFields()
       
-      const response = await fetch(`${API_BASE_URL}/instruments/batch/price`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ids: selectedRowKeys,
-          price_type: values.price_type,
-          amount: values.amount,
-          operator: values.operator
-        })
+      const result = await api.put('/instruments/batch/price', {
+        ids: selectedRowKeys,
+        price_type: values.price_type,
+        amount: values.amount,
+        operator: values.operator
       })
       
-      if (!response.ok) throw new Error('批量价格修改失败')
-      
-      const result = await response.json()
       if (result.code === 20000) {
         message.success(`已成功修改 ${selectedRowKeys.length} 个乐器价格`)
         setBatchPriceModalVisible(false)
@@ -414,16 +375,14 @@ export default function InstrumentList() {
 
   // Import/Export handlers
   const handleImport = async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    
     try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
       const response = await fetch(`${API_BASE_URL}/instruments/import`, {
         method: 'POST',
         body: formData
       })
-      
-      if (!response.ok) throw new Error('导入失败')
       
       const result = await response.json()
       if (result.code === 20000) {
