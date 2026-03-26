@@ -190,6 +190,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.MaintenanceTicket{},
 		&models.BrandConfig{},
 		&models.OwnershipCertificate{},
+		&models.Client{},
+		&models.Tenant{},
 	)
 }
 

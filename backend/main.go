@@ -66,6 +66,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
+	authRequired.Use(middleware.NoCache())
 	{
 		authRequired.GET("/categories", handlers.GetCategories)
 		authRequired.GET("/instruments", handlers.GetInstruments)
@@ -133,6 +134,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			authRequired.PUT("/admin/roles/:id/permissions", permHandler.UpdateRolePermissions)
 			authRequired.POST("/admin/roles", permHandler.CreateRole)
 			authRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
+
+			systemHandler := handlers.NewSystemHandler()
+			authRequired.GET("/system/clients", systemHandler.GetClients)
+			authRequired.GET("/system/tenants", systemHandler.GetTenants)
 
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)
