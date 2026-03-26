@@ -169,6 +169,7 @@ type InventoryTransfer struct {
 
 type Client struct {
 	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	ClientID     string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"client_id"`
 	ClientSecret string    `gorm:"type:varchar(255)" json:"client_secret"`
 	Name         string    `gorm:"type:varchar(100)" json:"name"`
