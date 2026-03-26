@@ -5,8 +5,6 @@ import { Badge, Tag } from 'antd'
 import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 
 function ServiceCard({ order }) {
-  const isProcessing = order.status === "处理中"
-  
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
       <div className="space-y-2">

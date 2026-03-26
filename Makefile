@@ -15,19 +15,21 @@ build-mobile:
 run-backend:
 	@echo "=========================================="
 	@echo "Starting backend services..."
-	@echo "PC Frontend:    http://localhost:5554"
+	@echo "Backend API:    http://localhost:5556 (PC Backend)"
+	@echo "PC Frontend:    http://localhost:5554 (with source map)"
 	@echo "Mobile Frontend: http://localhost:5553"
 	@echo "=========================================="
 	cd backend && go run main.go
 
 run-frontend:
 	@echo "Starting PC frontend development server..."
+	@echo "PC Frontend: http://localhost:5554 (with source map)"
 	@cd frontend-pc && npm run dev
 
 run: run-backend
 	@echo "=========================================="
 	@echo "Starting PC frontend development server..."
-	@echo "PC Frontend: http://localhost:5173"
+	@echo "PC Frontend: http://localhost:5554 (with source map)"
 	@echo "=========================================="
 	cd frontend-pc && npm run dev &
 

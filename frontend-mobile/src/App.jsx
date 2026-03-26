@@ -51,7 +51,7 @@ function ProtectedRoute({ children }) {
 }
 
 function OAuthCallback() {
-  const [loading, setLoading] = useState(true)
+  const [loading] = useState(true)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, instrumentsApi } from '../services/api'
+import { instrumentsApi } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {

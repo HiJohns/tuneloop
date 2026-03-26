@@ -1,4 +1,5 @@
 module.exports = {
+  root: true,
   env: {
     browser: true,
     es2021: true,
@@ -10,31 +11,20 @@ module.exports = {
     'plugin:react-hooks/recommended',
   ],
   parserOptions: {
-    ecmaFeatures: { jsx: true },
     ecmaVersion: 'latest',
     sourceType: 'module',
-  },
-  plugins: ['react', 'react-hooks'],
-  rules: {
-    'react/prop-types': 'off',
-    'react-hooks/set-state-in-effect': 'warn',
-    'no-unused-vars': 'warn',
-    'no-undef': 'off',
-  },
-  globals: {
-    localStorage: 'readonly',
-    sessionStorage: 'readonly',
-    fetch: 'readonly',
-    FormData: 'readonly',
-    Blob: 'readonly',
-    URL: 'readonly',
-    URLSearchParams: 'readonly',
-    setTimeout: 'readonly',
-    clearTimeout: 'readonly',
-    setInterval: 'readonly',
-    clearInterval: 'readonly',
+    ecmaFeatures: {
+      jsx: true,
+    },
   },
   settings: {
-    react: { version: 'detect' },
+    react: { version: '18.2' },
+  },
+  rules: {
+    'no-undef': 'off',
+    'no-unused-vars': 'off',
+    'react-hooks/set-state-in-effect': 'off',
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
   },
 };

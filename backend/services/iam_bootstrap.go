@@ -28,7 +28,15 @@ func BootstrapIAM(db *gorm.DB) error {
 
 	redirectURIs := os.Getenv("BOOTSTRAP_REDIRECT_URIS")
 	if redirectURIs == "" {
-		redirectURIs = "http://localhost:5554/callback,http://localhost:5553/callback"
+		wwwPort := os.Getenv("TUNELOOP_WWW_PORT")
+		if wwwPort == "" {
+			wwwPort = "5554"
+		}
+		wxPort := os.Getenv("TUNELOOP_WX_PORT")
+		if wxPort == "" {
+			wxPort = "5553"
+		}
+		redirectURIs = fmt.Sprintf("http://localhost:%s/callback,http://localhost:%s/callback", wwwPort, wxPort)
 	}
 
 	client := &models.Client{
