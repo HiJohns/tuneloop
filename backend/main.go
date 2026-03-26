@@ -67,6 +67,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
 	{
+		authRequired.GET("/categories", handlers.GetCategories)
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
