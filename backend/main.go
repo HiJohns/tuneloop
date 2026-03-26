@@ -135,6 +135,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			authRequired.POST("/admin/roles", permHandler.CreateRole)
 			authRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
 
+			systemHandler := handlers.NewSystemHandler()
+			authRequired.GET("/system/clients", systemHandler.GetClients)
+			authRequired.GET("/system/tenants", systemHandler.GetTenants)
+
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)
 			authRequired.GET("/admin/dashboard/near-transfers", dashboardHandler.GetNearTransfers)
