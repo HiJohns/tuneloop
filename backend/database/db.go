@@ -268,12 +268,13 @@ func CheckMigrationsStatus(db *gorm.DB) (currentVersion uint, dirty bool, pendin
 		return 0, false, 0, fmt.Errorf("failed to create postgres driver: %w", err)
 	}
 
-	currentVersion, dirty, err = driver.Version()
+	versionInt, dirty, err := driver.Version()
 	if err != nil && err != migrate.ErrNilVersion {
 		return 0, false, 0, fmt.Errorf("failed to get version: %w", err)
 	}
+	currentVersion = uint(versionInt)
 
-	_, _, err = migrate.NewWithDatabaseInstance(
+	_, err = migrate.NewWithDatabaseInstance(
 		"file://database/migrations",
 		"postgres", driver)
 	if err != nil {
