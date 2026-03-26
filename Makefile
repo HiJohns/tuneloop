@@ -27,11 +27,6 @@ run-frontend:
 	@cd frontend-pc && VITE_DEV_PORT=5554 npm run dev
 
 run: run-backend
-	@echo "=========================================="
-	@echo "Starting PC frontend development server..."
-	@echo "PC Frontend: http://localhost:5554 (with source map)"
-	@echo "=========================================="
-	cd frontend-pc && VITE_DEV_PORT=5554 npm run dev &
 
 run-prod: build-frontend run-backend
 
