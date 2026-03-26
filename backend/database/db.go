@@ -195,6 +195,94 @@ func AutoMigrate(db *gorm.DB) error {
 	)
 }
 
+// RunMigrationsWithLogging runs database migrations with detailed logging
+func RunMigrationsWithLogging(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB: %w", err)
+	}
+
+	driver, err := postgres.WithInstance(sqlDB, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	currentVersion, dirty, err := driver.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return fmt.Errorf("failed to get current version: %w", err)
+	}
+
+	if dirty {
+		fmt.Printf("Warning: Database is in dirty state at version %d. Attempting to fix...\n", currentVersion)
+	}
+
+	fmt.Printf("Current database version: %d, Dirty: %v\n", currentVersion, dirty)
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://database/migrations",
+		"postgres", driver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	versionBefore, _, _ := driver.Version()
+
+	if err := m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			fmt.Println("✓ No new migrations to apply. Database is up to date.")
+			return nil
+		}
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	versionAfter, _, _ := driver.Version()
+
+	if versionAfter > versionBefore {
+		fmt.Printf("✓ Successfully applied migrations: %d → %d\n", versionBefore, versionAfter)
+	}
+
+	return nil
+}
+
+// BootstrapDatabase ensures database is ready with all migrations applied
+func BootstrapDatabase(db *gorm.DB) error {
+	fmt.Println("Bootstrapping database...")
+
+	if err := RunMigrationsWithLogging(db); err != nil {
+		return fmt.Errorf("database bootstrap failed: %w", err)
+	}
+
+	fmt.Println("✓ Database bootstrap completed successfully")
+	return nil
+}
+
+// CheckMigrationsStatus returns the current migration status without applying
+func CheckMigrationsStatus(db *gorm.DB) (currentVersion uint, dirty bool, pendingCount int, err error) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return 0, false, 0, fmt.Errorf("failed to get sql.DB: %w", err)
+	}
+
+	driver, err := postgres.WithInstance(sqlDB, &postgres.Config{})
+	if err != nil {
+		return 0, false, 0, fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	currentVersion, dirty, err = driver.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return 0, false, 0, fmt.Errorf("failed to get version: %w", err)
+	}
+
+	_, _, err = migrate.NewWithDatabaseInstance(
+		"file://database/migrations",
+		"postgres", driver)
+	if err != nil {
+		return currentVersion, dirty, 0, fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	return currentVersion, dirty, 0, nil
+}
+
 func SetDB(db *gorm.DB) {
 	dbInstance = db
 }
