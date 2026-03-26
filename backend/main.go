@@ -166,8 +166,10 @@ func main() {
 	}
 	database.SetDB(db)
 
-	if err := database.RunMigrations(db); err != nil {
-		fmt.Printf("Warning: migration failed: %v\n", err)
+	if err := database.BootstrapDatabase(db); err != nil {
+		fmt.Printf("FATAL: Database bootstrap failed: %v\n", err)
+		fmt.Println("Please check your database connection and migration files.")
+		os.Exit(1)
 	}
 
 	if err := services.BootstrapIAM(db); err != nil {
