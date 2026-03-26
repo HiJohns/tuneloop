@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Button, Image, Tag, Divider, Typography } from 'antd';
 import { EnvironmentOutlined, PhoneOutlined, ClockCircleOutlined } from '@ant-design/icons';
@@ -12,11 +12,7 @@ export default function SiteDetail() {
   const [loading, setLoading] = useState(true);
   const [stockStatus, setStockStatus] = useState({});
 
-  useEffect(() => {
-    fetchSiteDetail();
-  }, [id]);
-
-  const fetchSiteDetail = async () => {
+  const fetchSiteDetail = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/common/sites/${id}`);
       const result = await response.json();
@@ -30,7 +26,11 @@ export default function SiteDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchSiteDetail();
+  }, [fetchSiteDetail]);
 
   const handleNavigate = () => {
     if (site && site.latitude && site.longitude) {

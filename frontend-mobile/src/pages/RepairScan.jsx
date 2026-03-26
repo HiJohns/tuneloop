@@ -7,12 +7,11 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5553';
 export default function RepairScan() {
   const [snCode, setSnCode] = useState('');
   const [instrument, setInstrument] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [problem, setProblem] = useState('');
   const [images, setImages] = useState([]);
 
-  const handleScan = () => {
+  const handleScan = async () => {
     if (typeof wx !== 'undefined' && wx.scanQRCode) {
       wx.scanQRCode({
         needResult: 1,
@@ -32,7 +31,6 @@ export default function RepairScan() {
   };
 
   const fetchInstrument = async (sn) => {
-    setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/instruments?sn=${sn}`);
       const result = await response.json();
@@ -43,10 +41,8 @@ export default function RepairScan() {
       } else {
         message.info('未找到乐器，请确认SN码');
       }
-    } catch (error) {
+    } catch {
       message.error('查询失败');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -79,7 +75,7 @@ export default function RepairScan() {
       } else {
         message.error(result.message || '提交失败');
       }
-    } catch (error) {
+    } catch {
       message.error('提交失败');
     } finally {
       setSubmitting(false);

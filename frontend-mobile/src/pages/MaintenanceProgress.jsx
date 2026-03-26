@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Steps, Tag, Button } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
@@ -19,11 +19,7 @@ export default function MaintenanceProgress() {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTicket();
-  }, [id]);
-
-  const fetchTicket = async () => {
+  const fetchTicket = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/maintenance/${id}`);
       const result = await response.json();
@@ -35,7 +31,11 @@ export default function MaintenanceProgress() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTicket();
+  }, [fetchTicket]);
 
   const getStepIndex = (status) => {
     const statusMap = {

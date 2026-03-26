@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { api, instrumentsApi, ordersApi } from '../services/api'
+import { instrumentsApi, ordersApi } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X } from 'lucide-react'
 import { Switch, Segmented, Tag, Modal, Button } from 'antd'
 
@@ -29,7 +29,7 @@ export default function Detail() {
   const [selectedTerm, setSelectedTerm] = useState(12)
   const [noDeposit, setNoDeposit] = useState(false)
   const [showComparison, setShowComparison] = useState(false)
-  const [userCreditScore, setUserCreditScore] = useState(750)
+  const [userCreditScore] = useState(750)
   const [canUseDepositFree, setCanUseDepositFree] = useState(false)
   
   const [calculatedRent, setCalculatedRent] = useState(0)
@@ -58,16 +58,11 @@ export default function Detail() {
     setCanUseDepositFree(creditScore >= 650)
   }, [userCreditScore])
 
-  useEffect(() => {
-    calculatePrice()
-  }, [selectedLevel, selectedTerm, noDeposit, instrument])
-
   const currentLevel = instrument?.levels.find(l => {
-    const levelMap = { '入门级': 'entry', '专业级': 'professional', '大师级': 'master' }
     return l.name === selectedLevel
   })
 
-  const calculatePrice = async () => {
+  const calculatePrice = useCallback(async () => {
     if (!currentLevel || !instrument) return
 
     const termOption = TERM_OPTIONS.find(t => t.value === selectedTerm)
@@ -83,7 +78,11 @@ export default function Detail() {
     setCalculatedDeposit(deposit)
     setDepositWaived(waived)
     setTotalAmount(rent + deposit)
-  }
+  }, [currentLevel, instrument, selectedTerm, noDeposit, canUseDepositFree])
+
+  useEffect(() => {
+    calculatePrice()
+  }, [calculatePrice])
 
   const handleDepositToggle = () => {
     if (!canUseDepositFree) {

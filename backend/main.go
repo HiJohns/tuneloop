@@ -170,10 +170,12 @@ func main() {
 
 	iamService := services.NewIAMService()
 
-	wwwURL := getEnv("TUNELOOP_WWW_URL", "http://localhost:5554")
-	wxURL := getEnv("TUNELOOP_WX_URL", "http://localhost:5553")
-	pcPort := extractPort(wwwURL)
-	mobilePort := extractPort(wxURL)
+	pcPort := getEnv("TUNELOOP_PC_PORT", "5556")
+	wxPort := getEnv("TUNELOOP_WX_PORT", "5553")
+	wwwPort := getEnv("TUNELOOP_WWW_PORT", "5554")
+
+	wwwURL := fmt.Sprintf("http://localhost:%s", wwwPort)
+	wxURL := fmt.Sprintf("http://localhost:%s", wxPort)
 
 	pcRouter := gin.Default()
 	pcRouter.Use(cors.Default())
@@ -225,5 +227,8 @@ func main() {
 	leaseAccumulator := tasks.NewLeaseAccumulator()
 	leaseAccumulator.Start()
 
-	mobileRouter.Run(":" + mobilePort)
+	_ = wwwURL
+	_ = wxURL
+
+	mobileRouter.Run(":" + wxPort)
 }
