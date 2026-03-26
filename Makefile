@@ -19,7 +19,7 @@ run-backend:
 	@echo "PC Frontend:    http://localhost:5554 (with source map)"
 	@echo "Mobile Frontend: http://localhost:5553"
 	@echo "=========================================="
-	cd backend && go run main.go
+	cd backend && go run main.go &
 
 run-frontend:
 	@echo "Starting PC frontend development server..."
