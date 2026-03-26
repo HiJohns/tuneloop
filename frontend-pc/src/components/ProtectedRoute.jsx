@@ -5,10 +5,21 @@ const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || 'http://opencode.
 const CLIENT_ID = import.meta.env.VITE_IAM_CLIENT_ID || 'tuneloop'
 
 function getToken() {
+  // Check cookies first (same as api.js)
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=')
+    if (name === 'token') return value
+  }
+  
+  // Then check localStorage with expiry
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
   
-  if (!token || !expiry) return null
+  if (!token || !expiry) {
+    // Fall back to sessionStorage
+    return sessionStorage.getItem('token') || null
+  }
   
   const now = new Date().getTime()
   const exp = parseInt(expiry)
@@ -17,7 +28,7 @@ function getToken() {
     localStorage.removeItem('token')
     localStorage.removeItem('token_expiry')
     localStorage.removeItem('user_info')
-    return null
+    return sessionStorage.getItem('token') || null
   }
   
   return token
