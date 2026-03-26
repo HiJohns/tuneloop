@@ -6,6 +6,13 @@ export default defineConfig({
   server: {
     port: parseInt(process.env.VITE_DEV_PORT || '5554'),
     host: '0.0.0.0',
-    allowedHosts: ['opencode.linxdeep.com', 'localhost']
+    allowedHosts: ['opencode.linxdeep.com', 'localhost'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5556',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 })
