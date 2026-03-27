@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -63,6 +64,15 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		}
 
 		authHeader := c.GetHeader("Authorization")
+
+		// 如果 Authorization header 为空，尝试从 Cookie 读取
+		if authHeader == "" {
+			if token, err := c.Cookie("token"); err == nil && token != "" {
+				authHeader = "Bearer " + token
+				fmt.Println("[Auth] Using token from Cookie")
+			}
+		}
+
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			// 🔍 调试：记录收到的原始 header
 			log.Printf("40100 Debug: Received Header [%s], Cookie [%s]", authHeader, c.GetHeader("Cookie"))
