@@ -14,6 +14,7 @@ import subprocess
 import sys
 import os
 import re
+import json
 import tempfile
 from pathlib import Path
 
@@ -60,6 +61,59 @@ def analyze_with_opencode(test_output: str) -> str:
     finally:
         os.unlink(temp_file)
 
+def get_issue_content(issue_number: int) -> str:
+    """使用 gh CLI 获取 Issue 内容"""
+    cmd = ['gh', 'issue', 'view', str(issue_number), '--json', 'title,body']
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to get issue: {result.stderr}")
+    data = json.loads(result.stdout)
+    return f"Title: {data.get('title', '')}\n\nBody: {data.get('body', '')}"
+
+def read_test_script(script_path: str) -> str:
+    """读取测试脚本源码"""
+    with open(script_path, 'r') as f:
+        return f.read()
+
+def analyze_with_gemini(issue_content: str, test_script: str, test_output: str) -> str:
+    """调用 Gemini API 分析测试结果"""
+    from google import genai
+    
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set")
+    
+    client = genai.Client(api_key=api_key)
+    
+    prompt = f"""请分析以下测试场景：
+
+## Issue 描述
+{issue_content}
+
+## 测试脚本源码
+```python
+{test_script}
+```
+
+## 测试执行结果
+```
+{test_output}
+```
+
+请提供：
+1. 测试是否通过？
+2. 如果失败，分析可能的原因
+3. 建议的下一步操作
+
+请用简洁的 Markdown 格式输出。"""
+    
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt
+    )
+    
+    return response.text
+
 def add_comment_to_issue(issue_number: int, comment: str):
     """使用 gh CLI 添加评论"""
     cmd = ['gh', 'issue', 'comment', str(issue_number), '-b', comment]
@@ -81,6 +135,30 @@ def main():
     print(f"📋 Issue 编号: #{issue_number}")
     print(f"🧪 测试脚本: {args.test_script}")
     
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        print("⚠️ 警告: GEMINI_API_KEY 未设置，将使用简化分析")
+        use_gemini = False
+    else:
+        print("✅ GEMINI_API_KEY 已配置")
+        use_gemini = True
+    
+    print("\n📖 正在获取 Issue 内容...")
+    try:
+        issue_content = get_issue_content(issue_number)
+        print("✅ Issue 内容获取成功")
+    except Exception as e:
+        print(f"❌ 获取 Issue 内容失败: {e}")
+        sys.exit(1)
+    
+    print("\n📄 正在读取测试脚本...")
+    try:
+        test_script_content = read_test_script(args.test_script)
+        print("✅ 测试脚本读取成功")
+    except Exception as e:
+        print(f"❌ 读取测试脚本失败: {e}")
+        sys.exit(1)
+    
     print("\n🚀 开始执行测试...")
     try:
         output, exit_code = run_test_script(args.test_script)
@@ -91,19 +169,28 @@ def main():
     print(f"✅ 测试执行完成 (exit code: {exit_code})")
     
     print("\n📊 正在分析输出...")
-    analysis = analyze_with_opencode(output)
+    try:
+        if use_gemini:
+            analysis = analyze_with_gemini(issue_content, test_script_content, output)
+            print("✅ Gemini 分析完成")
+        else:
+            analysis = analyze_with_opencode(output)
+            print("✅ 简化分析完成")
+    except Exception as e:
+        print(f"⚠️ 分析失败，使用回退方案: {e}")
+        analysis = analyze_with_opencode(output)
     
     comment_body = f"""## 测试执行报告
 
 **测试脚本**: `{args.test_script}`
 **执行状态**: {'✅ 成功' if exit_code == 0 else '❌ 失败'} (exit code: {exit_code})
 
-### 结果摘要
+### 分析结果
 
 {analysis}
 
 ---
-*自动生成于 test_and_report.py*"""
+*自动生成于 test_and_report.py* (Enhanced with Gemini API)"""
     
     print("\n💬 正在添加评论到 Issue...")
     try:
