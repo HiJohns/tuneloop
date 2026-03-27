@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -117,88 +116,6 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	log.Printf("[DEBUG CreateInstrument] Success: instrument.ID=%s", instrument.ID)
-
-	c.JSON(http.StatusCreated, gin.H{
-		"code": 20100,
-		"data": gin.H{
-			"id":    instrument.ID,
-			"name":  instrument.Name,
-			"brand": instrument.Brand,
-			"level": instrument.Level,
-		},
-	})
-}
-
-func GetInstrumentPricing(c *gin.Context) {
-	instrumentID := c.Param("id")
-
-	if instrumentID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "instrument id is required",
-		})
-		return
-	}
-
-	pricing := pricingService.GetInstrumentPricing(instrumentID)
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": pricing,
-	})
-}
-
-func CreateInstrument(c *gin.Context) {
-	db := database.GetDB()
-	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
-
-	if tenantID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"code":    40100,
-			"message": "missing tenant_id in context",
-		})
-		return
-	}
-
-	var req CreateInstrumentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40001,
-			"message": err.Error(),
-		})
-		return
-	}
-
-	instrument := models.Instrument{
-		TenantID:    tenantID,
-		Name:        req.Name,
-		Brand:       req.Brand,
-		Level:       req.Level,
-		Description: req.Description,
-		StockStatus: "available",
-		OrgID:       tenantID,
-	}
-
-	if req.Images != nil && len(req.Images) > 0 {
-		instrument.Images = "[]"
-	}
-
-	if req.Specifications != nil {
-		instrument.Specifications = "{}"
-	}
-
-	if req.Pricing != nil {
-		instrument.Pricing = "{}"
-	}
-
-	if err := db.Create(&instrument).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "failed to create instrument: " + err.Error(),
-		})
-		return
-	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
