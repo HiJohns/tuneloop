@@ -124,6 +124,33 @@ def add_comment_to_issue(issue_number: int, comment: str):
     if result.returncode != 0:
         raise RuntimeError(f"Failed to add comment: {result.stderr}")
 
+def update_issue_labels(issue_number: int, add_label: str = "status:todo"):
+    """更新 Issue 标签：移除所有标签，仅添加指定标签"""
+    # 1. 先获取当前所有标签
+    cmd = ['gh', 'issue', 'view', str(issue_number), '--json', 'labels']
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to get issue labels: {result.stderr}")
+    
+    data = json.loads(result.stdout)
+    current_labels = [label['name'] for label in data.get('labels', [])]
+    
+    # 2. 移除所有现有标签
+    if current_labels:
+        for label in current_labels:
+            cmd = ['gh', 'issue', 'edit', str(issue_number), '--remove-label', label]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"⚠️ 警告: 移除标签 {label} 失败: {result.stderr}")
+    
+    # 3. 添加 status:todo 标签
+    cmd = ['gh', 'issue', 'edit', str(issue_number), '--add-label', add_label]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to add label: {result.stderr}")
+    
+    print(f"✅ 标签已更新: {add_label}")
+
 def main():
     parser = argparse.ArgumentParser(
         description='执行测试脚本并报告结果到 GitHub Issue'
@@ -219,6 +246,13 @@ def main():
     except Exception as e:
         print(f"❌ 添加评论失败: {e}")
         sys.exit(1)
+    
+    print("\n🏷️ 正在更新 Issue 标签...")
+    try:
+        update_issue_labels(issue_number, "status:todo")
+    except Exception as e:
+        print(f"⚠️ 警告: 更新标签失败: {e}")
+        print("   继续执行，不影响评论发布")
 
 if __name__ == '__main__':
     main()
