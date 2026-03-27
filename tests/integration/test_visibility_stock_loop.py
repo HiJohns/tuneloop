@@ -23,14 +23,31 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
     log("="*70)
     
     instrument_id = None
+    category_id = None
     
     try:
+        # Step 0: 获取分类列表（必须先有分类才能创建乐器）
+        log("\nStep 0: 获取分类列表...")
+        response = client.get(f"{config.api_base_url}/categories")
+        
+        if response.status_code == 200:
+            data = response.json()
+            categories = data.get('data', [])
+            if categories and len(categories) > 0:
+                category_id = categories[0].get('id')
+                log(f"✓ 获取分类成功: {categories[0].get('name')} (ID: {category_id})")
+            else:
+                log("⚠ 没有可用分类，测试可能失败")
+        else:
+            log(f"⚠ 获取分类失败: {response.status_code}")
+        
         # Step 1: 创建乐器（所有账户都尝试，但只有 Owner/Admin 会成功）
         log("\nStep 1: 尝试创建乐器...")
         instrument_data = {
             "name": f"测试钢琴-{int(time.time())}-by-{account.email.split('@')[0]}",
             "brand": "雅马哈",
             "level": "professional",
+            "category_id": category_id,
             "pricing": {
                 "daily_rate": 50,
                 "weekly_rate": 300,

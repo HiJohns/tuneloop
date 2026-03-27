@@ -16,6 +16,7 @@ type CreateInstrumentRequest struct {
 	Name           string                 `json:"name" binding:"required"`
 	Brand          string                 `json:"brand"`
 	Level          string                 `json:"level" binding:"required"`
+	CategoryID     string                 `json:"category_id" binding:"required"`
 	Pricing        map[string]interface{} `json:"pricing"`
 	Description    string                 `json:"description"`
 	Images         []string               `json:"images"`
@@ -82,6 +83,7 @@ func CreateInstrument(c *gin.Context) {
 		Name:        req.Name,
 		Brand:       req.Brand,
 		Level:       req.Level,
+		CategoryID:  req.CategoryID,
 		Description: req.Description,
 		StockStatus: "available",
 	}
