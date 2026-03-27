@@ -1,0 +1,38 @@
+# Tuneloop Integration Test Configuration
+
+# API Configuration
+api:
+  base_url: "http://localhost:5554/api"
+  timeout: 30
+
+# IAM Configuration (for login to get token)
+iam:
+  url: "http://opencode.linxdeep.com:5552"
+  client_id: "tuneloop"
+  redirect_uri: "http://localhost:5554/callback"
+
+# Account List
+accounts:
+  - email: "admin_debug@tuneloop.com"
+    password: "Debug@2026"
+    role: "OWNER"
+    name: "Admin Debug (Owner)"
+    tenant: "多伦多音悦琴行"
+
+  - email: "tech_zhang@tuneloop.com"
+    password: "Debug@2026"
+    role: "TECHNICIAN"
+    name: "Tech Zhang (Technician)"
+    tenant: "多伦多音悦琴行"
+
+  - email: "customer_lee@tuneloop.com"
+    password: "Debug@2026"
+    role: "USER"
+    name: "Customer Lee (User)"
+    tenant: "多伦多音悦琴行"
+
+# Optional Global Settings
+settings:
+  log_level: "INFO"
+  continue_on_error: false
+  cleanup_after_test: true
