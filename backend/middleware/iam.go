@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 
@@ -63,6 +64,9 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 
 		authHeader := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
+			// 🔍 调试：记录收到的原始 header
+			log.Printf("40100 Debug: Received Header [%s], Cookie [%s]", authHeader, c.GetHeader("Cookie"))
+
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40100,
 				"message": "missing or invalid authorization header",
