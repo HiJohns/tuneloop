@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -21,8 +22,9 @@ func NewSiteHandler() *SiteHandler {
 func (h *SiteHandler) ListSites(c *gin.Context) {
 	var sites []models.Site
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
-	query := db.Model(&models.Site{})
+	query := db.Model(&models.Site{}).Where("tenant_id = ?", tenantID)
 
 	if city := c.Query("city"); city != "" {
 		// Note: city filter would require city field in Site model
@@ -186,9 +188,11 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	site := models.Site{
 		Name:          req.Name,
+		TenantID:      tenantID,
 		Address:       req.Address,
 		Latitude:      req.Latitude,
 		Longitude:     req.Longitude,
