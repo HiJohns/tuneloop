@@ -61,8 +61,8 @@ class TokenManager:
             # 1. 先尝试直接调用 backend callback（如果 IAM 已经授权）
             callback_url = f"{self.config.redirect_uri}"
             
-            # 简化：直接调用 IAM token endpoint（假设支持 password grant）
-            token_url = f"{self.config.iam_url}/oauth/token"
+            # 简化：调用 IAM login endpoint（beaconiam uses /api/oauth/login not /oauth/token）
+            token_url = f"{self.config.iam_url}/api/oauth/login"
             
             # 准备请求数据
             data = {
@@ -74,10 +74,10 @@ class TokenManager:
             }
             
             headers = {
-                "Content-Type": "application/x-www-form-urlencoded"
+                "Content-Type": "application/json"
             }
             
-            response = requests.post(token_url, data=data, headers=headers, timeout=30)
+            response = requests.post(token_url, json=data, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 token_data = response.json()
