@@ -70,10 +70,11 @@ func CreateInstrument(c *gin.Context) {
 		Level:       req.Level,
 		Description: req.Description,
 		StockStatus: "available",
+		OrgID:       tenantID,
 	}
 
-	if req.Images != nil {
-		instrument.Images = "{\"images\": [\"" + "\"]}"
+	if req.Images != nil && len(req.Images) > 0 {
+		instrument.Images = "[]"
 	}
 
 	if req.Specifications != nil {
@@ -87,7 +88,7 @@ func CreateInstrument(c *gin.Context) {
 	if err := db.Create(&instrument).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "failed to create instrument",
+			"message": "failed to create instrument: " + err.Error(),
 		})
 		return
 	}
