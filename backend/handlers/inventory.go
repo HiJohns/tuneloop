@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -35,9 +36,31 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 	status := c.Query("status")
 
 	if siteID == "" {
+		ctx := c.Request.Context()
+		tenantID := middleware.GetTenantID(ctx)
+
+		var sites []models.Site
+		db := database.GetDB().WithContext(ctx)
+		if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&sites).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "site_id is required",
+			})
+			return
+		}
+
+		siteList := make([]gin.H, len(sites))
+		for i, site := range sites {
+			siteList[i] = gin.H{
+				"id":   site.ID,
+				"name": site.Name,
+			}
+		}
+
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "site_id is required",
+			"code":            40002,
+			"message":         "site_id is required",
+			"available_sites": siteList,
 		})
 		return
 	}
