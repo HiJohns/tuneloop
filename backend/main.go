@@ -69,6 +69,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	authRequired.Use(middleware.NoCache())
 	{
 		authRequired.GET("/categories", handlers.GetCategories)
+		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id", handlers.GetInstruments)
 		authRequired.POST("/instruments", handlers.CreateInstrument)

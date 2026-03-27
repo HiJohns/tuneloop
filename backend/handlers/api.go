@@ -88,6 +88,53 @@ func GetCategories(c *gin.Context) {
 	})
 }
 
+// CreateCategory creates a new category
+func CreateCategory(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	var req struct {
+		Name    string `json:"name" binding:"required"`
+		Icon    string `json:"icon"`
+		Level   int    `json:"level"`
+		Visible bool   `json:"visible"`
+		Sort    int    `json:"sort"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	category := models.Category{
+		TenantID: tenantID,
+		Name:     req.Name,
+		Icon:     req.Icon,
+		Level:    req.Level,
+		Visible:  req.Visible,
+		Sort:     req.Sort,
+	}
+
+	if err := db.Create(&category).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to create category",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"code":    20100,
+		"data":    category,
+		"message": "Category created successfully",
+	})
+}
+
 func GetSites(c *gin.Context) {
 	c.File("data/sites.json")
 }

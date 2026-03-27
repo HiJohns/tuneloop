@@ -15,6 +15,42 @@ sys.path.insert(0, os.path.dirname(__file__))
 from common import load_config, run_tests_for_all_accounts, TestConfig, Account, log
 
 
+def ensure_category_exists(client, config: TestConfig, account: Account) -> str:
+    """确保至少有一个分类存在，如果没有则使用 OWNER 账户创建"""
+    log("\nStep 0: 获取或创建分类...")
+    
+    response = client.get(f"{config.api_base_url}/categories")
+    if response.status_code == 200:
+        data = response.json()
+        categories = data.get('data', [])
+        if categories and len(categories) > 0:
+            category_id = categories[0].get('id')
+            log(f"  ✓ 使用现有分类: {categories[0].get('name')} (ID: {category_id})")
+            return category_id
+    
+    # 如果没有分类且当前是 OWNER，创建测试分类
+    if account.role == "OWNER":
+        log("  没有可用分类，尝试创建测试分类...")
+        category_data = {
+            "name": "测试分类",
+            "icon": "🎹",
+            "level": "professional",
+            "visible": True,
+            "sort": 1
+        }
+        response = client.post(f"{config.api_base_url}/categories", json=category_data)
+        if response.status_code == 201:
+            category_id = response.json().get("data", {}).get("id")
+            log(f"  ✓ 创建测试分类成功: {category_id}")
+            return category_id
+        else:
+            log(f"  ⚠ 创建分类失败: {response.status_code} - {response.text}")
+    else:
+        log(f"  ⚠ 没有可用分类且当前账户不是 OWNER，无法创建")
+    
+    return None
+
+
 def test_visibility_stock_loop(client, config: TestConfig, account: Account):
     """测试资产可见性与库存闭环"""
     
@@ -23,26 +59,20 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
     log("="*70)
     
     instrument_id = None
-    category_id = None
+    results = {}
     
     try:
-        # Step 0: 获取分类列表（必须先有分类才能创建乐器）
-        log("\nStep 0: 获取分类列表...")
-        response = client.get(f"{config.api_base_url}/categories")
+        # Step 0: 确保有可用分类（数据自愈）
+        category_id = ensure_category_exists(client, config, account)
+        if not category_id:
+            return {
+                "status": "fail",
+                "error": "无法获取或创建分类"
+            }
         
-        if response.status_code == 200:
-            data = response.json()
-            categories = data.get('data', [])
-            if categories and len(categories) > 0:
-                category_id = categories[0].get('id')
-                log(f"✓ 获取分类成功: {categories[0].get('name')} (ID: {category_id})")
-            else:
-                log("⚠ 没有可用分类，测试可能失败")
-        else:
-            log(f"⚠ 获取分类失败: {response.status_code}")
+        # Step 1: 尝试创建乐器（RBAC 验证）
+        log("\nStep 1: 尝试创建乐器（RBAC 验证）...")
         
-        # Step 1: 创建乐器（所有账户都尝试，但只有 Owner/Admin 会成功）
-        log("\nStep 1: 尝试创建乐器...")
         instrument_data = {
             "name": f"测试钢琴-{int(time.time())}-by-{account.email.split('@')[0]}",
             "brand": "雅马哈",
@@ -60,19 +90,28 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
             json=instrument_data
         )
         
-        if response.status_code == 201:
-            instrument = response.json().get("data", {})
-            instrument_id = instrument.get("id")
-            log(f"✓ 创建乐器成功: {instrument.get('name', 'Unknown')}")
-            log(f"  乐器ID: {instrument_id}")
-        else:
-            log(f"⚠ 创建乐器失败: {response.status_code}")
-            log(f"  响应: {response.text}")
-            if response.status_code == 403:
-                log("  这是预期的（非 Owner/Admin 账户）")
-            instrument_id = None
+        # RBAC 验证
+        expected_status = 201 if account.role in ["OWNER", "ADMIN"] else 403
         
-        # Step 2: 查询乐器列表（所有账户都应该能看到）
+        if response.status_code == expected_status:
+            if response.status_code == 201:
+                instrument = response.json().get("data", {})
+                instrument_id = instrument.get("id")
+                log(f"✓ 创建乐器成功: {instrument.get('name', 'Unknown')}")
+                log(f"  乐器ID: {instrument_id}")
+                results['instrument_created'] = True
+            else:
+                log(f"✓ 权限验证通过: {account.role} 无法创建乐器（预期 403）")
+                results['rbac_verified'] = True
+        else:
+            log(f"❌ RBAC 验证失败: 期望 {expected_status}, 实际 {response.status_code}")
+            log(f"  响应: {response.text}")
+            return {
+                "status": "fail",
+                "error": f"RBAC check failed: expected {expected_status}, got {response.status_code}"
+            }
+        
+        # Step 2: 查询乐器列表
         log("\nStep 2: 查询乐器列表...")
         response = client.get(f"{config.api_base_url}/instruments")
         
@@ -80,19 +119,23 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
             instruments = response.json().get("data", [])
             log(f"✓ 查询成功, 找到 {len(instruments)} 个乐器")
             
-            # 如果刚才成功创建了乐器，验证是否能查到
+            # 多租户验证
             if instrument_id:
                 found = any(i.get("id") == instrument_id for i in instruments)
                 if found:
-                    log(f"✓ 刚创建的乐器已在列表中")
+                    log(f"✓ 多租户验证: 乐器对 {account.role} 可见")
                 else:
-                    log(f"⚠ 刚创建的乐器未在列表中（可能需要等待同步）")
+                    # 如果是非创建者查询，可能是正常的权限隔离
+                    if account.role not in ["OWNER", "ADMIN"]:
+                        log(f"⚠ 乐器对 {account.role} 不可见（可能是权限隔离）")
+                    else:
+                        log(f"⚠ 警告: 刚创建的乐器未在列表中")
         else:
             log(f"❌ 查询乐器失败: {response.status_code}")
-            raise Exception(f"查询失败: {response.text}")
+            return {"status": "fail", "error": f"Query failed: {response.status_code}"}
         
-        # Step 3: 如果创建了乐器，尝试下架
-        if instrument_id:
+        # Step 3: 下架乐器（仅限 OWNER/ADMIN 且成功创建了乐器）
+        if instrument_id and account.role in ["OWNER", "ADMIN"]:
             log("\nStep 3: 尝试下架乐器...")
             update_data = {"stock_status": "unavailable"}
             
@@ -107,8 +150,8 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
                 log(f"⚠ 下架乐器失败: {response.status_code}")
                 log(f"  响应: {response.text}")
         
-        # Step 4: 再次查询，验证下架效果
-        log("\nStep 4: 再次查询乐器列表...")
+        # Step 4: 再次查询验证下架效果
+        log("\nStep 4: 再次查询乐器列表验证下架...")
         time.sleep(1)
         
         response = client.get(f"{config.api_base_url}/instruments")
@@ -118,8 +161,9 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
             log(f"✓ 查询成功, 找到 {len(instruments)} 个乐器")
         else:
             log(f"❌ 查询失败: {response.status_code}")
-            raise Exception(f"查询失败: {response.text}")
+            return {"status": "fail", "error": f"Query failed: {response.status_code}"}
         
+        # 最终测试结果判断
         log("\n" + "="*70)
         log(f"账户 {account.email[:20]} 测试通过")
         log("="*70 + "\n")
@@ -127,7 +171,8 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
         return {
             "status": "pass",
             "instrument_created": instrument_id is not None,
-            "instrument_id": instrument_id
+            "instrument_id": instrument_id,
+            **results
         }
         
     except Exception as e:
