@@ -51,11 +51,13 @@ def analyze_with_opencode(test_output: str) -> str:
         summary_lines = []
         
         for line in lines:
-            if any(kw in line for kw in ['✅', '❌', 'PASS', 'FAIL', 'ERROR', '结果']):
+            if any(kw in line for kw in ['✅', '❌', 'PASS', 'FAIL', 'ERROR', '结果', '404', '401', '500']):
+                summary_lines.append(line)
+            if 'api' in line.lower() or 'http' in line.lower() or '/api/' in line:
                 summary_lines.append(line)
         
         if summary_lines:
-            return '\n'.join(summary_lines[:20])
+            return '\n'.join(summary_lines[:50])
         else:
             return "测试执行完成，请查看完整输出。"
     finally:
@@ -180,6 +182,10 @@ def main():
         print(f"⚠️ 分析失败，使用回退方案: {e}")
         analysis = analyze_with_opencode(output)
     
+    # 准备调试信息（前100行测试输出）
+    debug_lines = output.split('\n')[:100]
+    debug_output = '\n'.join(debug_lines)
+    
     comment_body = f"""## 测试执行报告
 
 **测试脚本**: `{args.test_script}`
@@ -189,8 +195,22 @@ def main():
 
 {analysis}
 
+### 调试信息
+
+<details>
+<summary>点击查看完整测试输出（前100行）</summary>
+
+```
+{debug_output}
+```
+</details>
+
 ---
-*自动生成于 test_and_report.py* (Enhanced with Gemini API)"""
+**API Endpoint 信息**: 请查看上方调试信息中的 URL 和 HTTP 方法
+**状态码**: 请查看调试信息中的 HTTP 状态码（如 401, 404, 500 等）
+
+*自动生成于 test_and_report.py* (Enhanced with Gemini API & Debug Info)
+"""
     
     print("\n💬 正在添加评论到 Issue...")
     try:
