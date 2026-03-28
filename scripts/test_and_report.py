@@ -291,7 +291,14 @@ def main():
     
     print("\n🏷️ 正在更新 Issue 标签...")
     try:
-        update_issue_labels(issue_number, "status:todo")
+        if exit_code == 0:
+            # All tests passed - mark as review
+            update_issue_labels(issue_number, "status:review")
+            print("✅ 测试通过，标记为 status:review")
+        else:
+            # Tests failed - mark as todo for further fixes
+            update_issue_labels(issue_number, "status:todo")
+            print("❌ 测试失败，标记为 status:todo")
     except Exception as e:
         print(f"⚠️ 警告: 更新标签失败: {e}")
         print("   继续执行，不影响评论发布")
