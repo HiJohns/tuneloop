@@ -80,7 +80,7 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
         instrument_data = {
             "name": f"测试钢琴-{int(time.time())}-by-{account.email.split('@')[0]}",
             "brand": "雅马哈",
-            "level": 1,
+            "level": "professional",
             "category_id": category_id,
             "pricing": {
                 "daily_rate": 50,
