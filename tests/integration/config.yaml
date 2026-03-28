@@ -2,14 +2,14 @@
 
 # API Configuration
 api:
-  base_url: "http://localhost:5554/api"
+  base_url: "http://localhost:5556/api"
   timeout: 30
 
 # IAM Configuration (for login to get token)
 iam:
   url: "http://opencode.linxdeep.com:5552"
   client_id: "tuneloop"
-  redirect_uri: "http://localhost:5554/callback"
+  redirect_uri: "http://localhost:5556/callback"
 
 # Account List
 accounts:

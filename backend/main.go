@@ -72,7 +72,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id", handlers.GetInstruments)
-		authRequired.POST("/instruments", handlers.CreateInstrument)
+
+		// Owner 专属路由 - 使用中间件直接包裹
+		authRequired.POST("/instruments", middleware.RequireOwner(), handlers.CreateInstrument)
+		authRequired.PUT("/instruments/:id/status", handlers.UpdateInstrumentStatus)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
@@ -130,12 +133,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			}
 
 			permHandler := handlers.NewPermissionHandler(database.GetDB())
-			authRequired.GET("/admin/permissions", permHandler.GetPermissions)
-			authRequired.GET("/admin/roles", permHandler.GetRoles)
-			authRequired.GET("/admin/roles/:id/permissions", permHandler.GetRolePermissions)
-			authRequired.PUT("/admin/roles/:id/permissions", permHandler.UpdateRolePermissions)
-			authRequired.POST("/admin/roles", permHandler.CreateRole)
-			authRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
+
+			// Admin/Owner 专属路由组
+			adminRequired := authRequired.Group("")
+			adminRequired.Use(middleware.RequireRole("ADMIN", "OWNER"))
+			{
+				adminRequired.GET("/admin/permissions", permHandler.GetPermissions)
+				adminRequired.GET("/admin/roles", permHandler.GetRoles)
+				adminRequired.GET("/admin/roles/:id/permissions", permHandler.GetRolePermissions)
+				adminRequired.PUT("/admin/roles/:id/permissions", permHandler.UpdateRolePermissions)
+				adminRequired.POST("/admin/roles", permHandler.CreateRole)
+				adminRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
+			}
 
 			systemHandler := handlers.NewSystemHandler()
 			authRequired.GET("/system/clients", systemHandler.GetClients)

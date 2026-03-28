@@ -38,7 +38,42 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 	if siteID == "" {
 		ctx := c.Request.Context()
 		tenantID := middleware.GetTenantID(ctx)
+		userRole := middleware.GetRole(ctx)
 
+		// Check if user is Owner or Admin - allow querying all inventory
+		if userRole == "OWNER" || userRole == "ADMIN" {
+			// Query all instruments for the tenant (no site filter)
+			var instruments []models.Instrument
+			db := database.GetDB().WithContext(ctx)
+
+			query := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
+
+			if category != "" {
+				query = query.Where("category_id = ?", category)
+			}
+			if status != "" {
+				query = query.Where("stock_status = ?", status)
+			}
+
+			if err := query.Find(&instruments).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    50000,
+					"message": "failed to query inventory: " + err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": gin.H{
+					"instruments": instruments,
+					"total":       len(instruments),
+				},
+			})
+			return
+		}
+
+		// For non-owner roles, require site_id
 		var sites []models.Site
 		db := database.GetDB().WithContext(ctx)
 		if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&sites).Error; err != nil {

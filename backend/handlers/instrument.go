@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -88,20 +89,50 @@ func CreateInstrument(c *gin.Context) {
 		StockStatus: "available",
 	}
 
+	// Handle Images field
 	if req.Images != nil && len(req.Images) > 0 {
-		instrument.Images = "[]"
+		imagesJSON, err := json.Marshal(req.Images)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal images: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40003,
+				"message": "invalid images format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Images = string(imagesJSON)
 	} else {
 		instrument.Images = "[]"
 	}
 
+	// Handle Specifications field
 	if req.Specifications != nil {
-		instrument.Specifications = "{}"
+		specsJSON, err := json.Marshal(req.Specifications)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal specifications: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specifications format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Specifications = string(specsJSON)
 	} else {
 		instrument.Specifications = "{}"
 	}
 
+	// Handle Pricing field
 	if req.Pricing != nil {
-		instrument.Pricing = "{}"
+		pricingJSON, err := json.Marshal(req.Pricing)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal pricing: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40005,
+				"message": "invalid pricing format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Pricing = string(pricingJSON)
 	} else {
 		instrument.Pricing = "{}"
 	}
@@ -126,6 +157,80 @@ func CreateInstrument(c *gin.Context) {
 			"name":  instrument.Name,
 			"brand": instrument.Brand,
 			"level": instrument.Level,
+		},
+	})
+}
+
+// PUT /api/instruments/:id/status - Update instrument stock status
+func UpdateInstrumentStatus(c *gin.Context) {
+	instrumentID := c.Param("id")
+
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "instrument id is required",
+		})
+		return
+	}
+
+	var req struct {
+		StockStatus string `json:"stock_status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate stock_status value
+	validStatuses := []string{"available", "unavailable", "rented", "maintenance"}
+	isValid := false
+	for _, status := range validStatuses {
+		if req.StockStatus == status {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "invalid stock_status. Valid values: available, unavailable, rented, maintenance",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Update the instrument
+	result := db.Model(&models.Instrument{}).
+		Where("id = ?", instrumentID).
+		Update("stock_status", req.StockStatus)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update instrument status: " + result.Error.Error(),
+		})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "instrument not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"id":           instrumentID,
+			"stock_status": req.StockStatus,
 		},
 	})
 }

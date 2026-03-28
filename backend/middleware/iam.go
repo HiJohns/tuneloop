@@ -117,6 +117,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)
+		log.Printf("[IAM DEBUG] User=%s, Role=%s, IsOwner=%v", claims.Subject, claims.Role, claims.IsOwner)
 
 		c.Next()
 	}
@@ -159,14 +160,18 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 
 func RequireOwner() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		isOwner, ok := c.Request.Context().Value(ContextKeyIsOwner).(bool)
-		if !ok || !isOwner {
+		fmt.Printf("[RBAC] RequireOwner called - Path: %s\n", c.Request.URL.Path)
+		userRole := GetRole(c.Request.Context())
+		log.Printf("[RBAC DEBUG] RequireOwner called - Path: %s, Role: '%s'", c.Request.URL.Path, userRole)
+		if userRole != "OWNER" && userRole != "ADMIN" {
+			log.Printf("[RBAC] Denied - UserRole: '%s', Path: %s", userRole, c.Request.URL.Path)
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"code":    40301,
 				"message": "owner privileges required",
 			})
 			return
 		}
+		log.Printf("[RBAC] Allowed - UserRole: '%s', Path: %s", userRole, c.Request.URL.Path)
 		c.Next()
 	}
 }
