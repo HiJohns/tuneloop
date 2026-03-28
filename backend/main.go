@@ -73,12 +73,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/:id", handlers.GetInstruments)
 
-		// Owner 专属路由组
-		ownerRequired := authRequired.Group("")
-		ownerRequired.Use(middleware.RequireOwner())
-		{
-			ownerRequired.POST("/instruments", handlers.CreateInstrument)
-		}
+		// Owner 专属路由 - 使用中间件直接包裹
+		authRequired.POST("/instruments", middleware.RequireOwner(), handlers.CreateInstrument)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
