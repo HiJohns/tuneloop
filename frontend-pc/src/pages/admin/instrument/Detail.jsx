@@ -451,7 +451,7 @@ export default function InstrumentDetail() {
             {instrument.specs && instrument.specs.length > 0 ? (
               <Table
                 columns={specsColumns}
-                dataSource={instrument.specs}
+                dataSource={instrument.specs || [] || []}
                 rowKey="id"
                 pagination={false}
               />
@@ -559,7 +559,7 @@ export default function InstrumentDetail() {
                 { title: '备注', dataIndex: 'notes', key: 'notes' },
                 { title: '操作人', dataIndex: 'operator', key: 'operator' }
               ]}
-              dataSource={stockLogs}
+              dataSource={stockLogs || []}
               rowKey="id"
               locale={{ emptyText: '暂无库存记录' }}
               pagination={{ pageSize: 10 }}

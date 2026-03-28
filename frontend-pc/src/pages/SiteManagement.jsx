@@ -102,7 +102,7 @@ export default function SiteManagement() {
       <Card title="网点列表" className="mb-4">
         <Table 
           columns={columns} 
-          dataSource={sites} 
+          dataSource={sites || [] || []} 
           rowKey="id"
           pagination={{ total: sites.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
           locale={{ emptyText: '暂无网点数据' }}

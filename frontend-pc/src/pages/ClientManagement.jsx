@@ -118,7 +118,7 @@ export default function ClientManagement() {
 
       <Table
         columns={columns}
-        dataSource={clients}
+        dataSource={clients || [] || []}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10 }}

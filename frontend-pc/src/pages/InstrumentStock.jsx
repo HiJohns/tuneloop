@@ -150,7 +150,7 @@ export default function InstrumentStock() {
       )}
        <Table 
          columns={columns} 
-         dataSource={filteredAssets} 
+         dataSource={filteredAssets || [] || []} 
          rowKey="id"
          pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
          onRow={(record) => ({

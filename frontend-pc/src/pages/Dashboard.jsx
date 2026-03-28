@@ -237,7 +237,7 @@ export default function Dashboard() {
 
       <Table 
         columns={columns} 
-        dataSource={displayedAssets} 
+        dataSource={displayedAssets || []} 
         rowKey="id"
         pagination={{ total: displayedAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
         scroll={{ x: 1000 }}

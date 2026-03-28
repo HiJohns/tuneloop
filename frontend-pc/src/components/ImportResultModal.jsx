@@ -65,7 +65,7 @@ export default function ImportResultModal({ visible, onClose, importResult }) {
             <List
               size="small"
               bordered
-              dataSource={errors}
+              dataSource={errors || []}
               renderItem={(error) => (
                 <List.Item className="text-red-600 text-sm">
                   <CloseCircleOutlined className="mr-2 text-red-500" />

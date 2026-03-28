@@ -82,7 +82,7 @@ export default function TenantManagement() {
 
       <Table
         columns={columns}
-        dataSource={tenants}
+        dataSource={tenants || []}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10 }}

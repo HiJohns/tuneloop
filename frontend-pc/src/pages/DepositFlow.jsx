@@ -215,7 +215,7 @@ export default function DepositFlow() {
 
         <Table
           columns={columns}
-          dataSource={deposits}
+          dataSource={deposits || [] || []}
           rowKey="id"
           loading={loading}
           pagination={{
