@@ -34,17 +34,21 @@ def ensure_category_exists(client, config: TestConfig, account: Account) -> str:
         category_data = {
             "name": "测试分类",
             "icon": "🎹",
-            "level": "professional",
+            "level": 1,
             "visible": True,
             "sort": 1
         }
         response = client.post(f"{config.api_base_url}/categories", json=category_data)
+        
+        # FIX: Check response status and get detailed error message
         if response.status_code == 201:
             category_id = response.json().get("data", {}).get("id")
             log(f"  ✓ 创建测试分类成功: {category_id}")
             return category_id
         else:
-            log(f"  ⚠ 创建分类失败: {response.status_code} - {response.text}")
+            error_msg = response.json().get("message", response.text) if response.text else "Unknown error"
+            log(f"  ❌ 创建分类失败: {response.status_code} - {error_msg}")
+            return None
     else:
         log(f"  ⚠ 没有可用分类且当前账户不是 OWNER，无法创建")
     
@@ -76,7 +80,7 @@ def test_visibility_stock_loop(client, config: TestConfig, account: Account):
         instrument_data = {
             "name": f"测试钢琴-{int(time.time())}-by-{account.email.split('@')[0]}",
             "brand": "雅马哈",
-            "level": "professional",
+            "level": 1,
             "category_id": category_id,
             "pricing": {
                 "daily_rate": 50,

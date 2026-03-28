@@ -198,13 +198,20 @@ def run_tests_for_all_accounts(config: TestConfig, test_func):
             print(f"开始执行测试...")
             result = test_func(client, config, account)
             
+            # FIX: Check actual result status
+            status = result.get("status", "pass") if isinstance(result, dict) else "pass"
+            
             results[account.email] = {
-                "status": "PASS",
+                "status": status.upper(),
                 "account": account.name,
                 "role": account.role,
                 "result": result
             }
-            print(f"\n✓ 测试通过")
+            
+            if status == "pass":
+                print(f"\n✓ 测试通过")
+            else:
+                print(f"\n❌ 测试失败: {result.get('error', 'Unknown error')}")
             
         except Exception as e:
             print(f"\n❌ 测试失败: {e}\n")
