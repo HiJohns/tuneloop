@@ -202,7 +202,7 @@ def run_tests_for_all_accounts(config: TestConfig, test_func):
             status = result.get("status", "pass") if isinstance(result, dict) else "pass"
             
             results[account.email] = {
-                "status": status.upper(),
+                "status": status,
                 "account": account.name,
                 "role": account.role,
                 "result": result
@@ -210,8 +210,10 @@ def run_tests_for_all_accounts(config: TestConfig, test_func):
             
             if status == "pass":
                 print(f"\n✓ 测试通过")
+                print(f"  状态: {status.upper()}")
             else:
                 print(f"\n❌ 测试失败: {result.get('error', 'Unknown error')}")
+                print(f"  状态: {status.upper()}")
             
         except Exception as e:
             print(f"\n❌ 测试失败: {e}\n")

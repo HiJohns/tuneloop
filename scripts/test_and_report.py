@@ -16,6 +16,7 @@ import os
 import re
 import json
 import tempfile
+import time
 from pathlib import Path
 
 def parse_issue_url(url: str) -> int:
@@ -36,6 +37,10 @@ def run_test_script(script_path: str) -> tuple[str, int]:
     # 检查是否有 run_with_services.py
     wrapper_script = os.path.join(test_dir, "run_with_services.py")
     
+    # 添加时间戳标记
+    start_marker = f"=== TEST RUN START {time.strftime('%Y-%m-%d %H:%M:%S')} ==="
+    end_marker = "=== TEST RUN END ==="
+    
     if os.path.exists(wrapper_script):
         # 使用服务包装器并捕获所有输出到文件
         print("🚀 使用 run_with_services.py 管理服务生命周期...")
@@ -44,6 +49,7 @@ def run_test_script(script_path: str) -> tuple[str, int]:
         log_file = os.path.join(test_dir, "log.txt")
         
         with open(log_file, 'w') as f:
+            f.write(start_marker + "\n")
             result = subprocess.run(
                 [sys.executable, wrapper_script, "-t", os.path.basename(script_path)],
                 stdout=f,
@@ -51,6 +57,7 @@ def run_test_script(script_path: str) -> tuple[str, int]:
                 text=True,
                 timeout=600
             )
+            f.write("\n" + end_marker + "\n")
         
         # 读取日志文件内容
         with open(log_file, 'r') as f:
@@ -119,7 +126,10 @@ def analyze_with_gemini(issue_content: str, test_script: str, test_output: str) 
     
     client = genai.Client(api_key=api_key)
     
-    prompt = f"""请分析以下测试场景：
+    # 提取"本次运行"的输出（最后 3000 字符）
+    recent_output = test_output[-3000:]
+    
+    prompt = f"""请分析以下测试场景（仅分析本次运行的输出）：
 
 ## Issue 描述
 {issue_content}
@@ -129,9 +139,9 @@ def analyze_with_gemini(issue_content: str, test_script: str, test_output: str) 
 {test_script}
 ```
 
-## 测试执行结果
+## 测试执行结果（本次运行）
 ```
-{test_output}
+{recent_output}
 ```
 
 请提供：
@@ -281,7 +291,14 @@ def main():
     
     print("\n🏷️ 正在更新 Issue 标签...")
     try:
-        update_issue_labels(issue_number, "status:todo")
+        if exit_code == 0:
+            # All tests passed - mark as review
+            update_issue_labels(issue_number, "status:review")
+            print("✅ 测试通过，标记为 status:review")
+        else:
+            # Tests failed - mark as todo for further fixes
+            update_issue_labels(issue_number, "status:todo")
+            print("❌ 测试失败，标记为 status:todo")
     except Exception as e:
         print(f"⚠️ 警告: 更新标签失败: {e}")
         print("   继续执行，不影响评论发布")
