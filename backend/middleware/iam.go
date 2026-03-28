@@ -117,6 +117,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)
+		log.Printf("[IAM DEBUG] User=%s, Role=%s, IsOwner=%v", claims.Subject, claims.Role, claims.IsOwner)
 
 		c.Next()
 	}
@@ -205,3 +206,4 @@ func IsOwner(ctx context.Context) bool {
 	}
 	return false
 }
+
