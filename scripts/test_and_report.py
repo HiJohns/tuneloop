@@ -16,6 +16,7 @@ import os
 import re
 import json
 import tempfile
+import time
 from pathlib import Path
 
 def parse_issue_url(url: str) -> int:
