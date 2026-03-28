@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -88,20 +89,50 @@ func CreateInstrument(c *gin.Context) {
 		StockStatus: "available",
 	}
 
+	// Handle Images field
 	if req.Images != nil && len(req.Images) > 0 {
-		instrument.Images = "[]"
+		imagesJSON, err := json.Marshal(req.Images)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal images: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40003,
+				"message": "invalid images format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Images = string(imagesJSON)
 	} else {
 		instrument.Images = "[]"
 	}
 
+	// Handle Specifications field
 	if req.Specifications != nil {
-		instrument.Specifications = "{}"
+		specsJSON, err := json.Marshal(req.Specifications)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal specifications: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specifications format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Specifications = string(specsJSON)
 	} else {
 		instrument.Specifications = "{}"
 	}
 
+	// Handle Pricing field
 	if req.Pricing != nil {
-		instrument.Pricing = "{}"
+		pricingJSON, err := json.Marshal(req.Pricing)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal pricing: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40005,
+				"message": "invalid pricing format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Pricing = string(pricingJSON)
 	} else {
 		instrument.Pricing = "{}"
 	}
