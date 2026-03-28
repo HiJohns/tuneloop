@@ -30,15 +30,47 @@ def run_test_script(script_path: str) -> tuple[str, int]:
     if not os.path.exists(script_path):
         raise FileNotFoundError(f"Script not found: {script_path}")
     
-    result = subprocess.run(
-        [sys.executable, script_path],
-        capture_output=True,
-        text=True,
-        timeout=300
-    )
+    # 获取测试脚本目录
+    test_dir = os.path.dirname(os.path.abspath(script_path))
     
-    output = result.stdout + result.stderr
-    return output, result.returncode
+    # 检查是否有 run_with_services.py
+    wrapper_script = os.path.join(test_dir, "run_with_services.py")
+    
+    if os.path.exists(wrapper_script):
+        # 使用服务包装器并捕获所有输出到文件
+        print("🚀 使用 run_with_services.py 管理服务生命周期...")
+        
+        # 创建 log.txt 文件
+        log_file = os.path.join(test_dir, "log.txt")
+        
+        with open(log_file, 'w') as f:
+            result = subprocess.run(
+                [sys.executable, wrapper_script, "-t", os.path.basename(script_path)],
+                stdout=f,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=600
+            )
+        
+        # 读取日志文件内容
+        with open(log_file, 'r') as f:
+            output = f.read()
+        
+        # 删除日志文件（清理）
+        os.unlink(log_file)
+        
+        return output, result.returncode
+    else:
+        # 回退: 直接运行测试脚本
+        print("⚠️  未找到 run_with_services.py，直接运行测试脚本...")
+        result = subprocess.run(
+            [sys.executable, script_path],
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+        output = result.stdout + result.stderr
+        return output, result.returncode
 
 def analyze_with_opencode(test_output: str) -> str:
     """调用 opencode 分析测试输出"""
