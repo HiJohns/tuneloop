@@ -40,7 +40,24 @@ async function request(endpoint, options = {}) {
     throw new Error(error.message || error.code || 'Request failed')
   }
 
-  return response.json()
+  const data = await response.json()
+  
+  // 标准化响应：确保返回数组
+  if (Array.isArray(data)) {
+    return data
+  }
+  
+  // 提取常见包装字段
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.data)) return data.data
+    if (Array.isArray(data.items)) return data.items
+    if (Array.isArray(data.result)) return data.result
+    if (Array.isArray(data.list)) return data.list
+  }
+  
+  // 如果都不是数组，返回空数组
+  console.warn(`API ${endpoint} returned non-array data:`, data)
+  return []
 }
 
 export const api = {
