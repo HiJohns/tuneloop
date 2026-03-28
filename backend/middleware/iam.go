@@ -115,7 +115,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.TenantID)
 		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
-		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.Own)
+		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
