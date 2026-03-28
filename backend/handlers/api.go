@@ -106,6 +106,7 @@ func CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
 			"message": "Invalid request data: " + err.Error(),
+			"error":   err.Error(), // ADD: Detailed error
 		})
 		return
 	}
