@@ -594,7 +594,7 @@ export default function InstrumentList() {
       {/* Table */}
       <Table
         columns={columns}
-        dataSource={filteredInstruments}
+        dataSource={filteredInstruments || []}
         rowKey="id"
         loading={loading}
         rowSelection={handleRowSelection}

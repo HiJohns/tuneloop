@@ -228,7 +228,7 @@ export default function LeaseLedger() {
 
         <Table
           columns={columns}
-          dataSource={leases}
+          dataSource={leases || [] || []}
           rowKey="id"
           loading={loading}
           pagination={{

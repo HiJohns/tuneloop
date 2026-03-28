@@ -259,7 +259,7 @@ export default function CategoryList() {
       {/* Table */}
       <Table
         columns={columns}
-        dataSource={filteredCategories}
+        dataSource={filteredCategories || []}
         rowKey="id"
         loading={loading}
         pagination={{
@@ -273,7 +273,7 @@ export default function CategoryList() {
               return (
                 <Table
                   columns={columns}
-                  dataSource={record.sub_categories}
+                  dataSource={record.sub_categories || []}
                   rowKey="id"
                   pagination={false}
                   showHeader={false}

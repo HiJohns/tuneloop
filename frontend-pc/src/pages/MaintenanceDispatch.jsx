@@ -155,7 +155,7 @@ export default function MaintenanceDispatch() {
 
         <Table
           columns={columns}
-          dataSource={tickets}
+          dataSource={tickets || [] || []}
           loading={loading}
           rowKey="id"
           pagination={{ pageSize: 10 }}

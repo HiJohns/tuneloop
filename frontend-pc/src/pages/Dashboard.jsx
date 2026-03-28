@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { inventoryApi } from '../services/api'
+import { inventoryApi, sitesApi } from '../services/api'
 
 const statusColors = {
   "在租": "green",
@@ -237,7 +237,7 @@ export default function Dashboard() {
 
       <Table 
         columns={columns} 
-        dataSource={displayedAssets} 
+        dataSource={displayedAssets || []} 
         rowKey="id"
         pagination={{ total: displayedAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
         scroll={{ x: 1000 }}

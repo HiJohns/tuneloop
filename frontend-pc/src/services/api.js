@@ -28,11 +28,10 @@ async function request(endpoint, options = {}) {
   })
 
   if (response.status === 401) {
-    const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || 'http://opencode.linxdeep.com:5552'
-    const CLIENT_ID = import.meta.env.VITE_IAM_CLIENT_ID || 'tuneloop'
-    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
-    const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
-    window.location.href = authUrl
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    window.location.reload()
     throw new Error('Unauthorized')
   }
 

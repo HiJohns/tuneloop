@@ -144,7 +144,7 @@ export default function AssetAuditDashboard() {
         <div className="text-lg font-bold mb-4">即将转售资产</div>
         <Table
           columns={columns}
-          dataSource={nearTransfer}
+          dataSource={nearTransfer || [] || []}
           rowKey="sn"
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: '暂无即将转售的资产' }}

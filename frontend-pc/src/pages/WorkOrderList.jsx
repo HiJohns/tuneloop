@@ -131,7 +131,7 @@ export default function WorkOrderList() {
       
       <Table 
         columns={columns} 
-        dataSource={workOrders}
+        dataSource={workOrders || [] || []}
         loading={loading}
         pagination={{
           pageSize: 10,
