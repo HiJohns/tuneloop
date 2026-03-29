@@ -40,7 +40,39 @@ async function request(endpoint, options = {}) {
     throw new Error(error.message || error.code || 'Request failed')
   }
 
-  return response.json()
+  const data = await response.json()
+  
+  // 标准化响应：确保返回数组
+  if (Array.isArray(data)) {
+    return data
+  }
+  
+  // 提取常见包装字段
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.data)) return data.data
+    if (Array.isArray(data.items)) return data.items
+    if (Array.isArray(data.result)) return data.result
+    if (Array.isArray(data.list)) return data.list
+    
+    // 处理嵌套格式: { code: 20000, data: { instruments: [...] } }
+    if (data.data && typeof data.data === 'object') {
+      // 后端返回: { code: 20000, data: { instruments: [...] } }
+      if (Array.isArray(data.data.instruments)) return data.data.instruments
+      // 后端返回: { code: 20000, data: { list: [...] } }
+      if (Array.isArray(data.data.list)) return data.data.list
+    }
+    
+    // 处理统一响应格式: { success: true, data: [...] }
+    if (data.success && Array.isArray(data.data)) return data.data
+    
+    // 处理 code 格式: { code: 0, data: [...] }
+    if (data.code === 0 && Array.isArray(data.data)) return data.data
+    if (data.code === 20000 && Array.isArray(data.data)) return data.data
+  }
+  
+  // 兜底: 返回空数组
+  console.warn(`API ${endpoint} returned non-array data:`, data)
+  return []
 }
 
 export const api = {
