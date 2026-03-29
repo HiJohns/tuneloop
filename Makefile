@@ -27,12 +27,12 @@ run-backend: kill-port
 run-frontend:
 	@echo "Starting PC frontend development server..."
 	@echo "PC Frontend: http://localhost:5554 (with source map)"
-	@cd frontend-pc && npm run dev -- --port 5554
+	@cd frontend-pc && npm run dev -- --port 5554 --host 0.0.0.0
 
 run-mobile:
 	@echo "Starting Mobile frontend development server..."
 	@echo "Mobile Frontend: http://localhost:5553"
-	@cd frontend-mobile && npm run dev -- --port 5553
+	@cd frontend-mobile && npm run dev -- --port 5553 --host 0.0.0.0
 
 run: run-backend
 
