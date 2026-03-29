@@ -221,6 +221,9 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         stock: spec.stock || 0
       })).filter(spec => spec.name && spec.monthly_rent > 0)
       
+      // Auto-calculate total stock from specs
+      const totalStock = processedSpecs.reduce((sum, spec) => sum + (spec.stock || 0), 0)
+      
       // Prepare form data
       const formData = {
         name: values.name,
@@ -231,7 +234,8 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         description: values.description,
         images: images,
         video: values.video || '',
-        status: values.status || 'active',
+        status: initialData ? (values.status || 'active') : 'active',
+        stock: totalStock,
         pricing_tiers: values.pricing_tiers || [],
         specs: processedSpecs
       }
@@ -292,8 +296,6 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         form={form}
         layout="vertical"
         initialValues={{
-          status: 'active',
-          stock: 0,
           level: 'beginner'
         }}
       >
@@ -567,34 +569,6 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
             </>
           )}
         </Form.List>
-
-        <Divider orientation="left">库存和状态</Divider>
-        
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="stock"
-              label="库存数量"
-              rules={[{ required: true, message: '请输入库存数量' }]}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-            </Form.Item>
-          </Col>
-          
-          <Col span={12}>
-            <Form.Item
-              name="status"
-              label="状态"
-              rules={[{ required: true, message: '请选择状态' }]}
-            >
-              <Select placeholder="请选择状态">
-                <Option value="active">可租</Option>
-                <Option value="inactive">下架</Option>
-                <Option value="maintenance">维修中</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
       </Form>
     </Modal>
   )
