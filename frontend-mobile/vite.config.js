@@ -8,6 +8,8 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    port: 5173
+    port: 5553,
+    host: '0.0.0.0',
+    allowedHosts: ['opencode.linxdeep.com', 'localhost']
   }
 })
