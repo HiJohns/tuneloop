@@ -65,13 +65,24 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		if iamExternalURL == "" {
 			iamExternalURL = "http://localhost:5552"
 		}
+		iamClientID := os.Getenv("IAM_CLIENT_ID")
+		if iamClientID == "" {
+			iamClientID = "tuneloop"
+		}
+		iamRedirectURI := os.Getenv("IAM_REDIRECT_URI")
+		if iamRedirectURI == "" {
+			iamRedirectURI = iamExternalURL + "/authorize?client_id=" + iamClientID
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
-				"iamLoginUrl": iamExternalURL + "/login",
-				"appName":     "TuneLoop",
-				"version":     "1.0.0",
+				"iamLoginUrl":    iamExternalURL + "/login",
+				"iamExternalUrl": iamExternalURL,
+				"iamClientId":    iamClientID,
+				"iamRedirectUri": iamRedirectURI,
+				"appName":        "TuneLoop",
+				"version":        "1.0.0",
 			},
 		})
 	})

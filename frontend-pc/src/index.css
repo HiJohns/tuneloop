@@ -1,3 +1,63 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 1. 容器配置：确保滚动条不占用实际布局空间 */
+.scroll-container {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* 2. 定义滚动条基础样式（默认透明） */
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0); /* 默认完全透明 */
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+/* 3. 触发机制：仅在鼠标移入容器时显示 */
+.scroll-container:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2); /* 淡淡的灰色浮现 */
+}
+
+/* 4. 活跃状态：正在拖动时加深颜色 */
+.scroll-container::-webkit-scrollbar-thumb:active {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* 全局应用到常见容器 */
+.ant-layout-sider,
+.ant-table-body,
+.ant-modal-body {
+  scrollbar-gutter: stable;
+}
+
+.ant-layout-sider::-webkit-scrollbar,
+.ant-table-body::-webkit-scrollbar,
+.ant-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ant-layout-sider::-webkit-scrollbar-thumb,
+.ant-table-body::-webkit-scrollbar-thumb,
+.ant-modal-body::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0);
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.ant-layout-sider:hover::-webkit-scrollbar-thumb,
+.ant-table-body:hover::-webkit-scrollbar-thumb,
+.ant-modal-body:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.ant-layout-sider::-webkit-scrollbar-thumb:active,
+.ant-table-body::-webkit-scrollbar-thumb:active,
+.ant-modal-body::-webkit-scrollbar-thumb:active {
+  background-color: rgba(0, 0, 0, 0.4);
+}

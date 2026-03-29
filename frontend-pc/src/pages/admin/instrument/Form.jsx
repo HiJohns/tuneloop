@@ -91,8 +91,31 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }
   }, [visible, initialData])
 
-  const handleUploadChange = ({ fileList }) => {
-    setFileList(fileList.filter(file => file.status !== 'error'))
+  const beforeUpload = (file) => {
+    // Generate preview URL using FileReader
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setFileList(prev => {
+        const fileIndex = prev.findIndex(f => f.uid === file.uid)
+        if (fileIndex >= 0) {
+          const newList = [...prev]
+          newList[fileIndex] = { ...newList[fileIndex], url: e.target.result }
+          return newList
+        }
+        return prev
+      })
+    }
+    reader.readAsDataURL(file)
+    return true // Allow upload to proceed
+  }
+
+  const handleUploadChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList.map(file => {
+      if (file.response && file.response.code === 20000) {
+        return { ...file, url: file.response.data.url }
+      }
+      return file
+    }).filter(file => file.status !== 'error'))
   }
 
   const handleDragEnd = (event) => {
@@ -132,10 +155,50 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     setSpecs(specs.filter(spec => spec.id !== id))
   }
 
+  const calculateRentals = (dailyRent) => {
+    if (!dailyRent || dailyRent <= 0) {
+      return { weekly_rent: 0, monthly_rent: 0, deposit: 0 }
+    }
+    return {
+      weekly_rent: Math.round(dailyRent * 6),
+      monthly_rent: Math.round(dailyRent * 25),
+      deposit: Math.round(dailyRent * 20)
+    }
+  }
+
   const updateSpec = (id, field, value) => {
-    setSpecs(specs.map(spec => 
-      spec.id === id ? { ...spec, [field]: value } : spec
-    ))
+    setSpecs(specs.map(spec => {
+      if (spec.id === id) {
+        const updated = { ...spec, [field]: value }
+        if (field === 'daily_rent') {
+          const calculated = calculateRentals(value)
+          updated.weekly_rent = calculated.weekly_rent
+          updated.monthly_rent = calculated.monthly_rent
+          updated.deposit = calculated.deposit
+        }
+        return updated
+      }
+      return spec
+    }))
+  }
+
+  const syncPricesToAll = () => {
+    if (specs.length <= 1) return
+    const firstSpec = specs[0]
+    const ratio = {
+      weekly: firstSpec.daily_rent ? firstSpec.weekly_rent / firstSpec.daily_rent : 6,
+      monthly: firstSpec.daily_rent ? firstSpec.monthly_rent / firstSpec.daily_rent : 25,
+      deposit: firstSpec.daily_rent ? firstSpec.deposit / firstSpec.daily_rent : 20
+    }
+    setSpecs(specs.map((spec, idx) => {
+      if (idx === 0) return spec
+      return {
+        ...spec,
+        weekly_rent: Math.round(spec.daily_rent * ratio.weekly),
+        monthly_rent: Math.round(spec.daily_rent * ratio.monthly),
+        deposit: Math.round(spec.daily_rent * ratio.deposit)
+      }
+    }))
   }
 
   const handleSubmit = async () => {
@@ -219,7 +282,11 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       onOk={handleSubmit}
       confirmLoading={loading}
       width={800}
-      bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      bodyStyle={{ 
+        maxHeight: '70vh', 
+        overflowY: 'auto', 
+        overflowX: 'hidden' 
+      }}
     >
       <Form
         form={form}
@@ -318,6 +385,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
             listType="picture-card"
             fileList={fileList}
             onChange={handleUploadChange}
+            beforeUpload={beforeUpload}
             action={`${API_BASE_URL}/upload`}
             multiple
             accept="image/*"
@@ -395,61 +463,79 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
 
         <Divider orientation="left">规格配置</Divider>
         
+        <div className="mb-2 flex justify-end">
+          <Button onClick={syncPricesToAll} disabled={specs.length <= 1} size="small">
+            同步价格比例到所有规格
+          </Button>
+        </div>
+        
         <div className="mb-4">
           {specs.map((spec, index) => (
             <Card key={spec.id} size="small" className="mb-3">
               <Row gutter={16} align="middle">
                 <Col span={4}>
-                  <Input
-                    placeholder="规格名称"
-                    value={spec.name}
-                    onChange={(e) => updateSpec(spec.id, 'name', e.target.value)}
-                  />
+                  <Form.Item label="规格名称" required>
+                    <Input
+                      placeholder="规格名称"
+                      value={spec.name}
+                      onChange={(e) => updateSpec(spec.id, 'name', e.target.value)}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={4}>
+                  <Form.Item label="日租金 (¥)" required>
+                    <InputNumber
+                      placeholder="日租金"
+                      value={spec.daily_rent}
+                      onChange={(value) => updateSpec(spec.id, 'daily_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col span={3}>
-                  <InputNumber
-                    placeholder="日租金"
-                    value={spec.daily_rent}
-                    onChange={(value) => updateSpec(spec.id, 'daily_rent', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                  <Form.Item label="周租金 (¥)">
+                    <InputNumber
+                      placeholder="周租金"
+                      value={spec.weekly_rent}
+                      onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col span={3}>
-                  <InputNumber
-                    placeholder="周租金"
-                    value={spec.weekly_rent}
-                    onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                  <Form.Item label="月租金 (¥)">
+                    <InputNumber
+                      placeholder="月租金"
+                      value={spec.monthly_rent}
+                      onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
-                <Col span={3}>
-                  <InputNumber
-                    placeholder="月租金"
-                    value={spec.monthly_rent}
-                    onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                <Col span={4}>
+                  <Form.Item label="押金 (¥)" required>
+                    <InputNumber
+                      placeholder="押金"
+                      value={spec.deposit}
+                      onChange={(value) => updateSpec(spec.id, 'deposit', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
-                <Col span={3}>
-                  <InputNumber
-                    placeholder="押金"
-                    value={spec.deposit}
-                    onChange={(value) => updateSpec(spec.id, 'deposit', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
-                </Col>
-                <Col span={3}>
-                  <InputNumber
-                    placeholder="库存"
-                    value={spec.stock}
-                    onChange={(value) => updateSpec(spec.id, 'stock', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                <Col span={4}>
+                  <Form.Item label="初始库存 (件)" required>
+                    <InputNumber
+                      placeholder="库存"
+                      value={spec.stock}
+                      onChange={(value) => updateSpec(spec.id, 'stock', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col span={2}>
                   <Button
