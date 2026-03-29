@@ -280,6 +280,18 @@ function OAuthCallback() {
 }
 
 function App() {
+  useEffect(() => {
+    // 在应用启动时获取配置
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.code === 20000) {
+          window.APP_CONFIG = data.data
+        }
+      })
+      .catch(err => console.error('Failed to load config:', err))
+  }, [])
+  
   return (
     <BrowserRouter>
       <MainLayout />
