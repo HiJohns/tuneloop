@@ -4,11 +4,33 @@ import { instrumentsApi } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
+  // 安全检查: 确保 levels 存在且有数据
+  if (!instrument.levels || !instrument.levels.length) {
+    return (
+      <div 
+        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
+        onClick={onClick}
+      >
+        <div className="relative">
+          <img 
+            src={instrument.image || '/placeholder.png'} 
+            alt={instrument.name}
+            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+          />
+        </div>
+        <div className="p-3">
+          <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
+          <p className="text-gray-400 text-sm">暂无报价</p>
+        </div>
+      </div>
+    )
+  }
+  
   const defaultLevel = instrument.levels[0]
   const firstPayment = defaultLevel.monthlyRent + defaultLevel.deposit
   const promotionTag = defaultLevel.name === "大师级" ? "限量" : 
                        defaultLevel.name === "入门级" ? "热销" : ""
-  
+   
   const handleFavoriteClick = (e) => {
     e.stopPropagation()
     onToggleFavorite(instrument.id)
