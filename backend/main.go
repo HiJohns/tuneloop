@@ -189,9 +189,8 @@ func main() {
 
 	iamService := services.NewIAMService()
 
-	pcPort := getEnv("TUNELOOP_PC_PORT", "5556")
-	wxPort := getEnv("TUNELOOP_WX_PORT", "5553")
-	wwwPort := getEnv("TUNELOOP_WWW_PORT", "5554")
+	wxPort := getEnv("TUNELOOP_WX_PORT", "5556")
+	wwwPort := getEnv("TUNELOOP_WWW_PORT", "5557")
 
 	wwwURL := fmt.Sprintf("http://localhost:%s", wwwPort)
 	wxURL := fmt.Sprintf("http://localhost:%s", wxPort)
@@ -241,7 +240,7 @@ func main() {
 		c.File(filepath.Join(mobileDistPath, "index.html"))
 	})
 
-	go pcRouter.Run(":" + pcPort)
+	go mobileRouter.Run(":" + wxPort)
 
 	leaseAccumulator := tasks.NewLeaseAccumulator()
 	leaseAccumulator.Start()
@@ -249,5 +248,5 @@ func main() {
 	_ = wwwURL
 	_ = wxURL
 
-	mobileRouter.Run(":" + wxPort)
+	pcRouter.Run(":" + wwwPort)
 }
