@@ -474,56 +474,68 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
             <Card key={spec.id} size="small" className="mb-3">
               <Row gutter={16} align="middle">
                 <Col span={4}>
-                  <Input
-                    placeholder="规格名称"
-                    value={spec.name}
-                    onChange={(e) => updateSpec(spec.id, 'name', e.target.value)}
-                  />
+                  <Form.Item label="规格名称" required>
+                    <Input
+                      placeholder="规格名称"
+                      value={spec.name}
+                      onChange={(e) => updateSpec(spec.id, 'name', e.target.value)}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={4}>
+                  <Form.Item label="日租金 (¥)" required>
+                    <InputNumber
+                      placeholder="日租金"
+                      value={spec.daily_rent}
+                      onChange={(value) => updateSpec(spec.id, 'daily_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col span={3}>
-                  <InputNumber
-                    placeholder="日租金"
-                    value={spec.daily_rent}
-                    onChange={(value) => updateSpec(spec.id, 'daily_rent', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                  <Form.Item label="周租金 (¥)">
+                    <InputNumber
+                      placeholder="周租金"
+                      value={spec.weekly_rent}
+                      onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col span={3}>
-                  <InputNumber
-                    placeholder="周租金"
-                    value={spec.weekly_rent}
-                    onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                  <Form.Item label="月租金 (¥)">
+                    <InputNumber
+                      placeholder="月租金"
+                      value={spec.monthly_rent}
+                      onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
-                <Col span={3}>
-                  <InputNumber
-                    placeholder="月租金"
-                    value={spec.monthly_rent}
-                    onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                <Col span={4}>
+                  <Form.Item label="押金 (¥)" required>
+                    <InputNumber
+                      placeholder="押金"
+                      value={spec.deposit}
+                      onChange={(value) => updateSpec(spec.id, 'deposit', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
-                <Col span={3}>
-                  <InputNumber
-                    placeholder="押金"
-                    value={spec.deposit}
-                    onChange={(value) => updateSpec(spec.id, 'deposit', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
-                </Col>
-                <Col span={3}>
-                  <InputNumber
-                    placeholder="库存"
-                    value={spec.stock}
-                    onChange={(value) => updateSpec(spec.id, 'stock', value)}
-                    style={{ width: '100%' }}
-                    min={0}
-                  />
+                <Col span={4}>
+                  <Form.Item label="初始库存 (件)" required>
+                    <InputNumber
+                      placeholder="库存"
+                      value={spec.stock}
+                      onChange={(value) => updateSpec(spec.id, 'stock', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
                 <Col span={2}>
                   <Button
