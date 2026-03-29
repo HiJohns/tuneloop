@@ -9,7 +9,12 @@ export default defineConfig({
     allowedHosts: ['opencode.linxdeep.com', 'localhost'],
     proxy: {
       '/api': {
-        target: 'http://localhost:5556',
+        target: 'http://localhost:5556',  // API 仍然走 WX 后端
+        changeOrigin: true,
+        secure: false
+      },
+      '/auth': {
+        target: 'http://localhost:5557',  // 认证走 PC 后端
         changeOrigin: true,
         secure: false
       }

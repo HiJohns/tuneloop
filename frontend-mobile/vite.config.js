@@ -16,6 +16,11 @@ export default defineConfig({
         target: 'http://localhost:5556',  // 代理到 WX 后端
         changeOrigin: true,
         secure: false
+      },
+      '/auth': {
+        target: 'http://localhost:5556',  // 代理到 WX 后端
+        changeOrigin: true,
+        secure: false
       }
     }
   }
