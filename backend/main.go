@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -57,6 +58,22 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 
 	api.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	api.GET("/config", func(c *gin.Context) {
+		iamExternalURL := os.Getenv("BEACONIAM_EXTERNAL_URL")
+		if iamExternalURL == "" {
+			iamExternalURL = "http://localhost:5552"
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"iamLoginUrl": iamExternalURL + "/login",
+				"appName":     "TuneLoop",
+				"version":     "1.0.0",
+			},
+		})
 	})
 
 	api.GET("/auth/callback", authHandler.Callback)

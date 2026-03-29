@@ -29,9 +29,9 @@ async function request(endpoint, options = {}) {
     sessionStorage.removeItem('token')
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
     
-    // 跳转到登录页面 (使用相对路径，由 Vite 代理处理)
-    const loginPath = import.meta.env.VITE_LOGIN_PATH || '/auth/login'
-    window.location.href = loginPath + '?redirect_uri=' + encodeURIComponent(window.location.href)
+    // 从后端配置获取 IAM 登录地址
+    const loginUrl = window.APP_CONFIG?.iamLoginUrl || '/api/auth/login'
+    window.location.href = loginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
     return
   }
 
