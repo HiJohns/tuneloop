@@ -91,8 +91,31 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }
   }, [visible, initialData])
 
-  const handleUploadChange = ({ fileList }) => {
-    setFileList(fileList.filter(file => file.status !== 'error'))
+  const beforeUpload = (file) => {
+    // Generate preview URL using FileReader
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setFileList(prev => {
+        const fileIndex = prev.findIndex(f => f.uid === file.uid)
+        if (fileIndex >= 0) {
+          const newList = [...prev]
+          newList[fileIndex] = { ...newList[fileIndex], url: e.target.result }
+          return newList
+        }
+        return prev
+      })
+    }
+    reader.readAsDataURL(file)
+    return true // Allow upload to proceed
+  }
+
+  const handleUploadChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList.map(file => {
+      if (file.response && file.response.code === 20000) {
+        return { ...file, url: file.response.data.url }
+      }
+      return file
+    }).filter(file => file.status !== 'error'))
   }
 
   const handleDragEnd = (event) => {
@@ -322,6 +345,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
             listType="picture-card"
             fileList={fileList}
             onChange={handleUploadChange}
+            beforeUpload={beforeUpload}
             action={`${API_BASE_URL}/upload`}
             multiple
             accept="image/*"
