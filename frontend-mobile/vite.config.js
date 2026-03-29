@@ -8,6 +8,20 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    port: 5173
+    port: 5553,
+    host: '0.0.0.0',
+    allowedHosts: ['opencode.linxdeep.com', 'localhost'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5556',  // 代理到 WX 后端
+        changeOrigin: true,
+        secure: false
+      },
+      '/auth': {
+        target: 'http://localhost:5556',  // 代理到 WX 后端
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 })

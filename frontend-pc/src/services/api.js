@@ -31,8 +31,11 @@ async function request(endpoint, options = {}) {
     localStorage.removeItem('token')
     sessionStorage.removeItem('token')
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-    window.location.reload()
-    throw new Error('Unauthorized')
+    
+    // 跳转到登录页面 (使用相对路径，由 Vite 代理处理)
+    const loginPath = import.meta.env.VITE_LOGIN_PATH || '/auth/login'
+    window.location.href = loginPath + '?redirect_uri=' + encodeURIComponent(window.location.href)
+    return
   }
 
   if (!response.ok) {
@@ -53,9 +56,24 @@ async function request(endpoint, options = {}) {
     if (Array.isArray(data.items)) return data.items
     if (Array.isArray(data.result)) return data.result
     if (Array.isArray(data.list)) return data.list
+    
+    // 处理嵌套格式: { code: 20000, data: { instruments: [...] } }
+    if (data.data && typeof data.data === 'object') {
+      // 后端返回: { code: 20000, data: { instruments: [...] } }
+      if (Array.isArray(data.data.instruments)) return data.data.instruments
+      // 后端返回: { code: 20000, data: { list: [...] } }
+      if (Array.isArray(data.data.list)) return data.data.list
+    }
+    
+    // 处理统一响应格式: { success: true, data: [...] }
+    if (data.success && Array.isArray(data.data)) return data.data
+    
+    // 处理 code 格式: { code: 0, data: [...] }
+    if (data.code === 0 && Array.isArray(data.data)) return data.data
+    if (data.code === 20000 && Array.isArray(data.data)) return data.data
   }
   
-  // 如果都不是数组，返回空数组
+  // 兜底: 返回空数组
   console.warn(`API ${endpoint} returned non-array data:`, data)
   return []
 }
