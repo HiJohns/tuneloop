@@ -289,7 +289,8 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       bodyStyle={{ 
         maxHeight: '70vh', 
         overflowY: 'auto', 
-        overflowX: 'hidden' 
+        overflowX: 'hidden',
+        paddingLeft: '16px'
       }}
     >
       <Form
