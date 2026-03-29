@@ -99,9 +99,7 @@ export default function InstrumentList() {
   const fetchCategories = async () => {
     try {
       const data = await api.get('/categories')
-      if (data.code === 20000) {
-        setCategories(data.data || [])
-      }
+      setCategories(data || [])
     } catch (error) {
       console.error('Load categories failed:', error)
     }
