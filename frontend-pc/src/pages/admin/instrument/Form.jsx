@@ -155,10 +155,50 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     setSpecs(specs.filter(spec => spec.id !== id))
   }
 
+  const calculateRentals = (dailyRent) => {
+    if (!dailyRent || dailyRent <= 0) {
+      return { weekly_rent: 0, monthly_rent: 0, deposit: 0 }
+    }
+    return {
+      weekly_rent: Math.round(dailyRent * 6),
+      monthly_rent: Math.round(dailyRent * 25),
+      deposit: Math.round(dailyRent * 20)
+    }
+  }
+
   const updateSpec = (id, field, value) => {
-    setSpecs(specs.map(spec => 
-      spec.id === id ? { ...spec, [field]: value } : spec
-    ))
+    setSpecs(specs.map(spec => {
+      if (spec.id === id) {
+        const updated = { ...spec, [field]: value }
+        if (field === 'daily_rent') {
+          const calculated = calculateRentals(value)
+          updated.weekly_rent = calculated.weekly_rent
+          updated.monthly_rent = calculated.monthly_rent
+          updated.deposit = calculated.deposit
+        }
+        return updated
+      }
+      return spec
+    }))
+  }
+
+  const syncPricesToAll = () => {
+    if (specs.length <= 1) return
+    const firstSpec = specs[0]
+    const ratio = {
+      weekly: firstSpec.daily_rent ? firstSpec.weekly_rent / firstSpec.daily_rent : 6,
+      monthly: firstSpec.daily_rent ? firstSpec.monthly_rent / firstSpec.daily_rent : 25,
+      deposit: firstSpec.daily_rent ? firstSpec.deposit / firstSpec.daily_rent : 20
+    }
+    setSpecs(specs.map((spec, idx) => {
+      if (idx === 0) return spec
+      return {
+        ...spec,
+        weekly_rent: Math.round(spec.daily_rent * ratio.weekly),
+        monthly_rent: Math.round(spec.daily_rent * ratio.monthly),
+        deposit: Math.round(spec.daily_rent * ratio.deposit)
+      }
+    }))
   }
 
   const handleSubmit = async () => {
@@ -422,6 +462,12 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         </Row>
 
         <Divider orientation="left">规格配置</Divider>
+        
+        <div className="mb-2 flex justify-end">
+          <Button onClick={syncPricesToAll} disabled={specs.length <= 1} size="small">
+            同步价格比例到所有规格
+          </Button>
+        </div>
         
         <div className="mb-4">
           {specs.map((spec, index) => (
