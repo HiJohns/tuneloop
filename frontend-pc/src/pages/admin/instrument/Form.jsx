@@ -418,49 +418,6 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
           <Input placeholder="请输入视频URL（可选）" />
         </Form.Item>
 
-        <Divider orientation="left">价格配置</Divider>
-        
-        <Row gutter={16}>
-          <Col span={6}>
-            <Form.Item
-              name="daily_rate"
-              label="日租金 (¥)"
-              rules={[{ required: true, message: '请输入日租金' }]}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-            </Form.Item>
-          </Col>
-          
-          <Col span={6}>
-            <Form.Item
-              name="weekly_rate"
-              label="周租金 (¥)"
-            >
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-            </Form.Item>
-          </Col>
-          
-          <Col span={6}>
-            <Form.Item
-              name="monthly_rate"
-              label="月租金 (¥)"
-              rules={[{ required: true, message: '请输入月租金' }]}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-            </Form.Item>
-          </Col>
-          
-          <Col span={6}>
-            <Form.Item
-              name="deposit"
-              label="押金 (¥)"
-              rules={[{ required: true, message: '请输入押金' }]}
-            >
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-            </Form.Item>
-          </Col>
-        </Row>
-
         <Divider orientation="left">规格配置</Divider>
         
         <div className="mb-2 flex justify-end">
@@ -471,9 +428,10 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         
         <div className="mb-4">
           {specs.map((spec, index) => (
-            <Card key={spec.id} size="small" className="mb-3">
-              <Row gutter={16} align="middle">
-                <Col span={4}>
+            <Card key={spec.id} size="small" className="mb-3" style={{ border: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+              {/* 第一行 */}
+              <Row gutter={16}>
+                <Col span={6}>
                   <Form.Item label="规格名称" required>
                     <Input
                       placeholder="规格名称"
@@ -482,7 +440,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
                     />
                   </Form.Item>
                 </Col>
-                <Col span={4}>
+                <Col span={6}>
                   <Form.Item label="日租金 (¥)" required>
                     <InputNumber
                       placeholder="日租金"
@@ -493,40 +451,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
                     />
                   </Form.Item>
                 </Col>
-                <Col span={3}>
-                  <Form.Item label="周租金 (¥)">
-                    <InputNumber
-                      placeholder="周租金"
-                      value={spec.weekly_rent}
-                      onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={3}>
-                  <Form.Item label="月租金 (¥)">
-                    <InputNumber
-                      placeholder="月租金"
-                      value={spec.monthly_rent}
-                      onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={4}>
-                  <Form.Item label="押金 (¥)" required>
-                    <InputNumber
-                      placeholder="押金"
-                      value={spec.deposit}
-                      onChange={(value) => updateSpec(spec.id, 'deposit', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={4}>
+                <Col span={6}>
                   <Form.Item label="初始库存 (件)" required>
                     <InputNumber
                       placeholder="库存"
@@ -537,13 +462,49 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
                     />
                   </Form.Item>
                 </Col>
-                <Col span={2}>
+                <Col span={6} style={{ display: 'flex', alignItems: 'flex-end' }}>
                   <Button
                     icon={<DeleteOutlined />}
                     onClick={() => removeSpec(spec.id)}
                     danger
                     disabled={specs.length <= 1}
                   />
+                </Col>
+              </Row>
+              {/* 第二行 */}
+              <Row gutter={16}>
+                <Col span={6}>
+                  <Form.Item label="周租金 (¥)">
+                    <InputNumber
+                      placeholder="周租金"
+                      value={spec.weekly_rent}
+                      onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item label="月租金 (¥)">
+                    <InputNumber
+                      placeholder="月租金"
+                      value={spec.monthly_rent}
+                      onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item label="押金 (¥)" required>
+                    <InputNumber
+                      placeholder="押金"
+                      value={spec.deposit}
+                      onChange={(value) => updateSpec(spec.id, 'deposit', value)}
+                      style={{ width: '100%' }}
+                      min={0}
+                    />
+                  </Form.Item>
                 </Col>
               </Row>
             </Card>
