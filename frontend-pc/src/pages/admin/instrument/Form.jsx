@@ -601,38 +601,39 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         <Divider orientation="left">图片和视频</Divider>
         
         <Form.Item
-          name="images"
           label="图片"
           extra="拖拽可调整图片顺序，建议尺寸 800x600"
         >
-          <Upload
-            listType="picture-card"
-            fileList={fileList}
-            onChange={handleUploadChange}
-            beforeUpload={beforeUpload}
-            action={`${API_BASE_URL}/upload`}
-            multiple
-            accept="image/*"
-            showUploadList={false}
-          >
-            <div>
-              <UploadOutlined />
-              <div style={{ marginTop: 8 }}>点击或拖拽上传</div>
-            </div>
-          </Upload>
-          
-          {/* Drag and drop sortable image list */}
-          {fileList.length > 0 && (
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-              <SortableContext items={fileList.map(f => f.uid)} strategy={verticalListSortingStrategy}>
-                <div className="mt-4">
-                  {fileList.map((file) => (
-                    <SortableImageItem key={file.uid} file={file} onRemove={removeImage} />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
+          <div>
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              onChange={handleUploadChange}
+              beforeUpload={beforeUpload}
+              action={`${API_BASE_URL}/upload`}
+              multiple
+              accept="image/*"
+              showUploadList={false}
+            >
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>点击或拖拽上传</div>
+              </div>
+            </Upload>
+            
+            {/* Drag and drop sortable image list */}
+            {fileList.length > 0 && (
+              <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <SortableContext items={fileList.map(f => f.uid)} strategy={verticalListSortingStrategy}>
+                  <div className="mt-4">
+                    {fileList.map((file) => (
+                      <SortableImageItem key={file.uid} file={file} onRemove={removeImage} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
         </Form.Item>
 
         <Form.Item
