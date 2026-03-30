@@ -79,15 +79,41 @@ func CreateInstrument(c *gin.Context) {
 
 	log.Printf("[DEBUG CreateInstrument] Creating instrument: name=%s, brand=%s, level=%s", req.Name, req.Brand, req.Level)
 
+	// Get category_name from database
+	var categoryName string
+	if req.CategoryID != "" {
+		var cat struct {
+			Name string `json:"name"`
+		}
+		if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+			categoryName = cat.Name
+		}
+	}
+
+	// Map level to level_name
+	levelName := ""
+	switch req.Level {
+	case "beginner":
+		levelName = "入门级"
+	case "intermediate":
+		levelName = "中级"
+	case "advanced":
+		levelName = "高级"
+	case "professional":
+		levelName = "专业级"
+	}
+
 	instrument := models.Instrument{
-		TenantID:    tenantID,
-		OrgID:       tenantID,
-		Name:        req.Name,
-		Brand:       req.Brand,
-		Level:       req.Level,
-		CategoryID:  req.CategoryID,
-		Description: req.Description,
-		StockStatus: "available",
+		TenantID:     tenantID,
+		OrgID:        tenantID,
+		Name:         req.Name,
+		Brand:        req.Brand,
+		Level:        req.Level,
+		LevelName:    levelName,
+		CategoryID:   req.CategoryID,
+		CategoryName: categoryName,
+		Description:  req.Description,
+		StockStatus:  "available",
 	}
 
 	// Handle Images field
@@ -107,7 +133,21 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	// Handle Specifications field
-	if req.Specifications != nil {
+	// Priority: req.Specs > req.Specifications
+	if req.Specs != nil && len(req.Specs) > 0 {
+		// Use specs from frontend (preferred)
+		specsJSON, err := json.Marshal(req.Specs)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal specs: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specs format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Specifications = string(specsJSON)
+	} else if req.Specifications != nil {
+		// Fallback to specifications field
 		specsJSON, err := json.Marshal(req.Specifications)
 		if err != nil {
 			log.Printf("[ERROR] Failed to marshal specifications: %v", err)
@@ -119,7 +159,7 @@ func CreateInstrument(c *gin.Context) {
 		}
 		instrument.Specifications = string(specsJSON)
 	} else {
-		instrument.Specifications = "{}"
+		instrument.Specifications = "[]"
 	}
 
 	// Handle Pricing field
