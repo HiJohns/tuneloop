@@ -42,3 +42,32 @@
 ## 12-Factor App 合规
 
 所有配置均通过环境变量注入，代码中无硬编码配置。
+
+## 任务完成后验证清单 (Post-Task Verification)
+
+每个任务标记为 `status:ready` 前，必须完成以下验证：
+
+### 通用验证
+- [ ] 代码可通过 `go build` (Golang) 或 `npm run build` (JavaScript) 编译
+- [ ] 如涉及 API 变更，使用 `curl` 或 Postman 测试端点返回预期结果
+- [ ] 对于 Bug 修复，复现原始问题并验证已解决
+
+### 认证/授权相关任务（关键）
+- [ ] **完整登录流程测试**：从 IAM OAuth 登录到所有受保护页面访问
+- [ ] 验证 token 解析：检查 `[DEBUG Callback] Setting cookies for tenant: <实际tenant_id>` 日志
+- [ ] 验证 cookie 设置：浏览器 developer tools 中可见 `token` 和 `refresh_token`
+- [ ] **JWT token 完整性**：确保前端能正确读取包含多个 `=` padding 字符的 token
+- [ ] 测试 token 过期场景：登录后等待 token 过期，验证自动刷新或重定向
+- [ ] 后端 middleware 日志应显示 tenant_id 已正确设置（无空值）
+
+### 前端相关任务
+- [ ] 运行构建命令（`npm run build`）无语法错误
+- [ ] 在隐身模式/清空缓存后测试页面加载和功能
+- [ ] 验证所有修改的文件中的类似代码模式已同步修复
+
+### 文档要求
+- [ ] 新增环境变量已记录在本文件的「环境变量规范」章节
+- [ ] 接口变更已更新到 `docs/api.md` (如存在)
+- [ ] 复杂功能添加简短说明到本文件的「功能说明」章节
+
+**特别警告**：OAuth、token 处理、权限相关的任务，必须在真实登录场景下完整测试后才能标记完成。
