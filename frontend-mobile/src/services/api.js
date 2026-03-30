@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
-function getToken() {
+export function getToken() {
   console.log('[Token Debug] Starting getToken()')
   
   // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
@@ -38,7 +38,7 @@ function getToken() {
   return cookieToken
 }
 
-function getTokenFromCookie() {
+export function getTokenFromCookie() {
   console.log('[Token Debug] Checking cookies for token')
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
