@@ -25,6 +25,12 @@ export default function InstrumentList() {
   const [expandedRowKeys, setExpandedRowKeys] = useState([])
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0
+  })
+  
   // Import/Export state
   const [importResultModalVisible, setImportResultModalVisible] = useState(false)
   const [importResult, setImportResult] = useState(null)
@@ -32,21 +38,26 @@ export default function InstrumentList() {
   const [selectedExportFields, setSelectedExportFields] = useState([])
 
   useEffect(() => {
-    fetchInstruments()
+    fetchInstruments(pagination.page, pagination.pageSize)
     fetchCategories()
     setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
-  const fetchInstruments = async () => {
+  const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
-      const data = await api.get('/instruments')
-      // api.js 已经规范化响应，直接返回数组
-      setInstruments(Array.isArray(data) ? data : [])
+      const response = await fetch(`${API_BASE_URL}/instruments?page=${page}&pageSize=${pageSize}`)
+      const result = await response.json()
       
-      // Debug: log first instrument's images to verify data format
-      if (data && data.length > 0) {
-        console.log('[DEBUG] First instrument images format:', data[0].images)
+      if (result.code === 20000) {
+        setInstruments(Array.isArray(result.data) ? result.data : [])
+        setPagination({
+          page: result.pagination?.page || page,
+          pageSize: result.pagination?.pageSize || pageSize,
+          total: result.pagination?.total || 0
+        })
+      } else {
+        setInstruments([])
       }
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
@@ -187,7 +198,7 @@ export default function InstrumentList() {
       const result = await api.delete(`/instruments/${id}`)
       if (result.code === 20000) {
         message.success('删除成功')
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
       } else {
         throw new Error(result.message || '删除失败')
       }
@@ -203,7 +214,7 @@ export default function InstrumentList() {
 
   const handleFormSubmit = (data) => {
     message.success('乐器保存成功')
-    fetchInstruments()
+    fetchInstruments(pagination.page, pagination.pageSize)
     setFormVisible(false)
     setEditingInstrument(null)
   }
@@ -229,7 +240,7 @@ export default function InstrumentList() {
       if (result.code === 20000) {
         message.success(`已成功更新 ${selectedRowKeys.length} 个乐器状态`)
         setSelectedRowKeys([])
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
       } else {
         throw new Error(result.message || '批量操作失败')
       }
@@ -259,7 +270,7 @@ export default function InstrumentList() {
           if (result.code === 20000) {
             message.success(`已成功删除 ${selectedRowKeys.length} 个乐器`)
             setSelectedRowKeys([])
-            fetchInstruments()
+            fetchInstruments(pagination.page, pagination.pageSize)
           } else {
             throw new Error(result.message || '批量删除失败')
           }
@@ -294,7 +305,7 @@ export default function InstrumentList() {
         message.success(`已成功修改 ${selectedRowKeys.length} 个乐器价格`)
         setBatchPriceModalVisible(false)
         setSelectedRowKeys([])
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
       } else {
         throw new Error(result.message || '批量价格修改失败')
       }
@@ -328,7 +339,7 @@ export default function InstrumentList() {
           errors: result.data?.errors || []
         })
         setImportResultModalVisible(true)
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
         message.success('导入完成')
       } else {
         throw new Error(result.message || '导入失败')
@@ -561,24 +572,11 @@ export default function InstrumentList() {
           return (
             <div style={{ margin: '-16px', padding: '16px', background: '#fafafa' }}>
               <Table
-                dataSource={specs}
                 columns={[
-                  { title: '规格名称', dataIndex: 'name', key: 'name' },
-                  { 
-                    title: '日租金', 
-                    key: 'daily_rent',
-                    render: (text, spec) => `¥${spec.daily_rent || 0}`
-                  },
-                  { 
-                    title: '周租金', 
-                    key: 'weekly_rent',
-                    render: (text, spec) => `¥${spec.weekly_rent || 0}`
-                  },
-                  { 
-                    title: '月租金', 
-                    key: 'monthly_rent',
-                    render: (text, spec) => `¥${spec.monthly_rent || 0}`
-                  },
+                  { title: '规格名称', key: 'name', render: (text, spec) => spec.name },
+                  { title: '日租金', key: 'daily', render: (text, spec) => `¥${spec.daily_rent || 0}` },
+                  { title: '周租金', key: 'weekly', render: (text, spec) => `¥${spec.weekly_rent || 0}` },
+                  { title: '月租金', key: 'monthly', render: (text, spec) => `¥${spec.monthly_rent || 0}` },
                   { 
                     title: '押金', 
                     key: 'deposit',
@@ -593,6 +591,18 @@ export default function InstrumentList() {
                 pagination={false}
                 rowKey="name"
               />
+            </div>
+          )
+        }}
+        pagination={{
+          current: pagination.page,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: true,
+          showTotal: (total) => `共 ${total} 条`,
+          onChange: (page, pageSize) => fetchInstruments(page, pageSize),
+        }}
+      />
             </div>
           )
         }}
