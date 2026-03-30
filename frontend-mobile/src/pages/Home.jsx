@@ -13,7 +13,7 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
       >
         <div className="relative">
           <img 
-            src={instrument.image || '/placeholder.png'} 
+            src={instrument.images?.[0] || '/placeholder.png'} 
             alt={instrument.name}
             className="w-full h-40 object-contain bg-gray-100 rounded-xl"
           />
@@ -43,7 +43,7 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
     >
       <div className="relative">
         <img 
-          src={instrument.image} 
+          src={instrument.images?.[0] || '/placeholder.png'} 
           alt={instrument.name}
           className="w-full h-40 object-contain bg-gray-100 rounded-xl"
         />

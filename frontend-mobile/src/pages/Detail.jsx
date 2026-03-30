@@ -140,7 +140,7 @@ export default function Detail() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <div className="relative">
         <img 
-          src={instrument.image} 
+          src={instrument.images?.[0] || '/placeholder.png'} 
           alt={instrument.name}
           className="w-full h-64 object-contain bg-gray-100"
         />

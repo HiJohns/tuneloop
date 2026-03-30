@@ -82,7 +82,7 @@ export default function Checkout() {
           <h2 className="font-medium text-gray-800 mb-3">租赁乐器</h2>
           <div className="flex gap-3">
             <img 
-              src={instrument.image} 
+              src={instrument.images?.[0] || '/placeholder.png'}
               alt={instrument.name}
               className="w-20 h-20 object-cover rounded"
             />
