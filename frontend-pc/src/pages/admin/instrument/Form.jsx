@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Modal, Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card } from 'antd'
-import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
+import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
