@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { getToken } from './services/api'
 import Home from './pages/Home'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
@@ -11,22 +12,6 @@ import MyService from './pages/MyService'
 const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || 'http://opencode.linxdeep.com:5552'
 const CLIENT_ID = import.meta.env.VITE_IAM_CLIENT_ID || 'tuneloop'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-
-function getToken() {
-  const token = localStorage.getItem('token')
-  const expiry = localStorage.getItem('token_expiry')
-  
-  if (!token || !expiry) return null
-  
-  if (new Date().getTime() > parseInt(expiry)) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('token_expiry')
-    localStorage.removeItem('user_info')
-    return null
-  }
-  
-  return token
-}
 
 function storeToken(token, expiresIn = 3600) {
   const expiry = new Date().getTime() + (expiresIn * 1000)

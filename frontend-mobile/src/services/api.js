@@ -1,8 +1,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+<<<<<<< HEAD
 function getToken() {
   console.log('[Token Debug] Starting getToken()')
   
+=======
+export function getToken() {
+>>>>>>> 101a2127 (fix(issue-149): unify getToken() function between App.jsx and api.js)
   // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
@@ -38,8 +42,12 @@ function getToken() {
   return cookieToken
 }
 
+<<<<<<< HEAD
 function getTokenFromCookie() {
   console.log('[Token Debug] Checking cookies for token')
+=======
+export function getTokenFromCookie() {
+>>>>>>> 101a2127 (fix(issue-149): unify getToken() function between App.jsx and api.js)
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=')
@@ -64,15 +72,6 @@ async function request(endpoint, options = {}) {
   }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
-    console.log('[API Debug] Authorization header SET for:', endpoint)
-  } else {
-    console.log('[API Debug] NO Authorization header for:', endpoint)
-  }
-
-  // Debug alert for /instruments endpoint
-  if (endpoint === '/instruments' || endpoint.startsWith('/instruments/')) {
-    const cookieToken = getTokenFromCookie()
-    alert(`Request to: ${endpoint}\nAuthorization header: ${headers['Authorization'] || 'NOT SET'}\nCookie token: ${cookieToken || 'NOT FOUND'}`)
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
