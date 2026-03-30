@@ -78,8 +78,21 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
+	// Validate token and extract claims to get tenant_id
+	claims, err := h.iamService.ValidateToken(tokenResp.AccessToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50001,
+			"message": "failed to validate token: " + err.Error(),
+		})
+		return
+	}
+
+	// Set tenant_id in context from claims
+	c.Set("tenant_id", claims.TenantID)
+
 	// Log token info for debugging (DO NOT log full token in production!)
-	log.Printf("[DEBUG Callback] Setting cookies for tenant: %s", c.GetString("tenant_id"))
+	log.Printf("[DEBUG Callback] Setting cookies for tenant: %s", claims.TenantID)
 	log.Printf("[DEBUG Callback] Access token length: %d", len(tokenResp.AccessToken))
 	log.Printf("[DEBUG Callback] Refresh token length: %d", len(tokenResp.RefreshToken))
 
