@@ -40,57 +40,11 @@ export default function InstrumentList() {
     setLoading(true)
     try {
       const data = await api.get('/instruments')
-      if (data.code === 20000) {
-        setInstruments(data.data || [])
-      } else {
-        // Fallback demo data
-        setInstruments([
-          {
-            id: '1',
-            name: '雅马哈立式钢琴 U1',
-            category_name: '钢琴',
-            brand: 'Yamaha',
-            model: 'U1',
-            daily_rate: 50,
-            monthly_rate: 1200,
-            deposit: 5000,
-            stock: 5,
-            images: ['/images/piano1.jpg'],
-            status: 'available'
-          },
-          {
-            id: '2',
-            name: '马丁 D-28 吉他',
-            category_name: '吉他',
-            brand: 'Martin',
-            model: 'D-28',
-            daily_rate: 30,
-            monthly_rate: 600,
-            deposit: 2000,
-            stock: 8,
-            images: ['/images/guitar1.jpg'],
-            status: 'available'
-          }
-        ])
-      }
+      // api.js 已经规范化响应，直接返回数组
+      setInstruments(Array.isArray(data) ? data : [])
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
-      // Fallback demo data
-      setInstruments([
-        {
-          id: '1',
-          name: '雅马哈立式钢琴 U1',
-          category_name: '钢琴',
-          brand: 'Yamaha',
-          model: 'U1',
-          daily_rate: 50,
-          monthly_rate: 1200,
-          deposit: 5000,
-          stock: 5,
-          images: ['/images/piano1.jpg'],
-          status: 'available'
-        }
-      ])
+      setInstruments([])
     } finally {
       setLoading(false)
     }
