@@ -296,6 +296,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       <Form
         form={form}
         layout="vertical"
+        style={{ marginRight: '16px' }}
         initialValues={{
           level: 'beginner'
         }}
