@@ -91,7 +91,9 @@ export default function Home() {
         const data = await instrumentsApi.list()
         setInstruments(data)
         
-        const uniqueCategories = ["全部", ...new Set(data.map(i => i.category))]
+        const uniqueCategories = ["全部", ...new Set(
+          data.map(i => i.category).filter(cat => cat)  // 过滤空值
+        )]
         setCategories(uniqueCategories)
         
         setLoading(false)
@@ -142,7 +144,7 @@ export default function Home() {
       {/* Category Tabs */}
       <div className="bg-white border-b overflow-x-auto">
         <div className="flex px-4 py-3 gap-4">
-          {categories.map(cat => {
+          {categories.map((cat, index) => {
             const icons = {
               "钢琴": "🎹",
               "吉他": "🎸", 
@@ -152,7 +154,7 @@ export default function Home() {
             }
             return (
               <button
-                key={cat}
+                key={cat || `category-${index}`}
                 onClick={() => setActiveCategory(cat)}
                 className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                   activeCategory === cat
