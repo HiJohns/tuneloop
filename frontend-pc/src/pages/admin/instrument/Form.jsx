@@ -351,11 +351,13 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       onOk={handleSubmit}
       confirmLoading={loading}
       width={800}
-      bodyStyle={{ 
-        maxHeight: '70vh', 
-        overflowY: 'auto', 
-        overflowX: 'hidden',
-        paddingLeft: '16px'
+      styles={{ 
+        body: {
+          maxHeight: '70vh', 
+          overflowY: 'auto', 
+          overflowX: 'hidden',
+          paddingLeft: '16px'
+        }
       }}
     >
       <Form
