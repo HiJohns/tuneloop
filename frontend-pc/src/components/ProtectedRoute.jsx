@@ -8,8 +8,13 @@ function getToken() {
   // Check cookies first (same as api.js)
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=')
-    if (name === 'token') return value
+    const trimmed = cookie.trim()
+    const eqPos = trimmed.indexOf('=')
+    if (eqPos > 0) {
+      const name = trimmed.substring(0, eqPos)
+      const value = trimmed.substring(eqPos + 1)
+      if (name === 'token') return decodeURIComponent(value)
+    }
   }
   
   // Then check localStorage with expiry
