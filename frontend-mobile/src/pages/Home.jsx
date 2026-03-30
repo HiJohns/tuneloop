@@ -161,7 +161,7 @@ export default function Home() {
       },
       { 
         threshold: 0.1,
-        rootMargin: '200px'  // 提前200px触发
+        rootMargin: '200px'
       }
     )
 
@@ -193,7 +193,6 @@ export default function Home() {
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = window.innerHeight
       
-      // 距离底部200px时触发
       if (scrollTop + clientHeight >= scrollHeight - 200) {
         console.log('[Infinite Scroll] Scroll event triggered')
         setPage(prev => prev + 1)
@@ -255,7 +254,6 @@ export default function Home() {
                 key={cat || `category-${index}`}
                 onClick={() => {
                   setActiveCategory(cat)
-                  // Reset pagination when category changes
                   setPage(1)
                   setHasMore(true)
                 }}
