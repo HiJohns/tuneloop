@@ -34,7 +34,7 @@ export default function InstrumentList() {
   useEffect(() => {
     fetchInstruments()
     fetchCategories()
-    setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'daily_rate', 'monthly_rate', 'deposit', 'stock', 'status'])
+    setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
   const fetchInstruments = async () => {
@@ -107,29 +107,6 @@ export default function InstrumentList() {
         value: cat
       })),
       onFilter: (value, record) => record.category_name === value
-    },
-    {
-      title: '日租金',
-      dataIndex: 'daily_rate',
-      key: 'daily_rate',
-      width: 100,
-      sorter: (a, b) => a.daily_rate - b.daily_rate,
-      render: (rate) => `¥${rate}`
-    },
-    {
-      title: '月租金',
-      dataIndex: 'monthly_rate',
-      key: 'monthly_rate',
-      width: 100,
-      sorter: (a, b) => a.monthly_rate - b.monthly_rate,
-      render: (rate) => `¥${rate}`
-    },
-    {
-      title: '押金',
-      dataIndex: 'deposit',
-      key: 'deposit',
-      width: 100,
-      render: (deposit) => `¥${deposit}`
     },
     {
       title: '库存',
@@ -367,9 +344,9 @@ export default function InstrumentList() {
 
   const downloadTemplate = () => {
     const template = [
-      ['name', 'brand', 'model', 'category_name', 'daily_rate', 'monthly_rate', 'deposit', 'stock', 'description'],
-      ['雅马哈立式钢琴', 'Yamaha', 'U1', '钢琴', '50', '1200', '5000', '5', '日本原装进口钢琴'],
-      ['马丁D-28吉他', 'Martin', 'D-28', '吉他', '30', '600', '2000', '8', '美国产经典民谣吉他']
+      ['name', 'brand', 'model', 'category_name', 'stock', 'description'],
+      ['雅马哈立式钢琴', 'Yamaha', 'U1', '钢琴', '5', '日本原装进口钢琴'],
+      ['马丁D-28吉他', 'Martin', 'D-28', '吉他', '8', '美国产经典民谣吉他']
     ]
     
     const csvContent = template.map(row => row.join(',')).join('\n')
@@ -422,9 +399,6 @@ export default function InstrumentList() {
     { label: '品牌', value: 'brand' },
     { label: '型号', value: 'model' },
     { label: '分类', value: 'category_name' },
-    { label: '日租金', value: 'daily_rate' },
-    { label: '月租金', value: 'monthly_rate' },
-    { label: '押金', value: 'deposit' },
     { label: '库存', value: 'stock' },
     { label: '状态', value: 'status' },
     { label: '描述', value: 'description' }
@@ -543,6 +517,8 @@ export default function InstrumentList() {
           </Button>
         </Space>
       </div>
+
+      {/* Note: Batch price modification removed as prices are now in expandable specifications */}
 
       {/* Table */}
       <Table
