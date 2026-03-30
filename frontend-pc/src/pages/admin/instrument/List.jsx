@@ -134,6 +134,37 @@ export default function InstrumentList() {
       }
     },
     {
+      title: '规格详情',
+      key: 'specs',
+      width: 140,
+      render: (_, record) => {
+        const isExpanded = expandedRowKeys.includes(record.id)
+        return (
+          <div
+            onClick={() => {
+              if (isExpanded) {
+                setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
+              } else {
+                setExpandedRowKeys([...expandedRowKeys, record.id])
+              }
+            }}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <span style={{ marginRight: 8 }}>规格详情</span>
+            <div style={{ 
+              width: 0, 
+              height: 0, 
+              borderLeft: '6px solid #666',
+              borderTop: '4px solid transparent',
+              borderBottom: '4px solid transparent',
+              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s'
+            }} />
+          </div>
+        )
+      }
+    },
+    {
       title: '操作',
       key: 'action',
       width: 200,
@@ -535,23 +566,6 @@ export default function InstrumentList() {
             setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
           }
         }}
-        expandIcon={({ expanded, onExpand, record }) => (
-          <div
-            onClick={e => onExpand(record, e)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-          >
-            <span style={{ marginRight: 8 }}>规格详情</span>
-            <div style={{ 
-              width: 0, 
-              height: 0, 
-              borderLeft: '6px solid #666',
-              borderTop: '4px solid transparent',
-              borderBottom: '4px solid transparent',
-              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s'
-            }} />
-          </div>
-        )}
         expandedRowRender={(record) => {
           const specs = record.specs || []
           if (specs.length === 0) {
