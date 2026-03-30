@@ -58,6 +58,11 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState([])
   const [specs, setSpecs] = useState([])
+  const [uploadStatus, setUploadStatus] = useState({
+    isUploading: false,
+    progress: {},
+    failedFiles: []
+  })
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   const sensors = useSensors(
