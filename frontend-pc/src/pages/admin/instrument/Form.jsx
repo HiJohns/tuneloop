@@ -92,14 +92,17 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   }, [visible, initialData])
 
   const beforeUpload = (file) => {
+    console.log('[DEBUG] beforeUpload called for file:', file.name)
     // Generate preview URL using FileReader
     const reader = new FileReader()
     reader.onload = (e) => {
+      console.log('[DEBUG] FileReader onload, setting preview URL')
       setFileList(prev => {
         const fileIndex = prev.findIndex(f => f.uid === file.uid)
         if (fileIndex >= 0) {
           const newList = [...prev]
           newList[fileIndex] = { ...newList[fileIndex], url: e.target.result }
+          console.log('[DEBUG] Updated fileList with preview URL:', newList[fileIndex])
           return newList
         }
         return prev
@@ -110,24 +113,34 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   }
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    setFileList(newFileList.map(file => {
+    console.log('[DEBUG] handleUploadChange called with fileList:', newFileList)
+    
+    const processedList = newFileList.map(file => {
       // Handle different response formats from upload API
       if (file.response) {
+        console.log('[DEBUG] File response:', file.name, file.response)
+        
         // Format 1: { code: 20000, data: { url: "..." } }
         if (file.response.code === 20000 && file.response.data?.url) {
+          console.log('[DEBUG] Format 1 detected, URL:', file.response.data.url)
           return { ...file, url: file.response.data.url }
         }
         // Format 2: { success: true, url: "..." }
         else if (file.response.success && file.response.url) {
+          console.log('[DEBUG] Format 2 detected, URL:', file.response.url)
           return { ...file, url: file.response.url }
         }
         // Format 3: Direct url in response
         else if (file.response.url) {
+          console.log('[DEBUG] Format 3 detected, URL:', file.response.url)
           return { ...file, url: file.response.url }
         }
       }
       return file
-    }).filter(file => file.status !== 'error'))
+    }).filter(file => file.status !== 'error')
+    
+    console.log('[DEBUG] Processed fileList:', processedList)
+    setFileList(processedList)
   }
 
   const handleDragEnd = (event) => {
@@ -215,13 +228,18 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
 
   // Upload pending files manually and return the uploaded URLs
   const uploadPendingFiles = async () => {
+    console.log('[DEBUG] uploadPendingFiles called')
+    console.log('[DEBUG] Current fileList:', JSON.parse(JSON.stringify(fileList)))
+    
     const pendingFiles = fileList.filter(file => file.status !== 'done')
+    console.log('[DEBUG] Pending files (status !== done):', pendingFiles)
     
     if (pendingFiles.length === 0) {
       // Return already uploaded URLs
       const uploadedImages = fileList
         .filter(file => file.status === 'done' && file.url)
         .map(file => file.url)
+      console.log('[DEBUG] No pending files, returning already uploaded:', uploadedImages)
       return { success: true, uploadedImages }
     }
     
@@ -229,6 +247,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     
     const uploadPromises = pendingFiles.map(async (file) => {
       try {
+        console.log('[DEBUG] Uploading file:', file.name, 'uid:', file.uid)
         const formData = new FormData()
         formData.append('file', file.originFileObj || file)
         
@@ -242,9 +261,11 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         }
         
         const result = await response.json()
+        console.log('[DEBUG] Upload response for', file.name, ':', result)
         
         const uploadedUrl = result.data?.url || result.url
         uploadedImages.push(uploadedUrl)
+        console.log('[DEBUG] Uploaded URL:', uploadedUrl)
         
         // Update the file in fileList
         setFileList(prev => prev.map(f => {
@@ -264,6 +285,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         
         return { success: true }
       } catch (error) {
+        console.error('[DEBUG] Upload failed for', file.name, ':', error)
         message.error(`图片 ${file.name} 上传失败`)
         return { success: false, error }
       }
@@ -273,32 +295,46 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     const allSuccess = results.every(r => r.success)
     
     if (!allSuccess) {
+      console.error('[DEBUG] Some uploads failed:', results)
       throw new Error('部分图片上传失败')
     }
+    
+    console.log('[DEBUG] All uploads successful, results:', results)
     
     // Return all uploaded URLs (both previously and newly uploaded)
     const allUploadedImages = fileList
       .filter(file => file.status === 'done' && file.url)
       .map(file => file.url)
     
+    console.log('[DEBUG] Final uploadedImages from fileList:', allUploadedImages)
     return { success: true, uploadedImages: allUploadedImages }
   }
 
   const handleSubmit = async () => {
+    console.log('[DEBUG] ==== handleSubmit START ====')
+    
     try {
       const values = await form.validateFields()
       setLoading(true)
+      
+      console.log('[DEBUG] Form values:', values)
+      console.log('[DEBUG] Current fileList before upload:', JSON.parse(JSON.stringify(fileList)))
       
       // Upload pending files first and get the uploaded image URLs
       let images = []
       if (fileList.length > 0) {
         const uploadResult = await uploadPendingFiles()
+        console.log('[DEBUG] Upload result:', uploadResult)
         if (!uploadResult.success) {
+          console.error('[DEBUG] Upload failed, aborting submit')
           setLoading(false)
           return
         }
         images = uploadResult.uploadedImages || []
       }
+      
+      console.log('[DEBUG] Final images array:', images)
+      console.log('[DEBUG] Final fileList state:', JSON.parse(JSON.stringify(fileList)))
       
       // Prepare specs data
       const processedSpecs = specs.map(spec => ({
@@ -329,9 +365,16 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         specs: processedSpecs
       }
       
+      console.log('[DEBUG] ==== PREPARING TO SEND POST /api/instruments ====')
+      console.log('[DEBUG] Request body (formData):', JSON.stringify(formData, null, 2))
+      console.log('[DEBUG] ==== LAUNCHING REQUEST ====')
+      
       // Submit to API
       const url = initialData ? `${API_BASE_URL}/instruments/${initialData.id}` : `${API_BASE_URL}/instruments`
       const method = initialData ? 'PUT' : 'POST'
+      
+      console.log('[DEBUG] Fetch URL:', url)
+      console.log('[DEBUG] Fetch method:', method)
       
       const response = await fetch(url, {
         method,
@@ -340,6 +383,8 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         },
         body: JSON.stringify(formData)
       })
+      
+      console.log('[DEBUG] Response status:', response.status)
       
       if (!response.ok) throw new Error('提交失败')
       
