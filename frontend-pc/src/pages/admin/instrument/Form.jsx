@@ -261,90 +261,130 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }))
   }
 
-  // Upload pending files manually and return the uploaded URLs
   const uploadPendingFiles = async () => {
-    console.log('[DEBUG] uploadPendingFiles called')
-    console.log('[DEBUG] Current fileList:', JSON.parse(JSON.stringify(fileList)))
-    
     const pendingFiles = fileList.filter(file => file.status !== 'done')
-    console.log('[DEBUG] Pending files (status !== done):', pendingFiles)
-    
-    // Collect already uploaded images from current fileList
     const previouslyUploadedImages = fileList
       .filter(file => file.status === 'done' && file.url)
       .map(file => file.url)
-    console.log('[DEBUG] Previously uploaded images:', previouslyUploadedImages)
     
     if (pendingFiles.length === 0) {
-      console.log('[DEBUG] No pending files, returning already uploaded:', previouslyUploadedImages)
       return { success: true, uploadedImages: previouslyUploadedImages }
     }
     
     const newlyUploadedImages = []
+    const failedFiles = []
+    
+    // Initialize progress tracking for all pending files
+    setUploadStatus(prev => ({
+      ...prev,
+      isUploading: true,
+      progress: pendingFiles.reduce((acc, file) => ({
+        ...acc,
+        [file.uid]: { percent: 0, status: 'uploading' }
+      }), {}),
+      failedFiles: []
+    }))
     
     const uploadPromises = pendingFiles.map(async (file) => {
       try {
-        console.log('[DEBUG] Uploading file:', file.name, 'uid:', file.uid)
-        const formData = new FormData()
-        formData.append('file', file.originFileObj || file)
-        
-        const response = await fetch(`${API_BASE_URL}/upload`, {
-          method: 'POST',
-          body: formData,
-        })
-        
-        if (!response.ok) {
-          throw new Error('Upload failed')
+        const onProgress = (percent) => {
+          setUploadStatus(prev => ({
+            ...prev,
+            progress: {
+              ...prev.progress,
+              [file.uid]: { percent, status: 'uploading' }
+            }
+          }))
         }
         
-        const result = await response.json()
-        console.log('[DEBUG] Upload response for', file.name, ':', result)
-        
-        const uploadedUrl = result.data?.url || result.url
+        const uploadedUrl = await uploadFileWithProgress(file, onProgress)
         newlyUploadedImages.push(uploadedUrl)
-        console.log('[DEBUG] Uploaded URL:', uploadedUrl)
-        console.log('[DEBUG] newlyUploadedImages array now:', newlyUploadedImages)
         
-        // Update the file in fileList (for UI purposes, but don't rely on this for return value)
+        // Update fileList with uploaded status
         setFileList(prev => prev.map(f => {
           if (f.uid === file.uid) {
-            return {
-              ...f,
-              status: 'done',
-              url: uploadedUrl,
-              response: {
-                code: 20000,
-                data: { url: uploadedUrl }
-              }
-            }
+            return { ...f, status: 'done', url: uploadedUrl }
           }
           return f
         }))
         
-        return { success: true }
+        // Mark as completed
+        setUploadStatus(prev => ({
+          ...prev,
+          progress: {
+            ...prev.progress,
+            [file.uid]: { percent: 100, status: 'done' }
+          }
+        }))
+        
+        return { success: true, file }
       } catch (error) {
-        console.error('[DEBUG] Upload failed for', file.name, ':', error)
-        message.error(`图片 ${file.name} 上传失败`)
-        return { success: false, error }
+        console.error('Upload failed for', file.name, ':', error)
+        failedFiles.push(file)
+        
+        setUploadStatus(prev => ({
+          ...prev,
+          progress: {
+            ...prev.progress,
+            [file.uid]: { percent: 0, status: 'error' }
+          },
+          failedFiles: [...prev.failedFiles, file]
+        }))
+        
+        return { success: false, file, error }
       }
     })
     
     const results = await Promise.all(uploadPromises)
     const allSuccess = results.every(r => r.success)
     
+    setUploadStatus(prev => ({ ...prev, isUploading: false }))
+    
     if (!allSuccess) {
-      console.error('[DEBUG] Some uploads failed:', results)
-      throw new Error('部分图片上传失败')
+      message.error('部分图片上传失败，请重试')
+      return { success: false, uploadedImages: [], failedFiles }
     }
     
-    console.log('[DEBUG] All uploads successful, results:', results)
-    console.log('[DEBUG] newlyUploadedImages:', newlyUploadedImages)
+    return { 
+      success: true, 
+      uploadedImages: [...previouslyUploadedImages, ...newlyUploadedImages] 
+    }
+  }
+
+  const retryUpload = async (file) => {
+    const onProgress = (percent) => {
+      setUploadStatus(prev => ({
+        ...prev,
+        progress: {
+          ...prev.progress,
+          [file.uid]: { percent, status: 'uploading' }
+        }
+      }))
+    }
     
-    // Combine previously uploaded with newly uploaded
-    const allUploadedImages = [...previouslyUploadedImages, ...newlyUploadedImages]
-    console.log('[DEBUG] Combined allUploadedImages (prev + new):', allUploadedImages)
-    
-    return { success: true, uploadedImages: allUploadedImages }
+    try {
+      const uploadedUrl = await uploadFileWithProgress(file, onProgress)
+      
+      setFileList(prev => prev.map(f => {
+        if (f.uid === file.uid) {
+          return { ...f, status: 'done', url: uploadedUrl }
+        }
+        return f
+      }))
+      
+      setUploadStatus(prev => ({
+        ...prev,
+        progress: {
+          ...prev.progress,
+          [file.uid]: { percent: 100, status: 'done' }
+        },
+        failedFiles: prev.failedFiles.filter(f => f.uid !== file.uid)
+      }))
+      
+      message.success(`${file.name} 上传成功`)
+    } catch (error) {
+      message.error(`${file.name} 重试失败`)
+    }
   }
 
   const handleSubmit = async () => {
@@ -352,10 +392,21 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     
     try {
       const values = await form.validateFields()
+      
+      // Check if any files are uploading or failed
+      if (uploadStatus.isUploading) {
+        message.warning('请等待图像上传完成')
+        return
+      }
+      
+      if (uploadStatus.failedFiles.length > 0) {
+        message.error('请先处理上传失败的图片')
+        return
+      }
+      
       setLoading(true)
       
       console.log('[DEBUG] Form values:', values)
-      console.log('[DEBUG] Current fileList before upload:', JSON.parse(JSON.stringify(fileList)))
       
       // Upload pending files first and get the uploaded image URLs
       let images = []
@@ -371,7 +422,6 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       }
       
       console.log('[DEBUG] Final images array:', images)
-      console.log('[DEBUG] Final fileList state:', JSON.parse(JSON.stringify(fileList)))
       
       // Prepare specs data
       const processedSpecs = specs.map(spec => ({
@@ -410,9 +460,6 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       const url = initialData ? `${API_BASE_URL}/instruments/${initialData.id}` : `${API_BASE_URL}/instruments`
       const method = initialData ? 'PUT' : 'POST'
       
-      console.log('[DEBUG] Fetch URL:', url)
-      console.log('[DEBUG] Fetch method:', method)
-      
       const response = await fetch(url, {
         method,
         headers: {
@@ -426,19 +473,18 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       if (!response.ok) throw new Error('提交失败')
       
       const result = await response.json()
-      // Accept both 20000 (standard success) and 20100 (created success)
       if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
         onSubmit(result.data)
         form.resetFields()
         setFileList([])
         setSpecs([{ id: Date.now(), name: '', daily_rent: 0, weekly_rent: 0, monthly_rent: 0, deposit: 0, stock: 0 }])
+        setUploadStatus({ isUploading: false, progress: {}, failedFiles: [] })
       } else {
         throw new Error(result.message || '提交失败')
       }
     } catch (error) {
       if (error.errorFields) {
-        // Form validation error
         console.error('Validation failed:', error)
       } else {
         message.error(error.message || '提交失败')
