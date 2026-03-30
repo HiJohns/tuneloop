@@ -213,11 +213,19 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }))
   }
 
-  // Upload pending files manually
+  // Upload pending files manually and return the uploaded URLs
   const uploadPendingFiles = async () => {
     const pendingFiles = fileList.filter(file => file.status !== 'done')
     
-    if (pendingFiles.length === 0) return { success: true }
+    if (pendingFiles.length === 0) {
+      // Return already uploaded URLs
+      const uploadedImages = fileList
+        .filter(file => file.status === 'done' && file.url)
+        .map(file => file.url)
+      return { success: true, uploadedImages }
+    }
+    
+    const uploadedImages = []
     
     const uploadPromises = pendingFiles.map(async (file) => {
       try {
@@ -235,16 +243,19 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         
         const result = await response.json()
         
+        const uploadedUrl = result.data?.url || result.url
+        uploadedImages.push(uploadedUrl)
+        
         // Update the file in fileList
         setFileList(prev => prev.map(f => {
           if (f.uid === file.uid) {
             return {
               ...f,
               status: 'done',
-              url: result.data?.url || result.url,
+              url: uploadedUrl,
               response: {
                 code: 20000,
-                data: { url: result.data?.url || result.url }
+                data: { url: uploadedUrl }
               }
             }
           }
@@ -265,7 +276,12 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       throw new Error('部分图片上传失败')
     }
     
-    return { success: true }
+    // Return all uploaded URLs (both previously and newly uploaded)
+    const allUploadedImages = fileList
+      .filter(file => file.status === 'done' && file.url)
+      .map(file => file.url)
+    
+    return { success: true, uploadedImages: allUploadedImages }
   }
 
   const handleSubmit = async () => {
@@ -273,19 +289,16 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       const values = await form.validateFields()
       setLoading(true)
       
-      // Upload pending files first
+      // Upload pending files first and get the uploaded image URLs
+      let images = []
       if (fileList.length > 0) {
         const uploadResult = await uploadPendingFiles()
         if (!uploadResult.success) {
           setLoading(false)
           return
         }
+        images = uploadResult.uploadedImages || []
       }
-      
-      // Extract image URLs from fileList
-      const images = fileList
-        .filter(file => file.status === 'done' && file.url)
-        .map(file => file.url)
       
       // Prepare specs data
       const processedSpecs = specs.map(spec => ({
