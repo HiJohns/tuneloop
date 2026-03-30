@@ -114,7 +114,37 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       })
     }
     reader.readAsDataURL(file)
-    return true // Allow upload to proceed
+    return false // Prevent automatic upload, handle manually
+  }
+
+  const uploadFileWithProgress = (file, onProgress) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      
+      // Progress tracking
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          onProgress(percent)
+        }
+      }
+      
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const result = JSON.parse(xhr.responseText)
+          resolve(result.data?.url || result.url)
+        } else {
+          reject(new Error('Upload failed'))
+        }
+      }
+      
+      xhr.onerror = () => reject(new Error('Network error'))
+      
+      xhr.open('POST', `${API_BASE_URL}/upload`)
+      const formData = new FormData()
+      formData.append('file', file.originFileObj || file)
+      xhr.send(formData)
+    })
   }
 
   const handleUploadChange = ({ fileList: newFileList }) => {
