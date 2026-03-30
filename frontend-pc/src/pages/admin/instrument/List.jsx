@@ -41,7 +41,20 @@ export default function InstrumentList() {
     try {
       const data = await api.get('/instruments')
       // api.js 已经规范化响应，直接返回数组
-      setInstruments(Array.isArray(data) ? data : [])
+      // 解析 pricing JSON 并展开为独立字段
+      const parsedInstruments = data.map(item => {
+        let pricing = {}
+        try {
+          pricing = JSON.parse(item.pricing || '{}')
+        } catch (e) {}
+        return {
+          ...item,
+          daily_rate: pricing.daily_rent,
+          monthly_rate: pricing.monthly_rent,
+          deposit: pricing.deposit
+        }
+      })
+      setInstruments(parsedInstruments)
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
       setInstruments([])
