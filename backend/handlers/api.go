@@ -2,10 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
+	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -254,16 +259,71 @@ func HandleUpload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "No file uploaded",
+			"code":    40001,
+			"message": "No file uploaded",
 		})
 		return
 	}
 
+	allowedTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/gif":  true,
+		"image/webp": true,
+	}
+
+	if !allowedTypes[file.Header.Get("Content-Type")] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "Invalid file type. Only JPEG, PNG, GIF, WebP allowed",
+		})
+		return
+	}
+
+	if file.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "File too large. Max size is 10MB",
+		})
+		return
+	}
+
+	uploadDir := "./uploads"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50001,
+			"message": "Failed to create upload directory",
+		})
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	timestamp := time.Now().UnixNano()
+	randomStr := fmt.Sprintf("%08x", rand.Int31())
+	filename := fmt.Sprintf("%d_%s%s", timestamp, randomStr, ext)
+	filepath := filepath.Join(uploadDir, filename)
+
+	if err := c.SaveUploadedFile(file, filepath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50002,
+			"message": "Failed to save file",
+		})
+		return
+	}
+
+	baseURL := os.Getenv("UPLOAD_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:5554/uploads"
+	}
+	fileURL := fmt.Sprintf("%s/%s", baseURL, filename)
+
 	c.JSON(http.StatusOK, gin.H{
-		"success":  true,
-		"fileName": file.Filename,
-		"url":      "https://dummy.tuneloop.com/uploads/mock-image.jpg",
-		"size":     file.Size,
+		"code": 20000,
+		"data": gin.H{
+			"url":      fileURL,
+			"fileName": file.Filename,
+			"size":     file.Size,
+		},
 	})
 }
 
