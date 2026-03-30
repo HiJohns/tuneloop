@@ -1,12 +1,24 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
-  const cookies = document.cookie.split(';')
-  for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=')
-    if (name === 'token') return value
+  // 优先从 localStorage 获取（与 OAuthCallback 存储一致）
+  const token = localStorage.getItem('token')
+  const expiry = localStorage.getItem('token_expiry')
+  
+  if (!token || !expiry) {
+    // 尝试从 sessionStorage 获取
+    return sessionStorage.getItem('token')
   }
-  return localStorage.getItem('token') || sessionStorage.getItem('token')
+  
+  // 检查 token 过期（与 App.jsx 保持一致）
+  if (new Date().getTime() > parseInt(expiry)) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('token_expiry')
+    localStorage.removeItem('user_info')
+    return null
+  }
+  
+  return token
 }
 
 async function request(endpoint, options = {}) {
