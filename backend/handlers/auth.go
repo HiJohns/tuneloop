@@ -77,6 +77,10 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
+	// Set access_token and refresh_token cookies
+	c.SetCookie("token", tokenResp.AccessToken, 604800, "/", "", false, false)
+	c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true) // 30 days, httpOnly
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": tokenResp,
