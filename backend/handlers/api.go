@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"strconv"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -15,8 +16,32 @@ func GetInstruments(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	var total int64
+	if err := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID).Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to count instruments",
+		})
+		return
+	}
+
+	// Get paginated results
 	var instruments []models.Instrument
-	if err := db.Where("tenant_id = ?", tenantID).Find(&instruments).Error; err != nil {
+	if err := db.Where("tenant_id = ?", tenantID).Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch instruments",
@@ -104,6 +129,12 @@ func GetInstruments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": responseInstruments,
+		"pagination": gin.H{
+			"page":       page,
+			"pageSize":   pageSize,
+			"total":      total,
+			"totalPages": (total + int64(pageSize) - 1) / int64(pageSize),
+		},
 	})
 }
 
