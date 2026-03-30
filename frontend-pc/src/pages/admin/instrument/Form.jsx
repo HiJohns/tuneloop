@@ -234,16 +234,18 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     const pendingFiles = fileList.filter(file => file.status !== 'done')
     console.log('[DEBUG] Pending files (status !== done):', pendingFiles)
     
+    // Collect already uploaded images from current fileList
+    const previouslyUploadedImages = fileList
+      .filter(file => file.status === 'done' && file.url)
+      .map(file => file.url)
+    console.log('[DEBUG] Previously uploaded images:', previouslyUploadedImages)
+    
     if (pendingFiles.length === 0) {
-      // Return already uploaded URLs
-      const uploadedImages = fileList
-        .filter(file => file.status === 'done' && file.url)
-        .map(file => file.url)
-      console.log('[DEBUG] No pending files, returning already uploaded:', uploadedImages)
-      return { success: true, uploadedImages }
+      console.log('[DEBUG] No pending files, returning already uploaded:', previouslyUploadedImages)
+      return { success: true, uploadedImages: previouslyUploadedImages }
     }
     
-    const uploadedImages = []
+    const newlyUploadedImages = []
     
     const uploadPromises = pendingFiles.map(async (file) => {
       try {
@@ -264,10 +266,11 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         console.log('[DEBUG] Upload response for', file.name, ':', result)
         
         const uploadedUrl = result.data?.url || result.url
-        uploadedImages.push(uploadedUrl)
+        newlyUploadedImages.push(uploadedUrl)
         console.log('[DEBUG] Uploaded URL:', uploadedUrl)
+        console.log('[DEBUG] newlyUploadedImages array now:', newlyUploadedImages)
         
-        // Update the file in fileList
+        // Update the file in fileList (for UI purposes, but don't rely on this for return value)
         setFileList(prev => prev.map(f => {
           if (f.uid === file.uid) {
             return {
@@ -300,13 +303,12 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }
     
     console.log('[DEBUG] All uploads successful, results:', results)
+    console.log('[DEBUG] newlyUploadedImages:', newlyUploadedImages)
     
-    // Return all uploaded URLs (both previously and newly uploaded)
-    const allUploadedImages = fileList
-      .filter(file => file.status === 'done' && file.url)
-      .map(file => file.url)
+    // Combine previously uploaded with newly uploaded
+    const allUploadedImages = [...previouslyUploadedImages, ...newlyUploadedImages]
+    console.log('[DEBUG] Combined allUploadedImages (prev + new):', allUploadedImages)
     
-    console.log('[DEBUG] Final uploadedImages from fileList:', allUploadedImages)
     return { success: true, uploadedImages: allUploadedImages }
   }
 
