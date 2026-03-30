@@ -58,7 +58,7 @@ export default function Detail() {
     setCanUseDepositFree(creditScore >= 650)
   }, [userCreditScore])
 
-  const currentLevel = instrument?.levels.find(l => {
+  const currentLevel = instrument?.levels?.find(l => {
     return l.name === selectedLevel
   })
 
@@ -173,7 +173,7 @@ export default function Detail() {
                   <div className="text-center py-2 px-3">
                     <div className="font-medium">入门级</div>
                     <div className="text-xs text-gray-500">
-                      ¥{instrument.levels[0]?.monthlyRent || 0}/月
+                      ¥{instrument?.levels?.[0]?.monthlyRent || 0}/月
                     </div>
                   </div>
                 ), 
@@ -184,7 +184,7 @@ export default function Detail() {
                   <div className="text-center py-2 px-3">
                     <div className="font-medium">专业级</div>
                     <div className="text-xs text-gray-500">
-                      ¥{instrument.levels[1]?.monthlyRent || 0}/月
+                      ¥{instrument?.levels?.[1]?.monthlyRent || 0}/月
                     </div>
                   </div>
                 ), 
@@ -195,7 +195,7 @@ export default function Detail() {
                   <div className="text-center py-2 px-3">
                     <div className="font-medium">大师级</div>
                     <div className="text-xs text-gray-500">
-                      ¥{instrument.levels[2]?.monthlyRent || 0}/月
+                      ¥{instrument?.levels?.[2]?.monthlyRent || 0}/月
                     </div>
                   </div>
                 ), 

@@ -255,7 +255,8 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       if (!response.ok) throw new Error('提交失败')
       
       const result = await response.json()
-      if (result.code === 20000) {
+      // Accept both 20000 (standard success) and 20100 (created success)
+      if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
         onSubmit(result.data)
         form.resetFields()
