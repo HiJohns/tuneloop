@@ -22,6 +22,7 @@ export default function InstrumentList() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
+  const [expandedRowKeys, setExpandedRowKeys] = useState([])
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   // Import/Export state
@@ -550,6 +551,75 @@ export default function InstrumentList() {
         rowKey="id"
         loading={loading}
         rowSelection={handleRowSelection}
+        expandedRowKeys={expandedRowKeys}
+        onExpand={(expanded, record) => {
+          if (expanded) {
+            setExpandedRowKeys([...expandedRowKeys, record.id])
+          } else {
+            setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
+          }
+        }}
+        expandIcon={({ expanded, onExpand, record }) => (
+          <div
+            onClick={e => onExpand(record, e)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <span style={{ marginRight: 8 }}>规格详情</span>
+            <div style={{ 
+              width: 0, 
+              height: 0, 
+              borderLeft: '6px solid #666',
+              borderTop: '4px solid transparent',
+              borderBottom: '4px solid transparent',
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s'
+            }} />
+          </div>
+        )}
+        expandedRowRender={(record) => {
+          const specs = record.specs || []
+          if (specs.length === 0) {
+            return <div style={{ padding: '16px', color: '#999' }}>暂无规格信息</div>
+          }
+          
+          return (
+            <div style={{ margin: '-16px', padding: '16px', background: '#fafafa' }}>
+              <Table
+                dataSource={specs}
+                columns={[
+                  { title: '规格名称', dataIndex: 'name', key: 'name' },
+                  { 
+                    title: '日租金', 
+                    key: 'daily_rent',
+                    render: (text, spec) => `¥${spec.daily_rent || 0}`
+                  },
+                  { 
+                    title: '周租金', 
+                    key: 'weekly_rent',
+                    render: (text, spec) => `¥${spec.weekly_rent || 0}`
+                  },
+                  { 
+                    title: '月租金', 
+                    key: 'monthly_rent',
+                    render: (text, spec) => `¥${spec.monthly_rent || 0}`
+                  },
+                  { 
+                    title: '押金', 
+                    key: 'deposit',
+                    render: (text, spec) => `¥${spec.deposit || 0}`
+                  },
+                  { 
+                    title: '库存', 
+                    key: 'stock',
+                    render: (text, spec) => spec.stock || 0
+                  }
+                ]}
+                pagination={false}
+                rowKey="name"
+              />
+            </div>
+          )
+        }}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
