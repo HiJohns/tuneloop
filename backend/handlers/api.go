@@ -320,11 +320,7 @@ func HandleUpload(c *gin.Context) {
 		return
 	}
 
-	baseURL := os.Getenv("UPLOAD_BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:5554/uploads"
-	}
-	fileURL := fmt.Sprintf("%s/%s", baseURL, filename)
+	fileURL := fmt.Sprintf("/uploads/%s", filename)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

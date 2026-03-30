@@ -31,7 +31,6 @@
 ### 文件上传配置
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
-| `UPLOAD_BASE_URL` | 上传文件的访问基准URL | `http://localhost:5554/uploads` |
 | `UPLOAD_MAX_SIZE` | 最大文件大小（MB） | `10` |
 
 ## 配置优先级
