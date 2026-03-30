@@ -1,24 +1,40 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
-  // 优先从 localStorage 获取（与 OAuthCallback 存储一致）
+  // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
   
-  if (!token || !expiry) {
-    // 尝试从 sessionStorage 获取
-    return sessionStorage.getItem('token')
+  if (token && expiry) {
+    // 检查 token 过期
+    if (new Date().getTime() > parseInt(expiry)) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('token_expiry')
+      localStorage.removeItem('user_info')
+      // 过期时尝试从 cookie 获取
+      return getTokenFromCookie()
+    }
+    return token
   }
   
-  // 检查 token 过期（与 App.jsx 保持一致）
-  if (new Date().getTime() > parseInt(expiry)) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('token_expiry')
-    localStorage.removeItem('user_info')
-    return null
+  // 2. 尝试从 sessionStorage 获取
+  const sessionToken = sessionStorage.getItem('token')
+  if (sessionToken) {
+    return sessionToken
   }
   
-  return token
+  // 3. 最后从 cookie 获取作为 fallback
+  // 这主要是为了处理页面刷新后 localStorage 不可用的场景
+  return getTokenFromCookie()
+}
+
+function getTokenFromCookie() {
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=')
+    if (name === 'token') return value
+  }
+  return null
 }
 
 async function request(endpoint, options = {}) {
