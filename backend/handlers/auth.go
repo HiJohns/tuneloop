@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"log"
 	"net/http"
 	"os"
 	"tuneloop-backend/services"
@@ -77,7 +78,14 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
+	// Log token info for debugging (DO NOT log full token in production!)
+	log.Printf("[DEBUG Callback] Setting cookies for tenant: %s", c.GetString("tenant_id"))
+	log.Printf("[DEBUG Callback] Access token length: %d", len(tokenResp.AccessToken))
+	log.Printf("[DEBUG Callback] Refresh token length: %d", len(tokenResp.RefreshToken))
+
 	// Set access_token and refresh_token cookies
+	// Use SameSite=None and Secure=false for local development
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("token", tokenResp.AccessToken, 604800, "/", "", false, false)
 	c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true) // 30 days, httpOnly
 
