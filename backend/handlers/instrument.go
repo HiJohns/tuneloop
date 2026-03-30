@@ -14,15 +14,16 @@ import (
 var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
-	Name           string                 `json:"name" binding:"required"`
-	Brand          string                 `json:"brand"`
-	Level          string                 `json:"level" binding:"required"`
-	CategoryID     string                 `json:"category_id" binding:"required"`
-	Pricing        map[string]interface{} `json:"pricing"`
-	Description    string                 `json:"description"`
-	Images         []string               `json:"images"`
-	Video          string                 `json:"video"`
-	Specifications map[string]interface{} `json:"specifications"`
+	Name           string                   `json:"name" binding:"required"`
+	Brand          string                   `json:"brand"`
+	Level          string                   `json:"level" binding:"required"`
+	CategoryID     string                   `json:"category_id" binding:"required"`
+	Pricing        map[string]interface{}   `json:"pricing"`
+	Description    string                   `json:"description"`
+	Images         []string                 `json:"images"`
+	Video          string                   `json:"video"`
+	Specifications map[string]interface{}   `json:"specifications"`
+	Specs          []map[string]interface{} `json:"specs"`
 }
 
 func GetInstrumentPricing(c *gin.Context) {

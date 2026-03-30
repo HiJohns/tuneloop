@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -22,9 +24,86 @@ func GetInstruments(c *gin.Context) {
 		return
 	}
 
+	// Process instruments to parse specifications and pricing into specs array
+	var responseInstruments []map[string]interface{}
+	for _, instrument := range instruments {
+		instrumentMap := map[string]interface{}{
+			"id":             instrument.ID,
+			"tenant_id":      instrument.TenantID,
+			"org_id":         instrument.OrgID,
+			"category_id":    instrument.CategoryID,
+			"category_name":  instrument.CategoryName,
+			"name":           instrument.Name,
+			"brand":          instrument.Brand,
+			"level":          instrument.Level,
+			"level_name":     instrument.LevelName,
+			"description":    instrument.Description,
+			"images":         json.RawMessage(instrument.Images),
+			"video":          instrument.Video,
+			"stock_status":   instrument.StockStatus,
+			"created_at":     instrument.CreatedAt,
+			"updated_at":     instrument.UpdatedAt,
+			"specifications": json.RawMessage(instrument.Specifications),
+			"pricing":        json.RawMessage(instrument.Pricing),
+		}
+
+		// Parse specifications JSON
+		var specs []map[string]interface{}
+		if instrument.Specifications != "" && instrument.Specifications != "{}" {
+			if err := json.Unmarshal([]byte(instrument.Specifications), &specs); err != nil {
+				log.Printf("[WARN] Failed to parse specifications for instrument %s: %v", instrument.ID, err)
+			}
+		}
+
+		// If specs is empty, try parsing as object and convert to array
+		if len(specs) == 0 && instrument.Specifications != "" && instrument.Specifications != "{}" {
+			var specObj map[string]interface{}
+			if err := json.Unmarshal([]byte(instrument.Specifications), &specObj); err == nil {
+				// Try to convert to array format
+				if _, ok := specObj["name"].(string); ok {
+					specs = []map[string]interface{}{specObj}
+				}
+			}
+		}
+
+		// Parse pricing JSON and merge into specs
+		if instrument.Pricing != "" && instrument.Pricing != "{}" {
+			var pricing map[string]interface{}
+			if err := json.Unmarshal([]byte(instrument.Pricing), &pricing); err == nil {
+				// If specs is empty, create one from pricing
+				if len(specs) == 0 {
+					specs = []map[string]interface{}{pricing}
+				} else {
+					// Merge pricing into first spec (maintain backward compatibility)
+					for k, v := range pricing {
+						if len(specs) > 0 {
+							specs[0][k] = v
+						}
+					}
+				}
+			}
+		}
+
+		// Add specs to response
+		instrumentMap["specs"] = specs
+
+		// Calculate total stock from specs
+		totalStock := 0
+		for _, spec := range specs {
+			if stock, ok := spec["stock"].(float64); ok {
+				totalStock += int(stock)
+			} else if stock, ok := spec["stock"].(int); ok {
+				totalStock += stock
+			}
+		}
+		instrumentMap["stock"] = totalStock
+
+		responseInstruments = append(responseInstruments, instrumentMap)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": instruments,
+		"data": responseInstruments,
 	})
 }
 
