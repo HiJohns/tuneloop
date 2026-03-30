@@ -22,6 +22,16 @@ export default function InstrumentDetail() {
     fetchInstrument()
   }, [id])
 
+  // Check for low stock alert - MUST be before any conditional returns
+  useEffect(() => {
+    if (instrument && instrument.stock && instrument.stock.available < 2) {
+      setThresholdAlert({
+        threshold: 2,
+        enabled: true
+      })
+    }
+  }, [instrument])
+
   const fetchInstrument = async () => {
     setLoading(true)
     try {
@@ -259,16 +269,6 @@ export default function InstrumentDetail() {
       message.error(error.message || '设置库存预警失败')
     }
   }
-
-  // Check for low stock alert
-  useEffect(() => {
-    if (instrument && instrument.stock && instrument.stock.available < 2) {
-      setThresholdAlert({
-        threshold: 2,
-        enabled: true
-      })
-    }
-  }, [instrument])
 
   return (
     <div className="p-6">
