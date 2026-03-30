@@ -111,8 +111,20 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     setFileList(newFileList.map(file => {
-      if (file.response && file.response.code === 20000) {
-        return { ...file, url: file.response.data.url }
+      // Handle different response formats from upload API
+      if (file.response) {
+        // Format 1: { code: 20000, data: { url: "..." } }
+        if (file.response.code === 20000 && file.response.data?.url) {
+          return { ...file, url: file.response.data.url }
+        }
+        // Format 2: { success: true, url: "..." }
+        else if (file.response.success && file.response.url) {
+          return { ...file, url: file.response.url }
+        }
+        // Format 3: Direct url in response
+        else if (file.response.url) {
+          return { ...file, url: file.response.url }
+        }
       }
       return file
     }).filter(file => file.status !== 'error'))
