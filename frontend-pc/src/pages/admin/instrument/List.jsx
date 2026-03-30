@@ -44,14 +44,19 @@ export default function InstrumentList() {
       // 解析 pricing JSON 并展开为独立字段
       const parsedInstruments = data.map(item => {
         let pricing = {}
+        let specs = []
         try {
           pricing = JSON.parse(item.pricing || '{}')
+        } catch (e) {}
+        try {
+          specs = JSON.parse(item.specifications || '[]')
         } catch (e) {}
         return {
           ...item,
           daily_rate: pricing.daily_rent,
           monthly_rate: pricing.monthly_rent,
-          deposit: pricing.deposit
+          deposit: pricing.deposit,
+          specs: specs
         }
       })
       setInstruments(parsedInstruments)
@@ -122,26 +127,33 @@ export default function InstrumentList() {
     },
     {
       title: '日租金',
-      dataIndex: 'daily_rate',
+      dataIndex: 'specs',
       key: 'daily_rate',
       width: 100,
-      sorter: (a, b) => a.daily_rate - b.daily_rate,
-      render: (rate) => `¥${rate}`
+      render: (specs) => {
+        const firstSpec = specs && specs.length > 0 ? specs[0] : null
+        return firstSpec ? `¥${firstSpec.daily_rent || 0}` : '¥0'
+      }
     },
     {
       title: '月租金',
-      dataIndex: 'monthly_rate',
+      dataIndex: 'specs',
       key: 'monthly_rate',
       width: 100,
-      sorter: (a, b) => a.monthly_rate - b.monthly_rate,
-      render: (rate) => `¥${rate}`
+      render: (specs) => {
+        const firstSpec = specs && specs.length > 0 ? specs[0] : null
+        return firstSpec ? `¥${firstSpec.monthly_rent || 0}` : '¥0'
+      }
     },
     {
       title: '押金',
-      dataIndex: 'deposit',
+      dataIndex: 'specs',
       key: 'deposit',
       width: 100,
-      render: (deposit) => `¥${deposit}`
+      render: (specs) => {
+        const firstSpec = specs && specs.length > 0 ? specs[0] : null
+        return firstSpec ? `¥${firstSpec.deposit || 0}` : '¥0'
+      }
     },
     {
       title: '库存',
@@ -567,6 +579,51 @@ export default function InstrumentList() {
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `共 ${total} 条`
+        }}
+        expandable={{
+          expandedRowRender: (record) => {
+            if (!record.specs || record.specs.length === 0) {
+              return <div className="text-gray-500">暂无规格信息</div>
+            }
+            return (
+              <div className="p-4 bg-gray-50">
+                <h4 className="font-medium mb-3">规格详情</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {record.specs.map((spec, index) => (
+                    <Card key={index} size="small" title={`规格 ${index + 1}: ${spec.name}`}>
+                      <Row gutter={16}>
+                        <Col span={6}>
+                          <div className="text-sm">
+                            <span className="text-gray-500">日租金:</span> ¥{spec.daily_rent || 0}
+                          </div>
+                        </Col>
+                        <Col span={6}>
+                          <div className="text-sm">
+                            <span className="text-gray-500">周租金:</span> ¥{spec.weekly_rent || 0}
+                          </div>
+                        </Col>
+                        <Col span={6}>
+                          <div className="text-sm">
+                            <span className="text-gray-500">月租金:</span> ¥{spec.monthly_rent || 0}
+                          </div>
+                        </Col>
+                        <Col span={6}>
+                          <div className="text-sm">
+                            <span className="text-gray-500">押金:</span> ¥{spec.deposit || 0}
+                          </div>
+                        </Col>
+                        <Col span={6}>
+                          <div className="text-sm">
+                            <span className="text-gray-500">库存:</span> {spec.stock || 0} 件
+                          </div>
+                        </Col>
+                      </Row>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )
+          }
         }}
       />
       

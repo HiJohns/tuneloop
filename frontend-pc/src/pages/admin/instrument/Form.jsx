@@ -206,6 +206,14 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       const values = await form.validateFields()
       setLoading(true)
       
+      // Check if all images have finished uploading
+      const uploadingFiles = fileList.filter(file => file.status === 'uploading')
+      if (uploadingFiles.length > 0) {
+        message.warning('请等待所有图片上传完成后再提交')
+        setLoading(false)
+        return
+      }
+      
       // Extract image URLs from fileList
       const images = fileList
         .filter(file => file.status === 'done' && file.url)
