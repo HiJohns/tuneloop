@@ -76,7 +76,7 @@ func CreateInstrument(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[DEBUG CreateInstrument] Creating instrument: name=%s, brand=%s, level=%s", req.Name, req.Brand, req.Level)
+	log.Printf("[DEBUG CreateInstrument] Creating instrument: name=%s, brand=%s, level=%s, images=%v", req.Name, req.Brand, req.Level, req.Images)
 
 	instrument := models.Instrument{
 		TenantID:    tenantID,
