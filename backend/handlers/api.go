@@ -280,10 +280,19 @@ func HandleUpload(c *gin.Context) {
 		return
 	}
 
-	if file.Size > 10*1024*1024 {
+	maxSizeStr := os.Getenv("UPLOAD_MAX_SIZE")
+	maxSizeMB := 10 // default 10MB
+	if maxSizeStr != "" {
+		if parsed, err := strconv.Atoi(maxSizeStr); err == nil && parsed > 0 {
+			maxSizeMB = parsed
+		}
+	}
+	maxSizeBytes := int64(maxSizeMB * 1024 * 1024)
+
+	if file.Size > maxSizeBytes {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
-			"message": "File too large. Max size is 10MB",
+			"message": fmt.Sprintf("File too large. Max size is %dMB", maxSizeMB),
 		})
 		return
 	}

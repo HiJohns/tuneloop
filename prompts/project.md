@@ -28,6 +28,12 @@
 | `TUNELOOP_WWW_URL` | PC Web 服务地址 | `http://localhost:5554` |
 | `TUNELOOP_WX_URL` | 微信小程序服务地址 | `http://localhost:5553` |
 
+### 文件上传配置
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `UPLOAD_BASE_URL` | 上传文件的访问基准URL | `http://localhost:5554/uploads` |
+| `UPLOAD_MAX_SIZE` | 最大文件大小（MB） | `10` |
+
 ## 配置优先级
 
 1. 新变量名优先：`POSTGRES_*`, `BEACONIAM_*`, `TUNELOOP_WWW_URL`
