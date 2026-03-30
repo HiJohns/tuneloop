@@ -43,6 +43,11 @@ export default function InstrumentList() {
       const data = await api.get('/instruments')
       // api.js 已经规范化响应，直接返回数组
       setInstruments(Array.isArray(data) ? data : [])
+      
+      // Debug: log first instrument's images to verify data format
+      if (data && data.length > 0) {
+        console.log('[DEBUG] First instrument images format:', data[0].images)
+      }
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
       setInstruments([])
@@ -131,37 +136,6 @@ export default function InstrumentList() {
         }
         const config = statusMap[status] || { color: 'default', text: '未知' }
         return <Tag color={config.color}>{config.text}</Tag>
-      }
-    },
-    {
-      title: '规格详情',
-      key: 'specs',
-      width: 140,
-      render: (_, record) => {
-        const isExpanded = expandedRowKeys.includes(record.id)
-        return (
-          <div
-            onClick={() => {
-              if (isExpanded) {
-                setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
-              } else {
-                setExpandedRowKeys([...expandedRowKeys, record.id])
-              }
-            }}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <span style={{ marginRight: 8 }}>规格详情</span>
-            <div style={{ 
-              width: 0, 
-              height: 0, 
-              borderLeft: '6px solid #666',
-              borderTop: '4px solid transparent',
-              borderBottom: '4px solid transparent',
-              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s'
-            }} />
-          </div>
-        )
       }
     },
     {
@@ -566,6 +540,18 @@ export default function InstrumentList() {
             setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
           }
         }}
+        expandIcon={({ expanded, onExpand, record }) => (
+          <div
+            onClick={e => onExpand(record, e)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {expanded ? (
+              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>-</span>
+            ) : (
+              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span>
+            )}
+          </div>
+        )}
         expandedRowRender={(record) => {
           const specs = record.specs || []
           if (specs.length === 0) {
