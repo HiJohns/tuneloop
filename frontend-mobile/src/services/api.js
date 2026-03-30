@@ -1,54 +1,42 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
-function getToken() {
-  console.log('[Token Debug] Starting getToken()')
-  
+export function getToken() {
   // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
-  console.log('[Token Debug] localStorage - token:', !!token, 'expiry:', expiry)
   
   if (token && expiry) {
     const isExpired = new Date().getTime() > parseInt(expiry)
-    console.log('[Token Debug] Token expired check:', isExpired)
     
     if (isExpired) {
-      console.log('[Token Debug] Token expired, clearing storage')
       localStorage.removeItem('token')
       localStorage.removeItem('token_expiry')
       localStorage.removeItem('user_info')
       // 过期时尝试从 cookie 获取
       const cookieToken = getTokenFromCookie()
-      console.log('[Token Debug] Fallback to cookie token:', !!cookieToken)
       return cookieToken
     }
-    console.log('[Token Debug] Returning localStorage token')
     return token
   }
   
   // 2. 尝试从 sessionStorage 获取
   const sessionToken = sessionStorage.getItem('token')
-  console.log('[Token Debug] sessionStorage token:', !!sessionToken)
   if (sessionToken) return sessionToken
   
   // 3. 最后从 cookie 获取作为 fallback
   // 这主要是为了处理页面刷新后 localStorage 不可用的场景
   const cookieToken = getTokenFromCookie()
-  console.log('[Token Debug] Fallback to cookie token:', !!cookieToken)
   return cookieToken
 }
 
-function getTokenFromCookie() {
-  console.log('[Token Debug] Checking cookies for token')
+export function getTokenFromCookie() {
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=')
     if (name === 'token') {
-      console.log('[Token Debug] Found token in cookie')
       return value
     }
   }
-  console.log('[Token Debug] No token found in cookie')
   return null
 }
 
@@ -64,15 +52,6 @@ async function request(endpoint, options = {}) {
   }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
-    console.log('[API Debug] Authorization header SET for:', endpoint)
-  } else {
-    console.log('[API Debug] NO Authorization header for:', endpoint)
-  }
-
-  // Debug alert for /instruments endpoint
-  if (endpoint === '/instruments' || endpoint.startsWith('/instruments/')) {
-    const cookieToken = getTokenFromCookie()
-    alert(`Request to: ${endpoint}\nAuthorization header: ${headers['Authorization'] || 'NOT SET'}\nCookie token: ${cookieToken || 'NOT FOUND'}`)
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -106,6 +85,25 @@ async function request(endpoint, options = {}) {
   }
 
   const data = await response.json()
+  
+  // 处理 token 过期错误
+  if (data.code === 40101 || data.code === 401) {
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    
+    // 跳转到登录页面 - 使用与 HTTP 401 相同的逻辑
+    if (window.APP_CONFIG?.iamLoginUrl) {
+      window.location.href = window.APP_CONFIG.iamLoginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
+    } else {
+      const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+      const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
+      const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+      const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+      window.location.href = authUrl
+    }
+    return []
+  }
   
   // 标准化响应：确保返回数组
   if (Array.isArray(data)) {

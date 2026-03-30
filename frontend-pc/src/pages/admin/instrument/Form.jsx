@@ -201,10 +201,74 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }))
   }
 
+  // Upload pending files manually
+  const uploadPendingFiles = async () => {
+    const pendingFiles = fileList.filter(file => file.status !== 'done')
+    
+    if (pendingFiles.length === 0) return { success: true }
+    
+    const uploadPromises = pendingFiles.map(async (file) => {
+      try {
+        const formData = new FormData()
+        formData.append('file', file.originFileObj || file)
+        
+        const response = await fetch(`${API_BASE_URL}/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+        
+        if (!response.ok) {
+          throw new Error('Upload failed')
+        }
+        
+        const result = await response.json()
+        
+        // Update the file in fileList
+        setFileList(prev => prev.map(f => {
+          if (f.uid === file.uid) {
+            return {
+              ...f,
+              status: 'done',
+              url: result.data?.url || result.url,
+              response: {
+                code: 20000,
+                data: { url: result.data?.url || result.url }
+              }
+            }
+          }
+          return f
+        }))
+        
+        return { success: true }
+      } catch (error) {
+        message.error(`图片 ${file.name} 上传失败`)
+        return { success: false, error }
+      }
+    })
+    
+    const results = await Promise.all(uploadPromises)
+    const allSuccess = results.every(r => r.success)
+    
+    if (!allSuccess) {
+      throw new Error('部分图片上传失败')
+    }
+    
+    return { success: true }
+  }
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
       setLoading(true)
+      
+      // Upload pending files first
+      if (fileList.length > 0) {
+        const uploadResult = await uploadPendingFiles()
+        if (!uploadResult.success) {
+          setLoading(false)
+          return
+        }
+      }
       
       // Extract image URLs from fileList
       const images = fileList

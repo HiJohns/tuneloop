@@ -48,6 +48,18 @@ async function request(endpoint, options = {}) {
 
   const data = await response.json()
   
+  // 处理 token 过期错误
+  if (data.code === 40101 || data.code === 401) {
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    
+    // 跳转到登录页面 - 使用与 HTTP 401 相同的逻辑
+    const loginUrl = window.APP_CONFIG?.iamLoginUrl || '/api/auth/login'
+    window.location.href = loginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
+    return []
+  }
+  
   // 标准化响应：确保返回数组
   if (Array.isArray(data)) {
     return data
