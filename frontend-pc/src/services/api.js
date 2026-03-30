@@ -101,7 +101,10 @@ export const api = {
 }
 
 export const instrumentsApi = {
-  list: () => api.get('/instruments'),
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/instruments${query ? '?' + query : ''}`)
+  },
   get: (id) => api.get(`/instruments/${id}`),
   getPricing: (id) => api.get(`/instruments/${id}/pricing`),
 }
