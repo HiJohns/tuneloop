@@ -1,50 +1,78 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
+  console.log('[Token Debug] Starting getToken()')
+  
   // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
+  console.log('[Token Debug] localStorage - token:', !!token, 'expiry:', expiry)
   
   if (token && expiry) {
-    // 检查 token 过期
-    if (new Date().getTime() > parseInt(expiry)) {
+    const isExpired = new Date().getTime() > parseInt(expiry)
+    console.log('[Token Debug] Token expired check:', isExpired)
+    
+    if (isExpired) {
+      console.log('[Token Debug] Token expired, clearing storage')
       localStorage.removeItem('token')
       localStorage.removeItem('token_expiry')
       localStorage.removeItem('user_info')
       // 过期时尝试从 cookie 获取
-      return getTokenFromCookie()
+      const cookieToken = getTokenFromCookie()
+      console.log('[Token Debug] Fallback to cookie token:', !!cookieToken)
+      return cookieToken
     }
+    console.log('[Token Debug] Returning localStorage token')
     return token
   }
   
   // 2. 尝试从 sessionStorage 获取
   const sessionToken = sessionStorage.getItem('token')
-  if (sessionToken) {
-    return sessionToken
-  }
+  console.log('[Token Debug] sessionStorage token:', !!sessionToken)
+  if (sessionToken) return sessionToken
   
   // 3. 最后从 cookie 获取作为 fallback
   // 这主要是为了处理页面刷新后 localStorage 不可用的场景
-  return getTokenFromCookie()
+  const cookieToken = getTokenFromCookie()
+  console.log('[Token Debug] Fallback to cookie token:', !!cookieToken)
+  return cookieToken
 }
 
 function getTokenFromCookie() {
+  console.log('[Token Debug] Checking cookies for token')
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=')
-    if (name === 'token') return value
+    if (name === 'token') {
+      console.log('[Token Debug] Found token in cookie')
+      return value
+    }
   }
+  console.log('[Token Debug] No token found in cookie')
   return null
 }
 
 async function request(endpoint, options = {}) {
+  console.log('[API Debug] Making request to:', endpoint)
+  
   const token = getToken()
+  console.log('[API Debug] Token found:', !!token)
+  
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
   }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
+    console.log('[API Debug] Authorization header SET for:', endpoint)
+  } else {
+    console.log('[API Debug] NO Authorization header for:', endpoint)
+  }
+
+  // Debug alert for /instruments endpoint
+  if (endpoint === '/instruments' || endpoint.startsWith('/instruments/')) {
+    const cookieToken = getTokenFromCookie()
+    alert(`Request to: ${endpoint}\nAuthorization header: ${headers['Authorization'] || 'NOT SET'}\nCookie token: ${cookieToken || 'NOT FOUND'}`)
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
