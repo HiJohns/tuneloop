@@ -32,9 +32,12 @@ async function request(endpoint, options = {}) {
     sessionStorage.removeItem('token')
     document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
     
-    // 从后端配置获取 IAM 登录地址
-    const loginUrl = window.APP_CONFIG?.iamLoginUrl || '/api/auth/login'
-    window.location.href = loginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
+    // 跳转到 IAM OAuth 授权页面（与移动端一致）
+    const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+    const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
+    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+    const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+    window.location.href = authUrl
     return
   }
 
