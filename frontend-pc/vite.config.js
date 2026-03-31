@@ -8,8 +8,13 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: ['opencode.linxdeep.com', 'localhost'],
     proxy: {
+      '/uploads': {
+        target: 'http://localhost:5557',
+        changeOrigin: true,
+        secure: false
+      },
       '/api': {
-        target: 'http://localhost:5556',  // API 仍然走 WX 后端
+        target: 'http://localhost:5557',  // API 走 PC 后端
         changeOrigin: true,
         secure: false
       },
