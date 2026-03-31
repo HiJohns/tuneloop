@@ -83,28 +83,121 @@ export default function Home() {
   const [toast, setToast] = useState({ visible: false, message: "" })
   const [instruments, setInstruments] = useState([])
   const [categories, setCategories] = useState(["全部"])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
-    const fetchInstruments = async () => {
+    const fetchInstruments = async (pageNum = 1, append = false) => {
       try {
-        setLoading(true)
-        const data = await instrumentsApi.list()
-        setInstruments(data)
+        if (!append) setLoading(true)
+        else setLoadingMore(true)
         
-        const uniqueCategories = ["全部", ...new Set(
-          data.map(i => i.category).filter(cat => cat)  // 过滤空值
-        )]
-        setCategories(uniqueCategories)
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
+        const result = await response.json()
         
-        setLoading(false)
+        if (result.code === 20000) {
+          const newData = result.data || []
+          
+          if (append) {
+            // Append new data to existing list
+            setInstruments(prev => [...prev, ...newData])
+          } else {
+            // Replace data (initial load)
+            setInstruments(newData)
+          }
+          
+          // Check if there are more pages
+          const pagination = result.pagination
+          if (pagination) {
+            setHasMore(pageNum < pagination.totalPages)
+          } else if (newData.length < 20) {
+            setHasMore(false)
+          }
+        }
+        
+        // Update categories only on initial load
+        if (pageNum === 1) {
+          const allData = pageNum === 1 ? (result.data || []) : instruments
+          const uniqueCategories = ["全部", ...new Set(
+            allData.map(i => i.category).filter(cat => cat)
+          )]
+          setCategories(uniqueCategories)
+        }
+        
+        if (!append) setLoading(false)
+        else setLoadingMore(false)
       } catch (error) {
         console.error('Failed to fetch instruments:', error)
         setLoading(false)
+        setLoadingMore(false)
       }
     }
     
-    fetchInstruments()
+    fetchInstruments(1, false)
   }, [])
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          setPage(prev => {
+            const nextPage = prev + 1
+            // Call fetchInstruments using the function from the outer scope
+            // We need to access it differently since it's not in this scope
+            return nextPage
+          })
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const sentinel = document.getElementById('scroll-sentinel')
+    if (sentinel) observer.observe(sentinel)
+
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore])
+
+  // Load more when page changes
+  useEffect(() => {
+    if (page > 1) {
+      const fetchInstruments = async (pageNum = 1, append = false) => {
+        try {
+          if (!append) setLoading(true)
+          else setLoadingMore(true)
+          
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
+          const result = await response.json()
+          
+          if (result.code === 20000) {
+            const newData = result.data || []
+            
+            if (append) {
+              setInstruments(prev => [...prev, ...newData])
+            } else {
+              setInstruments(newData)
+            }
+            
+            const pagination = result.pagination
+            if (pagination) {
+              setHasMore(pageNum < pagination.totalPages)
+            } else if (newData.length < 20) {
+              setHasMore(false)
+            }
+          }
+          
+          if (!append) setLoading(false)
+          else setLoadingMore(false)
+        } catch (error) {
+          console.error('Failed to fetch instruments:', error)
+          setLoading(false)
+          setLoadingMore(false)
+        }
+      }
+      fetchInstruments(page, true)
+    }
+  }, [page])
 
   const toggleFavorite = (instrumentId) => {
     setFavorites(prev => {
@@ -155,7 +248,12 @@ export default function Home() {
             return (
               <button
                 key={cat || `category-${index}`}
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => {
+                  setActiveCategory(cat)
+                  // Reset pagination when category changes
+                  setPage(1)
+                  setHasMore(true)
+                }}
                 className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                   activeCategory === cat
                     ? 'bg-brand-primary text-white transform scale-105 border-b-2 border-brand-primary'
@@ -183,22 +281,29 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : filteredInstruments.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            暂无更多乐器
-          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            {filteredInstruments.map(instrument => (
-              <InstrumentCard
-                key={instrument.id}
-                instrument={instrument}
-                onClick={() => navigate(`/instrument/${instrument.id}`)}
-                isFavorite={favorites.includes(instrument.id)}
-                onToggleFavorite={toggleFavorite}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              {filteredInstruments.map(instrument => (
+                <InstrumentCard
+                  key={instrument.id}
+                  instrument={instrument}
+                  onClick={() => navigate(`/instrument/${instrument.id}`)}
+                  isFavorite={favorites.includes(instrument.id)}
+                  onToggleFavorite={toggleFavorite}
+                />
+              ))}
+            </div>
+            
+            {/* Loading indicator or sentinel for infinite scroll */}
+            {loadingMore ? (
+              <div className="text-center py-4 text-gray-500 col-span-2">加载中...</div>
+            ) : hasMore ? (
+              <div id="scroll-sentinel" className="h-10 col-span-2"></div>
+            ) : (
+              <div className="text-center py-4 text-gray-500 col-span-2">暂无更多乐器</div>
+            )}
+          </>
         )}
       </div>
 
