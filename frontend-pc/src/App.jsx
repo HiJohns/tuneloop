@@ -218,7 +218,7 @@ function OAuthCallback() {
       return
     }
 
-    const exchangeCodeForToken = async () => {
+    const exchangeCodeForToken = async (retryCount = 0) => {
       try {
         setLoading(true)
         
@@ -231,6 +231,12 @@ function OAuthCallback() {
         })
 
         if (!response.ok) {
+          // If 500 error and haven't retried, try once more
+          if (response.status === 500 && retryCount < 1) {
+            console.log('[OAuth] Got 500, retrying...')
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            return exchangeCodeForToken(retryCount + 1)
+          }
           const errorText = await response.text()
           throw new Error(`Token exchange failed: ${response.status} - ${errorText}`)
         }
