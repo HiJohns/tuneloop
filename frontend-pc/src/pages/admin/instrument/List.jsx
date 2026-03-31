@@ -216,8 +216,7 @@ export default function InstrumentList() {
   }
 
   const addInstrument = () => {
-    setEditingInstrument(null)
-    setFormVisible(true)
+    navigate('/instruments/new/edit')
   }
 
   const handleFormSubmit = (data) => {
