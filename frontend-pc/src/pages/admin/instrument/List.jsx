@@ -90,27 +90,42 @@ export default function InstrumentList() {
       title: '图片',
       dataIndex: 'images',
       key: 'images',
-      width: 80,
-      render: (images) => (
-        <Image
-          src={images && images.length > 0 ? images[0] : '/images/default-instrument.jpg'}
-          alt="instrument"
-          width={60}
-          height={60}
-          className="object-cover rounded"
-        />
+      width: 100,
+      render: (images, record) => (
+        <a 
+          onClick={(e) => {
+            e.preventDefault()
+            navigate(`/instruments/detail/${record.id}`)
+          }}
+          className="cursor-pointer inline-block"
+        >
+          <Image
+            src={images && images.length > 0 ? images[0] : '/images/default-instrument.jpg'}
+            alt="instrument"
+            width={60}
+            height={60}
+            className="object-cover rounded"
+          />
+        </a>
       )
     },
     {
       title: '乐器名称',
       dataIndex: 'name',
       key: 'name',
+      width: 200,
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (text, record) => (
-        <div>
+        <a 
+          onClick={(e) => {
+            e.preventDefault()
+            navigate(`/instruments/detail/${record.id}`)
+          }}
+          className="text-gray-900 hover:text-blue-600 hover:underline cursor-pointer"
+        >
           <div className="font-medium">{text}</div>
           <div className="text-xs text-gray-500">{record.brand} {record.model}</div>
-        </div>
+        </a>
       )
     },
     {
