@@ -1,5 +1,37 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+/**
+ * 检测是否在微信小程序环境中
+ */
+function isWeChatMiniProgram() {
+  return typeof wx !== 'undefined' && wx.miniProgram
+}
+
+/**
+ * 统一的登录重定向函数
+ */
+function redirectToLogin() {
+  // 清理 token
+  localStorage.removeItem('token')
+  localStorage.removeItem('token_expiry')
+  sessionStorage.removeItem('token')
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  
+  if (isWeChatMiniProgram()) {
+    // 微信小程序环境：跳转到小程序登录页
+    wx.miniProgram.redirectTo({
+      url: '/pages/login/login'
+    })
+  } else {
+    // 普通 H5 环境：跳转到 IAM OAuth
+    const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+    const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
+    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+    const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+    window.location.href = authUrl
+  }
+}
+
 export function getToken() {
   // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
   const token = localStorage.getItem('token')
@@ -60,22 +92,7 @@ async function request(endpoint, options = {}) {
   })
 
   if (response.status === 401) {
-    localStorage.removeItem('token')
-    sessionStorage.removeItem('token')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-    
-    // 优先使用后端配置的 IAM URL
-    if (window.APP_CONFIG?.iamLoginUrl) {
-      window.location.href = window.APP_CONFIG.iamLoginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
-    } else {
-      // Fallback: 直接跳转到 IAM OAuth 授权页面
-      // 使用与 ProtectedRoute 相同的逻辑
-      const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
-      const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
-      const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-      const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
-      window.location.href = authUrl
-    }
+    redirectToLogin()
     return
   }
 
@@ -88,20 +105,7 @@ async function request(endpoint, options = {}) {
   
   // 处理 token 过期错误
   if (data.code === 40101 || data.code === 401) {
-    localStorage.removeItem('token')
-    sessionStorage.removeItem('token')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-    
-    // 跳转到登录页面 - 使用与 HTTP 401 相同的逻辑
-    if (window.APP_CONFIG?.iamLoginUrl) {
-      window.location.href = window.APP_CONFIG.iamLoginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
-    } else {
-      const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
-      const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
-      const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-      const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
-      window.location.href = authUrl
-    }
+    redirectToLogin()
     return []
   }
   
@@ -136,6 +140,41 @@ async function request(endpoint, options = {}) {
   // 兜底: 返回空数组
   console.warn(`API ${endpoint} returned non-array data:`, data)
   return []
+}
+
+/**
+ * 统一 API Fetch 函数
+ * 自动添加 Authorization header，处理 401/40101 错误
+ */
+export async function apiFetch(url, options = {}) {
+  const token = getToken()
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    })
+    
+    // 统一 401 处理
+    if (response.status === 401) {
+      redirectToLogin()
+      throw new Error('Unauthorized')
+    }
+    
+    return response
+  } catch (error) {
+    // 网络错误也可能需要重新登录
+    throw error
+  }
 }
 
 export const api = {
