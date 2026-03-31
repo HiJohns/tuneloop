@@ -2,6 +2,14 @@ import React, { useEffect } from 'react';
 import { Spin, message } from 'antd';
 
 const AuthCallback: React.FC = () => {
+  // OAuth URL 构建函数
+  const getOAuthUrl = () => {
+    const IAM_URL = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552';
+    const CLIENT_ID = window.APP_CONFIG?.iamClientId || 'tuneloop';
+    const redirectUri = encodeURIComponent(window.location.origin + '/callback');
+    return `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -10,7 +18,7 @@ const AuthCallback: React.FC = () => {
     if (!code) {
       message.error('认证失败：未收到授权码');
       setTimeout(() => {
-        window.location.href = '/login';
+        window.location.href = getOAuthUrl();
       }, 2000);
       return;
     }
@@ -56,7 +64,7 @@ const AuthCallback: React.FC = () => {
         } else {
           message.error('认证失败：无法获取访问令牌');
           setTimeout(() => {
-            window.location.href = '/login';
+            window.location.href = getOAuthUrl();
           }, 2000);
         }
       })
@@ -64,7 +72,7 @@ const AuthCallback: React.FC = () => {
         console.error('Callback error:', error);
         message.error('认证失败：网络错误');
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.href = getOAuthUrl();
         }, 2000);
       });
   }, []);
