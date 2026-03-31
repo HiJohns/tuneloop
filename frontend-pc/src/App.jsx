@@ -27,6 +27,7 @@ import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
 import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
+import InstrumentEdit from './pages/admin/instrument/Edit'
 
 const { Header, Content, Sider } = Layout
 
@@ -183,10 +184,11 @@ function MainLayout() {
             <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/edit/:id" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
             <Route path="/instruments/categories/add" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
-            <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
-            <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-            <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-            <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
+             <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
+             <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
+             <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
+             <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
+             <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentEdit /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>

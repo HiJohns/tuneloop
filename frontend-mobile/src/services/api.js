@@ -1,16 +1,76 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+// 开发环境注入 mock wx 对象，防止浏览器调试时崩溃
+if (import.meta.env.DEV && typeof window !== 'undefined' && typeof window.wx === 'undefined') {
+  console.log('[Dev Mode] Injecting mock wx object for browser debugging')
+  window.wx = {
+    miniProgram: {
+      redirectTo: (options) => {
+        console.log('[Mock wx.miniProgram] redirectTo:', options)
+        // Fallback to window.location in dev mode
+        window.location.href = options.url || '/login'
+      },
+      navigateTo: (options) => {
+        console.log('[Mock wx.miniProgram] navigateTo:', options)
+      },
+      switchTab: (options) => {
+        console.log('[Mock wx.miniProgram] switchTab:', options)
+      }
+    },
+    scanQRCode: (options) => {
+      console.log('[Mock wx] scanQRCode:', options)
+      // Mock: simulate scanning a QR code after 1 second
+      setTimeout(() => {
+        if (options.success) {
+          options.success({ resultStr: 'mock_qr_code_12345' })
+        }
+      }, 1000)
+    },
+    openLocation: (options) => {
+      console.log('[Mock wx] openLocation:', options)
+      window.open(`https://map.baidu.com/search/${options.latitude},${options.longitude}`, '_blank')
+    },
+    getLocation: (options) => {
+      console.log('[Mock wx] getLocation:', options)
+      // Mock: return a default location (Beijing)
+      if (options.success) {
+        options.success({
+          latitude: 39.9042,
+          longitude: 116.4074
+        })
+      }
+    },
+    login: (options) => {
+      console.log('[Mock wx] login:', options)
+      if (options.success) {
+        options.success({ code: 'mock_login_code_12345' })
+      }
+    }
+  }
+}
+
 /**
  * 检测是否在微信小程序环境中
+ * 只使用 __wxjs_environment（微信官方推荐）
+ * 这是唯一可靠的方式来区分真实微信环境和浏览器环境
  */
 function isWeChatMiniProgram() {
-  return typeof wx !== 'undefined' && wx.miniProgram
+  // 只检测 window.__wxjs_environment（微信官方推荐）
+  // Mock 的 wx 对象不会设置 __wxjs_environment，因此不会误判
+  return typeof window !== 'undefined' && 
+         window.__wxjs_environment === 'miniprogram'
 }
 
 /**
  * 统一的登录重定向函数
  */
 function redirectToLogin() {
+  console.log('[redirectToLogin] Environment check:', {
+    isWeChat: isWeChatMiniProgram(),
+    wxExists: typeof wx !== 'undefined',
+    wxMiniProgram: typeof wx !== 'undefined' ? !!wx.miniProgram : false
+  })
+  
   // 清理 token
   localStorage.removeItem('token')
   localStorage.removeItem('token_expiry')

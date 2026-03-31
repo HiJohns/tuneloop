@@ -4,6 +4,9 @@ import { instrumentsApi, apiFetch } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
+  // 调试：打印 images 数据
+  console.log('[Image Debug] Instrument:', instrument.name, 'Images:', instrument.images)
+  
   // 安全检查: 确保 levels 存在且有数据
   if (!instrument.levels || !instrument.levels.length) {
     return (
@@ -16,6 +19,10 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
              src={instrument.images?.[0] || '/placeholder.png'} 
              alt={instrument.name}
              className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+             onError={(e) => {
+               console.error('[Image Debug] Failed to load image:', instrument.images?.[0])
+               e.target.src = '/placeholder.png'
+             }}
            />
         </div>
         <div className="p-3">
@@ -46,6 +53,10 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
            src={instrument.images?.[0] || '/placeholder.png'} 
            alt={instrument.name}
            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+           onError={(e) => {
+             console.error('[Image Debug] Failed to load image:', instrument.images?.[0])
+             e.target.src = '/placeholder.png'
+           }}
          />
         {promotionTag && (
           <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
@@ -150,7 +161,7 @@ export default function Home() {
       },
       { 
         threshold: 0.1,
-        rootMargin: '200px'  // 提前200px触发
+        rootMargin: '200px'
       }
     )
 
@@ -182,7 +193,6 @@ export default function Home() {
       const scrollHeight = document.documentElement.scrollHeight
       const clientHeight = window.innerHeight
       
-      // 距离底部200px时触发
       if (scrollTop + clientHeight >= scrollHeight - 200) {
         console.log('[Infinite Scroll] Scroll event triggered')
         setPage(prev => prev + 1)
@@ -244,7 +254,6 @@ export default function Home() {
                 key={cat || `category-${index}`}
                 onClick={() => {
                   setActiveCategory(cat)
-                  // Reset pagination when category changes
                   setPage(1)
                   setHasMore(true)
                 }}

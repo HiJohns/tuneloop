@@ -143,6 +143,10 @@ export default function Detail() {
            src={instrument.images?.[0] || '/placeholder.png'} 
            alt={instrument.name}
            className="w-full h-64 object-contain bg-gray-100"
+           onError={(e) => {
+             console.error('[Image Debug] Failed to load image in Detail:', instrument.images?.[0])
+             e.target.src = '/placeholder.png'
+           }}
          />
         <button 
           onClick={() => navigate(-1)}
