@@ -152,20 +152,13 @@ export default function InstrumentList() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 120,
       render: (_, record) => (
         <Space>
           <Button
             type="link"
-            icon={<EyeOutlined />}
-            onClick={() => viewInstrument(record.id)}
-          >
-            查看
-          </Button>
-          <Button
-            type="link"
             icon={<EditOutlined />}
-            onClick={() => editInstrument(record)}
+            onClick={() => navigate(`/instruments/${record.id}/edit`)}
           >
             编辑
           </Button>
