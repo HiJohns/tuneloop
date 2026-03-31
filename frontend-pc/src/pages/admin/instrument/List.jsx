@@ -564,7 +564,7 @@ export default function InstrumentList() {
           </div>
         )}
         expandedRowRender={(record) => {
-          const specs = record.specs || []
+          const specs = record.specifications || []
           if (specs.length === 0) {
             return <div style={{ padding: '16px', color: '#999' }}>暂无规格信息</div>
           }
@@ -601,15 +601,6 @@ export default function InstrumentList() {
           showSizeChanger: true,
           showTotal: (total) => `共 ${total} 条`,
           onChange: (page, pageSize) => fetchInstruments(page, pageSize),
-        }}
-      />
-            </div>
-          )
-        }}
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`
         }}
       />
       
