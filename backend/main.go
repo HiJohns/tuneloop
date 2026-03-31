@@ -258,6 +258,7 @@ func main() {
 	mobileRouter.Static("/assets", filepath.Join(mobileDistPath, "assets"))
 	mobileRouter.Static("/instruments", "../frontend-mobile/public/instruments")
 	setupAPIRoutes(mobileRouter, iamService)
+	mobileRouter.Static("/uploads", getAbsPath("./uploads"))
 
 	mobileRouter.NoRoute(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
