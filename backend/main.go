@@ -234,7 +234,7 @@ func main() {
 	pcRouter.Static("/assets", filepath.Join(pcDistPath, "assets"))
 	pcRouter.StaticFile("/favicon.ico", filepath.Join(pcDistPath, "favicon.ico"))
 	pcRouter.StaticFile("/favicon.svg", filepath.Join(pcDistPath, "favicon.svg"))
-	pcRouter.Static("/uploads", "./uploads")
+	pcRouter.Static("/uploads", getAbsPath("./uploads"))
 	setupAPIRoutes(pcRouter, iamService)
 
 	pcRouter.NoRoute(func(c *gin.Context) {

@@ -198,6 +198,13 @@ function OAuthCallback() {
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
   const navigate = useNavigate()
+  
+  const getOAuthUrl = () => {
+    const IAM_URL = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+    const CLIENT_ID = window.APP_CONFIG?.iamClientId || 'tuneloop'
+    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+    return `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -207,14 +214,18 @@ function OAuthCallback() {
     if (error) {
       setErrorMsg(`OAuth Error: ${error}`)
       setLoading(false)
-      setTimeout(() => navigate('/login'), 3000)
+      setTimeout(() => {
+        window.location.href = getOAuthUrl()
+      }, 3000)
       return
     }
 
     if (!code) {
       setErrorMsg('Missing authorization code')
       setLoading(false)
-      setTimeout(() => navigate('/login'), 3000)
+      setTimeout(() => {
+        window.location.href = getOAuthUrl()
+      }, 3000)
       return
     }
 
