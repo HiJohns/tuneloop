@@ -4,6 +4,9 @@ import { instrumentsApi, apiFetch } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
+  // 调试：打印 images 数据
+  console.log('[Image Debug] Instrument:', instrument.name, 'Images:', instrument.images)
+  
   // 安全检查: 确保 levels 存在且有数据
   if (!instrument.levels || !instrument.levels.length) {
     return (
@@ -16,6 +19,10 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
              src={instrument.images?.[0] || '/placeholder.png'} 
              alt={instrument.name}
              className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+             onError={(e) => {
+               console.error('[Image Debug] Failed to load image:', instrument.images?.[0])
+               e.target.src = '/placeholder.png'
+             }}
            />
         </div>
         <div className="p-3">
@@ -46,6 +53,10 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
            src={instrument.images?.[0] || '/placeholder.png'} 
            alt={instrument.name}
            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+           onError={(e) => {
+             console.error('[Image Debug] Failed to load image:', instrument.images?.[0])
+             e.target.src = '/placeholder.png'
+           }}
          />
         {promotionTag && (
           <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
