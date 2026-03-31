@@ -16,6 +16,11 @@ import (
 	"tuneloop-backend/models"
 )
 
+func getAbsPath(relativePath string) string {
+	execDir, _ := os.Getwd()
+	return filepath.Join(execDir, relativePath)
+}
+
 func GetInstruments(c *gin.Context) {
 	db := database.GetDB()
 	ctx := c.Request.Context()
@@ -297,7 +302,7 @@ func HandleUpload(c *gin.Context) {
 		return
 	}
 
-	uploadDir := "./uploads"
+	uploadDir := getAbsPath("./uploads")
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50001,
