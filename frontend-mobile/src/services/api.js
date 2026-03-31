@@ -1,9 +1,65 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+// 开发环境注入 mock wx 对象，防止浏览器调试时崩溃
+if (import.meta.env.DEV && typeof window !== 'undefined' && typeof window.wx === 'undefined') {
+  console.log('[Dev Mode] Injecting mock wx object for browser debugging')
+  window.wx = {
+    miniProgram: {
+      redirectTo: (options) => {
+        console.log('[Mock wx.miniProgram] redirectTo:', options)
+        // Fallback to window.location in dev mode
+        window.location.href = options.url || '/login'
+      },
+      navigateTo: (options) => {
+        console.log('[Mock wx.miniProgram] navigateTo:', options)
+      },
+      switchTab: (options) => {
+        console.log('[Mock wx.miniProgram] switchTab:', options)
+      }
+    },
+    scanQRCode: (options) => {
+      console.log('[Mock wx] scanQRCode:', options)
+      // Mock: simulate scanning a QR code after 1 second
+      setTimeout(() => {
+        if (options.success) {
+          options.success({ resultStr: 'mock_qr_code_12345' })
+        }
+      }, 1000)
+    },
+    openLocation: (options) => {
+      console.log('[Mock wx] openLocation:', options)
+      window.open(`https://map.baidu.com/search/${options.latitude},${options.longitude}`, '_blank')
+    },
+    getLocation: (options) => {
+      console.log('[Mock wx] getLocation:', options)
+      // Mock: return a default location (Beijing)
+      if (options.success) {
+        options.success({
+          latitude: 39.9042,
+          longitude: 116.4074
+        })
+      }
+    },
+    login: (options) => {
+      console.log('[Mock wx] login:', options)
+      if (options.success) {
+        options.success({ code: 'mock_login_code_12345' })
+      }
+    }
+  }
+}
+
 /**
  * 检测是否在微信小程序环境中
+ * 优先检测 __wxjs_environment（微信官方推荐）
+ * 备用检测 wx.miniProgram 对象
  */
 function isWeChatMiniProgram() {
+  // 优先检测 window.__wxjs_environment（微信官方推荐）
+  if (typeof window !== 'undefined' && window.__wxjs_environment === 'miniprogram') {
+    return true
+  }
+  // 备用检测：检查 wx 对象和 miniProgram 属性
   return typeof wx !== 'undefined' && wx.miniProgram
 }
 
@@ -11,6 +67,12 @@ function isWeChatMiniProgram() {
  * 统一的登录重定向函数
  */
 function redirectToLogin() {
+  console.log('[redirectToLogin] Environment check:', {
+    isWeChat: isWeChatMiniProgram(),
+    wxExists: typeof wx !== 'undefined',
+    wxMiniProgram: typeof wx !== 'undefined' ? !!wx.miniProgram : false
+  })
+  
   // 清理 token
   localStorage.removeItem('token')
   localStorage.removeItem('token_expiry')
