@@ -74,9 +74,6 @@ async function request(endpoint, options = {}, retryCount = 0) {
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  // 🔍 调试：打印实际发送的 Authorization header
-  console.log(`[API Debug] ${endpoint} -> Authorization:`, headers['Authorization'])
-
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
