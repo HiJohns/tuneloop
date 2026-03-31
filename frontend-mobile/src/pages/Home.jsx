@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { instrumentsApi } from '../services/api'
+import { instrumentsApi, apiFetch } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
@@ -88,15 +88,19 @@ export default function Home() {
   const [loadingMore, setLoadingMore] = useState(false)
 
   const fetchInstruments = useCallback(async (pageNum = 1, append = false) => {
+    console.log('[Infinite Scroll] Fetching page:', pageNum, 'append:', append)
+    
     try {
       if (!append) setLoading(true)
       else setLoadingMore(true)
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
+      const response = await apiFetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
       const result = await response.json()
       
       if (result.code === 20000) {
         const newData = result.data || []
+        console.log('[Infinite Scroll] Received', newData.length, 'items')
+        console.log('[Infinite Scroll] Pagination:', result.pagination)
         
         if (append) {
           setInstruments(prev => [...prev, ...newData])
@@ -106,8 +110,10 @@ export default function Home() {
         
         const pagination = result.pagination
         if (pagination) {
+          console.log('[Infinite Scroll] Total pages:', pagination.totalPages, 'Current page:', pageNum)
           setHasMore(pageNum < pagination.totalPages)
         } else if (newData.length < 20) {
+          console.log('[Infinite Scroll] Less than 20 items, no more data')
           setHasMore(false)
         }
       }
@@ -123,7 +129,7 @@ export default function Home() {
       if (!append) setLoading(false)
       else setLoadingMore(false)
     } catch (error) {
-      console.error('Failed to fetch instruments:', error)
+      console.error('[Infinite Scroll] Failed to fetch instruments:', error)
       setLoading(false)
       setLoadingMore(false)
     }
@@ -138,24 +144,54 @@ export default function Home() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          console.log('[Infinite Scroll] Sentinel intersected, loading page:', page + 1)
           setPage(prev => prev + 1)
         }
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0.1,
+        rootMargin: '200px'  // 提前200px触发
+      }
     )
 
     const sentinel = document.getElementById('scroll-sentinel')
-    if (sentinel) observer.observe(sentinel)
+    if (sentinel) {
+      console.log('[Infinite Scroll] Observer attached to sentinel, hasMore:', hasMore)
+      observer.observe(sentinel)
+    } else {
+      console.log('[Infinite Scroll] Sentinel not found')
+    }
 
     return () => observer.disconnect()
-  }, [hasMore, loadingMore])
+  }, [hasMore, loadingMore, page])
 
   // Load more when page changes
   useEffect(() => {
     if (page > 1) {
+      console.log('[Infinite Scroll] Page changed to:', page, 'fetching more...')
       fetchInstruments(page, true)
     }
   }, [page, fetchInstruments])
+
+  // Scroll event fallback for mobile/WeChat
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!hasMore || loadingMore) return
+      
+      const scrollTop = window.scrollY || document.documentElement.scrollTop
+      const scrollHeight = document.documentElement.scrollHeight
+      const clientHeight = window.innerHeight
+      
+      // 距离底部200px时触发
+      if (scrollTop + clientHeight >= scrollHeight - 200) {
+        console.log('[Infinite Scroll] Scroll event triggered')
+        setPage(prev => prev + 1)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [hasMore, loadingMore])
 
   const toggleFavorite = (instrumentId) => {
     setFavorites(prev => {
@@ -257,7 +293,7 @@ export default function Home() {
             {loadingMore ? (
               <div className="text-center py-4 text-gray-500 col-span-2">加载中...</div>
             ) : hasMore ? (
-              <div id="scroll-sentinel" className="h-10 col-span-2"></div>
+              <div id="scroll-sentinel" className="h-40 col-span-2"></div>
             ) : (
               <div className="text-center py-4 text-gray-500 col-span-2">暂无更多乐器</div>
             )}

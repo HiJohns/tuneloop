@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiFetch } from '../services/api';
 import { Button, Input, TextArea, ImageUploader, Card, message } from 'antd-mobile';
 import { CameraOutline, Scanline } from 'antd-mobile-icons';
 
@@ -32,7 +33,7 @@ export default function RepairScan() {
 
   const fetchInstrument = async (sn) => {
     try {
-      const response = await fetch(`${API_BASE}/api/instruments?sn=${sn}`);
+      const response = await apiFetch(`${API_BASE}/api/instruments?sn=${sn}`);
       const result = await response.json();
       
       if (result.code === 20000 && result.data.list?.length > 0) {
@@ -54,7 +55,7 @@ export default function RepairScan() {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE}/api/maintenance`, {
+      const response = await apiFetch(`${API_BASE}/api/maintenance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

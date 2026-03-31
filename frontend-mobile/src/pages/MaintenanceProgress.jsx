@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { apiFetch } from '../services/api';
 import { Card, Steps, Tag, Button } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
 
@@ -21,7 +22,7 @@ export default function MaintenanceProgress() {
 
   const fetchTicket = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/maintenance/${id}`);
+      const response = await apiFetch(`${API_BASE}/api/maintenance/${id}`);
       const result = await response.json();
       if (result.code === 20000) {
         setTicket(result.data);
