@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { apiFetch } from '../services/api';
 import { Card, Button, Image, Tag, Divider, Typography } from 'antd';
 import { EnvironmentOutlined, PhoneOutlined, ClockCircleOutlined } from '@ant-design/icons';
 
@@ -14,7 +15,7 @@ export default function SiteDetail() {
 
   const fetchSiteDetail = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/common/sites/${id}`);
+      const response = await apiFetch(`${API_BASE}/api/common/sites/${id}`);
       const result = await response.json();
       
       if (result.code === 20000) {
