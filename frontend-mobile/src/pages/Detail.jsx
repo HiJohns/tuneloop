@@ -19,6 +19,13 @@ const SERVICE_ITEMS = [
   { name: '上门保养', entry: '✗', professional: '✗', master: '✓' },
 ]
 
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
+    <rect fill="#f3f4f6" width="200" height="160"/>
+    <text x="100" y="80" text-anchor="middle" fill="#9ca3af" font-size="14">暂无图片</text>
+  </svg>
+`)
+
 export default function Detail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -140,12 +147,12 @@ export default function Detail() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <div className="relative">
          <img 
-           src={instrument.images?.[0] || '/placeholder.png'} 
+           src={instrument.images?.[0] || PLACEHOLDER_IMAGE} 
            alt={instrument.name}
            className="w-full h-64 object-contain bg-gray-100"
            onError={(e) => {
-             console.error('[Image Debug] Failed to load image in Detail:', instrument.images?.[0])
-             e.target.src = '/placeholder.png'
+             e.target.onerror = null
+             e.target.src = PLACEHOLDER_IMAGE
            }}
          />
         <button 

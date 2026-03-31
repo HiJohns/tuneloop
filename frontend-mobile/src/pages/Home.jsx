@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { instrumentsApi, apiFetch } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
+    <rect fill="#f3f4f6" width="200" height="160"/>
+    <text x="100" y="80" text-anchor="middle" fill="#9ca3af" font-size="14">暂无图片</text>
+  </svg>
+`)
+
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   // 调试：打印 images 数据
   console.log('[Image Debug] Instrument:', instrument.name, 'Images:', instrument.images)
@@ -14,17 +21,17 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
         className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
         onClick={onClick}
       >
-        <div className="relative">
-           <img 
-             src={instrument.images?.[0] || '/placeholder.png'} 
-             alt={instrument.name}
-             className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-             onError={(e) => {
-               console.error('[Image Debug] Failed to load image:', instrument.images?.[0])
-               e.target.src = '/placeholder.png'
-             }}
-           />
-        </div>
+         <div className="relative">
+            <img 
+              src={instrument.images?.[0] || PLACEHOLDER_IMAGE} 
+              alt={instrument.name}
+              className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+              onError={(e) => {
+                e.target.onerror = null
+                e.target.src = PLACEHOLDER_IMAGE
+              }}
+            />
+         </div>
         <div className="p-3">
           <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
           <p className="text-gray-400 text-sm">暂无报价</p>
@@ -48,17 +55,17 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
       onClick={onClick}
     >
-      <div className="relative">
-         <img 
-           src={instrument.images?.[0] || '/placeholder.png'} 
-           alt={instrument.name}
-           className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-           onError={(e) => {
-             console.error('[Image Debug] Failed to load image:', instrument.images?.[0])
-             e.target.src = '/placeholder.png'
-           }}
-         />
-        {promotionTag && (
+       <div className="relative">
+          <img 
+            src={instrument.images?.[0] || PLACEHOLDER_IMAGE} 
+            alt={instrument.name}
+            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+            onError={(e) => {
+              e.target.onerror = null
+              e.target.src = PLACEHOLDER_IMAGE
+            }}
+          />
+         {promotionTag && (
           <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
             {promotionTag}
           </div>
