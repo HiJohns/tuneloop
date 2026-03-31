@@ -11,7 +11,7 @@ const { Option } = Select
 const { TextArea } = Input
 
 // Sortable image item component
-const SortableImageItem = ({ file, onRemove }) => {
+const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
   const {
     attributes,
     listeners,
@@ -27,6 +27,9 @@ const SortableImageItem = ({ file, onRemove }) => {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const progress = uploadStatus.progress[file.uid];
+  const isFailed = uploadStatus.failedFiles.includes(file.uid);
+
   return (
     <div
       ref={setNodeRef}
@@ -34,6 +37,30 @@ const SortableImageItem = ({ file, onRemove }) => {
       className="relative inline-block m-2"
     >
       <img src={file.url} alt={file.name} className="w-24 h-24 object-cover rounded" />
+      
+      {/* Progress bar for uploading files */}
+      {progress && progress.percent < 100 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 rounded-b">
+          <Progress 
+            percent={progress.percent} 
+            showInfo={false}
+            strokeColor="#52c41a"
+          />
+        </div>
+      )}
+      
+      {/* Status overlay */}
+      {isFailed && (
+        <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center rounded">
+          <CloseCircleOutlined style={{ color: 'white', fontSize: 24 }} />
+        </div>
+      )}
+      {progress && progress.percent === 100 && (
+        <div className="absolute inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center rounded">
+          <CheckCircleOutlined style={{ color: 'white', fontSize: 24 }} />
+        </div>
+      )}
+      
       <div className="absolute top-0 right-0 flex">
         <Button
           size="small"
@@ -42,12 +69,21 @@ const SortableImageItem = ({ file, onRemove }) => {
           {...listeners}
           className="cursor-move"
         />
-        <Button
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={() => onRemove(file.uid)}
-          danger
-        />
+        {isFailed ? (
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            onClick={() => onRetry(file)}
+            type="primary"
+          />
+        ) : (
+          <Button
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => onRemove(file.uid)}
+            danger
+          />
+        )}
       </div>
     </div>
   );
@@ -502,7 +538,11 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       visible={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
-      confirmLoading={loading}
+      confirmLoading={loading || uploadStatus.isUploading}
+      okButtonProps={{ 
+        disabled: uploadStatus.failedFiles.length > 0,
+        loading: uploadStatus.isUploading 
+      }}
       width={800}
       styles={{ 
         body: {
@@ -626,9 +666,15 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
               <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                 <SortableContext items={fileList.map(f => f.uid)} strategy={verticalListSortingStrategy}>
                   <div className="mt-4">
-                    {fileList.map((file) => (
-                      <SortableImageItem key={file.uid} file={file} onRemove={removeImage} />
-                    ))}
+                     {fileList.map((file) => (
+                       <SortableImageItem 
+                         key={file.uid} 
+                         file={file} 
+                         onRemove={removeImage}
+                         uploadStatus={uploadStatus}
+                         onRetry={retryUpload}
+                       />
+                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
