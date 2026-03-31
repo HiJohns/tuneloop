@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { instrumentsApi } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
@@ -87,67 +87,58 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
 
-  useEffect(() => {
-    const fetchInstruments = async (pageNum = 1, append = false) => {
-      try {
-        if (!append) setLoading(true)
-        else setLoadingMore(true)
+  const fetchInstruments = useCallback(async (pageNum = 1, append = false) => {
+    try {
+      if (!append) setLoading(true)
+      else setLoadingMore(true)
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
+      const result = await response.json()
+      
+      if (result.code === 20000) {
+        const newData = result.data || []
         
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
-        const result = await response.json()
-        
-        if (result.code === 20000) {
-          const newData = result.data || []
-          
-          if (append) {
-            // Append new data to existing list
-            setInstruments(prev => [...prev, ...newData])
-          } else {
-            // Replace data (initial load)
-            setInstruments(newData)
-          }
-          
-          // Check if there are more pages
-          const pagination = result.pagination
-          if (pagination) {
-            setHasMore(pageNum < pagination.totalPages)
-          } else if (newData.length < 20) {
-            setHasMore(false)
-          }
+        if (append) {
+          setInstruments(prev => [...prev, ...newData])
+        } else {
+          setInstruments(newData)
         }
         
-        // Update categories only on initial load
-        if (pageNum === 1) {
-          const allData = pageNum === 1 ? (result.data || []) : instruments
-          const uniqueCategories = ["全部", ...new Set(
-            allData.map(i => i.category).filter(cat => cat)
-          )]
-          setCategories(uniqueCategories)
+        const pagination = result.pagination
+        if (pagination) {
+          setHasMore(pageNum < pagination.totalPages)
+        } else if (newData.length < 20) {
+          setHasMore(false)
         }
-        
-        if (!append) setLoading(false)
-        else setLoadingMore(false)
-      } catch (error) {
-        console.error('Failed to fetch instruments:', error)
-        setLoading(false)
-        setLoadingMore(false)
       }
+      
+      // Update categories only on initial load
+      if (pageNum === 1) {
+        const uniqueCategories = ["全部", ...new Set(
+          (result.data || []).map(i => i.category).filter(cat => cat)
+        )]
+        setCategories(uniqueCategories)
+      }
+      
+      if (!append) setLoading(false)
+      else setLoadingMore(false)
+    } catch (error) {
+      console.error('Failed to fetch instruments:', error)
+      setLoading(false)
+      setLoadingMore(false)
     }
-    
-    fetchInstruments(1, false)
   }, [])
+
+  useEffect(() => {
+    fetchInstruments(1, false)
+  }, [fetchInstruments])
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          setPage(prev => {
-            const nextPage = prev + 1
-            // Call fetchInstruments using the function from the outer scope
-            // We need to access it differently since it's not in this scope
-            return nextPage
-          })
+          setPage(prev => prev + 1)
         }
       },
       { threshold: 0.1 }
@@ -162,42 +153,9 @@ export default function Home() {
   // Load more when page changes
   useEffect(() => {
     if (page > 1) {
-      const fetchInstruments = async (pageNum = 1, append = false) => {
-        try {
-          if (!append) setLoading(true)
-          else setLoadingMore(true)
-          
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
-          const result = await response.json()
-          
-          if (result.code === 20000) {
-            const newData = result.data || []
-            
-            if (append) {
-              setInstruments(prev => [...prev, ...newData])
-            } else {
-              setInstruments(newData)
-            }
-            
-            const pagination = result.pagination
-            if (pagination) {
-              setHasMore(pageNum < pagination.totalPages)
-            } else if (newData.length < 20) {
-              setHasMore(false)
-            }
-          }
-          
-          if (!append) setLoading(false)
-          else setLoadingMore(false)
-        } catch (error) {
-          console.error('Failed to fetch instruments:', error)
-          setLoading(false)
-          setLoadingMore(false)
-        }
-      }
       fetchInstruments(page, true)
     }
-  }, [page])
+  }, [page, fetchInstruments])
 
   const toggleFavorite = (instrumentId) => {
     setFavorites(prev => {
