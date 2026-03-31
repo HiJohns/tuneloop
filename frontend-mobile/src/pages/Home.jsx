@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { instrumentsApi } from '../services/api'
+import { instrumentsApi, apiFetch } from '../services/api'
 import { ChevronRight, Search, Heart } from 'lucide-react'
 
 function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
@@ -92,7 +92,7 @@ export default function Home() {
       if (!append) setLoading(true)
       else setLoadingMore(true)
       
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
+      const response = await apiFetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
       const result = await response.json()
       
       if (result.code === 20000) {
