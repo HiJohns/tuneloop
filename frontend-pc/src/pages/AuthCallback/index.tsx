@@ -49,14 +49,7 @@ const AuthCallback: React.FC = () => {
           if (originalUrl) {
             sessionStorage.removeItem('original_request_url');
             
-            // Add code parameter to original URL
-            const redirectUrl = new URL(originalUrl);
-            redirectUrl.searchParams.set('code', code);
-            if (state) {
-              redirectUrl.searchParams.set('state', state);
-            }
-            
-            window.location.href = redirectUrl.toString();
+            window.location.href = originalUrl;
           } else {
             // Fallback to dashboard
             window.location.href = '/dashboard';
