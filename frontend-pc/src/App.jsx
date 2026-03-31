@@ -276,7 +276,9 @@ function OAuthCallback() {
       } catch (error) {
         setLoading(false)
         setErrorMsg(error.message || 'Authentication failed')
-        setTimeout(() => navigate('/login'), 5000)
+        setTimeout(() => {
+          window.location.href = getOAuthUrl()
+        }, 5000)
       }
     }
 
