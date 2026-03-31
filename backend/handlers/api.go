@@ -1,8 +1,16 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
+	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -13,8 +21,32 @@ func GetInstruments(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	var total int64
+	if err := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID).Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to count instruments",
+		})
+		return
+	}
+
+	// Get paginated results
 	var instruments []models.Instrument
-	if err := db.Where("tenant_id = ?", tenantID).Find(&instruments).Error; err != nil {
+	if err := db.Where("tenant_id = ?", tenantID).Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch instruments",
@@ -22,9 +54,92 @@ func GetInstruments(c *gin.Context) {
 		return
 	}
 
+	// Process instruments to parse specifications and pricing into specs array
+	var responseInstruments []map[string]interface{}
+	for _, instrument := range instruments {
+		instrumentMap := map[string]interface{}{
+			"id":             instrument.ID,
+			"tenant_id":      instrument.TenantID,
+			"org_id":         instrument.OrgID,
+			"category_id":    instrument.CategoryID,
+			"category_name":  instrument.CategoryName,
+			"name":           instrument.Name,
+			"brand":          instrument.Brand,
+			"level":          instrument.Level,
+			"level_name":     instrument.LevelName,
+			"description":    instrument.Description,
+			"images":         json.RawMessage(instrument.Images),
+			"video":          instrument.Video,
+			"stock_status":   instrument.StockStatus,
+			"created_at":     instrument.CreatedAt,
+			"updated_at":     instrument.UpdatedAt,
+			"specifications": json.RawMessage(instrument.Specifications),
+			"pricing":        json.RawMessage(instrument.Pricing),
+		}
+
+		// Parse specifications JSON
+		var specs []map[string]interface{}
+		if instrument.Specifications != "" && instrument.Specifications != "{}" {
+			if err := json.Unmarshal([]byte(instrument.Specifications), &specs); err != nil {
+				log.Printf("[WARN] Failed to parse specifications for instrument %s: %v", instrument.ID, err)
+			}
+		}
+
+		// If specs is empty, try parsing as object and convert to array
+		if len(specs) == 0 && instrument.Specifications != "" && instrument.Specifications != "{}" {
+			var specObj map[string]interface{}
+			if err := json.Unmarshal([]byte(instrument.Specifications), &specObj); err == nil {
+				// Try to convert to array format
+				if _, ok := specObj["name"].(string); ok {
+					specs = []map[string]interface{}{specObj}
+				}
+			}
+		}
+
+		// Parse pricing JSON and merge into specs
+		if instrument.Pricing != "" && instrument.Pricing != "{}" {
+			var pricing map[string]interface{}
+			if err := json.Unmarshal([]byte(instrument.Pricing), &pricing); err == nil {
+				// If specs is empty, create one from pricing
+				if len(specs) == 0 {
+					specs = []map[string]interface{}{pricing}
+				} else {
+					// Merge pricing into first spec (maintain backward compatibility)
+					for k, v := range pricing {
+						if len(specs) > 0 {
+							specs[0][k] = v
+						}
+					}
+				}
+			}
+		}
+
+		// Add specs to response
+		instrumentMap["specs"] = specs
+
+		// Calculate total stock from specs
+		totalStock := 0
+		for _, spec := range specs {
+			if stock, ok := spec["stock"].(float64); ok {
+				totalStock += int(stock)
+			} else if stock, ok := spec["stock"].(int); ok {
+				totalStock += stock
+			}
+		}
+		instrumentMap["stock"] = totalStock
+
+		responseInstruments = append(responseInstruments, instrumentMap)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": instruments,
+		"data": responseInstruments,
+		"pagination": gin.H{
+			"page":       page,
+			"pageSize":   pageSize,
+			"total":      total,
+			"totalPages": (total + int64(pageSize) - 1) / int64(pageSize),
+		},
 	})
 }
 
@@ -144,16 +259,76 @@ func HandleUpload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "No file uploaded",
+			"code":    40001,
+			"message": "No file uploaded",
 		})
 		return
 	}
 
+	allowedTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/gif":  true,
+		"image/webp": true,
+	}
+
+	if !allowedTypes[file.Header.Get("Content-Type")] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "Invalid file type. Only JPEG, PNG, GIF, WebP allowed",
+		})
+		return
+	}
+
+	maxSizeStr := os.Getenv("UPLOAD_MAX_SIZE")
+	maxSizeMB := 10 // default 10MB
+	if maxSizeStr != "" {
+		if parsed, err := strconv.Atoi(maxSizeStr); err == nil && parsed > 0 {
+			maxSizeMB = parsed
+		}
+	}
+	maxSizeBytes := int64(maxSizeMB * 1024 * 1024)
+
+	if file.Size > maxSizeBytes {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": fmt.Sprintf("File too large. Max size is %dMB", maxSizeMB),
+		})
+		return
+	}
+
+	uploadDir := "./uploads"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50001,
+			"message": "Failed to create upload directory",
+		})
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	timestamp := time.Now().UnixNano()
+	randomStr := fmt.Sprintf("%08x", rand.Int31())
+	filename := fmt.Sprintf("%d_%s%s", timestamp, randomStr, ext)
+	filepath := filepath.Join(uploadDir, filename)
+
+	if err := c.SaveUploadedFile(file, filepath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50002,
+			"message": "Failed to save file",
+		})
+		return
+	}
+
+	fileURL := fmt.Sprintf("/uploads/%s", filename)
+
 	c.JSON(http.StatusOK, gin.H{
-		"success":  true,
-		"fileName": file.Filename,
-		"url":      "https://dummy.tuneloop.com/uploads/mock-image.jpg",
-		"size":     file.Size,
+		"code": 20000,
+		"data": gin.H{
+			"url":      fileURL,
+			"fileName": file.Filename,
+			"size":     file.Size,
+		},
 	})
 }
 

@@ -12,11 +12,11 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
         onClick={onClick}
       >
         <div className="relative">
-          <img 
-            src={instrument.image || '/placeholder.png'} 
-            alt={instrument.name}
-            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-          />
+           <img 
+             src={instrument.images?.[0] || '/placeholder.png'} 
+             alt={instrument.name}
+             className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+           />
         </div>
         <div className="p-3">
           <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
@@ -42,11 +42,11 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
       onClick={onClick}
     >
       <div className="relative">
-        <img 
-          src={instrument.image} 
-          alt={instrument.name}
-          className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-        />
+         <img 
+           src={instrument.images?.[0] || '/placeholder.png'} 
+           alt={instrument.name}
+           className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+         />
         {promotionTag && (
           <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
             {promotionTag}

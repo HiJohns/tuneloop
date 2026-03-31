@@ -34,11 +34,22 @@ const BRAND_COLOR = '#002140'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function handleLogout() {
+  // Clear localStorage
   localStorage.removeItem('token')
   localStorage.removeItem('token_expiry')
   localStorage.removeItem('user_info')
   localStorage.removeItem('user_role')
-  window.location.href = '/'
+  localStorage.removeItem('refresh_token')
+  
+  // Clear cookies
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  
+  // Redirect to IAM OAuth page for proper logout
+  const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+  const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
+  const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+  window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
 }
 
 function MainLayout() {
@@ -207,7 +218,7 @@ function OAuthCallback() {
       return
     }
 
-    const exchangeCodeForToken = async () => {
+    const exchangeCodeForToken = async (retryCount = 0) => {
       try {
         setLoading(true)
         
@@ -220,6 +231,12 @@ function OAuthCallback() {
         })
 
         if (!response.ok) {
+          // If 500 error and haven't retried, try once more
+          if (response.status === 500 && retryCount < 1) {
+            console.log('[OAuth] Got 500, retrying...')
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            return exchangeCodeForToken(retryCount + 1)
+          }
           const errorText = await response.text()
           throw new Error(`Token exchange failed: ${response.status} - ${errorText}`)
         }

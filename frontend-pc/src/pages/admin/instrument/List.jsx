@@ -22,7 +22,14 @@ export default function InstrumentList() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
+  const [expandedRowKeys, setExpandedRowKeys] = useState([])
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
+  
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0
+  })
   
   // Import/Export state
   const [importResultModalVisible, setImportResultModalVisible] = useState(false)
@@ -31,17 +38,27 @@ export default function InstrumentList() {
   const [selectedExportFields, setSelectedExportFields] = useState([])
 
   useEffect(() => {
-    fetchInstruments()
+    fetchInstruments(pagination.page, pagination.pageSize)
     fetchCategories()
-    setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'daily_rate', 'monthly_rate', 'deposit', 'stock', 'status'])
+    setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
-  const fetchInstruments = async () => {
+  const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
-      const data = await api.get('/instruments')
-      // api.js 已经规范化响应，直接返回数组
-      setInstruments(Array.isArray(data) ? data : [])
+      const response = await fetch(`${API_BASE_URL}/instruments?page=${page}&pageSize=${pageSize}`)
+      const result = await response.json()
+      
+      if (result.code === 20000) {
+        setInstruments(Array.isArray(result.data) ? result.data : [])
+        setPagination({
+          page: result.pagination?.page || page,
+          pageSize: result.pagination?.pageSize || pageSize,
+          total: result.pagination?.total || 0
+        })
+      } else {
+        setInstruments([])
+      }
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
       setInstruments([])
@@ -106,29 +123,6 @@ export default function InstrumentList() {
         value: cat
       })),
       onFilter: (value, record) => record.category_name === value
-    },
-    {
-      title: '日租金',
-      dataIndex: 'daily_rate',
-      key: 'daily_rate',
-      width: 100,
-      sorter: (a, b) => a.daily_rate - b.daily_rate,
-      render: (rate) => `¥${rate}`
-    },
-    {
-      title: '月租金',
-      dataIndex: 'monthly_rate',
-      key: 'monthly_rate',
-      width: 100,
-      sorter: (a, b) => a.monthly_rate - b.monthly_rate,
-      render: (rate) => `¥${rate}`
-    },
-    {
-      title: '押金',
-      dataIndex: 'deposit',
-      key: 'deposit',
-      width: 100,
-      render: (deposit) => `¥${deposit}`
     },
     {
       title: '库存',
@@ -204,7 +198,7 @@ export default function InstrumentList() {
       const result = await api.delete(`/instruments/${id}`)
       if (result.code === 20000) {
         message.success('删除成功')
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
       } else {
         throw new Error(result.message || '删除失败')
       }
@@ -220,7 +214,7 @@ export default function InstrumentList() {
 
   const handleFormSubmit = (data) => {
     message.success('乐器保存成功')
-    fetchInstruments()
+    fetchInstruments(pagination.page, pagination.pageSize)
     setFormVisible(false)
     setEditingInstrument(null)
   }
@@ -246,7 +240,7 @@ export default function InstrumentList() {
       if (result.code === 20000) {
         message.success(`已成功更新 ${selectedRowKeys.length} 个乐器状态`)
         setSelectedRowKeys([])
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
       } else {
         throw new Error(result.message || '批量操作失败')
       }
@@ -276,7 +270,7 @@ export default function InstrumentList() {
           if (result.code === 20000) {
             message.success(`已成功删除 ${selectedRowKeys.length} 个乐器`)
             setSelectedRowKeys([])
-            fetchInstruments()
+            fetchInstruments(pagination.page, pagination.pageSize)
           } else {
             throw new Error(result.message || '批量删除失败')
           }
@@ -311,7 +305,7 @@ export default function InstrumentList() {
         message.success(`已成功修改 ${selectedRowKeys.length} 个乐器价格`)
         setBatchPriceModalVisible(false)
         setSelectedRowKeys([])
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
       } else {
         throw new Error(result.message || '批量价格修改失败')
       }
@@ -345,7 +339,7 @@ export default function InstrumentList() {
           errors: result.data?.errors || []
         })
         setImportResultModalVisible(true)
-        fetchInstruments()
+        fetchInstruments(pagination.page, pagination.pageSize)
         message.success('导入完成')
       } else {
         throw new Error(result.message || '导入失败')
@@ -366,9 +360,9 @@ export default function InstrumentList() {
 
   const downloadTemplate = () => {
     const template = [
-      ['name', 'brand', 'model', 'category_name', 'daily_rate', 'monthly_rate', 'deposit', 'stock', 'description'],
-      ['雅马哈立式钢琴', 'Yamaha', 'U1', '钢琴', '50', '1200', '5000', '5', '日本原装进口钢琴'],
-      ['马丁D-28吉他', 'Martin', 'D-28', '吉他', '30', '600', '2000', '8', '美国产经典民谣吉他']
+      ['name', 'brand', 'model', 'category_name', 'stock', 'description'],
+      ['雅马哈立式钢琴', 'Yamaha', 'U1', '钢琴', '5', '日本原装进口钢琴'],
+      ['马丁D-28吉他', 'Martin', 'D-28', '吉他', '8', '美国产经典民谣吉他']
     ]
     
     const csvContent = template.map(row => row.join(',')).join('\n')
@@ -421,9 +415,6 @@ export default function InstrumentList() {
     { label: '品牌', value: 'brand' },
     { label: '型号', value: 'model' },
     { label: '分类', value: 'category_name' },
-    { label: '日租金', value: 'daily_rate' },
-    { label: '月租金', value: 'monthly_rate' },
-    { label: '押金', value: 'deposit' },
     { label: '库存', value: 'stock' },
     { label: '状态', value: 'status' },
     { label: '描述', value: 'description' }
@@ -543,6 +534,8 @@ export default function InstrumentList() {
         </Space>
       </div>
 
+      {/* Note: Batch price modification removed as prices are now in expandable specifications */}
+
       {/* Table */}
       <Table
         columns={columns}
@@ -550,10 +543,64 @@ export default function InstrumentList() {
         rowKey="id"
         loading={loading}
         rowSelection={handleRowSelection}
+        expandedRowKeys={expandedRowKeys}
+        onExpand={(expanded, record) => {
+          if (expanded) {
+            setExpandedRowKeys([...expandedRowKeys, record.id])
+          } else {
+            setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
+          }
+        }}
+        expandIcon={({ expanded, onExpand, record }) => (
+          <div
+            onClick={e => onExpand(record, e)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {expanded ? (
+              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>-</span>
+            ) : (
+              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span>
+            )}
+          </div>
+        )}
+        expandedRowRender={(record) => {
+          const specs = record.specifications || []
+          if (specs.length === 0) {
+            return <div style={{ padding: '16px', color: '#999' }}>暂无规格信息</div>
+          }
+          
+          return (
+            <div style={{ margin: '-16px', padding: '16px', background: '#fafafa' }}>
+              <Table
+                columns={[
+                  { title: '规格名称', key: 'name', render: (text, spec) => spec.name },
+                  { title: '日租金', key: 'daily', render: (text, spec) => `¥${spec.daily_rent || 0}` },
+                  { title: '周租金', key: 'weekly', render: (text, spec) => `¥${spec.weekly_rent || 0}` },
+                  { title: '月租金', key: 'monthly', render: (text, spec) => `¥${spec.monthly_rent || 0}` },
+                  { 
+                    title: '押金', 
+                    key: 'deposit',
+                    render: (text, spec) => `¥${spec.deposit || 0}`
+                  },
+                  { 
+                    title: '库存', 
+                    key: 'stock',
+                    render: (text, spec) => spec.stock || 0
+                  }
+                ]}
+                pagination={false}
+                rowKey="name"
+              />
+            </div>
+          )
+        }}
         pagination={{
-          pageSize: 10,
+          current: pagination.page,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
           showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`
+          showTotal: (total) => `共 ${total} 条`,
+          onChange: (page, pageSize) => fetchInstruments(page, pageSize),
         }}
       />
       

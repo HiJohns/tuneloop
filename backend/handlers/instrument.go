@@ -14,15 +14,16 @@ import (
 var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
-	Name           string                 `json:"name" binding:"required"`
-	Brand          string                 `json:"brand"`
-	Level          string                 `json:"level" binding:"required"`
-	CategoryID     string                 `json:"category_id" binding:"required"`
-	Pricing        map[string]interface{} `json:"pricing"`
-	Description    string                 `json:"description"`
-	Images         []string               `json:"images"`
-	Video          string                 `json:"video"`
-	Specifications map[string]interface{} `json:"specifications"`
+	Name           string                   `json:"name" binding:"required"`
+	Brand          string                   `json:"brand"`
+	Level          string                   `json:"level" binding:"required"`
+	CategoryID     string                   `json:"category_id" binding:"required"`
+	Pricing        map[string]interface{}   `json:"pricing"`
+	Description    string                   `json:"description"`
+	Images         []string                 `json:"images"`
+	Video          string                   `json:"video"`
+	Specifications map[string]interface{}   `json:"specifications"`
+	Specs          []map[string]interface{} `json:"specs"`
 }
 
 func GetInstrumentPricing(c *gin.Context) {
@@ -78,15 +79,41 @@ func CreateInstrument(c *gin.Context) {
 
 	log.Printf("[DEBUG CreateInstrument] Creating instrument: name=%s, brand=%s, level=%s", req.Name, req.Brand, req.Level)
 
+	// Get category_name from database
+	var categoryName string
+	if req.CategoryID != "" {
+		var cat struct {
+			Name string `json:"name"`
+		}
+		if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+			categoryName = cat.Name
+		}
+	}
+
+	// Map level to level_name
+	levelName := ""
+	switch req.Level {
+	case "beginner":
+		levelName = "入门级"
+	case "intermediate":
+		levelName = "中级"
+	case "advanced":
+		levelName = "高级"
+	case "professional":
+		levelName = "专业级"
+	}
+
 	instrument := models.Instrument{
-		TenantID:    tenantID,
-		OrgID:       tenantID,
-		Name:        req.Name,
-		Brand:       req.Brand,
-		Level:       req.Level,
-		CategoryID:  req.CategoryID,
-		Description: req.Description,
-		StockStatus: "available",
+		TenantID:     tenantID,
+		OrgID:        tenantID,
+		Name:         req.Name,
+		Brand:        req.Brand,
+		Level:        req.Level,
+		LevelName:    levelName,
+		CategoryID:   req.CategoryID,
+		CategoryName: categoryName,
+		Description:  req.Description,
+		StockStatus:  "available",
 	}
 
 	// Handle Images field
@@ -106,7 +133,21 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	// Handle Specifications field
-	if req.Specifications != nil {
+	// Priority: req.Specs > req.Specifications
+	if req.Specs != nil && len(req.Specs) > 0 {
+		// Use specs from frontend (preferred)
+		specsJSON, err := json.Marshal(req.Specs)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal specs: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specs format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Specifications = string(specsJSON)
+	} else if req.Specifications != nil {
+		// Fallback to specifications field
 		specsJSON, err := json.Marshal(req.Specifications)
 		if err != nil {
 			log.Printf("[ERROR] Failed to marshal specifications: %v", err)
@@ -118,7 +159,7 @@ func CreateInstrument(c *gin.Context) {
 		}
 		instrument.Specifications = string(specsJSON)
 	} else {
-		instrument.Specifications = "{}"
+		instrument.Specifications = "[]"
 	}
 
 	// Handle Pricing field
@@ -157,6 +198,130 @@ func CreateInstrument(c *gin.Context) {
 			"name":  instrument.Name,
 			"brand": instrument.Brand,
 			"level": instrument.Level,
+		},
+	})
+}
+
+// PUT /api/instruments/:id - Update instrument
+func UpdateInstrument(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "instrument id is required",
+		})
+		return
+	}
+
+	var instrument models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40401,
+			"message": "instrument not found",
+		})
+		return
+	}
+
+	var req CreateInstrumentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	instrument.Name = req.Name
+	instrument.Brand = req.Brand
+	instrument.Level = req.Level
+	instrument.CategoryID = req.CategoryID
+	instrument.Description = req.Description
+	instrument.Video = req.Video
+
+	if req.CategoryID != "" {
+		var cat struct {
+			Name string `json:"name"`
+		}
+		if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+			instrument.CategoryName = cat.Name
+		}
+	}
+
+	switch req.Level {
+	case "beginner":
+		instrument.LevelName = "入门级"
+	case "intermediate":
+		instrument.LevelName = "中级"
+	case "advanced":
+		instrument.LevelName = "高级"
+	case "professional":
+		instrument.LevelName = "专业级"
+	}
+
+	if req.Images != nil {
+		imagesJSON, err := json.Marshal(req.Images)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40003,
+				"message": "invalid images format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Images = string(imagesJSON)
+	}
+
+	if req.Specs != nil && len(req.Specs) > 0 {
+		specsJSON, err := json.Marshal(req.Specs)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specs format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Specifications = string(specsJSON)
+	} else if req.Specifications != nil {
+		specsJSON, err := json.Marshal(req.Specifications)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specifications format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Specifications = string(specsJSON)
+	}
+
+	if req.Pricing != nil {
+		pricingJSON, err := json.Marshal(req.Pricing)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40005,
+				"message": "invalid pricing format: " + err.Error(),
+			})
+			return
+		}
+		instrument.Pricing = string(pricingJSON)
+	}
+
+	if err := db.Save(&instrument).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update instrument: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"id":    instrument.ID,
+			"name":  instrument.Name,
+			"brand": instrument.Brand,
 		},
 	})
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Modal, Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card } from 'antd'
-import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
+import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -11,7 +11,7 @@ const { Option } = Select
 const { TextArea } = Input
 
 // Sortable image item component
-const SortableImageItem = ({ file, onRemove }) => {
+const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
   const {
     attributes,
     listeners,
@@ -27,6 +27,9 @@ const SortableImageItem = ({ file, onRemove }) => {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const progress = uploadStatus.progress[file.uid];
+  const isFailed = uploadStatus.failedFiles.includes(file.uid);
+
   return (
     <div
       ref={setNodeRef}
@@ -34,6 +37,30 @@ const SortableImageItem = ({ file, onRemove }) => {
       className="relative inline-block m-2"
     >
       <img src={file.url} alt={file.name} className="w-24 h-24 object-cover rounded" />
+      
+      {/* Progress bar for uploading files */}
+      {progress && progress.percent < 100 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 rounded-b">
+          <Progress 
+            percent={progress.percent} 
+            showInfo={false}
+            strokeColor="#52c41a"
+          />
+        </div>
+      )}
+      
+      {/* Status overlay */}
+      {isFailed && (
+        <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center rounded">
+          <CloseCircleOutlined style={{ color: 'white', fontSize: 24 }} />
+        </div>
+      )}
+      {progress && progress.percent === 100 && (
+        <div className="absolute inset-0 bg-green-500 bg-opacity-50 flex items-center justify-center rounded">
+          <CheckCircleOutlined style={{ color: 'white', fontSize: 24 }} />
+        </div>
+      )}
+      
       <div className="absolute top-0 right-0 flex">
         <Button
           size="small"
@@ -42,12 +69,21 @@ const SortableImageItem = ({ file, onRemove }) => {
           {...listeners}
           className="cursor-move"
         />
-        <Button
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={() => onRemove(file.uid)}
-          danger
-        />
+        {isFailed ? (
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            onClick={() => onRetry(file)}
+            type="primary"
+          />
+        ) : (
+          <Button
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => onRemove(file.uid)}
+            danger
+          />
+        )}
       </div>
     </div>
   );
@@ -58,6 +94,11 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState([])
   const [specs, setSpecs] = useState([])
+  const [uploadStatus, setUploadStatus] = useState({
+    isUploading: false,
+    progress: {},
+    failedFiles: []
+  })
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   const sensors = useSensors(
@@ -92,30 +133,85 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   }, [visible, initialData])
 
   const beforeUpload = (file) => {
+    console.log('[DEBUG] beforeUpload called for file:', file.name)
     // Generate preview URL using FileReader
     const reader = new FileReader()
     reader.onload = (e) => {
+      console.log('[DEBUG] FileReader onload, setting preview URL')
       setFileList(prev => {
         const fileIndex = prev.findIndex(f => f.uid === file.uid)
         if (fileIndex >= 0) {
           const newList = [...prev]
           newList[fileIndex] = { ...newList[fileIndex], url: e.target.result }
+          console.log('[DEBUG] Updated fileList with preview URL:', newList[fileIndex])
           return newList
         }
         return prev
       })
     }
     reader.readAsDataURL(file)
-    return true // Allow upload to proceed
+    return false // Prevent automatic upload, handle manually
+  }
+
+  const uploadFileWithProgress = (file, onProgress) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      
+      // Progress tracking
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          onProgress(percent)
+        }
+      }
+      
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const result = JSON.parse(xhr.responseText)
+          resolve(result.data?.url || result.url)
+        } else {
+          reject(new Error('Upload failed'))
+        }
+      }
+      
+      xhr.onerror = () => reject(new Error('Network error'))
+      
+      xhr.open('POST', `${API_BASE_URL}/upload`)
+      const formData = new FormData()
+      formData.append('file', file.originFileObj || file)
+      xhr.send(formData)
+    })
   }
 
   const handleUploadChange = ({ fileList: newFileList }) => {
-    setFileList(newFileList.map(file => {
-      if (file.response && file.response.code === 20000) {
-        return { ...file, url: file.response.data.url }
+    console.log('[DEBUG] handleUploadChange called with fileList:', newFileList)
+    
+    const processedList = newFileList.map(file => {
+      // Handle different response formats from upload API
+      if (file.response) {
+        console.log('[DEBUG] File response:', file.name, file.response)
+        
+        // Format 1: { code: 20000, data: { url: "..." } }
+        if (file.response.code === 20000 && file.response.data?.url) {
+          console.log('[DEBUG] Format 1 detected, URL:', file.response.data.url)
+          return { ...file, url: file.response.data.url }
+        }
+        // Format 2: { success: true, url: "..." }
+        else if (file.response.success && file.response.url) {
+          console.log('[DEBUG] Format 2 detected, URL:', file.response.url)
+          return { ...file, url: file.response.url }
+        }
+        // Format 3: Direct url in response
+        else if (file.response.url) {
+          console.log('[DEBUG] Format 3 detected, URL:', file.response.url)
+          return { ...file, url: file.response.url }
+        }
       }
       return file
-    }).filter(file => file.status !== 'error'))
+    }).filter(file => file.status !== 'error')
+    
+    console.log('[DEBUG] Processed fileList:', processedList)
+    setFileList(processedList)
   }
 
   const handleDragEnd = (event) => {
@@ -201,79 +297,167 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
     }))
   }
 
-  // Upload pending files manually
   const uploadPendingFiles = async () => {
     const pendingFiles = fileList.filter(file => file.status !== 'done')
+    const previouslyUploadedImages = fileList
+      .filter(file => file.status === 'done' && file.url)
+      .map(file => file.url)
     
-    if (pendingFiles.length === 0) return { success: true }
+    if (pendingFiles.length === 0) {
+      return { success: true, uploadedImages: previouslyUploadedImages }
+    }
+    
+    const newlyUploadedImages = []
+    const failedFiles = []
+    
+    // Initialize progress tracking for all pending files
+    setUploadStatus(prev => ({
+      ...prev,
+      isUploading: true,
+      progress: pendingFiles.reduce((acc, file) => ({
+        ...acc,
+        [file.uid]: { percent: 0, status: 'uploading' }
+      }), {}),
+      failedFiles: []
+    }))
     
     const uploadPromises = pendingFiles.map(async (file) => {
       try {
-        const formData = new FormData()
-        formData.append('file', file.originFileObj || file)
-        
-        const response = await fetch(`${API_BASE_URL}/upload`, {
-          method: 'POST',
-          body: formData,
-        })
-        
-        if (!response.ok) {
-          throw new Error('Upload failed')
+        const onProgress = (percent) => {
+          setUploadStatus(prev => ({
+            ...prev,
+            progress: {
+              ...prev.progress,
+              [file.uid]: { percent, status: 'uploading' }
+            }
+          }))
         }
         
-        const result = await response.json()
+        const uploadedUrl = await uploadFileWithProgress(file, onProgress)
+        newlyUploadedImages.push(uploadedUrl)
         
-        // Update the file in fileList
+        // Update fileList with uploaded status
         setFileList(prev => prev.map(f => {
           if (f.uid === file.uid) {
-            return {
-              ...f,
-              status: 'done',
-              url: result.data?.url || result.url,
-              response: {
-                code: 20000,
-                data: { url: result.data?.url || result.url }
-              }
-            }
+            return { ...f, status: 'done', url: uploadedUrl }
           }
           return f
         }))
         
-        return { success: true }
+        // Mark as completed
+        setUploadStatus(prev => ({
+          ...prev,
+          progress: {
+            ...prev.progress,
+            [file.uid]: { percent: 100, status: 'done' }
+          }
+        }))
+        
+        return { success: true, file }
       } catch (error) {
-        message.error(`图片 ${file.name} 上传失败`)
-        return { success: false, error }
+        console.error('Upload failed for', file.name, ':', error)
+        failedFiles.push(file)
+        
+        setUploadStatus(prev => ({
+          ...prev,
+          progress: {
+            ...prev.progress,
+            [file.uid]: { percent: 0, status: 'error' }
+          },
+          failedFiles: [...prev.failedFiles, file]
+        }))
+        
+        return { success: false, file, error }
       }
     })
     
     const results = await Promise.all(uploadPromises)
     const allSuccess = results.every(r => r.success)
     
+    setUploadStatus(prev => ({ ...prev, isUploading: false }))
+    
     if (!allSuccess) {
-      throw new Error('部分图片上传失败')
+      message.error('部分图片上传失败，请重试')
+      return { success: false, uploadedImages: [], failedFiles }
     }
     
-    return { success: true }
+    return { 
+      success: true, 
+      uploadedImages: [...previouslyUploadedImages, ...newlyUploadedImages] 
+    }
+  }
+
+  const retryUpload = async (file) => {
+    const onProgress = (percent) => {
+      setUploadStatus(prev => ({
+        ...prev,
+        progress: {
+          ...prev.progress,
+          [file.uid]: { percent, status: 'uploading' }
+        }
+      }))
+    }
+    
+    try {
+      const uploadedUrl = await uploadFileWithProgress(file, onProgress)
+      
+      setFileList(prev => prev.map(f => {
+        if (f.uid === file.uid) {
+          return { ...f, status: 'done', url: uploadedUrl }
+        }
+        return f
+      }))
+      
+      setUploadStatus(prev => ({
+        ...prev,
+        progress: {
+          ...prev.progress,
+          [file.uid]: { percent: 100, status: 'done' }
+        },
+        failedFiles: prev.failedFiles.filter(f => f.uid !== file.uid)
+      }))
+      
+      message.success(`${file.name} 上传成功`)
+    } catch (error) {
+      message.error(`${file.name} 重试失败`)
+    }
   }
 
   const handleSubmit = async () => {
+    console.log('[DEBUG] ==== handleSubmit START ====')
+    
     try {
       const values = await form.validateFields()
+      
+      // Check if any files are uploading or failed
+      if (uploadStatus.isUploading) {
+        message.warning('请等待图像上传完成')
+        return
+      }
+      
+      if (uploadStatus.failedFiles.length > 0) {
+        message.error('请先处理上传失败的图片')
+        return
+      }
+      
       setLoading(true)
       
-      // Upload pending files first
+      console.log('[DEBUG] Form values:', values)
+      
+      // Upload pending files first and get the uploaded image URLs
+      let images = []
       if (fileList.length > 0) {
         const uploadResult = await uploadPendingFiles()
+        console.log('[DEBUG] Upload result:', uploadResult)
         if (!uploadResult.success) {
+          console.error('[DEBUG] Upload failed, aborting submit')
           setLoading(false)
           return
         }
+        images = uploadResult.uploadedImages || []
       }
       
-      // Extract image URLs from fileList
-      const images = fileList
-        .filter(file => file.status === 'done' && file.url)
-        .map(file => file.url)
+      console.log('[DEBUG] Final images array:', images)
       
       // Prepare specs data
       const processedSpecs = specs.map(spec => ({
@@ -304,6 +488,10 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         specs: processedSpecs
       }
       
+      console.log('[DEBUG] ==== PREPARING TO SEND POST /api/instruments ====')
+      console.log('[DEBUG] Request body (formData):', JSON.stringify(formData, null, 2))
+      console.log('[DEBUG] ==== LAUNCHING REQUEST ====')
+      
       // Submit to API
       const url = initialData ? `${API_BASE_URL}/instruments/${initialData.id}` : `${API_BASE_URL}/instruments`
       const method = initialData ? 'PUT' : 'POST'
@@ -316,22 +504,23 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         body: JSON.stringify(formData)
       })
       
+      console.log('[DEBUG] Response status:', response.status)
+      
       if (!response.ok) throw new Error('提交失败')
       
       const result = await response.json()
-      // Accept both 20000 (standard success) and 20100 (created success)
       if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
         onSubmit(result.data)
         form.resetFields()
         setFileList([])
         setSpecs([{ id: Date.now(), name: '', daily_rent: 0, weekly_rent: 0, monthly_rent: 0, deposit: 0, stock: 0 }])
+        setUploadStatus({ isUploading: false, progress: {}, failedFiles: [] })
       } else {
         throw new Error(result.message || '提交失败')
       }
     } catch (error) {
       if (error.errorFields) {
-        // Form validation error
         console.error('Validation failed:', error)
       } else {
         message.error(error.message || '提交失败')
@@ -349,13 +538,19 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
       visible={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
-      confirmLoading={loading}
+      confirmLoading={loading || uploadStatus.isUploading}
+      okButtonProps={{ 
+        disabled: uploadStatus.failedFiles.length > 0,
+        loading: uploadStatus.isUploading 
+      }}
       width={800}
-      bodyStyle={{ 
-        maxHeight: '70vh', 
-        overflowY: 'auto', 
-        overflowX: 'hidden',
-        paddingLeft: '16px'
+      styles={{ 
+        body: {
+          maxHeight: '70vh', 
+          overflowY: 'auto', 
+          overflowX: 'hidden',
+          paddingLeft: '16px'
+        }
       }}
     >
       <Form
@@ -446,38 +641,45 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
         <Divider orientation="left">图片和视频</Divider>
         
         <Form.Item
-          name="images"
           label="图片"
           extra="拖拽可调整图片顺序，建议尺寸 800x600"
         >
-          <Upload
-            listType="picture-card"
-            fileList={fileList}
-            onChange={handleUploadChange}
-            beforeUpload={beforeUpload}
-            action={`${API_BASE_URL}/upload`}
-            multiple
-            accept="image/*"
-            showUploadList={false}
-          >
-            <div>
-              <UploadOutlined />
-              <div style={{ marginTop: 8 }}>点击或拖拽上传</div>
-            </div>
-          </Upload>
-          
-          {/* Drag and drop sortable image list */}
-          {fileList.length > 0 && (
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-              <SortableContext items={fileList.map(f => f.uid)} strategy={verticalListSortingStrategy}>
-                <div className="mt-4">
-                  {fileList.map((file) => (
-                    <SortableImageItem key={file.uid} file={file} onRemove={removeImage} />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
+          <div>
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              onChange={handleUploadChange}
+              beforeUpload={beforeUpload}
+              action={`${API_BASE_URL}/upload`}
+              multiple
+              accept="image/*"
+              showUploadList={false}
+            >
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>点击或拖拽上传</div>
+              </div>
+            </Upload>
+            
+            {/* Drag and drop sortable image list */}
+            {fileList.length > 0 && (
+              <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <SortableContext items={fileList.map(f => f.uid)} strategy={verticalListSortingStrategy}>
+                  <div className="mt-4">
+                     {fileList.map((file) => (
+                       <SortableImageItem 
+                         key={file.uid} 
+                         file={file} 
+                         onRemove={removeImage}
+                         uploadStatus={uploadStatus}
+                         onRetry={retryUpload}
+                       />
+                     ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
         </Form.Item>
 
         <Form.Item

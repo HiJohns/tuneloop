@@ -139,11 +139,11 @@ export default function Detail() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <div className="relative">
-        <img 
-          src={instrument.image} 
-          alt={instrument.name}
-          className="w-full h-64 object-contain bg-gray-100"
-        />
+         <img 
+           src={instrument.images?.[0] || '/placeholder.png'} 
+           alt={instrument.name}
+           className="w-full h-64 object-contain bg-gray-100"
+         />
         <button 
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 bg-black/30 text-white p-2 rounded-full"

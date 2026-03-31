@@ -3,13 +3,68 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 function getToken() {
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=')
-    if (name === 'token') return value
+    const trimmed = cookie.trim()
+    const eqPos = trimmed.indexOf('=')
+    if (eqPos > 0) {
+      const name = trimmed.substring(0, eqPos)
+      const value = trimmed.substring(eqPos + 1)
+      if (name === 'token') return decodeURIComponent(value)
+    }
   }
   return localStorage.getItem('token') || sessionStorage.getItem('token')
 }
 
-async function request(endpoint, options = {}) {
+function storeTokens(accessToken, refreshToken) {
+  localStorage.setItem('token', accessToken)
+  localStorage.setItem('refresh_token', refreshToken)
+  document.cookie = `token=${accessToken}; path=/; max-age=604800`
+}
+
+function getRefreshToken() {
+  return localStorage.getItem('refresh_token')
+}
+
+function clearTokens() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('refresh_token')
+  sessionStorage.removeItem('token')
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+}
+
+function redirectToIAM() {
+  const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+  const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
+  const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+  const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+  window.location.href = authUrl
+}
+
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) {
+    throw new Error('No refresh token available')
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken })
+  })
+  
+  if (!response.ok) {
+    throw new Error('Token refresh failed')
+  }
+  
+  const data = await response.json()
+  if (data.code === 20000 && data.data) {
+    storeTokens(data.data.access_token, data.data.refresh_token)
+    return data.data.access_token
+  }
+  
+  throw new Error('Invalid refresh response')
+}
+
+async function request(endpoint, options = {}, retryCount = 0) {
   const token = getToken()
   const headers = {
     'Content-Type': 'application/json',
@@ -27,17 +82,20 @@ async function request(endpoint, options = {}) {
     headers,
   })
 
+  // Handle 401 Unauthorized
   if (response.status === 401) {
-    localStorage.removeItem('token')
-    sessionStorage.removeItem('token')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    if (retryCount < 1) {
+      // Try to refresh token once
+      try {
+        await refreshAccessToken()
+        return request(endpoint, options, retryCount + 1)
+      } catch (refreshError) {
+        // Refresh failed, clear tokens and redirect
+      }
+    }
     
-    // 跳转到 IAM OAuth 授权页面（与移动端一致）
-    const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
-    const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
-    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
-    window.location.href = authUrl
+    clearTokens()
+    redirectToIAM()
     return
   }
 
@@ -48,15 +106,19 @@ async function request(endpoint, options = {}) {
 
   const data = await response.json()
   
-  // 处理 token 过期错误
-  if (data.code === 40101 || data.code === 401) {
-    localStorage.removeItem('token')
-    sessionStorage.removeItem('token')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  // Handle 40101 token expired
+  if (data.code === 40101) {
+    if (retryCount < 1) {
+      try {
+        await refreshAccessToken()
+        return request(endpoint, options, retryCount + 1)
+      } catch (refreshError) {
+        // Refresh failed
+      }
+    }
     
-    // 跳转到登录页面 - 使用与 HTTP 401 相同的逻辑
-    const loginUrl = window.APP_CONFIG?.iamLoginUrl || '/api/auth/login'
-    window.location.href = loginUrl + '?redirect_uri=' + encodeURIComponent(window.location.href)
+    clearTokens()
+    redirectToIAM()
     return []
   }
   
@@ -101,7 +163,10 @@ export const api = {
 }
 
 export const instrumentsApi = {
-  list: () => api.get('/instruments'),
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/instruments${query ? '?' + query : ''}`)
+  },
   get: (id) => api.get(`/instruments/${id}`),
   getPricing: (id) => api.get(`/instruments/${id}/pricing`),
 }
