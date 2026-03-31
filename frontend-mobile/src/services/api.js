@@ -51,16 +51,14 @@ if (import.meta.env.DEV && typeof window !== 'undefined' && typeof window.wx ===
 
 /**
  * 检测是否在微信小程序环境中
- * 优先检测 __wxjs_environment（微信官方推荐）
- * 备用检测 wx.miniProgram 对象
+ * 只使用 __wxjs_environment（微信官方推荐）
+ * 这是唯一可靠的方式来区分真实微信环境和浏览器环境
  */
 function isWeChatMiniProgram() {
-  // 优先检测 window.__wxjs_environment（微信官方推荐）
-  if (typeof window !== 'undefined' && window.__wxjs_environment === 'miniprogram') {
-    return true
-  }
-  // 备用检测：检查 wx 对象和 miniProgram 属性
-  return typeof wx !== 'undefined' && wx.miniProgram
+  // 只检测 window.__wxjs_environment（微信官方推荐）
+  // Mock 的 wx 对象不会设置 __wxjs_environment，因此不会误判
+  return typeof window !== 'undefined' && 
+         window.__wxjs_environment === 'miniprogram'
 }
 
 /**
