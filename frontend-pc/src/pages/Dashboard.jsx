@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin } from 'antd'
-import { EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { EyeOutlined, EditOutlined, DollarOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { inventoryApi, sitesApi } from '../services/api'
+import { inventoryApi, sitesApi, orderApi, maintenanceApi, leaseApi } from '../services/api'
 
 const statusColors = {
   "在租": "green",
