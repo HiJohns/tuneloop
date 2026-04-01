@@ -41,6 +41,7 @@ type Instrument struct {
 	Brand          string    `gorm:"type:varchar(100)" json:"brand"`
 	Level          string    `gorm:"type:varchar(20);not null" json:"level"`
 	LevelName      string    `gorm:"type:varchar(50)" json:"level_name"`
+	Model          string    `gorm:"type:varchar(100)" json:"model"`
 	Description    string    `gorm:"type:text" json:"description"`
 	Images         string    `gorm:"type:jsonb;default:'[]'" json:"images"`
 	Video          string    `gorm:"type:varchar(500)" json:"video"`

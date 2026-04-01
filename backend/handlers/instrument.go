@@ -17,6 +17,7 @@ type CreateInstrumentRequest struct {
 	Name           string                   `json:"name" binding:"required"`
 	Brand          string                   `json:"brand"`
 	Level          string                   `json:"level" binding:"required"`
+	Model          string                   `json:"model"`
 	CategoryID     string                   `json:"category_id" binding:"required"`
 	Pricing        map[string]interface{}   `json:"pricing"`
 	Description    string                   `json:"description"`
@@ -236,6 +237,7 @@ func UpdateInstrument(c *gin.Context) {
 	}
 
 	instrument.Name = req.Name
+	instrument.Model = req.Model
 	instrument.Brand = req.Brand
 	instrument.Level = req.Level
 	instrument.CategoryID = req.CategoryID
