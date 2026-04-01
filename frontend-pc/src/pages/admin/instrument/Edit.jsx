@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Card, Progress } from 'antd'
+import { Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Card, Progress, Spin, Alert } from 'antd'
 import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable'
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -93,6 +93,8 @@ export default function InstrumentEdit() {
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [instrument, setInstrument] = useState(null)
+  const [errorMsg, setErrorMsg] = useState(null)
   const [fileList, setFileList] = useState([])
   const [specs, setSpecs] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -159,7 +161,9 @@ export default function InstrumentEdit() {
         setSpecs(instrumentData.specs || [])
       }
     } catch (error) {
-      message.error('加载乐器失败: ' + error.message)
+      const errorMessage = '加载乐器失败: ' + error.message
+      message.error(errorMessage)
+      setErrorMsg(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -533,6 +537,36 @@ export default function InstrumentEdit() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="mb-4">
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/instruments/list')}>
+            返回列表
+          </Button>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow flex justify-center items-center" style={{ height: '400px' }}>
+          <Spin tip="正在加载乐器数据..." />
+        </div>
+      </div>
+    )
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="p-6">
+        <div className="mb-4">
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/instruments/list')}>
+            返回列表
+          </Button>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <Alert message="加载失败" description={errorMsg} type="error" />
+        </div>
+      </div>
+    )
   }
 
   return (
