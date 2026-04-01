@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"gorm.io/gorm"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -20,6 +21,67 @@ func getAbsPath(relativePath string) string {
 	execDir, _ := os.Getwd()
 	return filepath.Join(execDir, relativePath)
 }
+
+func GetInstrumentByID(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "instrument id is required",
+		})
+		return
+	}
+	
+	// Get tenant_id from context
+	tenantID := middleware.GetTenantID(ctx)
+	
+	var instrument models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "instrument not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch instrument: " + err.Error(),
+		})
+		return
+	}
+	
+	// Parse JSON fields
+	instrumentMap := map[string]interface{}{
+		"id":             instrument.ID,
+		"tenant_id":      instrument.TenantID,
+		"org_id":         instrument.OrgID,
+		"category_id":    instrument.CategoryID,
+		"category_name":  instrument.CategoryName,
+		"name":           instrument.Name,
+		"brand":          instrument.Brand,
+		"level":          instrument.Level,
+		"level_name":     instrument.LevelName,
+		"description":    instrument.Description,
+		"images":         json.RawMessage(instrument.Images),
+		"video":          instrument.Video,
+		"stock_status":   instrument.StockStatus,
+		"created_at":     instrument.CreatedAt,
+		"updated_at":     instrument.UpdatedAt,
+		"specifications": json.RawMessage(instrument.Specifications),
+		"pricing":        json.RawMessage(instrument.Pricing),
+	}
+	
+	// Return instrument data with parsed JSON
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data":   instrumentMap,
+	})
+}
+
 
 func GetInstruments(c *gin.Context) {
 	db := database.GetDB()

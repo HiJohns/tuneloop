@@ -614,7 +614,7 @@ export default function InstrumentList() {
       {/* Batch Price Modal */}
       <Modal
         title="批量修改价格"
-        visible={batchPriceModalVisible}
+        open={batchPriceModalVisible}
         onOk={handleBatchPriceSubmit}
         onCancel={() => setBatchPriceModalVisible(false)}
         width={500}
@@ -662,7 +662,7 @@ export default function InstrumentList() {
       {/* Export Field Selection Modal */}
       <Modal
         title="选择导出字段"
-        visible={exportFieldModalVisible}
+        open={exportFieldModalVisible}
         onOk={handleExport}
         onCancel={() => setExportFieldModalVisible(false)}
         width={500}

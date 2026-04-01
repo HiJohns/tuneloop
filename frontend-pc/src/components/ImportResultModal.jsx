@@ -20,7 +20,7 @@ export default function ImportResultModal({ visible, onClose, importResult }) {
   return (
     <Modal
       title="导入结果"
-      visible={visible}
+      open={visible}
       onOk={onClose}
       onCancel={onClose}
       width={600}

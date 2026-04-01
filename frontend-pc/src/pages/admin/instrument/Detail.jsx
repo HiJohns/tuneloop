@@ -571,7 +571,7 @@ export default function InstrumentDetail() {
       {/* Stock Adjustment Modal */}
       <Modal
         title="库存调整"
-        visible={stockModalVisible}
+        open={stockModalVisible}
         onOk={handleStockSubmit}
         onCancel={() => setStockModalVisible(false)}
         width={500}
@@ -608,7 +608,7 @@ export default function InstrumentDetail() {
       {/* Stock Threshold Modal */}
       <Modal
         title="设置库存预警"
-        visible={thresholdModalVisible}
+        open={thresholdModalVisible}
         onOk={setStockThreshold}
         onCancel={() => setThresholdModalVisible(false)}
         width={500}

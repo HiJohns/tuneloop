@@ -548,7 +548,7 @@ export default function InstrumentEdit() {
           </Button>
         </div>
         <div className="bg-white p-6 rounded-lg shadow flex justify-center items-center" style={{ height: '400px' }}>
-          <Spin tip="正在加载乐器数据..." />
+          <Spin fullscreen tip="正在加载乐器数据..." />
         </div>
       </div>
     )
