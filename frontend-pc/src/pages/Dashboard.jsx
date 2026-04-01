@@ -47,7 +47,7 @@ export default function Dashboard() {
         inventoryApi.list(),
         sitesApi.list(),
         leaseApi.list(),
-        api.get(`/orders?start_date=${today}&end_date=${today}`),
+        ordersApi.list? ordersApi.list({ start_date: today, end_date: today }) : Promise.resolve([]),
         maintenanceApi.listMerchant(),
       ])
       setAssets(inventoryData || [])
@@ -67,7 +67,7 @@ export default function Dashboard() {
         setTotalAssets(totalValue)
       }
       
-      setTodaysNewOrders(ordersResponse?.data?.length || 0)
+      setTodaysNewOrders(ordersResponse?.length || ordersResponse?.data?.length || 0)
       
       if (maintenanceData) {
         const pendingMaintenance = maintenanceData.filter(m => 
