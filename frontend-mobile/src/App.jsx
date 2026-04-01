@@ -30,8 +30,9 @@ function ProtectedRoute({ children }) {
   const location = window.location.pathname
   
   if (!token && !publicRoutes.includes(location)) {
-    const config = getWXConfig(); const authUrl = `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)redirect_uri=${redirectUri}    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)response_type=code`;
-    const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
+    const config = getWXConfig()
+    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
+    const authUrl = `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
     window.location.href = authUrl
     return null
   }
