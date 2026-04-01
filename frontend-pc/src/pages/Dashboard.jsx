@@ -89,6 +89,14 @@ export default function Dashboard() {
       navigate('/site/stock?status=maintenance')
     } else if (filterType === '逾期') {
       navigate('/site/stock?overdue=true')
+    } else if (filterType === 'total-assets') {
+      navigate('/site/stock')
+    } else if (filterType === 'active-rentals') {
+      navigate('/site/stock?status=rented')
+    } else if (filterType === 'new-orders') {
+      navigate('/orders')
+    } else if (filterType === 'maintenance') {
+      navigate('/maintenance')
     }
   }
 
@@ -392,6 +400,7 @@ export default function Dashboard() {
         </Form.Item>
       </Form>
 
+      <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>Asset Details</h3>
       <Table 
         columns={columns} 
         dataSource={displayedAssets || []} 
