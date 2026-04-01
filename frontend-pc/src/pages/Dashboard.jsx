@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin } from 'antd'
 import { EyeOutlined, EditOutlined, DollarOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { inventoryApi, sitesApi, orderApi, maintenanceApi, leaseApi } from '../services/api'
+import { inventoryApi, sitesApi, ordersApi, maintenanceApi, leaseApi } from '../services/api'
+import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Legend, Tooltip } from 'recharts'
 
 const statusColors = {
   "在租": "green",
@@ -282,6 +283,55 @@ export default function Dashboard() {
               prefix={<ToolOutlined />}
               valueStyle={{ color: '#faad14' }}
             />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} className="mb-6">
+        <Col span={12}>
+          <Card title="Revenue Trend" style={{ height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={[
+                { month: 'Jan', revenue: 4000 },
+                { month: 'Feb', revenue: 3000 },
+                { month: 'Mar', revenue: 5000 },
+                { month: 'Apr', revenue: 4500 },
+                { month: 'May', revenue: 6000 },
+                { month: 'Jun', revenue: 5500 },
+              ]}>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="revenue" stroke="#1890ff" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card title="Asset Status Distribution" style={{ height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Available', value: assets.filter(a => a.status === 'available' || a.status === '待租').length },
+                    { name: 'Rented', value: assets.filter(a => a.status === 'rented' || a.status === '在租').length },
+                    { name: 'Repairing', value: assets.filter(a => a.status === 'maintenance' || a.status === '维修中').length },
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  <Cell key="available" fill="#1890ff" />
+                  <Cell key="rented" fill="#52c41a" />
+                  <Cell key="repairing" fill="#faad14" />
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </Card>
         </Col>
       </Row>
