@@ -28,6 +28,10 @@ export default function Dashboard() {
   const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
   const [assets, setAssets] = useState([])
+  const [totalAssets, setTotalAssets] = useState(0)
+  const [activeRentals, setActiveRentals] = useState(0)
+  const [todaysNewOrders, setTodaysNewOrders] = useState(0)
+  const [maintenanceDue, setMaintenanceDue] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -37,15 +41,39 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [inventoryData, sitesData] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0]
+      const [inventoryData, sitesData, leasesData, ordersResponse, maintenanceData] = await Promise.all([
         inventoryApi.list(),
         sitesApi.list(),
+        leaseApi.list(),
+        api.get(`/orders?start_date=${today}&end_date=${today}`),
+        maintenanceApi.listMerchant(),
       ])
       setAssets(inventoryData || [])
       setSites((sitesData || []).map(s => ({
         value: s.id,
         label: s.name,
       })))
+      
+      // Calculate new KPI values
+      if (leasesData) {
+        const activeLeases = leasesData.filter(l => l.status === 'active')
+        setActiveRentals(activeLeases.length)
+        
+        const totalValue = activeLeases.reduce((sum, lease) => {
+          return sum + (lease.monthly_rent || 0) + (lease.deposit_amount || 0)
+        }, 0)
+        setTotalAssets(totalValue)
+      }
+      
+      setTodaysNewOrders(ordersResponse?.data?.length || 0)
+      
+      if (maintenanceData) {
+        const pendingMaintenance = maintenanceData.filter(m => 
+          m.status === 'PENDING' || m.status === 'PROCESSING'
+        )
+        setMaintenanceDue(pendingMaintenance.length)
+      }
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
