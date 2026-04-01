@@ -535,7 +535,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   return (
     <Modal
       title={title}
-      visible={visible}
+      open={visible}
       onCancel={onCancel}
       onOk={handleSubmit}
       confirmLoading={loading || uploadStatus.isUploading}
