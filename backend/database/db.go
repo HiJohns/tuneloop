@@ -29,7 +29,23 @@ const (
 var dbInstance *gorm.DB
 
 func init() {
+	// 尝试多个可能的 .env 文件位置
+	envPaths := []string{
+		".env",           // 当前目录
+		"../.env",        // 父目录（从 backend/ 运行时）
+		"../../.env",     // 更上级目录
+	}
+	
+	for _, path := range envPaths {
+		if err := godotenv.Load(path); err == nil {
+			fmt.Printf("[DEBUG] Loaded .env from: %s\n", path)
+			return
+		}
+	}
+	
+	// 如果都找不到，尝试默认位置（可能失败）
 	godotenv.Load()
+	fmt.Println("[WARNING] No .env file found in common paths")
 }
 
 type TenantScopedModel interface {
@@ -281,7 +297,7 @@ func CheckMigrationsStatus(db *gorm.DB) (currentVersion uint, dirty bool, pendin
 		return currentVersion, dirty, 0, fmt.Errorf("failed to create migrate instance: %w", err)
 	}
 
-	return currentVersion, dirty, 0, nil
+	return currentVersion, dirty, pendingCount, nil
 }
 
 func SetDB(db *gorm.DB) {

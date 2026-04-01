@@ -9,9 +9,13 @@ import Booking from './pages/Booking'
 import Profile from './pages/Profile'
 import MyService from './pages/MyService'
 
-const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || 'http://opencode.linxdeep.com:5552'
-const CLIENT_ID = import.meta.env.VITE_IAM_CLIENT_ID || 'tuneloop'
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+const getWXConfig = () => {
+  return window.APP_CONFIG?.wx || {
+    iamExternalUrl: "http://opencode.linxdeep.com:5552",
+    iamClientId: "tuneloop-wx",
+    iamRedirectUri: "http://opencode.linxdeep.com:5556/callback"
+  }
+}
 
 function storeToken(token, expiresIn = 3600) {
   const expiry = new Date().getTime() + (expiresIn * 1000)
@@ -26,7 +30,7 @@ function ProtectedRoute({ children }) {
   const location = window.location.pathname
   
   if (!token && !publicRoutes.includes(location)) {
-    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
+    const config = getWXConfig(); const authUrl = `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)redirect_uri=${redirectUri}    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)response_type=code`;
     const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
     window.location.href = authUrl
     return null

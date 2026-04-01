@@ -65,24 +65,42 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		if iamExternalURL == "" {
 			iamExternalURL = "http://localhost:5552"
 		}
-		iamClientID := os.Getenv("IAM_CLIENT_ID")
-		if iamClientID == "" {
-			iamClientID = "tuneloop"
+
+		// PC Web configuration
+		iamPCClientID := os.Getenv("IAM_PC_CLIENT_ID")
+		if iamPCClientID == "" {
+			iamPCClientID = "tuneloop-pc"
 		}
-		iamRedirectURI := os.Getenv("IAM_REDIRECT_URI")
-		if iamRedirectURI == "" {
-			iamRedirectURI = iamExternalURL + "/authorize?client_id=" + iamClientID
+		iamPCRedirectURI := os.Getenv("IAM_PC_REDIRECT_URI")
+		if iamPCRedirectURI == "" {
+			iamPCRedirectURI = "http://localhost:5554/callback"
+		}
+
+		// WeChat Mini Program configuration
+		iamWXClientID := os.Getenv("IAM_WX_CLIENT_ID")
+		if iamWXClientID == "" {
+			iamWXClientID = "tuneloop-wx"
+		}
+		iamWXRedirectURI := os.Getenv("IAM_WX_REDIRECT_URI")
+		if iamWXRedirectURI == "" {
+			iamWXRedirectURI = "http://localhost:5556/callback"
 		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
-				"iamLoginUrl":    iamExternalURL + "/login",
-				"iamExternalUrl": iamExternalURL,
-				"iamClientId":    iamClientID,
-				"iamRedirectUri": iamRedirectURI,
-				"appName":        "TuneLoop",
-				"version":        "1.0.0",
+				"pc": gin.H{
+					"iamExternalUrl": iamExternalURL,
+					"iamClientId":    iamPCClientID,
+					"iamRedirectUri": iamPCRedirectURI,
+				},
+				"wx": gin.H{
+					"iamExternalUrl": iamExternalURL,
+					"iamClientId":    iamWXClientID,
+					"iamRedirectUri": iamWXRedirectURI,
+				},
+				"appName": "TuneLoop",
+				"version": "1.0.0",
 			},
 		})
 	})

@@ -70,3 +70,36 @@
 - [ ] 复杂功能添加简短说明到本文件的「功能说明」章节
 
 **特别警告**：OAuth、token 处理、权限相关的任务，必须在真实登录场景下完整测试后才能标记完成。
+## 🔐 Authentication Error Handling
+
+### Common Error Codes
+
+| Code | Description | Frontend Action |
+|------|-------------|-----------------|
+| 40101 | Token expired | Auto refresh token, then logout if refresh fails |
+| 401 | Unauthorized | Clear tokens and redirect to IAM login |
+
+### Implementation Requirements
+
+All API calls MUST handle these error codes:
+
+#### Frontend (frontend-pc/src/services/api.js)
+- Check HTTP status 401
+- Check response body `code: 40101`
+- Try token refresh once
+- If refresh fails, clear tokens and redirect to IAM
+
+#### Backend Middleware
+- Return consistent error format:
+  ```json
+  {"code": 40101, "message": "token expired"}
+  ```
+
+### Code Checklist
+
+When adding new API calls:
+- [ ] Check if response.status === 401
+- [ ] Check if data.code === 40101
+- [ ] Handle token refresh
+- [ ] Clear tokens on failure
+- [ ] Redirect to IAM login

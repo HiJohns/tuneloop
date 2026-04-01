@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +20,7 @@ func NewLeaseHandler(db *gorm.DB) *LeaseHandler {
 }
 
 func (h *LeaseHandler) ListLeases(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	tenantID := middleware.GetTenantID(c.Request.Context())
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return

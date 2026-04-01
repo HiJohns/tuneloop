@@ -203,10 +203,13 @@ function OAuthCallback() {
   const exchangedRef = useRef(false)
   
   const getOAuthUrl = () => {
-    const IAM_URL = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
-    const CLIENT_ID = window.APP_CONFIG?.iamClientId || 'tuneloop'
-    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    return `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
+    const config = window.APP_CONFIG?.pc || {
+      iamExternalUrl: "http://opencode.linxdeep.com:5552",
+      iamClientId: "tuneloop-pc",
+      iamRedirectUri: "http://opencode.linxdeep.com:5554/callback"
+    }
+    const redirectUri = encodeURIComponent(config.iamRedirectUri)
+    return `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
   }
 
   useEffect(() => {
