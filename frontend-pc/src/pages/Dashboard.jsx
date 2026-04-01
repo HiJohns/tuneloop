@@ -242,6 +242,50 @@ export default function Dashboard() {
         </Col>
       </Row>
 
+      <Row gutter={16} className="mb-6">
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('total-assets')}>
+            <Statistic
+              title="Total Assets"
+              value={totalAssets}
+              precision={0}
+              prefix={<DollarOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('active-rentals')}>
+            <Statistic
+              title="Active Rentals"
+              value={activeRentals}
+              prefix={<ShoppingOutlined />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('new-orders')}>
+            <Statistic
+              title="Today's New Orders"
+              value={todaysNewOrders}
+              prefix={<BarChartOutlined />}
+              valueStyle={{ color: '#722ed1' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('maintenance')}>
+            <Statistic
+              title="Maintenance Due"
+              value={maintenanceDue}
+              prefix={<ToolOutlined />}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       {statusFilter && (
         <div className="mb-4">
           <Space>
