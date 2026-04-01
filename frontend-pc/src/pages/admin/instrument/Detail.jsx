@@ -292,7 +292,7 @@ export default function InstrumentDetail() {
           <Button 
             type="primary" 
             icon={<EditOutlined />}
-            onClick={() => navigate(`/instruments/${instrument.id}/edit`)}
+            onClick={() => navigate(`/instruments/${instrument?.id || id}/edit`)}
           >
             编辑
           </Button>
