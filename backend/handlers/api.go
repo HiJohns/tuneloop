@@ -65,13 +65,14 @@ func GetInstrumentByID(c *gin.Context) {
 		"brand":          instrument.Brand,
 		"level":          instrument.Level,
 		"level_name":     instrument.LevelName,
+		"model":          instrument.Model,
 		"description":    instrument.Description,
 		"images":         json.RawMessage(instrument.Images),
 		"video":          instrument.Video,
 		"stock_status":   instrument.StockStatus,
 		"created_at":     instrument.CreatedAt,
 		"updated_at":     instrument.UpdatedAt,
-		"specifications": json.RawMessage(instrument.Specifications),
+		"specs": json.RawMessage(instrument.Specifications),
 		"pricing":        json.RawMessage(instrument.Pricing),
 	}
 	
@@ -134,13 +135,14 @@ func GetInstruments(c *gin.Context) {
 			"brand":          instrument.Brand,
 			"level":          instrument.Level,
 			"level_name":     instrument.LevelName,
+		"model":          instrument.Model,
 			"description":    instrument.Description,
 			"images":         json.RawMessage(instrument.Images),
 			"video":          instrument.Video,
 			"stock_status":   instrument.StockStatus,
 			"created_at":     instrument.CreatedAt,
 			"updated_at":     instrument.UpdatedAt,
-			"specifications": json.RawMessage(instrument.Specifications),
+			"specs": json.RawMessage(instrument.Specifications),
 			"pricing":        json.RawMessage(instrument.Pricing),
 		}
 
