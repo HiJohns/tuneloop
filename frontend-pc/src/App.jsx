@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin } from 'antd'
 import {
@@ -200,6 +200,7 @@ function OAuthCallback() {
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
   const navigate = useNavigate()
+  const exchangedRef = useRef(false)
   
   const getOAuthUrl = () => {
     const IAM_URL = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
@@ -209,6 +210,9 @@ function OAuthCallback() {
   }
 
   useEffect(() => {
+    if (exchangedRef.current) return
+    exchangedRef.current = true
+
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const error = params.get('error')
@@ -231,7 +235,16 @@ function OAuthCallback() {
       return
     }
 
-    const exchangeCodeForToken = async (retryCount = 0) => {
+    const existingToken = getToken()
+    if (existingToken) {
+      console.log('[OAuth] Token already exists, skipping exchange')
+      const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
+      sessionStorage.removeItem('post_auth_redirect')
+      window.location.href = redirectTo
+      return
+    }
+
+    const exchangeCodeForToken = async () => {
       try {
         setLoading(true)
         
@@ -244,12 +257,6 @@ function OAuthCallback() {
         })
 
         if (!response.ok) {
-          // If 500 error and haven't retried, try once more
-          if (response.status === 500 && retryCount < 1) {
-            console.log('[OAuth] Got 500, retrying...')
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            return exchangeCodeForToken(retryCount + 1)
-          }
           const errorText = await response.text()
           throw new Error(`Token exchange failed: ${response.status} - ${errorText}`)
         }
@@ -268,24 +275,25 @@ function OAuthCallback() {
             localStorage.setItem('user_role', tokenData.role)
           }
           
-          setLoading(false)
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
           sessionStorage.removeItem('post_auth_redirect')
-          navigate(redirectTo, { replace: true })
+          window.location.href = redirectTo
         } else {
           throw new Error('No access token received')
         }
       } catch (error) {
         setLoading(false)
         setErrorMsg(error.message || 'Authentication failed')
+        localStorage.removeItem('token')
+        localStorage.removeItem('token_expiry')
         setTimeout(() => {
           window.location.href = getOAuthUrl()
-        }, 5000)
+        }, 3000)
       }
     }
 
     exchangeCodeForToken()
-  }, [navigate])
+  }, [])
 
   if (errorMsg) {
     return (
