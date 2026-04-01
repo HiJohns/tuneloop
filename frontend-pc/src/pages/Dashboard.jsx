@@ -438,10 +438,3 @@ export default function Dashboard() {
   )
 }
 
-function Card({ children, className, ...props }) {
-  return (
-    <div className={`bg-white p-4 rounded shadow ${className}`} {...props}>
-      {children}
-    </div>
-  )
-}
