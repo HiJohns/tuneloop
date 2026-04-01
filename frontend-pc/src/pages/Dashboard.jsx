@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin } from 'antd'
+import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin, Card } from 'antd'
 import { EyeOutlined, EditOutlined, DollarOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { inventoryApi, sitesApi, ordersApi, maintenanceApi, leaseApi } from '../services/api'
@@ -332,6 +332,41 @@ export default function Dashboard() {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} className="mb-6">
+        <Col span={8}>
+          <Card title="Low Stock Alerts" bordered={false} style={{ background: '#fff1f0' }}>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#cf1322' }}>
+              {assets.filter(a => a.stock && a.stock < 10).length}
+            </div>
+            <div style={{ marginTop: '8px', color: '#595959' }}>
+              SKUs below threshold
+            </div>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card title="Overdue Returns" bordered={false} style={{ background: '#fff7e6' }}>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
+              {filteredAssets.filter(a => 
+                a.leaseEnd && a.leaseEnd < today && (a.status === "在租" || a.status === "rented")
+              ).length}
+            </div>
+            <div style={{ marginTop: '8px', color: '#595959' }}>
+              Assets past return date
+            </div>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card title="Pending Maintenance Tasks" bordered={false} style={{ background: '#f6ffed' }}>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
+              {maintenanceDue || 0}
+            </div>
+            <div style={{ marginTop: '8px', color: '#595959' }}>
+              Tasks requiring attention
+            </div>
           </Card>
         </Col>
       </Row>
