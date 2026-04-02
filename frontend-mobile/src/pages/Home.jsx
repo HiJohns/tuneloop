@@ -139,7 +139,7 @@ export default function Home() {
       // Update categories only on initial load
       if (pageNum === 1) {
         const uniqueCategories = ["全部", ...new Set(
-          (result.data || []).map(i => i.category).filter(cat => cat)
+          (result.data || []).map(i => i.category_name || i.category).filter(cat => cat)
         )]
         setCategories(uniqueCategories)
       }
@@ -230,7 +230,7 @@ export default function Home() {
 
   const filteredInstruments = activeCategory === "全部" 
     ? instruments 
-    : instruments.filter(i => i.category === activeCategory)
+    : instruments.filter(i => (i.category_name || i.category) === activeCategory)
 
   return (
     <div className="min-h-screen bg-brand-bg">

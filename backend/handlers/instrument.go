@@ -20,13 +20,12 @@ type CreateInstrumentRequest struct {
 	Level          string                   `json:"level" binding:"required"`
 	Model          string                   `json:"model"`
 	CategoryID     string                   `json:"category_id" binding:"required"`
+	Pricing        map[string]interface{}   `json:"pricing"`
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
 	Specifications map[string]interface{}   `json:"specifications"`
 	Specs          []map[string]interface{} `json:"specs"`
-	Pricing        map[string]interface{}   `json:"pricing"`
-	PricingTiers   []map[string]interface{} `json:"pricing_tiers"`
 }
 
 func GetInstrumentPricing(c *gin.Context) {
@@ -289,48 +288,14 @@ func UpdateInstrument(c *gin.Context) {
 	}
 
 	if req.Specs != nil && len(req.Specs) > 0 {
-        specsJSON, err := json.Marshal(req.Specs)
-        if err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{
-                "code":    40004,
-                "message": "invalid specs format: " + err.Error(),
-            })
-            return
-        }
-        instrument.Specifications = string(specsJSON)
-    } else if req.Specifications != nil {
-        specsJSON, err := json.Marshal(req.Specifications)
-        if err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{
-                "code":    40004,
-                "message": "invalid specifications format: " + err.Error(),
-            })
-            return
-        }
-        instrument.Specifications = string(specsJSON)
-    }
-    
-    if req.PricingTiers != nil && len(req.PricingTiers) > 0 {
-        pricingJSON, err := json.Marshal(req.PricingTiers)
-        if err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{
-                "code":    40005,
-                "message": "invalid pricing_tiers format: " + err.Error(),
-            })
-            return
-        }
-        instrument.Pricing = string(pricingJSON)
-    } else if req.Pricing != nil {
-        pricingJSON, err := json.Marshal(req.Pricing)
-        if err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{
-            "code":    40005,
-            "message": "invalid pricing format: " + err.Error(),
-            })
-            return
-        }
-        instrument.Pricing = string(pricingJSON)
-    }
+		specsJSON, err := json.Marshal(req.Specs)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40004,
+				"message": "invalid specs format: " + err.Error(),
+			})
+			return
+		}
 		instrument.Specifications = string(specsJSON)
 	} else if req.Specifications != nil {
 		specsJSON, err := json.Marshal(req.Specifications)
@@ -350,18 +315,6 @@ func UpdateInstrument(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40005,
 				"message": "invalid pricing format: " + err.Error(),
-			})
-			return
-		}
-		instrument.Pricing = string(pricingJSON)
-	}
-
-	if req.PricingTiers != nil && len(req.PricingTiers) > 0 {
-		pricingJSON, err := json.Marshal(req.PricingTiers)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    40005,
-				"message": "invalid pricing_tiers format: " + err.Error(),
 			})
 			return
 		}

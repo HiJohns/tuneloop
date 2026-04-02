@@ -39,7 +39,12 @@ func (h *MaintenanceHandler) SubmitRepair(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 
+	tenantID := c.GetString("tenant_id")
+	orgID := c.GetString("org_id")
+
 	ticket := models.MaintenanceTicket{
+		TenantID:           tenantID,
+		OrgID:              orgID,
 		OrderID:            req.OrderID,
 		InstrumentID:       req.InstrumentID,
 		ProblemDescription: req.ProblemDescription,

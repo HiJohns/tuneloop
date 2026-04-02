@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"log"
 	"math/rand"
 	"net/http"
-	"gorm.io/gorm"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -25,7 +25,7 @@ func getAbsPath(relativePath string) string {
 func GetInstrumentByID(c *gin.Context) {
 	db := database.GetDB()
 	ctx := c.Request.Context()
-	
+
 	instrumentID := c.Param("id")
 	if instrumentID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -34,10 +34,10 @@ func GetInstrumentByID(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get tenant_id from context
 	tenantID := middleware.GetTenantID(ctx)
-	
+
 	var instrument models.Instrument
 	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -53,36 +53,45 @@ func GetInstrumentByID(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Parse JSON fields
-	instrumentMap := map[string]interface{}{
-		"id":             instrument.ID,
-		"tenant_id":      instrument.TenantID,
-		"org_id":         instrument.OrgID,
-		"category_id":    instrument.CategoryID,
-		"category_name":  instrument.CategoryName,
-		"name":           instrument.Name,
-		"brand":          instrument.Brand,
-		"level":          instrument.Level,
-		"level_name":     instrument.LevelName,
-		"model":          instrument.Model,
-		"description":    instrument.Description,
-		"images":         json.RawMessage(instrument.Images),
-		"video":          instrument.Video,
-		"stock_status":   instrument.StockStatus,
-		"created_at":     instrument.CreatedAt,
-		"updated_at":     instrument.UpdatedAt,
-		"specs": json.RawMessage(instrument.Specifications),
-		"pricing":        json.RawMessage(instrument.Pricing),
+	var specsArray []interface{}
+	if instrument.Specifications != "" && instrument.Specifications != "{}" {
+		if err := json.Unmarshal([]byte(instrument.Specifications), &specsArray); err != nil {
+			specsArray = []interface{}{}
+		}
 	}
-	
+	if specsArray == nil {
+		specsArray = []interface{}{}
+	}
+
+	instrumentMap := map[string]interface{}{
+		"id":            instrument.ID,
+		"tenant_id":     instrument.TenantID,
+		"org_id":        instrument.OrgID,
+		"category_id":   instrument.CategoryID,
+		"category_name": instrument.CategoryName,
+		"name":          instrument.Name,
+		"brand":         instrument.Brand,
+		"level":         instrument.Level,
+		"level_name":    instrument.LevelName,
+		"model":         instrument.Model,
+		"description":   instrument.Description,
+		"images":        json.RawMessage(instrument.Images),
+		"video":         instrument.Video,
+		"stock_status":  instrument.StockStatus,
+		"created_at":    instrument.CreatedAt,
+		"updated_at":    instrument.UpdatedAt,
+		"specs":         specsArray,
+		"pricing":       json.RawMessage(instrument.Pricing),
+	}
+
 	// Return instrument data with parsed JSON
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data":   instrumentMap,
+		"data": instrumentMap,
 	})
 }
-
 
 func GetInstruments(c *gin.Context) {
 	db := database.GetDB()
@@ -126,24 +135,24 @@ func GetInstruments(c *gin.Context) {
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
 		instrumentMap := map[string]interface{}{
-			"id":             instrument.ID,
-			"tenant_id":      instrument.TenantID,
-			"org_id":         instrument.OrgID,
-			"category_id":    instrument.CategoryID,
-			"category_name":  instrument.CategoryName,
-			"name":           instrument.Name,
-			"brand":          instrument.Brand,
-			"level":          instrument.Level,
-			"level_name":     instrument.LevelName,
-		"model":          instrument.Model,
-			"description":    instrument.Description,
-			"images":         json.RawMessage(instrument.Images),
-			"video":          instrument.Video,
-			"stock_status":   instrument.StockStatus,
-			"created_at":     instrument.CreatedAt,
-			"updated_at":     instrument.UpdatedAt,
-			"specs": json.RawMessage(instrument.Specifications),
-			"pricing":        json.RawMessage(instrument.Pricing),
+			"id":            instrument.ID,
+			"tenant_id":     instrument.TenantID,
+			"org_id":        instrument.OrgID,
+			"category_id":   instrument.CategoryID,
+			"category_name": instrument.CategoryName,
+			"name":          instrument.Name,
+			"brand":         instrument.Brand,
+			"level":         instrument.Level,
+			"level_name":    instrument.LevelName,
+			"model":         instrument.Model,
+			"description":   instrument.Description,
+			"images":        json.RawMessage(instrument.Images),
+			"video":         instrument.Video,
+			"stock_status":  instrument.StockStatus,
+			"created_at":    instrument.CreatedAt,
+			"updated_at":    instrument.UpdatedAt,
+			"specs":         json.RawMessage(instrument.Specifications),
+			"pricing":       json.RawMessage(instrument.Pricing),
 		}
 
 		// Parse specifications JSON

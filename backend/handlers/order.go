@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"tuneloop-backend/database"
 	"tuneloop-backend/internal/service"
+	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,12 +30,21 @@ func PreviewOrder(c *gin.Context) {
 		req.DepositMode = "standard"
 	}
 
+	creditScore := 600
+	if userID := c.GetString("user_id"); userID != "" {
+		db := database.GetDB().WithContext(c.Request.Context())
+		var user models.User
+		if err := db.First(&user, "id = ?", userID).Error; err == nil {
+			creditScore = user.CreditScore
+		}
+	}
+
 	pricingReq := &service.PricingRequest{
 		InstrumentID: req.InstrumentID,
 		Level:        req.Level,
 		LeaseTerm:    req.LeaseTerm,
 		DepositMode:  req.DepositMode,
-		CreditScore:  750,
+		CreditScore:  creditScore,
 	}
 
 	resp, err := pricingService.CalculatePrice(c.Request.Context(), pricingReq)

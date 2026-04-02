@@ -158,7 +158,8 @@ export default function InstrumentEdit() {
           })))
         }
         
-        setSpecs(instrumentData.specs || [])
+        const specsData = instrumentData.specs || instrumentData.specifications || []
+        setSpecs(Array.isArray(specsData) ? specsData : [])
       }
     } catch (error) {
       const errorMessage = '加载乐器失败: ' + error.message
