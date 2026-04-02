@@ -89,7 +89,7 @@ const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
   );
 };
 
-export default function InstrumentForm({ visible, onCancel, onSubmit, initialData = null, categories = [] }) {
+export default function InstrumentForm({ open, onCancel, onSubmit, initialData = null, categories = [] }) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState([])
@@ -535,7 +535,7 @@ export default function InstrumentForm({ visible, onCancel, onSubmit, initialDat
   return (
     <Modal
       title={title}
-      open={visible}
+      open={open}
       onCancel={onCancel}
       onOk={handleSubmit}
       confirmLoading={loading || uploadStatus.isUploading}
