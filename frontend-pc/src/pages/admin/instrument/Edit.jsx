@@ -7,6 +7,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { api } from '../../../services/api'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -172,11 +173,8 @@ export default function InstrumentEdit() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`)
-      const data = await response.json()
-      if (data.code === 20000) {
-        setCategories(data.data || [])
-      }
+      const data = await api.get('/categories')
+      setCategories(data || [])
     } catch (error) {
       console.error('Load categories failed:', error)
     }

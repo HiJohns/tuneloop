@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Modal, Form, Input, Select, Upload, Switch, message, Button } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
+import { api } from '../../services/api'
 
 export default function CategoryForm({ visible, onCancel, onSubmit, initialData = null }) {
   const [form] = Form.useForm()
@@ -21,17 +22,23 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
 
   const fetchParentCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`)
-      if (!response.ok) throw new Error('Failed to fetch categories')
-      
-      const data = await response.json()
-      if (data.code === 20000) {
-        // Filter only level 1 categories as parent options
-        const level1Categories = (data.data || [])
-          .filter(cat => cat.level === 1)
-          .map(cat => ({ id: cat.id, name: cat.name }))
-        setCategories(level1Categories)
-      }
+      const data = await api.get('/categories')
+      // Filter only level 1 categories as parent options
+      const level1Categories = (data || [])
+        .filter(cat => cat.level === 1)
+        .map(cat => ({ id: cat.id, name: cat.name }))
+      setCategories(level1Categories)
+    } catch (error) {
+      message.error('加载父级分类失败: ' + error.message)
+      // Fallback demo data
+      setCategories([
+        { id: '1', name: '钢琴' },
+        { id: '2', name: '吉他' },
+        { id: '3', name: '架子鼓' },
+        { id: '4', name: '小提琴' }
+      ])
+    }
+  }
     } catch (error) {
       message.error('加载父级分类失败: ' + error.message)
       // Fallback demo data

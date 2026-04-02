@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Table, Button, Input, Space, Tag, Image, Popconfirm, message } from 'antd'
 import CategoryForm from './Form'
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
+import { api } from '../../services/api'
 
 export default function CategoryList() {
   const [loading, setLoading] = useState(true)
@@ -18,15 +19,15 @@ export default function CategoryList() {
   const fetchCategories = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/categories`)
-      if (!response.ok) throw new Error('Failed to fetch categories')
-      
-      const data = await response.json()
-      if (data.code === 20000) {
-        setCategories(data.data || [])
-      } else {
-        throw new Error(data.message || 'API error')
-      }
+      const data = await api.get('/categories')
+      setCategories(data || [])
+    } catch (err) {
+      console.error('Failed to fetch categories:', err)
+      message.error('加载分类失败')
+    } finally {
+      setLoading(false)
+    }
+  }
     } catch (err) {
       message.error('加载分类失败: ' + err.message)
       // Fallback demo data
