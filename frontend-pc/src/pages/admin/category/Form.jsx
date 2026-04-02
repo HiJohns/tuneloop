@@ -56,7 +56,7 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
       const formData = {
         name: values.name,
         icon: values.icon || '',
-        sort: values.sort || 99,
+        sort: Number(values.sort) || 99,
         visible: values.visible !== false,
         parent_id: values.parent_id || null,
       }
