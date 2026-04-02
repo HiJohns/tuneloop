@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +11,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
