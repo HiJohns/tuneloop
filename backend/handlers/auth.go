@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"crypto/rand"
 	"log"
 	"net/http"
 	"os"
 	"tuneloop-backend/services"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
@@ -38,12 +40,27 @@ func (h *AuthHandler) GetOIDCAuthorizationURL(c *gin.Context) {
 		redirectURI = externalURL + "/authorize?client_id=" + clientID
 	}
 
+	state := generateRandomState(32)
+	c.SetCookie("oauth_state", state, 300, "/", "", false, false)
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"authorization_url": redirectURI,
+			"authorization_url": redirectURI + "&state=" + state,
 		},
 	})
+}
+
+func generateRandomState(length int) string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return ""
+	}
+	for i := range bytes {
+		bytes[i] = charset[int(bytes[i])%len(charset)]
+	}
+	return string(bytes)
 }
 
 func (h *AuthHandler) Callback(c *gin.Context) {
@@ -67,7 +84,24 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
-	_ = state
+	expectedState, err := c.Cookie("oauth_state")
+	if err != nil || state == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "missing or invalid state parameter",
+		})
+		return
+	}
+
+	if state != expectedState {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid state parameter - possible CSRF attack",
+		})
+		return
+	}
+
+	c.SetCookie("oauth_state", "", -1, "/", "", false, false)
 
 	tokenResp, err := h.iamService.ExchangeCode(code)
 	if err != nil {

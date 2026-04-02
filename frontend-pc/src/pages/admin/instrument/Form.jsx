@@ -123,7 +123,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
           })))
         }
         // Set specs
-        setSpecs(initialData.specs || [])
+        setSpecs(initialData.specifications || [])
       } else {
         form.resetFields()
         setFileList([])
@@ -484,8 +484,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
         video: values.video || '',
         status: initialData ? (values.status || 'active') : 'active',
         stock: totalStock,
-        pricing_tiers: values.pricing_tiers || [],
-        specs: processedSpecs
+        specifications: processedSpecs
       }
       
       console.log('[DEBUG] ==== PREPARING TO SEND POST /api/instruments ====')
@@ -784,60 +783,6 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
             添加规格
           </Button>
         </div>
-
-        <Divider orientation="left">价格阶梯配置（可选）</Divider>
-        
-        <Form.List name="pricing_tiers">
-          {(fields, { add, remove }) => (
-            <>
-              {fields.map(({ key, name, ...restField }) => (
-                <Card key={key} size="small" className="mb-3">
-                  <Row gutter={16}>
-                    <Col span={6}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'min_days']}
-                        rules={[{ required: true, message: '请输入最小天数' }]}
-                      >
-                        <InputNumber placeholder="最小天数" min={1} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'max_days']}
-                      >
-                        <InputNumber placeholder="最大天数" min={1} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'discount']}
-                        rules={[{ required: true, message: '请输入折扣率' }]}
-                      >
-                        <InputNumber
-                          placeholder="折扣率"
-                          min={0.1}
-                          max={1}
-                          step={0.05}
-                          style={{ width: '100%' }}
-                          addonAfter="%"
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={4}>
-                      <Button icon={<DeleteOutlined />} onClick={() => remove(name)} danger />
-                    </Col>
-                  </Row>
-                </Card>
-              ))}
-              <Button icon={<PlusOutlined />} onClick={() => add()} type="dashed">
-                添加价格阶梯
-              </Button>
-            </>
-          )}
-        </Form.List>
       </Form>
     </Modal>
   )

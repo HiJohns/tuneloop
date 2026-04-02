@@ -42,6 +42,10 @@ type Instrument struct {
 	Level          string    `gorm:"type:varchar(20);not null" json:"level"`
 	LevelName      string    `gorm:"type:varchar(50)" json:"level_name"`
 	Model          string    `gorm:"type:varchar(100)" json:"model"`
+	SN             string    `gorm:"type:varchar(100)" json:"sn"`
+	Site           string    `gorm:"type:varchar(255)" json:"site"`
+	SiteID         string    `gorm:"type:uuid;index" json:"site_id"`
+	CurrentSiteID  string    `gorm:"type:uuid;index" json:"current_site_id"`
 	Description    string    `gorm:"type:text" json:"description"`
 	Images         string    `gorm:"type:jsonb;default:'[]'" json:"images"`
 	Video          string    `gorm:"type:varchar(500)" json:"video"`
@@ -104,9 +108,13 @@ type MaintenanceTicket struct {
 	Status             string     `gorm:"type:varchar(20);default:'PENDING';index" json:"status"`
 	AssignedSiteID     string     `gorm:"type:uuid" json:"assigned_site_id"`
 	TechnicianID       string     `gorm:"type:uuid;index" json:"technician_id"`
+	ProgressNotes      string     `gorm:"type:text" json:"progress_notes"`
 	RepairReport       string     `gorm:"type:text" json:"repair_report"`
 	RepairPhotos       string     `gorm:"type:jsonb;default:'[]'" json:"repair_photos"`
 	EstimatedCost      float64    `gorm:"type:decimal(10,2);default:0" json:"estimated_cost"`
+	AcceptedAt         *time.Time `json:"accepted_at"`
+	CompletionNotes    string     `gorm:"type:text" json:"completion_notes"`
+	CompletionPhotos   string     `gorm:"type:jsonb;default:'[]'" json:"completion_photos"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 	CompletedAt        *time.Time `gorm:"index" json:"completed_at,omitempty"`

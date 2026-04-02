@@ -24,8 +24,7 @@ type CreateInstrumentRequest struct {
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
-	Specifications map[string]interface{}   `json:"specifications"`
-	Specs          []map[string]interface{} `json:"specs"`
+	Specifications []map[string]interface{} `json:"specifications"`
 }
 
 func GetInstrumentPricing(c *gin.Context) {
@@ -135,21 +134,7 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	// Handle Specifications field
-	// Priority: req.Specs > req.Specifications
-	if req.Specs != nil && len(req.Specs) > 0 {
-		// Use specs from frontend (preferred)
-		specsJSON, err := json.Marshal(req.Specs)
-		if err != nil {
-			log.Printf("[ERROR] Failed to marshal specs: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    40004,
-				"message": "invalid specs format: " + err.Error(),
-			})
-			return
-		}
-		instrument.Specifications = string(specsJSON)
-	} else if req.Specifications != nil {
-		// Fallback to specifications field
+	if req.Specifications != nil && len(req.Specifications) > 0 {
 		specsJSON, err := json.Marshal(req.Specifications)
 		if err != nil {
 			log.Printf("[ERROR] Failed to marshal specifications: %v", err)
@@ -287,17 +272,7 @@ func UpdateInstrument(c *gin.Context) {
 		instrument.Images = string(imagesJSON)
 	}
 
-	if req.Specs != nil && len(req.Specs) > 0 {
-		specsJSON, err := json.Marshal(req.Specs)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    40004,
-				"message": "invalid specs format: " + err.Error(),
-			})
-			return
-		}
-		instrument.Specifications = string(specsJSON)
-	} else if req.Specifications != nil {
+	if req.Specifications != nil && len(req.Specifications) > 0 {
 		specsJSON, err := json.Marshal(req.Specifications)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
