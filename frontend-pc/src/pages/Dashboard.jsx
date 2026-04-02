@@ -346,7 +346,7 @@ export default function Dashboard() {
 
       <Row gutter={16} className="mb-6">
         <Col span={8}>
-          <Card title="Low Stock Alerts" bordered={false} style={{ background: '#fff1f0' }}>
+          <Card title="Low Stock Alerts" variant="borderless" style={{ background: '#fff1f0' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#cf1322' }}>
               {assets.filter(a => a.stock && a.stock < 10).length}
             </div>
@@ -356,7 +356,7 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="Overdue Returns" bordered={false} style={{ background: '#fff7e6' }}>
+          <Card title="Overdue Returns" variant="borderless" style={{ background: '#fff7e6' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
               {filteredAssets.filter(a => 
                 a.leaseEnd && a.leaseEnd < today && (a.status === "在租" || a.status === "rented")
@@ -368,7 +368,7 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="Pending Maintenance Tasks" bordered={false} style={{ background: '#f6ffed' }}>
+          <Card title="Pending Maintenance Tasks" variant="borderless" style={{ background: '#f6ffed' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
               {maintenanceDue || 0}
             </div>
