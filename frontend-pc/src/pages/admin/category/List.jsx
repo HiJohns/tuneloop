@@ -28,59 +28,6 @@ export default function CategoryList() {
       setLoading(false)
     }
   }
-    } catch (err) {
-      message.error('加载分类失败: ' + err.message)
-      // Fallback demo data
-      setCategories([
-        {
-          id: '1',
-          name: '钢琴',
-          icon: '🎹',
-          level: 1,
-          sort: 1,
-          visible: true,
-          sub_categories: [
-            {
-              id: '1-1',
-              name: '雅马哈',
-              icon: '',
-              level: 2,
-              sort: 1,
-              visible: true,
-            },
-            {
-              id: '1-2',
-              name: '卡瓦依',
-              icon: '',
-              level: 2,
-              sort: 2,
-              visible: true,
-            }
-          ]
-        },
-        {
-          id: '2',
-          name: '吉他',
-          icon: '🎸',
-          level: 1,
-          sort: 2,
-          visible: true,
-          sub_categories: []
-        },
-        {
-          id: '3',
-          name: '古筝',
-          icon: '🎵',
-          level: 1,
-          sort: 3,
-          visible: false,
-          sub_categories: []
-        }
-      ])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSearch = (value) => {
     setSearchText(value.toLowerCase())

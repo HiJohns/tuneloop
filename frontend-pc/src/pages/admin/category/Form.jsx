@@ -39,16 +39,6 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
       ])
     }
   }
-    } catch (error) {
-      message.error('加载父级分类失败: ' + error.message)
-      // Fallback demo data
-      setCategories([
-        { id: '1', name: '钢琴' },
-        { id: '2', name: '吉他' },
-        { id: '3', name: '古筝' }
-      ])
-    }
-  }
 
   const handleSubmit = async () => {
     try {
