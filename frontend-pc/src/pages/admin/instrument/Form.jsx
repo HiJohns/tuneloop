@@ -110,7 +110,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
   );
 
   useEffect(() => {
-    if (visible) {
+    if (open) {
       if (initialData) {
         form.setFieldsValue(initialData)
         // Set file list if images exist
@@ -130,7 +130,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
         setSpecs([{ id: Date.now(), name: '', daily_rent: 0, weekly_rent: 0, monthly_rent: 0, deposit: 0, stock: 0 }])
       }
     }
-  }, [visible, initialData])
+  }, [open, initialData])
 
   const beforeUpload = (file) => {
     console.log('[DEBUG] beforeUpload called for file:', file.name)

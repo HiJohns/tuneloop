@@ -54,6 +54,36 @@ function isTokenExpiringSoon(token) {
   }
 }
 
+async function handleAuthError(token, retryCount, endpoint, options) {
+  // Step 1: 二次确认 - 检查 token 是否真的过期
+  if (token && !isTokenExpiringSoon(token)) {
+    console.error('[Auth Debug] Auth error but token not expired - Permission denied')
+    throw new Error('权限不足')
+  }
+  
+  const refreshToken = getRefreshToken()
+  
+  // Step 2: 尝试刷新 token
+  if (refreshToken && retryCount < 1) {
+    try {
+      await refreshAccessToken()
+      console.log('[Auth Debug] Token refreshed after auth error, retrying request')
+      // 刷新成功后重试原请求
+      return await request(endpoint, options, retryCount + 1)
+    } catch (e) {
+      console.log('[Auth Debug] Token refresh failed in handleAuthError:', e.message)
+    }
+  }
+  
+  // Step 3: 刷新失败或无法刷新，清除 token 并跳转
+  console.log('[Auth Debug] Auth failed, clearing tokens and redirecting to IAM')
+  clearTokens()
+  redirectToIAM()
+  
+  // 返回特殊标记表示认证失败
+  return { __authFailed: true }
+}
+
 async function refreshAccessToken() {
   const refreshToken = getRefreshToken()
   if (!refreshToken) {
@@ -108,29 +138,17 @@ async function request(endpoint, options = {}, retryCount = 0) {
   })
 
   // Handle 401 Unauthorized
-  // Step 3: 优化 401 二次确认
+  // 统一处理：调用通用认证错误处理函数
   if (response.status === 401) {
-    // 先检查 Token 是否真的过期
-    if (token && !isTokenExpiringSoon(token)) {
-      // Token 没过期但返回 401，说明是权限不足
-      console.error('[Auth Debug] 401 triggered but token not expired - Permission denied')
-      throw new Error('权限不足')
+    const result = await handleAuthError(token, retryCount, endpoint, options)
+    if (result && result.__authFailed) {
+      // 认证失败，已经跳转，直接返回
+      return []
     }
-    
-    if (retryCount < 1) {
-      // Try to refresh token once
-      try {
-        await refreshAccessToken()
-        return request(endpoint, options, retryCount + 1)
-      } catch (refreshError) {
-        // Refresh failed, clear tokens and redirect
-        console.log('[Auth Debug] Token refresh failed in 401 handler:', refreshError.message)
-      }
+    // 如果刷新成功并返回数据，直接返回
+    if (result && !result.__authFailed) {
+      return result
     }
-    
-    clearTokens()
-    redirectToIAM()
-    return
   }
 
   if (!response.ok) {
@@ -141,19 +159,17 @@ async function request(endpoint, options = {}, retryCount = 0) {
   const data = await response.json()
   
   // Handle 40101 token expired
+  // 统一处理：调用通用认证错误处理函数
   if (data.code === 40101) {
-    if (retryCount < 1) {
-      try {
-        await refreshAccessToken()
-        return request(endpoint, options, retryCount + 1)
-      } catch (refreshError) {
-        // Refresh failed
-      }
+    const result = await handleAuthError(token, retryCount, endpoint, options)
+    if (result && result.__authFailed) {
+      // 认证失败，已经跳转，直接返回
+      return []
     }
-    
-    clearTokens()
-    redirectToIAM()
-    return []
+    // 如果刷新成功并返回数据，直接返回
+    if (result && !result.__authFailed) {
+      return result
+    }
   }
   
   // 标准化响应：确保返回数组
