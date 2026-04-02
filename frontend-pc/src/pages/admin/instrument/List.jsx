@@ -693,7 +693,7 @@ export default function InstrumentList() {
       />
 
       <InstrumentForm
-        visible={formVisible}
+        open={formVisible}
         onCancel={() => {
           setFormVisible(false)
           setEditingInstrument(null)

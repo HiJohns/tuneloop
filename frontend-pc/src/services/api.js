@@ -39,6 +39,21 @@ function redirectToIAM() {
   window.location.href = authUrl
 }
 
+function isTokenExpiringSoon(token) {
+  if (!token) return true
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const expTime = payload.exp * 1000
+    const now = Date.now()
+    const timeLeft = expTime - now
+    const thirtyPercentOf30Days = 30 * 24 * 60 * 60 * 1000 * 0.3
+    return timeLeft < thirtyPercentOf30Days
+  } catch (e) {
+    console.error('[Auth Debug] Failed to parse token:', e)
+    return true
+  }
+}
+
 async function refreshAccessToken() {
   const refreshToken = getRefreshToken()
   if (!refreshToken) {
@@ -65,7 +80,20 @@ async function refreshAccessToken() {
 }
 
 async function request(endpoint, options = {}, retryCount = 0) {
-  const token = getToken()
+  let token = getToken()
+  
+  // Step 2: 实现滑动窗口续期 - 在请求前检查 Token 状态
+  if (token && isTokenExpiringSoon(token) && retryCount === 0) {
+    try {
+      await refreshAccessToken()
+      console.log('[Auth Debug] Token auto-refreshed (sliding window)')
+      // 刷新后重新获取 token
+      token = getToken()
+    } catch (e) {
+      console.log('[Auth Debug] Token refresh failed:', e.message)
+    }
+  }
+  
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -80,7 +108,15 @@ async function request(endpoint, options = {}, retryCount = 0) {
   })
 
   // Handle 401 Unauthorized
+  // Step 3: 优化 401 二次确认
   if (response.status === 401) {
+    // 先检查 Token 是否真的过期
+    if (token && !isTokenExpiringSoon(token)) {
+      // Token 没过期但返回 401，说明是权限不足
+      console.error('[Auth Debug] 401 triggered but token not expired - Permission denied')
+      throw new Error('权限不足')
+    }
+    
     if (retryCount < 1) {
       // Try to refresh token once
       try {
@@ -88,6 +124,7 @@ async function request(endpoint, options = {}, retryCount = 0) {
         return request(endpoint, options, retryCount + 1)
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect
+        console.log('[Auth Debug] Token refresh failed in 401 handler:', refreshError.message)
       }
     }
     

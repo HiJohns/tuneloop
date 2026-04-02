@@ -31,18 +31,18 @@ var dbInstance *gorm.DB
 func init() {
 	// 尝试多个可能的 .env 文件位置
 	envPaths := []string{
-		".env",           // 当前目录
-		"../.env",        // 父目录（从 backend/ 运行时）
-		"../../.env",     // 更上级目录
+		".env",       // 当前目录
+		"../.env",    // 父目录（从 backend/ 运行时）
+		"../../.env", // 更上级目录
 	}
-	
+
 	for _, path := range envPaths {
 		if err := godotenv.Load(path); err == nil {
 			fmt.Printf("[DEBUG] Loaded .env from: %s\n", path)
 			return
 		}
 	}
-	
+
 	// 如果都找不到，尝试默认位置（可能失败）
 	godotenv.Load()
 	fmt.Println("[WARNING] No .env file found in common paths")
@@ -118,7 +118,7 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	return &Config{
+	config := &Config{
 		Host:     getEnv("POSTGRES_HOST", "localhost"),
 		Port:     getEnv("POSTGRES_PORT", "5432"),
 		User:     getEnv("POSTGRES_USER", "tuneloop"),
@@ -126,6 +126,11 @@ func LoadConfig() *Config {
 		DBName:   getEnv("TUNELOOP_DB", "tuneloop"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
+
+	fmt.Printf("[DEBUG Config] Database configuration loaded: host=%s port=%s user=%s dbname=%s sslmode=%s\n",
+		config.Host, config.Port, config.User, config.DBName, config.SSLMode)
+
+	return config
 }
 
 func getEnv(key, defaultValue string) string {
@@ -139,10 +144,15 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
 
+	fmt.Printf("[DEBUG Database] Connecting to database: host=%s port=%s user=%s dbname=%s\n",
+		cfg.Host, cfg.Port, cfg.User, cfg.DBName)
+
 	db, err := gorm.Open(gormPostgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
+
+	fmt.Printf("[DEBUG Database] Successfully connected to database '%s'\n", cfg.DBName)
 
 	registerTenantCallbacks(db)
 
@@ -268,7 +278,36 @@ func BootstrapDatabase(db *gorm.DB) error {
 		return fmt.Errorf("database bootstrap failed: %w", err)
 	}
 
+	// 验证关键表结构
+	if err := validateDatabaseSchema(db); err != nil {
+		return fmt.Errorf("database schema validation failed: %w", err)
+	}
+
 	fmt.Println("✓ Database bootstrap completed successfully")
+	return nil
+}
+
+// validateDatabaseSchema checks that critical tables have required columns
+func validateDatabaseSchema(db *gorm.DB) error {
+	fmt.Println("Validating database schema...")
+
+	// Check instruments table has model column
+	var count int64
+	err := db.Raw(`
+		SELECT COUNT(*) 
+		FROM information_schema.columns 
+		WHERE table_name = 'instruments' AND column_name = 'model'
+	`).Scan(&count).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check instruments.model column: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("critical error: instruments.model column does not exist in connected database")
+	}
+
+	fmt.Println("✓ Database schema validation passed")
 	return nil
 }
 
