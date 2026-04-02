@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -32,28 +33,28 @@ type Category struct {
 }
 
 type Instrument struct {
-	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID          string    `gorm:"type:uuid;index" json:"org_id"`
-	CategoryID     string    `gorm:"type:uuid;index" json:"category_id"`
-	CategoryName   string    `gorm:"type:varchar(100)" json:"category_name"`
-	Name           string    `gorm:"type:varchar(255);not null" json:"name"`
-	Brand          string    `gorm:"type:varchar(100)" json:"brand"`
-	Level          string    `gorm:"type:varchar(20);not null" json:"level"`
-	LevelName      string    `gorm:"type:varchar(50)" json:"level_name"`
-	Model          string    `gorm:"type:varchar(100)" json:"model"`
-	SN             string    `gorm:"type:varchar(100)" json:"sn"`
-	Site           string    `gorm:"type:varchar(255)" json:"site"`
-	SiteID         string    `gorm:"type:uuid;index" json:"site_id"`
-	CurrentSiteID  string    `gorm:"type:uuid;index" json:"current_site_id"`
-	Description    string    `gorm:"type:text" json:"description"`
-	Images         string    `gorm:"type:jsonb;default:'[]'" json:"images"`
-	Video          string    `gorm:"type:varchar(500)" json:"video"`
-	Specifications string    `gorm:"type:jsonb;default:'{}'" json:"specifications"`
-	Pricing        string    `gorm:"type:jsonb;default:'{}'" json:"pricing"`
-	StockStatus    string    `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string     `gorm:"type:uuid;index" json:"org_id"`
+	CategoryID     string     `gorm:"type:uuid;index" json:"category_id"`
+	CategoryName   string     `gorm:"type:varchar(100)" json:"category_name"`
+	Name           string     `gorm:"type:varchar(255);not null" json:"name"`
+	Brand          string     `gorm:"type:varchar(100)" json:"brand"`
+	Level          string     `gorm:"type:varchar(20);not null" json:"level"`
+	LevelName      string     `gorm:"type:varchar(50)" json:"level_name"`
+	Model          string     `gorm:"type:varchar(100)" json:"model"`
+	SN             string     `gorm:"type:varchar(100)" json:"sn"`
+	Site           string     `gorm:"type:varchar(255)" json:"site"`
+	SiteID         *uuid.UUID `gorm:"type:uuid;index" json:"site_id"`
+	CurrentSiteID  *uuid.UUID `gorm:"type:uuid;index" json:"current_site_id"`
+	Description    string     `gorm:"type:text" json:"description"`
+	Images         string     `gorm:"type:jsonb;default:'[]'" json:"images"`
+	Video          string     `gorm:"type:varchar(500)" json:"video"`
+	Specifications string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
+	Pricing        string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`
+	StockStatus    string     `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 type Order struct {
