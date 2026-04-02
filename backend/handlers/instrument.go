@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"tuneloop-backend/database"
@@ -244,12 +245,22 @@ func UpdateInstrument(c *gin.Context) {
 	instrument.Description = req.Description
 	instrument.Video = req.Video
 
+	// Step 1: 添加空值校验 - 只有当 category_id 不为空且是有效 UUID 时才查询
 	if req.CategoryID != "" {
-		var cat struct {
-			Name string `json:"name"`
-		}
-		if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
-			instrument.CategoryName = cat.Name
+		// 校验 UUID 格式
+		if _, err := uuid.Parse(req.CategoryID); err == nil {
+			var cat struct {
+				Name string `json:"name"`
+			}
+			if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+				instrument.CategoryName = cat.Name
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "invalid category_id format: must be a valid UUID",
+			})
+			return
 		}
 	}
 
@@ -308,6 +319,16 @@ func UpdateInstrument(c *gin.Context) {
 			return
 		}
 		instrument.Pricing = string(pricingJSON)
+	}
+
+	// Step 2: 确保 tenant_id 和 org_id 不为空
+	// 确保 tenant_id 和 org_id 存在
+	if instrument.TenantID == "" || instrument.OrgID == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50001,
+			"message": "instrument is missing tenant_id or org_id",
+		})
+		return
 	}
 
 	if err := db.Save(&instrument).Error; err != nil {
