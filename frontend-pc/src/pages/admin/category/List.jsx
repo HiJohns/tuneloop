@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Table, Button, Input, Space, Tag, Image, Popconfirm, message } from 'antd'
 import CategoryForm from './Form'
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
-import { api } from '../../services/api'
+import { api } from '../../../services/api'
 
 export default function CategoryList() {
   const [loading, setLoading] = useState(true)

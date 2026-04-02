@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Modal, Form, Input, Select, Upload, Switch, message, Button } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
-import { api } from '../../services/api'
+import { api } from '../../../services/api'
 
 export default function CategoryForm({ visible, onCancel, onSubmit, initialData = null }) {
   const [form] = Form.useForm()
