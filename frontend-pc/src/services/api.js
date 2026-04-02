@@ -284,6 +284,45 @@ export const depositApi = {
   update: (id, data) => api.put(`/merchant/deposits/${id}`, data),
 }
 
+// Category Management
+export const categoriesApi = {
+  list: () => api.get('/categories'),
+  create: (data) => api.post('/categories', data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  delete: (id) => api.delete(`/categories/${id}`),
+}
+
+// Instrument Management (Admin)
+export const instrumentsAdminApi = {
+  list: (params = {}) => {
+    const query = params ? new URLSearchParams(params).toString() : ''
+    return api.get(`/instruments${query ? '?' + query : ''}`)
+  },
+  get: (id) => api.get(`/instruments/${id}`),
+  create: (data) => api.post('/instruments', data),
+  update: (id, data) => api.put(`/instruments/${id}`, data),
+  delete: (id) => api.delete(`/instruments/${id}`),
+  import: (formData) => api.post('/instruments/import', formData),
+  export: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/instruments/export?${query}`)
+  },
+  getStock: (id) => api.get(`/instruments/${id}/stock`),
+  getStockLogs: (id) => api.get(`/instruments/${id}/stock-logs`),
+  getStockThreshold: (id) => api.get(`/instruments/${id}/stock-threshold`),
+}
+
+// Asset Timeline
+export const assetsApi = {
+  getTimeline: (assetId) => api.get(`/common/assets/${assetId}/timeline`),
+}
+
+// Pricing Matrix
+export const pricingMatrixApi = {
+  get: () => api.get('/admin/pricing-matrix'),
+  update: (data) => api.post('/admin/pricing-matrix', data),
+}
+
 export const iamAdminApi = {
   // Client Management
   getClients: () => api.get('/system/clients'),

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Modal, Form, Input, Select, Upload, Switch, message, Button } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
-import { api } from '../../../services/api'
+import { api, categoriesApi } from '../../../services/api'
 
 export default function CategoryForm({ visible, onCancel, onSubmit, initialData = null }) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState([])
-  const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   useEffect(() => {
     if (visible) {
@@ -62,21 +61,13 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
       }
       
       // Submit to API
-      const url = initialData ? `${API_BASE_URL}/categories/${initialData.id}` : `${API_BASE_URL}/categories`
-      const method = initialData ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) throw new Error('提交失败')
-      
-      const result = await response.json()
-      if (result.code === 20000) {
+      let result
+      if (initialData) {
+        result = await categoriesApi.update(initialData.id, formData)
+      } else {
+        result = await categoriesApi.create(formData)
+      }
+      if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
         onSubmit(result.data)
         form.resetFields()
