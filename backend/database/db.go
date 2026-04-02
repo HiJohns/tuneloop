@@ -118,7 +118,7 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	return &Config{
+	config := &Config{
 		Host:     getEnv("POSTGRES_HOST", "localhost"),
 		Port:     getEnv("POSTGRES_PORT", "5432"),
 		User:     getEnv("POSTGRES_USER", "tuneloop"),
@@ -126,6 +126,11 @@ func LoadConfig() *Config {
 		DBName:   getEnv("TUNELOOP_DB", "tuneloop"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
+
+	fmt.Printf("[DEBUG Config] Database configuration loaded: host=%s port=%s user=%s dbname=%s sslmode=%s\n",
+		config.Host, config.Port, config.User, config.DBName, config.SSLMode)
+
+	return config
 }
 
 func getEnv(key, defaultValue string) string {
