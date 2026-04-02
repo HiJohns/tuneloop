@@ -123,7 +123,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
           })))
         }
         // Set specs
-        setSpecs(initialData.specs || [])
+        setSpecs(initialData.specifications || [])
       } else {
         form.resetFields()
         setFileList([])
@@ -484,7 +484,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
         video: values.video || '',
         status: initialData ? (values.status || 'active') : 'active',
         stock: totalStock,
-        specs: processedSpecs
+        specifications: processedSpecs
       }
       
       console.log('[DEBUG] ==== PREPARING TO SEND POST /api/instruments ====')

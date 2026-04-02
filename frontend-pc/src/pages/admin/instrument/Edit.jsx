@@ -158,7 +158,7 @@ export default function InstrumentEdit() {
           })))
         }
         
-        const specsData = instrumentData.specs || instrumentData.specifications || []
+        const specsData = instrumentData.specifications || []
         setSpecs(Array.isArray(specsData) ? specsData : [])
       }
     } catch (error) {
@@ -505,7 +505,7 @@ export default function InstrumentEdit() {
         video: values.video || '',
         status: id && id !== 'new' ? (values.status || 'active') : 'active',
         stock: totalStock,
-        specs: processedSpecs
+        specifications: processedSpecs
       }
       
       const url = id && id !== 'new' ? `${API_BASE_URL}/instruments/${id}` : `${API_BASE_URL}/instruments`

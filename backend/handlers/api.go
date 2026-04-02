@@ -66,24 +66,24 @@ func GetInstrumentByID(c *gin.Context) {
 	}
 
 	instrumentMap := map[string]interface{}{
-		"id":            instrument.ID,
-		"tenant_id":     instrument.TenantID,
-		"org_id":        instrument.OrgID,
-		"category_id":   instrument.CategoryID,
-		"category_name": instrument.CategoryName,
-		"name":          instrument.Name,
-		"brand":         instrument.Brand,
-		"level":         instrument.Level,
-		"level_name":    instrument.LevelName,
-		"model":         instrument.Model,
-		"description":   instrument.Description,
-		"images":        json.RawMessage(instrument.Images),
-		"video":         instrument.Video,
-		"stock_status":  instrument.StockStatus,
-		"created_at":    instrument.CreatedAt,
-		"updated_at":    instrument.UpdatedAt,
-		"specs":         specsArray,
-		"pricing":       json.RawMessage(instrument.Pricing),
+		"id":             instrument.ID,
+		"tenant_id":      instrument.TenantID,
+		"org_id":         instrument.OrgID,
+		"category_id":    instrument.CategoryID,
+		"category_name":  instrument.CategoryName,
+		"name":           instrument.Name,
+		"brand":          instrument.Brand,
+		"level":          instrument.Level,
+		"level_name":     instrument.LevelName,
+		"model":          instrument.Model,
+		"description":    instrument.Description,
+		"images":         json.RawMessage(instrument.Images),
+		"video":          instrument.Video,
+		"stock_status":   instrument.StockStatus,
+		"created_at":     instrument.CreatedAt,
+		"updated_at":     instrument.UpdatedAt,
+		"specifications": specsArray,
+		"pricing":        json.RawMessage(instrument.Pricing),
 	}
 
 	// Return instrument data with parsed JSON
@@ -135,24 +135,24 @@ func GetInstruments(c *gin.Context) {
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
 		instrumentMap := map[string]interface{}{
-			"id":            instrument.ID,
-			"tenant_id":     instrument.TenantID,
-			"org_id":        instrument.OrgID,
-			"category_id":   instrument.CategoryID,
-			"category_name": instrument.CategoryName,
-			"name":          instrument.Name,
-			"brand":         instrument.Brand,
-			"level":         instrument.Level,
-			"level_name":    instrument.LevelName,
-			"model":         instrument.Model,
-			"description":   instrument.Description,
-			"images":        json.RawMessage(instrument.Images),
-			"video":         instrument.Video,
-			"stock_status":  instrument.StockStatus,
-			"created_at":    instrument.CreatedAt,
-			"updated_at":    instrument.UpdatedAt,
-			"specs":         json.RawMessage(instrument.Specifications),
-			"pricing":       json.RawMessage(instrument.Pricing),
+			"id":             instrument.ID,
+			"tenant_id":      instrument.TenantID,
+			"org_id":         instrument.OrgID,
+			"category_id":    instrument.CategoryID,
+			"category_name":  instrument.CategoryName,
+			"name":           instrument.Name,
+			"brand":          instrument.Brand,
+			"level":          instrument.Level,
+			"level_name":     instrument.LevelName,
+			"model":          instrument.Model,
+			"description":    instrument.Description,
+			"images":         json.RawMessage(instrument.Images),
+			"video":          instrument.Video,
+			"stock_status":   instrument.StockStatus,
+			"created_at":     instrument.CreatedAt,
+			"updated_at":     instrument.UpdatedAt,
+			"specifications": json.RawMessage(instrument.Specifications),
+			"pricing":        json.RawMessage(instrument.Pricing),
 		}
 
 		// Parse specifications JSON
@@ -192,8 +192,8 @@ func GetInstruments(c *gin.Context) {
 			}
 		}
 
-		// Add specs to response
-		instrumentMap["specs"] = specs
+		// Add specifications to response
+		instrumentMap["specifications"] = specs
 
 		// Calculate total stock from specs
 		totalStock := 0

@@ -448,10 +448,10 @@ export default function InstrumentDetail() {
         
         <TabPane tab="规格配置" key="specs">
           <Card title="规格列表">
-            {instrument.specs && instrument.specs.length > 0 ? (
+            {instrument.specifications && instrument.specifications.length > 0 ? (
               <Table
                 columns={specsColumns}
-                dataSource={instrument.specs || [] || []}
+                dataSource={instrument.specifications || [] || []}
                 rowKey="id"
                 pagination={false}
               />
