@@ -55,16 +55,9 @@ function isTokenExpiringSoon(token) {
 }
 
 async function handleAuthError(token, retryCount, endpoint, options) {
-  // Step 1: 二次确认 - 检查 token 是否真的过期
-  if (token && !isTokenExpiringSoon(token)) {
-    console.error('[Auth Debug] Auth error but token not expired - Permission denied')
-    throw new Error('权限不足')
-  }
-  
-  const refreshToken = getRefreshToken()
-  
-  // Step 2: 尝试刷新 token
-  if (refreshToken && retryCount < 1) {
+  // Step 1: 尝试刷新 token (不检查是否即将过期)
+  // 如果后端返回 40101，总是先尝试刷新，不进行额外的过期检查
+  if (retryCount < 1) {
     try {
       await refreshAccessToken()
       console.log('[Auth Debug] Token refreshed after auth error, retrying request')
@@ -75,7 +68,7 @@ async function handleAuthError(token, retryCount, endpoint, options) {
     }
   }
   
-  // Step 3: 刷新失败或无法刷新，清除 token 并跳转
+  // Step 2: 刷新失败，清除 token 并跳转
   console.log('[Auth Debug] Auth failed, clearing tokens and redirecting to IAM')
   clearTokens()
   redirectToIAM()
