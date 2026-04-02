@@ -595,6 +595,7 @@ export default function InstrumentList() {
                     render: (text, spec) => spec.stock || 0
                   }
                 ]}
+                dataSource={specs}
                 pagination={false}
                 rowKey="name"
               />

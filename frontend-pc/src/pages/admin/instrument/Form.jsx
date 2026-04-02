@@ -227,6 +227,10 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
 
   const removeImage = (uid) => {
     setFileList(fileList.filter(file => file.uid !== uid))
+    setUploadStatus(prev => ({
+      ...prev,
+      failedFiles: prev.failedFiles.filter(file => file.uid !== uid)
+    }))
   }
 
   // Specs management
