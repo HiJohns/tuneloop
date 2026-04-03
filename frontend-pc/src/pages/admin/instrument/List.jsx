@@ -143,11 +143,12 @@ export default function InstrumentList() {
       dataIndex: 'category_name',
       key: 'category_name',
       width: 120,
-      filters: [...new Set(instruments.map(i => i.category_name))].map(cat => ({
-        text: cat,
-        value: cat
+      filters: categories.map(cat => ({
+        text: cat.name,
+        value: cat.name
       })),
-      onFilter: (value, record) => record.category_name === value
+      filteredValue: categoryFilter ? [categoryFilter] : null,
+      filterMultiple: false
     },
     {
       title: '库存',
@@ -164,6 +165,13 @@ export default function InstrumentList() {
       dataIndex: 'status',
       key: 'status',
       width: 100,
+      filters: [
+        { text: '可租', value: 'available' },
+        { text: '已租出', value: 'rented' },
+        { text: '维修中', value: 'maintenance' }
+      ],
+      filteredValue: statusFilter ? [statusFilter] : null,
+      filterMultiple: false,
       render: (status) => {
         const statusMap = {
           available: { color: 'green', text: '可租' },
@@ -202,6 +210,17 @@ export default function InstrumentList() {
     }
   ]
 
+  const handleTableChange = (newPagination, filters) => {
+    setPagination(prev => ({
+      ...prev,
+      page: newPagination.current,
+      pageSize: newPagination.pageSize
+    }))
+    
+    setCategoryFilter(filters.category_name ? filters.category_name[0] : '')
+    setStatusFilter(filters.status ? filters.status[0] : '')
+  }
+  
   const viewInstrument = (id) => {
     navigate(`/instruments/detail/${id}`)
   }
@@ -516,7 +535,8 @@ export default function InstrumentList() {
             placeholder="选择分类"
             style={{ width: 150 }}
             allowClear
-            onChange={setCategoryFilter}
+            value={categoryFilter || undefined}
+            onChange={(val) => setCategoryFilter(val || '')}
           >
             {categories.map(cat => (
               <Option key={cat.id} value={cat.name}>{cat.name}</Option>
@@ -526,7 +546,8 @@ export default function InstrumentList() {
             placeholder="选择状态"
             style={{ width: 120 }}
             allowClear
-            onChange={setStatusFilter}
+            value={statusFilter || undefined}
+            onChange={(val) => setStatusFilter(val || '')}
           >
             <Option value="available">可租</Option>
             <Option value="rented">已租出</Option>
@@ -561,6 +582,7 @@ export default function InstrumentList() {
         loading={loading}
         rowSelection={handleRowSelection}
         expandedRowKeys={expandedRowKeys}
+        onChange={handleTableChange}
         onExpand={(expanded, record) => {
           if (expanded) {
             setExpandedRowKeys([...expandedRowKeys, record.id])
@@ -617,8 +639,7 @@ export default function InstrumentList() {
           pageSize: pagination.pageSize,
           total: pagination.total,
           showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
-          onChange: (page, pageSize) => fetchInstruments(page, pageSize),
+          showTotal: (total) => `共 ${total} 条`
         }}
       />
       
