@@ -553,14 +553,14 @@ export default function InstrumentList() {
 
       {/* Note: Batch price modification removed as prices are now in expandable specifications */}
 
-       {/* Table */}
-       <Table
-         columns={columns}
-         dataSource={instruments}
-         rowKey="id"
-         loading={loading}
-         rowSelection={handleRowSelection}
-         expandedRowKeys={expandedRowKeys}
+      {/* Table */}
+      <Table
+        columns={columns}
+        dataSource={instruments}
+        rowKey="id"
+        loading={loading}
+        rowSelection={handleRowSelection}
+        expandedRowKeys={expandedRowKeys}
         onExpand={(expanded, record) => {
           if (expanded) {
             setExpandedRowKeys([...expandedRowKeys, record.id])
