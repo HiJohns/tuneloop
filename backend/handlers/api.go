@@ -111,9 +111,23 @@ func GetInstruments(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
+	// Parse filter parameters
+	categoryID := c.DefaultQuery("category_id", "")
+	stockStatus := c.DefaultQuery("stock_status", "")
+
 	// Get total count
 	var total int64
-	if err := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID).Count(&total).Error; err != nil {
+	var query = db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
+
+	if categoryID != "" {
+		query = query.Where("category_id = ?", categoryID)
+	}
+
+	if stockStatus != "" {
+		query = query.Where("stock_status = ?", stockStatus)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to count instruments",
@@ -123,7 +137,8 @@ func GetInstruments(c *gin.Context) {
 
 	// Get paginated results
 	var instruments []models.Instrument
-	if err := db.Where("tenant_id = ?", tenantID).Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
+	query = query.Offset(offset).Limit(pageSize)
+	if err := query.Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch instruments",
