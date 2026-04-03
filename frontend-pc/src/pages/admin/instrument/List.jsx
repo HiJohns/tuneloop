@@ -46,7 +46,22 @@ export default function InstrumentList() {
   const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/instruments?page=${page}&pageSize=${pageSize}`)
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize)
+      })
+      
+      // Add filter parameters if set
+      if (categoryFilter) {
+        params.append('category_id', categoryFilter)
+      }
+      
+      if (statusFilter) {
+        params.append('stock_status', statusFilter)
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/instruments?${params.toString()}`)
       const result = await response.json()
       
       if (result.code === 20000) {
@@ -75,15 +90,6 @@ export default function InstrumentList() {
       console.error('Load categories failed:', error)
     }
   }
-
-  const filteredInstruments = instruments.filter(instrument => {
-    const matchText = instrument.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                      instrument.brand?.toLowerCase().includes(searchText.toLowerCase()) ||
-                      instrument.model?.toLowerCase().includes(searchText.toLowerCase())
-    const matchCategory = !categoryFilter || instrument.category_name === categoryFilter
-    const matchStatus = !statusFilter || instrument.status === statusFilter
-    return matchText && matchCategory && matchStatus
-  })
 
   const columns = [
     {
@@ -543,14 +549,14 @@ export default function InstrumentList() {
 
       {/* Note: Batch price modification removed as prices are now in expandable specifications */}
 
-      {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={filteredInstruments || []}
-        rowKey="id"
-        loading={loading}
-        rowSelection={handleRowSelection}
-        expandedRowKeys={expandedRowKeys}
+       {/* Table */}
+       <Table
+         columns={columns}
+         dataSource={instruments}
+         rowKey="id"
+         loading={loading}
+         rowSelection={handleRowSelection}
+         expandedRowKeys={expandedRowKeys}
         onExpand={(expanded, record) => {
           if (expanded) {
             setExpandedRowKeys([...expandedRowKeys, record.id])
