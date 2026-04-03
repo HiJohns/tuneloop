@@ -43,6 +43,10 @@ export default function InstrumentList() {
     setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
+  useEffect(() => {
+    fetchInstruments(pagination.page, pagination.pageSize)
+  }, [categoryFilter, statusFilter, pagination.page, pagination.pageSize])
+
   const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
