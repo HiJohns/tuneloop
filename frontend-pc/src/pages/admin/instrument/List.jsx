@@ -58,7 +58,7 @@ export default function InstrumentList() {
       
       // Add filter parameters if set
       if (categoryFilter) {
-        params.append('category_id', categoryFilter)
+        params.append('category_name', categoryFilter)
       }
       
       if (statusFilter) {

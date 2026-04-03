@@ -112,15 +112,15 @@ func GetInstruments(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	// Parse filter parameters
-	categoryID := c.DefaultQuery("category_id", "")
+	categoryName := c.DefaultQuery("category_name", "")
 	stockStatus := c.DefaultQuery("stock_status", "")
 
 	// Get total count
 	var total int64
 	var query = db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
 
-	if categoryID != "" {
-		query = query.Where("category_id = ?", categoryID)
+	if categoryName != "" {
+		query = query.Where("category_name = ?", categoryName)
 	}
 
 	if stockStatus != "" {
