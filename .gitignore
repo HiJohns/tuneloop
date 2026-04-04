@@ -6,6 +6,7 @@ frontend-pc/dist/assets/index-*.js
 frontend-pc/dist/assets/index-*.css
 frontend-mobile/dist/assets/index-*.js
 frontend-mobile/dist/assets/index-*.css
+backend
 
 # IDE
 .idea/
