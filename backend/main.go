@@ -176,6 +176,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			assessmentHandler := handlers.NewAssessmentHandler(database.GetDB())
 			authRequired.GET("/orders/:order_id/assessment", assessmentHandler.GetAssessmentData)
 			authRequired.POST("/orders/:order_id/assessment", assessmentHandler.SubmitAssessment)
+
+			// Outbound confirmation routes for mini-program
+			outboundHandler := handlers.NewOutboundHandler(database.GetDB())
+			authRequired.GET("/orders/:order_id/outbound-photos", outboundHandler.GetOutboundPhotos)
+			authRequired.POST("/orders/:order_id/outbound-confirm", outboundHandler.ConfirmOutbound)
 			merchantMaint.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
 
 			techMaint := authRequired.Group("")
