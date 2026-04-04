@@ -171,6 +171,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			merchantMaint.PUT("/merchant/maintenance/:id/accept", maintHandler.AcceptMaintenance)
 			merchantMaint.PUT("/merchant/maintenance/:id/assign", maintHandler.AssignTechnician)
 			merchantMaint.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
+
+			// Assessment routes for damage comparison
+			assessmentHandler := handlers.NewAssessmentHandler(database.GetDB())
+			authRequired.GET("/orders/:order_id/assessment", assessmentHandler.GetAssessmentData)
+			authRequired.POST("/orders/:order_id/assessment", assessmentHandler.SubmitAssessment)
 			merchantMaint.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
 
 			techMaint := authRequired.Group("")
