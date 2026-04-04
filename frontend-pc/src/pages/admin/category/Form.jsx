@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Modal, Form, Input, Select, Upload, Switch, message, Button } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, Select, Switch, message, Button } from 'antd'
+import { api, categoriesApi } from '../../../services/api'
 
 export default function CategoryForm({ visible, onCancel, onSubmit, initialData = null }) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState([])
-  const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   useEffect(() => {
     if (visible) {
@@ -21,13 +20,10 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
 
   const fetchParentCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`)
-      if (!response.ok) throw new Error('Failed to fetch categories')
-      
-      const data = await response.json()
-      if (data.code === 20000) {
+      const result = await api.get('/categories')
+      if (result.code === 20000) {
         // Filter only level 1 categories as parent options
-        const level1Categories = (data.data || [])
+        const level1Categories = (result.data || [])
           .filter(cat => cat.level === 1)
           .map(cat => ({ id: cat.id, name: cat.name }))
         setCategories(level1Categories)
@@ -64,22 +60,15 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
         parent_id: values.parent_id || null,
       }
       
-      // Submit to API
-      const url = initialData ? `${API_BASE_URL}/categories/${initialData.id}` : `${API_BASE_URL}/categories`
-      const method = initialData ? 'PUT' : 'POST'
+      // Submit to API using categoriesApi
+      let result
+      if (initialData) {
+        result = await categoriesApi.update(initialData.id, formData)
+      } else {
+        result = await categoriesApi.create(formData)
+      }
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) throw new Error('提交失败')
-      
-      const result = await response.json()
-      if (result.code === 20000) {
+      if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
         onSubmit(result.data)
         form.resetFields()
