@@ -88,6 +88,14 @@ System logic is transitioning from "industrial standard products" to "high-value
 - Add metadata JSONB field to Instrument model
 - Consider creating independent label system table (label_normalization)
 
+**Technical Fine-tuning (User Suggestion)**:
+
+For UUID error (`invalid input syntax for type uuid: ""`), Task 1.2 must explicitly:
+
+1. **Backend**: Use pointer type `*uuid.UUID` or sql.NullString-like wrapper in Go structs
+2. **Database**: Ensure all UUID fields store NULL explicitly when unlinked, not empty strings
+3. **GORM Config**: Verify `default:null` configuration instead of default empty string
+
 #### Task 1.3: Global CSS Optimization
 
 **Current Status**: Need to evaluate existing index.css and component styles
@@ -109,6 +117,18 @@ System logic is transitioning from "industrial standard products" to "high-value
 - Implement two-row specification layout
 - Add automatic price ratio calculation logic
 
+**Supplements (User Suggestion)**:
+
+1. **Media Parser "Standardization"**:
+   - Add Video Parser in backend Instrument model or dedicated MediaService
+   - Logic: When user inputs `https://www.bilibili.com/video/BV123`, auto-parse to `platform: "bilibili"` and `bvid: "BV123"`
+   - Value: Frontend can dynamically render `<iframe>` based on platform
+
+2. **"Asset Entry" Batch Processing**:
+   - Add "Batch Asset Generation" button in full-screen edit page
+   - Interaction: User fills template info, enters "quantity: 10", system generates 10 records with unique Asset ID (UUID)
+   - Value: Transform from "entry prototype" to "productivity tool"
+
 #### Task 2.2: Upload Lock Logic
 
 **Current Status**: Need to evaluate existing upload components
@@ -125,6 +145,14 @@ System logic is transitioning from "industrial standard products" to "high-value
 - Create label database table
 - Implement normalization mapping logic
 - Develop backend label audit interface
+
+**Supplements (User Suggestion)**:
+
+1. **"Label Normalization" Lifecycle**:
+   - Add Audit Status field to label_normalization logic
+   - Flow: User input defaults to pending, admin sees "pending queue" instead of static table
+   - Feature: Implement "Merge & Replace" logic
+   - Example: Select "雅玛哈" and "山叶", merge to "雅马哈", system auto-updates all Instrument.metadata JSONB key-value pairs
 
 ### 3.3 Phase 3: Rental Workflow
 
@@ -143,6 +171,14 @@ System logic is transitioning from "industrial standard products" to "high-value
 **Recommendations**:
 - Develop "outbound vs return" side-by-side comparison UI
 - Integrate electronic signature component
+
+**Supplements (User Suggestion)**:
+
+1. **Maintenance Ticket Auto-Trigger**:
+   - Damage assessment UI cannot be just photo comparison, must be business flow trigger
+   - In "comparison damage assessment" UI, if admin checks "has damage", submission triggers two actions:
+     - Auto-create MaintenanceTicket with pending status, link current comparison photos
+     - Asset status auto-changes from rented to repairing (not back to available)
 
 #### Task 3.3: PDF Generation Service
 

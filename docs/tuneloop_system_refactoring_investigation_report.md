@@ -88,6 +88,16 @@
 - 为 Instrument 模型添加 metadata JSONB 字段
 - 考虑创建独立的标签系统表（label_normalization）
 
+**技术微调建议（用户建议）**：
+
+针对 UUID 报错（`invalid input syntax for type uuid: ""`）问题，需在 Task 1.2 中明确执行以下操作：
+
+1. **后端层面**：在 Go 结构体中使用指针类型 `*uuid.UUID` 或者使用 sql.NullString 的类似封装
+2. **数据库层面**：确保所有 UUID 字段在没有关联时显式存储为 NULL，而不是空字符串
+3. **检查 GORM 配置**：确保使用 `default:null` 配置，而非默认的空字符串
+
+这解决了前端传入空字符串时后端报 "invalid input syntax for type uuid" 的问题。
+
 #### Task 1.3: 全局 CSS 优化
 
 **现状评估**：需评估现有 index.css 和组件样式
@@ -109,6 +119,18 @@
 - 实现两行规格布局
 - 添加价格自动倍率计算逻辑
 
+**补充点（用户建议）**：
+
+1. **媒体解析器的"标准化"**：
+   - 在后端 Instrument 模型或专门的 MediaService 中，需要一个 Video Parser
+   - 逻辑：当用户录入 `https://www.bilibili.com/video/BV123` 时，系统应自动解析出 `platform: "bilibili"` 和 `bvid: "BV123"`
+   - 价值：前端才能根据平台动态渲染对应的 `<iframe>` 嵌入代码
+
+2. **"资产入库"的批处理逻辑**：
+   - 在全屏编辑页增加一个 "Batch Asset Generation" (批量资产生成) 按钮
+   - 交互：用户填好模板信息后，输入"数量: 10"，系统自动生成 10 个带唯一 Asset ID（UUID）的实物记录
+   - 价值：从"录入原型"迈向"生产力工具"
+
 #### Task 2.2: 上传锁逻辑
 
 **现状评估**：需评估现有上传组件
@@ -125,6 +147,14 @@
 - 创建标签数据库表
 - 实现归一化映射逻辑
 - 开发后台标签检定界面
+
+**补充点（用户建议）**：
+
+1. **"标签归一化"的生命周期**：
+   - 在 label_normalization 逻辑中增加一个 Audit Status (审计状态) 字段
+   - 流程：用户录入的新标签默认为 pending，管理员在后台看到"待处理队列"而非静态表
+   - 功能：实现 "Merge & Replace" (合并并替换) 逻辑
+   - 示例：选中"雅玛哈"和"山叶"，一键合并到"雅马哈"，系统自动更新所有关联 Instrument.metadata 中的 JSONB 键值对
 
 ### 3.3 第三阶段：流程闭环 (Rental Workflow)
 
@@ -143,6 +173,14 @@
 **建议**：
 - 开发"出库 vs 归还"双栏同屏比对 UI
 - 集成电子签名组件
+
+**补充点（用户建议）**：
+
+1. **维修工单的自动触发**：
+   - 定损界面不能只是一张照片对比，必须是业务流的起点
+   - 在"比对定损"UI 中，如果管理员勾选了"有损坏"，提交时应联动触发两个动作：
+     - 自动创建一个状态为 pending 的 MaintenanceTicket（维修工单），并将当前对比照关联进去
+     - 该资产状态自动从 rented 变为 repairing，而不是回到 available
 
 #### Task 3.3: PDF 生成服务
 
