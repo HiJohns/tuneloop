@@ -31,12 +31,25 @@ function clearTokens() {
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
 }
 
+function isWeChatBrowser() {
+  const ua = navigator.userAgent.toLowerCase()
+  return ua.indexOf('micromessenger') !== -1
+}
+
 function redirectToIAM() {
   const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
   const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
   const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-  const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
-  window.location.href = authUrl
+  
+  if (isWeChatBrowser()) {
+    // WeChat-specific flow - force web login for better compatibility
+    const webLoginUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&force_web=1`
+    window.location.href = webLoginUrl
+  } else {
+    // Standard OAuth flow
+    const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+    window.location.href = authUrl
+  }
 }
 
 function isTokenExpiringSoon(token) {
