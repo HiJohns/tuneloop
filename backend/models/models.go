@@ -216,6 +216,18 @@ type Deposit struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+// Label represents a normalized tag/label for instruments
+type Label struct {
+	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Name           string    `gorm:"type:varchar(100);not null;index" json:"name"`
+	Alias          string    `gorm:"type:jsonb;default:'[]'" json:"alias"`
+	AuditStatus    string    `gorm:"type:varchar(20);default:'pending'" json:"audit_status"`
+	NormalizedToID *string   `gorm:"type:uuid;index" json:"normalized_to_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
 type Tenant struct {
 	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name        string    `gorm:"type:varchar(100);not null" json:"name"`

@@ -181,6 +181,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			outboundHandler := handlers.NewOutboundHandler(database.GetDB())
 			authRequired.GET("/orders/:order_id/outbound-photos", outboundHandler.GetOutboundPhotos)
 			authRequired.POST("/orders/:order_id/outbound-confirm", outboundHandler.ConfirmOutbound)
+
+			// Label management routes for tag normalization
+			labelHandler := handlers.NewLabelHandler(database.GetDB())
+			authRequired.GET("/labels", labelHandler.GetLabels)
+			authRequired.POST("/labels", labelHandler.CreateLabel)
+			authRequired.PUT("/labels/:id/approve", labelHandler.ApproveLabel)
+			authRequired.PUT("/labels/:id/reject", labelHandler.RejectLabel)
+			authRequired.POST("/labels/merge", labelHandler.MergeLabels)
 			merchantMaint.POST("/merchant/maintenance/:id/quote", maintHandler.SendQuote)
 
 			techMaint := authRequired.Group("")
