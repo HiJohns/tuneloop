@@ -20,9 +20,8 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
 
   const fetchParentCategories = async () => {
     try {
-      const result = await api.get('/categories')
+      const result = await categoriesApi.getList()
       if (result.code === 20000) {
-        // Filter only level 1 categories as parent options
         const level1Categories = (result.data || [])
           .filter(cat => cat.level === 1)
           .map(cat => ({ id: cat.id, name: cat.name }))
@@ -30,7 +29,6 @@ export default function CategoryForm({ visible, onCancel, onSubmit, initialData 
       }
     } catch (error) {
       message.error('加载父级分类失败: ' + error.message)
-      // Fallback demo data
       setCategories([
         { id: '1', name: '钢琴' },
         { id: '2', name: '吉他' },
