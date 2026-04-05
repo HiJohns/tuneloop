@@ -311,3 +311,11 @@ export const iamAdminApi = {
   updateTenant: (id, data) => api.put(`/system/tenants/${id}`, data),
   deleteTenant: (id) => api.delete(`/system/tenants/${id}`),
 }
+
+export const categoriesApi = {
+  getList: () => api.get('/categories'),
+  getById: (id) => api.get(`/categories/${id}`),
+  create: (data) => api.post('/categories', data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  delete: (id) => api.delete(`/categories/${id}`)
+}
