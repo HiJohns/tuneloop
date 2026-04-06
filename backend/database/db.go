@@ -218,6 +218,9 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.OwnershipCertificate{},
 		&models.Client{},
 		&models.Tenant{},
+		&models.Property{},
+		&models.PropertyOption{},
+		&models.InstrumentProperty{},
 	)
 }
 

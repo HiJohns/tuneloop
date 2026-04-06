@@ -51,6 +51,7 @@ func extractPort(urlStr string) string {
 
 func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	siteHandler := handlers.NewSiteHandler()
+	propertyHandler := handlers.NewPropertyHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
 
@@ -142,6 +143,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			siteRequired.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
 			siteRequired.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
+		}
+
+		propertyRequired := authRequired.Group("")
+		{
+			propertyRequired.GET("/properties", propertyHandler.ListProperties)
+			propertyRequired.POST("/property", propertyHandler.CreateProperty)
+			propertyRequired.POST("/property/option", propertyHandler.CreatePropertyOption)
+			propertyRequired.PUT("/property/confirm", propertyHandler.ConfirmPropertyValue)
+			propertyRequired.PUT("/property/merge", propertyHandler.MergePropertyValues)
 		}
 
 		inventoryRequired := authRequired.Group("")
