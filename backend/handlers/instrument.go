@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"tuneloop-backend/database"
@@ -394,6 +395,67 @@ func UpdateInstrumentStatus(c *gin.Context) {
 		"data": gin.H{
 			"id":           instrumentID,
 			"stock_status": req.StockStatus,
+		},
+	})
+}
+
+// GET /api/instruments/check - Check if SN exists
+func CheckInstrumentSN(c *gin.Context) {
+	sn := c.Query("sn")
+	if sn == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "sn parameter is required",
+		})
+		return
+	}
+
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var instrument models.Instrument
+	err := db.Where("sn = ? AND tenant_id = ?", sn, tenantID).First(&instrument).Error
+
+	if err == gorm.ErrRecordNotFound {
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"exists": false,
+			},
+		})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to check SN: " + err.Error(),
+		})
+		return
+	}
+
+	var siteName, categoryName string
+	if instrument.SiteID != nil {
+		var site models.Site
+		if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
+			siteName = site.Name
+		}
+	}
+	if instrument.CategoryName != "" {
+		categoryName = instrument.CategoryName
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"exists": true,
+			"info": gin.H{
+				"id":       instrument.ID,
+				"site":     siteName,
+				"category": categoryName,
+				"brand":    instrument.Brand,
+				"model":    instrument.Model,
+			},
 		},
 	})
 }

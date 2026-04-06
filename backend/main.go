@@ -118,6 +118,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/categories", handlers.GetCategories)
 		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/instruments", handlers.GetInstruments)
+		authRequired.GET("/instruments/check", handlers.CheckInstrumentSN)
 		authRequired.GET("/instruments/:id", handlers.GetInstrumentByID)
 		authRequired.PUT("/instruments/:id", handlers.UpdateInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
