@@ -1,143 +1,296 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Spin, Empty } from 'antd'
-import { api } from '../services/api'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons'
+import { sitesApi } from '../services/api'
+
+const { Option } = Select
 
 export default function SiteManagement() {
-  const [modalOpen, setModalOpen] = useState(false)
+  const [treeData, setTreeData] = useState([])
   const [selectedSite, setSelectedSite] = useState(null)
-  const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingSite, setEditingSite] = useState(null)
+  const [form] = Form.useForm()
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetchSites()
+    fetchSiteTree()
   }, [])
 
-  const fetchSites = async () => {
+  const fetchSiteTree = async () => {
     try {
       setLoading(true)
-      setError(null)
-      const response = await api.get('/admin/sites')
-      setSites(response || [])
+      const result = await sitesApi.getTree()
+      if (result.code === 20000) {
+        const sites = result.data?.sites || []
+        const treeNodes = sites.map(site => convertToTreeNode(site))
+        setTreeData(treeNodes)
+      }
     } catch (err) {
-      setError(err.message)
+      message.error('加载网点数据失败: ' + err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const columns = [
-    {
-      title: '网点ID',
-      dataIndex: 'id',
-      key: 'id',
-    },
-    {
-      title: '网点名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '地址',
-      dataIndex: 'address',
-      key: 'address',
-    },
-    {
-      title: '负责人',
-      dataIndex: 'manager',
-      key: 'manager',
-    },
-    {
-      title: '联系电话',
-      dataIndex: 'phone',
-      key: 'phone',
-    },
-    {
-      title: '乐器数量',
-      dataIndex: 'instruments',
-      key: 'instruments',
-      align: 'right',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_, record) => (
-        <Button 
-          type="link" 
-          onClick={() => {
-            setSelectedSite(record)
-            setModalOpen(true)
-          }}
-        >
-          查看地图
-        </Button>
-      )
+  const convertToTreeNode = (site) => ({
+    key: site.id,
+    title: site.name,
+    data: site,
+    children: (site.children || []).map(convertToTreeNode)
+  })
+
+  const loadChildren = async (siteId) => {
+    try {
+      const result = await sitesApi.getTree(siteId)
+      if (result.code === 20000) {
+        return (result.data?.sites || []).map(convertToTreeNode)
+      }
+      return []
+    } catch (err) {
+      console.error('Failed to load children:', err)
+      return []
     }
-  ]
+  }
+
+  const onSelect = (selectedKeys) => {
+    if (selectedKeys.length > 0) {
+      const findSite = (nodes, id) => {
+        for (const node of nodes) {
+          if (node.key === id) return node.data
+          if (node.children) {
+            const found = findSite(node.children, id)
+            if (found) return found
+          }
+        }
+        return null
+      }
+      const site = findSite(treeData, selectedKeys[0])
+      setSelectedSite(site)
+    } else {
+      setSelectedSite(null)
+    }
+  }
+
+  const handleCreateTopLevel = () => {
+    setEditingSite({ parent_id: null })
+    form.resetFields()
+    setEditModalVisible(true)
+  }
+
+  const handleCreateSubSite = () => {
+    if (!selectedSite) {
+      message.warning('请先选择一个网点')
+      return
+    }
+    setEditingSite({ parent_id: selectedSite.id })
+    form.resetFields()
+    setEditModalVisible(true)
+  }
+
+  const handleEdit = () => {
+    if (!selectedSite) return
+    setEditingSite({ ...selectedSite })
+    form.setFieldsValue(selectedSite)
+    setEditModalVisible(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedSite) return
+    try {
+      await sitesApi.delete(selectedSite.id)
+      message.success('删除成功')
+      setSelectedSite(null)
+      fetchSiteTree()
+    } catch (err) {
+      message.error('删除失败: ' + err.message)
+    }
+  }
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields()
+      setSaving(true)
+      
+      const siteData = {
+        name: values.name,
+        address: values.address || '',
+        type: values.type || '',
+        phone: values.phone || '',
+        parent_id: editingSite?.parent_id,
+        manager_id: values.manager_id || null,
+      }
+
+      if (editingSite?.id) {
+        await sitesApi.update(editingSite.id, siteData)
+        message.success('更新成功')
+      } else {
+        await sitesApi.create(siteData)
+        message.success('创建成功')
+      }
+
+      setEditModalVisible(false)
+      fetchSiteTree()
+    } catch (err) {
+      if (err.errorFields) return
+      message.error('操作失败: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const renderEmptyState = () => (
+    <div className="flex flex-col items-center justify-center h-full text-gray-400">
+      <TeamOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+      <p className="text-lg mb-4">暂无网点数据</p>
+      <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>
+        创建顶级网点
+      </Button>
+    </div>
+  )
 
   if (loading) {
     return (
-      <div className="text-center py-16">
+      <div className="flex items-center justify-center h-64">
         <Spin size="large" />
-        <div className="mt-4 text-gray-500">数据正在同步中...</div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-16">
-        <Empty description="数据加载失败" />
-        <Button type="primary" onClick={fetchSites} className="mt-4">
-          重试
-        </Button>
       </div>
     )
   }
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Site网点管理</h2>
+      <h2 className="text-xl font-bold mb-4">网点管理</h2>
       
-      <Card title="网点列表" className="mb-4">
-        <Table 
-          columns={columns} 
-          dataSource={sites || [] || []} 
-          rowKey="id"
-          pagination={{ total: sites.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-          locale={{ emptyText: '暂无网点数据' }}
-        />
-      </Card>
+      <div className="flex gap-4">
+        <Card 
+          title="网点结构" 
+          className="w-1/3"
+          extra={
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>
+              创建顶级网点
+            </Button>
+          }
+        >
+          {treeData.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <Tree
+              showIcon
+              treeData={treeData}
+              onSelect={onSelect}
+              loadData={async (node) => {
+                const children = await loadChildren(node.key)
+                const updateTree = (nodes) => {
+                  return nodes.map(n => {
+                    if (n.key === node.key) {
+                      return { ...n, children }
+                    }
+                    if (n.children) {
+                      return { ...n, children: updateTree(n.children) }
+                    }
+                    return n
+                  })
+                }
+                setTreeData(updateTree(treeData))
+              }}
+            />
+          )}
+        </Card>
+
+        <Card 
+          title="网点详情" 
+          className="w-2/3"
+          extra={
+            selectedSite && (
+              <Space>
+                <Button icon={<PlusOutlined />} onClick={handleCreateSubSite}>
+                  创建下级网点
+                </Button>
+                <Button icon={<EditOutlined />} onClick={handleEdit}>
+                  编辑
+                </Button>
+                <Popconfirm
+                  title="确定要删除该网点吗？"
+                  onConfirm={handleDelete}
+                  okText="确定"
+                  cancelText="取消"
+                >
+                  <Button danger icon={<DeleteOutlined />}>
+                    删除
+                  </Button>
+                </Popconfirm>
+              </Space>
+            )
+          }
+        >
+          {selectedSite ? (
+            <Descriptions column={2} bordered>
+              <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
+              <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
+              <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
+              <Descriptions.Item label="负责人">
+                {selectedSite.manager?.name || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="父级网点">
+                {selectedSite.parent_id ? '有' : '顶级网点'}
+              </Descriptions.Item>
+            </Descriptions>
+          ) : (
+            <Empty description="请选择左侧网点查看详情" />
+          )}
+        </Card>
+      </div>
 
       <Modal
-        title={`${selectedSite?.name} - 位置地图`}
-        open={modalOpen}
-        onCancel={() => setModalOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setModalOpen(false)}>
-            关闭
-          </Button>
-        ]}
-        width={800}
+        title={editingSite?.id ? '编辑网点' : '创建网点'}
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onOk={handleSubmit}
+        confirmLoading={saving}
+        width={600}
       >
-        {selectedSite && (
-          <div className="text-center">
-            <div className="mb-4">
-              <p>地址: {selectedSite.address}</p>
-              <p>坐标: {selectedSite.lat.toFixed(4)}, {selectedSite.lng.toFixed(4)}</p>
-            </div>
-            <div className="bg-gray-100 p-4 rounded">
-              <img 
-                src={`https://picsum.photos/seed/site-${selectedSite.id}/720/400`}
-                alt={`${selectedSite.name} 地图`}
-                className="w-full rounded shadow"
-              />
-              <p className="text-gray-500 text-sm mt-2">
-                静态地图占位图（实际应用可接入百度/高德地图API）
-              </p>
-            </div>
-          </div>
-        )}
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="网点名称"
+            rules={[{ required: true, message: '请输入网点名称' }]}
+          >
+            <Input placeholder="请输入网点名称" />
+          </Form.Item>
+
+          <Form.Item
+            name="type"
+            label="网点类型"
+          >
+            <Select placeholder="请选择网点类型" allowClear>
+              <Option value="直营店">直营店</Option>
+              <Option value="加盟店">加盟店</Option>
+              <Option value="合作店">合作店</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="address"
+            label="地址"
+          >
+            <Input placeholder="请输入地址" />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="联系电话"
+          >
+            <Input placeholder="请输入联系电话" />
+          </Form.Item>
+
+          <Form.Item
+            name="manager_id"
+            label="负责人"
+          >
+            <Input placeholder="请输入负责人ID" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   )

@@ -242,6 +242,7 @@ export const sitesApi = {
   create: (data) => api.post('/merchant/sites', data),
   update: (id, data) => api.put(`/merchant/sites/${id}`, data),
   delete: (id) => api.delete(`/merchant/sites/${id}`),
+  getTree: (rootId) => api.get(rootId ? `/sites/tree?root=${rootId}` : '/sites/tree'),
 }
 
 export const inventoryApi = {

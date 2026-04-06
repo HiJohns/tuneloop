@@ -80,6 +80,12 @@ function MainLayout() {
       ]
     },
     {
+      key: 'organization', icon: <SettingOutlined />, label: '组织管理',
+      children: [
+        { key: '/organization/sites', label: '网点管理' }
+      ]
+    },
+    {
       key: 'system', icon: <SettingOutlined />, label: '系统管理',
       children: [
         { key: '/system/clients', label: '客户端管理' },
@@ -97,6 +103,7 @@ function MainLayout() {
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list'].includes(location.pathname)) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
+  else if (['/organization/sites'].includes(location.pathname)) openKeys = ['organization']
   else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
 
   let pageTitle = '管理后台'
@@ -107,6 +114,7 @@ function MainLayout() {
     '/instruments/categories': { title: '分类设置', parent: '乐器管理' },
     '/instruments/list': { title: '乐器列表', parent: '乐器管理' },
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
+    '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
     '/system/tenants': { title: '租户管理', parent: '系统管理' },
   }
@@ -175,6 +183,7 @@ function MainLayout() {
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
+            <Route path="/organization/sites" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
