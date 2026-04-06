@@ -28,6 +28,7 @@ import InstrumentList from './pages/admin/instrument/List'
 import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
 import InstrumentEdit from './pages/admin/instrument/Edit'
+import PropertyList from './pages/admin/property/List'
 
 const { Header, Content, Sider } = Layout
 
@@ -74,8 +75,9 @@ function MainLayout() {
     {
       key: 'instruments', icon: <SettingOutlined />, label: '乐器管理',
       children: [
+        { key: '/instruments/list', label: '乐器列表' },
         { key: '/instruments/categories', label: '分类设置' },
-        { key: '/instruments/list', label: '乐器列表 🔥' },
+        { key: '/instruments/properties', label: '属性管理' },
         { key: '/site/stock', label: '库存监控' }
       ]
     },
@@ -101,7 +103,7 @@ function MainLayout() {
   const selectedKeys = [location.pathname]
   
   let openKeys = []
-  if (['/', '/instruments/categories', '/instruments/list'].includes(location.pathname)) openKeys = ['instruments']
+  if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
   else if (['/organization/sites'].includes(location.pathname)) openKeys = ['organization']
   else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
@@ -113,6 +115,7 @@ function MainLayout() {
     '/': { title: '仪表盘 (Dashboard)', parent: '乐器管理' },
     '/instruments/categories': { title: '分类设置', parent: '乐器管理' },
     '/instruments/list': { title: '乐器列表', parent: '乐器管理' },
+    '/instruments/properties': { title: '属性管理', parent: '乐器管理' },
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
@@ -197,7 +200,8 @@ function MainLayout() {
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
-             <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentEdit /></ProtectedRoute>} />
+              <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentEdit /></ProtectedRoute>} />
+              <Route path="/instruments/properties" element={<ProtectedRoute><PropertyList /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>
