@@ -103,3 +103,64 @@ When adding new API calls:
 - [ ] Handle token refresh
 - [ ] Clear tokens on failure
 - [ ] Redirect to IAM login
+
+## 🚫 Frontend API Call Rules
+
+### Mandatory API Module Usage
+
+**All backend API calls MUST use the centralized `api.js` module. Direct use of `fetch` is PROHIBITED.**
+
+#### Why This Rule Exists
+- The `api.js` module provides unified authentication handling (Token management, refresh)
+- The `api.js` module provides unified error code handling (401, 40101, 50000, etc.)
+- The `api.js` module provides unified response normalization
+- Direct use of `fetch` bypasses all these unified mechanisms
+
+#### Allowed Patterns
+```javascript
+// ✅ CORRECT: Use api module
+import { api, instrumentsApi, categoriesApi } from '../services/api'
+
+// List
+const data = await api.get('/endpoint')
+
+// Create
+await api.post('/endpoint', data)
+
+// Update
+await api.put('/endpoint/:id', data)
+
+// Delete
+await api.delete('/endpoint/:id')
+
+// Or use modular API
+await instrumentsApi.list()
+await categoriesApi.getById(id)
+```
+
+#### Forbidden Patterns
+```javascript
+// ❌ FORBIDDEN: Direct fetch
+fetch('/api/endpoint')
+  .then(res => res.json())
+```
+
+#### Exceptions (When Direct fetch IS Allowed)
+1. **OAuth Authentication**: `/auth/callback` - special auth flow
+2. **File Upload with FormData**: multipart/form-data requests
+3. **Third-party APIs**: External services not under TuneLoop control
+
+#### Implementation
+When migrating existing code:
+1. Replace `fetch()` calls with `api.get/post/put/delete()`
+2. Remove manual `.then(res => res.json())` - api.js handles response parsing
+3. Remove manual `if (result.code === 20000)` checks - api.js normalizes response
+4. Keep try-catch for error handling (errors will be thrown for non-2xx responses)
+
+#### Verification
+Before marking a task as complete:
+- [ ] Run `grep -r "fetch(" frontend-pc/src --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx"` to verify no forbidden fetch usage remains
+- [ ] Only the following files are allowed to contain fetch:
+  - `services/api.js` (the module itself)
+  - `App.jsx` (OAuth callback only)
+  - `pages/AuthCallback/*` (OAuth auth flow)
