@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Table, Button, Input, Space, Tag, Image, Popconfirm, message } from 'antd'
 import CategoryForm from './Form'
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
+import { api } from '../../../services/api'
 
 export default function CategoryList() {
   const [loading, setLoading] = useState(true)
@@ -9,7 +10,6 @@ export default function CategoryList() {
   const [searchText, setSearchText] = useState('')
   const [formVisible, setFormVisible] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
-  const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   useEffect(() => {
     fetchCategories()
@@ -18,15 +18,8 @@ export default function CategoryList() {
   const fetchCategories = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/categories`)
-      if (!response.ok) throw new Error('Failed to fetch categories')
-      
-      const data = await response.json()
-      if (data.code === 20000) {
-        setCategories(data.data || [])
-      } else {
-        throw new Error(data.message || 'API error')
-      }
+      const data = await api.get('/categories')
+      setCategories(data || [])
     } catch (err) {
       message.error('加载分类失败: ' + err.message)
       // Fallback demo data
@@ -191,22 +184,9 @@ export default function CategoryList() {
 
   const deleteCategory = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-      
-      if (!response.ok) throw new Error('删除失败')
-      
-      const result = await response.json()
-      if (result.code === 20000) {
-        message.success('删除成功')
-        fetchCategories()
-      } else {
-        throw new Error(result.message || '删除失败')
-      }
+      await api.delete(`/categories/${id}`)
+      message.success('删除成功')
+      fetchCategories()
     } catch (error) {
       message.error(error.message || '删除失败')
     }
