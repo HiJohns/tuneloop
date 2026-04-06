@@ -314,6 +314,79 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 	})
 }
 
+// GET /api/sites/tree - Get site tree structure
+func (h *SiteHandler) GetSiteTree(c *gin.Context) {
+	rootID := c.Query("root")
+	tenantID := middleware.GetTenantID(c.Request.Context())
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var sites []models.Site
+	query := db.Where("tenant_id = ? AND status = 'active'", tenantID)
+
+	if rootID != "" {
+		query = query.Where("parent_id = ?", rootID)
+	} else {
+		query = query.Where("parent_id IS NULL")
+	}
+
+	if err := query.Find(&sites).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to query sites: " + err.Error(),
+		})
+		return
+	}
+
+	type SiteTreeNode struct {
+		ID       string                  `json:"id"`
+		Name     string                  `json:"name"`
+		Address  string                  `json:"address"`
+		Type     string                  `json:"type"`
+		ParentID *string                 `json:"parent_id"`
+		Manager  *map[string]interface{} `json:"manager"`
+		Children []SiteTreeNode          `json:"children"`
+	}
+
+	var result []SiteTreeNode
+	for _, site := range sites {
+		var manager *map[string]interface{}
+		if site.ManagerID != nil {
+			var user models.User
+			if err := db.First(&user, "id = ?", site.ManagerID).Error; err == nil {
+				m := map[string]interface{}{
+					"id":   user.ID,
+					"name": user.Name,
+				}
+				manager = &m
+			}
+		}
+
+		var parentID *string
+		if site.ParentID != nil {
+			pid := site.ParentID.String()
+			parentID = &pid
+		}
+
+		node := SiteTreeNode{
+			ID:       site.ID,
+			Name:     site.Name,
+			Address:  site.Address,
+			Type:     site.Type,
+			ParentID: parentID,
+			Manager:  manager,
+			Children: []SiteTreeNode{},
+		}
+
+		result = append(result, node)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"sites": result},
+	})
+}
+
 // Helper function to calculate distance between two points
 func calculateDistance(lat1, lng1, lat2, lng2 float64) float64 {
 	const R = 6371 // Earth radius in km

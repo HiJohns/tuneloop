@@ -77,17 +77,21 @@ type Order struct {
 }
 
 type Site struct {
-	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID      string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID         string    `gorm:"type:uuid;index" json:"org_id"`
-	Name          string    `gorm:"type:varchar(255);not null" json:"name"`
-	Address       string    `gorm:"type:varchar(500)" json:"address"`
-	Latitude      float64   `gorm:"type:decimal(10,6)" json:"latitude"`
-	Longitude     float64   `gorm:"type:decimal(10,6)" json:"longitude"`
-	Phone         string    `gorm:"type:varchar(50)" json:"phone"`
-	BusinessHours string    `gorm:"type:varchar(100)" json:"business_hours"`
-	Status        string    `gorm:"type:varchar(20);default:'active'" json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID         string     `gorm:"type:uuid;index" json:"org_id"`
+	ParentID      *uuid.UUID `gorm:"type:uuid;index" json:"parent_id"`
+	ManagerID     *uuid.UUID `gorm:"type:uuid;index" json:"manager_id"`
+	Name          string     `gorm:"type:varchar(255);not null" json:"name"`
+	Address       string     `gorm:"type:varchar(500)" json:"address"`
+	Type          string     `gorm:"type:varchar(50)" json:"type"`
+	Latitude      float64    `gorm:"type:decimal(10,6)" json:"latitude"`
+	Longitude     float64    `gorm:"type:decimal(10,6)" json:"longitude"`
+	Phone         string     `gorm:"type:varchar(50)" json:"phone"`
+	BusinessHours string     `gorm:"type:varchar(100)" json:"business_hours"`
+	Status        string     `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 const (
@@ -235,4 +239,36 @@ type Tenant struct {
 	Description string    `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type Property struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
+	PropertyType string    `gorm:"type:varchar(20);not null" json:"property_type"`
+	IsRequired   bool      `gorm:"default:false" json:"is_required"`
+	Unit         string    `gorm:"type:varchar(50)" json:"unit"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type PropertyOption struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	PropertyID string    `gorm:"type:uuid;index;not null" json:"property_id"`
+	Value      string    `gorm:"type:varchar(255);not null" json:"value"`
+	Status     string    `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Alias      *string   `gorm:"type:uuid;index" json:"alias"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type InstrumentProperty struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	PropertyID   string    `gorm:"type:uuid;index;not null" json:"property_id"`
+	Value        string    `gorm:"type:varchar(255)" json:"value"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }

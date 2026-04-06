@@ -141,6 +141,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			siteRequired.POST("/merchant/sites", siteHandler.CreateSite)
 			siteRequired.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
 			siteRequired.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
+			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
 		}
 
 		inventoryRequired := authRequired.Group("")
@@ -172,15 +173,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			merchantMaint.PUT("/merchant/maintenance/:id/assign", maintHandler.AssignTechnician)
 			merchantMaint.PUT("/merchant/maintenance/:id/update", maintHandler.UpdateProgress)
 
-			// Assessment routes for damage comparison
-			assessmentHandler := handlers.NewAssessmentHandler(database.GetDB())
-			authRequired.GET("/orders/:order_id/assessment", assessmentHandler.GetAssessmentData)
-			authRequired.POST("/orders/:order_id/assessment", assessmentHandler.SubmitAssessment)
-
-			// Outbound confirmation routes for mini-program
+			// Outbound confirmation routes for mini-program (must be before /orders/:id)
 			outboundHandler := handlers.NewOutboundHandler(database.GetDB())
 			authRequired.GET("/orders/:order_id/outbound-photos", outboundHandler.GetOutboundPhotos)
 			authRequired.POST("/orders/:order_id/outbound-confirm", outboundHandler.ConfirmOutbound)
+
+			// Assessment routes for damage comparison (must be before /orders/:id)
+			assessmentHandler := handlers.NewAssessmentHandler(database.GetDB())
+			authRequired.GET("/orders/:order_id/assessment", assessmentHandler.GetAssessmentData)
+			authRequired.POST("/orders/:order_id/assessment", assessmentHandler.SubmitAssessment)
 
 			// Label management routes for tag normalization
 			labelHandler := handlers.NewLabelHandler(database.GetDB())
