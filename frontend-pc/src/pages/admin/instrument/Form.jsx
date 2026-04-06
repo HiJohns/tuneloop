@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Modal, Form, Input, Select, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
-import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Modal, Form, Input, Select, TreeSelect, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
+import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { api, sitesApi } from '../../../services/api'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -99,6 +100,12 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
     progress: {},
     failedFiles: []
   })
+  const [categoryTree, setCategoryTree] = useState([])
+  const [siteTree, setSiteTree] = useState([])
+  const [properties, setProperties] = useState([])
+  const [snChecking, setSnChecking] = useState(false)
+  const [snDuplicate, setSnDuplicate] = useState(false)
+  const snCheckTimer = useRef(null)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   const sensors = useSensors(
@@ -131,6 +138,94 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
       }
     }
   }, [open, initialData])
+
+  useEffect(() => {
+    if (open) {
+      fetchCategoryTree()
+      fetchSiteTree()
+      fetchProperties()
+    }
+  }, [open])
+
+  const fetchCategoryTree = async () => {
+    try {
+      const result = await api.get('/categories')
+      if (result.code === 20000) {
+        const tree = (result.data || []).map(cat => ({
+          key: cat.id,
+          title: cat.name,
+          value: cat.id,
+          children: cat.children?.map(child => ({
+            key: child.id,
+            title: child.name,
+            value: child.id,
+          }))
+        }))
+        setCategoryTree(tree)
+      }
+    } catch (err) {
+      console.error('Failed to fetch categories:', err)
+    }
+  }
+
+  const fetchSiteTree = async () => {
+    try {
+      const result = await sitesApi.getTree()
+      if (result.code === 20000) {
+        const tree = (result.data?.sites || []).map(site => ({
+          key: site.id,
+          title: site.name,
+          value: site.id,
+          children: site.children?.map(child => ({
+            key: child.id,
+            title: child.name,
+            value: child.id,
+          }))
+        }))
+        setSiteTree(tree)
+      }
+    } catch (err) {
+      console.error('Failed to fetch sites:', err)
+    }
+  }
+
+  const fetchProperties = async () => {
+    try {
+      const result = await api.get('/properties')
+      if (result.code === 20000) {
+        setProperties(result.data || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch properties:', err)
+    }
+  }
+
+  const handleSnChange = (value) => {
+    if (snCheckTimer.current) {
+      clearTimeout(snCheckTimer.current)
+    }
+    if (!value) {
+      setSnDuplicate(false)
+      return
+    }
+    setSnChecking(true)
+    snCheckTimer.current = setTimeout(async () => {
+      try {
+        const result = await api.get(`/instruments/check?sn=${encodeURIComponent(value)}`)
+        if (result.code === 20000 && result.data?.exists) {
+          setSnDuplicate(true)
+          const conflictInfo = result.data.info || {}
+          message.warning(`识别码已存在: ${conflictInfo.site || ''} ${conflictInfo.category || ''}`)
+        } else {
+          setSnDuplicate(false)
+        }
+      } catch (err) {
+        console.error('SN check failed:', err)
+      } finally {
+        setSnChecking(false)
+      }
+    }, 500)
+  }
 
   const beforeUpload = (file) => {
     console.log('[DEBUG] beforeUpload called for file:', file.name)
@@ -476,19 +571,30 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
       // Auto-calculate total stock from specs
       const totalStock = processedSpecs.reduce((sum, spec) => sum + (spec.stock || 0), 0)
       
-      // Prepare form data
+      // Prepare form data - remove name, level, specifications; add sn, site_id, properties
       const formData = {
-        name: values.name,
+        sn: values.sn,
         brand: values.brand,
         model: values.model,
         category_id: values.category_id,
-        level: values.level,
+        site_id: values.site_id,
         description: values.description,
         images: images,
         video: values.video || '',
         status: initialData ? (values.status || 'active') : 'active',
         stock: totalStock,
-        specifications: processedSpecs
+      }
+      
+      // Add dynamic properties
+      const instrumentProps = {}
+      properties.forEach(prop => {
+        const propValue = values[`prop_${prop.id}`]
+        if (propValue) {
+          instrumentProps[prop.name] = propValue
+        }
+      })
+      if (Object.keys(instrumentProps).length > 0) {
+        formData.properties = instrumentProps
       }
       
       console.log('[DEBUG] ==== PREPARING TO SEND POST /api/instruments ====')
@@ -561,7 +667,7 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
         layout="vertical"
         style={{ marginRight: '16px' }}
         initialValues={{
-          level: 'beginner'
+          status: 'active'
         }}
       >
         <Divider orientation="left">基本信息</Divider>
@@ -569,35 +675,53 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="name"
-              label="乐器名称"
+              name="sn"
+              label="识别码"
               rules={[
-                { required: true, message: '请输入乐器名称' },
-                { min: 2, message: '乐器名称至少需要2个字符' },
-                { max: 100, message: '乐器名称不能超过100个字符' }
+                { required: true, message: '请输入识别码' },
+                { validator: () => snDuplicate ? Promise.reject('识别码已存在') : Promise.resolve() }
               ]}
+              validateTrigger="onBlur"
             >
-              <Input placeholder="请输入乐器名称，如：雅马哈立式钢琴 U1" />
+              <Input 
+                placeholder="请输入唯一识别码" 
+                suffix={snChecking && <LoadingOutlined />}
+                onChange={e => handleSnChange(e.target.value)}
+              />
             </Form.Item>
           </Col>
           
           <Col span={12}>
             <Form.Item
               name="category_id"
-              label="分类"
+              label="乐器分类"
               rules={[{ required: true, message: '请选择分类' }]}
             >
-              <Select placeholder="请选择分类">
-                {categories.map(cat => (
-                  <Option key={cat.id} value={cat.id}>{cat.name}</Option>
-                ))}
-              </Select>
+              <TreeSelect
+                treeData={categoryTree}
+                placeholder="请选择分类"
+                treeDefaultExpandAll
+              />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={12}>
+            <Form.Item
+              name="site_id"
+              label="归属网点"
+              rules={[{ required: true, message: '请选择网点' }]}
+            >
+              <TreeSelect
+                treeData={siteTree}
+                placeholder="请选择归属网点"
+                treeDefaultExpandAll
+              />
+            </Form.Item>
+          </Col>
+          
+          <Col span={12}>
             <Form.Item
               name="brand"
               label="品牌"
@@ -606,8 +730,10 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
               <Input placeholder="如：Yamaha" />
             </Form.Item>
           </Col>
-          
-          <Col span={8}>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
             <Form.Item
               name="model"
               label="型号"
@@ -616,22 +742,39 @@ export default function InstrumentForm({ open, onCancel, onSubmit, initialData =
               <Input placeholder="如：U1" />
             </Form.Item>
           </Col>
-          
-          <Col span={8}>
-            <Form.Item
-              name="level"
-              label="级别"
-              rules={[{ required: true, message: '请选择级别' }]}
-            >
-              <Select placeholder="请选择级别">
-                <Option value="beginner">入门级</Option>
-                <Option value="intermediate">中级</Option>
-                <Option value="advanced">高级</Option>
-                <Option value="professional">专业级</Option>
-              </Select>
-            </Form.Item>
-          </Col>
         </Row>
+
+        {properties.length > 0 && (
+          <>
+            <Divider orientation="left">动态属性</Divider>
+            <Row gutter={16}>
+              {properties.map(prop => (
+                <Col span={12} key={prop.id}>
+                  <Form.Item
+                    name={`prop_${prop.id}`}
+                    label={prop.name}
+                    required={prop.is_required}
+                  >
+                    <Select 
+                      placeholder={`请选择或输入${prop.name}`}
+                      allowClear
+                      mode="combobox"
+                      onChange={(value, option) => {
+                        if (option?.children && !option.key) {
+                          console.log(`New value "${value}" for ${prop.name} - should be marked as pending`)
+                        }
+                      }}
+                    >
+                      {prop.options?.map(opt => (
+                        <Option key={opt.value} value={opt.value}>{opt.value}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              ))}
+            </Row>
+          </>
+        )}
 
         <Form.Item
           name="description"
