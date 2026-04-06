@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, InputNumber, Button, message, Card, Typography } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { api } from '../../services/api';
 
 const { Title } = Typography;
 
@@ -29,14 +30,8 @@ export default function PricingMatrixEditor() {
   const loadPricingMatrix = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/pricing-matrix');
-      const result = await response.json();
-      
-      if (result.code === 20000) {
-        setPricingData(result.data.matrix || {});
-      } else {
-        message.error('加载定价矩阵失败');
-      }
+      const data = await api.get('/admin/pricing-matrix');
+      setPricingData(data?.matrix || {});
     } catch (error) {
       message.error('加载定价矩阵失败: ' + error.message);
     } finally {
@@ -61,21 +56,8 @@ export default function PricingMatrixEditor() {
   const savePricingMatrix = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/pricing-matrix', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pricingData),
-      });
-      
-      const result = await response.json();
-      
-      if (result.code === 20000) {
-        message.success('定价矩阵保存成功');
-      } else {
-        message.error('保存失败');
-      }
+      await api.put('/admin/pricing-matrix', pricingData);
+      message.success('定价矩阵保存成功');
     } catch (error) {
       message.error('保存失败: ' + error.message);
     } finally {
