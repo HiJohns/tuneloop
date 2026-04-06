@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Timeline, Card, Typography, Tag } from 'antd';
 import { ClockCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { api } from '../../services/api';
 
 const { Title } = Typography;
 
@@ -22,16 +23,12 @@ export default function AssetTimeline({ assetId }) {
 
   const fetchTimeline = async () => {
     try {
-      const response = await fetch(`/api/common/assets/${assetId}/timeline`);
-      const result = await response.json();
-      
-      if (result.code === 20000) {
-        setTimelineData(result.data.timeline || []);
-      }
+      const data = await api.get(`/common/assets/${assetId}/timeline`)
+      setTimelineData(data?.timeline || [])
     } catch (error) {
-      console.error('Failed to fetch timeline:', error);
+      console.error('Failed to fetch timeline:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   };
 
