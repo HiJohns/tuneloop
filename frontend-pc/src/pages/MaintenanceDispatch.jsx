@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Tag, Button, Select, Modal, Card, Typography, Space } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { api } from '../services/api';
 
 const { Title } = Typography;
 
@@ -18,15 +19,12 @@ export default function MaintenanceDispatch() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/merchant/maintenance');
-      const result = await response.json();
-      if (result.code === 20000) {
-        setTickets(result.data.list || []);
-      }
+      const data = await api.get('/merchant/maintenance')
+      setTickets(data?.list || [])
     } catch (error) {
-      console.error('Failed to fetch tickets:', error);
+      console.error('Failed to fetch tickets:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   };
 
@@ -34,11 +32,7 @@ export default function MaintenanceDispatch() {
     if (!selectedTicket || !selectedTech) return;
     
     try {
-      await fetch(`/api/merchant/maintenance/${selectedTicket}/assign`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ technician_id: selectedTech })
-      });
+      await api.put(`/merchant/maintenance/${selectedTicket}/assign`, { technician_id: selectedTech })
       Modal.success({ content: '指派成功' });
       setSelectedTicket(null);
       setSelectedTech(null);
@@ -50,11 +44,7 @@ export default function MaintenanceDispatch() {
 
   const handleUpdateStatus = async (ticketId, newStatus) => {
     try {
-      await fetch(`/api/merchant/maintenance/${ticketId}/update`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
+      await api.put(`/merchant/maintenance/${ticketId}/update`, { status: newStatus })
       Modal.success({ content: '状态更新成功' });
       fetchTickets();
     } catch (error) {

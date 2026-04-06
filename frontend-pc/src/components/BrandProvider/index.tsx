@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConfigProvider, Spin } from 'antd';
 import type { ThemeConfig } from 'antd/es/config-provider/context';
+import { api } from '../../services/api';
 
 interface BrandConfig {
   primary_color: string;
@@ -36,19 +37,18 @@ export const BrandProvider: React.FC<BrandProviderProps> = ({
   useEffect(() => {
     const loadBrandConfig = async () => {
       try {
-        const response = await fetch(`/api/common/brand-config?client_id=${clientId}`);
-        const result = await response.json();
-        if (result.code === 20000) {
-          setConfig(result.data);
+        const data = await api.get(`/common/brand-config?client_id=${clientId}`)
+        if (data) {
+          setConfig(data)
           document.documentElement.style.setProperty(
             '--brand-primary', 
-            result.data.primary_color
-          );
+            data.primary_color
+          )
         }
       } catch (error) {
-        console.error('Failed to load brand config:', error);
+        console.error('Failed to load brand config:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     };
 
