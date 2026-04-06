@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
+import { api } from './services/api'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
@@ -337,12 +338,10 @@ function OAuthCallback() {
 
 function App() {
   useEffect(() => {
-    // 在应用启动时获取配置
-    fetch('/api/config')
-      .then(res => res.json())
+    api.get('/config')
       .then(data => {
-        if (data.code === 20000) {
-          window.APP_CONFIG = data.data
+        if (data) {
+          window.APP_CONFIG = data
         }
       })
       .catch(err => console.error('Failed to load config:', err))
