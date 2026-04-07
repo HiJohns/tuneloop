@@ -149,18 +149,25 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   const fetchCategoryTree = async () => {
     try {
+      console.log('[DEBUG] Fetching categories...')
       const result = await api.get('/categories')
+      console.log('[DEBUG] Categories API response:', result)
       if (result.code === 20000) {
-        const tree = (result.data || []).map(cat => ({
-          key: cat.id,
-          title: cat.name,
-          value: cat.id,
-          children: cat.sub_categories?.map(child => ({
-            key: child.id,
-            title: child.name,
-            value: child.id,
-          }))
-        }))
+        console.log('[DEBUG] Categories data before mapping:', result.data)
+        const tree = (result.data || []).map(cat => {
+          console.log('[DEBUG] Processing category:', cat)
+          return {
+            key: cat.id,
+            title: cat.name,
+            value: cat.id,
+            children: cat.sub_categories?.map(child => ({
+              key: child.id,
+              title: child.name,
+              value: child.id,
+            }))
+          }
+        })
+        console.log('[DEBUG] Final category tree:', tree)
         setCategoryTree(tree)
       }
     } catch (err) {
@@ -191,8 +198,11 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   const fetchProperties = async () => {
     try {
+      console.log('[DEBUG] Fetching properties...')
       const result = await api.get('/properties')
+      console.log('[DEBUG] Properties API response:', result)
       if (result.code === 20000) {
+        console.log('[DEBUG] Properties data:', result.data)
         setProperties(result.data || [])
       }
     } catch (err) {
