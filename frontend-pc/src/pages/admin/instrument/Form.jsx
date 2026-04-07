@@ -90,7 +90,9 @@ const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
   );
 };
 
-export default function InstrumentForm({ open, onCancel, onSubmit, initialData = null, categories = [] }) {
+export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmit, initialData = null, categories = [] }) {
+  // If no open prop provided, assume page mode and auto-open modal
+  const open = controlledOpen !== undefined ? controlledOpen : true
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState([])
