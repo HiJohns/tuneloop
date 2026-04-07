@@ -28,7 +28,7 @@ import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
 import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
-import InstrumentEdit from './pages/admin/instrument/Edit'
+
 import PropertyList from './pages/admin/property/List'
 
 const { Header, Content, Sider } = Layout
@@ -201,7 +201,7 @@ function MainLayout() {
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
-              <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentEdit /></ProtectedRoute>} />
+              <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
               <Route path="/instruments/properties" element={<ProtectedRoute><PropertyList /></ProtectedRoute>} />
           </Routes>
         </Content>
