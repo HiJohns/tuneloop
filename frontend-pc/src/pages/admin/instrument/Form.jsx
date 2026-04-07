@@ -147,6 +147,14 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }
   }, [open])
 
+  useEffect(() => {
+    console.log('[DEBUG] categoryTree state updated:', categoryTree)
+  }, [categoryTree])
+
+  useEffect(() => {
+    console.log('[DEBUG] properties state updated:', properties)
+  }, [properties])
+
   const fetchCategoryTree = async () => {
     try {
       console.log('[DEBUG] Fetching categories...')
@@ -600,17 +608,18 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           </Col>
           
           <Col span={12}>
-            <Form.Item
-              name="category_id"
-              label="乐器分类"
-              rules={[{ required: true, message: '请选择分类' }]}
-            >
-              <TreeSelect
-                treeData={categoryTree}
-                placeholder="请选择分类"
-                treeDefaultExpandAll
-              />
-            </Form.Item>
+             <Form.Item
+               name="category_id"
+               label="乐器分类"
+               rules={[{ required: true, message: '请选择分类' }]}
+             >
+               <TreeSelect
+                 treeData={categoryTree}
+                 placeholder="请选择分类"
+                 treeDefaultExpandAll
+                 fieldNames={{ title: 'title', value: 'value', children: 'children' }}
+               />
+             </Form.Item>
           </Col>
         </Row>
 
