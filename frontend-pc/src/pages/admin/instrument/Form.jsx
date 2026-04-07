@@ -93,6 +93,8 @@ const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
 export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmit, initialData = null, categories = [] }) {
   // If no open prop provided, assume page mode and auto-open modal
   const open = controlledOpen !== undefined ? controlledOpen : true
+  // Page mode when onCancel is not provided (route usage), modal mode when onCancel is provided (List.jsx)
+  const isPageMode = !onCancel
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState([])
@@ -643,36 +645,17 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   const title = initialData ? '编辑乐器' : '新增乐器'
 
-  return (
-    <Modal
-      title={title}
-      open={open}
-      onCancel={onCancel}
-      onOk={handleSubmit}
-      confirmLoading={loading || uploadStatus.isUploading}
-      okButtonProps={{ 
-        disabled: uploadStatus.failedFiles.length > 0,
-        loading: uploadStatus.isUploading 
-      }}
-      width={800}
-      styles={{ 
-        body: {
-          maxHeight: '70vh', 
-          overflowY: 'auto', 
-          overflowX: 'hidden',
-          paddingLeft: '16px'
-        }
+  // For modal mode (List.jsx), render as Modal. For page mode (routes), render as flat page
+  const renderFormContent = () => (
+    <Form
+      form={form}
+      layout="vertical"
+      style={{ marginRight: '16px' }}
+      initialValues={{
+        status: 'active'
       }}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        style={{ marginRight: '16px' }}
-        initialValues={{
-          status: 'active'
-        }}
-      >
-        <Divider orientation="left">基本信息</Divider>
+      <Divider orientation="left">基本信息</Divider>
         
         <Row gutter={16}>
           <Col span={12}>
@@ -933,6 +916,38 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           </Button>
         </div>
       </Form>
-    </Modal>
+    )
+
+  return (
+    isPageMode ? (
+      <div className="instrument-form-page">
+        <Card title={title}>
+          {renderFormContent()}
+        </Card>
+      </div>
+    ) : (
+      <Modal
+        title={title}
+        open={open}
+        onCancel={onCancel}
+        onOk={handleSubmit}
+        confirmLoading={loading || uploadStatus.isUploading}
+        okButtonProps={{ 
+          disabled: uploadStatus.failedFiles.length > 0,
+          loading: uploadStatus.isUploading 
+        }}
+        width={800}
+        styles={{ 
+          body: {
+            maxHeight: '70vh', 
+            overflowY: 'auto', 
+            overflowX: 'hidden',
+            paddingLeft: '16px'
+          }
+        }}
+      >
+        {renderFormContent()}
+      </Modal>
+    )
   )
 }
