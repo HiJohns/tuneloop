@@ -98,7 +98,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState([])
-  const [specs, setSpecs] = useState([])
   const [uploadStatus, setUploadStatus] = useState({
     isUploading: false,
     progress: {},
@@ -133,12 +132,9 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
             url: url
           })))
         }
-        // Set specs
-        setSpecs(initialData.specifications || [])
       } else {
         form.resetFields()
         setFileList([])
-        setSpecs([{ id: Date.now(), name: '', daily_rent: 0, weekly_rent: 0, monthly_rent: 0, deposit: 0, stock: 0 }])
       }
     }
   }, [open, initialData])
@@ -159,7 +155,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           key: cat.id,
           title: cat.name,
           value: cat.id,
-          children: cat.children?.map(child => ({
+          children: cat.sub_categories?.map(child => ({
             key: child.id,
             title: child.name,
             value: child.id,
@@ -332,73 +328,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }))
   }
 
-  // Specs management
-  const addSpec = () => {
-    const newSpec = {
-      id: Date.now(),
-      name: '',
-      daily_rent: 0,
-      weekly_rent: 0,
-      monthly_rent: 0,
-      deposit: 0,
-      stock: 0
-    }
-    setSpecs([...specs, newSpec])
-  }
-
-  const removeSpec = (id) => {
-    if (specs.length <= 1) {
-      message.warning('至少需要保留一个规格')
-      return
-    }
-    setSpecs(specs.filter(spec => spec.id !== id))
-  }
-
-  const calculateRentals = (dailyRent) => {
-    if (!dailyRent || dailyRent <= 0) {
-      return { weekly_rent: 0, monthly_rent: 0, deposit: 0 }
-    }
-    return {
-      weekly_rent: Math.round(dailyRent * 6),
-      monthly_rent: Math.round(dailyRent * 25),
-      deposit: Math.round(dailyRent * 20)
-    }
-  }
-
-  const updateSpec = (id, field, value) => {
-    setSpecs(specs.map(spec => {
-      if (spec.id === id) {
-        const updated = { ...spec, [field]: value }
-        if (field === 'daily_rent') {
-          const calculated = calculateRentals(value)
-          updated.weekly_rent = calculated.weekly_rent
-          updated.monthly_rent = calculated.monthly_rent
-          updated.deposit = calculated.deposit
-        }
-        return updated
-      }
-      return spec
-    }))
-  }
-
-  const syncPricesToAll = () => {
-    if (specs.length <= 1) return
-    const firstSpec = specs[0]
-    const ratio = {
-      weekly: firstSpec.daily_rent ? firstSpec.weekly_rent / firstSpec.daily_rent : 6,
-      monthly: firstSpec.daily_rent ? firstSpec.monthly_rent / firstSpec.daily_rent : 25,
-      deposit: firstSpec.daily_rent ? firstSpec.deposit / firstSpec.daily_rent : 20
-    }
-    setSpecs(specs.map((spec, idx) => {
-      if (idx === 0) return spec
-      return {
-        ...spec,
-        weekly_rent: Math.round(spec.daily_rent * ratio.weekly),
-        monthly_rent: Math.round(spec.daily_rent * ratio.monthly),
-        deposit: Math.round(spec.daily_rent * ratio.deposit)
-      }
-    }))
-  }
 
   const uploadPendingFiles = async () => {
     const pendingFiles = fileList.filter(file => file.status !== 'done')
@@ -562,31 +491,16 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       
       console.log('[DEBUG] Final images array:', images)
       
-      // Prepare specs data
-      const processedSpecs = specs.map(spec => ({
-        name: spec.name,
-        daily_rent: spec.daily_rent || 0,
-        weekly_rent: spec.weekly_rent || 0,
-        monthly_rent: spec.monthly_rent || 0,
-        deposit: spec.deposit || 0,
-        stock: spec.stock || 0
-      })).filter(spec => spec.name && spec.monthly_rent > 0)
-      
-      // Auto-calculate total stock from specs
-      const totalStock = processedSpecs.reduce((sum, spec) => sum + (spec.stock || 0), 0)
       
       // Prepare form data - remove name, level, specifications; add sn, site_id, properties
       const formData = {
         sn: values.sn,
-        brand: values.brand,
-        model: values.model,
         category_id: values.category_id,
         site_id: values.site_id,
         description: values.description,
         images: images,
         video: values.video || '',
         status: initialData ? (values.status || 'active') : 'active',
-        stock: totalStock,
       }
       
       // Add dynamic properties
@@ -627,7 +541,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         onSubmit(result.data)
         form.resetFields()
         setFileList([])
-        setSpecs([{ id: Date.now(), name: '', daily_rent: 0, weekly_rent: 0, monthly_rent: 0, deposit: 0, stock: 0 }])
         setUploadStatus({ isUploading: false, progress: {}, failedFiles: [] })
       } else {
         throw new Error(result.message || '提交失败')
@@ -705,30 +618,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
               />
             </Form.Item>
           </Col>
-          
-          <Col span={12}>
-            <Form.Item
-              name="brand"
-              label="品牌"
-              rules={[{ required: true, message: '请输入品牌' }]}
-            >
-              <Input placeholder="如：Yamaha" />
-            </Form.Item>
-          </Col>
-        </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="model"
-              label="型号"
-              rules={[{ required: true, message: '请输入型号' }]}
-            >
-              <Input placeholder="如：U1" />
-            </Form.Item>
-          </Col>
         </Row>
-
         {properties.length > 0 && (
           <>
             <Divider orientation="left">动态属性</Divider>
@@ -819,135 +710,37 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         >
           <Input placeholder="请输入视频URL（可选）" />
         </Form.Item>
-
-        <Divider orientation="left">规格配置</Divider>
-        
-        <div className="mb-2 flex justify-end">
-          <Button onClick={syncPricesToAll} disabled={specs.length <= 1} size="small">
-            同步价格比例到所有规格
-          </Button>
-        </div>
-        
-        <div className="mb-4">
-          {specs.map((spec, index) => (
-            <Card key={spec.id} size="small" className="mb-3" style={{ border: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
-              {/* 第一行 */}
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Form.Item label="规格名称" required>
-                    <Input
-                      placeholder="规格名称"
-                      value={spec.name}
-                      onChange={(e) => updateSpec(spec.id, 'name', e.target.value)}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item label="日租金 (¥)" required>
-                    <InputNumber
-                      placeholder="日租金"
-                      value={spec.daily_rent}
-                      onChange={(value) => updateSpec(spec.id, 'daily_rent', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item label="初始库存 (件)" required>
-                    <InputNumber
-                      placeholder="库存"
-                      value={spec.stock}
-                      onChange={(value) => updateSpec(spec.id, 'stock', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={6} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                  <Button
-                    icon={<DeleteOutlined />}
-                    onClick={() => removeSpec(spec.id)}
-                    danger
-                    disabled={specs.length <= 1}
-                  />
-                </Col>
-              </Row>
-              {/* 第二行 */}
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Form.Item label="周租金 (¥)">
-                    <InputNumber
-                      placeholder="周租金"
-                      value={spec.weekly_rent}
-                      onChange={(value) => updateSpec(spec.id, 'weekly_rent', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item label="月租金 (¥)">
-                    <InputNumber
-                      placeholder="月租金"
-                      value={spec.monthly_rent}
-                      onChange={(value) => updateSpec(spec.id, 'monthly_rent', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item label="押金 (¥)" required>
-                    <InputNumber
-                      placeholder="押金"
-                      value={spec.deposit}
-                      onChange={(value) => updateSpec(spec.id, 'deposit', value)}
-                      style={{ width: '100%' }}
-                      min={0}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Card>
-          ))}
-          <Button icon={<PlusOutlined />} onClick={addSpec} type="dashed">
-            添加规格
-          </Button>
-        </div>
       </Form>
-    )
+  )
 
-  return (
-    isPageMode ? (
-      <div className="instrument-form-page">
-        <Card title={title}>
-          {renderFormContent()}
-        </Card>
-      </div>
-    ) : (
-      <Modal
-        title={title}
-        open={open}
-        onCancel={onCancel}
-        onOk={handleSubmit}
-        confirmLoading={loading || uploadStatus.isUploading}
-        okButtonProps={{ 
-          disabled: uploadStatus.failedFiles.length > 0,
-          loading: uploadStatus.isUploading 
-        }}
-        width={800}
-        styles={{ 
-          body: {
-            maxHeight: '70vh', 
-            overflowY: 'auto', 
-            overflowX: 'hidden',
-            paddingLeft: '16px'
-          }
-        }}
-      >
+  return isPageMode ? (
+    <div style={{ padding: '24px' }}>
+      <Card title={title}>
         {renderFormContent()}
-      </Modal>
-    )
+      </Card>
+    </div>
+  ) : (
+    <Modal
+      title={title}
+      open={open}
+      onCancel={onCancel}
+      onOk={handleSubmit}
+      confirmLoading={loading || uploadStatus.isUploading}
+      okButtonProps={{ 
+        disabled: uploadStatus.failedFiles.length > 0,
+        loading: uploadStatus.isUploading 
+      }}
+      width={800}
+      styles={{ 
+        body: {
+          maxHeight: '70vh', 
+          overflowY: 'auto', 
+          overflowX: 'hidden',
+          paddingLeft: '16px'
+        }
+      }}
+    >
+      {renderFormContent()}
+    </Modal>
   )
 }
