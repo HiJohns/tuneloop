@@ -106,6 +106,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [categoryTree, setCategoryTree] = useState([])
   const [siteTree, setSiteTree] = useState([])
   const [properties, setProperties] = useState([])
+  const [categoryLoading, setCategoryLoading] = useState(false)
+  const [propertiesLoading, setPropertiesLoading] = useState(false)
   const [snChecking, setSnChecking] = useState(false)
   const [snDuplicate, setSnDuplicate] = useState(false)
   const snCheckTimer = useRef(null)
@@ -147,6 +149,17 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }
   }, [open])
 
+  // Initial data load on mount
+  useEffect(() => {
+    console.log('[DEBUG] Component mounted, open:', open, 'isPageMode:', isPageMode)
+    if (open || isPageMode) {
+      console.log('[DEBUG] Initial data load triggered')
+      fetchCategoryTree()
+      fetchSiteTree()
+      fetchProperties()
+    }
+  }, [])
+
   useEffect(() => {
     console.log('[DEBUG] categoryTree state updated:', categoryTree)
   }, [categoryTree])
@@ -158,6 +171,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const fetchCategoryTree = async () => {
     try {
       console.log('[DEBUG] Fetching categories...')
+      setCategoryLoading(true)
       const result = await api.get('/categories')
       console.log('[DEBUG] Categories API response:', result)
       if (result.code === 20000) {
@@ -180,6 +194,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       }
     } catch (err) {
       console.error('Failed to fetch categories:', err)
+    } finally {
+      setCategoryLoading(false)
     }
   }
 
@@ -207,6 +223,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const fetchProperties = async () => {
     try {
       console.log('[DEBUG] Fetching properties...')
+      setPropertiesLoading(true)
       const result = await api.get('/properties')
       console.log('[DEBUG] Properties API response:', result)
       if (result.code === 20000) {
@@ -215,6 +232,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       }
     } catch (err) {
       console.error('Failed to fetch properties:', err)
+    } finally {
+      setPropertiesLoading(false)
     }
   }
 
@@ -608,18 +627,19 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           </Col>
           
           <Col span={12}>
-             <Form.Item
-               name="category_id"
-               label="乐器分类"
-               rules={[{ required: true, message: '请选择分类' }]}
-             >
-               <TreeSelect
-                 treeData={categoryTree}
-                 placeholder="请选择分类"
-                 treeDefaultExpandAll
-                 fieldNames={{ title: 'title', value: 'value', children: 'children' }}
-               />
-             </Form.Item>
+              <Form.Item
+                name="category_id"
+                label="乐器分类"
+                rules={[{ required: true, message: '请选择分类' }]}
+              >
+                <TreeSelect
+                  treeData={categoryTree}
+                  placeholder="请选择分类"
+                  treeDefaultExpandAll
+                  fieldNames={{ title: 'title', value: 'value', children: 'children' }}
+                  loading={categoryLoading}
+                />
+              </Form.Item>
           </Col>
         </Row>
 
@@ -669,6 +689,9 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
               ))}
             </Row>
           </>
+        )}
+        {properties.length === 0 && propertiesLoading && (
+          <div>加载动态属性中...</div>
         )}
 
         <Form.Item
