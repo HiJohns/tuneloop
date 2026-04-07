@@ -3,8 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Statistic, Modal, Form, InputNumber, Input, Alert, Badge, Switch } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, StockOutlined, DollarOutlined, PlusOutlined, MinusOutlined, HistoryOutlined, SettingOutlined } from '@ant-design/icons'
 
-const { TabPane } = Tabs
-
 export default function InstrumentDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -345,228 +343,243 @@ export default function InstrumentDetail() {
         </Col>
       </Row>
 
-      <Tabs defaultActiveKey="basic">
-        <TabPane tab="基本信息" key="basic">
-          <Row gutter={16}>
-            <Col span={16}>
-              <Card title="乐器信息">
-                <Descriptions column={2}>
-                  <Descriptions.Item label="乐器名称">{instrument.name}</Descriptions.Item>
-                  <Descriptions.Item label="品牌">{instrument.brand}</Descriptions.Item>
-                  <Descriptions.Item label="型号">{instrument.model}</Descriptions.Item>
-                  <Descriptions.Item label="分类">{instrument.category_name}</Descriptions.Item>
-                  <Descriptions.Item label="级别">
-                    <Tag color="blue">{levelMap[instrument.level] || instrument.level}</Tag>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="状态">
-                    <Tag color={statusConfig.color}>{statusConfig.text}</Tag>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="评分" span={2}>
-                    {instrument.rating} ⭐ ({instrument.review_count} 评价)
-                  </Descriptions.Item>
-                  <Descriptions.Item label="创建时间" span={2}>
-                    {new Date(instrument.created_at).toLocaleString()}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="更新时间" span={2}>
-                    {new Date(instrument.updated_at).toLocaleString()}
-                  </Descriptions.Item>
-                </Descriptions>
+      <Tabs defaultActiveKey="basic" items={[
+        {
+          label: '基本信息',
+          key: 'basic',
+          children: (
+            <Row gutter={16}>
+              <Col span={16}>
+                <Card title="乐器信息">
+                  <Descriptions column={2}>
+                    <Descriptions.Item label="乐器名称">{instrument.name}</Descriptions.Item>
+                    <Descriptions.Item label="品牌">{instrument.brand}</Descriptions.Item>
+                    <Descriptions.Item label="型号">{instrument.model}</Descriptions.Item>
+                    <Descriptions.Item label="分类">{instrument.category_name}</Descriptions.Item>
+                    <Descriptions.Item label="级别">
+                      <Tag color="blue">{levelMap[instrument.level] || instrument.level}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="状态">
+                      <Tag color={statusConfig.color}>{statusConfig.text}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="评分" span={2}>
+                      {instrument.rating} ⭐ ({instrument.review_count} 评价)
+                    </Descriptions.Item>
+                    <Descriptions.Item label="创建时间" span={2}>
+                      {new Date(instrument.created_at).toLocaleString()}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="更新时间" span={2}>
+                      {new Date(instrument.updated_at).toLocaleString()}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+                
+                <Card title="描述" className="mt-4">
+                  <p className="text-gray-700">{instrument.description}</p>
+                </Card>
+              </Col>
+              
+              <Col span={8}>
+                <Card title="多媒体">
+                  {instrument.images && instrument.images.length > 0 ? (
+                    <Image.PreviewGroup>
+                      {instrument.images.map((img, index) => (
+                        <Image
+                          key={index}
+                          src={img}
+                          alt={`${instrument.name}-${index}`}
+                          width="100%"
+                          height={150}
+                          className="mb-2 object-cover rounded"
+                        />
+                      ))}
+                    </Image.PreviewGroup>
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      暂无图片
+                    </div>
+                  )}
+                  
+                  {instrument.video && (
+                    <div className="mt-4">
+                      <Divider>视频</Divider>
+                      <video src={instrument.video} controls width="100%" className="rounded" />
+                    </div>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+          )
+        },
+        {
+          label: '价格配置',
+          key: 'pricing',
+          children: (
+            <Card title="租金价格">
+              <Row gutter={16}>
+                <Col span={6}>
+                  <Statistic
+                    title="日租金"
+                    value={`¥${instrument.pricing?.daily || 0}`}
+                    prefix={<DollarOutlined />}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="周租金"
+                    value={`¥${instrument.pricing?.weekly || 0}`}
+                    prefix={<DollarOutlined />}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="月租金"
+                    value={`¥${instrument.pricing?.monthly || 0}`}
+                    prefix={<DollarOutlined />}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="押金"
+                    value={`¥${instrument.pricing?.deposit || 0}`}
+                    prefix={<DollarOutlined />}
+                    valueStyle={{ color: '#cf1322' }}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          )
+        },
+        {
+          label: '规格配置',
+          key: 'specs',
+          children: (
+            <Card title="规格列表">
+              {instrument.specifications && instrument.specifications.length > 0 ? (
+                <Table
+                  columns={specsColumns}
+                  dataSource={instrument.specifications || [] || []}
+                  rowKey="id"
+                  pagination={false}
+                />
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  暂无规格配置
+                </div>
+              )}
+            </Card>
+          )
+        },
+        {
+          label: '库存管理',
+          key: 'stock-log',
+          children: (
+            <>
+              {/* Stock Threshold Alert */}
+              {thresholdAlert && thresholdAlert.enabled && instrument?.stock?.available <= thresholdAlert.threshold && (
+                <Alert
+                  message="库存预警"
+                  description={`当前可租库存仅 ${instrument.stock.available} 件，低于预警阈值 ${thresholdAlert.threshold}`}
+                  type="warning"
+                  showIcon
+                  className="mb-4"
+                />
+              )}
+              
+              <Card title="库存状态" className="mb-4">
+                <Row gutter={16}>
+                  <Col span={6}>
+                    <Statistic
+                      title="总库存"
+                      value={instrument.stock?.total || 0}
+                      valueStyle={{ color: instrument.stock?.total < 5 ? '#faad14' : undefined }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Badge count={instrument.stock?.available <= 2 ? '低' : 0}>
+                      <Statistic
+                        title="可租数量"
+                        value={instrument.stock?.available || 0}
+                        valueStyle={{ color: instrument.stock?.available < 3 ? '#ff4d4f' : '#52c41a' }}
+                      />
+                    </Badge>
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="在租数量"
+                      value={instrument.stock?.rented || 0}
+                      valueStyle={{ color: '#fa8c16' }}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="维修数量"
+                      value={instrument.stock?.maintenance || 0}
+                      valueStyle={{ color: '#f5222d' }}
+                    />
+                  </Col>
+                </Row>
+                
+                <div className="mt-4 flex gap-4">
+                  <Button icon={<PlusOutlined />} onClick={() => adjustStock('increase')} type="primary">
+                    增加库存
+                  </Button>
+                  <Button icon={<MinusOutlined />} onClick={() => adjustStock('decrease')} danger>
+                    减少库存
+                  </Button>
+                  <Button icon={<SettingOutlined />} onClick={() => setThresholdModalVisible(true)}>
+                    设置预警
+                  </Button>
+                </div>
               </Card>
               
-              <Card title="描述" className="mt-4">
-                <p className="text-gray-700">{instrument.description}</p>
+              <Card title="库存变动记录">
+                <Table
+                  columns={[
+                    { 
+                      title: '时间', 
+                      dataIndex: 'created_at', 
+                      key: 'created_at',
+                      render: (text) => new Date(text).toLocaleString()
+                    },
+                    { 
+                      title: '类型', 
+                      dataIndex: 'type', 
+                      key: 'type',
+                      render: (type) => {
+                        const typeMap = {
+                          'increase': { text: '入库', color: 'green' },
+                          'decrease': { text: '出库', color: 'red' },
+                          'rental': { text: '租赁', color: 'blue' },
+                          'return': { text: '归还', color: 'orange' },
+                          'maintenance': { text: '维修', color: 'purple' }
+                        }
+                        const config = typeMap[type] || { text: type, color: 'default' }
+                        return <Tag color={config.color}>{config.text}</Tag>
+                      }
+                    },
+                    { 
+                      title: '数量', 
+                      dataIndex: 'quantity', 
+                      key: 'quantity',
+                      render: (value, record) => {
+                        const prefix = record.type === 'increase' || record.type === 'return' ? '+' : '-'
+                        return <span style={{ color: prefix === '+' ? 'green' : 'red' }}>{prefix}{value}</span>
+                      }
+                    },
+                    { title: '备注', dataIndex: 'notes', key: 'notes' },
+                    { title: '操作人', dataIndex: 'operator', key: 'operator' }
+                  ]}
+                  dataSource={stockLogs || []}
+                  rowKey="id"
+                  locale={{ emptyText: '暂无库存记录' }}
+                  pagination={{ pageSize: 10 }}
+                />
               </Card>
-            </Col>
-            
-            <Col span={8}>
-              <Card title="多媒体">
-                {instrument.images && instrument.images.length > 0 ? (
-                  <Image.PreviewGroup>
-                    {instrument.images.map((img, index) => (
-                      <Image
-                        key={index}
-                        src={img}
-                        alt={`${instrument.name}-${index}`}
-                        width="100%"
-                        height={150}
-                        className="mb-2 object-cover rounded"
-                      />
-                    ))}
-                  </Image.PreviewGroup>
-                ) : (
-                  <div className="text-center text-gray-500 py-8">
-                    暂无图片
-                  </div>
-                )}
-                
-                {instrument.video && (
-                  <div className="mt-4">
-                    <Divider>视频</Divider>
-                    <video src={instrument.video} controls width="100%" className="rounded" />
-                  </div>
-                )}
-              </Card>
-            </Col>
-          </Row>
-        </TabPane>
-        
-        <TabPane tab="价格配置" key="pricing">
-          <Card title="租金价格">
-            <Row gutter={16}>
-              <Col span={6}>
-                <Statistic
-                  title="日租金"
-                  value={`¥${instrument.pricing?.daily || 0}`}
-                  prefix={<DollarOutlined />}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="周租金"
-                  value={`¥${instrument.pricing?.weekly || 0}`}
-                  prefix={<DollarOutlined />}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="月租金"
-                  value={`¥${instrument.pricing?.monthly || 0}`}
-                  prefix={<DollarOutlined />}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="押金"
-                  value={`¥${instrument.pricing?.deposit || 0}`}
-                  prefix={<DollarOutlined />}
-                  valueStyle={{ color: '#cf1322' }}
-                />
-              </Col>
-            </Row>
-          </Card>
-        </TabPane>
-        
-        <TabPane tab="规格配置" key="specs">
-          <Card title="规格列表">
-            {instrument.specifications && instrument.specifications.length > 0 ? (
-              <Table
-                columns={specsColumns}
-                dataSource={instrument.specifications || [] || []}
-                rowKey="id"
-                pagination={false}
-              />
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                暂无规格配置
-              </div>
-            )}
-          </Card>
-        </TabPane>
-        
-        <TabPane tab="库存管理" key="stock-log">
-          {/* Stock Threshold Alert */}
-          {thresholdAlert && thresholdAlert.enabled && instrument?.stock?.available <= thresholdAlert.threshold && (
-            <Alert
-              message="库存预警"
-              description={`当前可租库存仅 ${instrument.stock.available} 件，低于预警阈值 ${thresholdAlert.threshold}`}
-              type="warning"
-              showIcon
-              className="mb-4"
-            />
-          )}
-          
-          <Card title="库存状态" className="mb-4">
-            <Row gutter={16}>
-              <Col span={6}>
-                <Statistic
-                  title="总库存"
-                  value={instrument.stock?.total || 0}
-                  valueStyle={{ color: instrument.stock?.total < 5 ? '#faad14' : undefined }}
-                />
-              </Col>
-              <Col span={6}>
-                <Badge count={instrument.stock?.available <= 2 ? '低' : 0}>
-                  <Statistic
-                    title="可租数量"
-                    value={instrument.stock?.available || 0}
-                    valueStyle={{ color: instrument.stock?.available < 3 ? '#ff4d4f' : '#52c41a' }}
-                  />
-                </Badge>
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="在租数量"
-                  value={instrument.stock?.rented || 0}
-                  valueStyle={{ color: '#fa8c16' }}
-                />
-              </Col>
-              <Col span={6}>
-                <Statistic
-                  title="维修数量"
-                  value={instrument.stock?.maintenance || 0}
-                  valueStyle={{ color: '#f5222d' }}
-                />
-              </Col>
-            </Row>
-            
-            <div className="mt-4 flex gap-4">
-              <Button icon={<PlusOutlined />} onClick={() => adjustStock('increase')} type="primary">
-                增加库存
-              </Button>
-              <Button icon={<MinusOutlined />} onClick={() => adjustStock('decrease')} danger>
-                减少库存
-              </Button>
-              <Button icon={<SettingOutlined />} onClick={() => setThresholdModalVisible(true)}>
-                设置预警
-              </Button>
-            </div>
-          </Card>
-          
-          <Card title="库存变动记录">
-            <Table
-              columns={[
-                { 
-                  title: '时间', 
-                  dataIndex: 'created_at', 
-                  key: 'created_at',
-                  render: (text) => new Date(text).toLocaleString()
-                },
-                { 
-                  title: '类型', 
-                  dataIndex: 'type', 
-                  key: 'type',
-                  render: (type) => {
-                    const typeMap = {
-                      'increase': { text: '入库', color: 'green' },
-                      'decrease': { text: '出库', color: 'red' },
-                      'rental': { text: '租赁', color: 'blue' },
-                      'return': { text: '归还', color: 'orange' },
-                      'maintenance': { text: '维修', color: 'purple' }
-                    }
-                    const config = typeMap[type] || { text: type, color: 'default' }
-                    return <Tag color={config.color}>{config.text}</Tag>
-                  }
-                },
-                { 
-                  title: '数量', 
-                  dataIndex: 'quantity', 
-                  key: 'quantity',
-                  render: (value, record) => {
-                    const prefix = record.type === 'increase' || record.type === 'return' ? '+' : '-'
-                    return <span style={{ color: prefix === '+' ? 'green' : 'red' }}>{prefix}{value}</span>
-                  }
-                },
-                { title: '备注', dataIndex: 'notes', key: 'notes' },
-                { title: '操作人', dataIndex: 'operator', key: 'operator' }
-              ]}
-              dataSource={stockLogs || []}
-              rowKey="id"
-              locale={{ emptyText: '暂无库存记录' }}
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
-        </TabPane>
-      </Tabs>
+            </>
+          )
+        }
+      ]} />
       
       {/* Stock Adjustment Modal */}
       <Modal
