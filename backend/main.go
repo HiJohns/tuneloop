@@ -288,13 +288,23 @@ func main() {
 	setupAPIRoutes(pcRouter, iamService)
 
 	pcRouter.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+		path := c.Request.URL.Path
+
+		if strings.HasPrefix(path, "/api/") {
 			c.JSON(404, gin.H{
 				"code":    40400,
-				"message": "endpoint not found: " + c.Request.URL.Path,
+				"message": "endpoint not found: " + path,
 			})
 			return
 		}
+
+		// Check for missing static files (uploads, assets)
+		if strings.HasPrefix(path, "/uploads/") || strings.HasPrefix(path, "/assets/") {
+			c.Status(404)
+			return
+		}
+
+		// Serve index.html for SPA routing
 		c.File(filepath.Join(pcDistPath, "index.html"))
 	})
 
@@ -311,13 +321,23 @@ func main() {
 	mobileRouter.Static("/uploads", getAbsPath("./uploads"))
 
 	mobileRouter.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+		path := c.Request.URL.Path
+
+		if strings.HasPrefix(path, "/api/") {
 			c.JSON(404, gin.H{
 				"code":    40400,
-				"message": "endpoint not found: " + c.Request.URL.Path,
+				"message": "endpoint not found: " + path,
 			})
 			return
 		}
+
+		// Check for missing static files (uploads, assets, instruments)
+		if strings.HasPrefix(path, "/uploads/") || strings.HasPrefix(path, "/assets/") || strings.HasPrefix(path, "/instruments/") {
+			c.Status(404)
+			return
+		}
+
+		// Serve index.html for SPA routing
 		c.File(filepath.Join(mobileDistPath, "index.html"))
 	})
 
