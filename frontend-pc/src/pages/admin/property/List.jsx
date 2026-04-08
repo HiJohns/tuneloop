@@ -72,7 +72,6 @@ export default function PropertyList() {
       const data = {
         name: values.name,
         property_type: values.property_type,
-        is_required: values.is_required || false,
         unit: values.unit || '',
         min_value: values.min_value || null,
         max_value: values.max_value || null,
@@ -301,12 +300,6 @@ export default function PropertyList() {
               <Option value="float">小数</Option>
               <Option value="date">日期</Option>
               <Option value="time">时间</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="is_required" label="是否必填">
-            <Select defaultValue={false}>
-              <Option value={true}>是</Option>
-              <Option value={false}>否</Option>
             </Select>
           </Form.Item>
           <Form.Item shouldUpdate>

@@ -150,6 +150,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		{
 			propertyRequired.GET("/properties", propertyHandler.ListProperties)
 			propertyRequired.POST("/property", propertyHandler.CreateProperty)
+			propertyRequired.PUT("/property/:id", propertyHandler.UpdateProperty)
 			propertyRequired.POST("/property/option", propertyHandler.CreatePropertyOption)
 			propertyRequired.PUT("/property/confirm", propertyHandler.ConfirmPropertyValue)
 			propertyRequired.PUT("/property/merge", propertyHandler.MergePropertyValues)

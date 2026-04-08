@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -57,10 +58,10 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 
 	var req struct {
-		Name         string `json:"name" binding:"required"`
-		PropertyType string `json:"property_type" binding:"required"`
-		IsRequired   bool   `json:"is_required"`
-		Unit         string `json:"unit"`
+		Name         string   `json:"name" binding:"required"`
+		PropertyType string   `json:"property_type" binding:"required"`
+		Unit         string   `json:"unit"`
+		Options      []string `json:"options"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -71,10 +72,25 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		return
 	}
 
+	// Check for duplicate name
+	var existingProperty models.Property
+	if err := db.Where("tenant_id = ? AND name = ?", tenantID, req.Name).First(&existingProperty).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "属性名称已存在",
+		})
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to check duplicate name: " + err.Error(),
+		})
+		return
+	}
+
 	property := models.Property{
 		Name:         req.Name,
 		PropertyType: req.PropertyType,
-		IsRequired:   req.IsRequired,
 		Unit:         req.Unit,
 		TenantID:     tenantID,
 	}
@@ -87,7 +103,110 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		return
 	}
 
+	// Create property options if provided
+	if len(req.Options) > 0 {
+		for _, optionValue := range req.Options {
+			option := models.PropertyOption{
+				PropertyID: property.ID,
+				Value:      optionValue,
+				Status:     "confirmed", // Confirmed by default as requested
+				TenantID:   tenantID,
+			}
+			if err := db.Create(&option).Error; err != nil {
+				// Log error but don't fail the whole operation
+				fmt.Printf("Warning: failed to create option %s for property %s: %v\n", optionValue, property.ID, err)
+			}
+		}
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
+		"code": 20000,
+		"data": property,
+	})
+}
+
+// PUT /api/property/:id - Update property
+func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	propertyID := c.Param("id")
+
+	var req struct {
+		Name         string   `json:"name" binding:"required"`
+		PropertyType string   `json:"property_type" binding:"required"`
+		Unit         string   `json:"unit"`
+		Options      []string `json:"options"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+
+	// Find the property
+	var property models.Property
+	if err := db.First(&property, "id = ? AND tenant_id = ?", propertyID, tenantID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "property not found",
+		})
+		return
+	}
+
+	// Check for duplicate name (excluding current property)
+	var existingProperty models.Property
+	if err := db.Where("tenant_id = ? AND name = ? AND id != ?", tenantID, req.Name, propertyID).First(&existingProperty).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "属性名称已存在",
+		})
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to check duplicate name: " + err.Error(),
+		})
+		return
+	}
+
+	// Update property fields
+	property.Name = req.Name
+	property.PropertyType = req.PropertyType
+	property.Unit = req.Unit
+
+	if err := db.Save(&property).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update property: " + err.Error(),
+		})
+		return
+	}
+
+	// If options are provided, replace existing options
+	if len(req.Options) > 0 {
+		// Delete existing options for this property
+		db.Where("property_id = ? AND tenant_id = ?", propertyID, tenantID).Delete(&models.PropertyOption{})
+
+		// Create new options
+		for _, optionValue := range req.Options {
+			option := models.PropertyOption{
+				PropertyID: property.ID,
+				Value:      optionValue,
+				Status:     "confirmed",
+				TenantID:   tenantID,
+			}
+			if err := db.Create(&option).Error; err != nil {
+				// Log error but don't fail the whole operation
+				fmt.Printf("Warning: failed to create option %s for property %s: %v\n", optionValue, property.ID, err)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": property,
 	})
