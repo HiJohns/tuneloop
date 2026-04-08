@@ -693,6 +693,20 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         {properties.length === 0 && propertiesLoading && (
           <div>加载动态属性中...</div>
         )}
+        {properties.length === 0 && !propertiesLoading && (
+          <>
+            <Divider orientation="left">动态属性</Divider>
+            <div style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
+              <p>暂无动态属性配置</p>
+              <Button 
+                type="link" 
+                onClick={() => window.location.href = '/instruments/properties'}
+              >
+                前往属性管理页面 →
+              </Button>
+            </div>
+          </>
+        )}
 
         <Form.Item
           name="description"
