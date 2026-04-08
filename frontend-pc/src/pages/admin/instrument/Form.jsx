@@ -174,24 +174,26 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       setCategoryLoading(true)
       const result = await api.get('/categories')
       console.log('[DEBUG] Categories API response:', result)
-      if (result.code === 20000) {
-        console.log('[DEBUG] Categories data before mapping:', result.data)
-        const tree = (result.data || []).map(cat => {
-          console.log('[DEBUG] Processing category:', cat)
-          return {
-            key: cat.id,
-            title: cat.name,
-            value: cat.id,
-            children: cat.sub_categories?.map(child => ({
-              key: child.id,
-              title: child.name,
-              value: child.id,
-            }))
-          }
-        })
-        console.log('[DEBUG] Final category tree:', tree)
-        setCategoryTree(tree)
-      }
+      
+      // result is already the processed data array from api.js
+      const data = Array.isArray(result) ? result : []
+      console.log('[DEBUG] Categories data before mapping:', data)
+      
+      const tree = data.map(cat => {
+        console.log('[DEBUG] Processing category:', cat)
+        return {
+          key: cat.id,
+          title: cat.name,
+          value: cat.id,
+          children: cat.sub_categories?.map(child => ({
+            key: child.id,
+            title: child.name,
+            value: child.id,
+          }))
+        }
+      })
+      console.log('[DEBUG] Final category tree:', tree)
+      setCategoryTree(tree)
     } catch (err) {
       console.error('Failed to fetch categories:', err)
     } finally {
@@ -202,19 +204,19 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const fetchSiteTree = async () => {
     try {
       const result = await sitesApi.getTree()
-      if (result.code === 20000) {
-        const tree = (result.data?.sites || []).map(site => ({
-          key: site.id,
-          title: site.name,
-          value: site.id,
-          children: site.children?.map(child => ({
-            key: child.id,
-            title: child.name,
-            value: child.id,
-          }))
+      // result is already the processed data array from sitesApi.getTree()
+      const data = Array.isArray(result) ? result : []
+      const tree = data.map(site => ({
+        key: site.id,
+        title: site.name,
+        value: site.id,
+        children: site.children?.map(child => ({
+          key: child.id,
+          title: child.name,
+          value: child.id,
         }))
-        setSiteTree(tree)
-      }
+      }))
+      setSiteTree(tree)
     } catch (err) {
       console.error('Failed to fetch sites:', err)
     }
