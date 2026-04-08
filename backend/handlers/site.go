@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -330,6 +331,9 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 		query = query.Where("parent_id IS NULL")
 	}
 
+	// Debug: Log query and tenant
+	fmt.Printf("[DEBUG] GetSiteTree - TenantID: %s, RootID: %s\n", tenantID, rootID)
+
 	if err := query.Find(&sites).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
@@ -337,6 +341,8 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 		})
 		return
 	}
+
+	fmt.Printf("[DEBUG] GetSiteTree - Query completed. Found %d sites\n", len(sites))
 
 	type SiteTreeNode struct {
 		ID       string                  `json:"id"`
@@ -380,6 +386,8 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 
 		result = append(result, node)
 	}
+
+	fmt.Printf("[DEBUG] GetSiteTree - Returning %d sites in result\n", len(result))
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
