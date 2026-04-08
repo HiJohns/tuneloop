@@ -71,7 +71,7 @@ export default function InstrumentList() {
   }
 
   const filteredInstruments = instruments.filter(instrument => {
-    const matchText = instrument.name.toLowerCase().includes(searchText.toLowerCase()) ||
+    const matchText = instrument.sn?.toLowerCase().includes(searchText.toLowerCase()) ||
                       instrument.brand?.toLowerCase().includes(searchText.toLowerCase()) ||
                       instrument.model?.toLowerCase().includes(searchText.toLowerCase())
     const matchCategory = !categoryFilter || instrument.category_name === categoryFilter
@@ -84,7 +84,7 @@ export default function InstrumentList() {
       title: '图片',
       dataIndex: 'images',
       key: 'images',
-      width: 100,
+      width: 80,
       render: (images, record) => (
         <a 
           onClick={(e) => {
@@ -96,52 +96,37 @@ export default function InstrumentList() {
           <Image
             src={images && images.length > 0 ? images[0] : '/images/default-instrument.jpg'}
             alt="instrument"
-            width={60}
-            height={60}
+            width={50}
+            height={50}
             className="object-cover rounded"
           />
         </a>
       )
     },
     {
-      title: '乐器名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 200,
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      render: (text, record) => (
-        <a 
-          onClick={(e) => {
-            e.preventDefault()
-            navigate(`/instruments/detail/${record.id}`)
-          }}
-          className="text-gray-900 hover:text-blue-600 hover:underline cursor-pointer"
-        >
-          <div className="font-medium">{text}</div>
-          <div className="text-xs text-gray-500">{record.brand} {record.model}</div>
-        </a>
-      )
+      title: '识别码',
+      dataIndex: 'sn',
+      key: 'sn',
+      width: 140,
+      render: (text) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{text || '-'}</span>
     },
     {
       title: '分类',
       dataIndex: 'category_name',
       key: 'category_name',
       width: 120,
-      filters: [...new Set(instruments.map(i => i.category_name))].map(cat => ({
+      filters: [...new Set(instruments.map(i => i.category_name))].filter(Boolean).map(cat => ({
         text: cat,
         value: cat
       })),
       onFilter: (value, record) => record.category_name === value
     },
     {
-      title: '库存',
-      dataIndex: 'stock',
-      key: 'stock',
-      width: 80,
-      sorter: (a, b) => a.stock - b.stock,
-      render: (stock) => (
-        <Tag color={stock > 0 ? 'green' : 'red'}>{stock}</Tag>
-      )
+      title: '网点',
+      dataIndex: 'site_name',
+      key: 'site_name',
+      width: 120,
+      render: (text) => text || '-'
     },
     {
       title: '状态',
@@ -152,9 +137,11 @@ export default function InstrumentList() {
         const statusMap = {
           available: { color: 'green', text: '可租' },
           rented: { color: 'orange', text: '已租出' },
-          maintenance: { color: 'red', text: '维修中' }
+          maintenance: { color: 'red', text: '维修中' },
+          active: { color: 'green', text: '上架' },
+          inactive: { color: 'default', text: '下架' }
         }
-        const config = statusMap[status] || { color: 'default', text: '未知' }
+        const config = statusMap[status] || { color: 'default', text: status || '未知' }
         return <Tag color={config.color}>{config.text}</Tag>
       }
     },
@@ -490,7 +477,7 @@ export default function InstrumentList() {
             模板下载
           </Button>
           <Input
-            placeholder="搜索乐器名称..."
+            placeholder="搜索识别码..."
             prefix={<SearchOutlined className="text-gray-400" />}
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 250 }}
@@ -544,58 +531,6 @@ export default function InstrumentList() {
         rowKey="id"
         loading={loading}
         rowSelection={handleRowSelection}
-        expandedRowKeys={expandedRowKeys}
-        onExpand={(expanded, record) => {
-          if (expanded) {
-            setExpandedRowKeys([...expandedRowKeys, record.id])
-          } else {
-            setExpandedRowKeys(expandedRowKeys.filter(key => key !== record.id))
-          }
-        }}
-        expandIcon={({ expanded, onExpand, record }) => (
-          <div
-            onClick={e => onExpand(record, e)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {expanded ? (
-              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>-</span>
-            ) : (
-              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span>
-            )}
-          </div>
-        )}
-        expandedRowRender={(record) => {
-          const specs = record.specifications || []
-          if (specs.length === 0) {
-            return <div style={{ padding: '16px', color: '#999' }}>暂无规格信息</div>
-          }
-          
-          return (
-            <div style={{ margin: '-16px', padding: '16px', background: '#fafafa' }}>
-              <Table
-                columns={[
-                  { title: '规格名称', key: 'name', render: (text, spec) => spec.name },
-                  { title: '日租金', key: 'daily', render: (text, spec) => `¥${spec.daily_rent || 0}` },
-                  { title: '周租金', key: 'weekly', render: (text, spec) => `¥${spec.weekly_rent || 0}` },
-                  { title: '月租金', key: 'monthly', render: (text, spec) => `¥${spec.monthly_rent || 0}` },
-                  { 
-                    title: '押金', 
-                    key: 'deposit',
-                    render: (text, spec) => `¥${spec.deposit || 0}`
-                  },
-                  { 
-                    title: '库存', 
-                    key: 'stock',
-                    render: (text, spec) => spec.stock || 0
-                  }
-                ]}
-                dataSource={specs}
-                pagination={false}
-                rowKey="name"
-              />
-            </div>
-          )
-        }}
         pagination={{
           current: pagination.page,
           pageSize: pagination.pageSize,

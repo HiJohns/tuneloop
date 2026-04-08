@@ -21,6 +21,9 @@ type CreateInstrumentRequest struct {
 	Level          string                   `json:"level" binding:"required"`
 	Model          string                   `json:"model"`
 	CategoryID     string                   `json:"category_id" binding:"required"`
+	SN             string                   `json:"sn"`
+	SiteID         string                   `json:"site_id"`
+	Status         string                   `json:"status"`
 	Pricing        map[string]interface{}   `json:"pricing"`
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
@@ -230,6 +233,17 @@ func UpdateInstrument(c *gin.Context) {
 	instrument.CategoryID = req.CategoryID
 	instrument.Description = req.Description
 	instrument.Video = req.Video
+	instrument.SN = req.SN
+
+	if req.SiteID != "" {
+		if siteUUID, err := uuid.Parse(req.SiteID); err == nil {
+			instrument.SiteID = &siteUUID
+		}
+	}
+
+	if req.Status != "" {
+		instrument.StockStatus = req.Status
+	}
 
 	// Step 1: 添加空值校验 - 只有当 category_id 不为空且是有效 UUID 时才查询
 	if req.CategoryID != "" {

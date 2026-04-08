@@ -55,31 +55,48 @@ export default function InstrumentStock() {
   
   const columns = [
     {
+      title: '图片',
+      dataIndex: 'images',
+      key: 'images',
+      width: 80,
+      render: (images) => {
+        const imageList = Array.isArray(images) ? images : (images ? JSON.parse(images) : [])
+        const src = imageList && imageList.length > 0 ? imageList[0] : '/images/default-instrument.jpg'
+        return <img src={src} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} />
+      }
+    },
+    {
       title: '资产ID',
       dataIndex: 'id',
       key: 'id',
+      width: 180,
+      render: (id) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{id?.slice(0, 8)}...</span>
     },
     {
       title: '乐器名称',
       dataIndex: 'name',
       key: 'name',
+      width: 180,
     },
     {
-      title: '类别',
-      dataIndex: 'category',
-      key: 'category',
+      title: '分类',
+      dataIndex: 'category_name',
+      key: 'category_name',
+      width: 120,
     },
     {
       title: '级别',
-      dataIndex: 'level',
-      key: 'level',
+      dataIndex: 'level_name',
+      key: 'level_name',
+      width: 80,
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status, record) => {
-        const getUnifiedStatus = (record) => {
+        const getUnifiedStatus = (status) => {
           const statusMap = {
             "在租": { color: 'green', text: '在租' },
             "rented": { color: 'green', text: '在租' },
@@ -92,7 +109,7 @@ export default function InstrumentStock() {
           return statusMap[status] || { color: 'default', text: status }
         }
         
-        const info = getUnifiedStatus(record)
+        const info = getUnifiedStatus(status)
         return <Tag color={info.color}>{info.text}</Tag>
       }
     },
@@ -100,13 +117,15 @@ export default function InstrumentStock() {
       title: '所属网点',
       dataIndex: 'site',
       key: 'site',
+      width: 150,
     },
     {
       title: '估值',
       dataIndex: 'value',
       key: 'value',
+      width: 120,
       align: 'right',
-      render: (value) => `¥${(value || 0).toLocaleString()}`
+      render: (value) => value ? `¥${value.toLocaleString()}` : '-'
     },
     {
       title: '操作',
@@ -130,7 +149,7 @@ export default function InstrumentStock() {
   }
 
   return (
-    <div>
+    <div className="p-6">
       <h2 className="text-xl font-bold mb-4">乐器库存</h2>
       {statusParam && (
         <div className="mb-4 p-3 bg-blue-50 rounded">
@@ -149,15 +168,15 @@ export default function InstrumentStock() {
         </div>
       )}
        <Table 
-         columns={columns} 
-         dataSource={filteredAssets || [] || []} 
-         rowKey="id"
-         pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-         onRow={(record) => ({
-           onClick: () => navigate(`/site/stock/${record.id}`),
-           style: { cursor: 'pointer' }
-         })}
-       />
+        columns={columns} 
+        dataSource={filteredAssets || []} 
+        rowKey="id"
+        pagination={{ total: filteredAssets.length, pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+        onRow={(record) => ({
+          onClick: () => navigate(`/site/stock/${record.id}`),
+          style: { cursor: 'pointer' }
+        })}
+      />
     </div>
   )
 }
