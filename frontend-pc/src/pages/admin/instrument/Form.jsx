@@ -226,9 +226,16 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       setPropertiesLoading(true)
       const result = await api.get('/properties')
       console.log('[DEBUG] Properties API response:', result)
-      if (result.code === 20000) {
+      
+      // Check if result is an array (direct response) or has data property (wrapped response)
+      if (Array.isArray(result)) {
+        console.log('[DEBUG] Result is an array, using directly:', result)
+        setProperties(result)
+        console.log('[DEBUG] Properties state updated, length:', result.length)
+      } else if (result.code === 20000) {
         console.log('[DEBUG] Properties data:', result.data)
         setProperties(result.data || [])
+        console.log('[DEBUG] Properties state updated, length:', result.data?.length || 0)
       }
     } catch (err) {
       console.error('Failed to fetch properties:', err)
@@ -659,6 +666,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           </Col>
 
         </Row>
+        {console.log('[DEBUG RENDER Form] Properties at render time:', properties, 'Length:', properties?.length)}
         {properties.length > 0 && (
           <>
             <Divider orientation="left">动态属性</Divider>
