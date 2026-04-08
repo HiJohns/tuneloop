@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, Tag, message, Space, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, CheckOutlined, MergeOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space, Popconfirm, List } from 'antd'
+import { PlusOutlined, EditOutlined, CheckOutlined, MergeOutlined, DeleteOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 
 const { Option } = Select
@@ -59,8 +59,9 @@ export default function PropertyList() {
   const handleEditProperty = (record) => {
     setEditingProperty(record)
     form.setFieldsValue(record)
-    // Load existing options if any
-    setOptionsList(record.options || [])
+    // Load existing options if any, extract values from objects if needed
+    const options = record.options || []
+    setOptionsList(options.map(opt => typeof opt === 'object' ? opt.value : opt))
     setPropertyModalVisible(true)
   }
 
@@ -148,32 +149,37 @@ export default function PropertyList() {
       key: 'name',
     },
     {
-      title: '类型',
-      dataIndex: 'property_type',
-      key: 'property_type',
-    },
-    {
-      title: '必填',
-      dataIndex: 'is_required',
-      key: 'is_required',
-      render: (val) => val ? '是' : '否',
-    },
-    {
-      title: '单位',
-      dataIndex: 'unit',
-      key: 'unit',
+      title: '说明',
+      key: 'description',
+      render: (_, record) => {
+        const { property_type, unit } = record
+        
+        if (property_type === 'string') {
+          return '文本'
+        } else if (property_type === 'int' || property_type === 'float') {
+          if (unit) {
+            return `单位：${unit}`
+          } else {
+            return '数字'
+          }
+        } else if (property_type === 'date' || property_type === 'time') {
+          return '时间'
+        }
+        
+        return property_type
+      },
     },
     {
       title: '操作',
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button size="small" icon={<PlusOutlined />} onClick={() => handleCreateOption(record.id)}>
-            添加值
-          </Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => handleEditProperty(record)}>
-            编辑
-          </Button>
+          <Button 
+            size="small" 
+            icon={<EditOutlined />} 
+            onClick={() => handleEditProperty(record)}
+            type="primary"
+          />
         </Space>
       ),
     },
@@ -355,30 +361,39 @@ export default function PropertyList() {
                         </Button>
                       </Space>
                     </div>
-                    <div>
-                      {optionsList.map((opt, index) => (
-                        <Space key={index} style={{ marginBottom: 8, display: 'flex' }}>
+                    <List
+                      size="small"
+                      bordered
+                      dataSource={optionsList}
+                      renderItem={(item, index) => (
+                        <List.Item
+                          actions={[
+                            <Button 
+                              size="small" 
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => {
+                                setOptionsList(optionsList.filter((_, i) => i !== index))
+                              }}
+                            >
+                              删除
+                            </Button>
+                          ]}
+                        >
                           <Input 
-                            value={opt} 
+                            value={item} 
                             onChange={(e) => {
                               const newOptions = [...optionsList]
                               newOptions[index] = e.target.value
                               setOptionsList(newOptions)
                             }}
-                            style={{ width: 200 }}
+                            style={{ width: '100%' }}
+                            bordered={false}
                           />
-                          <Button 
-                            size="small" 
-                            danger
-                            onClick={() => {
-                              setOptionsList(optionsList.filter((_, i) => i !== index))
-                            }}
-                          >
-                            删除
-                          </Button>
-                        </Space>
-                      ))}
-                    </div>
+                        </List.Item>
+                      )}
+                      style={{ maxHeight: 200, overflow: 'auto' }}
+                    />
                   </div>
                 </>
               )
