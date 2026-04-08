@@ -1,8 +1,9 @@
 -- Migration 014: Create property management tables
 -- Issue #218: Missing "properties" table in database
+-- Use IF NOT EXISTS to make migration idempotent
 
 -- Create properties table
-CREATE TABLE properties (
+CREATE TABLE IF NOT EXISTS properties (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
     name VARCHAR(100) NOT NULL,
@@ -14,7 +15,7 @@ CREATE TABLE properties (
 );
 
 -- Create property_options table
-CREATE TABLE property_options (
+CREATE TABLE IF NOT EXISTS property_options (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
     property_id UUID NOT NULL,
@@ -26,7 +27,7 @@ CREATE TABLE property_options (
 );
 
 -- Create instrument_properties table
-CREATE TABLE instrument_properties (
+CREATE TABLE IF NOT EXISTS instrument_properties (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
     instrument_id UUID NOT NULL,
