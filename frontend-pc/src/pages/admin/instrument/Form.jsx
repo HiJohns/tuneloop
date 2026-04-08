@@ -268,7 +268,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       } finally {
         setSnChecking(false)
       }
-    }, 500)
+    }, 3000)
   }
 
   const beforeUpload = (file) => {
