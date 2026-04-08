@@ -15,6 +15,8 @@ export default function PropertyList() {
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
   const [mergeForm] = Form.useForm()
+  const [optionsList, setOptionsList] = useState([])
+  const [editingOptionIndex, setEditingOptionIndex] = useState(-1)
 
   useEffect(() => {
     fetchProperties()
@@ -37,12 +39,17 @@ export default function PropertyList() {
   const handleCreateProperty = () => {
     setEditingProperty(null)
     form.resetFields()
+    // Set default property type to "string"
+    form.setFieldsValue({ property_type: 'string' })
+    setOptionsList([])
     setPropertyModalVisible(true)
   }
 
   const handleEditProperty = (record) => {
     setEditingProperty(record)
     form.setFieldsValue(record)
+    // Load existing options if any
+    setOptionsList(record.options || [])
     setPropertyModalVisible(true)
   }
 
@@ -56,6 +63,9 @@ export default function PropertyList() {
         property_type: values.property_type,
         is_required: values.is_required || false,
         unit: values.unit || '',
+        min_value: values.min_value || null,
+        max_value: values.max_value || null,
+        options: optionsList.length > 0 ? optionsList : [],
       }
 
       if (editingProperty?.id) {
@@ -67,6 +77,7 @@ export default function PropertyList() {
       }
 
       setPropertyModalVisible(false)
+      setOptionsList([])
       fetchProperties()
     } catch (err) {
       if (err.errorFields) return
@@ -276,20 +287,96 @@ export default function PropertyList() {
               <Option value="int">整数</Option>
               <Option value="float">小数</Option>
               <Option value="date">日期</Option>
+              <Option value="time">时间</Option>
             </Select>
           </Form.Item>
-          <Form.Item
-            name="is_required"
-            label="是否必填"
-            valuePropName="checked"
-          >
-            <Select>
+          <Form.Item name="is_required" label="是否必填">
+            <Select defaultValue={false}>
               <Option value={true}>是</Option>
               <Option value={false}>否</Option>
             </Select>
           </Form.Item>
-          <Form.Item name="unit" label="单位">
-            <Input placeholder="如：cm, kg" />
+          <Form.Item shouldUpdate>
+            {() => {
+              const propertyType = form.getFieldValue('property_type')
+              const showUnit = propertyType === 'int' || propertyType === 'float'
+              const showMinMax = propertyType === 'int' || propertyType === 'float' || propertyType === 'date' || propertyType === 'time'
+              
+              return (
+                <>
+                  {showUnit && (
+                    <Form.Item name="unit" label="单位">
+                      <Input placeholder="如：cm, kg" />
+                    </Form.Item>
+                  )}
+                  {showMinMax && (
+                    <>
+                      <Form.Item name="min_value" label="最小值">
+                        <InputNumber style={{ width: '100%' }} placeholder="最小值" />
+                      </Form.Item>
+                      <Form.Item name="max_value" label="最大值">
+                        <InputNumber style={{ width: '100%' }} placeholder="最大值" />
+                      </Form.Item>
+                    </>
+                  )}
+                  {/* Options Management */}
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ marginBottom: 8, fontWeight: 500 }}>选项列表</div>
+                    <div style={{ marginBottom: 12 }}>
+                      <Space>
+                        <Input 
+                          placeholder="输入新选项值"
+                          onPressEnter={(e) => {
+                            const value = e.target.value.trim()
+                            if (value) {
+                              setOptionsList([...optionsList, value])
+                              e.target.value = ''
+                            }
+                          }}
+                          style={{ width: 200 }}
+                        />
+                        <Button 
+                          onClick={() => {
+                            const input = document.querySelector('input[placeholder="输入新选项值"]')
+                            const value = input?.value.trim()
+                            if (value) {
+                              setOptionsList([...optionsList, value])
+                              input.value = ''
+                            }
+                          }}
+                        >
+                          添加
+                        </Button>
+                      </Space>
+                    </div>
+                    <div>
+                      {optionsList.map((opt, index) => (
+                        <Space key={index} style={{ marginBottom: 8, display: 'flex' }}>
+                          <Input 
+                            value={opt} 
+                            onChange={(e) => {
+                              const newOptions = [...optionsList]
+                              newOptions[index] = e.target.value
+                              setOptionsList(newOptions)
+                            }}
+                            style={{ width: 200 }}
+                          />
+                          <Button 
+                            size="small" 
+                            danger
+                            onClick={() => {
+                              setOptionsList(optionsList.filter((_, i) => i !== index))
+                            }}
+                          >
+                            删除
+                          </Button>
+                        </Space>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )
+            }}
           </Form.Item>
         </Form>
       </Modal>
