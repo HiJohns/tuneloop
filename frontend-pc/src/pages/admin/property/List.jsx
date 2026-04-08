@@ -25,11 +25,16 @@ export default function PropertyList() {
   const fetchProperties = async () => {
     try {
       setLoading(true)
+      console.log('[DEBUG] Calling GET /api/properties...')
       const result = await api.get('/properties')
+      console.log('[DEBUG] Result from /api/properties:', result)
       if (result.code === 20000) {
+        console.log('[DEBUG] Setting properties with data:', result.data)
         setProperties(result.data || [])
+        console.log('[DEBUG] Properties state updated, length:', result.data?.length || 0)
       }
     } catch (err) {
+      console.error('[DEBUG] Error loading properties:', err)
       message.error('加载属性失败: ' + err.message)
     } finally {
       setLoading(false)
