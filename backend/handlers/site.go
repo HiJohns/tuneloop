@@ -192,6 +192,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
+	orgID := middleware.GetOrgID(c.Request.Context())
 
 	// Convert manager_id string to uuid if provided
 	var managerUUID *uuid.UUID
@@ -210,6 +211,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	site := models.Site{
 		Name:          req.Name,
 		TenantID:      tenantID,
+		OrgID:         orgID,
 		Address:       req.Address,
 		Latitude:      req.Latitude,
 		Longitude:     req.Longitude,
