@@ -77,16 +77,26 @@ func (h *IAMProxyHandler) LookupUser(c *gin.Context) {
 // POST /api/iam/users - Create IAM user (JIT provisioning)
 func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	var req struct {
-		Email    string `json:"email" binding:"required"`
-		Phone    string `json:"phone" binding:"required"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
 		Name     string `json:"name" binding:"required"`
 		Password string `json:"password"`
+		Role     string `json:"role"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate that at least email or phone is provided
+	if req.Email == "" && req.Phone == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "email or phone is required",
 		})
 		return
 	}
@@ -110,6 +120,11 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		"tid":       tenantID, // Set tenant ID
 		"password":  req.Password,
 		"skipEmail": true, // JIT provisioning, skip email verification
+	}
+
+	// Add role if provided
+	if req.Role != "" {
+		payload["role"] = req.Role
 	}
 
 	jsonPayload, err := json.Marshal(payload)
