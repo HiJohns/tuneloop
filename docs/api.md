@@ -151,6 +151,64 @@
 
 ---
 
+### 2.5 IAM 代理接口
+
+> **说明**: 业务系统与 Lin-IAM 的代理层，支持 JIT 用户创建
+
+#### 2.5.1 查询 IAM 用户
+
+**接口**: `GET /api/iam/users/lookup`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| query | string | 邮箱或手机号查询 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "user-001",
+    "email": "manager@example.com",
+    "phone": "13800000000",
+    "role": "site_manager",
+    "status": "active",
+    "org_id": "org-001"
+  }
+}
+```
+
+#### 2.5.2 创建 IAM 用户 (JIT)
+
+**接口**: `POST /api/iam/users`
+
+**说明**: Just-In-Time 用户创建，用于网点负责人注册
+
+**请求 Body**:
+```json
+{
+  "email": "newmanager@example.com",
+  "phone": "13800000000",
+  "role": "site_manager",
+  "org_id": "org-001"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "user-002",
+    "status": "pending",
+    "message": "User creation in progress"
+  }
+}
+```
+
+---
+
 ## 三、白标化配置模块
 
 ### 3.1 品牌配置
@@ -272,6 +330,91 @@
         "maintenance": 2
       }
     }
+  }
+}
+```
+
+---
+
+### 4.4 网点树结构
+
+**接口**: `GET /api/sites/tree`
+
+**说明**: 获取网点层级树，用于管理端组织架构展示
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "tree": [
+      {
+        "id": "org-001",
+        "name": "北京分公司",
+        "type": "org",
+        "children": [
+          {
+            "id": "site-001",
+            "name": "北京朝阳店",
+            "type": "site",
+            "manager": "user-001"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 4.5 网点管理 (商家端)
+
+#### 4.5.1 创建网点
+
+**接口**: `POST /api/merchant/sites`
+
+**请求 Body**:
+```json
+{
+  "name": "北京海淀店",
+  "address": "北京市海淀区xxx路456号",
+  "latitude": 39.9562,
+  "longitude": 116.2987,
+  "phone": "010-87654321",
+  "business_hours": "09:00-21:00",
+  "manager_user_id": "user-002"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "site_id": "site-002",
+    "created_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+#### 4.5.2 更新网点
+
+**接口**: `PUT /api/merchant/sites/:id`
+
+**请求 Body**: 同创建
+
+**响应**: 同创建
+
+#### 4.5.3 删除网点
+
+**接口**: `DELETE /api/merchant/sites/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "deleted": true,
+    "deleted_at": "2026-03-22T11:00:00Z"
   }
 }
 ```
@@ -443,8 +586,207 @@
 
 ---
 
+### 5.6 乐器管理扩展
 
-### 5.6 Excel批量导入/导出\n\n#### 5.6.1 导入乐器信息\n\n**接口**: `POST /api/instruments/import`\n\n**Content-Type**: `multipart/form-data`\n\n**表单字段**:\n- `file`: Excel文件 (.xlsx, .xls)\n\n**请求示例**:\n```bash\ncurl -X POST http://localhost:5554/api/instruments/import \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  -F "file=@instruments.xlsx"\n```\n\n**成功响应 (部分成功)**:\n```json\n{\n  "code": 20000,\n  "data": {\n    "total": 100,\n    "success": 95,\n    "failed": 5,\n    "errors": [\n      {\n        "row": 10,\n        "error": "Missing required field: name"\n      },\n      {\n        "row": 25,\n        "error": "Invalid price format"\n      }\n    ]\n  },\n  "message": "Import completed: 95 success, 5 failed (23.5 records/s)"\n}\n```\n\n**错误响应**:\n```json\n{\n  "code": 40003,\n  "message": "Only Excel files (.xlsx, .xls) are supported"\n}\n```\n\n**Excel模板字段**:\n| 字段名 | 中文标题 | 必填 | 说明 |\n|--------|----------|------|------|\n| name | 乐器名称 | ✅ | 乐器名称 |\n| brand | 品牌 | ❌ | 品牌名称 |\n| model | 型号 | ❌ | 型号 |\n| category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |\n| level | 级别 | ❌ | enum: entry/pro/master，默认entry |\n| daily_rate | 日租金 | ❌ | 数字格式，如: 50 |\n| monthly_rate | 月租金 | ❌ | 数字格式 |\n| deposit | 押金 | ❌ | 数字格式 |\n| stock | 库存数量 | ❌ | 整数，默认0 |\n| status | 状态 | ❌ | enum: available/rented/maintenance，默认available |\n| description | 描述 | ❌ | 乐器描述 |\n| images | 图片URL | ❌ | 支持多个，逗号分隔 |\n\n**业务规则**:\n- 支持部分成功导入，每行独立验证\n- 重复检测: name + brand + model 组合唯一\n- 分类模糊匹配，未找到时自动归类到"未分类"\n- 批次提交，每100条提交一次事务\n\n---\n\n#### 5.6.2 导出乐器列表\n\n**接口**: `GET /api/instruments/export`\n\n**查询参数**:\n- `category`: 分类筛选 (可选)\n- `status`: 状态筛选 (可选)\n- `search_text`: 搜索文本，匹配name或brand (可选)\n- `fields`: 导出字段，逗号分隔 (可选，默认全部)\n\n**请求示例**:\n```bash\ncurl -X GET "http://localhost:5554/api/instruments/export?category=钢琴&status=available&fields=name,brand,price" \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instruments.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instruments_1234567890.xlsx"\n\n[Binary Excel File Content]\n```\n\n**错误响应**:\n```json\n{\n  "code": 40006,\n  "message": "Export failed: no instruments found with given filters"\n}\n```\n\n**可用导出字段**:\n- `name` - 乐器名称\n- `brand` - 品牌\n- `model` - 型号\n- `category_name` - 分类名称\n- `level` - 级别\n- `daily_rate` - 日租金\n- `monthly_rate` - 月租金\n- `deposit` - 押金\n- `stock` - 库存\n- `status` - 状态\n- `description` - 描述\n- `images` - 图片URL\n\n---\n\n#### 5.6.3 下载导入模板\n\n**接口**: `GET /api/instruments/import/template`\n\n**请求示例**:\n```bash\ncurl -X GET http://localhost:5554/api/instruments/import/template \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instrument_template.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instrument_import_template.xlsx"\n\n[Binary Excel File Content]\n```\n\n**模板内容**:\n- 第1行: 字段标题（红色为必填）\n- 第2行: 示例数据\n- 第4-8行: 填写说明\n\n**安全特性**:\n- Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值\n- 输入长度限制: 超过1000字符自动截断\n- 严格数值验证: 价格字段必须为有效数字
+#### 5.6.1 检查乐器 SN 码
+
+**接口**: `GET /api/instruments/check`
+
+**请求参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| sn | string | SN 码 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "available": true,
+    "message": "SN 码可用"
+  }
+}
+```
+
+#### 5.6.2 更新乐器状态
+
+**接口**: `PUT /api/instruments/:id/status`
+
+**请求 Body**:
+```json
+{
+  "status": "maintenance",
+  "reason": "用户报修"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "asset_id": "instr-001",
+    "old_status": "renting",
+    "new_status": "maintenance",
+    "updated_at": "2026-03-22T10:00:00Z"
+  }
+}
+```
+
+#### 5.6.3 下载导入模板
+
+**接口**: `GET /api/instruments/import/template`
+
+**响应**: Excel 文件流
+
+---
+
+### 5.7 Excel批量导入/导出
+
+#### 5.7.1 导入乐器信息
+
+**接口**: `POST /api/instruments/import`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+- `file`: Excel文件 (.xlsx, .xls)
+
+**请求示例**:
+```bash
+curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: Bearer <JWT_TOKEN>" \  -F "file=@instruments.xlsx"
+```
+
+**成功响应 (部分成功)**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "total": 100,
+    "success": 95,
+    "failed": 5,
+    "errors": [
+      {
+        "row": 10,
+        "error": "Missing required field: name"
+      },
+      {
+        "row": 25,
+        "error": "Invalid price format"
+      }
+    ]
+  },
+  "message": "Import completed: 95 success, 5 failed (23.5 records/s)"
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 40003,
+  "message": "Only Excel files (.xlsx, .xls) are supported"
+}
+```
+
+**Excel模板字段**:
+| 字段名 | 中文标题 | 必填 | 说明 |
+|--------|----------|------|------|
+| name | 乐器名称 | ✅ | 乐器名称 |
+| brand | 品牌 | ❌ | 品牌名称 |
+| model | 型号 | ❌ | 型号 |
+| category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |
+| level | 级别 | ❌ | enum: entry/pro/master，默认entry |
+| daily_rate | 日租金 | ❌ | 数字格式，如: 50 |
+| monthly_rate | 月租金 | ❌ | 数字格式 |
+| deposit | 押金 | ❌ | 数字格式 |
+| stock | 库存数量 | ❌ | 整数，默认0 |
+| status | 状态 | ❌ | enum: available/rented/maintenance，默认available |
+| description | 描述 | ❌ | 乐器描述 |
+| images | 图片URL | ❌ | 支持多个，逗号分隔 |
+
+**业务规则**:
+- 支持部分成功导入，每行独立验证
+- 重复检测: name + brand + model 组合唯一
+- 分类模糊匹配，未找到时自动归类到"未分类"
+- 批次提交，每100条提交一次事务
+
+---
+
+#### 5.7.2 导出乐器列表
+
+**接口**: `GET /api/instruments/export`
+
+**查询参数**:
+- `category`: 分类筛选 (可选)
+- `status`: 状态筛选 (可选)
+- `search_text`: 搜索文本，匹配name或brand (可选)
+- `fields`: 导出字段，逗号分隔 (可选，默认全部)
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:5554/api/instruments/export?category=钢琴&status=available&fields=name,brand,price" \  -H "Authorization: Bearer <JWT_TOKEN>" \  --output instruments.xlsx
+```
+
+**成功响应**:
+```
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="instruments_1234567890.xlsx"
+
+[Binary Excel File Content]
+```
+
+**错误响应**:
+```json
+{
+  "code": 40006,
+  "message": "Export failed: no instruments found with given filters"
+}
+```
+
+**可用导出字段**:
+- `name` - 乐器名称
+- `brand` - 品牌
+- `model` - 型号
+- `category_name` - 分类名称
+- `level` - 级别
+- `daily_rate` - 日租金
+- `monthly_rate` - 月租金
+- `deposit` - 押金
+- `stock` - 库存
+- `status` - 状态
+- `description` - 描述
+- `images` - 图片URL
+
+---
+
+#### 5.7.3 下载导入模板
+
+**接口**: `GET /api/instruments/import/template`
+
+**请求示例**:
+```bash
+curl -X GET http://localhost:5554/api/instruments/import/template \  -H "Authorization: Bearer <JWT_TOKEN>" \  --output instrument_template.xlsx
+```
+
+**成功响应**:
+```
+HTTP/1.1 200 OK
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="instrument_import_template.xlsx"
+
+[Binary Excel File Content]
+```
+
+**模板内容**:
+- 第1行: 字段标题（红色为必填）
+- 第2行: 示例数据
+- 第4-8行: 填写说明
+
+**安全特性**:
+- Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值
+- 输入长度限制: 超过1000字符自动截断
+- 严格数值验证: 价格字段必须为有效数字\n\n#### 5.6.1 导入乐器信息\n\n**接口**: `POST /api/instruments/import`\n\n**Content-Type**: `multipart/form-data`\n\n**表单字段**:\n- `file`: Excel文件 (.xlsx, .xls)\n\n**请求示例**:\n```bash\ncurl -X POST http://localhost:5554/api/instruments/import \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  -F "file=@instruments.xlsx"\n```\n\n**成功响应 (部分成功)**:\n```json\n{\n  "code": 20000,\n  "data": {\n    "total": 100,\n    "success": 95,\n    "failed": 5,\n    "errors": [\n      {\n        "row": 10,\n        "error": "Missing required field: name"\n      },\n      {\n        "row": 25,\n        "error": "Invalid price format"\n      }\n    ]\n  },\n  "message": "Import completed: 95 success, 5 failed (23.5 records/s)"\n}\n```\n\n**错误响应**:\n```json\n{\n  "code": 40003,\n  "message": "Only Excel files (.xlsx, .xls) are supported"\n}\n```\n\n**Excel模板字段**:\n| 字段名 | 中文标题 | 必填 | 说明 |\n|--------|----------|------|------|\n| name | 乐器名称 | ✅ | 乐器名称 |\n| brand | 品牌 | ❌ | 品牌名称 |\n| model | 型号 | ❌ | 型号 |\n| category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |\n| level | 级别 | ❌ | enum: entry/pro/master，默认entry |\n| daily_rate | 日租金 | ❌ | 数字格式，如: 50 |\n| monthly_rate | 月租金 | ❌ | 数字格式 |\n| deposit | 押金 | ❌ | 数字格式 |\n| stock | 库存数量 | ❌ | 整数，默认0 |\n| status | 状态 | ❌ | enum: available/rented/maintenance，默认available |\n| description | 描述 | ❌ | 乐器描述 |\n| images | 图片URL | ❌ | 支持多个，逗号分隔 |\n\n**业务规则**:\n- 支持部分成功导入，每行独立验证\n- 重复检测: name + brand + model 组合唯一\n- 分类模糊匹配，未找到时自动归类到"未分类"\n- 批次提交，每100条提交一次事务\n\n---\n\n#### 5.6.2 导出乐器列表\n\n**接口**: `GET /api/instruments/export`\n\n**查询参数**:\n- `category`: 分类筛选 (可选)\n- `status`: 状态筛选 (可选)\n- `search_text`: 搜索文本，匹配name或brand (可选)\n- `fields`: 导出字段，逗号分隔 (可选，默认全部)\n\n**请求示例**:\n```bash\ncurl -X GET "http://localhost:5554/api/instruments/export?category=钢琴&status=available&fields=name,brand,price" \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instruments.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instruments_1234567890.xlsx"\n\n[Binary Excel File Content]\n```\n\n**错误响应**:\n```json\n{\n  "code": 40006,\n  "message": "Export failed: no instruments found with given filters"\n}\n```\n\n**可用导出字段**:\n- `name` - 乐器名称\n- `brand` - 品牌\n- `model` - 型号\n- `category_name` - 分类名称\n- `level` - 级别\n- `daily_rate` - 日租金\n- `monthly_rate` - 月租金\n- `deposit` - 押金\n- `stock` - 库存\n- `status` - 状态\n- `description` - 描述\n- `images` - 图片URL\n\n---\n\n#### 5.6.3 下载导入模板\n\n**接口**: `GET /api/instruments/import/template`\n\n**请求示例**:\n```bash\ncurl -X GET http://localhost:5554/api/instruments/import/template \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instrument_template.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instrument_import_template.xlsx"\n\n[Binary Excel File Content]\n```\n\n**模板内容**:\n- 第1行: 字段标题（红色为必填）\n- 第2行: 示例数据\n- 第4-8行: 填写说明\n\n**安全特性**:\n- Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值\n- 输入长度限制: 超过1000字符自动截断\n- 严格数值验证: 价格字段必须为有效数字
 ## 六、订单模块
 
 ### 6.1 预计算首期费用
@@ -669,6 +1011,124 @@
 
 ---
 
+### 6.8 出库确认管理
+
+#### 6.8.1 获取出库照片
+
+**接口**: `GET /api/orders/:id/outbound-photos`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "outbound_photos": [
+      {
+        "image_id": "img-001",
+        "url": "https://cdn.example.com/outbound/photo1.jpg",
+        "taken_at": "2026-03-21T10:30:00Z"
+      }
+    ],
+    "assessment_photos": []
+  }
+}
+```
+
+#### 6.8.2 确认出库
+
+**接口**: `POST /api/orders/:id/outbound-confirm`
+
+**请求 Body**:
+```json
+{
+  "confirmed_by": "user-001",
+  "photos": ["img-001", "img-002"],
+  "condition_notes": "外观完好，音色正常"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "outbound_confirmed": true,
+    "confirmed_at": "2026-03-21T10:35:00Z"
+  }
+}
+```
+
+### 6.9 损伤评估管理
+
+#### 6.9.1 获取评估数据
+
+**接口**: `GET /api/orders/:id/assessment`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "outbound_condition": {
+      "notes": "外观完好",
+      "photos": ["img-001"]
+    },
+    "return_condition": {
+      "notes": "琴键磨损",
+      "photos": ["img-003"],
+      "damage_level": "minor"
+    },
+    "assessment_status": "pending"
+  }
+}
+```
+
+#### 6.9.2 提交评估
+
+**接口**: `POST /api/orders/:id/assessment`
+
+**请求 Body**:
+```json
+{
+  "damage_items": [
+    {
+      "label_id": "label-001",
+      "severity": "minor",
+      "repair_cost": 200
+    }
+  ],
+  "liability": "user", // user, normal_wear, covered
+  "total_deduction": 500,
+  "notes": "琴键正常磨损"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "assessment_id": "assmt-001",
+    "total_deduction": 500,
+    "deposit_adjustment": 500
+  }
+}
+```
+
+#### 6.9.3 生成评估报告
+
+**接口**: `GET /api/reports/assessment/:order_id`
+
+**响应**: PDF 文件流
+
+**Headers**:
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="assessment_order_001.pdf"
+```
+
+---
+
 ## 七、维保服务模块
 
 ### 7.1 查询服务包覆盖项
@@ -816,6 +1276,97 @@
 
 ---
 
+### 7.6 技师工作台
+
+#### 7.6.1 技师工单列表
+
+**接口**: `GET /api/technician/tickets`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "ticket-001",
+        "instrument_name": "雅马哈立式钢琴 U1",
+        "problem": "琴弦松动",
+        "status": "pending",
+        "created_at": "2026-03-22T09:00:00Z",
+        "assigned_site": "北京朝阳店"
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+#### 7.6.2 技师接单
+
+**接口**: `PUT /api/technician/tickets/:id/accept`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "accepted_at": "2026-03-22T10:00:00Z",
+    "technician_id": "tech-001"
+  }
+}
+```
+
+#### 7.6.3 完成工单
+
+**接口**: `POST /api/technician/tickets/:id/complete`
+
+**请求 Body**:
+```json
+{
+  "actual_cost": 0,
+  "repair_details": "更换琴弦，调整音准",
+  "completion_photos": ["repair1.jpg"]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "completed",
+    "completed_at": "2026-03-22T18:00:00Z"
+  }
+}
+```
+
+### 7.7 工单状态更新
+
+**接口**: `PUT /api/maintenance/tickets/:id/status`
+
+**请求 Body**:
+```json
+{
+  "status": "processing",
+  "notes": "已分配师傅"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "status": "processing",
+    "updated_at": "2026-03-22T10:30:00Z"
+  }
+}
+```
+
+---
+
 ## 八、个人中心模块
 
 ### 8.1 租约管理
@@ -912,7 +1463,67 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-### 8.5 收藏列表
+### 8.5 文件上传
+
+**接口**: `POST /api/upload`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+- `file`: 文件数据
+- `type`: 文件类型 (optional)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "file_id": "file-001",
+    "url": "https://cdn.example.com/uploads/image.jpg",
+    "filename": "image.jpg",
+    "size": 2048576
+  }
+}
+```
+
+### 8.6 逾期租约列表
+
+**接口**: `GET /api/overdue-leases`
+
+**说明**: 获取所有逾期未归还的租约列表
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "lease_id": "lease-002",
+        "order_id": "order-002",
+        "instrument_name": "雅马哈立式钢琴 U3",
+        "user_name": "李四",
+        "user_phone": "139****9999",
+        "end_date": "2026-03-15",
+        "overdue_days": 7,
+        "monthly_rent": 800,
+        "deposit": 5000
+      }
+    ],
+    "total": 3
+  }
+}
+```
+
+### 8.7 收藏列表
+
+**接口**: `GET /api/user/favorites`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
 
 **接口**: `GET /api/user/favorites`
 
@@ -936,7 +1547,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-### 8.6 添加收藏
+### 8.8 添加收藏
 
 **接口**: `POST /api/user/favorites`
 
@@ -960,7 +1571,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-### 8.7 取消收藏
+### 8.9 取消收藏
 
 **接口**: `DELETE /api/user/favorites/:id`
 
@@ -976,9 +1587,9 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-### 8.8 地址管理
+### 8.10 地址管理
 
-#### 8.8.1 地址列表
+#### 8.10.1 地址列表
 
 **接口**: `GET /api/user/addresses`
 
@@ -1005,7 +1616,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-#### 8.8.2 新增地址
+#### 8.10.2 新增地址
 
 **接口**: `POST /api/user/addresses`
 
@@ -1034,7 +1645,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-#### 8.8.3 更新地址
+#### 8.10.3 更新地址
 
 **接口**: `PUT /api/user/addresses/:id`
 
@@ -1042,7 +1653,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-#### 8.8.4 删除地址
+#### 8.10.4 删除地址
 
 **接口**: `DELETE /api/user/addresses/:id`
 
@@ -2055,24 +2666,239 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 
 ---
 
-## 十二、技术实现要点
+## 十二、系统管理模块
 
-### 12.1 IAM 集成
+### 12.1 客户端管理
+
+**接口**: `GET /api/system/clients`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "clients": [
+      {
+        "client_id": "tuneloop-pc",
+        "client_name": "PC Web Client",
+        "redirect_uris": ["http://localhost:5554/callback"]
+      }
+    ]
+  }
+}
+```
+
+### 12.2 租户管理
+
+**接口**: `GET /api/system/tenants`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "tenants": [
+      {
+        "tenant_id": "tenant-001",
+        "tenant_name": "TuneLoop Primary",
+        "org_count": 5
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 十三、标签与属性管理模块
+
+### 13.1 标签管理
+
+#### 13.1.1 获取标签列表
+
+**接口**: `GET /api/labels`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "label-001",
+        "name": "琴弦松动",
+        "status": "pending",
+        "created_at": "2026-03-22T09:00:00Z"
+      }
+    ],
+    "total": 25
+  }
+}
+```
+
+#### 13.1.2 创建标签
+
+**接口**: `POST /api/labels`
+
+**请求 Body**:
+```json
+{
+  "name": "键盘磨损",
+  "category": "damage"
+}
+```
+
+#### 13.1.3 审批标签
+
+**接口**: `PUT /api/labels/:id/approve`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "approved": true,
+    "status": "approved"
+  }
+}
+```
+
+#### 13.1.4 拒绝标签
+
+**接口**: `PUT /api/labels/:id/reject`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "rejected": true,
+    "status": "rejected"
+  }
+}
+```
+
+#### 13.1.5 合并标签
+
+**接口**: `POST /api/labels/merge`
+
+**请求 Body**:
+```json
+{
+  "source_id": "label-002",
+  "target_id": "label-001",
+  "reason": "重复标签合并"
+}
+```
+
+---
+
+### 13.2 属性管理
+
+#### 13.2.1 属性列表
+
+**接口**: `GET /api/properties`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "prop-001",
+        "name": "琴键数",
+        "type": "number",
+        "options": []
+      },
+      {
+        "id": "prop-002",
+        "name": "颜色",
+        "type": "select",
+        "options": ["黑色", "白色", "棕色"]
+      }
+    ]
+  }
+}
+```
+
+#### 13.2.2 创建属性
+
+**接口**: `POST /api/property`
+
+**请求 Body**:
+```json
+{
+  "name": "材质",
+  "type": "select",
+  "category": "instrument"
+}
+```
+
+#### 13.2.3 更新属性
+
+**接口**: `PUT /api/property/:id`
+
+**请求 Body**: 同创建
+
+#### 13.2.4 创建属性选项
+
+**接口**: `POST /api/property/option`
+
+**请求 Body**:
+```json
+{
+  "property_id": "prop-002",
+  "value": "红色"
+}
+```
+
+#### 13.2.5 确认属性值
+
+**接口**: `PUT /api/property/confirm`
+
+**请求 Body**:
+```json
+{
+  "asset_id": "asset-001",
+  "property_id": "prop-001",
+  "value": "88键"
+}
+```
+
+#### 13.2.6 合并属性值
+
+**接口**: `PUT /api/property/merge`
+
+**请求 Body**:
+```json
+{
+  "from_value": "黑色",
+  "to_value": "深黑色",
+  "property_id": "prop-002"
+}
+```
+
+---
+
+## 十四、技术实现要点
+
+### 14.1 IAM 集成
 - JWT 校验中间件: `IAMInterceptor`
 - 从 JWT 提取: `sub`, `tenant_id`, `org_id`
 - Token 失效自动刷新机制
 
-### 12.2 数据模型约束
+### 14.2 数据模型约束
 - `Order` 表必须包含 `accumulated_months` 字段
 - `User` 表支持 `is_shadow` 标记（IAM 同步用户）
 
-### 12.3 关键业务逻辑
+### 14.3 关键业务逻辑
 - **租转售状态机**: 定时任务每月检查 `accumulated_months >= 12`
 - **计费计算器**: 前端实时计算，后端签名验证
 - **押金双轨制**: 校验用户免押资格（信用分/会员等级）
 - **LBS 排序**: 使用 geohash 加速地理位置查询
 
-### 12.4 错误码定义
+### 14.4 错误码定义
 | 错误码 | 说明 |
 |--------|------|
 | 20000 | 成功 |
