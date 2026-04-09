@@ -222,6 +222,12 @@ async function request(endpoint, options = {}, retryCount = 0) {
       // Return the full response object instead of empty array
       return data
     }
+    
+    // 特殊处理: /sites/tree 端点返回的是对象，不是数组
+    if (endpoint.includes('/sites/tree') && data.code === 20000 && data.data) {
+      // Return the full response object instead of empty array
+      return data
+    }
   }
   
   // 兜底: 返回空数组
