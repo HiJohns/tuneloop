@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -355,6 +358,107 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 	})
 }
 
+// lookupOrSyncManager looks up a manager by ID, falling back to IAM if not found locally
+func lookupOrSyncManager(ctx *gin.Context, db *gorm.DB, managerID string) (*models.User, error) {
+	var user models.User
+
+	// First, try to find user in local database
+	if err := db.First(&user, "id = ?", managerID).Error; err == nil {
+		// User found locally
+		return &user, nil
+	}
+
+	// User not found locally, query IAM
+	fmt.Printf("[DEBUG] Manager %s not found locally, querying IAM\n", managerID)
+
+	// Get IAM base URL
+	iamBaseURL := getEnv("BEACONIAM_INTERNAL_URL", "http://localhost:5551")
+
+	// Create IAM lookup request
+	url := fmt.Sprintf("%s/api/v1/users/%s", iamBaseURL, managerID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create IAM request: %w", err)
+	}
+
+	// Add authentication header if available
+	if token, err := ctx.Cookie("token"); err == nil {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read IAM response: %w", err)
+	}
+
+	// Check status code
+	if resp.StatusCode == http.StatusNotFound {
+		// User not found in IAM either
+		return nil, nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("IAM returned status %d", resp.StatusCode)
+	}
+
+	// Parse IAM response
+	var iamResp struct {
+		Code int `json:"code"`
+		Data struct {
+			ID    string `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email,omitempty"`
+			Phone string `json:"phone,omitempty"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(body, &iamResp); err != nil {
+		return nil, fmt.Errorf("failed to parse IAM response: %w", err)
+	}
+
+	if iamResp.Code != 20000 {
+		return nil, fmt.Errorf("IAM returned code %d", iamResp.Code)
+	}
+
+	// Create shadow user in local database
+	tenantID := middleware.GetTenantID(ctx.Request.Context())
+	orgID := middleware.GetOrgID(ctx.Request.Context())
+
+	user = models.User{
+		ID:       iamResp.Data.ID,
+		IAMSub:   iamResp.Data.ID, // Use ID as IAM sub for shadow users
+		TenantID: tenantID,
+		OrgID:    orgID,
+		Name:     iamResp.Data.Name,
+		Email:    iamResp.Data.Email,
+		Phone:    iamResp.Data.Phone,
+		IsShadow: true,
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		return nil, fmt.Errorf("failed to create shadow user: %w", err)
+	}
+
+	fmt.Printf("[DEBUG] Created shadow user for manager %s\n", managerID)
+	return &user, nil
+}
+
+// Helper to get environment variable with default
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 // GET /api/sites/tree - Get site tree structure
 func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 	rootID := c.Query("root")
@@ -398,8 +502,10 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 	for _, site := range sites {
 		var manager *map[string]interface{}
 		if site.ManagerID != nil {
-			var user models.User
-			if err := db.First(&user, "id = ?", site.ManagerID).Error; err == nil {
+			user, err := lookupOrSyncManager(c, db, site.ManagerID.String())
+			if err != nil {
+				fmt.Printf("[WARN] Failed to lookup manager %s: %v\n", site.ManagerID.String(), err)
+			} else if user != nil {
 				m := map[string]interface{}{
 					"id":   user.ID,
 					"name": user.Name,
