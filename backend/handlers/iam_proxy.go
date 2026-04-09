@@ -101,9 +101,10 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Get tenant ID from context
+	// Get tenant ID and org ID from context
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    40100,
@@ -118,6 +119,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		"phone":     req.Phone,
 		"name":      req.Name,
 		"tid":       tenantID, // Set tenant ID
+		"org_id":    orgID,    // Set org ID
 		"password":  req.Password,
 		"skipEmail": true, // JIT provisioning, skip email verification
 	}

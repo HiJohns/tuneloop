@@ -18,6 +18,7 @@ export default function SiteManagement() {
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
   const [createUserForm] = Form.useForm()
   const [lookingUp, setLookingUp] = useState(false)
+  const [waitingForUserCreation, setWaitingForUserCreation] = useState(false)
 
   useEffect(() => {
     fetchSiteTree()
@@ -127,6 +128,7 @@ export default function SiteManagement() {
         // User not found
         setManagerInfo({ name: '', id: null })
         setCreateUserModalVisible(true)
+        setWaitingForUserCreation(true) // Mark that we're waiting for user creation
         
         // 智能识别输入类型（邮箱或手机号）
         const isEmail = identifier.includes('@')
@@ -164,6 +166,7 @@ export default function SiteManagement() {
         setManagerInfo({ name: user.name, id: user.id })
         form.setFieldsValue({ manager_id: user.id })
         setCreateUserModalVisible(false)
+        setWaitingForUserCreation(false) // Clear waiting state
         createUserForm.resetFields()
       } else {
         message.error('创建失败：' + (result.message || '未知错误'))
@@ -190,6 +193,12 @@ export default function SiteManagement() {
 
   const handleSubmit = async () => {
     try {
+      // Prevent submission if waiting for user creation
+      if (waitingForUserCreation) {
+        message.warning('请先创建网点管理员用户')
+        return
+      }
+
       const values = await form.validateFields()
       setSaving(true)
       
@@ -212,6 +221,7 @@ export default function SiteManagement() {
 
       // Reset manager info
       setManagerInfo({ name: '', id: null })
+      setWaitingForUserCreation(false)
       setEditModalVisible(false)
       fetchSiteTree()
     } catch (err) {
@@ -387,7 +397,10 @@ export default function SiteManagement() {
       <Modal
         title="创建IAM用户"
         open={createUserModalVisible}
-        onCancel={() => setCreateUserModalVisible(false)}
+        onCancel={() => {
+          setCreateUserModalVisible(false)
+          setWaitingForUserCreation(false) // Clear waiting state on cancel
+        }}
         onOk={handleCreateUser}
         confirmLoading={saving}
         width={500}
