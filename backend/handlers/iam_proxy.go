@@ -176,6 +176,39 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Forward response
+	// Try to parse IAM response to determine format
+	var iamResponse map[string]interface{}
+	if err := json.Unmarshal(body, &iamResponse); err != nil {
+		// If can't parse, forward as-is
+		c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+		return
+	}
+
+	// Check if IAM returned our expected format
+	if _, exists := iamResponse["code"]; exists {
+		// Already in our format, forward as-is
+		c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+		return
+	}
+
+	// Check if IAM returned {status: "pending", user_id: "..."} format
+	if status, hasStatus := iamResponse["status"]; hasStatus {
+		if status == "pending" || status == "success" {
+			if userID, hasUserID := iamResponse["user_id"]; hasUserID {
+				// Convert to our standard format
+				c.JSON(http.StatusOK, gin.H{
+					"code":    20000,
+					"message": "success",
+					"data": gin.H{
+						"id":     userID,
+						"status": status,
+					},
+				})
+				return
+			}
+		}
+	}
+
+	// Unknown IAM format, forward response as-is
 	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
 }
