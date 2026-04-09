@@ -127,7 +127,14 @@ export default function SiteManagement() {
         // User not found
         setManagerInfo({ name: '', id: null })
         setCreateUserModalVisible(true)
-        createUserForm.setFieldsValue({ email: '', phone: identifier, name: '' })
+        
+        // 智能识别输入类型（邮箱或手机号）
+        const isEmail = identifier.includes('@')
+        const formData = isEmail 
+          ? { email: identifier, phone: '', name: '' }
+          : { email: '', phone: identifier, name: '' }
+        
+        createUserForm.setFieldsValue(formData)
       } else {
         message.error('查询失败：' + (result.message || '未知错误'))
       }
@@ -147,6 +154,7 @@ export default function SiteManagement() {
         email: values.email,
         phone: values.phone,
         name: values.name,
+        role: 'site_manager',  // 添加角色字段
         password: values.password || undefined,
       })
 
@@ -388,9 +396,9 @@ export default function SiteManagement() {
           <Form.Item
             name="phone"
             label="手机号"
-            rules={[{ required: true, message: '请输入手机号' }]}
+            rules={[]}
           >
-            <Input disabled />
+            <Input placeholder="请输入手机号（选填）" />
           </Form.Item>
           <Form.Item
             name="name"
