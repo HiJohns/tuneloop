@@ -70,8 +70,36 @@ func (h *IAMProxyHandler) LookupUser(c *gin.Context) {
 		return
 	}
 
-	// Forward IAM response
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+	// Handle different status codes and convert to standard format
+	if resp.StatusCode == http.StatusOK {
+		// Success - forward the response
+		c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+		return
+	} else if resp.StatusCode == http.StatusNotFound {
+		// User not found - convert to standard 40400 code format
+		c.JSON(http.StatusOK, gin.H{
+			"code":    40400,
+			"message": "user not found",
+			"data":    nil,
+		})
+		return
+	} else if resp.StatusCode == http.StatusBadRequest {
+		// Bad request - convert to standard 40002 code format
+		c.JSON(http.StatusOK, gin.H{
+			"code":    40002,
+			"message": "invalid request",
+			"data":    nil,
+		})
+		return
+	} else {
+		// Other errors - convert to standard 50000 code format
+		c.JSON(http.StatusOK, gin.H{
+			"code":    50000,
+			"message": "internal error",
+			"data":    nil,
+		})
+		return
+	}
 }
 
 // POST /api/iam/users - Create IAM user (JIT provisioning)
