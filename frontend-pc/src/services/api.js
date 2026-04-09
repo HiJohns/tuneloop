@@ -216,6 +216,12 @@ async function request(endpoint, options = {}, retryCount = 0) {
     // 处理 code 格式: { code: 0, data: [...] }
     if (data.code === 0 && Array.isArray(data.data)) return data.data
     if (data.code === 20000 && Array.isArray(data.data)) return data.data
+    
+    // 特殊处理: /iam/users 端点返回的是对象，不是数组
+    if (endpoint.includes('/iam/users') && data.code === 20000 && data.data) {
+      // Return the full response object instead of empty array
+      return data
+    }
   }
   
   // 兜底: 返回空数组
