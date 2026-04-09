@@ -10,6 +10,7 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -178,6 +179,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
 		BusinessHours string  `json:"business_hours"`
+		ManagerID     *string `json:"manager_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -191,6 +193,20 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
+	// Convert manager_id string to uuid if provided
+	var managerUUID *uuid.UUID
+	if req.ManagerID != nil && *req.ManagerID != "" {
+		uuidVal, err := uuid.Parse(*req.ManagerID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "invalid manager_id format: " + err.Error(),
+			})
+			return
+		}
+		managerUUID = &uuidVal
+	}
+
 	site := models.Site{
 		Name:          req.Name,
 		TenantID:      tenantID,
@@ -199,6 +215,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		Longitude:     req.Longitude,
 		Phone:         req.Phone,
 		BusinessHours: req.BusinessHours,
+		ManagerID:     managerUUID,
 		Status:        "active",
 	}
 
@@ -234,6 +251,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
 		BusinessHours string  `json:"business_hours"`
+		ManagerID     *string `json:"manager_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -242,6 +260,25 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			"message": "invalid parameters: " + err.Error(),
 		})
 		return
+	}
+
+	// Convert manager_id string to uuid if provided
+	var managerUUID *uuid.UUID
+	if req.ManagerID != nil {
+		if *req.ManagerID == "" {
+			// Empty string means clear manager
+			managerUUID = nil
+		} else {
+			uuidVal, err := uuid.Parse(*req.ManagerID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"code":    40002,
+					"message": "invalid manager_id format: " + err.Error(),
+				})
+				return
+			}
+			managerUUID = &uuidVal
+		}
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
@@ -253,6 +290,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		"longitude":      req.Longitude,
 		"phone":          req.Phone,
 		"business_hours": req.BusinessHours,
+		"manager_id":     managerUUID,
 		"updated_at":     gorm.Expr("NOW()"),
 	})
 

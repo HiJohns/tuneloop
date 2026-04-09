@@ -115,6 +115,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	authRequired.Use(middleware.IAMInterceptor(iamService))
 	authRequired.Use(middleware.NoCache())
 	{
+		// IAM Proxy routes
+		iamProxyHandler := handlers.NewIAMProxyHandler()
+		authRequired.GET("/iam/users/lookup", iamProxyHandler.LookupUser)
+		authRequired.POST("/iam/users", iamProxyHandler.CreateUser)
+
 		authRequired.GET("/categories", handlers.GetCategories)
 		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/instruments", handlers.GetInstruments)

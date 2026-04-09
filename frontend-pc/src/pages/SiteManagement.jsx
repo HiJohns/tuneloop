@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons'
 import { sitesApi } from '../services/api'
+import { api } from '../services/api'
 
 const { Option } = Select
 
@@ -13,6 +14,10 @@ export default function SiteManagement() {
   const [editingSite, setEditingSite] = useState(null)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
+  const [managerInfo, setManagerInfo] = useState({ name: '', id: null })
+  const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
+  const [createUserForm] = Form.useForm()
+  const [lookingUp, setLookingUp] = useState(false)
 
   useEffect(() => {
     fetchSiteTree()
@@ -93,7 +98,74 @@ export default function SiteManagement() {
     if (!selectedSite) return
     setEditingSite({ ...selectedSite })
     form.setFieldsValue(selectedSite)
+    // Set manager display info if exists
+    if (selectedSite.manager?.id) {
+      setManagerInfo({ name: selectedSite.manager.name, id: selectedSite.manager.id })
+    } else {
+      setManagerInfo({ name: '', id: null })
+    }
     setEditModalVisible(true)
+  }
+
+  const handleLookupManager = async (identifier) => {
+    if (!identifier || identifier.trim() === '') {
+      setManagerInfo({ name: '', id: null })
+      return
+    }
+
+    setLookingUp(true)
+    try {
+      const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(identifier)}`)
+      
+      if (result.code === 20000 && result.data) {
+        // User found
+        const user = result.data
+        setManagerInfo({ name: user.name || user.username || identifier, id: user.id })
+        form.setFieldsValue({ manager_id: user.id })
+        message.success(`已找到用户：${user.name || user.username}`)
+      } else if (result.code === 40400) {
+        // User not found
+        setManagerInfo({ name: '', id: null })
+        setCreateUserModalVisible(true)
+        createUserForm.setFieldsValue({ email: '', phone: identifier, name: '' })
+      } else {
+        message.error('查询失败：' + (result.message || '未知错误'))
+      }
+    } catch (err) {
+      message.error('查询失败：' + err.message)
+    } finally {
+      setLookingUp(false)
+    }
+  }
+
+  const handleCreateUser = async () => {
+    try {
+      const values = await createUserForm.validateFields()
+      setSaving(true)
+      
+      const result = await api.post('/iam/users', {
+        email: values.email,
+        phone: values.phone,
+        name: values.name,
+        password: values.password || undefined,
+      })
+
+      if (result.code === 20000 && result.data) {
+        message.success('IAM用户创建成功')
+        const user = result.data
+        setManagerInfo({ name: user.name, id: user.id })
+        form.setFieldsValue({ manager_id: user.id })
+        setCreateUserModalVisible(false)
+        createUserForm.resetFields()
+      } else {
+        message.error('创建失败：' + (result.message || '未知错误'))
+      }
+    } catch (err) {
+      if (err.errorFields) return
+      message.error('创建失败：' + err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -119,7 +191,7 @@ export default function SiteManagement() {
         type: values.type || '',
         phone: values.phone || '',
         parent_id: editingSite?.parent_id,
-        manager_id: values.manager_id || null,
+        manager_id: managerInfo.id || null,
       }
 
       if (editingSite?.id) {
@@ -130,6 +202,8 @@ export default function SiteManagement() {
         message.success('创建成功')
       }
 
+      // Reset manager info
+      setManagerInfo({ name: '', id: null })
       setEditModalVisible(false)
       fetchSiteTree()
     } catch (err) {
@@ -288,8 +362,62 @@ export default function SiteManagement() {
             name="manager_id"
             label="负责人"
           >
-            <Input placeholder="请输入负责人ID" />
+            <Input 
+              placeholder="请输入手机号或邮箱"
+              onBlur={(e) => handleLookupManager(e.target.value)}
+              suffix={lookingUp ? <Spin size="small" /> : null}
+            />
+            {managerInfo.name && (
+              <div style={{ marginTop: 8, color: '#52c41a' }}>
+                ✓ 已匹配: {managerInfo.name}
+              </div>
+            )}
           </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="创建IAM用户"
+        open={createUserModalVisible}
+        onCancel={() => setCreateUserModalVisible(false)}
+        onOk={handleCreateUser}
+        confirmLoading={saving}
+        width={500}
+      >
+        <Form form={createUserForm} layout="vertical">
+          <Form.Item
+            name="phone"
+            label="手机号"
+            rules={[{ required: true, message: '请输入手机号' }]}
+          >
+            <Input disabled />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label="姓名"
+            rules={[{ required: true, message: '请输入姓名' }]}
+          >
+            <Input placeholder="请输入姓名" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="邮箱"
+            rules={[
+              { type: 'email', message: '请输入有效的邮箱地址' },
+              { required: true, message: '请输入邮箱' }
+            ]}
+          >
+            <Input placeholder="请输入邮箱" />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="密码"
+          >
+            <Input.Password placeholder="留空则使用默认密码" />
+          </Form.Item>
+          <p style={{ color: '#999', fontSize: '12px' }}>
+            该用户将自动加入当前租户组织
+          </p>
         </Form>
       </Modal>
     </div>
