@@ -46,12 +46,13 @@ export default function InstrumentList() {
   const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
-      const data = await api.get(`/instruments?page=${page}&pageSize=${pageSize}`)
+      const response = await api.get(`/instruments?page=${page}&pageSize=${pageSize}`)
+      const data = response?.data || []
       setInstruments(Array.isArray(data) ? data : [])
       setPagination({
         page: page,
         pageSize: pageSize,
-        total: data.length || 0
+        total: response?.total || data.length || 0
       })
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
@@ -63,8 +64,8 @@ export default function InstrumentList() {
 
   const fetchCategories = async () => {
     try {
-      const data = await api.get('/categories')
-      setCategories(data || [])
+      const response = await api.get('/categories')
+      setCategories(response?.data?.list || [])
     } catch (error) {
       console.error('Load categories failed:', error)
     }

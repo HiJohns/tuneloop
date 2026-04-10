@@ -19,7 +19,7 @@ export default function CategoryList() {
     try {
       setLoading(true)
       const data = await api.get('/categories')
-      setCategories(data || [])
+      setCategories(data?.data?.list || [])
     } catch (err) {
       message.error('加载分类失败: ' + err.message)
       // Fallback demo data
