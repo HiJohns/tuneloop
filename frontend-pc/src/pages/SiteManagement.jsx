@@ -168,6 +168,9 @@ export default function SiteManagement() {
         setCreateUserModalVisible(false)
         setWaitingForUserCreation(false) // Clear waiting state
         createUserForm.resetFields()
+        
+        // 自动提交网点创建请求
+        await handleSubmit()
       } else {
         message.error('创建失败：' + (result.message || '未知错误'))
       }
