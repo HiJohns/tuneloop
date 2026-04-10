@@ -111,6 +111,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [snChecking, setSnChecking] = useState(false)
   const [snDuplicate, setSnDuplicate] = useState(false)
   const snCheckTimer = useRef(null)
+  const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   const sensors = useSensors(
@@ -175,8 +176,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const result = await api.get('/categories')
       console.log('[DEBUG] Categories API response:', result)
       
-      // result is already the processed data array from api.js
-      const data = Array.isArray(result) ? result : []
+      // Handle API response format: { code: 20000, data: { list: [...] } }
+      const data = result?.data?.list || []
       console.log('[DEBUG] Categories data before mapping:', data)
       
       const tree = data.map(cat => {
@@ -249,12 +250,31 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     if (snCheckTimer.current) {
       clearTimeout(snCheckTimer.current)
     }
+    
     if (!value) {
       setSnDuplicate(false)
       return
     }
+    
+    // Record the latest key press time
+    const currentTime = Date.now()
+    lastKeyPressTime.current = currentTime
+    
     setSnChecking(true)
+    
+    // Set 2 second check
     snCheckTimer.current = setTimeout(async () => {
+      // Check if there's a newer key press within 2 seconds
+      const timeSinceLastKeyPress = Date.now() - lastKeyPressTime.current
+      
+      if (timeSinceLastKeyPress < 2000) {
+        // New key press within 2 seconds, skip this search
+        console.log('Skipping search due to new input within 2 seconds')
+        setSnChecking(false)
+        return
+      }
+      
+      // No new input within 2 seconds, proceed with search
       try {
         const result = await api.get(`/instruments/check?sn=${encodeURIComponent(value)}`)
         if (result.code === 20000 && result.data?.exists) {
@@ -269,7 +289,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       } finally {
         setSnChecking(false)
       }
-    }, 3000)
+    }, 2000)
   }
 
   const beforeUpload = (file) => {
