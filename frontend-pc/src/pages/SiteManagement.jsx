@@ -470,7 +470,22 @@ export default function SiteManagement() {
                       用户不存在，{' '}
                       <a
                         className="text-red-600 hover:cursor-pointer underline"
-                        onClick={() => setCreateUserModalVisible(true)}
+                        onClick={() => {
+                          // 打开创建用户对话框时，自动填入已输入的内容
+                          const isEmail = managerInput.includes('@')
+                          if (isEmail) {
+                            createUserForm.setFieldsValue({ 
+                              email: managerInput,
+                              phone: ''
+                            })
+                          } else {
+                            createUserForm.setFieldsValue({ 
+                              phone: managerInput,
+                              email: ''
+                            })
+                          }
+                          setCreateUserModalVisible(true)
+                        }}
                       >
                         点击这里创建用户
                       </a>
