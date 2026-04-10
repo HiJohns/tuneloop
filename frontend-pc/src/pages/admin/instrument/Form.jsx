@@ -204,8 +204,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const fetchSiteTree = async () => {
     try {
       const result = await sitesApi.getTree()
-      // result is already the processed data array from sitesApi.getTree()
-      const data = Array.isArray(result) ? result : []
+      const data = result?.data?.list || []
       const tree = data.map(site => ({
         key: site.id,
         title: site.name,

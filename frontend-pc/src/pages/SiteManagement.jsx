@@ -3,6 +3,7 @@ import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, 
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons'
 import { sitesApi } from '../services/api'
 import { api } from '../services/api'
+import Logger from '../utils/logger'
 
 const { Option } = Select
 
@@ -29,18 +30,24 @@ export default function SiteManagement() {
   }, [])
 
   const fetchSiteTree = async () => {
+    Logger.state('SiteManagement', { status: 'fetchSiteTree', action: 'START' })
     try {
       setLoading(true)
+      Logger.api('/sites/tree', 'GET', { action: 'fetchSiteTree' })
       const result = await sitesApi.getTree()
       if (result.code === 20000) {
-        const sites = result.data?.sites || []
-        const treeNodes = sites.map(site => convertToTreeNode(site))
-        setTreeData(treeNodes)
+        const sites = result.data?.list || []
+        Logger.state('SiteManagement', { sitesCount: sites.length, treeNodesCount: sites.length })
+        setTreeData(sites.map(site => convertToTreeNode(site)))
+      } else {
+        Logger.warn('SITE', 'Unexpected result code:', result.code)
       }
     } catch (err) {
+      Logger.error('SITE', 'fetchSiteTree error:', err)
       message.error('加载网点数据失败: ' + err.message)
     } finally {
       setLoading(false)
+      Logger.state('SiteManagement', { status: 'fetchSiteTree', action: 'END' })
     }
   }
 
@@ -55,11 +62,11 @@ export default function SiteManagement() {
     try {
       const result = await sitesApi.getTree(siteId)
       if (result.code === 20000) {
-        return (result.data?.sites || []).map(convertToTreeNode)
+        return (result.data?.list || []).map(convertToTreeNode)
       }
       return []
     } catch (err) {
-      console.error('Failed to load children:', err)
+      Logger.error('SITE', 'Failed to load children:', err)
       return []
     }
   }
@@ -85,6 +92,8 @@ export default function SiteManagement() {
   }
 
   const refreshAndSelectTreeNode = async (siteId) => {
+    Logger.state('SiteManagement', { action: 'refreshAndSelectTreeNode', siteId })
+    
     // 刷新 Tree 数据
     await fetchSiteTree()
     
@@ -111,6 +120,7 @@ export default function SiteManagement() {
       message.warning('请先选择一个网点')
       return
     }
+    Logger.state('SiteManagement', { action: 'handleCreateSubSite', parentId: selectedSite.id })
     setEditingSite({ parent_id: selectedSite.id })
     setFormMode('create')
     form.resetFields()
@@ -192,11 +202,7 @@ export default function SiteManagement() {
     try {
       const values = await form.validateFields()
       
-      // DEBUG LOGGING
-      console.log('[DEBUG] handleSubmit called')
-      console.log('[DEBUG] values.manager_id:', values.manager_id)
-      console.log('[DEBUG] managerInfo.id:', managerInfo.id)
-      console.log('[DEBUG] Condition check:', !!values.manager_id, !managerInfo.id)
+      Logger.state('SiteManagement', { action: 'handleSubmit', editingSite, values })
       
       let managerData = managerInfo
       
@@ -205,33 +211,26 @@ export default function SiteManagement() {
       const isUUID = values.manager_id && values.manager_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       
       if (values.manager_id && !managerInfo.id && !isUUID) {
-        console.log('[DEBUG] Entering lookup block')
         setLookupLoading(true)
         setLookupError({ message: '', visible: false })
         
         try {
           const lookupIdentifier = values.manager_id
-          console.log('[DEBUG] Calling lookup API with:', lookupIdentifier)
           const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(lookupIdentifier)}`)
-          
-          console.log('[DEBUG] Lookup result:', result)
           
           if (result.code === 20000 && result.data) {
             // 用户存在，更新 managerInfo（用于显示）
             const user = result.data
-            console.log('[DEBUG] User found:', user)
             managerData = {
               name: user.name || user.username || lookupIdentifier,
               id: user.id,
               email: user.email || '',
               phone: user.phone || ''
             }
-            console.log('[DEBUG] managerData set to:', managerData)
             setManagerInfo(managerData)
             message.success(`已找到用户：${user.name || user.username}`)
           } else if (result.code === 40400) {
             // 用户不存在，显示错误指示
-            console.log('[DEBUG] User not found (404)')
             setLookupError({
               message: '此用户不存在',
               visible: true
@@ -240,7 +239,7 @@ export default function SiteManagement() {
             return // 阻止表单提交
           }
         } catch (lookupErr) {
-          console.error('[DEBUG] Lookup error:', lookupErr)
+          Logger.error('SITE', 'Lookup error:', lookupErr)
           message.error('用户查询失败：' + lookupErr.message)
           setLookupLoading(false)
           return
@@ -248,18 +247,15 @@ export default function SiteManagement() {
           setLookupLoading(false)
         }
       } else if (isUUID) {
-        console.log('[DEBUG] Skipping lookup. Identifier is UUID (already have user ID).')
         // 如果 identifier 是 UUID，直接使用（已经拥有用户 ID）
         managerData = {
           ...managerInfo,
           id: values.manager_id
         }
-      } else {
-        console.log('[DEBUG] Skipping lookup. Condition false.')
       }
       
       // 继续原有的创建/更新逻辑
-      console.log('[DEBUG] Creating siteData with managerData:', managerData)
+      Logger.log('SITE', 'Creating siteData with managerData:', managerData)
       const siteData = {
         name: values.name,
         address: values.address || '',
@@ -268,23 +264,25 @@ export default function SiteManagement() {
         parent_id: editingSite?.parent_id,
         manager_id: managerData.id || null,
       }
-      console.log('[DEBUG] siteData.manager_id:', siteData.manager_id)
+      Logger.log('SITE', 'siteData:', siteData)
       
       setSaving(true)
       
       if (formMode === 'edit' && editingSite?.id) {
+        Logger.log('SITE', 'Edit mode - updating site')
         await sitesApi.update(editingSite.id, siteData)
         message.success('更新成功')
         setViewMode('detail')
       } else {
+        Logger.log('SITE', 'Create mode - creating site')
         const result = await sitesApi.create(siteData)
-        message.success('创建成功')
         
         // 如果是创建模式，自动选中新建的网点
         if (result.data?.id) {
-          // 刷新 Tree
-          await fetchSiteTree()
-          // 设置选中的网点
+          Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
+          await refreshAndSelectTreeNode(result.data.id)
+          
+          // 设置选中的网点详情
           const newSite = { 
             id: result.data.id, 
             ...siteData,
@@ -292,6 +290,8 @@ export default function SiteManagement() {
           }
           setSelectedSite(newSite)
           setViewMode('detail')
+        } else {
+          Logger.error('SITE', 'Create failed - result.data?.id is falsy:', result.data?.id)
         }
       }
       
@@ -303,6 +303,7 @@ export default function SiteManagement() {
       
     } catch (err) {
       if (err.errorFields) return
+      Logger.error('SITE', 'handleSubmit error:', err)
       message.error('操作失败: ' + err.message)
     } finally {
       setSaving(false)
@@ -437,11 +438,12 @@ export default function SiteManagement() {
                 </Space>
               }
             >
-              <Form form={form} layout="vertical">
+              <Form form={form} layout="vertical" data-testid="site-form">
                 <Form.Item
                   name="name"
                   label="网点名称"
                   rules={[{ required: true, message: '请输入网点名称' }]}
+                  data-testid="site-form-name"
                 >
                   <Input placeholder="请输入网点名称" />
                 </Form.Item>
@@ -449,6 +451,7 @@ export default function SiteManagement() {
                 <Form.Item
                   name="type"
                   label="网点类型"
+                  data-testid="site-form-type"
                 >
                   <Select placeholder="请选择网点类型" allowClear>
                     <Option value="直营店">直营店</Option>
@@ -460,6 +463,7 @@ export default function SiteManagement() {
                 <Form.Item
                   name="address"
                   label="地址"
+                  data-testid="site-form-address"
                 >
                   <Input placeholder="请输入地址" />
                 </Form.Item>
@@ -467,6 +471,7 @@ export default function SiteManagement() {
                 <Form.Item
                   name="phone"
                   label="联系电话"
+                  data-testid="site-form-phone"
                 >
                   <Input placeholder="请输入联系电话" />
                 </Form.Item>
@@ -506,11 +511,8 @@ export default function SiteManagement() {
                     placeholder="请输入手机号或邮箱"
                     disabled={managerInfo.id !== null}
                     value={managerInput}
-                    onChange={(e) => {
-                      setManagerInput(e.target.value)
-                      // Also update the form field explicitly
-                      form.setFieldsValue({ manager_id: e.target.value })
-                    }}
+                    onChange={(e) => setManagerInput(e.target.value)}
+                    data-testid="site-form-manager-id"
                   />
                   {managerInfo.name && (
                     <div style={{ marginTop: 8, color: '#52c41a' }}>
@@ -536,11 +538,12 @@ export default function SiteManagement() {
         confirmLoading={saving}
         width={500}
       >
-        <Form form={createUserForm} layout="vertical">
+        <Form form={createUserForm} layout="vertical" data-testid="create-user-form">
           <Form.Item
             name="phone"
             label="手机号"
             rules={[]}
+            data-testid="create-user-form-phone"
           >
             <Input placeholder="请输入手机号（选填）" />
           </Form.Item>
@@ -548,6 +551,7 @@ export default function SiteManagement() {
             name="name"
             label="姓名"
             rules={[{ required: true, message: '请输入姓名' }]}
+            data-testid="create-user-form-name"
           >
             <Input placeholder="请输入姓名" />
           </Form.Item>
@@ -558,12 +562,14 @@ export default function SiteManagement() {
               { type: 'email', message: '请输入有效的邮箱地址' },
               { required: true, message: '请输入邮箱' }
             ]}
+            data-testid="create-user-form-email"
           >
             <Input placeholder="请输入邮箱" />
           </Form.Item>
           <Form.Item
             name="password"
             label="密码"
+            data-testid="create-user-form-password"
           >
             <Input.Password placeholder="留空则使用默认密码" />
           </Form.Item>
