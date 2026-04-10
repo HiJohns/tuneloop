@@ -178,10 +178,12 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	var req struct {
 		Name          string  `json:"name" binding:"required"`
 		Address       string  `json:"address"`
+		Type          string  `json:"type"`
 		Latitude      float64 `json:"latitude"`
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
 		BusinessHours string  `json:"business_hours"`
+		ParentID      *string `json:"parent_id"`
 		ManagerID     *string `json:"manager_id"`
 	}
 
@@ -197,7 +199,19 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	orgID := middleware.GetOrgID(c.Request.Context())
 
-	// Convert manager_id string to uuid if provided
+	var parentUUID *uuid.UUID
+	if req.ParentID != nil && *req.ParentID != "" {
+		uuidVal, err := uuid.Parse(*req.ParentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "invalid parent_id format: " + err.Error(),
+			})
+			return
+		}
+		parentUUID = &uuidVal
+	}
+
 	var managerUUID *uuid.UUID
 	if req.ManagerID != nil && *req.ManagerID != "" {
 		uuidVal, err := uuid.Parse(*req.ManagerID)
@@ -216,10 +230,12 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		TenantID:      tenantID,
 		OrgID:         orgID,
 		Address:       req.Address,
+		Type:          req.Type,
 		Latitude:      req.Latitude,
 		Longitude:     req.Longitude,
 		Phone:         req.Phone,
 		BusinessHours: req.BusinessHours,
+		ParentID:      parentUUID,
 		ManagerID:     managerUUID,
 		Status:        "active",
 	}
@@ -252,6 +268,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	var req struct {
 		Name          string  `json:"name"`
 		Address       string  `json:"address"`
+		Type          string  `json:"type"`
 		Latitude      float64 `json:"latitude"`
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
@@ -291,6 +308,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	result := db.Model(&models.Site{}).Where("id = ?", siteID).Updates(map[string]interface{}{
 		"name":           req.Name,
 		"address":        req.Address,
+		"type":           req.Type,
 		"latitude":       req.Latitude,
 		"longitude":      req.Longitude,
 		"phone":          req.Phone,
@@ -537,7 +555,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": gin.H{"sites": result},
+		"data": gin.H{"list": result},
 	})
 }
 

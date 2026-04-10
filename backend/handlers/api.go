@@ -215,11 +215,11 @@ func GetInstruments(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": responseInstruments,
-		"pagination": gin.H{
+		"data": gin.H{
+			"list":       responseInstruments,
+			"total":      total,
 			"page":       page,
 			"pageSize":   pageSize,
-			"total":      total,
 			"totalPages": (total + int64(pageSize) - 1) / int64(pageSize),
 		},
 	})
@@ -281,7 +281,7 @@ func GetCategories(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": result,
+		"data": gin.H{"list": result},
 	})
 }
 
