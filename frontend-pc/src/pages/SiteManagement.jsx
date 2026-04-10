@@ -201,7 +201,10 @@ export default function SiteManagement() {
       let managerData = managerInfo
       
       // 如果填写了 manager_id 但 managerInfo.id 为 null，需要验证
-      if (values.manager_id && !managerInfo.id) {
+      // 添加检查：如果 identifier 是 UUID 格式，跳过验证（因为 lookup 不支持 ID 查询）
+      const isUUID = values.manager_id && values.manager_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+      
+      if (values.manager_id && !managerInfo.id && !isUUID) {
         console.log('[DEBUG] Entering lookup block')
         setLookupLoading(true)
         setLookupError({ message: '', visible: false })
@@ -243,6 +246,13 @@ export default function SiteManagement() {
           return
         } finally {
           setLookupLoading(false)
+        }
+      } else if (isUUID) {
+        console.log('[DEBUG] Skipping lookup. Identifier is UUID (already have user ID).')
+        // 如果 identifier 是 UUID，直接使用（已经拥有用户 ID）
+        managerData = {
+          ...managerInfo,
+          id: values.manager_id
         }
       } else {
         console.log('[DEBUG] Skipping lookup. Condition false.')
