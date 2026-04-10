@@ -14,6 +14,7 @@ export default function SiteManagement() {
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
   const [managerInfo, setManagerInfo] = useState({ name: '', id: null, email: '', phone: '' })
+  const [managerInput, setManagerInput] = useState('')  // Add state for the input field
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
   const [createUserForm] = Form.useForm()
   const [viewMode, setViewMode] = useState('detail') // 'detail' | 'form'
@@ -100,6 +101,7 @@ export default function SiteManagement() {
     setFormMode('create')
     form.resetFields()
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
+    setManagerInput('')
     setViewMode('form')
     setLookupError({ message: '', visible: false })
   }
@@ -113,6 +115,7 @@ export default function SiteManagement() {
     setFormMode('create')
     form.resetFields()
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
+    setManagerInput('')
     setViewMode('form')
     setLookupError({ message: '', visible: false })
   }
@@ -130,8 +133,10 @@ export default function SiteManagement() {
         email: selectedSite.manager.email || '',
         phone: selectedSite.manager.phone || ''
       })
+      setManagerInput(selectedSite.manager.email || selectedSite.manager.phone || '')
     } else {
       setManagerInfo({ name: '', id: null, email: '', phone: '' })
+      setManagerInput('')
     }
     setViewMode('form')
     setLookupError({ message: '', visible: false })
@@ -187,29 +192,43 @@ export default function SiteManagement() {
     try {
       const values = await form.validateFields()
       
+      // DEBUG LOGGING
+      console.log('[DEBUG] handleSubmit called')
+      console.log('[DEBUG] values.manager_id:', values.manager_id)
+      console.log('[DEBUG] managerInfo.id:', managerInfo.id)
+      console.log('[DEBUG] Condition check:', !!values.manager_id, !managerInfo.id)
+      
       let managerData = managerInfo
       
       // 如果填写了 manager_id 但 managerInfo.id 为 null，需要验证
       if (values.manager_id && !managerInfo.id) {
+        console.log('[DEBUG] Entering lookup block')
         setLookupLoading(true)
         setLookupError({ message: '', visible: false })
         
         try {
-          const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(values.manager_id)}`)
+          const lookupIdentifier = values.manager_id
+          console.log('[DEBUG] Calling lookup API with:', lookupIdentifier)
+          const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(lookupIdentifier)}`)
+          
+          console.log('[DEBUG] Lookup result:', result)
           
           if (result.code === 20000 && result.data) {
             // 用户存在，更新 managerInfo（用于显示）
             const user = result.data
+            console.log('[DEBUG] User found:', user)
             managerData = {
-              name: user.name || user.username || values.manager_id,
+              name: user.name || user.username || lookupIdentifier,
               id: user.id,
               email: user.email || '',
               phone: user.phone || ''
             }
+            console.log('[DEBUG] managerData set to:', managerData)
             setManagerInfo(managerData)
             message.success(`已找到用户：${user.name || user.username}`)
           } else if (result.code === 40400) {
             // 用户不存在，显示错误指示
+            console.log('[DEBUG] User not found (404)')
             setLookupError({
               message: '此用户不存在',
               visible: true
@@ -218,15 +237,19 @@ export default function SiteManagement() {
             return // 阻止表单提交
           }
         } catch (lookupErr) {
+          console.error('[DEBUG] Lookup error:', lookupErr)
           message.error('用户查询失败：' + lookupErr.message)
           setLookupLoading(false)
           return
         } finally {
           setLookupLoading(false)
         }
+      } else {
+        console.log('[DEBUG] Skipping lookup. Condition false.')
       }
       
       // 继续原有的创建/更新逻辑
+      console.log('[DEBUG] Creating siteData with managerData:', managerData)
       const siteData = {
         name: values.name,
         address: values.address || '',
@@ -235,6 +258,7 @@ export default function SiteManagement() {
         parent_id: editingSite?.parent_id,
         manager_id: managerData.id || null,
       }
+      console.log('[DEBUG] siteData.manager_id:', siteData.manager_id)
       
       setSaving(true)
       
@@ -456,6 +480,12 @@ export default function SiteManagement() {
                   <Input 
                     placeholder="请输入手机号或邮箱"
                     disabled={managerInfo.id !== null}
+                    value={managerInput}
+                    onChange={(e) => {
+                      setManagerInput(e.target.value)
+                      // Also update the form field explicitly
+                      form.setFieldsValue({ manager_id: e.target.value })
+                    }}
                   />
                   {managerInfo.name && (
                     <div style={{ marginTop: 8, color: '#52c41a' }}>
