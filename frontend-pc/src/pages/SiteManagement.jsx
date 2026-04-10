@@ -9,16 +9,19 @@ const { Option } = Select
 export default function SiteManagement() {
   const [treeData, setTreeData] = useState([])
   const [selectedSite, setSelectedSite] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingSite, setEditingSite] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
-  const [managerInfo, setManagerInfo] = useState({ name: '', id: null })
+  const [managerInfo, setManagerInfo] = useState({ name: '', id: null, email: '', phone: '' })
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
   const [createUserForm] = Form.useForm()
-  const [lookingUp, setLookingUp] = useState(false)
-  const [waitingForUserCreation, setWaitingForUserCreation] = useState(false)
+  const [viewMode, setViewMode] = useState('detail') // 'detail' | 'form'
+  const [formMode, setFormMode] = useState('create') // 'create' | 'edit'
+  const [lookupLoading, setLookupLoading] = useState(false)
+  const [lookupError, setLookupError] = useState({ message: '', visible: false })
+  const [expandedKeys, setExpandedKeys] = useState([])
+  const [selectedKeys, setSelectedKeys] = useState([])
 
   useEffect(() => {
     fetchSiteTree()
@@ -61,6 +64,7 @@ export default function SiteManagement() {
   }
 
   const onSelect = (selectedKeys) => {
+    setSelectedKeys(selectedKeys)
     if (selectedKeys.length > 0) {
       const findSite = (nodes, id) => {
         for (const node of nodes) {
@@ -79,10 +83,25 @@ export default function SiteManagement() {
     }
   }
 
+  const refreshAndSelectTreeNode = async (siteId) => {
+    // 刷新 Tree 数据
+    await fetchSiteTree()
+    
+    // 设置选中的 keys
+    setSelectedKeys([siteId])
+    
+    // 尝试展开父节点（简化处理：只展开到一级）
+    // 实际需要根据 tree 结构计算需要展开的节点
+    setExpandedKeys(prev => [...new Set([...prev, siteId])])
+  }
+
   const handleCreateTopLevel = () => {
     setEditingSite({ parent_id: null })
+    setFormMode('create')
     form.resetFields()
-    setEditModalVisible(true)
+    setManagerInfo({ name: '', id: null, email: '', phone: '' })
+    setViewMode('form')
+    setLookupError({ message: '', visible: false })
   }
 
   const handleCreateSubSite = () => {
@@ -91,60 +110,31 @@ export default function SiteManagement() {
       return
     }
     setEditingSite({ parent_id: selectedSite.id })
+    setFormMode('create')
     form.resetFields()
-    setEditModalVisible(true)
+    setManagerInfo({ name: '', id: null, email: '', phone: '' })
+    setViewMode('form')
+    setLookupError({ message: '', visible: false })
   }
 
   const handleEdit = () => {
     if (!selectedSite) return
     setEditingSite({ ...selectedSite })
+    setFormMode('edit')
     form.setFieldsValue(selectedSite)
     // Set manager display info if exists
     if (selectedSite.manager?.id) {
-      setManagerInfo({ name: selectedSite.manager.name, id: selectedSite.manager.id })
+      setManagerInfo({ 
+        name: selectedSite.manager.name, 
+        id: selectedSite.manager.id,
+        email: selectedSite.manager.email || '',
+        phone: selectedSite.manager.phone || ''
+      })
     } else {
-      setManagerInfo({ name: '', id: null })
+      setManagerInfo({ name: '', id: null, email: '', phone: '' })
     }
-    setEditModalVisible(true)
-  }
-
-  const handleLookupManager = async (identifier) => {
-    if (!identifier || identifier.trim() === '') {
-      setManagerInfo({ name: '', id: null })
-      return
-    }
-
-    setLookingUp(true)
-    try {
-      const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(identifier)}`)
-      
-      if (result.code === 20000 && result.data) {
-        // User found
-        const user = result.data
-        setManagerInfo({ name: user.name || user.username || identifier, id: user.id })
-        form.setFieldsValue({ manager_id: user.id })
-        message.success(`已找到用户：${user.name || user.username}`)
-      } else if (result.code === 40400) {
-        // User not found
-        setManagerInfo({ name: '', id: null })
-        setCreateUserModalVisible(true)
-        setWaitingForUserCreation(true) // Mark that we're waiting for user creation
-        
-        // 智能识别输入类型（邮箱或手机号）
-        const isEmail = identifier.includes('@')
-        const formData = isEmail 
-          ? { email: identifier, phone: '', name: '' }
-          : { email: '', phone: identifier, name: '' }
-        
-        createUserForm.setFieldsValue(formData)
-      } else {
-        message.error('查询失败：' + (result.message || '未知错误'))
-      }
-    } catch (err) {
-      message.error('查询失败：' + err.message)
-    } finally {
-      setLookingUp(false)
-    }
+    setViewMode('form')
+    setLookupError({ message: '', visible: false })
   }
 
   const handleCreateUser = async () => {
@@ -196,15 +186,45 @@ export default function SiteManagement() {
 
   const handleSubmit = async () => {
     try {
-      // Prevent submission if waiting for user creation
-      if (waitingForUserCreation) {
-        message.warning('请先创建网点管理员用户')
-        return
-      }
-
       const values = await form.validateFields()
-      setSaving(true)
       
+      // 如果填写了 manager_id 但 managerInfo.id 为 null，需要验证
+      if (values.manager_id && !managerInfo.id) {
+        setLookupLoading(true)
+        setLookupError({ message: '', visible: false })
+        
+        try {
+          const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(values.manager_id)}`)
+          
+          if (result.code === 20000 && result.data) {
+            // 用户存在，更新 managerInfo
+            const user = result.data
+            setManagerInfo({
+              name: user.name || user.username || values.manager_id,
+              id: user.id,
+              email: user.email || '',
+              phone: user.phone || ''
+            })
+            message.success(`已找到用户：${user.name || user.username}`)
+          } else if (result.code === 40400) {
+            // 用户不存在，显示错误指示
+            setLookupError({
+              message: '此用户不存在',
+              visible: true
+            })
+            setLookupLoading(false)
+            return // 阻止表单提交
+          }
+        } catch (lookupErr) {
+          message.error('用户查询失败：' + lookupErr.message)
+          setLookupLoading(false)
+          return
+        } finally {
+          setLookupLoading(false)
+        }
+      }
+      
+      // 继续原有的创建/更新逻辑
       const siteData = {
         name: values.name,
         address: values.address || '',
@@ -213,25 +233,44 @@ export default function SiteManagement() {
         parent_id: editingSite?.parent_id,
         manager_id: managerInfo.id || null,
       }
-
-      if (editingSite?.id) {
+      
+      setSaving(true)
+      
+      if (formMode === 'edit' && editingSite?.id) {
         await sitesApi.update(editingSite.id, siteData)
         message.success('更新成功')
+        setViewMode('detail')
       } else {
-        await sitesApi.create(siteData)
+        const result = await sitesApi.create(siteData)
         message.success('创建成功')
+        
+        // 如果是创建模式，自动选中新建的网点
+        if (result.data?.id) {
+          // 刷新 Tree
+          await fetchSiteTree()
+          // 设置选中的网点
+          const newSite = { 
+            id: result.data.id, 
+            ...siteData,
+            manager: managerInfo.id ? { id: managerInfo.id, name: managerInfo.name } : null
+          }
+          setSelectedSite(newSite)
+          setViewMode('detail')
+        }
       }
-
-      // Reset manager info
-      setManagerInfo({ name: '', id: null })
-      setWaitingForUserCreation(false)
-      setEditModalVisible(false)
-      fetchSiteTree()
+      
+      // 重置状态
+      setManagerInfo({ name: '', id: null, email: '', phone: '' })
+      setLookupError({ message: '', visible: false })
+      form.resetFields()
+      setEditingSite(null)
+      
     } catch (err) {
       if (err.errorFields) return
       message.error('操作失败: ' + err.message)
     } finally {
       setSaving(false)
+      setLookupLoading(false)
     }
   }
 
@@ -273,7 +312,10 @@ export default function SiteManagement() {
             <Tree
               showIcon
               treeData={treeData}
+              selectedKeys={selectedKeys}
+              expandedKeys={expandedKeys}
               onSelect={onSelect}
+              onExpand={setExpandedKeys}
               loadData={async (node) => {
                 const children = await loadChildren(node.key)
                 const updateTree = (nodes) => {
@@ -293,116 +335,145 @@ export default function SiteManagement() {
           )}
         </Card>
 
-        <Card 
-          title="网点详情" 
-          className="w-2/3"
-          extra={
-            selectedSite && (
-              <Space>
-                <Button icon={<PlusOutlined />} onClick={handleCreateSubSite}>
-                  创建下级网点
-                </Button>
-                <Button icon={<EditOutlined />} onClick={handleEdit}>
-                  编辑
-                </Button>
-                <Popconfirm
-                  title="确定要删除该网点吗？"
-                  onConfirm={handleDelete}
-                  okText="确定"
-                  cancelText="取消"
-                >
-                  <Button danger icon={<DeleteOutlined />}>
-                    删除
-                  </Button>
-                </Popconfirm>
-              </Space>
-            )
-          }
-        >
-          {selectedSite ? (
-            <Descriptions column={2} bordered>
-              <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
-              <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
-              <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
-              <Descriptions.Item label="负责人">
-                {selectedSite.manager?.name || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="父级网点">
-                {selectedSite.parent_id ? '有' : '顶级网点'}
-              </Descriptions.Item>
-            </Descriptions>
-          ) : (
-            <Empty description="请选择左侧网点查看详情" />
+        <div className="w-2/3">
+          {viewMode === 'detail' && (
+            <Card 
+              title="网点详情" 
+              extra={
+                selectedSite && (
+                  <Space>
+                    <Button icon={<PlusOutlined />} onClick={handleCreateSubSite}>
+                      创建下级网点
+                    </Button>
+                    <Button icon={<EditOutlined />} onClick={handleEdit}>
+                      编辑
+                    </Button>
+                    <Popconfirm
+                      title="确定要删除该网点吗？"
+                      onConfirm={handleDelete}
+                      okText="确定"
+                      cancelText="取消"
+                    >
+                      <Button danger icon={<DeleteOutlined />}>
+                        删除
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                )
+              }
+            >
+              {selectedSite ? (
+                <Descriptions column={2} bordered>
+                  <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
+                  <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="负责人">
+                    {selectedSite.manager?.name || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="父级网点">
+                    {selectedSite.parent_id ? '有' : '顶级网点'}
+                  </Descriptions.Item>
+                </Descriptions>
+              ) : (
+                <Empty description="请选择左侧网点查看详情" />
+              )}
+            </Card>
           )}
-        </Card>
+          
+          {viewMode === 'form' && (
+            <Card 
+              title={formMode === 'edit' ? '编辑网点' : '创建网点'}
+              extra={
+                <Space>
+                  <Button onClick={() => {
+                    setViewMode('detail')
+                    form.resetFields()
+                    setManagerInfo({ name: '', id: null, email: '', phone: '' })
+                    setLookupError({ message: '', visible: false })
+                  }}>取消</Button>
+                  <Button 
+                    type="primary" 
+                    onClick={handleSubmit}
+                    loading={lookupLoading || saving}
+                  >
+                    提交
+                  </Button>
+                </Space>
+              }
+            >
+              <Form form={form} layout="vertical">
+                <Form.Item
+                  name="name"
+                  label="网点名称"
+                  rules={[{ required: true, message: '请输入网点名称' }]}
+                >
+                  <Input placeholder="请输入网点名称" />
+                </Form.Item>
+
+                <Form.Item
+                  name="type"
+                  label="网点类型"
+                >
+                  <Select placeholder="请选择网点类型" allowClear>
+                    <Option value="直营店">直营店</Option>
+                    <Option value="加盟店">加盟店</Option>
+                    <Option value="合作店">合作店</Option>
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="address"
+                  label="地址"
+                >
+                  <Input placeholder="请输入地址" />
+                </Form.Item>
+
+                <Form.Item
+                  name="phone"
+                  label="联系电话"
+                >
+                  <Input placeholder="请输入联系电话" />
+                </Form.Item>
+
+                <Form.Item
+                  name="manager_id"
+                  label="负责人"
+                  validateStatus={lookupError.visible ? 'error' : ''}
+                  help={lookupError.visible && (
+                    <div className="text-red-600">
+                      用户不存在，{' '}
+                      <a
+                        className="text-red-600 hover:cursor-pointer underline"
+                        onClick={() => setCreateUserModalVisible(true)}
+                      >
+                        点击这里创建用户
+                      </a>
+                    </div>
+                  )}
+                >
+                  <Input 
+                    placeholder="请输入手机号或邮箱"
+                    disabled={managerInfo.id !== null}
+                  />
+                  {managerInfo.name && (
+                    <div style={{ marginTop: 8, color: '#52c41a' }}>
+                      ✓ 已匹配: {managerInfo.name}
+                      {managerInfo.email ? ` (${managerInfo.email})` : managerInfo.phone ? ` (${managerInfo.phone})` : ''}
+                    </div>
+                  )}
+                </Form.Item>
+              </Form>
+            </Card>
+          )}
+        </div>
       </div>
-
-      <Modal
-        title={editingSite?.id ? '编辑网点' : '创建网点'}
-        open={editModalVisible}
-        onCancel={() => setEditModalVisible(false)}
-        onOk={handleSubmit}
-        confirmLoading={saving}
-        width={600}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="网点名称"
-            rules={[{ required: true, message: '请输入网点名称' }]}
-          >
-            <Input placeholder="请输入网点名称" />
-          </Form.Item>
-
-          <Form.Item
-            name="type"
-            label="网点类型"
-          >
-            <Select placeholder="请选择网点类型" allowClear>
-              <Option value="直营店">直营店</Option>
-              <Option value="加盟店">加盟店</Option>
-              <Option value="合作店">合作店</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="address"
-            label="地址"
-          >
-            <Input placeholder="请输入地址" />
-          </Form.Item>
-
-          <Form.Item
-            name="phone"
-            label="联系电话"
-          >
-            <Input placeholder="请输入联系电话" />
-          </Form.Item>
-
-          <Form.Item
-            name="manager_id"
-            label="负责人"
-          >
-            <Input 
-              placeholder="请输入手机号或邮箱"
-              onBlur={(e) => handleLookupManager(e.target.value)}
-              suffix={lookingUp ? <Spin size="small" /> : null}
-            />
-            {managerInfo.name && (
-              <div style={{ marginTop: 8, color: '#52c41a' }}>
-                ✓ 已匹配: {managerInfo.name}
-              </div>
-            )}
-          </Form.Item>
-        </Form>
-      </Modal>
 
       <Modal
         title="创建IAM用户"
         open={createUserModalVisible}
         onCancel={() => {
           setCreateUserModalVisible(false)
-          setWaitingForUserCreation(false) // Clear waiting state on cancel
+          createUserForm.resetFields()
         }}
         onOk={handleCreateUser}
         confirmLoading={saving}
