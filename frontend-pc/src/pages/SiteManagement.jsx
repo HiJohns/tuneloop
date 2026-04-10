@@ -156,7 +156,6 @@ export default function SiteManagement() {
         setManagerInfo({ name: user.name, id: user.id })
         form.setFieldsValue({ manager_id: user.id })
         setCreateUserModalVisible(false)
-        setWaitingForUserCreation(false) // Clear waiting state
         createUserForm.resetFields()
         
         // 自动提交网点创建请求
@@ -188,6 +187,8 @@ export default function SiteManagement() {
     try {
       const values = await form.validateFields()
       
+      let managerData = managerInfo
+      
       // 如果填写了 manager_id 但 managerInfo.id 为 null，需要验证
       if (values.manager_id && !managerInfo.id) {
         setLookupLoading(true)
@@ -197,14 +198,15 @@ export default function SiteManagement() {
           const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(values.manager_id)}`)
           
           if (result.code === 20000 && result.data) {
-            // 用户存在，更新 managerInfo
+            // 用户存在，更新 managerInfo（用于显示）
             const user = result.data
-            setManagerInfo({
+            managerData = {
               name: user.name || user.username || values.manager_id,
               id: user.id,
               email: user.email || '',
               phone: user.phone || ''
-            })
+            }
+            setManagerInfo(managerData)
             message.success(`已找到用户：${user.name || user.username}`)
           } else if (result.code === 40400) {
             // 用户不存在，显示错误指示
@@ -231,7 +233,7 @@ export default function SiteManagement() {
         type: values.type || '',
         phone: values.phone || '',
         parent_id: editingSite?.parent_id,
-        manager_id: managerInfo.id || null,
+        manager_id: managerData.id || null,
       }
       
       setSaving(true)
@@ -252,7 +254,7 @@ export default function SiteManagement() {
           const newSite = { 
             id: result.data.id, 
             ...siteData,
-            manager: managerInfo.id ? { id: managerInfo.id, name: managerInfo.name } : null
+            manager: managerData.id ? { id: managerData.id, name: managerData.name } : null
           }
           setSelectedSite(newSite)
           setViewMode('detail')
