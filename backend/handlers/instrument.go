@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -18,6 +20,7 @@ var pricingService = service.NewPricingService()
 type CreateInstrumentRequest struct {
 	Brand          string                   `json:"brand"`
 	Level          string                   `json:"level" binding:"required"`
+	LevelID        string                   `json:"level_id"` // New: UUID reference to instrument_levels
 	Model          string                   `json:"model"`
 	CategoryID     string                   `json:"category_id" binding:"required"`
 	SN             string                   `json:"sn"`
@@ -29,6 +32,86 @@ type CreateInstrumentRequest struct {
 	Video          string                   `json:"video"`
 	Specifications []map[string]interface{} `json:"specifications"`
 	Properties     map[string]interface{}   `json:"properties"` // Accept frontend's properties field
+}
+
+// processProperties handles the properties association logic for instruments
+func processProperties(db *gorm.DB, instrumentID string, tenantID string, properties map[string]interface{}) error {
+	for propName, rawValues := range properties {
+		// 1. Find property definition by name
+		var prop models.Property
+		if err := db.Where("name = ? AND tenant_id = ?", propName, tenantID).First(&prop).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fmt.Errorf("property '%s' not defined in properties table", propName)
+			}
+			return err
+		}
+
+		// Convert values to string slice
+		values, ok := toStringSlice(rawValues)
+		if !ok || len(values) == 0 {
+			continue
+		}
+
+		for _, value := range values {
+			if value == "" {
+				continue
+			}
+
+			// 2. Check if property option exists
+			var propOption models.PropertyOption
+			err := db.Where("property_id = ? AND value = ? AND tenant_id = ?",
+				prop.ID, value, tenantID).First(&propOption).Error
+
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// 3. Create new property option with status=pending
+				propOption = models.PropertyOption{
+					ID:         uuid.New().String(),
+					TenantID:   tenantID,
+					PropertyID: prop.ID,
+					Value:      value,
+					Status:     "pending",
+				}
+				if err := db.Create(&propOption).Error; err != nil {
+					return fmt.Errorf("failed to create property_option for '%s=%s': %w", propName, value, err)
+				}
+			} else if err != nil {
+				return fmt.Errorf("failed to query property_option: %w", err)
+			}
+
+			// 4. Create instrument_property association
+			instProp := models.InstrumentProperty{
+				ID:           uuid.New().String(),
+				TenantID:     tenantID,
+				InstrumentID: instrumentID,
+				PropertyID:   prop.ID,
+				Value:        value,
+			}
+			if err := db.Create(&instProp).Error; err != nil {
+				return fmt.Errorf("failed to create instrument_property for '%s=%s': %w", propName, value, err)
+			}
+		}
+	}
+	return nil
+}
+
+// Helper function to convert interface{} to []string
+func toStringSlice(raw interface{}) ([]string, bool) {
+	switch v := raw.(type) {
+	case string:
+		return []string{v}, true
+	case []interface{}:
+		result := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				result = append(result, s)
+			}
+		}
+		return result, true
+	case []string:
+		return v, true
+	default:
+		return nil, false
+	}
 }
 
 func GetInstrumentPricing(c *gin.Context) {
@@ -75,12 +158,16 @@ func CreateInstrument(c *gin.Context) {
 
 	var req CreateInstrumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[DEBUG] CreateInstrument - BindJSON error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
 			"message": err.Error(),
 		})
 		return
 	}
+
+	log.Printf("[DEBUG] CreateInstrument - Parsed: SN='%s', Level='%s', CategoryID='%s', SiteID='%s', Properties=%v",
+		req.SN, req.Level, req.CategoryID, req.SiteID, req.Properties)
 
 	log.Printf("[DEBUG CreateInstrument] Creating instrument: brand=%s, level=%s", req.Brand, req.Level)
 
@@ -95,29 +182,62 @@ func CreateInstrument(c *gin.Context) {
 		}
 	}
 
-	// Map level to level_name
+	// Map level to level_name and level_id
 	levelName := ""
-	switch req.Level {
-	case "beginner":
-		levelName = "入门级"
-	case "intermediate":
-		levelName = "中级"
-	case "advanced":
-		levelName = "高级"
-	case "professional":
-		levelName = "专业级"
+	var levelID *uuid.UUID
+
+	// Use LevelID directly if provided
+	if req.LevelID != "" {
+		if parsedID, err := uuid.Parse(req.LevelID); err == nil {
+			levelID = &parsedID
+			// Get level_name from instrument_levels table
+			var level models.InstrumentLevel
+			if err := db.Where("id = ?", levelID).First(&level).Error; err == nil {
+				levelName = level.Caption
+			}
+		}
+	} else if req.Level != "" {
+		// Legacy: map level string to level_id
+		var level models.InstrumentLevel
+		// Try to find by code or caption
+		if err := db.Where("code = ? OR caption = ?", req.Level, req.Level).First(&level).Error; err == nil {
+			levelID = &level.ID
+			levelName = level.Caption
+		} else {
+			// Fallback to old mapping for backward compatibility
+			switch req.Level {
+			case "beginner":
+				levelName = "入门级"
+			case "intermediate":
+				levelName = "中级"
+			case "advanced":
+				levelName = "高级"
+			case "professional":
+				levelName = "专业级"
+			}
+			log.Printf("[DEBUG] Level '%s' not found in instrument_levels, using legacy mapping: %s", req.Level, levelName)
+		}
 	}
 
 	instrument := models.Instrument{
 		TenantID:     tenantID,
 		OrgID:        tenantID,
 		Brand:        req.Brand,
-		Level:        req.Level,
+		SN:           req.SN,
+		Level:        req.Level, // deprecated field for backward compatibility
 		LevelName:    levelName,
+		LevelID:      levelID,
 		CategoryID:   req.CategoryID,
 		CategoryName: categoryName,
 		Description:  req.Description,
 		StockStatus:  "available",
+	}
+
+	// Handle SiteID
+	if req.SiteID != "" {
+		if siteUUID, err := uuid.Parse(req.SiteID); err == nil {
+			instrument.SiteID = &siteUUID
+		}
 	}
 
 	// Handle Images field
@@ -188,6 +308,15 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	log.Printf("[DEBUG CreateInstrument] Success: instrument.ID=%s", instrument.ID)
+
+	// Process properties if provided
+	if req.Properties != nil && len(req.Properties) > 0 {
+		if err := processProperties(db, instrument.ID, tenantID, req.Properties); err != nil {
+			log.Printf("[ERROR] Failed to process properties: %v", err)
+			// Don't fail the request if properties processing fails
+			// The instrument was already created successfully
+		}
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
@@ -271,15 +400,37 @@ func UpdateInstrument(c *gin.Context) {
 		}
 	}
 
-	switch req.Level {
-	case "beginner":
-		instrument.LevelName = "入门级"
-	case "intermediate":
-		instrument.LevelName = "中级"
-	case "advanced":
-		instrument.LevelName = "高级"
-	case "professional":
-		instrument.LevelName = "专业级"
+	// Handle level_id and level_name (similar to CreateInstrument)
+	if req.LevelID != "" {
+		if parsedID, err := uuid.Parse(req.LevelID); err == nil {
+			instrument.LevelID = &parsedID
+			// Get level_name from instrument_levels table
+			var level models.InstrumentLevel
+			if err := db.Where("id = ?", instrument.LevelID).First(&level).Error; err == nil {
+				instrument.LevelName = level.Caption
+			}
+		}
+	} else if req.Level != "" {
+		// Legacy: map level string to level_id
+		var level models.InstrumentLevel
+		// Try to find by code or caption
+		if err := db.Where("code = ? OR caption = ?", req.Level, req.Level).First(&level).Error; err == nil {
+			instrument.LevelID = &level.ID
+			instrument.LevelName = level.Caption
+		} else {
+			// Fallback to old mapping for backward compatibility
+			switch req.Level {
+			case "beginner":
+				instrument.LevelName = "入门级"
+			case "intermediate":
+				instrument.LevelName = "中级"
+			case "advanced":
+				instrument.LevelName = "高级"
+			case "professional":
+				instrument.LevelName = "专业级"
+			}
+			log.Printf("[DEBUG] Level '%s' not found in instrument_levels, using legacy mapping: %s", req.Level, instrument.LevelName)
+		}
 	}
 
 	if req.Images != nil {
@@ -334,6 +485,21 @@ func UpdateInstrument(c *gin.Context) {
 			"message": "failed to update instrument: " + err.Error(),
 		})
 		return
+	}
+
+	// Process properties if provided (delete existing and recreate)
+	if req.Properties != nil && len(req.Properties) > 0 {
+		// Delete existing properties for this instrument
+		if err := db.Where("instrument_id = ?", instrument.ID).Delete(&models.InstrumentProperty{}).Error; err != nil {
+			log.Printf("[ERROR] Failed to delete existing instrument_properties: %v", err)
+			// Continue, don't fail the update
+		}
+
+		// Create new property associations
+		if err := processProperties(db, instrument.ID, tenantID, req.Properties); err != nil {
+			log.Printf("[ERROR] Failed to process properties: %v", err)
+			// Don't fail the request if properties processing fails
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

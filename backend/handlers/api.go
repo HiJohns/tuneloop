@@ -135,7 +135,7 @@ func GetInstruments(c *gin.Context) {
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
 		// Get site_name from Site table if SiteID exists
-		var siteName string
+		var siteName = "-"
 		if instrument.SiteID != nil {
 			var site models.Site
 			if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {

@@ -33,28 +33,30 @@ type Category struct {
 }
 
 type Instrument struct {
-	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID          string     `gorm:"type:uuid;index" json:"org_id"`
-	CategoryID     string     `gorm:"type:uuid;index" json:"category_id"`
-	CategoryName   string     `gorm:"type:varchar(100)" json:"category_name"`
-	Name           string     `gorm:"type:varchar(255)" json:"name"`
-	Brand          string     `gorm:"type:varchar(100)" json:"brand"`
-	Level          string     `gorm:"type:varchar(20)" json:"level"`
-	LevelName      string     `gorm:"type:varchar(50)" json:"level_name"`
-	Model          string     `gorm:"type:varchar(100)" json:"model"`
-	SN             string     `gorm:"type:varchar(100)" json:"sn"`
-	Site           string     `gorm:"type:varchar(255)" json:"site"`
-	SiteID         *uuid.UUID `gorm:"type:uuid;index" json:"site_id"`
-	CurrentSiteID  *uuid.UUID `gorm:"type:uuid;index" json:"current_site_id"`
-	Description    string     `gorm:"type:text" json:"description"`
-	Images         string     `gorm:"type:jsonb;default:'[]'" json:"images"`
-	Video          string     `gorm:"type:varchar(500)" json:"video"`
-	Specifications string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
-	Pricing        string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`
-	StockStatus    string     `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID              string           `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID        string           `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID           string           `gorm:"type:uuid;index" json:"org_id"`
+	CategoryID      string           `gorm:"type:uuid;index" json:"category_id"`
+	CategoryName    string           `gorm:"type:varchar(100)" json:"category_name"`
+	Name            string           `gorm:"type:varchar(255)" json:"name"`
+	Brand           string           `gorm:"type:varchar(100)" json:"brand"`
+	Level           string           `gorm:"type:varchar(20)" json:"level"`      // deprecated, use LevelID instead
+	LevelName       string           `gorm:"type:varchar(50)" json:"level_name"` // deprecated
+	LevelID         *uuid.UUID       `gorm:"type:uuid;index" json:"level_id"`
+	InstrumentLevel *InstrumentLevel `gorm:"foreignKey:LevelID" json:"instrument_level,omitempty"`
+	Model           string           `gorm:"type:varchar(100)" json:"model"`
+	SN              string           `gorm:"type:varchar(100)" json:"sn"`
+	Site            string           `gorm:"type:varchar(255)" json:"site"`
+	SiteID          *uuid.UUID       `gorm:"type:uuid;index" json:"site_id"`
+	CurrentSiteID   *uuid.UUID       `gorm:"type:uuid;index" json:"current_site_id"`
+	Description     string           `gorm:"type:text" json:"description"`
+	Images          string           `gorm:"type:jsonb;default:'[]'" json:"images"`
+	Video           string           `gorm:"type:varchar(500)" json:"video"`
+	Specifications  string           `gorm:"type:jsonb;default:'{}'" json:"specifications"`
+	Pricing         string           `gorm:"type:jsonb;default:'{}'" json:"pricing"`
+	StockStatus     string           `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
 }
 
 type Order struct {
@@ -239,6 +241,15 @@ type Tenant struct {
 	Description string    `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// InstrumentLevel represents the skill level for instruments
+type InstrumentLevel struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Caption   string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"caption"`
+	Code      string    `gorm:"type:varchar(20);uniqueIndex;not null" json:"code"`
+	SortOrder int       `gorm:"default:0" json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Property struct {

@@ -301,8 +301,8 @@ export default function CategoryList() {
     setFormMode('create')
     form.resetFields()
     form.setFieldsValue({ 
-      visible: true, 
-      parent_id: selectedCategory.id 
+      visible: true,
+      icon: selectedCategory.icon  // 继承父分类图标
     })
     fetchCategoryTreeForMove()
     setViewMode('form')
@@ -456,9 +456,11 @@ export default function CategoryList() {
               extra={
                 selectedCategory && (
                   <Space>
-                    <Button icon={<PlusOutlined />} onClick={handleCreateSubCategory}>
-                      创建下级分类
-                    </Button>
+                    {selectedCategory?.level === 1 && (
+                      <Button icon={<PlusOutlined />} onClick={handleCreateSubCategory}>
+                        创建下级分类
+                      </Button>
+                    )}
                     <Button icon={<EditOutlined />} onClick={handleEdit}>
                       编辑
                     </Button>
