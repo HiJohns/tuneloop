@@ -648,6 +648,13 @@ const loadCategoryChildren = async (node) => {
       
       console.log('[DEBUG] Form values:', values)
       
+      // Validate level is selected
+      if (!values.level) {
+        message.error('请选择乐器分级')
+        setLoading(false)
+        return
+      }
+      
       // Upload pending files first and get the uploaded image URLs
       let images = []
       if (fileList.length > 0) {
