@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, Switch, message, Spin, Empty, Space, Popconfirm } from 'antd'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, Switch, TreeSelect, message, Spin, Empty, Space, Popconfirm } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { api, categoriesApi } from '../../../services/api'
 
@@ -102,11 +102,85 @@ export default function CategoryList() {
     }
   }
 
+  // Fetch all categories including sub_categories for move functionality
+  const fetchCategoryTreeForMove = async () => {
+    try {
+      setParentLoading(true)
+      const result = await api.get('/categories')
+      if (result.code === 20000) {
+        setParentCategories(result.data?.list || [])
+      }
+    } catch (error) {
+      message.error('加载分类数据失败: ' + error.message)
+      setParentCategories([])
+    } finally {
+      setParentLoading(false)
+    }
+  }
+
+  // Get parent category name by ID
+  const getParentCategoryName = (parentId) => {
+    const parent = parentCategories.find(cat => cat.id === parentId)
+    return parent?.name || '未知分类'
+  }
+
+  // Build category tree with virtual root for move functionality
+  const buildCategoryTreeWithVirtualRoot = () => {
+    const treeData = parentCategories.map(cat => {
+      const hasChildren = cat.sub_categories && cat.sub_categories.length > 0
+      return {
+        key: cat.id,
+        title: cat.name,
+        value: cat.id,
+        children: hasChildren ? buildSubTree(cat.sub_categories) : [],
+        disabled: formMode === 'edit' && editingCategory?.id === cat.id ? true : false
+      }
+    })
+    return [
+      {
+        key: 'root',
+        title: '顶级分类',
+        value: null,
+        children: treeData
+      }
+    ]
+  }
+
+  const buildSubTree = (categories) => {
+    return categories.map(cat => {
+      const hasChildren = cat.sub_categories && cat.sub_categories.length > 0
+      // Disable if this is the category being edited or any of its children
+      let isDisabled = false
+      if (formMode === 'edit' && editingCategory?.id) {
+        isDisabled = isCategoryOrChild(cat.id, editingCategory.id)
+      }
+      return {
+        key: cat.id,
+        title: cat.name,
+        value: cat.id,
+        children: hasChildren ? buildSubTree(cat.sub_categories) : [],
+        disabled: isDisabled
+      }
+    })
+  }
+
+  // Check if a category ID is the current editing category or any of its children
+  const isCategoryOrChild = (categoryId, targetId) => {
+    if (categoryId === targetId) return true
+    const category = findCategoryById(treeData, targetId)
+    if (category && category.sub_categories) {
+      for (const child of category.sub_categories) {
+        if (isCategoryOrChild(child.id, categoryId)) return true
+      }
+    }
+    return false
+  }
+
   const handleCreateTopLevel = () => {
     setEditingCategory(null)
     setFormMode('create')
     form.resetFields()
-    form.setFieldsValue({ visible: true, sort: 99, parent_id: null })
+    form.setFieldsValue({ visible: true, parent_id: null })
     fetchParentCategories()
     setViewMode('form')
   }
@@ -116,15 +190,14 @@ export default function CategoryList() {
       message.warning('请先选择一个分类')
       return
     }
-    setEditingCategory({ parent_id: selectedCategory.id })
+    setEditingCategory({ parent_id: selectedCategory.id, name: selectedCategory.name })
     setFormMode('create')
     form.resetFields()
     form.setFieldsValue({ 
       visible: true, 
-      sort: 99, 
       parent_id: selectedCategory.id 
     })
-    fetchParentCategories()
+    fetchCategoryTreeForMove()
     setViewMode('form')
   }
 
@@ -133,8 +206,11 @@ export default function CategoryList() {
     setEditingCategory({ ...selectedCategory })
     setFormMode('edit')
     form.resetFields()
-    form.setFieldsValue(selectedCategory)
-    fetchParentCategories()
+    form.setFieldsValue({
+      ...selectedCategory,
+      visible: selectedCategory.visible !== false
+    })
+    fetchCategoryTreeForMove()
     setViewMode('form')
   }
 
@@ -157,13 +233,12 @@ export default function CategoryList() {
     try {
       const values = await form.validateFields()
       
-      // Prepare form data
+      // Prepare form data - exclude sort field per Issue #241
       const formData = {
         name: values.name,
         icon: values.icon || '',
-        sort: values.sort || 99,
         visible: values.visible !== false,
-        parent_id: values.parent_id || null,
+        parent_id: values.parent_id === null ? null : (values.parent_id || null),
       }
       
       let result
@@ -329,32 +404,38 @@ export default function CategoryList() {
                   <Input placeholder="请输入分类名称，如：钢琴" />
                 </Form.Item>
 
-                <Form.Item
-                  name="parent_id"
-                  label="父级分类"
-                  extra="不选择表示创建一级分类"
-                >
-                  <Select
-                    placeholder="请选择父级分类（可选）"
-                    allowClear
-                    loading={parentLoading}
-                    disabled={formMode === 'edit' && editingCategory?.level === 2}
-                  >
-                    {parentCategories.map(cat => (
-                      <Option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                {/* Scenario 1: Create Top Level - Hide parent category field */}
+                {formMode === 'create' && !editingCategory?.parent_id && (
+                  <Form.Item name="parent_id" hidden>
+                    <Input type="hidden" />
+                  </Form.Item>
+                )}
 
-                <Form.Item
-                  name="sort"
-                  label="排序序号"
-                  rules={[{ required: true, message: '请输入排序序号' }]}
-                >
-                  <Input type="number" placeholder="请输入排序序号，数字越小越靠前" />
-                </Form.Item>
+                {/* Scenario 2: Create Sub Category - Show parent as static text */}
+                {formMode === 'create' && editingCategory?.parent_id && (
+                  <Form.Item label="父级分类">
+                    <div style={{ padding: '8px 0', color: '#666' }}>
+                      {getParentCategoryName(editingCategory.parent_id)}
+                    </div>
+                  </Form.Item>
+                )}
+
+                {/* Scenario 3: Edit - TreeSelect with virtual root for move */}
+                {formMode === 'edit' && (
+                  <Form.Item
+                    name="parent_id"
+                    label="父级分类"
+                    extra="不选择表示设为顶级分类"
+                  >
+                    <TreeSelect
+                      treeData={buildCategoryTreeWithVirtualRoot()}
+                      placeholder="请选择父级分类"
+                      allowClear
+                      treeDefaultExpandAll
+                      fieldNames={{ title: 'title', value: 'value', children: 'children' }}
+                    />
+                  </Form.Item>
+                )}
 
                 <Form.Item
                   name="icon"
@@ -364,14 +445,16 @@ export default function CategoryList() {
                   <Input placeholder="请输入图标，如：🎹" />
                 </Form.Item>
 
-                <Form.Item
-                  name="visible"
-                  label="显示状态"
-                  valuePropName="checked"
-                  initialValue={true}
-                >
-                  <Switch checkedChildren="显示" unCheckedChildren="隐藏" defaultChecked />
-                </Form.Item>
+                {/* Only show visible switch in edit mode */}
+                {formMode === 'edit' && (
+                  <Form.Item
+                    name="visible"
+                    label="显示状态"
+                    valuePropName="checked"
+                  >
+                    <Switch checkedChildren="显示" unCheckedChildren="隐藏" />
+                  </Form.Item>
+                )}
               </Form>
             </Card>
           )}
