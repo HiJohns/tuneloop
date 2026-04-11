@@ -180,22 +180,47 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const data = result?.data?.list || []
       console.log('[DEBUG] Categories data before mapping:', data)
       
-      // Filter only parent categories (categories with no parent_id)
-      const tree = data
-        .filter(cat => !cat.parent_id)  // Only keep parent categories
-        .map(cat => {
-          console.log('[DEBUG] Processing category:', cat)
-          return {
-            key: cat.id,
-            title: cat.name,
-            value: cat.id,
-            children: cat.sub_categories?.map(child => ({
-              key: child.id,
-              title: child.name,
-              value: child.id,
-            }))
+      // Build category tree - include all to see proper hierarchy
+      const tree = []
+      const categoryMap = new Map()
+      
+      // First pass: create all category nodes
+      data.forEach(cat => {
+        categoryMap.set(cat.id, {
+          key: cat.id,
+          title: cat.name,
+          value: cat.id,
+          children: []
+        })
+      })
+      
+      // Second pass: build hierarchy
+      data.forEach(cat => {
+        const node = categoryMap.get(cat.id)
+        if (cat.parent_id) {
+          // Has parent - add to parent's children
+          const parent = categoryMap.get(cat.parent_id)
+          if (parent) {
+            parent.children.push(node)
+          }
+        } else {
+          // Root node - add to tree directly
+          tree.push(node)
+        }
+      })
+      
+      // Filter out empty children arrays
+      const filterEmptyChildren = (nodes) => {
+        nodes.forEach(node => {
+          if (node.children.length === 0) {
+            delete node.children
+          } else {
+            filterEmptyChildren(node.children)
           }
         })
+      }
+      filterEmptyChildren(tree)
+      
       console.log('[DEBUG] Final category tree:', tree)
       setCategoryTree(tree)
     } catch (err) {
@@ -703,11 +728,10 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
                     <Select 
                       placeholder={`请选择或输入${prop.name}`}
                       allowClear
-                      mode="combobox"
-                      onChange={(value, option) => {
-                        if (option?.children && !option.key) {
-                          console.log(`New value "${value}" for ${prop.name} - should be marked as pending`)
-                        }
+                      showSearch
+                      mode="tags"
+                      onChange={(value) => {
+                        console.log(`Value for ${prop.name}:`, value)
                       }}
                     >
                       {prop.options?.map(opt => (
