@@ -41,12 +41,7 @@ export default function InstrumentList() {
     fetchInstruments(pagination.page, pagination.pageSize)
     fetchCategories()
     setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
-    console.log('[DEBUG] Table init, data:', instruments.length, 'cols:', columns?.length)
   }, [])
-
-  useEffect(() => {
-    console.log('[DEBUG] Data changed, instruments:', instruments.length, 'filtered:', filteredInstruments.length)
-  }, [instruments, filteredInstruments])
 
   const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
