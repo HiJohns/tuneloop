@@ -234,49 +234,16 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const data = result?.data?.list || []
       console.log('[DEBUG] Sites raw data:', JSON.stringify(data))
       
-      // Build site tree from flat data
-      const tree = []
-      const siteMap = new Map()
-      
-      // First pass: create all site nodes
-      data.forEach(site => {
-        const node = {
-          key: site.id,
-          title: site.name,
-          value: site.id,
-          children: [],
-          isLeaf: false  // Mark as expandable
-        }
-        siteMap.set(site.id, node)
-      })
-      
-      // Second pass: build hierarchy
-      data.forEach(site => {
-        const node = siteMap.get(site.id)
-        if (site.parent_id) {
-          const parent = siteMap.get(site.parent_id)
-          if (parent) {
-            parent.children.push(node)
-          } else {
-            tree.push(node)
-          }
-        } else {
-          tree.push(node)
-        }
-      })
-      
-      // Filter out empty children
-      const filterEmptyChildren = (nodes) => {
-        nodes.forEach(node => {
-          if (node.children.length === 0) {
-            delete node.children
-            node.isLeaf = true  // It's a leaf node
-          } else {
-            filterEmptyChildren(node.children)
-          }
-        })
-      }
-      filterEmptyChildren(tree)
+      // Issue #239: API now returns only top-level sites (parent_id IS NULL) by default
+      // Set children to empty array so TreeSelect shows expand icon
+      // Actual children will be loaded dynamically via loadSiteChildren
+      const tree = data.map(site => ({
+        key: site.id,
+        title: site.name,
+        value: site.id,
+        children: [],  // Empty for now, will be loaded on expand
+        isLeaf: false  // Mark as expandable
+      }))
       
       console.log('[DEBUG] Final site tree:', JSON.stringify(tree))
       setSiteTree(tree)

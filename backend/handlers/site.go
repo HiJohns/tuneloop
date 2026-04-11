@@ -487,12 +487,14 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 	var sites []models.Site
 	query := db.Where("tenant_id = ? AND status = 'active'", tenantID)
 
-	// Fix: When no rootID parameter, fetch ALL sites for tree building
-	// The frontend will build the tree structure based on parent_id
+	// Issue #239: When no rootID parameter, fetch ONLY top-level sites (parent_id IS NULL)
+	// When rootID is provided, fetch children of that parent
 	if rootID != "" {
 		query = query.Where("parent_id = ?", rootID)
+	} else {
+		// Initial load: only return top-level sites
+		query = query.Where("parent_id IS NULL")
 	}
-	// When rootID is empty (initial load), get ALL sites, not just top level
 
 	// Debug: Log query and tenant
 	fmt.Printf("[DEBUG] GetSiteTree - TenantID: %s, RootID: %s\n", tenantID, rootID)

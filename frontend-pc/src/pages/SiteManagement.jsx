@@ -55,7 +55,9 @@ export default function SiteManagement() {
     key: site.id,
     title: site.name,
     data: site,
-    children: (site.children || []).map(convertToTreeNode)
+    // For dynamic loading, set empty children array so Tree shows expand icon
+    // Actual children will be loaded via loadData when node is expanded
+    children: []
   })
 
   const loadChildren = async (siteId) => {
