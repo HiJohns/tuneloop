@@ -47,12 +47,14 @@ export default function InstrumentList() {
     setLoading(true)
     try {
       const response = await api.get(`/instruments?page=${page}&pageSize=${pageSize}`)
-      const data = response?.data || []
-      setInstruments(Array.isArray(data) ? data : [])
+      console.log('[DEBUG] Instruments API response:', response)
+      const list = response?.data?.list || []
+      console.log('[DEBUG] Instruments list:', list)
+      setInstruments(Array.isArray(list) ? list : [])
       setPagination({
-        page: page,
-        pageSize: pageSize,
-        total: response?.total || data.length || 0
+        page: response?.data?.page || page,
+        pageSize: response?.data?.pageSize || pageSize,
+        total: response?.data?.total || list.length || 0
       })
     } catch (error) {
       message.error('加载乐器失败: ' + error.message)
@@ -72,9 +74,10 @@ export default function InstrumentList() {
   }
 
   const filteredInstruments = instruments.filter(instrument => {
-    const matchText = instrument.sn?.toLowerCase().includes(searchText.toLowerCase()) ||
-                      instrument.brand?.toLowerCase().includes(searchText.toLowerCase()) ||
-                      instrument.model?.toLowerCase().includes(searchText.toLowerCase())
+    const matchText = !searchText || 
+      instrument.sn?.toLowerCase().includes(searchText.toLowerCase()) ||
+      instrument.brand?.toLowerCase().includes(searchText.toLowerCase()) ||
+      instrument.model?.toLowerCase().includes(searchText.toLowerCase())
     const matchCategory = !categoryFilter || instrument.category_name === categoryFilter
     const matchStatus = !statusFilter || instrument.status === statusFilter
     return matchText && matchCategory && matchStatus
