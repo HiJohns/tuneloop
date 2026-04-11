@@ -257,17 +257,34 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     try {
       console.log('[DEBUG] Loading children for site:', node.key)
       const result = await sitesApi.getTree(node.key)
+      console.log('[DEBUG] Site children API result:', JSON.stringify(result))
       const children = result?.data?.list || []
+      console.log('[DEBUG] Site children list:', JSON.stringify(children))
       
-      // If hasChildren=true, don't set children so antd calls loadData on expand
       const loadedChildren = children.map(site => ({
         key: site.id,
         title: site.name,
-        value: site.id,
-        ...(site.hasChildren ? {} : { children: [] })
+        value: site.id
       }))
       
-      console.log('[DEBUG] Loaded children for', node.key, ':', loadedChildren)
+      console.log('[DEBUG] Loaded children for', node.key, ':', JSON.stringify(loadedChildren))
+      
+      // Manually update treeData to add children to the expanded node
+      setSiteTree(prevTree => {
+        const updateNodeChildren = (nodes) => {
+          return nodes.map(n => {
+            if (n.key === node.key) {
+              return { ...n, children: loadedChildren }
+            }
+            if (n.children) {
+              return { ...n, children: updateNodeChildren(n.children) }
+            }
+            return n
+          })
+        }
+        return updateNodeChildren(prevTree)
+      })
+      
       return loadedChildren
     } catch (err) {
       console.error('Failed to load site children:', err)
@@ -299,30 +316,45 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }
   }
 
-  const loadCategoryChildren = async (node) => {
+const loadCategoryChildren = async (node) => {
     try {
       console.log('[DEBUG] Loading children for category:', node.key)
       const result = await api.get(`/categories/${node.key}/children`)
+      console.log('[DEBUG] Category children API result:', JSON.stringify(result))
       const children = result?.data?.list || []
-      console.log('[DEBUG] Category children API response:', result)
+      console.log('[DEBUG] Category children list:', JSON.stringify(children))
       
-      // If hasChildren=true, don't set children so antd calls loadData on expand
-      // If isLeaf=true, set empty children to indicate no more loading
       const loadedChildren = children.map(cat => ({
         key: cat.id,
         title: cat.name,
-        value: cat.id,
-        ...(cat.hasChildren ? {} : { children: [] })
+        value: cat.id
       }))
       
-      console.log('[DEBUG] Loaded children for category', node.key, ':', loadedChildren)
+      console.log('[DEBUG] Loaded children for category', node.key, ':', JSON.stringify(loadedChildren))
+      
+      // Manually update treeData to add children to the expanded node
+      setCategoryTree(prevTree => {
+        const updateNodeChildren = (nodes) => {
+          return nodes.map(n => {
+            if (n.key === node.key) {
+              return { ...n, children: loadedChildren }
+            }
+            if (n.children) {
+              return { ...n, children: updateNodeChildren(n.children) }
+            }
+            return n
+          })
+        }
+        return updateNodeChildren(prevTree)
+      })
+      
       return loadedChildren
     } catch (err) {
       console.error('Failed to load category children:', err)
       return []
     }
   }
-
+  
   const handleSnChange = (value) => {
     if (snCheckTimer.current) {
       clearTimeout(snCheckTimer.current)
