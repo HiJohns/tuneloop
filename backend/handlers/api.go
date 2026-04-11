@@ -134,15 +134,32 @@ func GetInstruments(c *gin.Context) {
 	// Process instruments to parse specifications and pricing into specs array
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
+		// Get site_name from Site table if SiteID exists
+		var siteName string
+		if instrument.SiteID != nil {
+			var site models.Site
+			if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
+				siteName = site.Name
+			}
+		}
+		// Get category_name from Category table if CategoryID exists
+		var catName string
+		if instrument.CategoryID != "" {
+			var cat models.Category
+			if err := db.First(&cat, "id = ?", instrument.CategoryID).Error; err == nil {
+				catName = cat.Name
+			}
+		}
+
 		instrumentMap := map[string]interface{}{
 			"id":             instrument.ID,
 			"tenant_id":      instrument.TenantID,
 			"org_id":         instrument.OrgID,
 			"sn":             instrument.SN,
 			"site_id":        instrument.SiteID,
-			"site_name":      instrument.Site,
+			"site_name":      siteName,
 			"category_id":    instrument.CategoryID,
-			"category_name":  instrument.CategoryName,
+			"category_name":  catName,
 			"name":           instrument.Name,
 			"brand":          instrument.Brand,
 			"level":          instrument.Level,
