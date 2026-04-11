@@ -333,8 +333,6 @@ export default function SiteManagement() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">网点管理</h2>
-      
       <div className="flex gap-4">
         <Card 
           title="网点结构" 
