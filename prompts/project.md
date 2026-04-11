@@ -161,6 +161,88 @@ When migrating existing code:
 Before marking a task as complete:
 - [ ] Run `grep -r "fetch(" frontend-pc/src --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx"` to verify no forbidden fetch usage remains
 - [ ] Only the following files are allowed to contain fetch:
-  - `services/api.js` (the module itself)
+   - `services/api.js` (the module itself)
   - `App.jsx` (OAuth callback only)
   - `pages/AuthCallback/*` (OAuth auth flow)
+
+## 🌐 URL 路由规范 (URL Routing Specification)
+
+### RESTful URL 模式
+
+项目采用统一的 RESTful 风格 URL 路由，所有功能页面必须支持以下 URL 直通模式：
+
+| URL 模式 | 说明 | 状态要求 |
+|----------|------|----------|
+| `/:group/:page` | 列表页，无选中 | 列表无选中，详情提示选择 |
+| `/:group/:page/:id` | 详情页，选中指定项 | 列表选中该项，显示详情 |
+| `/:group/:page/:id/edit` | 编辑页 | 列表选中该项，进入编辑模式 |
+| `/:group/:page/new` | 创建页 | 列表无选中，进入创建模式 |
+
+### 应用范围
+
+以下模块必须支持 URL 直通功能：
+
+- **乐器相关** (`/instruments/*`)
+- **分类相关** (`/instruments/categories`)
+- **网点相关** (`/sites/*`)
+- **属性相关** (`/instruments/properties`)
+
+### 示例
+
+```
+/instruments/categories          → 分类管理页，无选中分类
+/instruments/categories/:id      → 分类管理页，选中该分类，显示详情
+/instruments/categories/:id/edit → 分类管理页，选中该分类，进入编辑模式
+/instruments/categories/new      → 分类管理页，无选中，创建顶级分类
+```
+
+### 实现要求
+
+#### 路由配置 (App.jsx)
+```jsx
+<Route path="/instruments/categories" element={<CategoryList />} />
+<Route path="/instruments/categories/:id" element={<CategoryList />} />
+<Route path="/instruments/categories/:id/edit" element={<CategoryList />} />
+<Route path="/instruments/categories/new" element={<CategoryList />} />
+```
+
+#### 组件 URL 解析 (useEffect)
+```javascript
+useEffect(() => {
+  const path = window.location.pathname
+  
+  // 1. Edit mode: /:page/:id/edit
+  const editMatch = path.match(/\/:page\/([^/]+)\/edit$/)
+  if (editMatch) {
+    // Load item and enter edit mode
+  }
+  
+  // 2. Create mode: /:page/new
+  if (path.endsWith('/new')) {
+    // Enter create mode
+  }
+  
+  // 3. Detail mode: /:page/:id
+  const detailMatch = path.match(/\/:page\/([^/]+)$/)
+  if (detailMatch) {
+    // Load item and show detail
+  }
+}, [])
+```
+
+#### URL 状态同步
+- 创建/编辑完成后：更新 URL 为 `/:page/:id`（详情页）
+- 取消操作后：更新 URL 为 `/:page`（列表页）
+- 使用 `window.history.pushState()` 更新 URL
+- 监听 `popstate` 事件处理浏览器前进/后退
+
+### 验证清单
+
+添加新页面时必须验证：
+- [ ] 支持列表页 URL（`/:page`）
+- [ ] 支持详情页 URL（`/:page/:id`）
+- [ ] 支持编辑页 URL（`/:page/:id/edit`）
+- [ ] 支持创建页 URL（`/:page/new`）
+- [ ] 操作后 URL 正确更新
+- [ ] 浏览器前进/后退正常工作
+- [ ] 左侧菜单选中状态同步
