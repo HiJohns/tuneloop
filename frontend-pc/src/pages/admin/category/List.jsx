@@ -18,6 +18,7 @@ export default function CategoryList() {
   const [selectedKeys, setSelectedKeys] = useState([])
   const [parentCategories, setParentCategories] = useState([])
   const [parentLoading, setParentLoading] = useState(false)
+  const [parentCategoryName, setParentCategoryName] = useState('-')
 
   useEffect(() => {
     fetchCategoryTree()
@@ -129,6 +130,29 @@ export default function CategoryList() {
       window.removeEventListener('popstate', handlePopState)
     }
   }, [])
+
+  // Load parent category name when selectedCategory changes
+  useEffect(() => {
+    const loadParentCategoryName = async () => {
+      if (selectedCategory?.parent_id) {
+        try {
+          const result = await api.get(`/categories/${selectedCategory.parent_id}`)
+          if (result.code === 20000 && result.data) {
+            setParentCategoryName(result.data.name)
+          } else {
+            setParentCategoryName('-')
+          }
+        } catch (err) {
+          console.error('Failed to load parent category:', err)
+          setParentCategoryName('-')
+        }
+      } else {
+        setParentCategoryName('-')
+      }
+    }
+
+    loadParentCategoryName()
+  }, [selectedCategory])
 
   const fetchCategoryTree = async () => {
     try {
@@ -486,7 +510,7 @@ export default function CategoryList() {
                     {selectedCategory.level === 1 ? '一级分类' : '二级分类'}
                   </Descriptions.Item>
                   <Descriptions.Item label="父级分类">
-                    {selectedCategory.parent_id ? '是' : '-'}
+                    {selectedCategory.parent_id ? parentCategoryName : '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="显示状态">
                     {selectedCategory.visible ? '显示' : '隐藏'}
