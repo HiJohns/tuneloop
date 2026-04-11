@@ -186,12 +186,14 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const categoryMap = new Map()
       
       // First pass: create all category nodes
+      // For loadData to work, root nodes should NOT have children array
+      // antd will call loadData when expanding if children is not defined
       data.forEach(cat => {
         const node = {
           key: cat.id,
           title: cat.name,
-          value: cat.id,
-          children: []
+          value: cat.id
+          // children NOT set - antd will call loadData when user clicks expand
         }
         categoryMap.set(cat.id, node)
         console.log('[DEBUG] Adding category:', cat.id, cat.name, 'parent_id:', cat.parent_id)
@@ -235,14 +237,12 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       console.log('[DEBUG] Sites raw data:', JSON.stringify(data))
       
       // Issue #239: API now returns only top-level sites (parent_id IS NULL) by default
-      // Set children to empty array so TreeSelect shows expand icon
-      // Actual children will be loaded dynamically via loadSiteChildren
+      // Don't set children - antd will call loadData when user clicks expand
       const tree = data.map(site => ({
         key: site.id,
         title: site.name,
-        value: site.id,
-        children: [],  // Empty for now, will be loaded on expand
-        isLeaf: false  // Mark as expandable
+        value: site.id
+        // children NOT set - antd will call loadData when user clicks expand
       }))
       
       console.log('[DEBUG] Final site tree:', JSON.stringify(tree))
@@ -259,12 +259,12 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const result = await sitesApi.getTree(node.key)
       const children = result?.data?.list || []
       
+      // If hasChildren=true, don't set children so antd calls loadData on expand
       const loadedChildren = children.map(site => ({
         key: site.id,
         title: site.name,
         value: site.id,
-        children: [],  // Add empty children array to allow further loading
-        isLeaf: false  // Mark as expandable to allow further loading of children
+        ...(site.hasChildren ? {} : { children: [] })
       }))
       
       console.log('[DEBUG] Loaded children for', node.key, ':', loadedChildren)
@@ -306,14 +306,13 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const children = result?.data?.list || []
       console.log('[DEBUG] Category children API response:', result)
       
-      // Use isLeaf from API to determine if node is expandable
-      // If isLeaf is true, don't add children array (antd won't show expand icon)
+      // If hasChildren=true, don't set children so antd calls loadData on expand
+      // If isLeaf=true, set empty children to indicate no more loading
       const loadedChildren = children.map(cat => ({
         key: cat.id,
         title: cat.name,
         value: cat.id,
-        children: cat.isLeaf === false ? [] : undefined,
-        isLeaf: cat.isLeaf
+        ...(cat.hasChildren ? {} : { children: [] })
       }))
       
       console.log('[DEBUG] Loaded children for category', node.key, ':', loadedChildren)
