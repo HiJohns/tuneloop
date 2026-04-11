@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, Switch, message, Spin, Empty, Space, Popconfirm } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { api, categoriesApi } from '../../../services/api'
-import CategoryForm from './Form'
 
 const { Option } = Select
 
@@ -17,7 +16,8 @@ export default function CategoryList() {
   const [formMode, setFormMode] = useState('create') // 'create' | 'edit'
   const [expandedKeys, setExpandedKeys] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
-  const [formVisible, setFormVisible] = useState(false)
+  const [parentCategories, setParentCategories] = useState([])
+  const [parentLoading, setParentLoading] = useState(false)
 
   useEffect(() => {
     fetchCategoryTree()
@@ -85,10 +85,30 @@ export default function CategoryList() {
     }
   }
 
+  const fetchParentCategories = async () => {
+    try {
+      setParentLoading(true)
+      const result = await api.get('/categories')
+      if (result.code === 20000) {
+        const level1Categories = (result.data?.list || [])
+          .filter(cat => cat.level === 1)
+        setParentCategories(level1Categories)
+      }
+    } catch (error) {
+      message.error('加载父级分类失败: ' + error.message)
+      setParentCategories([])
+    } finally {
+      setParentLoading(false)
+    }
+  }
+
   const handleCreateTopLevel = () => {
     setEditingCategory(null)
     setFormMode('create')
-    setFormVisible(true)
+    form.resetFields()
+    form.setFieldsValue({ visible: true, sort: 99, parent_id: null })
+    fetchParentCategories()
+    setViewMode('form')
   }
 
   const handleCreateSubCategory = () => {
@@ -98,14 +118,24 @@ export default function CategoryList() {
     }
     setEditingCategory({ parent_id: selectedCategory.id })
     setFormMode('create')
-    setFormVisible(true)
+    form.resetFields()
+    form.setFieldsValue({ 
+      visible: true, 
+      sort: 99, 
+      parent_id: selectedCategory.id 
+    })
+    fetchParentCategories()
+    setViewMode('form')
   }
 
   const handleEdit = () => {
     if (!selectedCategory) return
     setEditingCategory({ ...selectedCategory })
     setFormMode('edit')
-    setFormVisible(true)
+    form.resetFields()
+    form.setFieldsValue(selectedCategory)
+    fetchParentCategories()
+    setViewMode('form')
   }
 
   const handleDelete = async () => {
@@ -115,21 +145,33 @@ export default function CategoryList() {
       message.success('删除成功')
       setSelectedCategory(null)
       setSelectedKeys([])
+      setViewMode('detail')
       fetchCategoryTree()
     } catch (err) {
       message.error('删除失败: ' + err.message)
     }
   }
 
-  const handleFormSubmit = async (data) => {
+  const handleFormSubmit = async () => {
     setSaving(true)
     try {
+      const values = await form.validateFields()
+      
+      // Prepare form data
+      const formData = {
+        name: values.name,
+        icon: values.icon || '',
+        sort: values.sort || 99,
+        visible: values.visible !== false,
+        parent_id: values.parent_id || null,
+      }
+      
       let result
       if (formMode === 'edit' && editingCategory?.id) {
-        result = await categoriesApi.update(editingCategory.id, data)
+        result = await categoriesApi.update(editingCategory.id, formData)
         message.success('更新成功')
       } else {
-        result = await categoriesApi.create(data)
+        result = await categoriesApi.create(formData)
         message.success('创建成功')
       }
       
@@ -137,17 +179,23 @@ export default function CategoryList() {
       await fetchCategoryTree()
       
       // Update selected category if editing
-      if (formMode === 'edit' && editingCategory?.id) {
-        const updatedCategory = await api.get(`/categories/${editingCategory.id}`)
+      const newCategoryId = formMode === 'edit' ? editingCategory.id : result.data?.id
+      if (newCategoryId) {
+        const updatedCategory = await api.get(`/categories/${newCategoryId}`)
         setSelectedCategory(updatedCategory?.data || null)
+        setSelectedKeys(newCategoryId ? [newCategoryId] : [])
       }
       
-      // Close form
-      setFormVisible(false)
-      setEditingCategory(null)
+      // Switch back to detail view
       setViewMode('detail')
+      setEditingCategory(null)
     } catch (error) {
-      message.error(error.message || '操作失败')
+      if (error.errorFields) {
+        // Form validation error
+        console.error('Validation failed:', error)
+      } else {
+        message.error(error.message || '提交失败')
+      }
     } finally {
       setSaving(false)
     }
@@ -247,19 +295,88 @@ export default function CategoryList() {
               )}
             </Card>
           )}
+          
+          {viewMode === 'form' && (
+            <Card 
+              title={formMode === 'edit' ? '编辑分类' : '创建分类'}
+              extra={
+                <Space>
+                  <Button onClick={() => {
+                    setViewMode('detail')
+                    form.resetFields()
+                    setEditingCategory(null)
+                  }}>取消</Button>
+                  <Button 
+                    type="primary" 
+                    onClick={handleFormSubmit}
+                    loading={saving}
+                  >
+                    提交
+                  </Button>
+                </Space>
+              }
+            >
+              <Form form={form} layout="vertical">
+                <Form.Item
+                  name="name"
+                  label="分类名称"
+                  rules={[
+                    { required: true, message: '请输入分类名称' },
+                    { min: 2, message: '分类名称至少需要2个字符' },
+                    { max: 50, message: '分类名称不能超过50个字符' }
+                  ]}
+                >
+                  <Input placeholder="请输入分类名称，如：钢琴" />
+                </Form.Item>
+
+                <Form.Item
+                  name="parent_id"
+                  label="父级分类"
+                  extra="不选择表示创建一级分类"
+                >
+                  <Select
+                    placeholder="请选择父级分类（可选）"
+                    allowClear
+                    loading={parentLoading}
+                    disabled={formMode === 'edit' && editingCategory?.level === 2}
+                  >
+                    {parentCategories.map(cat => (
+                      <Option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="sort"
+                  label="排序序号"
+                  rules={[{ required: true, message: '请输入排序序号' }]}
+                >
+                  <Input type="number" placeholder="请输入排序序号，数字越小越靠前" />
+                </Form.Item>
+
+                <Form.Item
+                  name="icon"
+                  label="分类图标"
+                  extra="输入emoji或图标URL，如：🎹 或 /images/icon.png"
+                >
+                  <Input placeholder="请输入图标，如：🎹" />
+                </Form.Item>
+
+                <Form.Item
+                  name="visible"
+                  label="显示状态"
+                  valuePropName="checked"
+                  initialValue={true}
+                >
+                  <Switch checkedChildren="显示" unCheckedChildren="隐藏" defaultChecked />
+                </Form.Item>
+              </Form>
+            </Card>
+          )}
         </div>
       </div>
-
-      {/* Form Modal */}
-      <CategoryForm
-        visible={formVisible}
-        onCancel={() => {
-          setFormVisible(false)
-          setEditingCategory(null)
-        }}
-        onSubmit={handleFormSubmit}
-        initialData={editingCategory}
-      />
     </div>
   )
 }
