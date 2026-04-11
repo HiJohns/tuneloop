@@ -22,21 +22,111 @@ export default function CategoryList() {
   useEffect(() => {
     fetchCategoryTree()
     
-    // Bug Fix: Check URL for category ID on page load
     const path = window.location.pathname
-    const match = path.match(/\/categories\/([^/]+)$/)
-    if (match) {
-      const categoryId = match[1]
-      // Fetch category details and select it
+    
+    // Pattern 1: /categories/:id/edit - Edit mode
+    const editMatch = path.match(/\/categories\/([^/]+)\/edit$/)
+    if (editMatch) {
+      const categoryId = editMatch[1]
+      api.get(`/categories/${categoryId}`).then(result => {
+        if (result.code === 20000 && result.data) {
+          setSelectedCategory(result.data)
+          setSelectedKeys([categoryId])
+          setEditingCategory({ ...result.data })
+          setFormMode('edit')
+          form.resetFields()
+          form.setFieldsValue({
+            ...result.data,
+            visible: result.data.visible !== false
+          })
+          fetchCategoryTreeForMove()
+          setViewMode('form')
+        }
+      }).catch(err => console.error('Failed to load category:', err))
+      return
+    }
+    
+    // Pattern 2: /categories/new - Create top-level mode
+    if (path.endsWith('/categories/new')) {
+      setEditingCategory(null)
+      setFormMode('create')
+      form.resetFields()
+      form.setFieldsValue({ visible: true, parent_id: null })
+      fetchCategoryTreeForMove()
+      setViewMode('form')
+      return
+    }
+    
+    // Pattern 3: /categories/:id - Detail view
+    const detailMatch = path.match(/\/categories\/([^/]+)$/)
+    if (detailMatch) {
+      const categoryId = detailMatch[1]
       api.get(`/categories/${categoryId}`).then(result => {
         if (result.code === 20000 && result.data) {
           setSelectedCategory(result.data)
           setSelectedKeys([categoryId])
           setViewMode('detail')
         }
-      }).catch(err => {
-        console.error('Failed to load category from URL:', err)
-      })
+      }).catch(err => console.error('Failed to load category from URL:', err))
+    }
+  }, [])
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname
+      
+      const editMatch = path.match(/\/categories\/([^/]+)\/edit$/)
+      if (editMatch) {
+        const categoryId = editMatch[1]
+        api.get(`/categories/${categoryId}`).then(result => {
+          if (result.code === 20000 && result.data) {
+            setSelectedCategory(result.data)
+            setSelectedKeys([categoryId])
+            setEditingCategory({ ...result.data })
+            setFormMode('edit')
+            form.resetFields()
+            form.setFieldsValue({
+              ...result.data,
+              visible: result.data.visible !== false
+            })
+            fetchCategoryTreeForMove()
+            setViewMode('form')
+          }
+        })
+        return
+      }
+      
+      if (path.endsWith('/categories/new')) {
+        setEditingCategory(null)
+        setFormMode('create')
+        form.resetFields()
+        form.setFieldsValue({ visible: true, parent_id: null })
+        fetchCategoryTreeForMove()
+        setViewMode('form')
+        return
+      }
+      
+      const detailMatch = path.match(/\/categories\/([^/]+)$/)
+      if (detailMatch) {
+        const categoryId = detailMatch[1]
+        api.get(`/categories/${categoryId}`).then(result => {
+          if (result.code === 20000 && result.data) {
+            setSelectedCategory(result.data)
+            setSelectedKeys([categoryId])
+            setViewMode('detail')
+          }
+        })
+      } else {
+        setSelectedCategory(null)
+        setSelectedKeys([])
+        setViewMode('detail')
+      }
+    }
+    
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
     }
   }, [])
 

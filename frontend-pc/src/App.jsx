@@ -194,10 +194,11 @@ function MainLayout() {
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
           
-            <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
-            <Route path="/instruments/categories/edit/:id" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
-            <Route path="/instruments/categories/add" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
-             <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
+<Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories/:id/edit" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories/new" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
