@@ -287,6 +287,58 @@ func GetCategories(c *gin.Context) {
 	})
 }
 
+// GetCategoryChildren retrieves direct children of a category for TreeSelect
+func GetCategoryChildren(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	parentID := c.Param("id")
+
+	var categories []models.Category
+	query := db.Where("tenant_id = ?", tenantID)
+
+	if parentID == "0" || parentID == "" {
+		query = query.Where("parent_id IS NULL")
+	} else {
+		query = query.Where("parent_id = ?", parentID)
+	}
+
+	if err := query.Order("sort ASC").Find(&categories).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to fetch category children",
+		})
+		return
+	}
+
+	var result []map[string]interface{}
+	for _, cat := range categories {
+		hasChildren := false
+		var count int64
+		db.Model(&models.Category{}).Where("parent_id = ? AND tenant_id = ?", cat.ID, tenantID).Count(&count)
+		if count > 0 {
+			hasChildren = true
+		}
+
+		result = append(result, map[string]interface{}{
+			"id":          cat.ID,
+			"name":        cat.Name,
+			"icon":        cat.Icon,
+			"level":       cat.Level,
+			"sort":        cat.Sort,
+			"visible":     cat.Visible,
+			"parent_id":   cat.ParentID,
+			"isLeaf":      !hasChildren,
+			"hasChildren": hasChildren,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"list": result},
+	})
+}
+
 // GetCategoryByID gets a single category by ID
 func GetCategoryByID(c *gin.Context) {
 	db := database.GetDB()

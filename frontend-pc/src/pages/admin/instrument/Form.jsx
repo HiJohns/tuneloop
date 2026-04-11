@@ -299,6 +299,28 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }
   }
 
+  const loadCategoryChildren = async (node) => {
+    try {
+      console.log('[DEBUG] Loading children for category:', node.key)
+      const result = await api.get(`/categories/${node.key}/children`)
+      const children = result?.data?.list || []
+      
+      const loadedChildren = children.map(cat => ({
+        key: cat.id,
+        title: cat.name,
+        value: cat.id,
+        children: [],
+        isLeaf: false
+      }))
+      
+      console.log('[DEBUG] Loaded children for category', node.key, ':', loadedChildren)
+      return loadedChildren
+    } catch (err) {
+      console.error('Failed to load category children:', err)
+      return []
+    }
+  }
+
   const handleSnChange = (value) => {
     if (snCheckTimer.current) {
       clearTimeout(snCheckTimer.current)
@@ -716,6 +738,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
                   placeholder="请选择分类"
                   treeDefaultExpandAll
                   fieldNames={{ title: 'title', value: 'value', children: 'children' }}
+                  loadData={loadCategoryChildren}
                   loading={categoryLoading}
                 />
               </Form.Item>
@@ -734,6 +757,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
                 placeholder="请选择归属网点"
                 treeDefaultExpandAll
                 loadData={loadSiteChildren}
+                fieldNames={{ title: 'title', value: 'value', children: 'children' }}
                 showSearch
               />
             </Form.Item>

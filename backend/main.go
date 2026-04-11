@@ -125,6 +125,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/categories/:id", handlers.GetCategoryByID)
 		authRequired.PUT("/categories/:id", handlers.UpdateCategory)
 		authRequired.DELETE("/categories/:id", handlers.DeleteCategory)
+		authRequired.GET("/categories/:id/children", handlers.GetCategoryChildren)
 		authRequired.GET("/instruments", handlers.GetInstruments)
 		authRequired.GET("/instruments/check", handlers.CheckInstrumentSN)
 		authRequired.GET("/instruments/:id", handlers.GetInstrumentByID)
