@@ -848,7 +848,29 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   return isPageMode ? (
     <div style={{ padding: '24px' }}>
-      <Card title={title}>
+      <Card 
+        title={title}
+        extra={
+          <Space>
+            <Button 
+              onClick={() => {
+                // Cancel: redirect back to list page
+                window.location.href = '/instruments'
+              }}
+            >
+              取消
+            </Button>
+            <Button 
+              type="primary"
+              onClick={handleSubmit}
+              loading={loading || uploadStatus.isUploading}
+              disabled={uploadStatus.failedFiles.length > 0}
+            >
+              提交
+            </Button>
+          </Space>
+        }
+      >
         {renderFormContent()}
       </Card>
     </div>
