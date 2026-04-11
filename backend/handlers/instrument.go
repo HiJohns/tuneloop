@@ -16,7 +16,7 @@ import (
 var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
-	Name           string                   `json:"name" binding:"required"`
+	Name           string                   `json:"name"`
 	Brand          string                   `json:"brand"`
 	Level          string                   `json:"level" binding:"required"`
 	Model          string                   `json:"model"`

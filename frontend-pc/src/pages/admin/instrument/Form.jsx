@@ -664,11 +664,12 @@ const loadCategoryChildren = async (node) => {
       console.log('[DEBUG] Final images array:', images)
       
       
-      // Prepare form data - remove name, level, specifications; add sn, site_id, properties
+      // Prepare form data - add sn, category_id, site_id, level, properties
       const formData = {
         sn: values.sn,
         category_id: values.category_id,
         site_id: values.site_id,
+        level: values.level,
         description: values.description,
         images: images,
         video: values.video || '',
@@ -776,6 +777,20 @@ const loadCategoryChildren = async (node) => {
                   loading={categoryLoading}
                 />
               </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              name="level"
+              label="乐器分级"
+              rules={[{ required: true, message: '请选择乐器分级' }]}
+            >
+              <Select placeholder="请选择乐器分级">
+                <Select.Option value="入门">入门</Select.Option>
+                <Select.Option value="专业">专业</Select.Option>
+                <Select.Option value="大师">大师</Select.Option>
+              </Select>
+            </Form.Item>
           </Col>
         </Row>
 

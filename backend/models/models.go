@@ -38,9 +38,9 @@ type Instrument struct {
 	OrgID          string     `gorm:"type:uuid;index" json:"org_id"`
 	CategoryID     string     `gorm:"type:uuid;index" json:"category_id"`
 	CategoryName   string     `gorm:"type:varchar(100)" json:"category_name"`
-	Name           string     `gorm:"type:varchar(255);not null" json:"name"`
+	Name           string     `gorm:"type:varchar(255)" json:"name"`
 	Brand          string     `gorm:"type:varchar(100)" json:"brand"`
-	Level          string     `gorm:"type:varchar(20);not null" json:"level"`
+	Level          string     `gorm:"type:varchar(20)" json:"level"`
 	LevelName      string     `gorm:"type:varchar(50)" json:"level_name"`
 	Model          string     `gorm:"type:varchar(100)" json:"model"`
 	SN             string     `gorm:"type:varchar(100)" json:"sn"`
