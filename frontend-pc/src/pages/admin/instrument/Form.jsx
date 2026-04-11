@@ -178,50 +178,45 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       
       // Handle API response format: { code: 20000, data: { list: [...] } }
       const data = result?.data?.list || []
-      console.log('[DEBUG] Categories data before mapping:', data)
+      console.log('[DEBUG] Categories data raw:', JSON.stringify(data))
+      console.log('[DEBUG] Categories count:', data.length)
       
-      // Build category tree - include all to see proper hierarchy
+      // Build category tree from flat data
       const tree = []
       const categoryMap = new Map()
       
       // First pass: create all category nodes
       data.forEach(cat => {
-        categoryMap.set(cat.id, {
+        const node = {
           key: cat.id,
           title: cat.name,
           value: cat.id,
           children: []
-        })
+        }
+        categoryMap.set(cat.id, node)
+        console.log('[DEBUG] Adding category:', cat.id, cat.name, 'parent_id:', cat.parent_id)
       })
       
       // Second pass: build hierarchy
       data.forEach(cat => {
         const node = categoryMap.get(cat.id)
         if (cat.parent_id) {
-          // Has parent - add to parent's children
           const parent = categoryMap.get(cat.parent_id)
           if (parent) {
             parent.children.push(node)
+            console.log('[DEBUG] Added child:', cat.name, 'to parent:', parent.title)
+          } else {
+            // Parent not found, add as root
+            tree.push(node)
+            console.log('[DEBUG] Parent not found for:', cat.name, 'parent_id:', cat.parent_id)
           }
         } else {
-          // Root node - add to tree directly
+          // Root node
           tree.push(node)
         }
       })
       
-      // Filter out empty children arrays
-      const filterEmptyChildren = (nodes) => {
-        nodes.forEach(node => {
-          if (node.children.length === 0) {
-            delete node.children
-          } else {
-            filterEmptyChildren(node.children)
-          }
-        })
-      }
-      filterEmptyChildren(tree)
-      
-      console.log('[DEBUG] Final category tree:', tree)
+      console.log('[DEBUG] Final category tree:', JSON.stringify(tree))
       setCategoryTree(tree)
     } catch (err) {
       console.error('Failed to fetch categories:', err)
@@ -232,21 +227,80 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   const fetchSiteTree = async () => {
     try {
+      console.log('[DEBUG] Fetching site tree...')
       const result = await sitesApi.getTree()
+      console.log('[DEBUG] Sites API response:', result)
+      
       const data = result?.data?.list || []
-      const tree = data.map(site => ({
-        key: site.id,
-        title: site.name,
-        value: site.id,
-        children: site.children?.map(child => ({
-          key: child.id,
-          title: child.name,
-          value: child.id,
-        }))
-      }))
+      console.log('[DEBUG] Sites raw data:', JSON.stringify(data))
+      
+      // Build site tree from flat data
+      const tree = []
+      const siteMap = new Map()
+      
+      // First pass: create all site nodes
+      data.forEach(site => {
+        const node = {
+          key: site.id,
+          title: site.name,
+          value: site.id,
+          children: [],
+          isLeaf: false  // Mark as expandable
+        }
+        siteMap.set(site.id, node)
+      })
+      
+      // Second pass: build hierarchy
+      data.forEach(site => {
+        const node = siteMap.get(site.id)
+        if (site.parent_id) {
+          const parent = siteMap.get(site.parent_id)
+          if (parent) {
+            parent.children.push(node)
+          } else {
+            tree.push(node)
+          }
+        } else {
+          tree.push(node)
+        }
+      })
+      
+      // Filter out empty children
+      const filterEmptyChildren = (nodes) => {
+        nodes.forEach(node => {
+          if (node.children.length === 0) {
+            delete node.children
+            node.isLeaf = true  // It's a leaf node
+          } else {
+            filterEmptyChildren(node.children)
+          }
+        })
+      }
+      filterEmptyChildren(tree)
+      
+      console.log('[DEBUG] Final site tree:', JSON.stringify(tree))
       setSiteTree(tree)
     } catch (err) {
       console.error('Failed to fetch sites:', err)
+    }
+  }
+  
+  // Dynamic load children for site tree
+  const loadSiteChildren = async (node) => {
+    try {
+      console.log('[DEBUG] Loading children for site:', node.key)
+      const result = await sitesApi.getTree(node.key)
+      const children = result?.data?.list || []
+      
+      return children.map(site => ({
+        key: site.id,
+        title: site.name,
+        value: site.id,
+        isLeaf: true  // Assume leaf until expanded
+      }))
+    } catch (err) {
+      console.error('Failed to load site children:', err)
+      return []
     }
   }
 
@@ -708,6 +762,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
                 treeData={siteTree}
                 placeholder="请选择归属网点"
                 treeDefaultExpandAll
+                loadData={loadSiteChildren}
+                showSearch
               />
             </Form.Item>
           </Col>
