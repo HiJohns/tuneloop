@@ -29,8 +29,8 @@ export default function InstrumentStock() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const data = await inventoryApi.list()
-      setAssets(data || [])
+      const response = await inventoryApi.list()
+      setAssets(response?.data?.list || [])
     } catch (error) {
       console.error('Failed to load inventory:', error)
     } finally {

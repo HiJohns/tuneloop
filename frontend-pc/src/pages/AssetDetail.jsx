@@ -20,8 +20,9 @@ export default function AssetDetail() {
   const loadAsset = async () => {
     setLoading(true)
     try {
-      const data = await inventoryApi.list()
-      const found = (data || []).find(a => a.id === id)
+      const response = await inventoryApi.list()
+      const data = response?.data?.list || []
+      const found = data.find(a => a.id === id)
       setAsset(found || null)
     } catch (error) {
       console.error('Failed to load asset:', error)

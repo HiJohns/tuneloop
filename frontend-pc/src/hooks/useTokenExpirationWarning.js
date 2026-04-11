@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { message } from 'antd'
+import Logger from '../utils/logger'
 
 function getToken() {
   const cookies = document.cookie.split(';')
@@ -25,10 +26,10 @@ export function useTokenExpirationWarning() {
           const daysLeft = (payload.exp * 1000 - Date.now()) / (24 * 60 * 60 * 1000)
           if (daysLeft < 3 && daysLeft > 0) {
             message.info('登录即将过期，正在自动延期...')
-            console.log(`[Auth Debug] Token expires in ${daysLeft.toFixed(1)} days`)
+            Logger.log('AUTH', `Token expires in ${daysLeft.toFixed(1)} days`)
           }
         } catch (e) {
-          console.error('[Auth Debug] Failed to parse token for expiration check:', e)
+          Logger.error('AUTH', 'Failed to parse token for expiration check:', e)
         }
       }
     }, 60 * 60 * 1000) // 每小时检查一次

@@ -1,3 +1,5 @@
+import Logger from '../utils/logger'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
@@ -62,7 +64,7 @@ function isTokenExpiringSoon(token) {
     const thirtyPercentOf30Days = 30 * 24 * 60 * 60 * 1000 * 0.3
     return timeLeft < thirtyPercentOf30Days
   } catch (e) {
-    console.error('[Auth Debug] Failed to parse token:', e)
+    Logger.error('AUTH', 'Failed to parse token:', e)
     return true
   }
 }
@@ -73,16 +75,16 @@ async function handleAuthError(token, retryCount, endpoint, options) {
   if (retryCount < 1) {
     try {
       await refreshAccessToken()
-      console.log('[Auth Debug] Token refreshed after auth error, retrying request')
+      Logger.log('AUTH', 'Token refreshed after auth error, retrying request')
       // 刷新成功后重试原请求
       return await request(endpoint, options, retryCount + 1)
     } catch (e) {
-      console.log('[Auth Debug] Token refresh failed in handleAuthError:', e.message)
+      Logger.warn('AUTH', 'Token refresh failed in handleAuthError:', e.message)
     }
   }
   
   // Step 2: 刷新失败，清除 token 并跳转
-  console.log('[Auth Debug] Auth failed, clearing tokens and redirecting to IAM')
+  Logger.warn('AUTH', 'Auth failed, clearing tokens and redirecting to IAM')
   clearTokens()
   redirectToIAM()
   
@@ -116,17 +118,20 @@ async function refreshAccessToken() {
 }
 
 async function request(endpoint, options = {}, retryCount = 0) {
+  const method = options.method || 'GET'
+  Logger.api(endpoint, method, { timestamp: new Date().toISOString() })
+  
   let token = getToken()
   
   // Step 2: 实现滑动窗口续期 - 在请求前检查 Token 状态
   if (token && isTokenExpiringSoon(token) && retryCount === 0) {
     try {
       await refreshAccessToken()
-      console.log('[Auth Debug] Token auto-refreshed (sliding window)')
+      Logger.log('AUTH', 'Token auto-refreshed (sliding window)')
       // 刷新后重新获取 token
       token = getToken()
     } catch (e) {
-      console.log('[Auth Debug] Token refresh failed:', e.message)
+      Logger.warn('AUTH', 'Token refresh failed:', e.message)
     }
   }
   
@@ -176,63 +181,44 @@ async function request(endpoint, options = {}, retryCount = 0) {
 
   const data = await response.json()
   
+  // Log non-200 responses for debugging
+  if (data.code !== 20000) {
+    Logger.error('API', `Non-200 response: ${endpoint}`, { status: response.status, body: data })
+  } else {
+    Logger.api(endpoint, method, { status: response.status, code: data.code })
+  }
+  
   // Handle 40101 token expired
-  // 统一处理：调用通用认证错误处理函数
   if (data.code === 40101) {
     const result = await handleAuthError(token, retryCount, endpoint, options)
     if (result && result.__authFailed) {
-      // 认证失败，已经跳转，直接返回
-      return []
+      return { code: 40101, message: '认证失败', data: null }
     }
-    // 如果刷新成功并返回数据，直接返回
     if (result && !result.__authFailed) {
       return result
     }
   }
   
-  // 标准化响应：确保返回数组
-  if (Array.isArray(data)) {
-    return data
-  }
-  
-  // 提取常见包装字段
+  // 统一响应格式处理: 优先返回完整响应对象，让调用方自行处理
+  // 后端标准格式: { code: 20000, data: ..., message: ... }
   if (data && typeof data === 'object') {
-    if (Array.isArray(data.data)) return data.data
-    if (Array.isArray(data.items)) return data.items
-    if (Array.isArray(data.result)) return data.result
-    if (Array.isArray(data.list)) return data.list
-    
-    // 处理嵌套格式: { code: 20000, data: { instruments: [...] } }
-    if (data.data && typeof data.data === 'object') {
-      // 后端返回: { code: 20000, data: { instruments: [...] } }
-      if (Array.isArray(data.data.instruments)) return data.data.instruments
-      // 后端返回: { code: 20000, data: { list: [...] } }
-      if (Array.isArray(data.data.list)) return data.data.list
-    }
-    
-    // 处理统一响应格式: { success: true, data: [...] }
-    if (data.success && Array.isArray(data.data)) return data.data
-    
-    // 处理 code 格式: { code: 0, data: [...] }
-    if (data.code === 0 && Array.isArray(data.data)) return data.data
-    if (data.code === 20000 && Array.isArray(data.data)) return data.data
-    
-    // 特殊处理: /iam/users 端点返回的是对象，不是数组
-    if (endpoint.includes('/iam/users') && data.code === 20000 && data.data) {
-      // Return the full response object instead of empty array
+    // 如果是标准响应格式，直接返回完整对象
+    if ('code' in data) {
       return data
     }
-    
-    // 特殊处理: /sites/tree 端点返回的是对象，不是数组
-    if (endpoint.includes('/sites/tree') && data.code === 20000 && data.data) {
-      // Return the full response object instead of empty array
+    // 兼容旧格式: { success: true, data: ... }
+    if ('success' in data) {
       return data
     }
   }
   
-  // 兜底: 返回空数组
-  console.warn(`API ${endpoint} returned non-array data:`, data)
-  return []
+  // 原始数组响应
+  if (Array.isArray(data)) {
+    return { code: 20000, data: data }
+  }
+  
+  // 其他情况返回原始数据
+  return data
 }
 
 export const api = {

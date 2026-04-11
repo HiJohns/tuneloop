@@ -66,8 +66,8 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"code": 20000,
 				"data": gin.H{
-					"instruments": instruments,
-					"total":       len(instruments),
+					"list":  instruments,
+					"total": len(instruments),
 				},
 			})
 			return

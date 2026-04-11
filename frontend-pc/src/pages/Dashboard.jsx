@@ -43,21 +43,27 @@ export default function Dashboard() {
     setLoading(true)
     try {
       const today = new Date().toISOString().split('T')[0]
-      const [inventoryData, sitesData, leasesData, ordersResponse, maintenanceData] = await Promise.all([
+      const [inventoryRes, sitesRes, leasesRes, ordersRes, maintenanceRes] = await Promise.all([
         inventoryApi.list(),
         sitesApi.list(),
         leaseApi.list(),
-        ordersApi.list? ordersApi.list({ start_date: today, end_date: today }) : Promise.resolve([]),
+        ordersApi.list? ordersApi.list({ start_date: today, end_date: today }) : Promise.resolve({ data: [] }),
         maintenanceApi.listMerchant(),
       ])
-      setAssets(inventoryData || [])
-      setSites((sitesData || []).map(s => ({
+      
+      const inventoryData = inventoryRes?.data?.list || []
+      const sitesData = sitesRes?.data?.list || []
+      const leasesData = leasesRes?.data?.list || []
+      const ordersResponse = ordersRes?.data?.list || []
+      const maintenanceData = maintenanceRes?.data?.list || []
+      
+      setAssets(inventoryData)
+      setSites(sitesData.map(s => ({
         value: s.id,
         label: s.name,
       })))
       
-      // Calculate new KPI values
-      if (leasesData) {
+      if (leasesData.length > 0) {
         const activeLeases = leasesData.filter(l => l.status === 'active')
         setActiveRentals(activeLeases.length)
         
@@ -67,9 +73,9 @@ export default function Dashboard() {
         setTotalAssets(totalValue)
       }
       
-      setTodaysNewOrders(ordersResponse?.length || ordersResponse?.data?.length || 0)
+      setTodaysNewOrders(ordersResponse.length)
       
-      if (maintenanceData) {
+      if (maintenanceData.length > 0) {
         const pendingMaintenance = maintenanceData.filter(m => 
           m.status === 'PENDING' || m.status === 'PROCESSING'
         )

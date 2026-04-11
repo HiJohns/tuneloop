@@ -16,26 +16,26 @@ func main() {
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
-	
+
 	dbUser := os.Getenv("POSTGRES_USER")
 	if dbUser == "" {
 		dbUser = "tuneloop"
 	}
-	
+
 	dbPassword := os.Getenv("POSTGRES_PASSWORD")
 	if dbPassword == "" {
 		fmt.Println("❌ POSTGRES_PASSWORD environment variable not set")
 		os.Exit(1)
 	}
-	
+
 	dbName := os.Getenv("TUNELOOP_DB")
 	if dbName == "" {
 		dbName = "tuneloop"
 	}
-	
+
 	dbURL := fmt.Sprintf("postgresql://%s:%s@%s:5432/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbName)
-	
+
 	// Create migrate instance
 	m, err := migrate.New(
 		"file://database/migrations",
@@ -44,15 +44,15 @@ func main() {
 		log.Fatalf("Failed to create migrate instance: %v", err)
 	}
 	defer m.Close()
-	
-	// Force version 13 to fix dirty state
-	fmt.Println("🔧 Forcing migration version 13 as completed...")
-	err = m.Force(13)
+
+	// Force version 14 to fix dirty state
+	fmt.Println("🔧 Forcing migration version 14 as completed...")
+	err = m.Force(14)
 	if err != nil {
 		log.Fatalf("Failed to force version: %v", err)
 	}
-	
-	fmt.Println("✅ Migration version 13 forced successfully")
+
+	fmt.Println("✅ Migration version 14 forced successfully")
 	fmt.Println("📊 Current version:")
 	version, dirty, err := m.Version()
 	if err != nil {
