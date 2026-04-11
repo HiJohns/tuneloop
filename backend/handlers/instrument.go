@@ -16,7 +16,6 @@ import (
 var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
-	Name           string                   `json:"name"`
 	Brand          string                   `json:"brand"`
 	Level          string                   `json:"level" binding:"required"`
 	Model          string                   `json:"model"`
@@ -82,7 +81,7 @@ func CreateInstrument(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[DEBUG CreateInstrument] Creating instrument: name=%s, brand=%s, level=%s", req.Name, req.Brand, req.Level)
+	log.Printf("[DEBUG CreateInstrument] Creating instrument: brand=%s, level=%s", req.Brand, req.Level)
 
 	// Get category_name from database
 	var categoryName string
@@ -111,7 +110,6 @@ func CreateInstrument(c *gin.Context) {
 	instrument := models.Instrument{
 		TenantID:     tenantID,
 		OrgID:        tenantID,
-		Name:         req.Name,
 		Brand:        req.Brand,
 		Level:        req.Level,
 		LevelName:    levelName,
@@ -226,7 +224,6 @@ func UpdateInstrument(c *gin.Context) {
 		return
 	}
 
-	instrument.Name = req.Name
 	instrument.Model = req.Model
 	instrument.Brand = req.Brand
 	instrument.Level = req.Level
