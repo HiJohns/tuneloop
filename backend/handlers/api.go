@@ -323,11 +323,12 @@ func CreateCategory(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Name    string `json:"name" binding:"required"`
-		Icon    string `json:"icon"`
-		Level   int    `json:"level"`
-		Visible bool   `json:"visible"`
-		Sort    int    `json:"sort"`
+		Name     string  `json:"name" binding:"required"`
+		Icon     string  `json:"icon"`
+		Level    int     `json:"level"`
+		Visible  bool    `json:"visible"`
+		Sort     int     `json:"sort"`
+		ParentID *string `json:"parent_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -353,9 +354,16 @@ func CreateCategory(c *gin.Context) {
 		TenantID: tenantID,
 		Name:     req.Name,
 		Icon:     req.Icon,
-		Level:    req.Level,
 		Visible:  req.Visible,
 		Sort:     req.Sort,
+		ParentID: req.ParentID,
+	}
+
+	// Auto-calculate level based on parent_id
+	if req.ParentID != nil && *req.ParentID != "" {
+		category.Level = 2
+	} else {
+		category.Level = 1
 	}
 
 	if err := db.Create(&category).Error; err != nil {
