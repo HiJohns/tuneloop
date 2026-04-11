@@ -287,6 +287,35 @@ func GetCategories(c *gin.Context) {
 	})
 }
 
+// GetCategoryByID gets a single category by ID
+func GetCategoryByID(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	categoryID := c.Param("id")
+
+	var category models.Category
+	if err := db.Where("id = ? AND tenant_id = ?", categoryID, tenantID).First(&category).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "Category not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to fetch category",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": category,
+	})
+}
+
 // CreateCategory creates a new category
 func CreateCategory(c *gin.Context) {
 	db := database.GetDB()
@@ -332,6 +361,75 @@ func CreateCategory(c *gin.Context) {
 		"code":    20100,
 		"data":    category,
 		"message": "Category created successfully",
+	})
+}
+
+// UpdateCategory updates an existing category
+func UpdateCategory(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	categoryID := c.Param("id")
+
+	var req struct {
+		Name     string  `json:"name"`
+		Icon     string  `json:"icon"`
+		Level    int     `json:"level"`
+		Visible  bool    `json:"visible"`
+		Sort     int     `json:"sort"`
+		ParentID *string `json:"parent_id"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	// Build update map
+	updates := map[string]interface{}{
+		"name":      req.Name,
+		"icon":      req.Icon,
+		"visible":   req.Visible,
+		"parent_id": req.ParentID,
+	}
+
+	// Calculate level based on parent_id
+	if req.ParentID != nil && *req.ParentID != "" {
+		updates["level"] = 2
+	} else {
+		updates["level"] = 1
+		updates["parent_id"] = nil
+	}
+
+	if req.Sort > 0 {
+		updates["sort"] = req.Sort
+	}
+
+	if err := db.Model(&models.Category{}).Where("id = ? AND tenant_id = ?", categoryID, tenantID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to update category",
+		})
+		return
+	}
+
+	// Fetch updated category
+	var category models.Category
+	if err := db.Where("id = ?", categoryID).First(&category).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "Category not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"data":    category,
+		"message": "Category updated successfully",
 	})
 }
 

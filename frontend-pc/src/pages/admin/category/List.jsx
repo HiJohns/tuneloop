@@ -21,6 +21,23 @@ export default function CategoryList() {
 
   useEffect(() => {
     fetchCategoryTree()
+    
+    // Bug Fix: Check URL for category ID on page load
+    const path = window.location.pathname
+    const match = path.match(/\/categories\/([^/]+)$/)
+    if (match) {
+      const categoryId = match[1]
+      // Fetch category details and select it
+      api.get(`/categories/${categoryId}`).then(result => {
+        if (result.code === 20000 && result.data) {
+          setSelectedCategory(result.data)
+          setSelectedKeys([categoryId])
+          setViewMode('detail')
+        }
+      }).catch(err => {
+        console.error('Failed to load category from URL:', err)
+      })
+    }
   }, [])
 
   const fetchCategoryTree = async () => {
@@ -233,12 +250,28 @@ export default function CategoryList() {
     try {
       const values = await form.validateFields()
       
+      // Bug Fix: Handle parent_id for different scenarios
+      // - Create sub-category: use editingCategory.parent_id
+      // - Create top-level: parent_id should be null
+      // - Edit mode: values.parent_id (handle 'root' virtual root as null)
+      let finalParentId = null
+      if (formMode === 'create' && editingCategory?.parent_id) {
+        // Creating sub-category - use parent from editingCategory
+        finalParentId = editingCategory.parent_id
+      } else if (formMode === 'edit') {
+        // Edit mode - handle virtual root
+        finalParentId = values.parent_id === 'root' || values.parent_id === null ? null : values.parent_id
+      } else {
+        // Create top-level - parent_id is null
+        finalParentId = null
+      }
+      
       // Prepare form data - exclude sort field per Issue #241
       const formData = {
         name: values.name,
         icon: values.icon || '',
         visible: values.visible !== false,
-        parent_id: values.parent_id === null ? null : (values.parent_id || null),
+        parent_id: finalParentId,
       }
       
       let result
@@ -253,12 +286,15 @@ export default function CategoryList() {
       // Refresh tree data
       await fetchCategoryTree()
       
-      // Update selected category if editing
+      // Update selected category and URL
       const newCategoryId = formMode === 'edit' ? editingCategory.id : result.data?.id
       if (newCategoryId) {
         const updatedCategory = await api.get(`/categories/${newCategoryId}`)
         setSelectedCategory(updatedCategory?.data || null)
         setSelectedKeys(newCategoryId ? [newCategoryId] : [])
+        
+        // Bug Fix: Update URL after creating/editing category
+        window.history.pushState(null, '', `/instruments/categories/${newCategoryId}`)
       }
       
       // Switch back to detail view
