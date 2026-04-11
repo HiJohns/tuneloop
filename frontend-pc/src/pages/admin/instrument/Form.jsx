@@ -718,8 +718,14 @@ const loadCategoryChildren = async (node) => {
       const result = await response.json()
       if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
-        if (onSubmit) {
+        console.log('[DEBUG] onSubmit callback:', onSubmit, 'type:', typeof onSubmit, 'isPageMode:', isPageMode)
+        if (typeof onSubmit === 'function') {
           onSubmit(result.data)
+        } else if (isPageMode) {
+          // Page mode: redirect to list after success
+          window.location.href = '/instruments'
+        } else {
+          console.warn('[DEBUG] onSubmit is not a function, skipping callback')
         }
         form.resetFields()
         setFileList([])
@@ -929,18 +935,11 @@ const loadCategoryChildren = async (node) => {
         >
           <Input placeholder="请输入视频URL（可选）" />
         </Form.Item>
-      </Form>
-  )
 
-  return isPageMode ? (
-    <div style={{ padding: '24px' }}>
-      <Card 
-        title={title}
-        extra={
+        <Form.Item>
           <Space>
             <Button 
               onClick={() => {
-                // Cancel: redirect back to list page
                 window.location.href = '/instruments'
               }}
             >
@@ -955,7 +954,14 @@ const loadCategoryChildren = async (node) => {
               提交
             </Button>
           </Space>
-        }
+        </Form.Item>
+      </Form>
+  )
+
+  return isPageMode ? (
+    <div style={{ padding: '24px' }}>
+      <Card 
+        title={title}
       >
         {renderFormContent()}
       </Card>
