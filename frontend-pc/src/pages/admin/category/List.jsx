@@ -483,9 +483,8 @@ export default function CategoryList() {
                   <Descriptions.Item label="级别" span={2}>
                     {selectedCategory.level === 1 ? '一级分类' : '二级分类'}
                   </Descriptions.Item>
-                  <Descriptions.Item label="排序序号">{selectedCategory.sort || '-'}</Descriptions.Item>
                   <Descriptions.Item label="父级分类">
-                    {selectedCategory.parent_id ? '有' : '顶级分类'}
+                    {selectedCategory.parent_id ? '是' : '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="显示状态">
                     {selectedCategory.visible ? '显示' : '隐藏'}
