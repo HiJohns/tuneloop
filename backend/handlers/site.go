@@ -491,6 +491,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 	// When rootID is provided, fetch children of that parent
 	if rootID != "" {
 		query = query.Where("parent_id = ?", rootID)
+		fmt.Printf("[DEBUG] GetSiteTree - Loading children for rootID: %s\n", rootID)
 	} else {
 		// Initial load: only return top-level sites
 		query = query.Where("parent_id IS NULL")
@@ -510,13 +511,15 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 	fmt.Printf("[DEBUG] GetSiteTree - Query completed. Found %d sites\n", len(sites))
 
 	type SiteTreeNode struct {
-		ID       string                  `json:"id"`
-		Name     string                  `json:"name"`
-		Address  string                  `json:"address"`
-		Type     string                  `json:"type"`
-		ParentID *string                 `json:"parent_id"`
-		Manager  *map[string]interface{} `json:"manager"`
-		Children []SiteTreeNode          `json:"children"`
+		ID          string                  `json:"id"`
+		Name        string                  `json:"name"`
+		Address     string                  `json:"address"`
+		Type        string                  `json:"type"`
+		ParentID    *string                 `json:"parent_id"`
+		Manager     *map[string]interface{} `json:"manager"`
+		IsLeaf      bool                    `json:"isLeaf"`
+		HasChildren bool                    `json:"hasChildren"`
+		Children    []SiteTreeNode          `json:"children"`
 	}
 
 	var result []SiteTreeNode
@@ -541,14 +544,23 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 			parentID = &pid
 		}
 
+		hasChildren := false
+		var childCount int64
+		db.Model(&models.Site{}).Where("parent_id = ? AND tenant_id = ? AND status = 'active'", site.ID, tenantID).Count(&childCount)
+		if childCount > 0 {
+			hasChildren = true
+		}
+
 		node := SiteTreeNode{
-			ID:       site.ID,
-			Name:     site.Name,
-			Address:  site.Address,
-			Type:     site.Type,
-			ParentID: parentID,
-			Manager:  manager,
-			Children: []SiteTreeNode{},
+			ID:          site.ID,
+			Name:        site.Name,
+			Address:     site.Address,
+			Type:        site.Type,
+			ParentID:    parentID,
+			Manager:     manager,
+			IsLeaf:      !hasChildren,
+			HasChildren: hasChildren,
+			Children:    []SiteTreeNode{},
 		}
 
 		result = append(result, node)

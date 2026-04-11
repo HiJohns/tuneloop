@@ -304,13 +304,16 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       console.log('[DEBUG] Loading children for category:', node.key)
       const result = await api.get(`/categories/${node.key}/children`)
       const children = result?.data?.list || []
+      console.log('[DEBUG] Category children API response:', result)
       
+      // Use isLeaf from API to determine if node is expandable
+      // If isLeaf is true, don't add children array (antd won't show expand icon)
       const loadedChildren = children.map(cat => ({
         key: cat.id,
         title: cat.name,
         value: cat.id,
-        children: [],
-        isLeaf: false
+        children: cat.isLeaf === false ? [] : undefined,
+        isLeaf: cat.isLeaf
       }))
       
       console.log('[DEBUG] Loaded children for category', node.key, ':', loadedChildren)
