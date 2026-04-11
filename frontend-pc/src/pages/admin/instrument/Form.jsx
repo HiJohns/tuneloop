@@ -92,7 +92,7 @@ const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
 
 export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmit, initialData = null, categories = [] }) {
   // If no open prop provided, assume page mode and auto-open modal
-  const open = controlledOpen !== undefined ? controlledOpen : true
+  const isModalOpen = controlledOpen !== undefined ? controlledOpen : true
   // Page mode when onCancel is not provided (route usage), modal mode when onCancel is provided (List.jsx)
   const isPageMode = !onCancel
   const [form] = Form.useForm()
@@ -123,7 +123,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   );
 
   useEffect(() => {
-    if (open) {
+    if (isModalOpen) {
       if (initialData) {
         form.setFieldsValue(initialData)
         // Set file list if images exist
@@ -140,20 +140,20 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         setFileList([])
       }
     }
-  }, [open, initialData])
+  }, [isModalOpen, initialData])
 
   useEffect(() => {
-    if (open) {
+    if (isModalOpen) {
       fetchCategoryTree()
       fetchSiteTree()
       fetchProperties()
     }
-  }, [open])
+  }, [isModalOpen])
 
   // Initial data load on mount
   useEffect(() => {
-    console.log('[DEBUG] Component mounted, open:', open, 'isPageMode:', isPageMode)
-    if (open || isPageMode) {
+    console.log('[DEBUG] Component mounted, open:', isModalOpen, 'isPageMode:', isPageMode)
+    if (isModalOpen || isPageMode) {
       console.log('[DEBUG] Initial data load triggered')
       fetchCategoryTree()
       fetchSiteTree()
@@ -961,7 +961,7 @@ const loadCategoryChildren = async (node) => {
   ) : (
     <Modal
       title={title}
-      open={open}
+      open={isModalOpen}
       onCancel={onCancel}
       onOk={handleSubmit}
       confirmLoading={loading || uploadStatus.isUploading}
