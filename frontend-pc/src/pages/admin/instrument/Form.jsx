@@ -259,12 +259,16 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const result = await sitesApi.getTree(node.key)
       const children = result?.data?.list || []
       
-      return children.map(site => ({
+      const loadedChildren = children.map(site => ({
         key: site.id,
         title: site.name,
         value: site.id,
-        isLeaf: true  // Assume leaf until expanded
+        children: [],  // Add empty children array to allow further loading
+        isLeaf: false  // Mark as expandable to allow further loading of children
       }))
+      
+      console.log('[DEBUG] Loaded children for', node.key, ':', loadedChildren)
+      return loadedChildren
     } catch (err) {
       console.error('Failed to load site children:', err)
       return []
