@@ -180,19 +180,22 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       const data = result?.data?.list || []
       console.log('[DEBUG] Categories data before mapping:', data)
       
-      const tree = data.map(cat => {
-        console.log('[DEBUG] Processing category:', cat)
-        return {
-          key: cat.id,
-          title: cat.name,
-          value: cat.id,
-          children: cat.sub_categories?.map(child => ({
-            key: child.id,
-            title: child.name,
-            value: child.id,
-          }))
-        }
-      })
+      // Filter only parent categories (categories with no parent_id)
+      const tree = data
+        .filter(cat => !cat.parent_id)  // Only keep parent categories
+        .map(cat => {
+          console.log('[DEBUG] Processing category:', cat)
+          return {
+            key: cat.id,
+            title: cat.name,
+            value: cat.id,
+            children: cat.sub_categories?.map(child => ({
+              key: child.id,
+              title: child.name,
+              value: child.id,
+            }))
+          }
+        })
       console.log('[DEBUG] Final category tree:', tree)
       setCategoryTree(tree)
     } catch (err) {
@@ -260,8 +263,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     const currentTime = Date.now()
     lastKeyPressTime.current = currentTime
     
-    setSnChecking(true)
-    
     // Set 2 second check
     snCheckTimer.current = setTimeout(async () => {
       // Check if there's a newer key press within 2 seconds
@@ -270,11 +271,11 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       if (timeSinceLastKeyPress < 2000) {
         // New key press within 2 seconds, skip this search
         console.log('Skipping search due to new input within 2 seconds')
-        setSnChecking(false)
         return
       }
       
       // No new input within 2 seconds, proceed with search
+      setSnChecking(true)  // Only set checking when actually starting search
       try {
         const result = await api.get(`/instruments/check?sn=${encodeURIComponent(value)}`)
         if (result.code === 20000 && result.data?.exists) {
