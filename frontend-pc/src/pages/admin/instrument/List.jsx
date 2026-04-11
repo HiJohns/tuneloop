@@ -126,6 +126,12 @@ export default function InstrumentList() {
       onFilter: (value, record) => record.category_name === value
     },
     {
+      title: '乐器分级',
+      dataIndex: 'level',
+      key: 'level',
+      width: 100,
+    },
+    {
       title: '网点',
       dataIndex: 'site_name',
       key: 'site_name',
