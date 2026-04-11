@@ -90,7 +90,7 @@ const SortableImageItem = ({ file, onRemove, uploadStatus, onRetry }) => {
   );
 };
 
-export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmit, initialData = null, categories = [] }) {
+export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmit = () => {}, initialData = null, categories = [] }) {
   // If no open prop provided, assume page mode and auto-open modal
   const isModalOpen = controlledOpen !== undefined ? controlledOpen : true
   // Page mode when onCancel is not provided (route usage), modal mode when onCancel is provided (List.jsx)
@@ -718,7 +718,9 @@ const loadCategoryChildren = async (node) => {
       const result = await response.json()
       if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
-        onSubmit(result.data)
+        if (onSubmit) {
+          onSubmit(result.data)
+        }
         form.resetFields()
         setFileList([])
         setUploadStatus({ isUploading: false, progress: {}, failedFiles: [] })
