@@ -28,6 +28,7 @@ type CreateInstrumentRequest struct {
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
 	Specifications []map[string]interface{} `json:"specifications"`
+	Properties     map[string]interface{}   `json:"properties"` // Accept frontend's properties field
 }
 
 func GetInstrumentPricing(c *gin.Context) {
@@ -147,6 +148,14 @@ func CreateInstrument(c *gin.Context) {
 			return
 		}
 		instrument.Specifications = string(specsJSON)
+	} else if req.Properties != nil && len(req.Properties) > 0 {
+		// Also accept properties from frontend and convert to specifications JSON
+		propsJSON, err := json.Marshal(req.Properties)
+		if err != nil {
+			log.Printf("[ERROR] Failed to marshal properties: %v", err)
+		} else {
+			instrument.Specifications = string(propsJSON)
+		}
 	} else {
 		instrument.Specifications = "[]"
 	}
@@ -230,6 +239,7 @@ func UpdateInstrument(c *gin.Context) {
 	instrument.CategoryID = req.CategoryID
 	instrument.Description = req.Description
 	instrument.Video = req.Video
+	log.Printf("[DEBUG] req.SN = '%s', req.Level = '%s', req.CategoryID = '%s'", req.SN, req.Level, req.CategoryID)
 	instrument.SN = req.SN
 
 	if req.SiteID != "" {
