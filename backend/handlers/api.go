@@ -231,7 +231,9 @@ func GetCategories(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var categories []models.Category
-	if err := db.Where("tenant_id = ? AND visible = ?", tenantID, true).
+	// Fix: Query ALL categories (regardless of visible) to build hierarchy
+	// The frontend will handle displaying only visible ones if needed
+	if err := db.Where("tenant_id = ?", tenantID).
 		Order("sort ASC").
 		Find(&categories).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
