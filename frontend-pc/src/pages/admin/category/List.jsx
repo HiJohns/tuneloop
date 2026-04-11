@@ -211,8 +211,11 @@ export default function CategoryList() {
       const category = findCategoryById(treeData, selectedKeys[0])
       setSelectedCategory(category)
       setViewMode('detail')
+      // Update URL
+      window.history.pushState(null, '', `/instruments/categories/${category.id}`)
     } else {
       setSelectedCategory(null)
+      window.history.pushState(null, '', '/instruments/categories')
     }
   }
 
@@ -314,6 +317,8 @@ export default function CategoryList() {
     form.setFieldsValue({ visible: true, parent_id: null })
     fetchParentCategories()
     setViewMode('form')
+    // Update URL
+    window.history.pushState(null, '', '/instruments/categories/new')
   }
 
   const handleCreateSubCategory = () => {
@@ -330,6 +335,8 @@ export default function CategoryList() {
     })
     fetchCategoryTreeForMove()
     setViewMode('form')
+    // Update URL
+    window.history.pushState(null, '', '/instruments/categories/new')
   }
 
   const handleEdit = () => {
@@ -343,6 +350,22 @@ export default function CategoryList() {
     })
     fetchCategoryTreeForMove()
     setViewMode('form')
+    // Update URL
+    if (selectedCategory?.id) {
+      window.history.pushState(null, '', `/instruments/categories/${selectedCategory.id}/edit`)
+    }
+  }
+
+  const handleFormCancel = () => {
+    setViewMode('detail')
+    form.resetFields()
+    setEditingCategory(null)
+    // Update URL based on selected category
+    if (selectedCategory?.id) {
+      window.history.pushState(null, '', `/instruments/categories/${selectedCategory.id}`)
+    } else {
+      window.history.pushState(null, '', '/instruments/categories')
+    }
   }
 
   const handleDelete = async () => {
@@ -522,26 +545,22 @@ export default function CategoryList() {
             </Card>
           )}
           
-          {viewMode === 'form' && (
-            <Card 
-              title={formMode === 'edit' ? '编辑分类' : '创建分类'}
-              extra={
-                <Space>
-                  <Button onClick={() => {
-                    setViewMode('detail')
-                    form.resetFields()
-                    setEditingCategory(null)
-                  }}>取消</Button>
-                  <Button 
-                    type="primary" 
-                    onClick={handleFormSubmit}
-                    loading={saving}
-                  >
-                    提交
-                  </Button>
-                </Space>
-              }
-            >
+           {viewMode === 'form' && (
+             <Card 
+               title={formMode === 'edit' ? '编辑分类' : '创建分类'}
+               extra={
+                 <Space>
+                   <Button onClick={handleFormCancel}>取消</Button>
+                   <Button 
+                     type="primary" 
+                     onClick={handleFormSubmit}
+                     loading={saving}
+                   >
+                     提交
+                   </Button>
+                 </Space>
+               }
+             >
               <Form form={form} layout="vertical">
                 <Form.Item
                   name="name"
