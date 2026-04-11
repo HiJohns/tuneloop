@@ -339,6 +339,16 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
+	// Check name uniqueness
+	var existingCategory models.Category
+	if err := db.Where("tenant_id = ? AND name = ?", tenantID, req.Name).First(&existingCategory).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "分类名称已存在",
+		})
+		return
+	}
+
 	category := models.Category{
 		TenantID: tenantID,
 		Name:     req.Name,
@@ -388,6 +398,16 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
+	// Check name uniqueness (exclude self)
+	var existingCategory models.Category
+	if err := db.Where("tenant_id = ? AND name = ? AND id != ?", tenantID, req.Name, categoryID).First(&existingCategory).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "分类名称已存在",
+		})
+		return
+	}
+
 	// Build update map
 	updates := map[string]interface{}{
 		"name":      req.Name,
@@ -430,6 +450,39 @@ func UpdateCategory(c *gin.Context) {
 		"code":    20000,
 		"data":    category,
 		"message": "Category updated successfully",
+	})
+}
+
+// DeleteCategory deletes a category
+func DeleteCategory(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	categoryID := c.Param("id")
+
+	// Check if category has children
+	var childCount int64
+	db.Model(&models.Category{}).Where("parent_id = ? AND tenant_id = ?", categoryID, tenantID).Count(&childCount)
+	if childCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "该分类下存在子分类，无法删除",
+		})
+		return
+	}
+
+	// Delete category
+	if err := db.Where("id = ? AND tenant_id = ?", categoryID, tenantID).Delete(&models.Category{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to delete category",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "Category deleted successfully",
 	})
 }
 
