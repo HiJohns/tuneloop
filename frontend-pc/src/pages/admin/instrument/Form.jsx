@@ -153,12 +153,17 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   // Fetch instrument levels
   useEffect(() => {
+    console.log('[DEBUG] Fetching instrument levels...')
     instrumentsApi.getLevels().then(result => {
+      console.log('[DEBUG] Instrument levels API response:', result)
       if (result.code === 20000) {
+        console.log('[DEBUG] Setting levels:', result.data)
         setLevels(result.data || [])
+      } else {
+        console.warn('[DEBUG] API returned non-20000:', result)
       }
     }).catch(err => {
-      console.error('Failed to fetch instrument levels:', err)
+      console.error('[DEBUG] Failed to fetch instrument levels:', err)
     })
   }, [])
 
@@ -732,12 +737,14 @@ const loadCategoryChildren = async (node) => {
         message.success(initialData ? '更新成功' : '创建成功')
         console.log('[DEBUG] onSubmit callback:', onSubmit, 'type:', typeof onSubmit, 'isPageMode:', isPageMode)
         if (typeof onSubmit === 'function') {
+          console.log('[DEBUG] Calling onSubmit callback, will refresh list')
           onSubmit(result.data)
         } else if (isPageMode) {
           // Page mode: redirect to list after success
+          console.log('[DEBUG] Page mode, redirecting to /instruments')
           window.location.href = '/instruments'
         } else {
-          console.warn('[DEBUG] onSubmit is not a function, skipping callback')
+          console.warn('[DEBUG] No onSubmit callback and not page mode, keeping modal open')
         }
         form.resetFields()
         setFileList([])
