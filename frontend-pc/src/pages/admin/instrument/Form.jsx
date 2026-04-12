@@ -736,13 +736,13 @@ const loadCategoryChildren = async (node) => {
       if (result.code === 20000 || result.code === 20100) {
         message.success(initialData ? '更新成功' : '创建成功')
         console.log('[DEBUG] onSubmit callback:', onSubmit, 'type:', typeof onSubmit, 'isPageMode:', isPageMode)
-        if (typeof onSubmit === 'function') {
-          console.log('[DEBUG] Calling onSubmit callback, will refresh list')
-          onSubmit(result.data)
-        } else if (isPageMode) {
-          // Page mode: redirect to list after success
+        // Check page mode first - in page mode, redirect regardless of onSubmit
+        if (isPageMode) {
           console.log('[DEBUG] Page mode, redirecting to /instruments')
           window.location.href = '/instruments'
+        } else if (typeof onSubmit === 'function') {
+          console.log('[DEBUG] Calling onSubmit callback, will refresh list')
+          onSubmit(result.data)
         } else {
           console.warn('[DEBUG] No onSubmit callback and not page mode, keeping modal open')
         }
