@@ -127,8 +127,8 @@ export default function InstrumentList() {
     },
     {
       title: '乐器分级',
-      dataIndex: 'level',
-      key: 'level',
+      dataIndex: 'level_name',
+      key: 'level_name',
       width: 100,
     },
     {
