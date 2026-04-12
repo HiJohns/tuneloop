@@ -131,9 +131,10 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	log.Printf("[DEBUG Callback] Refresh token length: %d", len(tokenResp.RefreshToken))
 
 	// Set access_token and refresh_token cookies
+	// PC 端会话时长设置为 1 小时 (3600 秒)
 	// Use SameSite=None and Secure=false for local development
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("token", tokenResp.AccessToken, 604800, "/", "", false, false)
+	c.SetCookie("token", tokenResp.AccessToken, 3600, "/", "", false, false)            // 1 hour
 	c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true) // 30 days, httpOnly
 
 	c.JSON(http.StatusOK, gin.H{
