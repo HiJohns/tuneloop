@@ -660,6 +660,25 @@ func GetInstrumentLevels(c *gin.Context) {
 		return
 	}
 
+	// Auto-populate default levels if table is empty
+	// This ensures the API always returns data even if migration hasn't run
+	if len(levels) == 0 {
+		fmt.Println("[DEBUG] Instrument levels table is empty, populating default levels")
+		defaultLevels := []models.InstrumentLevel{
+			{Caption: "入门", Code: "entry", SortOrder: 1},
+			{Caption: "专业", Code: "professional", SortOrder: 2},
+			{Caption: "大师", Code: "master", SortOrder: 3},
+		}
+
+		for _, level := range defaultLevels {
+			if err := db.Create(&level).Error; err != nil {
+				fmt.Printf("[WARN] Failed to create instrument level %s: %v\n", level.Caption, err)
+				continue
+			}
+			levels = append(levels, level)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": levels,
