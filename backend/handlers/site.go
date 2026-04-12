@@ -524,6 +524,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 
 	var result []SiteTreeNode
 	for _, site := range sites {
+		fmt.Printf("[DEBUG] GetSiteTree - Site ID: %s, ManagerID: %v\n", site.ID, site.ManagerID)
 		var manager *map[string]interface{}
 		if site.ManagerID != nil {
 			user, err := lookupOrSyncManager(c, db, site.ManagerID.String())
