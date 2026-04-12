@@ -683,12 +683,12 @@ const loadCategoryChildren = async (node) => {
       console.log('[DEBUG] Final images array:', images)
       
       
-      // Prepare form data - add sn, category_id, site_id, level, properties
+      // Prepare form data - add sn, category_id, site_id, level_id, properties
       const formData = {
         sn: values.sn,
         category_id: values.category_id,
         site_id: values.site_id,
-        level: values.level,
+        level_id: values.level_id,
         description: values.description,
         images: images,
         video: values.video || '',

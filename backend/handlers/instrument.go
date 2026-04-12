@@ -19,7 +19,7 @@ var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
 	Brand          string                   `json:"brand"`
-	Level          string                   `json:"level" binding:"required"`
+	Level          string                   `json:"level"`
 	LevelID        string                   `json:"level_id"` // New: UUID reference to instrument_levels
 	Model          string                   `json:"model"`
 	CategoryID     string                   `json:"category_id" binding:"required"`
@@ -166,8 +166,17 @@ func CreateInstrument(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[DEBUG] CreateInstrument - Parsed: SN='%s', Level='%s', CategoryID='%s', SiteID='%s', Properties=%v",
-		req.SN, req.Level, req.CategoryID, req.SiteID, req.Properties)
+	// Validate at least one of level or level_id is provided
+	if req.Level == "" && req.LevelID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "Either level or level_id must be provided",
+		})
+		return
+	}
+
+	log.Printf("[DEBUG] CreateInstrument - Parsed: SN='%s', Level='%s', LevelID='%s', CategoryID='%s', SiteID='%s', Properties=%v",
+		req.SN, req.Level, req.LevelID, req.CategoryID, req.SiteID, req.Properties)
 
 	log.Printf("[DEBUG CreateInstrument] Creating instrument: brand=%s, level=%s", req.Brand, req.Level)
 
