@@ -548,6 +548,17 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
+	// Check if any instruments use this category
+	var instrumentCount int64
+	db.Model(&models.Instrument{}).Where("category_id = ? AND tenant_id = ?", categoryID, tenantID).Count(&instrumentCount)
+	if instrumentCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "该分类下存在乐器，无法删除",
+		})
+		return
+	}
+
 	// Delete category
 	if err := db.Where("id = ? AND tenant_id = ?", categoryID, tenantID).Delete(&models.Category{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

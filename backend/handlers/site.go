@@ -352,6 +352,28 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 
+	// Check if site has children
+	var childCount int64
+	db.Model(&models.Site{}).Where("parent_id = ?", siteID).Count(&childCount)
+	if childCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "该网点下存在子网点，无法删除",
+		})
+		return
+	}
+
+	// Check if any instruments use this site
+	var instrumentCount int64
+	db.Model(&models.Instrument{}).Where("site_id = ?", siteID).Count(&instrumentCount)
+	if instrumentCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "该网点下存在乐器，无法删除",
+		})
+		return
+	}
+
 	result := db.Model(&models.Site{}).Where("id = ?", siteID).Update("status", "closed")
 
 	if result.Error != nil {
