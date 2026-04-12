@@ -6,7 +6,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { api, sitesApi } from '../../../services/api'
+import { api, sitesApi, instrumentsApi } from '../../../services/api'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -110,6 +110,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [propertiesLoading, setPropertiesLoading] = useState(false)
   const [snChecking, setSnChecking] = useState(false)
   const [snDuplicate, setSnDuplicate] = useState(false)
+  const [levels, setLevels] = useState([])
   const snCheckTimer = useRef(null)
   const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
@@ -149,6 +150,17 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       fetchProperties()
     }
   }, [isModalOpen])
+
+  // Fetch instrument levels
+  useEffect(() => {
+    instrumentsApi.getLevels().then(result => {
+      if (result.code === 20000) {
+        setLevels(result.data || [])
+      }
+    }).catch(err => {
+      console.error('Failed to fetch instrument levels:', err)
+    })
+  }, [])
 
   // Initial data load on mount
   useEffect(() => {
@@ -796,14 +808,16 @@ const loadCategoryChildren = async (node) => {
 
           <Col span={12}>
             <Form.Item
-              name="level"
+              name="level_id"
               label="乐器分级"
               rules={[{ required: true, message: '请选择乐器分级' }]}
             >
               <Select placeholder="请选择乐器分级">
-                <Select.Option value="入门">入门</Select.Option>
-                <Select.Option value="专业">专业</Select.Option>
-                <Select.Option value="大师">大师</Select.Option>
+                {levels.map(level => (
+                  <Select.Option key={level.id} value={level.id}>
+                    {level.caption}
+                  </Select.Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>

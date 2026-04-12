@@ -646,3 +646,22 @@ func CheckInstrumentSN(c *gin.Context) {
 		},
 	})
 }
+
+// GET /api/instruments/levels - Get instrument levels list
+func GetInstrumentLevels(c *gin.Context) {
+	db := database.GetDB()
+
+	var levels []models.InstrumentLevel
+	if err := db.Order("sort_order").Find(&levels).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to get instrument levels",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": levels,
+	})
+}
