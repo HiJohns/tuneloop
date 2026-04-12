@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // BatchImportInstruments handles ZIP upload and CSV parsing for instrument batch import
@@ -66,11 +68,15 @@ func BatchImportInstruments(c *gin.Context) {
 		return
 	}
 
+	// Map names to IDs
+	db := database.GetDB()
+	mappedInstruments := mapNamesToIDs(csvData, imageDirs, db, tenantID)
+
 	// Return parsed data
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"instruments": csvData,
+			"instruments": mappedInstruments,
 			"images":      imageDirs,
 			"count":       len(csvData),
 		},
@@ -200,6 +206,72 @@ func parseCSVFromZIP(zipFile *zip.File) ([]map[string]interface{}, error) {
 	return data, nil
 }
 
+// lookupCategoryID finds category ID by name for given tenant
+func lookupCategoryID(name string, db *gorm.DB, tenantID string) (string, error) {
+	var category struct {
+		ID string
+	}
+
+	// Search by exact name match in tenant's categories
+	err := db.Table("categories").
+		Where("name = ? AND tenant_id = ?", name, tenantID).
+		Select("id").
+		First(&category).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return "", fmt.Errorf("category not found: %s", name)
+		}
+		return "", err
+	}
+
+	return category.ID, nil
+}
+
+// lookupSiteID finds site ID by name for given tenant
+func lookupSiteID(name string, db *gorm.DB, tenantID string) (string, error) {
+	var site struct {
+		ID string
+	}
+
+	// Search by exact name match in tenant's sites
+	err := db.Table("sites").
+		Where("name = ? AND tenant_id = ?", name, tenantID).
+		Select("id").
+		First(&site).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return "", fmt.Errorf("site not found: %s", name)
+		}
+		return "", err
+	}
+
+	return site.ID, nil
+}
+
+// lookupLevelID finds level ID by caption/name
+func lookupLevelID(name string, db *gorm.DB, tenantID string) (string, error) {
+	var level struct {
+		ID string
+	}
+
+	// Search by caption or code in instrument_levels
+	err := db.Table("instrument_levels").
+		Where("(caption = ? OR code = ?)", name, name).
+		Select("id").
+		First(&level).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return "", fmt.Errorf("level not found: %s", name)
+		}
+		return "", err
+	}
+
+	return level.ID, nil
+}
+
 // isImageFile checks if a file is an image
 func isImageFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -210,4 +282,52 @@ func isImageFile(filename string) bool {
 		}
 	}
 	return false
+}
+
+// mapNamesToIDs maps category/site/level names to IDs and tracks errors
+func mapNamesToIDs(instruments []map[string]interface{}, imageDirs []string, db *gorm.DB, tenantID string) []map[string]interface{} {
+	var mapped []map[string]interface{}
+
+	for _, instrument := range instruments {
+		mappedInst := make(map[string]interface{})
+
+		// Copy original data
+		for k, v := range instrument {
+			mappedInst[k] = v
+		}
+
+		// Map category name to ID
+		if categoryName, ok := instrument["category_name"].(string); ok && categoryName != "" {
+			categoryID, err := lookupCategoryID(categoryName, db, tenantID)
+			if err != nil {
+				mappedInst["_error_category"] = fmt.Sprintf("分类不存在: %s", categoryName)
+			} else {
+				mappedInst["category_id"] = categoryID
+			}
+		}
+
+		// Map site name to ID
+		if siteName, ok := instrument["site_name"].(string); ok && siteName != "" {
+			siteID, err := lookupSiteID(siteName, db, tenantID)
+			if err != nil {
+				mappedInst["_error_site"] = fmt.Sprintf("网点不存在: %s", siteName)
+			} else {
+				mappedInst["site_id"] = siteID
+			}
+		}
+
+		// Map level name to ID
+		if levelName, ok := instrument["level_name"].(string); ok && levelName != "" {
+			levelID, err := lookupLevelID(levelName, db, tenantID)
+			if err != nil {
+				mappedInst["_warning_level"] = fmt.Sprintf("级别不存在: %s", levelName)
+			} else {
+				mappedInst["level_id"] = levelID
+			}
+		}
+
+		mapped = append(mapped, mappedInst)
+	}
+
+	return mapped
 }
