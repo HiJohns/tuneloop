@@ -83,6 +83,95 @@ func BatchImportInstruments(c *gin.Context) {
 	})
 }
 
+// PreviewBatchImport provides a preview of batch import without actually importing
+// POST /api/instruments/batch-import/preview
+func PreviewBatchImport(c *gin.Context) {
+	// Get tenant ID from context
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	if tenantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "Tenant ID is required",
+		})
+		return
+	}
+
+	// Parse multipart form for ZIP file
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "File upload failed: " + err.Error(),
+		})
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	if !strings.HasSuffix(strings.ToLower(header.Filename), ".zip") {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": "Only ZIP files (.zip) are supported",
+		})
+		return
+	}
+
+	// Read ZIP file
+	zipReader, err := zip.NewReader(file.(io.ReaderAt), header.Size)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40004,
+			"message": "Failed to read ZIP file: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse ZIP and extract data
+	csvData, imageDirs, errors := parseZIPArchive(zipReader)
+	if len(errors) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40005,
+			"message": "ZIP parsing errors",
+			"errors":  errors,
+		})
+		return
+	}
+
+	// Map names to IDs
+	db := database.GetDB()
+	mappedInstruments := mapNamesToIDs(csvData, imageDirs, db, tenantID)
+
+	// Count errors and warnings
+	errorCount := 0
+	warningCount := 0
+	for _, inst := range mappedInstruments {
+		if _, exists := inst["_error_category"]; exists {
+			errorCount++
+		}
+		if _, exists := inst["_error_site"]; exists {
+			errorCount++
+		}
+		if _, exists := inst["_warning_level"]; exists {
+			warningCount++
+		}
+	}
+
+	// Return preview data
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"preview": gin.H{
+				"total_count":       len(csvData),
+				"error_count":       errorCount,
+				"warning_count":     warningCount,
+				"instruments":       mappedInstruments,
+				"image_directories": imageDirs,
+				"can_import":        errorCount == 0,
+			},
+		},
+	})
+}
+
 // parseZIPArchive parses a ZIP file and returns CSV data and image directories
 func parseZIPArchive(zipReader *zip.Reader) ([]map[string]interface{}, []string, []string) {
 	var csvData []map[string]interface{}
