@@ -116,9 +116,9 @@ export default function Home() {
       const result = await response.json()
       
       if (result.code === 20000) {
-        const newData = result.data || []
+        const newData = result.data?.list || []
         console.log('[Infinite Scroll] Received', newData.length, 'items')
-        console.log('[Infinite Scroll] Pagination:', result.pagination)
+        console.log('[Infinite Scroll] Pagination:', result.data?.pagination)
         
         if (append) {
           setInstruments(prev => [...prev, ...newData])
@@ -126,7 +126,7 @@ export default function Home() {
           setInstruments(newData)
         }
         
-        const pagination = result.pagination
+        const pagination = result.data?.pagination
         if (pagination) {
           console.log('[Infinite Scroll] Total pages:', pagination.totalPages, 'Current page:', pageNum)
           setHasMore(pageNum < pagination.totalPages)
@@ -139,7 +139,7 @@ export default function Home() {
       // Update categories only on initial load
       if (pageNum === 1) {
         const uniqueCategories = ["全部", ...new Set(
-          (result.data || []).map(i => i.category_name || i.category).filter(cat => cat)
+          (result.data?.list || []).map(i => i.category_name || i.category).filter(cat => cat)
         )]
         setCategories(uniqueCategories)
       }
