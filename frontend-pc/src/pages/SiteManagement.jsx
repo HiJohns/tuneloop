@@ -208,16 +208,19 @@ export default function SiteManagement() {
       
       let managerData = managerInfo
       
+      // 获取 manager_id 值（优先使用 form 值，回退到 managerInput）
+      const managerIdValue = values.manager_id || managerInput
+      
       // 如果填写了 manager_id 但 managerInfo.id 为 null，需要验证
       // 添加检查：如果 identifier 是 UUID 格式，跳过验证（因为 lookup 不支持 ID 查询）
-      const isUUID = values.manager_id && values.manager_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+      const isUUID = managerIdValue && managerIdValue.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       
-      if (values.manager_id && !managerInfo.id && !isUUID) {
+      if (managerIdValue && !managerInfo.id && !isUUID) {
         setLookupLoading(true)
         setLookupError({ message: '', visible: false })
         
         try {
-          const lookupIdentifier = values.manager_id
+          const lookupIdentifier = managerIdValue
           const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(lookupIdentifier)}`)
           
           if (result.code === 20000 && result.data) {
@@ -252,7 +255,7 @@ export default function SiteManagement() {
         // 如果 identifier 是 UUID，直接使用（已经拥有用户 ID）
         managerData = {
           ...managerInfo,
-          id: values.manager_id
+          id: managerIdValue
         }
       }
       
@@ -507,11 +510,16 @@ export default function SiteManagement() {
                     </div>
                   )}
                 >
-                  <Input 
+                  <Input
                     placeholder="请输入手机号或邮箱"
                     disabled={managerInfo.id !== null}
-                    value={managerInput}
-                    onChange={(e) => setManagerInput(e.target.value)}
+                    onChange={(e) => {
+                      // 当用户修改输入时，清空已匹配的 managerInfo
+                      if (managerInfo.id) {
+                        setManagerInfo({ name: '', id: null, email: '', phone: '' })
+                      }
+                      setManagerInput(e.target.value)
+                    }}
                     data-testid="site-form-manager-id"
                   />
                   {managerInfo.name && (
