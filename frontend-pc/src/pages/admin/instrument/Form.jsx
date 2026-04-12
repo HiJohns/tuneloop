@@ -738,8 +738,8 @@ const loadCategoryChildren = async (node) => {
         console.log('[DEBUG] onSubmit callback:', onSubmit, 'type:', typeof onSubmit, 'isPageMode:', isPageMode)
         // Check page mode first - in page mode, redirect regardless of onSubmit
         if (isPageMode) {
-          console.log('[DEBUG] Page mode, redirecting to /instruments')
-          window.location.href = '/instruments'
+          console.log('[DEBUG] Page mode, redirecting to /instruments/list')
+          window.location.href = '/instruments/list'
         } else if (typeof onSubmit === 'function') {
           console.log('[DEBUG] Calling onSubmit callback, will refresh list')
           onSubmit(result.data)
@@ -961,7 +961,7 @@ const loadCategoryChildren = async (node) => {
           <Space>
             <Button 
               onClick={() => {
-                window.location.href = '/instruments'
+                window.location.href = '/instruments/list'
               }}
             >
               取消
