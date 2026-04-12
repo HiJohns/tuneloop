@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useParams } from 'react-router-dom'
 import { Modal, Form, Input, Select, TreeSelect, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
 import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable';
@@ -178,6 +179,19 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     }
   }, [])
 
+  // Load instrument data when editing (page mode with ID in URL)
+  useEffect(() => {
+    if (isPageMode && !initialData) {
+      const params = new URLSearchParams(window.location.search)
+      const idFromParams = params.get('id') || window.location.pathname.split('/').pop()
+      
+      if (idFromParams && idFromParams !== 'edit' && idFromParams !== 'new') {
+        console.log('[DEBUG] Loading instrument data for ID:', idFromParams)
+        loadInstrumentData(idFromParams)
+      }
+    }
+  }, [isPageMode, initialData])
+
   useEffect(() => {
     console.log('[DEBUG] categoryTree state updated:', categoryTree)
   }, [categoryTree])
@@ -330,6 +344,55 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       console.error('Failed to fetch properties:', err)
     } finally {
       setPropertiesLoading(false)
+    }
+  }
+
+  // Load instrument data when editing
+  const loadInstrumentData = async (instrumentId) => {
+    try {
+      console.log('[DEBUG] Loading instrument data for ID:', instrumentId)
+      setLoading(true)
+      
+      const response = await fetch(`${API_BASE_URL}/instruments/${instrumentId}`)
+      if (!response.ok) {
+        throw new Error('Failed to load instrument data')
+      }
+      
+      const result = await response.json()
+      if (result.code === 20000) {
+        const instrumentData = result.data
+        console.log('[DEBUG] Instrument data loaded:', instrumentData)
+        
+        // Populate form with existing data
+        form.setFieldsValue({
+          sn: instrumentData.sn,
+          category_id: instrumentData.category_id,
+          site_id: instrumentData.site_id,
+          level_id: instrumentData.level_id,
+          description: instrumentData.description,
+          video: instrumentData.video,
+          status: instrumentData.status || 'active'
+        })
+        
+        // Set images in file list
+        if (instrumentData.images && instrumentData.images.length > 0) {
+          setFileList(instrumentData.images.map((url, index) => ({
+            uid: `existing-${index}`,
+            name: `image${index}`,
+            status: 'done',
+            url: url
+          })))
+        }
+        
+        console.log('[DEBUG] Form populated with instrument data')
+      } else {
+        throw new Error(result.message || 'Failed to load instrument data')
+      }
+    } catch (error) {
+      console.error('Error loading instrument:', error)
+      message.error('加载乐器数据失败')
+    } finally {
+      setLoading(false)
     }
   }
 
