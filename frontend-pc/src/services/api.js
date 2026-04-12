@@ -236,6 +236,20 @@ export const instrumentsApi = {
   get: (id) => api.get(`/instruments/${id}`),
   getPricing: (id) => api.get(`/instruments/${id}/pricing`),
   getLevels: () => api.get('/instruments/levels'),
+  batchImportPreview: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/instruments/batch-import/preview', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  batchImport: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/instruments/batch-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
 }
 
 export const ordersApi = {
