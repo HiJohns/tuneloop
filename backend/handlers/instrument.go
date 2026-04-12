@@ -680,6 +680,13 @@ func GetInstrumentLevels(c *gin.Context) {
 		}
 
 		for _, level := range defaultLevels {
+			// Check if already exists before creating
+			var existing models.InstrumentLevel
+			if err := db.Where("caption = ? OR code = ?", level.Caption, level.Code).First(&existing).Error; err == nil {
+				fmt.Printf("[DEBUG] Level already exists: %s (%s), skipping\n", level.Caption, level.Code)
+				levels = append(levels, existing)
+				continue
+			}
 			if err := db.Create(&level).Error; err != nil {
 				fmt.Printf("[WARN] Failed to create instrument level %s: %v\n", level.Caption, err)
 				continue
