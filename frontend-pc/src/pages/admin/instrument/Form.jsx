@@ -661,7 +661,7 @@ const loadCategoryChildren = async (node) => {
       console.log('[DEBUG] Form values:', values)
       
       // Validate level is selected
-      if (!values.level) {
+      if (!values.level_id) {
         message.error('请选择乐器分级')
         setLoading(false)
         return
