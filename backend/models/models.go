@@ -72,8 +72,8 @@ type Order struct {
 	Deposit           float64   `gorm:"type:decimal(10,2);default:0" json:"deposit"`
 	AccumulatedMonths int       `gorm:"default:0" json:"accumulated_months"`
 	Status            string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
-	StartDate         string    `gorm:"type:date" json:"start_date"`
-	EndDate           string    `gorm:"type:date" json:"end_date"`
+	StartDate         *string   `gorm:"type:date" json:"start_date"`
+	EndDate           *string   `gorm:"type:date" json:"end_date"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }

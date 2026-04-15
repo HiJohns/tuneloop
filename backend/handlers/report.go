@@ -70,9 +70,17 @@ func GenerateAssessmentReport(db *gorm.DB, orderID string, c *gin.Context) ([]by
 	pdf.SetFont("Arial", "", 12)
 	pdf.Cell(40, 8, fmt.Sprintf("用户: %s", user.Name))
 	pdf.Ln(8)
-	pdf.Cell(40, 8, fmt.Sprintf("开始日期: %s", order.StartDate))
+	startDate := ""
+	if order.StartDate != nil {
+		startDate = *order.StartDate
+	}
+	pdf.Cell(40, 8, fmt.Sprintf("开始日期: %s", startDate))
 	pdf.Ln(8)
-	pdf.Cell(40, 8, fmt.Sprintf("结束日期: %s", order.EndDate))
+	endDate := ""
+	if order.EndDate != nil {
+		endDate = *order.EndDate
+	}
+	pdf.Cell(40, 8, fmt.Sprintf("结束日期: %s", endDate))
 	pdf.Ln(12)
 
 	// Assessment details

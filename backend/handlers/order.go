@@ -8,6 +8,7 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type PreviewOrderRequest struct {
@@ -82,14 +83,15 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// Generate order ID
-	orderID := "order_" + req.InstrumentID + "_" + time.Now().Format("20060102150405")
+	// Generate order ID (UUID format)
+	orderID := uuid.New().String()
 
 	// Get tenant ID from context
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
 		tenantID = "default_tenant"
 	}
+	orgID := c.GetString("org_id")
 
 	// Calculate pricing
 	creditScore := 600
@@ -142,6 +144,7 @@ func CreateOrder(c *gin.Context) {
 	order := models.Order{
 		ID:           orderID,
 		TenantID:     tenantID,
+		OrgID:        orgID,
 		UserID:       c.GetString("user_id"),
 		InstrumentID: req.InstrumentID,
 		Level:        req.Level,
@@ -150,8 +153,6 @@ func CreateOrder(c *gin.Context) {
 		MonthlyRent:  resp.FirstMonthRent,
 		Deposit:      resp.Deposit,
 		Status:       "pending", // pending, paid, in_lease, completed, cancelled
-		StartDate:    "",
-		EndDate:      "",
 	}
 
 	if err := db.Create(&order).Error; err != nil {
