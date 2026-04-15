@@ -146,6 +146,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
 		authRequired.POST("/orders/preview", handlers.PreviewOrder)
 		authRequired.POST("/orders", handlers.CreateOrder)
+		authRequired.GET("/orders", handlers.GetOrders)
+		authRequired.GET("/orders/:id", handlers.GetOrder)
+		authRequired.POST("/orders/:id/pay", handlers.PayOrder)
+		authRequired.POST("/orders/:id/pickup", handlers.PickupOrder)
+		authRequired.POST("/orders/:id/return", handlers.ReturnOrder)
+		authRequired.POST("/orders/:id/cancel", handlers.CancelOrder)
 
 		siteRequired := authRequired.Group("")
 		{

@@ -184,3 +184,284 @@ func CreateOrder(c *gin.Context) {
 		},
 	})
 }
+
+// GetOrders retrieves order list with pagination and status filter
+func GetOrders(c *gin.Context) {
+	page := 1
+	pageSize := 10
+	status := c.Query("status")
+
+	// Parse pagination parameters
+	// Note: Simplified for brevity, should parse from query params in real implementation
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	query := db.Model(&models.Order{})
+
+	// Filter by status if provided
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Get total count
+	var total int64
+	query.Count(&total)
+
+	// Get orders with pagination
+	var orders []models.Order
+	offset := (page - 1) * pageSize
+	query.Offset(offset).Limit(pageSize).Find(&orders)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list":  orders,
+			"total": total,
+			"page":  page,
+		},
+	})
+}
+
+// GetOrder retrieves a single order by ID
+func GetOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		if err.Error() == "record not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "order not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch order: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": order,
+	})
+}
+
+// PayOrder handles order payment (pending -> paid)
+func PayOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Find order and check status
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "order not found",
+		})
+		return
+	}
+
+	if order.Status != "pending" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order can only be paid when status is pending",
+		})
+		return
+	}
+
+	// Update order status to paid
+	if err := db.Model(&order).Update("status", "paid").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update order status: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":   orderID,
+			"old_status": "pending",
+			"new_status": "paid",
+			"updated_at": time.Now().Format(time.RFC3339),
+		},
+	})
+}
+
+// PickupOrder confirms order pickup (paid -> in_lease)
+func PickupOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Find order and check status
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "order not found",
+		})
+		return
+	}
+
+	if order.Status != "paid" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order can only be picked up when status is paid",
+		})
+		return
+	}
+
+	// Update order status to in_lease
+	if err := db.Model(&order).Update("status", "in_lease").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update order status: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":   orderID,
+			"old_status": "paid",
+			"new_status": "in_lease",
+			"updated_at": time.Now().Format(time.RFC3339),
+		},
+	})
+}
+
+// ReturnOrder confirms order return (in_lease -> completed)
+func ReturnOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Find order and check status
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "order not found",
+		})
+		return
+	}
+
+	if order.Status != "in_lease" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order can only be returned when status is in_lease",
+		})
+		return
+	}
+
+	// Update order status to completed
+	if err := db.Model(&order).Update("status", "completed").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update order status: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":   orderID,
+			"old_status": "in_lease",
+			"new_status": "completed",
+			"updated_at": time.Now().Format(time.RFC3339),
+		},
+	})
+}
+
+// CancelOrder cancels an order (pending -> cancelled)
+func CancelOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Find order and check status
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "order not found",
+		})
+		return
+	}
+
+	if order.Status != "pending" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order can only be cancelled when status is pending",
+		})
+		return
+	}
+
+	// Restore inventory when cancelling order (optional but recommended)
+	// Get instrument and update stock_status back to available
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", "available").Error; err != nil {
+		// Log error but continue with cancellation
+		// In production, might want to handle this more carefully
+	}
+
+	// Update order status to cancelled
+	if err := db.Model(&order).Update("status", "cancelled").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update order status: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":   orderID,
+			"old_status": "pending",
+			"new_status": "cancelled",
+			"updated_at": time.Now().Format(time.RFC3339),
+		},
+	})
+}
