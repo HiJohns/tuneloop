@@ -1,384 +1,168 @@
 import { useEffect, useState } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, Switch, TreeSelect, message, Spin, Empty, Space, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons'
+import { Card, Select, List, Button, Modal, Form, Input, Switch, message, Spin, Empty, Space, Popconfirm } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined } from '@ant-design/icons'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { api, categoriesApi } from '../../../services/api'
 
 const { Option } = Select
 
+function SortableItem({ category, onEdit, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'grab',
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center justify-between p-3 bg-white border-b hover:bg-gray-50">
+      <div className="flex items-center gap-2 flex-1">
+        <MenuOutlined {...attributes} {...listeners} className="cursor-grab text-gray-400" />
+        <span className="font-medium">{category.name}</span>
+        {category.icon && <span>{category.icon}</span>}
+        {!category.visible && <span className="text-xs text-gray-400">(hidden)</span>}
+      </div>
+      <Space size="small">
+        <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(category)} />
+        <Popconfirm
+          title="Delete this category?"
+          onConfirm={() => onDelete(category.id)}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button size="small" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      </Space>
+    </div>
+  )
+}
+
 export default function CategoryList() {
-  const [treeData, setTreeData] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState(null)
-  const [editingCategory, setEditingCategory] = useState(null)
+  const [level1Categories, setLevel1Categories] = useState([])
+  const [selectedParentId, setSelectedParentId] = useState(null)
+  const [subCategories, setSubCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [savingSort, setSavingSort] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [formMode, setFormMode] = useState('create')
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
-  const [viewMode, setViewMode] = useState('detail') // 'detail' | 'form'
-  const [formMode, setFormMode] = useState('create') // 'create' | 'edit'
-  const [expandedKeys, setExpandedKeys] = useState([])
-  const [selectedKeys, setSelectedKeys] = useState([])
-  const [parentCategories, setParentCategories] = useState([])
-  const [parentLoading, setParentLoading] = useState(false)
-  const [parentCategoryName, setParentCategoryName] = useState('-')
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   useEffect(() => {
-    fetchCategoryTree()
-    
-    const path = window.location.pathname
-    
-    // Pattern 1: /categories/:id/edit - Edit mode
-    const editMatch = path.match(/\/categories\/([^/]+)\/edit$/)
-    if (editMatch) {
-      const categoryId = editMatch[1]
-      api.get(`/categories/${categoryId}`).then(result => {
-        if (result.code === 20000 && result.data) {
-          setSelectedCategory(result.data)
-          setSelectedKeys([categoryId])
-          setEditingCategory({ ...result.data })
-          setFormMode('edit')
-          form.resetFields()
-          form.setFieldsValue({
-            ...result.data,
-            visible: result.data.visible !== false
-          })
-          fetchCategoryTreeForMove()
-          setViewMode('form')
-        }
-      }).catch(err => console.error('Failed to load category:', err))
-      return
-    }
-    
-    // Pattern 2: /categories/new - Create top-level mode
-    if (path.endsWith('/categories/new')) {
-      setEditingCategory(null)
-      setFormMode('create')
-      form.resetFields()
-      form.setFieldsValue({ visible: true, parent_id: null })
-      fetchCategoryTreeForMove()
-      setViewMode('form')
-      return
-    }
-    
-    // Pattern 3: /categories/:id - Detail view
-    const detailMatch = path.match(/\/categories\/([^/]+)$/)
-    if (detailMatch) {
-      const categoryId = detailMatch[1]
-      api.get(`/categories/${categoryId}`).then(result => {
-        if (result.code === 20000 && result.data) {
-          setSelectedCategory(result.data)
-          setSelectedKeys([categoryId])
-          setViewMode('detail')
-        }
-      }).catch(err => console.error('Failed to load category from URL:', err))
-    }
+    fetchCategories()
   }, [])
 
-  // Listen for browser back/forward navigation
   useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname
-      
-      const editMatch = path.match(/\/categories\/([^/]+)\/edit$/)
-      if (editMatch) {
-        const categoryId = editMatch[1]
-        api.get(`/categories/${categoryId}`).then(result => {
-          if (result.code === 20000 && result.data) {
-            setSelectedCategory(result.data)
-            setSelectedKeys([categoryId])
-            setEditingCategory({ ...result.data })
-            setFormMode('edit')
-            form.resetFields()
-            form.setFieldsValue({
-              ...result.data,
-              visible: result.data.visible !== false
-            })
-            fetchCategoryTreeForMove()
-            setViewMode('form')
-          }
-        })
-        return
-      }
-      
-      if (path.endsWith('/categories/new')) {
-        setEditingCategory(null)
-        setFormMode('create')
-        form.resetFields()
-        form.setFieldsValue({ visible: true, parent_id: null })
-        fetchCategoryTreeForMove()
-        setViewMode('form')
-        return
-      }
-      
-      const detailMatch = path.match(/\/categories\/([^/]+)$/)
-      if (detailMatch) {
-        const categoryId = detailMatch[1]
-        api.get(`/categories/${categoryId}`).then(result => {
-          if (result.code === 20000 && result.data) {
-            setSelectedCategory(result.data)
-            setSelectedKeys([categoryId])
-            setViewMode('detail')
-          }
-        })
+    if (selectedParentId) {
+      const parent = level1Categories.find(c => c.id === selectedParentId)
+      if (parent && parent.sub_categories) {
+        const sorted = [...parent.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+        setSubCategories(sorted)
       } else {
-        setSelectedCategory(null)
-        setSelectedKeys([])
-        setViewMode('detail')
+        setSubCategories([])
       }
+    } else {
+      setSubCategories([])
     }
-    
-    window.addEventListener('popstate', handlePopState)
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
-  }, [])
+  }, [selectedParentId, level1Categories])
 
-  // Load parent category name when selectedCategory changes
-  useEffect(() => {
-    const loadParentCategoryName = async () => {
-      if (selectedCategory?.parent_id) {
-        try {
-          const result = await api.get(`/categories/${selectedCategory.parent_id}`)
-          if (result.code === 20000 && result.data) {
-            setParentCategoryName(result.data.name)
-          } else {
-            setParentCategoryName('-')
-          }
-        } catch (err) {
-          console.error('Failed to load parent category:', err)
-          setParentCategoryName('-')
-        }
-      } else {
-        setParentCategoryName('-')
-      }
-    }
-
-    loadParentCategoryName()
-  }, [selectedCategory])
-
-  const fetchCategoryTree = async () => {
+  const fetchCategories = async () => {
     try {
       setLoading(true)
       const result = await api.get('/categories')
-      
-      // Handle API response format: { code: 20000, data: { list: [...] } }
       const data = result?.data?.list || []
-      
-      // Convert to tree nodes format for Tree component
-      const treeNodes = convertToTreeNodes(data)
-      setTreeData(treeNodes)
-      
-      // Expand first level by default
-      if (treeNodes.length > 0) {
-        setExpandedKeys(treeNodes.map(node => node.key))
+      setLevel1Categories(data)
+      if (data.length > 0 && !selectedParentId) {
+        setSelectedParentId(data[0].id)
       }
     } catch (err) {
-      message.error('加载分类数据失败: ' + err.message)
+      message.error('Failed to load categories: ' + err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  /*
-   * Convert categories data to Tree component format
-   * Input: [{id, name, icon, level, sort, visible, sub_categories: [...]}]
-   * Output: [{key, title, data, children: [...]}]
-   */
-  const convertToTreeNodes = (categories) => {
-    return categories.map(cat => {
-      const hasChildren = cat.sub_categories && cat.sub_categories.length > 0
-      return {
-        key: cat.id,
-        title: cat.name,
-        data: cat,
-        children: hasChildren ? convertToTreeNodes(cat.sub_categories) : []
-      }
-    })
-  }
+  const handleDragEnd = async (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
 
-  const findCategoryById = (nodes, id) => {
-    for (const node of nodes) {
-      if (node.key === id) return node.data
-      if (node.children) {
-        const found = findCategoryById(node.children, id)
-        if (found) return found
-      }
-    }
-    return null
-  }
+    const oldIndex = subCategories.findIndex(c => c.id === active.id)
+    const newIndex = subCategories.findIndex(c => c.id === over.id)
 
-  const onSelect = (selectedKeys) => {
-    setSelectedKeys(selectedKeys)
-    if (selectedKeys.length > 0) {
-      const category = findCategoryById(treeData, selectedKeys[0])
-      setSelectedCategory(category)
-      setViewMode('detail')
-      // Update URL
-      window.history.pushState(null, '', `/instruments/categories/${category.id}`)
-    } else {
-      setSelectedCategory(null)
-      window.history.pushState(null, '', '/instruments/categories')
-    }
-  }
+    const newSubCategories = [...subCategories]
+    const [removed] = newSubCategories.splice(oldIndex, 1)
+    newSubCategories.splice(newIndex, 0, removed)
+    setSubCategories(newSubCategories)
 
-  const fetchParentCategories = async () => {
+    const sortUpdates = newSubCategories.map((cat, index) => ({
+      id: cat.id,
+      sort: index + 1,
+    }))
+
+    setSavingSort(true)
     try {
-      setParentLoading(true)
-      const result = await api.get('/categories')
-      if (result.code === 20000) {
-        const level1Categories = (result.data?.list || [])
-          .filter(cat => cat.level === 1)
-        setParentCategories(level1Categories)
+      await api.put('/categories/sort', { items: sortUpdates })
+      message.success('Sort order updated')
+      await fetchCategories()
+    } catch (err) {
+      message.error('Failed to update sort: ' + err.message)
+      const parent = level1Categories.find(c => c.id === selectedParentId)
+      if (parent && parent.sub_categories) {
+        setSubCategories([...parent.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0)))
       }
-    } catch (error) {
-      message.error('加载父级分类失败: ' + error.message)
-      setParentCategories([])
     } finally {
-      setParentLoading(false)
+      setSavingSort(false)
     }
-  }
-
-  // Fetch all categories including sub_categories for move functionality
-  const fetchCategoryTreeForMove = async () => {
-    try {
-      setParentLoading(true)
-      const result = await api.get('/categories')
-      if (result.code === 20000) {
-        setParentCategories(result.data?.list || [])
-      }
-    } catch (error) {
-      message.error('加载分类数据失败: ' + error.message)
-      setParentCategories([])
-    } finally {
-      setParentLoading(false)
-    }
-  }
-
-  // Get parent category name by ID
-  const getParentCategoryName = (parentId) => {
-    const parent = parentCategories.find(cat => cat.id === parentId)
-    return parent?.name || '未知分类'
-  }
-
-  // Build category tree with virtual root for move functionality
-  const buildCategoryTreeWithVirtualRoot = () => {
-    const treeData = parentCategories.map(cat => {
-      const hasChildren = cat.sub_categories && cat.sub_categories.length > 0
-      return {
-        key: cat.id,
-        title: cat.name,
-        value: cat.id,
-        children: hasChildren ? buildSubTree(cat.sub_categories) : [],
-        disabled: formMode === 'edit' && editingCategory?.id === cat.id ? true : false
-      }
-    })
-    return [
-      {
-        key: 'root',
-        title: '顶级分类',
-        value: null,
-        children: treeData
-      }
-    ]
-  }
-
-  const buildSubTree = (categories) => {
-    return categories.map(cat => {
-      const hasChildren = cat.sub_categories && cat.sub_categories.length > 0
-      // Disable if this is the category being edited or any of its children
-      let isDisabled = false
-      if (formMode === 'edit' && editingCategory?.id) {
-        isDisabled = isCategoryOrChild(cat.id, editingCategory.id)
-      }
-      return {
-        key: cat.id,
-        title: cat.name,
-        value: cat.id,
-        children: hasChildren ? buildSubTree(cat.sub_categories) : [],
-        disabled: isDisabled
-      }
-    })
-  }
-
-  // Check if a category ID is the current editing category or any of its children
-  const isCategoryOrChild = (categoryId, targetId) => {
-    if (categoryId === targetId) return true
-    const category = findCategoryById(treeData, targetId)
-    if (category && category.sub_categories) {
-      for (const child of category.sub_categories) {
-        if (isCategoryOrChild(child.id, categoryId)) return true
-      }
-    }
-    return false
   }
 
   const handleCreateTopLevel = () => {
     setEditingCategory(null)
     setFormMode('create')
     form.resetFields()
-    form.setFieldsValue({ visible: true, parent_id: null })
-    fetchParentCategories()
-    setViewMode('form')
-    // Update URL
-    window.history.pushState(null, '', '/instruments/categories/new')
+    form.setFieldsValue({ visible: true })
+    setModalVisible(true)
   }
 
   const handleCreateSubCategory = () => {
-    if (!selectedCategory) {
-      message.warning('请先选择一个分类')
+    if (!selectedParentId) {
+      message.warning('Please select a parent category first')
       return
     }
-    setEditingCategory({ parent_id: selectedCategory.id, name: selectedCategory.name })
+    setEditingCategory({ parent_id: selectedParentId })
     setFormMode('create')
     form.resetFields()
-    form.setFieldsValue({ 
-      visible: true,
-      icon: selectedCategory.icon  // 继承父分类图标
-    })
-    fetchCategoryTreeForMove()
-    setViewMode('form')
-    // Update URL
-    window.history.pushState(null, '', '/instruments/categories/new')
+    form.setFieldsValue({ visible: true })
+    setModalVisible(true)
   }
 
-  const handleEdit = () => {
-    if (!selectedCategory) return
-    setEditingCategory({ ...selectedCategory })
+  const handleEdit = (category) => {
+    setEditingCategory({ ...category })
     setFormMode('edit')
     form.resetFields()
     form.setFieldsValue({
-      ...selectedCategory,
-      visible: selectedCategory.visible !== false
+      ...category,
+      visible: category.visible !== false,
     })
-    fetchCategoryTreeForMove()
-    setViewMode('form')
-    // Update URL
-    if (selectedCategory?.id) {
-      window.history.pushState(null, '', `/instruments/categories/${selectedCategory.id}/edit`)
-    }
+    setModalVisible(true)
   }
 
-  const handleFormCancel = () => {
-    setViewMode('detail')
-    form.resetFields()
-    setEditingCategory(null)
-    // Update URL based on selected category
-    if (selectedCategory?.id) {
-      window.history.pushState(null, '', `/instruments/categories/${selectedCategory.id}`)
-    } else {
-      window.history.pushState(null, '', '/instruments/categories')
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!selectedCategory) return
+  const handleDelete = async (categoryId) => {
     try {
-      await categoriesApi.delete(selectedCategory.id)
-      message.success('删除成功')
-      setSelectedCategory(null)
-      setSelectedKeys([])
-      setViewMode('detail')
-      fetchCategoryTree()
+      await categoriesApi.delete(categoryId)
+      message.success('Deleted successfully')
+      await fetchCategories()
     } catch (err) {
-      message.error('删除失败: ' + err.message)
+      message.error('Failed to delete: ' + err.message)
     }
   }
 
@@ -386,78 +170,44 @@ export default function CategoryList() {
     setSaving(true)
     try {
       const values = await form.validateFields()
-      
-      // Bug Fix: Handle parent_id for different scenarios
-      // - Create sub-category: use editingCategory.parent_id
-      // - Create top-level: parent_id should be null
-      // - Edit mode: values.parent_id (handle 'root' virtual root as null)
+
       let finalParentId = null
       if (formMode === 'create' && editingCategory?.parent_id) {
-        // Creating sub-category - use parent from editingCategory
         finalParentId = editingCategory.parent_id
       } else if (formMode === 'edit') {
-        // Edit mode - handle virtual root
-        finalParentId = values.parent_id === 'root' || values.parent_id === null ? null : values.parent_id
-      } else {
-        // Create top-level - parent_id is null
-        finalParentId = null
+        finalParentId = editingCategory.parent_id || null
       }
-      
-      // Prepare form data - exclude sort field per Issue #241
+
       const formData = {
         name: values.name,
         icon: values.icon || '',
         visible: values.visible !== false,
         parent_id: finalParentId,
       }
-      
-      let result
+
       if (formMode === 'edit' && editingCategory?.id) {
-        result = await categoriesApi.update(editingCategory.id, formData)
-        message.success('更新成功')
+        await categoriesApi.update(editingCategory.id, formData)
+        message.success('Updated successfully')
       } else {
-        result = await categoriesApi.create(formData)
-        message.success('创建成功')
+        await categoriesApi.create(formData)
+        message.success('Created successfully')
       }
-      
-      // Refresh tree data
-      await fetchCategoryTree()
-      
-      // Update selected category and URL
-      const newCategoryId = formMode === 'edit' ? editingCategory.id : result.data?.id
-      if (newCategoryId) {
-        const updatedCategory = await api.get(`/categories/${newCategoryId}`)
-        setSelectedCategory(updatedCategory?.data || null)
-        setSelectedKeys(newCategoryId ? [newCategoryId] : [])
-        
-        // Bug Fix: Update URL after creating/editing category
-        window.history.pushState(null, '', `/instruments/categories/${newCategoryId}`)
-      }
-      
-      // Switch back to detail view
-      setViewMode('detail')
-      setEditingCategory(null)
+
+      setModalVisible(false)
+      await fetchCategories()
     } catch (error) {
-      if (error.errorFields) {
-        // Form validation error
-        console.error('Validation failed:', error)
-      } else {
-        message.error(error.message || '提交失败')
+      if (!error.errorFields) {
+        message.error(error.message || 'Failed to submit')
       }
     } finally {
       setSaving(false)
     }
   }
 
-  const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center h-full text-gray-400">
-      <AppstoreOutlined style={{ fontSize: 64, marginBottom: 16 }} />
-      <p className="text-lg mb-4">暂无分类数据</p>
-      <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>
-        创建顶级分类
-      </Button>
-    </div>
-  )
+  const getParentCategoryName = () => {
+    const parent = level1Categories.find(c => c.id === selectedParentId)
+    return parent?.name || ''
+  }
 
   if (loading) {
     return (
@@ -470,166 +220,83 @@ export default function CategoryList() {
   return (
     <div className="p-4">
       <div className="flex gap-4">
-        {/* Left Panel - Tree */}
-        <Card 
-          title="分类结构" 
-          className="w-1/3"
-          extra={
-            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>
-              创建顶级分类
-            </Button>
-          }
-        >
-          {treeData.length === 0 ? (
-            renderEmptyState()
+        <Card title="Category Management" className="w-1/3" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>Create Top Level</Button>}>
+          {level1Categories.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <AppstoreOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+              <p className="text-lg mb-4">No categories</p>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>Create Top Level Category</Button>
+            </div>
           ) : (
-            <Tree
-              showIcon
-              treeData={treeData}
-              selectedKeys={selectedKeys}
-              expandedKeys={expandedKeys}
-              onSelect={onSelect}
-              onExpand={setExpandedKeys}
-              defaultExpandAll
-            />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Select Parent Category (Level 1)</label>
+                <Select
+                  value={selectedParentId}
+                  onChange={setSelectedParentId}
+                  className="w-full"
+                  placeholder="Select a parent category"
+                >
+                  {level1Categories.map(cat => (
+                    <Option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</Option>
+                  ))}
+                </Select>
+              </div>
+              <Button block icon={<PlusOutlined />} onClick={handleCreateSubCategory} disabled={!selectedParentId}>Create Sub Category</Button>
+            </div>
           )}
         </Card>
 
-        {/* Right Panel - Detail or Form */}
-        <div className="w-2/3">
-          {viewMode === 'detail' && (
-            <Card 
-              title="分类详情" 
-              extra={
-                selectedCategory && (
-                  <Space>
-                    {selectedCategory?.level === 1 && (
-                      <Button icon={<PlusOutlined />} onClick={handleCreateSubCategory}>
-                        创建下级分类
-                      </Button>
-                    )}
-                    <Button icon={<EditOutlined />} onClick={handleEdit}>
-                      编辑
-                    </Button>
-                    <Popconfirm
-                      title="确定要删除该分类吗？"
-                      onConfirm={handleDelete}
-                      okText="确定"
-                      cancelText="取消"
-                    >
-                      <Button danger icon={<DeleteOutlined />}>
-                        删除
-                      </Button>
-                    </Popconfirm>
-                  </Space>
-                )
-              }
-            >
-              {selectedCategory ? (
-                <Descriptions column={2} bordered>
-                  <Descriptions.Item label="分类名称">{selectedCategory.name}</Descriptions.Item>
-                  <Descriptions.Item label="分类图标">{selectedCategory.icon || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="级别" span={2}>
-                    {selectedCategory.level === 1 ? '一级分类' : '二级分类'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="父级分类">
-                    {selectedCategory.parent_id ? parentCategoryName : '-'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="显示状态">
-                    {selectedCategory.visible ? '显示' : '隐藏'}
-                  </Descriptions.Item>
-                </Descriptions>
-              ) : (
-                <Empty description="请选择左侧分类查看详情" />
-              )}
-            </Card>
+        <Card className="w-2/3" title={selectedParentId ? `Sub Categories of "${getParentCategoryName()}"` : 'Sub Categories'} extra={savingSort && <Spin size="small" />}>
+          {!selectedParentId ? (
+            <Empty description="Please select a parent category from the left" />
+          ) : subCategories.length === 0 ? (
+            <Empty description="No sub categories, click 'Create Sub Category' to add one" />
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                <div className="border rounded">
+                  {subCategories.map(category => (
+                    <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
-          
-           {viewMode === 'form' && (
-             <Card 
-               title={formMode === 'edit' ? '编辑分类' : '创建分类'}
-               extra={
-                 <Space>
-                   <Button onClick={handleFormCancel}>取消</Button>
-                   <Button 
-                     type="primary" 
-                     onClick={handleFormSubmit}
-                     loading={saving}
-                   >
-                     提交
-                   </Button>
-                 </Space>
-               }
-             >
-              <Form form={form} layout="vertical">
-                <Form.Item
-                  name="name"
-                  label="分类名称"
-                  rules={[
-                    { required: true, message: '请输入分类名称' },
-                    { min: 2, message: '分类名称至少需要2个字符' },
-                    { max: 50, message: '分类名称不能超过50个字符' }
-                  ]}
-                >
-                  <Input placeholder="请输入分类名称，如：钢琴" />
-                </Form.Item>
-
-                {/* Scenario 1: Create Top Level - Hide parent category field */}
-                {formMode === 'create' && !editingCategory?.parent_id && (
-                  <Form.Item name="parent_id" hidden>
-                    <Input type="hidden" />
-                  </Form.Item>
-                )}
-
-                {/* Scenario 2: Create Sub Category - Show parent as static text */}
-                {formMode === 'create' && editingCategory?.parent_id && (
-                  <Form.Item label="父级分类">
-                    <div style={{ padding: '8px 0', color: '#666' }}>
-                      {getParentCategoryName(editingCategory.parent_id)}
-                    </div>
-                  </Form.Item>
-                )}
-
-                {/* Scenario 3: Edit - TreeSelect with virtual root for move */}
-                {formMode === 'edit' && (
-                  <Form.Item
-                    name="parent_id"
-                    label="父级分类"
-                    extra="不选择表示设为顶级分类"
-                  >
-                    <TreeSelect
-                      treeData={buildCategoryTreeWithVirtualRoot()}
-                      placeholder="请选择父级分类"
-                      allowClear
-                      treeDefaultExpandAll
-                      fieldNames={{ title: 'title', value: 'value', children: 'children' }}
-                    />
-                  </Form.Item>
-                )}
-
-                <Form.Item
-                  name="icon"
-                  label="分类图标"
-                  extra="输入emoji或图标URL，如：🎹 或 /images/icon.png"
-                >
-                  <Input placeholder="请输入图标，如：🎹" />
-                </Form.Item>
-
-                {/* Only show visible switch in edit mode */}
-                {formMode === 'edit' && (
-                  <Form.Item
-                    name="visible"
-                    label="显示状态"
-                    valuePropName="checked"
-                  >
-                    <Switch checkedChildren="显示" unCheckedChildren="隐藏" />
-                  </Form.Item>
-                )}
-              </Form>
-            </Card>
-          )}
-        </div>
+        </Card>
       </div>
+
+      <Modal
+        title={formMode === 'edit' ? 'Edit Category' : 'Create Category'}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        onOk={handleFormSubmit}
+        confirmLoading={saving}
+        okText="Submit"
+        cancelText="Cancel"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item name="name" label="Category Name" rules={[{ required: true, message: 'Please enter category name' }, { min: 2, message: 'At least 2 characters' }, { max: 50, message: 'Max 50 characters' }]}>
+            <Input placeholder="Enter category name" />
+          </Form.Item>
+
+          {formMode === 'create' && editingCategory?.parent_id && (
+            <Form.Item label="Parent Category">
+              <div className="p-2 bg-gray-50 rounded">{getParentCategoryName()}</div>
+            </Form.Item>
+          )}
+
+          <Form.Item name="icon" label="Icon" extra="Enter emoji or icon URL">
+            <Input placeholder="e.g. 🎹" />
+          </Form.Item>
+
+          {formMode === 'edit' && (
+            <Form.Item name="visible" label="Visibility" valuePropName="checked">
+              <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+            </Form.Item>
+          )}
+        </Form>
+      </Modal>
     </div>
   )
 }

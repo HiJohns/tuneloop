@@ -431,6 +431,12 @@ func CreateCategory(c *gin.Context) {
 	// Auto-calculate level based on parent_id
 	if req.ParentID != nil && *req.ParentID != "" {
 		category.Level = 2
+		// Auto-set sort to max+1 for level 2 categories
+		var maxSort int
+		db.Model(&models.Category{}).
+			Where("tenant_id = ? AND parent_id = ?", tenantID, *req.ParentID).
+			Select("COALESCE(MAX(sort), 0)").Scan(&maxSort)
+		category.Sort = maxSort + 1
 	} else {
 		category.Level = 1
 	}
@@ -571,6 +577,48 @@ func DeleteCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "Category deleted successfully",
+	})
+}
+
+// UpdateCategorySort batch updates category sort order
+func UpdateCategorySort(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	var req struct {
+		Items []struct {
+			ID   string `json:"id" binding:"required"`
+			Sort int    `json:"sort" binding:"required"`
+		} `json:"items" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	tx := db.Begin()
+	for _, item := range req.Items {
+		if err := tx.Model(&models.Category{}).
+			Where("id = ? AND tenant_id = ?", item.ID, tenantID).
+			Update("sort", item.Sort).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to update category sort",
+			})
+			return
+		}
+	}
+	tx.Commit()
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "Category sort updated successfully",
 	})
 }
 
