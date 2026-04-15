@@ -1,4 +1,4 @@
-.PHONY: web-dev build-frontend build-pc build-mobile kill-port run-backend run run-frontend run-mobile run-prod stop install init
+.PHONY: web-dev mobile-dev web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 kill-port:
 	@fuser -k 5556/tcp 2>/dev/null || true
@@ -16,6 +16,12 @@ build-mobile:
 	@echo "Building Mobile frontend..."
 	cd frontend-mobile && npm install && npm run build
 
+web: build-pc
+	@echo "PC frontend build completed."
+
+mobile: build-mobile
+	@echo "Mobile frontend build completed."
+
 run-backend: kill-port
 	@echo "=========================================="
 	@echo "Starting backend services..."
@@ -24,12 +30,12 @@ run-backend: kill-port
 	@echo "=========================================="
 	cd backend && go run main.go &
 
-run-frontend:
+web-dev:
 	@echo "Starting PC frontend development server..."
 	@echo "PC Frontend: http://localhost:5554 (with source map)"
 	@cd frontend-pc && npm run dev
 
-run-mobile:
+mobile-dev:
 	@echo "Starting Mobile frontend development server..."
 	@echo "Mobile Frontend: http://localhost:5553"
 	@cd frontend-mobile && npm run dev

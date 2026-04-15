@@ -61,6 +61,27 @@ function storeToken(token, expiresIn = 3600) {
   localStorage.setItem('token_expiry', expiry.toString())
 }
 
+function isTokenValid(token) {
+  if (!token || !token.includes('.')) return false
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const expTime = payload.exp * 1000
+    const now = Date.now()
+    return expTime > now
+  } catch (e) {
+    return false
+  }
+}
+
+function clearTokens() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('token_expiry')
+  localStorage.removeItem('user_info')
+  localStorage.removeItem('user_role')
+  sessionStorage.removeItem('token')
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+}
+
 export function ProtectedRoute({ children, requiredRoles = [] }) {
   const location = useLocation()
   const [token, setToken] = useState(null)
@@ -69,14 +90,28 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
   useEffect(() => {
     const checkToken = async () => {
       const tokenValue = await getTokenWithRetry()
-      setToken(tokenValue)
-      setChecking(false)
       
       if (!tokenValue) {
+        setChecking(false)
         const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
         const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
         window.location.href = authUrl
+        return
       }
+      
+      if (!isTokenValid(tokenValue)) {
+        console.log('[ProtectedRoute] Token invalid or expired, clearing and redirecting to login')
+        clearTokens()
+        setChecking(false)
+        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
+        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
+        window.location.href = authUrl
+        return
+      }
+      
+      console.log('[ProtectedRoute] Token valid, allowing access')
+      setToken(tokenValue)
+      setChecking(false)
     }
     
     checkToken()

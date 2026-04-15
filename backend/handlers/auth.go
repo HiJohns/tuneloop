@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -134,8 +135,27 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	// PC 端会话时长设置为 1 小时 (3600 秒)
 	// Use SameSite=None and Secure=false for local development
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("token", tokenResp.AccessToken, 3600, "/", "", false, false)            // 1 hour
-	c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true) // 30 days, httpOnly
+
+	// 关键修复：设置正确的 domain，支持子域共享
+	// 从配置或环境变量获取 domain
+	cookieDomain := ""
+	if c.Request.Host != "" {
+		// 如果是 opencode.linxdeep.com:5557，提取 .linxdeep.com
+		if strings.Contains(c.Request.Host, "linxdeep.com") {
+			cookieDomain = ".linxdeep.com"
+		}
+	}
+
+	// 如果 domain 为空，则使用不带 domain 的 cookie（当前域名）
+	if cookieDomain != "" {
+		c.SetCookie("token", tokenResp.AccessToken, 3600, "/", cookieDomain, false, false)
+		c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", cookieDomain, false, true)
+		log.Printf("[DEBUG] Setting cookie with domain: %s", cookieDomain)
+	} else {
+		c.SetCookie("token", tokenResp.AccessToken, 3600, "/", "", false, false)
+		c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true)
+		log.Printf("[DEBUG] Setting cookie without domain: %s", c.Request.Host)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

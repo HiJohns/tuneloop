@@ -3,6 +3,27 @@ import Logger from '../utils/logger'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
+  // 优先级 1: 检查 localStorage（前端主动存储的，最可靠）
+  const localToken = localStorage.getItem('token')
+  const expiry = localStorage.getItem('token_expiry')
+  
+  if (localToken && expiry) {
+    const now = new Date().getTime()
+    if (now < parseInt(expiry)) {
+      return localToken
+    } else {
+      // Token 过期，清理
+      localStorage.removeItem('token')
+      localStorage.removeItem('token_expiry')
+    }
+  }
+  
+  // 优先级 2: 检查 sessionStorage（临时会话）
+  const sessionToken = sessionStorage.getItem('token')
+  if (sessionToken) return sessionToken
+  
+  // 优先级 3: 检查 cookie（后端设置的）- 作为后备方案
+  // 注意：由于 SameSite 和 domain 限制，前端可能无法读取
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const trimmed = cookie.trim()
@@ -10,10 +31,14 @@ function getToken() {
     if (eqPos > 0) {
       const name = trimmed.substring(0, eqPos)
       const value = trimmed.substring(eqPos + 1)
-      if (name === 'token') return decodeURIComponent(value)
+      if (name === 'token') {
+        Logger.log('AUTH', 'Token retrieved from cookie (fallback)')
+        return decodeURIComponent(value)
+      }
     }
   }
-  return localStorage.getItem('token') || sessionStorage.getItem('token')
+  
+  return null
 }
 
 function storeTokens(accessToken, refreshToken) {
