@@ -71,19 +71,36 @@ func GetInstrumentByID(c *gin.Context) {
 		"org_id":         instrument.OrgID,
 		"category_id":    instrument.CategoryID,
 		"category_name":  instrument.CategoryName,
-		"name":           instrument.Name,
-		"brand":          instrument.Brand,
-		"level":          instrument.Level,
+		"sn":             instrument.SN,
+		"level_id":       instrument.LevelID,
 		"level_name":     instrument.LevelName,
-		"model":          instrument.Model,
+		"site_id":        instrument.SiteID,
 		"description":    instrument.Description,
 		"images":         json.RawMessage(instrument.Images),
 		"video":          instrument.Video,
 		"stock_status":   instrument.StockStatus,
+		"status":         instrument.StockStatus,
 		"created_at":     instrument.CreatedAt,
 		"updated_at":     instrument.UpdatedAt,
 		"specifications": specsArray,
 		"pricing":        json.RawMessage(instrument.Pricing),
+	}
+
+	// Fetch dynamic properties from instrument_properties table
+	var instrumentProps []models.InstrumentProperty
+	if err := db.Where("instrument_id = ?", instrumentID).Find(&instrumentProps).Error; err == nil {
+		// Group by property_id and collect values
+		propsMap := make(map[string][]string)
+		for _, prop := range instrumentProps {
+			// Get property name
+			var propDef models.Property
+			if err := db.First(&propDef, "id = ?", prop.PropertyID).Error; err == nil {
+				propsMap[propDef.Name] = append(propsMap[propDef.Name], prop.Value)
+			}
+		}
+		instrumentMap["properties"] = propsMap
+	} else {
+		instrumentMap["properties"] = map[string]interface{}{}
 	}
 
 	// Return instrument data with parsed JSON
@@ -160,11 +177,8 @@ func GetInstruments(c *gin.Context) {
 			"site_name":      siteName,
 			"category_id":    instrument.CategoryID,
 			"category_name":  catName,
-			"name":           instrument.Name,
-			"brand":          instrument.Brand,
-			"level":          instrument.Level,
+			"level_id":       instrument.LevelID,
 			"level_name":     instrument.LevelName,
-			"model":          instrument.Model,
 			"description":    instrument.Description,
 			"images":         json.RawMessage(instrument.Images),
 			"video":          instrument.Video,
@@ -174,6 +188,21 @@ func GetInstruments(c *gin.Context) {
 			"updated_at":     instrument.UpdatedAt,
 			"specifications": json.RawMessage(instrument.Specifications),
 			"pricing":        json.RawMessage(instrument.Pricing),
+		}
+
+		// Fetch dynamic properties from instrument_properties table
+		var instrumentProps []models.InstrumentProperty
+		if err := db.Where("instrument_id = ?", instrument.ID).Find(&instrumentProps).Error; err == nil {
+			propsMap := make(map[string][]string)
+			for _, prop := range instrumentProps {
+				var propDef models.Property
+				if err := db.First(&propDef, "id = ?", prop.PropertyID).Error; err == nil {
+					propsMap[propDef.Name] = append(propsMap[propDef.Name], prop.Value)
+				}
+			}
+			instrumentMap["properties"] = propsMap
+		} else {
+			instrumentMap["properties"] = map[string]interface{}{}
 		}
 
 		// Parse specifications JSON
