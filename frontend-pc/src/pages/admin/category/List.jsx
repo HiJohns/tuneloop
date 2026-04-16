@@ -138,10 +138,17 @@ export default function CategoryList() {
       message.warning('Please select a parent category first')
       return
     }
+    // Get parent category to inherit its icon
+    const parentCategory = level1Categories.find(c => c.id === selectedParentId)
+    const parentIcon = parentCategory?.icon || ''
+    
     setEditingCategory({ parent_id: selectedParentId })
     setFormMode('create')
     form.resetFields()
-    form.setFieldsValue({ visible: true })
+    form.setFieldsValue({ 
+      visible: true,
+      icon: parentIcon  // Inherit parent category icon
+    })
     setModalVisible(true)
   }
 
