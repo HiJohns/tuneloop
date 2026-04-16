@@ -411,6 +411,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       message.error('加载乐器数据失败')
     } finally {
       setLoading(false)
+      console.log('[DEBUG] Properties in state:', properties)
+      console.log('[DEBUG] Form values after set:', form.getFieldsValue())
     }
   }
 
