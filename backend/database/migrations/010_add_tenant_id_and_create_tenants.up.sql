@@ -1,8 +1,16 @@
 -- Migration: Add TenantID to clients table and create tenants table
 
--- Add TenantID column to clients table
-ALTER TABLE clients 
-ADD COLUMN IF NOT EXISTS tenant_id UUID DEFAULT '00000000-0000-0000-0000-000000000000';
+-- First create clients table if it doesn't exist
+CREATE TABLE IF NOT EXISTS clients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID DEFAULT '00000000-0000-0000-0000-000000000000',
+    client_id VARCHAR(100) UNIQUE NOT NULL,
+    client_secret VARCHAR(255),
+    name VARCHAR(100),
+    redirect_uris TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
 -- Create index on tenant_id
 CREATE INDEX IF NOT EXISTS idx_clients_tenant ON clients(tenant_id);
