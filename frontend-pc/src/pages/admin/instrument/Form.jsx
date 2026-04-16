@@ -375,7 +375,23 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           video: instrumentData.video,
           status: instrumentData.status || 'active'
         })
-        
+
+        // Populate dynamic properties
+        // API returns { "品牌": ["value1"], "型号": ["value2"] }
+        // Form fields are named prop_{property_id}
+        // Need to map property name -> property id to set correct form field
+        if (instrumentData.properties && properties.length > 0) {
+          const propFieldValues = {}
+          properties.forEach(prop => {
+            if (instrumentData.properties[prop.name]) {
+              const values = instrumentData.properties[prop.name]
+              propFieldValues[`prop_${prop.id}`] = values
+            }
+          })
+          console.log('[DEBUG] Setting property fields:', propFieldValues)
+          form.setFieldsValue(propFieldValues)
+        }
+
         // Set images in file list
         if (instrumentData.images && instrumentData.images.length > 0) {
           setFileList(instrumentData.images.map((url, index) => ({
