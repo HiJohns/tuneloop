@@ -52,6 +52,11 @@
 
 ### 2.3 instruments - 乐器表
 
+**重要变更** (2026-04-16):
+- 乐器不再有 `name`（名称）字段，完全由 `sn`（识别码）标识
+- 品牌、型号等属性作为动态属性存在于 `instrument_properties` 表中
+- 乐器的基本信息仅包含：识别码、分类、网点、等级
+
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
@@ -59,24 +64,26 @@
 | org_id | UUID | INDEX | 组织 ID |
 | category_id | UUID | INDEX | 分类 ID |
 | category_name | VARCHAR(100) | | 分类名称 (冗余字段) |
-| name | VARCHAR(255) | | 乐器名称 |
-| brand | VARCHAR(100) | | 品牌 |
-| model | VARCHAR(100) | | 型号 |
-| level | VARCHAR(20) | | 等级 (已废弃, 使用 level_id) |
-| level_name | VARCHAR(50) | | 等级名称 (已废弃) |
+| sn | VARCHAR(100) | | **序列号/识别码（唯一标识）** |
 | level_id | UUID | INDEX | 等级 ID (引用 instrument_levels) |
-| sn | VARCHAR(100) | | 序列号/识别码 |
-| site | VARCHAR(255) | | 归属网点名称 (冗余) |
+| level_name | VARCHAR(50) | | 等级名称 (冗余字段) |
 | site_id | UUID | INDEX | 归属网点 ID |
 | current_site_id | UUID | INDEX | 当前所在网点 ID |
 | description | TEXT | | 描述 |
 | images | JSONB | DEFAULT '[]' | 图片 URL 数组 |
 | video | VARCHAR(500) | | 视频 URL |
-| specifications | JSONB | DEFAULT '{}' | 技术规格 |
-| pricing | JSONB | DEFAULT '{}' | 定价信息 |
+| specifications | JSONB | DEFAULT '{}' | 技术规格 (JSON) |
+| pricing | JSONB | DEFAULT '{}' | 定价信息 (JSON) |
 | stock_status | VARCHAR(20) | DEFAULT 'available' | 库存状态 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
+
+**已移除字段**:
+- `name`: 乐器名称（不再使用，完全由 sn 标识）
+- `brand`: 品牌（改为动态属性）
+- `model`: 型号（改为动态属性）
+- `level`: 等级字符串（已废弃，使用 level_id）
+- `site`: 网点名称（已废弃，使用 site_id）
 
 **索引**:
 - `idx_instruments_tenant_category` ON (tenant_id, category_id)

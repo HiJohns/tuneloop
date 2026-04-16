@@ -70,6 +70,29 @@ GET /api/instruments/:id
 POST /api/instruments
 ```
 
+**Important Changes** (2026-04-16):
+- Instruments no longer have `name`, `brand`, `model` fields
+- Brand, model, etc. are passed via `properties` dynamic field
+
+**Request Body**:
+```json
+{
+  "sn": "SN123456",
+  "category_id": "uuid",
+  "site_id": "uuid",
+  "level_id": "uuid",
+  "description": "Description",
+  "images": ["url1", "url2"],
+  "video": "url",
+  "properties": {
+    "Brand": "Yamaha",
+    "Model": "U1",
+    "Color": ["Black", "White"],
+    "Year": "2020"
+  }
+}
+```
+
 ### 3.4 Update Instrument
 ```
 PUT /api/instruments/:id

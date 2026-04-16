@@ -86,27 +86,38 @@ This document defines the UI design specifications for the TuneLoop instrument r
 
 ### 3.3 Instrument Form
 
+**Important Changes** (2026-04-16):
+- Instruments no longer have a `name` field - identified solely by `sn` (serial number)
+- Brand, model, etc. are now dynamic properties
+
 **Routes**: 
 - New: `/instruments/new/edit`
 - Edit: `/instruments/:id/edit`
 
 **Features**:
 - Basic Information
-  - Instrument name
-  - Serial number (SN) - unique validation
-  - Brand
-  - Model
+  - Serial number (SN) - **unique identifier**
   - Category - tree select
   - Level - dropdown select
   - Site - tree select
 - Dynamic Properties
   - Rendered dynamically based on system config
+  - Examples: Brand, Model, Color, Year, etc.
+  - Configurable in Property Management page
+  - Optional
 - Description
 - Image Upload
   - Drag-to-sort
   - Upload progress
   - Retry on failure
 - Video URL
+
+**Form Validation**:
+- Serial Number: Required, unique validation
+- Category: Required
+- Level: Required
+- Site: Required
+- Dynamic Properties: Optional
 
 ### 3.4 Instrument Detail
 

@@ -52,6 +52,11 @@ This document defines the database table structure for the TuneLoop instrument r
 
 ### 2.3 instruments
 
+**Important Changes** (2026-04-16):
+- Instruments no longer have a `name` field - identified solely by `sn` (serial number)
+- Brand, model, and other attributes are now dynamic properties in `instrument_properties` table
+- Basic instrument info: SN, category, site, level only
+
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | Primary key |
@@ -59,14 +64,9 @@ This document defines the database table structure for the TuneLoop instrument r
 | org_id | UUID | INDEX | Organization ID |
 | category_id | UUID | INDEX | Category ID |
 | category_name | VARCHAR(100) | | Category name (redundant) |
-| name | VARCHAR(255) | | Instrument name |
-| brand | VARCHAR(100) | | Brand |
-| model | VARCHAR(100) | | Model |
-| level | VARCHAR(20) | | Level (deprecated) |
-| level_name | VARCHAR(50) | | Level name (deprecated) |
-| level_id | UUID | INDEX | Level ID |
-| sn | VARCHAR(100) | | Serial number |
-| site | VARCHAR(255) | | Site name (redundant) |
+| sn | VARCHAR(100) | | **Serial number (unique identifier)** |
+| level_id | UUID | INDEX | Level ID (references instrument_levels) |
+| level_name | VARCHAR(50) | | Level name (redundant) |
 | site_id | UUID | INDEX | Site ID |
 | current_site_id | UUID | INDEX | Current site ID |
 | description | TEXT | | Description |
@@ -77,6 +77,17 @@ This document defines the database table structure for the TuneLoop instrument r
 | stock_status | VARCHAR(20) | DEFAULT 'available' | Stock status |
 | created_at | TIMESTAMP | | Created timestamp |
 | updated_at | TIMESTAMP | | Updated timestamp |
+
+**Removed Fields**:
+- `name`: Instrument name (removed, use `sn` as identifier)
+- `brand`: Brand (moved to dynamic properties)
+- `model`: Model (moved to dynamic properties)
+- `level`: Level string (deprecated, use `level_id`)
+- `site`: Site name (deprecated, use `site_id`)
+
+**Indexes**:
+- `idx_instruments_tenant_category` ON (tenant_id, category_id)
+- `idx_instruments_tenant_status` ON (tenant_id, stock_status)
 
 ### 2.4 instrument_levels
 

@@ -103,13 +103,15 @@ GET /api/instruments/:id
 ```
 POST /api/instruments
 ```
+
+**重要变更** (2026-04-16):
+- 乐器不再有 `name`、`brand`、`model` 字段
+- 品牌、型号等属性通过 `properties` 动态字段传递
+
 **请求体**:
 ```json
 {
   "sn": "SN123456",
-  "name": " Yamaha U1",
-  "brand": "Yamaha",
-  "model": "U1",
   "category_id": "uuid",
   "site_id": "uuid",
   "level_id": "uuid",
@@ -117,6 +119,8 @@ POST /api/instruments
   "images": ["url1", "url2"],
   "video": "url",
   "properties": {
+    "品牌": "Yamaha",
+    "型号": "U1",
     "颜色": ["黑色", "白色"],
     "年份": "2020"
   }
