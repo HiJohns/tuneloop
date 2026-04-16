@@ -227,7 +227,7 @@ export default function CategoryList() {
   return (
     <div className="p-4">
       <div className="flex gap-4">
-        <Card title="Category Management" className="w-1/3" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>Create Top Level</Button>}>
+        <Card title="分类管理" className="w-1/3" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>Create Top Level</Button>}>
           {level1Categories.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
               <AppstoreOutlined style={{ fontSize: 64, marginBottom: 16 }} />
@@ -237,7 +237,7 @@ export default function CategoryList() {
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Select Parent Category (Level 1)</label>
+                <label className="block text-sm font-medium mb-1">选择父分类（一级）</label>
                 <Select
                   value={selectedParentId}
                   onChange={setSelectedParentId}
@@ -249,16 +249,16 @@ export default function CategoryList() {
                   ))}
                 </Select>
               </div>
-              <Button block icon={<PlusOutlined />} onClick={handleCreateSubCategory} disabled={!selectedParentId}>Create Sub Category</Button>
+              <Button block icon={<PlusOutlined />} onClick={handleCreateSubCategory} disabled={!selectedParentId}>创建子分类</Button>
             </div>
           )}
         </Card>
 
-        <Card className="w-2/3" title={selectedParentId ? `Sub Categories of "${getParentCategoryName()}"` : 'Sub Categories'} extra={savingSort && <Spin size="small" />}>
+        <Card className="w-2/3" title={selectedParentId ? `"${getParentCategoryName()}" 的子分类列表` : '子分类列表'} extra={savingSort && <Spin size="small" />}>
           {!selectedParentId ? (
             <Empty description="Please select a parent category from the left" />
           ) : subCategories.length === 0 ? (
-            <Empty description="No sub categories, click 'Create Sub Category' to add one" />
+            <Empty description="No sub categories, click '创建子分类' to add one" />
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
