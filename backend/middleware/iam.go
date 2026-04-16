@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/services"
@@ -118,6 +119,17 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)
 		log.Printf("[IAM DEBUG] User=%s, Role=%s, IsOwner=%v", claims.Subject, claims.Role, claims.IsOwner)
+
+		// Sliding expiration: Check if token is about to expire
+		if claims.ExpiresAt != nil {
+			timeUntilExpiry := time.Until(claims.ExpiresAt.Time)
+			// If token expires in less than 10 minutes, set header to indicate soon expiration
+			if timeUntilExpiry < 10*time.Minute {
+				log.Printf("[IAM] Token for user %s expires in %v", claims.Subject, timeUntilExpiry)
+				c.Header("X-Token-Expires-Soon", "true")
+				c.Header("X-Token-Expires-At", claims.ExpiresAt.Time.Format(time.RFC3339))
+			}
+		}
 
 		c.Next()
 	}
