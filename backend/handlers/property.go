@@ -32,15 +32,33 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 		return
 	}
 
+	type PropertyOptionResponse struct {
+		models.PropertyOption
+		DisplayValue string `json:"display_value"`
+	}
+
 	type PropertyWithOptions struct {
 		models.Property
-		Options []models.PropertyOption `json:"options"`
+		Options []PropertyOptionResponse `json:"options"`
 	}
 
 	var result []PropertyWithOptions
 	for _, prop := range properties {
-		var options []models.PropertyOption
-		db.Where("property_id = ?", prop.ID).Find(&options)
+		var rawOptions []models.PropertyOption
+		db.Where("property_name = ? AND tenant_id = ? AND status != ?", prop.Name, tenantID, "obsolete").Find(&rawOptions)
+
+		options := make([]PropertyOptionResponse, 0, len(rawOptions))
+		for _, opt := range rawOptions {
+			displayValue := opt.Value
+			if opt.Status == "pending" {
+				displayValue = opt.Value + " (待审核)"
+			}
+			options = append(options, PropertyOptionResponse{
+				PropertyOption: opt,
+				DisplayValue:   displayValue,
+			})
+		}
+
 		result = append(result, PropertyWithOptions{
 			Property: prop,
 			Options:  options,
