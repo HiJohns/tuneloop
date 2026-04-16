@@ -7,12 +7,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"tuneloop-backend/middleware"
-	"tuneloop-backend/services"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type IAMProxyHandler struct {
@@ -198,18 +199,24 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	if status, hasStatus := iamResponse["status"]; hasStatus {
 		if status == "pending" || status == "success" {
 			if userID, hasUserID := iamResponse["user_id"]; hasUserID {
+				iamUserID := userID.(string)
+
 				// Create local user record after IAM user creation
-				if err := createLocalUser(c, userID.(string), &req); err != nil {
-					log.Printf("[IAM] Failed to create local user for IAM ID %s: %v", userID, err)
+				localUserID, err := createLocalUser(c, iamUserID, &req)
+				if err != nil {
+					log.Printf("[IAM] Failed to create local user for IAM ID %s: %v", iamUserID, err)
 					// Continue even if local user creation fails, don't block the response
+					// But return IAM ID as fallback
+					localUserID = iamUserID
 				}
 
-				// Convert to our standard format
+				// Convert to our standard format using LOCAL user ID
 				c.JSON(http.StatusOK, gin.H{
 					"code":    20000,
 					"message": "success",
 					"data": gin.H{
-						"id":     userID,
+						"id":     localUserID, // Return LOCAL user ID for manager_id
+						"iam_id": iamUserID,   // Also return IAM ID if needed
 						"status": status,
 					},
 				})
@@ -223,20 +230,25 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 }
 
 // createLocalUser creates a local user record after IAM user creation
+// Returns the local user ID to be used as manager_id
 func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
 	Name     string `json:"name" binding:"required"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
-}) error {
+}) (string, error) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
-	
+
+	// Generate local UUID
+	localUserID := uuid.New().String()
+
 	// Prepare user data
 	user := models.User{
-		IAMSub:      iamUserID,
+		ID:          localUserID, // Set local UUID
+		IAMSub:      iamUserID,   // Store IAM UUID
 		TenantID:    tenantID,
 		OrgID:       orgID,
 		Name:        req.Name,
@@ -246,13 +258,13 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 		DepositMode: "standard",
 		IsShadow:    true,
 	}
-	
+
 	// Save to database
 	db := database.GetDB().WithContext(ctx)
 	if err := db.Create(&user).Error; err != nil {
-		return fmt.Errorf("failed to create local user: %w", err)
+		return "", fmt.Errorf("failed to create local user: %w", err)
 	}
-	
-	log.Printf("[IAM] Successfully created local user for IAM ID %s", iamUserID)
-	return nil
+
+	log.Printf("[IAM] Successfully created local user %s for IAM ID %s", localUserID, iamUserID)
+	return localUserID, nil // Return local ID
 }
