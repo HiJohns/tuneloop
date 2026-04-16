@@ -18,10 +18,7 @@ import (
 var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
-	Brand          string                   `json:"brand"`
-	Level          string                   `json:"level"`
-	LevelID        string                   `json:"level_id"` // New: UUID reference to instrument_levels
-	Model          string                   `json:"model"`
+	LevelID        string                   `json:"level_id"` // UUID reference to instrument_levels
 	CategoryID     string                   `json:"category_id" binding:"required"`
 	SN             string                   `json:"sn"`
 	SiteID         string                   `json:"site_id"`
@@ -32,6 +29,11 @@ type CreateInstrumentRequest struct {
 	Video          string                   `json:"video"`
 	Specifications []map[string]interface{} `json:"specifications"`
 	Properties     map[string]interface{}   `json:"properties"` // Accept frontend's properties field
+
+	// Deprecated fields - kept for backward compatibility, use Properties instead
+	Brand string `json:"brand"`
+	Model string `json:"model"`
+	Level string `json:"level"`
 }
 
 // processProperties handles the properties association logic for instruments
@@ -166,11 +168,11 @@ func CreateInstrument(c *gin.Context) {
 		return
 	}
 
-	// Validate at least one of level or level_id is provided
-	if req.Level == "" && req.LevelID == "" {
+	// Validate level_id is provided (level string is deprecated)
+	if req.LevelID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Either level or level_id must be provided",
+			"message": "level_id is required",
 		})
 		return
 	}
@@ -178,7 +180,7 @@ func CreateInstrument(c *gin.Context) {
 	log.Printf("[DEBUG] CreateInstrument - Parsed: SN='%s', Level='%s', LevelID='%s', CategoryID='%s', SiteID='%s', Properties=%v",
 		req.SN, req.Level, req.LevelID, req.CategoryID, req.SiteID, req.Properties)
 
-	log.Printf("[DEBUG CreateInstrument] Creating instrument: brand=%s, level=%s", req.Brand, req.Level)
+	log.Printf("[DEBUG CreateInstrument] Creating instrument: sn=%s", req.SN)
 
 	// Get category_name from database
 	var categoryName string
@@ -231,9 +233,7 @@ func CreateInstrument(c *gin.Context) {
 	instrument := models.Instrument{
 		TenantID:     tenantID,
 		OrgID:        tenantID,
-		Brand:        req.Brand,
 		SN:           req.SN,
-		Level:        req.Level, // deprecated field for backward compatibility
 		LevelName:    levelName,
 		LevelID:      levelID,
 		CategoryID:   req.CategoryID,
@@ -330,10 +330,8 @@ func CreateInstrument(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
 		"data": gin.H{
-			"id":    instrument.ID,
-			"name":  instrument.Name,
-			"brand": instrument.Brand,
-			"level": instrument.Level,
+			"id": instrument.ID,
+			"sn": instrument.SN,
 		},
 	})
 }
@@ -371,9 +369,6 @@ func UpdateInstrument(c *gin.Context) {
 		return
 	}
 
-	instrument.Model = req.Model
-	instrument.Brand = req.Brand
-	instrument.Level = req.Level
 	instrument.CategoryID = req.CategoryID
 	instrument.Description = req.Description
 	instrument.Video = req.Video
@@ -514,9 +509,8 @@ func UpdateInstrument(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"id":    instrument.ID,
-			"name":  instrument.Name,
-			"brand": instrument.Brand,
+			"id": instrument.ID,
+			"sn": instrument.SN,
 		},
 	})
 }

@@ -180,17 +180,19 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   }, [])
 
   // Load instrument data when editing (page mode with ID in URL)
+  const params = useParams()
+
   useEffect(() => {
     if (isPageMode && !initialData) {
-      const params = new URLSearchParams(window.location.search)
-      const idFromParams = params.get('id') || window.location.pathname.split('/').pop()
+      const idFromParams = params.id
+      const pathEnd = window.location.pathname.split('/').pop()
       
-      if (idFromParams && idFromParams !== 'edit' && idFromParams !== 'new') {
+      if (idFromParams && idFromParams !== 'edit' && idFromParams !== 'new' && pathEnd !== 'new') {
         console.log('[DEBUG] Loading instrument data for ID:', idFromParams)
         loadInstrumentData(idFromParams)
       }
     }
-  }, [isPageMode, initialData])
+  }, [isPageMode, initialData, params.id])
 
   useEffect(() => {
     console.log('[DEBUG] categoryTree state updated:', categoryTree)
@@ -826,7 +828,9 @@ const loadCategoryChildren = async (node) => {
     }
   }
 
-  const title = initialData ? '编辑乐器' : '新增乐器'
+  // 检测编辑模式：路由为 /instruments/:id/edit 或 :id/new
+  const isEditMode = window.location.pathname.includes('/edit') && !window.location.pathname.includes('/edit/new')
+  const title = (initialData || isEditMode) ? '编辑乐器' : '新增乐器'
 
   // For modal mode (List.jsx), render as Modal. For page mode (routes), render as flat page
   const renderFormContent = () => (

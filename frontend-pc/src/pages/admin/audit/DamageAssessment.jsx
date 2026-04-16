@@ -82,14 +82,11 @@ export default function DamageAssessment() {
       {instrument && (
         <Card className="mb-6" title="资产信息">
           <Row gutter={16}>
-            <Col span={8}>
-              <p><strong>乐器名称:</strong> {instrument.name}</p>
+            <Col span={12}>
+              <p><strong>识别码:</strong> {instrument.sn}</p>
             </Col>
-            <Col span={8}>
-              <p><strong>品牌:</strong> {instrument.brand}</p>
-            </Col>
-            <Col span={8}>
-              <p><strong>型号:</strong> {instrument.model}</p>
+            <Col span={12}>
+              <p><strong>分类:</strong> {instrument.category_name}</p>
             </Col>
           </Row>
         </Card>

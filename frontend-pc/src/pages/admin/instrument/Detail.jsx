@@ -281,9 +281,9 @@ export default function InstrumentDetail() {
           >
             返回列表
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">{instrument.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{instrument.sn}</h1>
           <p className="text-gray-600 mt-1">
-            {instrument.brand} {instrument.model} · {instrument.category_name}
+            {instrument.category_name}
           </p>
         </div>
         <Space>
@@ -352,9 +352,7 @@ export default function InstrumentDetail() {
               <Col span={16}>
                 <Card title="乐器信息">
                   <Descriptions column={2}>
-                    <Descriptions.Item label="乐器名称">{instrument.name}</Descriptions.Item>
-                    <Descriptions.Item label="品牌">{instrument.brand}</Descriptions.Item>
-                    <Descriptions.Item label="型号">{instrument.model}</Descriptions.Item>
+                    <Descriptions.Item label="识别码">{instrument.sn}</Descriptions.Item>
                     <Descriptions.Item label="分类">{instrument.category_name}</Descriptions.Item>
                     <Descriptions.Item label="级别">
                       <Tag color="blue">{levelMap[instrument.level] || instrument.level}</Tag>
@@ -387,7 +385,7 @@ export default function InstrumentDetail() {
                         <Image
                           key={index}
                           src={img}
-                          alt={`${instrument.name}-${index}`}
+                          alt={`${instrument.sn}-${index}`}
                           width="100%"
                           height={150}
                           className="mb-2 object-cover rounded"

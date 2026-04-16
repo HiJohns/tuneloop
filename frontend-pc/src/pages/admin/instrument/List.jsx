@@ -75,9 +75,7 @@ export default function InstrumentList() {
 
   const filteredInstruments = instruments.filter(instrument => {
     const matchText = !searchText || 
-      instrument.sn?.toLowerCase().includes(searchText.toLowerCase()) ||
-      instrument.brand?.toLowerCase().includes(searchText.toLowerCase()) ||
-      instrument.model?.toLowerCase().includes(searchText.toLowerCase())
+      instrument.sn?.toLowerCase().includes(searchText.toLowerCase())
     const matchCategory = !categoryFilter || instrument.category_name === categoryFilter
     const matchStatus = !statusFilter || instrument.status === statusFilter
     return matchText && matchCategory && matchStatus
