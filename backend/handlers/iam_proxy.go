@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
+	"tuneloop-backend/database"
+	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -195,6 +198,12 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	if status, hasStatus := iamResponse["status"]; hasStatus {
 		if status == "pending" || status == "success" {
 			if userID, hasUserID := iamResponse["user_id"]; hasUserID {
+				// Create local user record after IAM user creation
+				if err := createLocalUser(c, userID.(string), &req); err != nil {
+					log.Printf("[IAM] Failed to create local user for IAM ID %s: %v", userID, err)
+					// Continue even if local user creation fails, don't block the response
+				}
+
 				// Convert to our standard format
 				c.JSON(http.StatusOK, gin.H{
 					"code":    20000,
@@ -211,4 +220,39 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 
 	// Unknown IAM format, forward response as-is
 	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+}
+
+// createLocalUser creates a local user record after IAM user creation
+func createLocalUser(c *gin.Context, iamUserID string, req *struct {
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Name     string `json:"name" binding:"required"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}) error {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	
+	// Prepare user data
+	user := models.User{
+		IAMSub:      iamUserID,
+		TenantID:    tenantID,
+		OrgID:       orgID,
+		Name:        req.Name,
+		Phone:       req.Phone,
+		Email:       req.Email,
+		CreditScore: 600,
+		DepositMode: "standard",
+		IsShadow:    true,
+	}
+	
+	// Save to database
+	db := database.GetDB().WithContext(ctx)
+	if err := db.Create(&user).Error; err != nil {
+		return fmt.Errorf("failed to create local user: %w", err)
+	}
+	
+	log.Printf("[IAM] Successfully created local user for IAM ID %s", iamUserID)
+	return nil
 }
