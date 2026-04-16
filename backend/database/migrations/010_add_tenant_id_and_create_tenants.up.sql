@@ -22,6 +22,7 @@ ALTER TABLE clients ALTER COLUMN tenant_id SET NOT NULL;
 CREATE TABLE IF NOT EXISTS tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE,
     status VARCHAR(20) DEFAULT 'active',
     description TEXT,
     created_at TIMESTAMP DEFAULT NOW(),
@@ -30,3 +31,6 @@ CREATE TABLE IF NOT EXISTS tenants (
 
 -- Create index on status
 CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status);
+
+-- Create index on code
+CREATE INDEX IF NOT EXISTS idx_tenants_code ON tenants(code);
