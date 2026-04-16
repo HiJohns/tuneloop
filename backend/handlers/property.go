@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"tuneloop-backend/database"
@@ -107,10 +108,10 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	if len(req.Options) > 0 {
 		for _, optionValue := range req.Options {
 			option := models.PropertyOption{
-				PropertyID: property.ID,
-				Value:      optionValue,
-				Status:     "confirmed", // Confirmed by default as requested
-				TenantID:   tenantID,
+				PropertyName: property.Name,
+				Value:        optionValue,
+				Status:       "confirmed", // Confirmed by default as requested
+				TenantID:     tenantID,
 			}
 			if err := db.Create(&option).Error; err != nil {
 				// Log error but don't fail the whole operation
@@ -194,10 +195,10 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 		// Create new options
 		for _, optionValue := range req.Options {
 			option := models.PropertyOption{
-				PropertyID: property.ID,
-				Value:      optionValue,
-				Status:     "confirmed",
-				TenantID:   tenantID,
+				PropertyName: property.Name,
+				Value:        optionValue,
+				Status:       "confirmed",
+				TenantID:     tenantID,
 			}
 			if err := db.Create(&option).Error; err != nil {
 				// Log error but don't fail the whole operation
@@ -240,10 +241,10 @@ func (h *PropertyHandler) CreatePropertyOption(c *gin.Context) {
 	}
 
 	option := models.PropertyOption{
-		PropertyID: req.PropertyID,
-		Value:      req.Value,
-		Status:     "pending",
-		TenantID:   tenantID,
+		PropertyName: property.Name,
+		Value:        req.Value,
+		Status:       "pending",
+		TenantID:     tenantID,
 	}
 
 	if err := db.Create(&option).Error; err != nil {
@@ -384,5 +385,55 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"merged": true},
+	})
+}
+
+// DELETE /api/properties/:id - Delete a property (default properties protected)
+func (h *PropertyHandler) DeleteProperty(c *gin.Context) {
+	propertyID := c.Param("id")
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Check if property exists
+	var prop models.Property
+	if err := db.Where("id = ? AND tenant_id = ?", propertyID, tenantID).First(&prop).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "property not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to query property: " + err.Error(),
+		})
+		return
+	}
+
+	// Protect default properties (brand, model)
+	defaultProperties := []string{"brand", "model"}
+	for _, defaultProp := range defaultProperties {
+		if prop.Name == defaultProp {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40300,
+				"message": "default properties (brand, model) cannot be deleted",
+			})
+			return
+		}
+	}
+
+	// Soft delete: update status to 'deleted'
+	if err := db.Model(&prop).Update("status", "deleted").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to delete property: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"deleted": true},
 	})
 }

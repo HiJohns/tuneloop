@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"regexp"
 	"tuneloop-backend/database"
 	"tuneloop-backend/internal/service"
 	"tuneloop-backend/middleware"
@@ -39,7 +40,12 @@ type CreateInstrumentRequest struct {
 // processProperties handles the properties association logic for instruments
 func processProperties(db *gorm.DB, instrumentID string, tenantID string, properties map[string]interface{}) error {
 	for propName, rawValues := range properties {
-		// 1. Find property definition by name
+		// 1. Validate property name format
+		if matched, _ := regexp.MatchString(`^[a-zA-Z0-9_]+$`, propName); !matched {
+			return fmt.Errorf("property name '%s' must contain only alphanumeric characters or underscore", propName)
+		}
+
+		// 2. Find property definition by name
 		var prop models.Property
 		if err := db.Where("name = ? AND tenant_id = ?", propName, tenantID).First(&prop).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -59,33 +65,39 @@ func processProperties(db *gorm.DB, instrumentID string, tenantID string, proper
 				continue
 			}
 
-			// 2. Check if property option exists
+			// 2. Check if property option exists (handle obsolete with alias)
 			var propOption models.PropertyOption
-			err := db.Where("property_id = ? AND value = ? AND tenant_id = ?",
-				prop.ID, value, tenantID).First(&propOption).Error
+			err := db.Where("property_name = ? AND value = ? AND tenant_id = ?",
+				prop.Name, value, tenantID).First(&propOption).Error
 
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 3. Create new property option with status=pending
 				propOption = models.PropertyOption{
-					ID:         uuid.New().String(),
-					TenantID:   tenantID,
-					PropertyID: prop.ID,
-					Value:      value,
-					Status:     "pending",
+					ID:           uuid.New().String(),
+					TenantID:     tenantID,
+					PropertyName: prop.Name,
+					Value:        value,
+					Status:       "pending",
 				}
 				if err := db.Create(&propOption).Error; err != nil {
 					return fmt.Errorf("failed to create property_option for '%s=%s': %w", propName, value, err)
 				}
 			} else if err != nil {
 				return fmt.Errorf("failed to query property_option: %w", err)
+			} else if propOption.Status == "obsolete" && propOption.Alias != nil {
+				// 4. Auto-resolve alias for obsolete values
+				var aliasOption models.PropertyOption
+				if err := db.Where("id = ? AND tenant_id = ?", *propOption.Alias, tenantID).First(&aliasOption).Error; err == nil {
+					value = aliasOption.Value // Use alias value
+				}
 			}
 
-			// 4. Create instrument_property association
+			// 5. Create instrument_property association
 			instProp := models.InstrumentProperty{
 				ID:           uuid.New().String(),
 				TenantID:     tenantID,
 				InstrumentID: instrumentID,
-				PropertyID:   prop.ID,
+				PropertyName: prop.Name,
 				Value:        value,
 			}
 			if err := db.Create(&instProp).Error; err != nil {

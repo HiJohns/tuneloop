@@ -89,14 +89,10 @@ func GetInstrumentByID(c *gin.Context) {
 	// Fetch dynamic properties from instrument_properties table
 	var instrumentProps []models.InstrumentProperty
 	if err := db.Where("instrument_id = ?", instrumentID).Find(&instrumentProps).Error; err == nil {
-		// Group by property_id and collect values
+		// Group by property_name and collect values
 		propsMap := make(map[string][]string)
 		for _, prop := range instrumentProps {
-			// Get property name
-			var propDef models.Property
-			if err := db.First(&propDef, "id = ?", prop.PropertyID).Error; err == nil {
-				propsMap[propDef.Name] = append(propsMap[propDef.Name], prop.Value)
-			}
+			propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
 		}
 		instrumentMap["properties"] = propsMap
 	} else {
@@ -195,10 +191,7 @@ func GetInstruments(c *gin.Context) {
 		if err := db.Where("instrument_id = ?", instrument.ID).Find(&instrumentProps).Error; err == nil {
 			propsMap := make(map[string][]string)
 			for _, prop := range instrumentProps {
-				var propDef models.Property
-				if err := db.First(&propDef, "id = ?", prop.PropertyID).Error; err == nil {
-					propsMap[propDef.Name] = append(propsMap[propDef.Name], prop.Value)
-				}
+				propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
 			}
 			instrumentMap["properties"] = propsMap
 		} else {
