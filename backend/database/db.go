@@ -221,6 +221,15 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Property{},
 		&models.PropertyOption{},
 		&models.InstrumentProperty{},
+		&models.MaintenanceWorker{},
+		&models.MaintenanceSession{},
+		&models.MaintenanceSessionRecord{},
+		&models.LeaseSession{},
+		&models.ElectronicContract{},
+		&models.DamageReport{},
+		&models.DamageAssessment{},
+		&models.Appeal{},
+		&models.OrderStatusHistory{},
 	)
 }
 
