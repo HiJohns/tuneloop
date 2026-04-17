@@ -63,15 +63,37 @@ function MainLayout() {
   const location = useLocation()
   const [userInfo, setUserInfo] = useState(null)
 
+  // Track renders and useEffect execution
+  const renderCount = useRef(0)
+  const effectRunCount = useRef(0)
+  const tokenCheckCount = useRef(0)
+
+  renderCount.current++
+  console.log('[DEBUG TIMING] ===== MainLayout RENDER #' + renderCount.current + ' at:', new Date().toISOString())
+  console.log('[DEBUG TIMING]   userInfo state:', userInfo)
+  console.log('[DEBUG TIMING]   localStorage token exists:', !!localStorage.getItem('token'))
+  console.log('[DEBUG TIMING]   cookie token exists:', document.cookie.includes('token='))
+
   useEffect(() => {
+    effectRunCount.current++
+    console.log('[DEBUG TIMING] ===== useEffect RUN #' + effectRunCount.current + ' at:', new Date().toISOString())
+    
     // Try to get user info from JWT token first
     const token = getToken()
-    console.log('[DEBUG] Token:', token ? 'exists' : 'not found')
+    tokenCheckCount.current++
+    console.log('[DEBUG TIMING] getToken() attempt #' + tokenCheckCount.current + ':', token ? 'TOKEN_FOUND' : 'TOKEN_NOT_FOUND')
+    
+    if (token) {
+      console.log('[DEBUG TIMING] Token length:', token.length)
+      console.log('[DEBUG TIMING] Token includes dots:', token.includes('.'))
+    }
+    
     if (token && token.includes('.')) {
+      console.log('[DEBUG TIMING] Attempting to parse JWT token...')
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
-        console.log('[DEBUG] JWT payload:', payload)
-        console.log('[DEBUG] Available fields:', Object.keys(payload))
+        console.log('[DEBUG TIMING] JWT payload successfully parsed:', payload)
+        console.log('[DEBUG TIMING] Available JWT fields:', Object.keys(payload))
         
         // Try multiple possible field names
         // Handle empty string as well (treat as falsy)
@@ -81,30 +103,39 @@ function MainLayout() {
         const email = payload.email || payload.mail || ''
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
         
-        console.log('[DEBUG] Extracted - name:', name, 'email:', email, 'role:', role)
+        console.log('[DEBUG TIMING] Extracted user data - name:', name, 'email:', email, 'role:', role)
+        console.log('[DEBUG TIMING] Setting userInfo state...')
         
         setUserInfo({
           name,
           email,
-          role, // Store in lowercase
+          role,
           ...payload
         })
         localStorage.setItem('user_info', JSON.stringify({ ...payload, role }))
+        console.log('[DEBUG TIMING] userInfo state SET SUCCESSFULLY')
       } catch (e) {
-        console.error('Failed to parse token for user info:', e)
+        console.error('[DEBUG TIMING] FAILED to parse token:', e.message)
       }
     } else {
-      // Fallback to localStorage if no valid token
+      console.log('[DEBUG TIMING] No valid token found, falling back to localStorage user_info')
       const info = localStorage.getItem('user_info')
       if (info) {
+        console.log('[DEBUG TIMING] Found user_info in localStorage, parsing...')
         try {
-          setUserInfo(JSON.parse(info))
-          console.log('[DEBUG] Loaded from localStorage:', JSON.parse(info))
+          const parsed = JSON.parse(info)
+          console.log('[DEBUG TIMING] localStorage user_info parsed:', parsed)
+          setUserInfo(parsed)
+          console.log('[DEBUG TIMING] userInfo state SET from localStorage')
         } catch (e) {
-          console.error('Failed to parse user info:', e)
+          console.error('[DEBUG TIMING] FAILED to parse localStorage user_info:', e.message)
         }
+      } else {
+        console.log('[DEBUG TIMING] No user_info in localStorage either')
       }
     }
+    
+    console.log('[DEBUG TIMING] ===== useEffect FINISHED at:', new Date().toISOString())
   }, [])
 
   const items = [
@@ -118,27 +149,33 @@ function MainLayout() {
     },
     // Inventory monitoring menu - visible to MANAGER roles only
     ...(userInfo ? (() => {
+      console.log('[DEBUG TIMING] ===== INVENTORY MENU RENDER CHECK =====')
+      console.log('[DEBUG TIMING] Time:', new Date().toISOString())
+      console.log('[DEBUG TIMING] userInfo exists:', !!userInfo)
+      
       const role = userInfo.role || ''
-      console.log('[DEBUG] ===== INVENTORY MENU CHECK =====')
-      console.log('[DEBUG] userInfo object:', userInfo)
-      console.log('[DEBUG] userInfo type:', typeof userInfo)
-      console.log('[DEBUG] userInfo.role:', role)
-      console.log('[DEBUG] userInfo.role type:', typeof role)
-      console.log('[DEBUG] role === "site_manager":', role === 'site_manager')
-      console.log('[DEBUG] role === "admin":', role === 'admin')
-      console.log('[DEBUG] role === "owner":', role === 'owner')
+      console.log('[DEBUG TIMING] userInfo object:', userInfo)
+      console.log('[DEBUG TIMING] userInfo.role:', role)
+      console.log('[DEBUG TIMING] role === "site_manager":', role === 'site_manager')
+      console.log('[DEBUG TIMING] role === "admin":', role === 'admin')
+      console.log('[DEBUG TIMING] role === "owner":', role === 'owner')
       
       const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
-      console.log('[DEBUG] shouldShow result:', shouldShow)
-      console.log('[DEBUG] ===== END CHECK =====')
+      console.log('[DEBUG TIMING] shouldShow result:', shouldShow)
       
-      return shouldShow ? [{
-        key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
-        children: [
-          { key: '/inventory/transfer', label: '库存调拨' },
-          { key: '/inventory/rent-setting', label: '租金设定' }
-        ]
-      }] : []
+      if (shouldShow) {
+        console.log('[DEBUG TIMING] ===== RETURNING INVENTORY MENU =====')
+        return [{
+          key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
+          children: [
+            { key: '/inventory/transfer', label: '库存调拨' },
+            { key: '/inventory/rent-setting', label: '租金设定' }
+          ]
+        }]
+      } else {
+        console.log('[DEBUG TIMING] ===== RETURNING EMPTY ARRAY (menu hidden) =====')
+        return []
+      }
     })() : []),
     {
       key: 'organization', icon: <SettingOutlined />, label: '组织管理',
@@ -237,64 +274,67 @@ function MainLayout() {
             {/* DEBUG: Manual load button */}
             <button
               onClick={() => {
-                console.log('========== DEBUG INFO ==========')
+                console.log('========== DEBUG BUTTON CLICKED ==========')
+                console.log('[DEBUG BUTTON] Time:', new Date().toISOString())
                 const token = getToken()
-                console.log('1. Token exists:', !!token)
-                console.log('2. Token value:', token)
+                console.log('[DEBUG BUTTON] 1. Token exists:', !!token)
+                console.log('[DEBUG BUTTON] 2. Token value:', token)
                 
                 if (token && token.includes('.')) {
                   try {
                     const [header, payload, signature] = token.split('.')
                     const decoded = JSON.parse(atob(payload))
-                    console.log('3. JWT Payload:', decoded)
-                    console.log('4. Payload keys:', Object.keys(decoded))
-                    console.log('5. name field:', decoded.name)
-                    console.log('6. username field:', decoded.username)
-                    console.log('7. preferred_username:', decoded.preferred_username)
-                    console.log('8. displayName:', decoded.displayName)
-                    console.log('9. role field:', decoded.role)
-                    console.log('10. roles field:', decoded.roles)
-                    console.log('11. authorities:', decoded.authorities)
+                    console.log('[DEBUG BUTTON] 3. JWT Payload:', decoded)
+                    console.log('[DEBUG BUTTON] 4. Payload keys:', Object.keys(decoded))
+                    console.log('[DEBUG BUTTON] 5. name field:', decoded.name)
+                    console.log('[DEBUG BUTTON] 6. username field:', decoded.username)
+                    console.log('[DEBUG BUTTON] 7. role field:', decoded.role)
+                    console.log('[DEBUG BUTTON] 8. localStorage user_info:', localStorage.getItem('user_info'))
                   } catch (e) {
-                    console.log('Error parsing token:', e.message)
+                    console.log('[DEBUG BUTTON] Error parsing token:', e.message)
                   }
                 } else {
-                  console.log('3. No valid token found')
+                  console.log('[DEBUG BUTTON] 3. No valid token found')
                 }
                 
-                console.log('12. localStorage user_info:', localStorage.getItem('user_info'))
-                console.log('13. localStorage token:', localStorage.getItem('token'))
-                console.log('14. document.cookie:', document.cookie)
-                console.log('========== END DEBUG ==========')
+                console.log('[DEBUG BUTTON] 9. localStorage user_info:', localStorage.getItem('user_info'))
+                console.log('[DEBUG BUTTON] 10. localStorage token:', localStorage.getItem('token'))
+                console.log('[DEBUG BUTTON] 11. document.cookie:', document.cookie)
                 
                 // Also reload user info
                 const infoStr = localStorage.getItem('user_info')
                 if (infoStr) {
                   try {
                     const info = JSON.parse(infoStr)
+                    console.log('[DEBUG BUTTON] 12. Manually loaded userInfo:', info)
                     setUserInfo(info)
-                    console.log('15. Manually loaded userInfo:', info)
+                    console.log('[DEBUG BUTTON] 13. userInfo state SET')
                   } catch (e) {
-                    console.error('Error loading user_info:', e)
+                    console.error('[DEBUG BUTTON] Error loading user_info:', e)
                   }
                 }
+                console.log('========== DEBUG BUTTON FINISHED ==========')
               }}
               className="px-2 py-1 bg-yellow-500 text-white text-xs rounded"
             >
               调试
             </button>
             
-            {userInfo && (
-              <div className="flex items-center gap-2">
-                <UserOutlined className="text-gray-600 text-lg" />
-                <span className="text-gray-700 font-medium">
-                  {userInfo.name || userInfo.email}
-                </span>
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                  {userInfo.role}
-                </span>
-              </div>
-            )}
+            <div>
+              {userInfo ? (
+                <div className="flex items-center gap-2">
+                  <UserOutlined className="text-gray-600 text-lg" />
+                  <span className="text-gray-700 font-medium">
+                    {userInfo.name || userInfo.email}
+                  </span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                    {userInfo.role}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-gray-500">userInfo is null</span>
+              )}
+            </div>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:text-red-600"
