@@ -363,3 +363,69 @@ type ElectronicContract struct {
 	Status         string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	CreatedAt      time.Time `json:"created_at"`
 }
+
+// DamageReport 定损报告表
+type DamageReport struct {
+	ID                string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID          string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID             string     `gorm:"type:uuid;index" json:"org_id"`
+	LeaseID           string     `gorm:"type:uuid;not null;index" json:"lease_id"`
+	InstrumentID      string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	UserID            string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	DamageAmount      *float64   `gorm:"type:decimal(10,2)" json:"damage_amount,omitempty"`
+	DamageDescription string     `gorm:"type:text" json:"damage_description"`
+	AssessedBy        *string    `gorm:"type:uuid;index" json:"assessed_by"`
+	AssessedAt        *time.Time `json:"assessed_at"`
+	DepositDeducted   float64    `gorm:"type:decimal(10,2);default:0" json:"deposit_deducted"`
+	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+// DamageAssessment 定损评估记录表
+type DamageAssessment struct {
+	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID        string     `gorm:"type:uuid;index" json:"org_id"`
+	OrderID      string     `gorm:"type:uuid;not null;index" json:"order_id"`
+	InstrumentID string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	UserID       string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	AssessedBy   *string    `gorm:"type:uuid;index" json:"assessed_by"`
+	Condition    string     `gorm:"type:varchar(20);index" json:"condition"`
+	Notes        string     `gorm:"type:text" json:"notes"`
+	ScanTime     *time.Time `json:"scan_time"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+// Appeal 申诉记录表
+type Appeal struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string     `gorm:"type:uuid;index" json:"org_id"`
+	DamageReportID string     `gorm:"type:uuid;not null;index" json:"damage_report_id"`
+	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	AppealReason   string     `gorm:"type:text;not null" json:"appeal_reason"`
+	Status         string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	SubmittedAt    time.Time  `json:"submitted_at"`
+	ResolvedAt     *time.Time `json:"resolved_at,omitempty"`
+	Resolution     string     `gorm:"type:varchar(20)" json:"resolution"`
+	FinalAmount    *float64   `gorm:"type:decimal(10,2)" json:"final_amount,omitempty"`
+	ManagerComment string     `gorm:"type:text" json:"manager_comment"`
+	ResolvedBy     *string    `gorm:"type:uuid" json:"resolved_by"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// OrderStatusHistory 订单状态历史表
+type OrderStatusHistory struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID      string    `gorm:"type:uuid;index" json:"org_id"`
+	OrderID    string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	StatusFrom string    `gorm:"type:varchar(20)" json:"status_from"`
+	StatusTo   string    `gorm:"type:varchar(20)" json:"status_to"`
+	Notes      string    `gorm:"type:text" json:"notes"`
+	ChangedBy  *string   `gorm:"type:uuid;index" json:"changed_by"`
+	ChangedAt  time.Time `json:"changed_at"`
+}
