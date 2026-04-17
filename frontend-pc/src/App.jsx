@@ -74,20 +74,22 @@ function MainLayout() {
         console.log('[DEBUG] Available fields:', Object.keys(payload))
         
         // Try multiple possible field names
+        // Handle empty string as well (treat as falsy)
         const name = payload.name || payload.username || payload.preferred_username || 
-                     payload.displayName || payload.nickName || payload.nickname || ''
+                     payload.displayName || payload.nickName || payload.nickname || 
+                     (payload.is_owner ? '所有者' : '') || ''
         const email = payload.email || payload.mail || ''
-        const role = payload.role || payload.roles || payload.authorities || ''
+        const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
         
         console.log('[DEBUG] Extracted - name:', name, 'email:', email, 'role:', role)
         
         setUserInfo({
           name,
           email,
-          role,
+          role, // Store in lowercase
           ...payload
         })
-        localStorage.setItem('user_info', JSON.stringify(payload))
+        localStorage.setItem('user_info', JSON.stringify({ ...payload, role }))
       } catch (e) {
         console.error('Failed to parse token for user info:', e)
       }
@@ -117,9 +119,19 @@ function MainLayout() {
     // Inventory monitoring menu - visible to MANAGER roles only
     ...(userInfo ? (() => {
       const role = userInfo.role || ''
-      console.log('[DEBUG] Inventory menu check - userInfo:', userInfo, 'role:', role)
+      console.log('[DEBUG] ===== INVENTORY MENU CHECK =====')
+      console.log('[DEBUG] userInfo object:', userInfo)
+      console.log('[DEBUG] userInfo type:', typeof userInfo)
+      console.log('[DEBUG] userInfo.role:', role)
+      console.log('[DEBUG] userInfo.role type:', typeof role)
+      console.log('[DEBUG] role === "site_manager":', role === 'site_manager')
+      console.log('[DEBUG] role === "admin":', role === 'admin')
+      console.log('[DEBUG] role === "owner":', role === 'owner')
+      
       const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
-      console.log('[DEBUG] Inventory menu visible:', shouldShow)
+      console.log('[DEBUG] shouldShow result:', shouldShow)
+      console.log('[DEBUG] ===== END CHECK =====')
+      
       return shouldShow ? [{
         key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
         children: [
@@ -222,6 +234,56 @@ function MainLayout() {
             <h1 className="text-xl font-bold m-0" style={{ color: BRAND_COLOR }}>{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-4">
+            {/* DEBUG: Manual load button */}
+            <button
+              onClick={() => {
+                console.log('========== DEBUG INFO ==========')
+                const token = getToken()
+                console.log('1. Token exists:', !!token)
+                console.log('2. Token value:', token)
+                
+                if (token && token.includes('.')) {
+                  try {
+                    const [header, payload, signature] = token.split('.')
+                    const decoded = JSON.parse(atob(payload))
+                    console.log('3. JWT Payload:', decoded)
+                    console.log('4. Payload keys:', Object.keys(decoded))
+                    console.log('5. name field:', decoded.name)
+                    console.log('6. username field:', decoded.username)
+                    console.log('7. preferred_username:', decoded.preferred_username)
+                    console.log('8. displayName:', decoded.displayName)
+                    console.log('9. role field:', decoded.role)
+                    console.log('10. roles field:', decoded.roles)
+                    console.log('11. authorities:', decoded.authorities)
+                  } catch (e) {
+                    console.log('Error parsing token:', e.message)
+                  }
+                } else {
+                  console.log('3. No valid token found')
+                }
+                
+                console.log('12. localStorage user_info:', localStorage.getItem('user_info'))
+                console.log('13. localStorage token:', localStorage.getItem('token'))
+                console.log('14. document.cookie:', document.cookie)
+                console.log('========== END DEBUG ==========')
+                
+                // Also reload user info
+                const infoStr = localStorage.getItem('user_info')
+                if (infoStr) {
+                  try {
+                    const info = JSON.parse(infoStr)
+                    setUserInfo(info)
+                    console.log('15. Manually loaded userInfo:', info)
+                  } catch (e) {
+                    console.error('Error loading user_info:', e)
+                  }
+                }
+              }}
+              className="px-2 py-1 bg-yellow-500 text-white text-xs rounded"
+            >
+              调试
+            </button>
+            
             {userInfo && (
               <div className="flex items-center gap-2">
                 <UserOutlined className="text-gray-600 text-lg" />
