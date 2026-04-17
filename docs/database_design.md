@@ -241,7 +241,7 @@
 | certificate_url | VARCHAR(500) | | 证书 PDF URL |
 | created_at | TIMESTAMP | | 创建时间 |
 
-### 2.11 technicians - 技师表
+### 2.11 maintenance_workers - 维修师傅表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -251,127 +251,143 @@
 | site_id | UUID | INDEX | 所属网点 ID |
 | name | VARCHAR(100) | | 姓名 |
 | phone | VARCHAR(50) | | 手机号 |
-
-### 2.12 leases - 租赁记录表 (Legacy)
-
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
-| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| user_id | UUID | INDEX, NOT NULL | 用户 ID |
-| instrument_id | UUID | INDEX, NOT NULL | 乐器 ID |
-| start_date | DATE | NOT NULL | 开始日期 |
-| end_date | DATE | NOT NULL | 结束日期 |
-| monthly_rent | DECIMAL(10,2) | NOT NULL | 月租金 |
-| deposit_amount | DECIMAL(10,2) | NOT NULL | 押金金额 |
-| status | VARCHAR(20) | DEFAULT 'active', INDEX | 状态 |
+| join_date | DATE | | 入职日期 |
+| status | VARCHAR(20) | DEFAULT 'active' | 状态 (active/inactive) |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
+| deleted_at | TIMESTAMP | | 删除时间（软删除） |
 
-### 2.13 deposits - 押金记录表
+### 2.12 maintenance_sessions - 维修会话表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| lease_id | UUID | INDEX, NOT NULL | 租赁 ID |
-| user_id | UUID | INDEX, NOT NULL | 用户 ID |
-| amount | DECIMAL(10,2) | NOT NULL | 金额 |
-| type | VARCHAR(20) | NOT NULL | 类型 |
+| org_id | UUID | INDEX | 组织 ID |
+| maintenance_ticket_id | UUID | NOT NULL | 关联维修工单 ID |
+| worker_id | UUID | INDEX | 维修师傅 ID |
 | status | VARCHAR(20) | DEFAULT 'pending', INDEX | 状态 |
-| transaction_date | DATE | NOT NULL | 交易日期 |
-| notes | TEXT | | 备注 |
+| start_time | TIMESTAMP | | 开始时间 |
+| end_time | TIMESTAMP | | 结束时间 |
+| progress_notes | TEXT | | 进度备注 |
+| completion_notes | TEXT | | 完工备注 |
+| inspection_result | VARCHAR(20) | | 验收结果 (passed/failed) |
+| inspection_comment | TEXT | | 验收备注 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.14 labels - 标签/别名表
+**状态值**:
+- `pending`: 待分配
+- `assigned`: 已分配
+- `in_progress`: 维修中
+- `completed`: 验收中
+- `passed`: 验收通过
+- `failed`: 验收不通过
+
+### 2.13 maintenance_session_records - 维修记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| name | VARCHAR(100) | NOT NULL, INDEX | 标签名称 |
-| alias | JSONB | DEFAULT '[]' | 别名列表 |
-| audit_status | VARCHAR(20) | DEFAULT 'pending' | 审核状态 |
-| normalized_to_id | UUID | INDEX | 标准化目标 ID |
+| session_id | UUID | INDEX, NOT NULL | 维修会话 ID |
+| record_type | VARCHAR(20) | | 记录类型 (comment/photo) |
+| content | TEXT | | 记录内容 |
+| photos | JSONB | DEFAULT '[]' | 照片数组 |
 | created_at | TIMESTAMP | | 创建时间 |
-| updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.15 tenants - 租户表
+### 2.14 leases - 租赁记录表 (Legacy)
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
-| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
-| name | VARCHAR(100) | NOT NULL | 租户名称 |
-| status | VARCHAR(20) | DEFAULT 'active' | 状态 |
-| description | TEXT | | 描述 |
-| created_at | TIMESTAMP | | 创建时间 |
-| updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.16 clients - OAuth 客户端表
+### 2.15 damage_reports - 定损报告表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| client_id | VARCHAR(100) | UNIQUE, NOT NULL | 客户端 ID |
-| client_secret | VARCHAR(255) | | 客户端密钥 |
-| name | VARCHAR(100) | | 名称 |
-| redirect_uris | TEXT | | 允许的重定向 URI |
+| org_id | UUID | INDEX | 组织 ID |
+| lease_id | UUID | NOT NULL, INDEX | 关联租赁会话 ID |
+| instrument_id | UUID | NOT NULL | 乐器 ID |
+| user_id | UUID | NOT NULL, INDEX | 用户 ID |
+| damage_amount | DECIMAL(10,2) | | 定损金额 |
+| damage_description | TEXT | | 定损说明 |
+| damage_photos | JSONB | DEFAULT '[]' | 定损照片 |
+| assessed_by | UUID | | 定损人 ID（员工） |
+| assessed_at | TIMESTAMP | | 定损时间 |
+| deposit_deducted | DECIMAL(10,2) | DEFAULT 0 | 已扣除押金 |
+| status | VARCHAR(20) | DEFAULT 'pending', INDEX | 状态 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.17 properties - 乐器属性定义表
+**状态值**:
+- `pending`: 待处理（用户未响应）
+- `agreed`: 用户同意
+- `appealed`: 用户申诉中
+- `resolved`: 已解决
+- `cancelled`: 已撤销
+
+### 2.16 appeals - 申诉记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| name | VARCHAR(100) | NOT NULL | 属性名称 |
-| property_type | VARCHAR(20) | NOT NULL | 属性类型 |
-| is_required | BOOLEAN | DEFAULT false | 是否必填 |
-| unit | VARCHAR(50) | | 单位 |
+| org_id | UUID | INDEX | 组织 ID |
+| damage_report_id | UUID | NOT NULL, INDEX | 关联定损报告 ID |
+| user_id | UUID | NOT NULL, INDEX | 用户 ID |
+| appeal_reason | TEXT | NOT NULL | 申诉理由 |
+| evidence_photos | JSONB | DEFAULT '[]' | 证据照片 |
+| status | VARCHAR(20) | DEFAULT 'pending', INDEX | 状态 |
+| submitted_at | TIMESTAMP | | 申诉提交时间 |
+| resolved_at | TIMESTAMP | | 申诉解决时间 |
+| resolution | VARCHAR(20) | | 仲裁结果 (no_damage/adjust/confirm) |
+| final_amount | DECIMAL(10,2) | | 最终确定金额 |
+| manager_comment | TEXT | | 经理仲裁说明 |
+| resolved_by | UUID | | 仲裁人 ID |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.18 property_options - 属性选项表
+**状态值**:
+- `pending`: 待处理
+- `reviewing`: 经理仲裁中
+- `resolved`: 已处理
+- `cancelled`: 用户撤销
+
+### 2.17 damage_assessments - 定损评估记录表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| property_id | UUID | INDEX, NOT NULL | 属性 ID |
-| value | VARCHAR(255) | NOT NULL | 选项值 |
-| status | VARCHAR(20) | DEFAULT 'pending' | 状态 |
-| alias | UUID | INDEX | 别名指向 |
+| org_id | UUID | INDEX | 组织 ID |
+| order_id | UUID | NOT NULL, INDEX | 关联订单 ID |
+| instrument_id | UUID | NOT NULL | 乐器 ID |
+| user_id | UUID | NOT NULL, INDEX | 用户 ID |
+| assessed_by | UUID | INDEX | 评估人 ID（库管员工） |
+| condition | VARCHAR(20) | INDEX | 验货结果 (good/damaged) |
+| photos | JSONB | DEFAULT '[]' | 验收照片 |
+| notes | TEXT | | 备注说明 |
+| scan_time | TIMESTAMP | | 扫码时间 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.19 instrument_properties - 乐器属性值表
+### 2.18 order_status_history - 订单状态历史表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| instrument_id | UUID | INDEX, NOT NULL | 乐器 ID |
-| property_id | UUID | INDEX, NOT NULL | 属性 ID |
-| value | VARCHAR(255) | | 属性值 |
-| created_at | TIMESTAMP | | 创建时间 |
-| updated_at | TIMESTAMP | | 更新时间 |
+| org_id | UUID | INDEX | 组织 ID |
+| order_id | UUID | NOT NULL, INDEX | 关联订单 ID |
+| status_from | VARCHAR(20) | | 原状态 |
+| status_to | VARCHAR(20) | | 新状态 |
+| notes | TEXT | | 状态变更说明 |
+| changed_by | UUID | INDEX | 操作人 ID |
+| changed_at | TIMESTAMP | | 变更时间 |
 
-### 2.20 brand_configs - 品牌配置表
-
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| id | UINT | PK | 主键 (自增) |
-| tenant_id | UUID | INDEX | 租户 ID |
-| client_id | VARCHAR(100) | UNIQUE, NOT NULL | 客户端 ID |
-| primary_color | VARCHAR(20) | DEFAULT '#6366F1' | 主色调 |
-| logo_url | VARCHAR(500) | | Logo URL |
-| brand_name | VARCHAR(100) | | 品牌名称 |
-| support_phone | VARCHAR(50) | | 客服电话 |
-| created_at | TIMESTAMP | | 创建时间 |
-| updated_at | TIMESTAMP | | 更新时间 |
+**说明**: 记录所有订单状态变更历史，用于追溯物流和租赁周期
 
 ---
 
@@ -421,6 +437,53 @@ tenants (1) ---> (N) clients
 | maintenance_tickets | INDEX | technician_id |
 | maintenance_tickets | INDEX | status |
 | maintenance_tickets | INDEX | completed_at |
+
+### 2.19 lease_sessions - 租赁会话表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| org_id | UUID | INDEX | 组织 ID |
+| order_id | UUID | NOT NULL, INDEX | 关联订单 ID |
+| user_id | UUID | NOT NULL, INDEX | 用户 ID |
+| instrument_id | UUID | NOT NULL | 乐器 ID |
+| start_date | DATE | NOT NULL | 起租日期 |
+| end_date | DATE | NOT NULL | 结束日期 |
+| actual_end_date | DATE | | 实际归还日期 |
+| status | VARCHAR(20) | DEFAULT 'active', INDEX | 状态 |
+| delivery_address | JSONB | | 收货地址 |
+| return_method | VARCHAR(20) | | 归还方式 |
+| return_tracking | VARCHAR(100) | | 归还物流单号 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**状态值**:
+- `active`: 租赁中
+- `expiring_soon`: 即将到期（3天内）
+- `overdue`: 已逾期
+- `return_requested`: 已申请归还
+- `returning`: 归还中
+- `completed`: 已完成
+- `cancelled`: 已取消
+
+### 2.20 electronic_contracts - 电子合同表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| org_id | UUID | INDEX | 组织 ID |
+| order_id | UUID | NOT NULL, INDEX | 关联订单 ID |
+| user_id | UUID | NOT NULL, INDEX | 用户 ID |
+| instrument_id | UUID | NOT NULL | 乐器 ID |
+| contract_url | VARCHAR(500) | NOT NULL | 合同 PDF URL |
+| contract_number | VARCHAR(50) | UNIQUE | 合同编号 |
+| generated_at | TIMESTAMP | NOT NULL | 生成时间 |
+| status | VARCHAR(20) | DEFAULT 'active' | 状态 |
+| created_at | TIMESTAMP | | 创建时间 |
+
+**说明**: 支付完成后自动生成，作为租赁凭证存入用户资料
 
 ---
 

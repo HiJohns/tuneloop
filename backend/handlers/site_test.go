@@ -166,3 +166,140 @@ func TestGetSiteTreeReturnsNullManagerWhenNoManager(t *testing.T) {
 	// Cleanup
 	db.Exec(`DELETE FROM sites WHERE tenant_id = ?`, tenantID)
 }
+
+// TestGetSiteDetailReturnsManager tests that GetSiteDetail includes manager info
+func TestGetSiteDetailReturnsManager(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	tenantID := uuid.New().String()
+	now := time.Now()
+
+	// 1. 创建测试管理员用户
+	managerID := uuid.New()
+	db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, is_shadow, created_at, updated_at) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, false, ?, ?)`,
+		managerID, managerID.String(), tenantID, tenantID, "测试管理员", "test@example.com", "13800138000", now, now)
+
+	// 2. 创建测试网点（带 manager_id）
+	siteID := uuid.New().String()
+	db.Exec(`INSERT INTO sites (id, name, address, tenant_id, manager_id, status, created_at, updated_at) 
+		VALUES (?, '测试网点', '测试地址', ?, ?, 'active', ?, ?)`,
+		siteID, tenantID, managerID, now, now)
+
+	// 3. 设置路由
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	siteHandler := NewSiteHandler()
+	router.GET("/api/common/sites/:id", siteHandler.GetSiteDetail)
+
+	// 4. 调用 GET /api/common/sites/:id
+	req := httptest.NewRequest("GET", "/api/common/sites/"+siteID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// 5. 验证响应
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response struct {
+		Code int `json:"code"`
+		Data struct {
+			Site    interface{} `json:"site"`
+			Manager *struct {
+				ID    string `json:"id"`
+				Name  string `json:"name"`
+				Email string `json:"email"`
+				Phone string `json:"phone"`
+			} `json:"manager"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// 6. 验证 manager 不为 null 且包含正确的信息
+	require.NotNil(t, response.Data.Manager, "Manager should not be null")
+	assert.Equal(t, managerID.String(), response.Data.Manager.ID)
+	assert.Equal(t, "测试管理员", response.Data.Manager.Name)
+	assert.Equal(t, "test@example.com", response.Data.Manager.Email)
+	assert.Equal(t, "13800138000", response.Data.Manager.Phone)
+
+	// 清理
+	db.Exec(`DELETE FROM sites WHERE tenant_id = ?`, tenantID)
+	db.Exec(`DELETE FROM users WHERE tenant_id = ?`, tenantID)
+}
+
+// TestGetSiteDetailReturnsNullManagerWhenNoManager tests that manager is null when no manager is set
+func TestGetSiteDetailReturnsNullManagerWhenNoManager(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	tenantID := uuid.New().String()
+	now := time.Now()
+
+	// Create test site without manager_id
+	siteID := uuid.New().String()
+	db.Exec(`INSERT INTO sites (id, name, address, tenant_id, status, created_at, updated_at) 
+		VALUES (?, '测试网点无管理员', '测试地址', ?, 'active', ?, ?)`,
+		siteID, tenantID, now, now)
+
+	// Setup route
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, tenantID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	siteHandler := NewSiteHandler()
+	router.GET("/api/common/sites/:id", siteHandler.GetSiteDetail)
+
+	// Call API
+	req := httptest.NewRequest("GET", "/api/common/sites/"+siteID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Verify
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response struct {
+		Code int `json:"code"`
+		Data struct {
+			Site    interface{} `json:"site"`
+			Manager *struct {
+				ID    string `json:"id"`
+				Name  string `json:"name"`
+				Email string `json:"email"`
+				Phone string `json:"phone"`
+			} `json:"manager"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// Verify manager is null for site without manager
+	assert.Nil(t, response.Data.Manager, "Manager should be null when no manager is set")
+
+	// Cleanup
+	db.Exec(`DELETE FROM sites WHERE tenant_id = ?`, tenantID)
+}

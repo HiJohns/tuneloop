@@ -286,3 +286,46 @@ type InstrumentProperty struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+// MaintenanceWorker 维修师傅表
+type MaintenanceWorker struct {
+	ID        string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID     string     `gorm:"type:uuid;index" json:"org_id"`
+	SiteID    *string    `gorm:"type:uuid;index" json:"site_id"`
+	Name      string     `gorm:"type:varchar(100);not null" json:"name"`
+	Phone     string     `gorm:"type:varchar(50)" json:"phone"`
+	JoinDate  *time.Time `json:"join_date"`
+	Status    string     `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+// MaintenanceSession 维修会话表
+type MaintenanceSession struct {
+	ID                  string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID            string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID               string     `gorm:"type:uuid;index" json:"org_id"`
+	MaintenanceTicketID string     `gorm:"type:uuid;not null" json:"maintenance_ticket_id"`
+	WorkerID            *string    `gorm:"type:uuid;index" json:"worker_id"`
+	Status              string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	StartTime           *time.Time `json:"start_time"`
+	EndTime             *time.Time `json:"end_time"`
+	ProgressNotes       string     `gorm:"type:text" json:"progress_notes"`
+	CompletionNotes     string     `gorm:"type:text" json:"completion_notes"`
+	InspectionResult    string     `gorm:"type:varchar(20)" json:"inspection_result"`
+	InspectionComment   string     `gorm:"type:text" json:"inspection_comment"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+// MaintenanceSessionRecord 维修记录表
+type MaintenanceSessionRecord struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SessionID  string    `gorm:"type:uuid;index;not null" json:"session_id"`
+	RecordType string    `gorm:"type:varchar(20)" json:"record_type"`
+	Content    string    `gorm:"type:text" json:"content"`
+	CreatedAt  time.Time `json:"created_at"`
+}

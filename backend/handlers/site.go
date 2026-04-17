@@ -163,10 +163,33 @@ func (h *SiteHandler) GetSiteDetail(c *gin.Context) {
 	var images []string
 	db.WithContext(c.Request.Context()).Raw("SELECT url FROM site_images WHERE site_id = ? ORDER BY sort_order", siteID).Scan(&images)
 
+	// Get manager info if manager_id exists
+	var managerInfo *map[string]interface{}
+	if site.ManagerID != nil {
+		user, err := lookupOrSyncManager(c, db, site.ManagerID.String())
+		if err != nil {
+			fmt.Printf("[WARN] Failed to lookup manager %s: %v\n", site.ManagerID.String(), err)
+		} else if user != nil {
+			// Prioritize email, fallback to phone if email is empty
+			displayContact := user.Email
+			if displayContact == "" {
+				displayContact = user.Phone
+			}
+			m := map[string]interface{}{
+				"id":    user.ID,
+				"name":  user.Name,
+				"email": user.Email,
+				"phone": user.Phone,
+			}
+			managerInfo = &m
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"site":         site,
+			"manager":      managerInfo, // 新增：负责人信息
 			"stock_status": stockStatus,
 			"images":       images,
 		},

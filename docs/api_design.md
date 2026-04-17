@@ -363,9 +363,581 @@ PUT /api/technician/tickets/:id/accept
 POST /api/technician/tickets/:id/complete
 ```
 
+### 6.13 创建维修师傅账户
+```
+POST /api/maintenance/workers
+```
+**请求体**:
+```json
+{
+  "name": "张三",
+  "phone": "13800000000"
+}
+```
+
+### 6.14 获取维修师傅列表
+```
+GET /api/maintenance/workers
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| name | string | 姓名筛选 |
+| phone | string | 电话筛选 |
+| site_id | string | 网点筛选 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "name": "张三",
+        "phone": "13800000000",
+        "join_date": "2024-01-01",
+        "recent_orders": 15,
+        "current_orders": 3
+      }
+    ]
+  }
+}
+```
+
+### 6.15 获取师傅详情
+```
+GET /api/maintenance/workers/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "name": "张三",
+    "phone": "13800000000",
+    "join_date": "2024-01-01",
+    "recent_orders": 15,
+    "current_orders": 3,
+    "history": [
+      {
+        "id": "uuid",
+        "date": "2024-01-15",
+        "category": "钢琴",
+        "status": "已完成"
+      }
+    ]
+  }
+}
+```
+
+### 6.16 删除维修师傅账户
+```
+DELETE /api/maintenance/workers/:id
+```
+
+### 6.17 更新维修会话状态
+```
+PUT /api/maintenance/sessions/:id/status
+```
+**请求体**:
+```json
+{
+  "status": "in_progress",
+  "comment": "开始工作",
+  "photos": ["url1", "url2"]
+}
+```
+
+**状态值说明**:
+- `assigned`: 已分配
+- `in_progress`: 维修中
+- `completed`: 验收中
+- `passed`: 验收通过（在库）
+- `failed`: 验收不通过（待处理）
+
+### 6.18 扫码开始工作
+```
+POST /api/maintenance/sessions/:id/start-work
+```
+**请求体**:
+```json
+{
+  "instrument_sn": "SN123456",
+  "scan_time": "2024-01-15T10:00:00Z"
+}
+```
+
+### 6.19 提交维修记录
+```
+POST /api/maintenance/sessions/:id/records
+```
+**请求体**:
+```json
+{
+  "type": "comment",
+  "content": "更换琴弦",
+  "photos": ["url1"]
+}
+```
+
+### 6.20 验收处理
+```
+PUT /api/maintenance/sessions/:id/inspect
+```
+**请求体**:
+```json
+{
+  "result": "passed",  // or "failed"
+  "comment": "验收通过",
+  "photos": ["url1", "url2"]
+}
+```
+
 ---
 
-## 7. 库存管理 API
+## 7. 申诉处理 API
+
+### 7.1 获取申诉列表
+```
+GET /api/merchant/appeals
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 申诉状态 (pending/reviewing/resolved) |
+| site_id | string | 网点 ID |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {
+          "id": "uuid",
+          "category": "钢琴",
+          "level": "专业级",
+          "brand": "Yamaha",
+          "model": "U1"
+        },
+        "damage_report": {
+          "amount": 500.00,
+          "comment": "琴弦断裂",
+          "photos": ["url1"]
+        },
+        "user_appeal": {
+          "reason": "琴弦是自然老化",
+          "submitted_at": "2024-01-15T10:00:00Z"
+        },
+        "status": "reviewing",
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 7.2 获取申诉详情
+```
+GET /api/merchant/appeals/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "instrument": {...},
+    "lease_info": {
+      "rental_period": "2024-01-01 至 2024-01-31",
+      "total_rent": 2500.00
+    },
+    "damage_report": {...},
+    "user_appeal": {...},
+    "employee_info": {
+      "name": "李四",
+      "damage_assessment": "用户操作不当"
+    },
+    "status": "reviewing"
+  }
+}
+```
+
+### 7.3 处理申诉
+```
+PUT /api/merchant/appeals/:id/resolve
+```
+**请求体**:
+```json
+{
+  "decision": "adjust",  // no_damage, adjust, confirm
+  "adjust_amount": 200.00,  // 仅在 decision=adjust 时有效
+  "comment": "经理判定琴弦为自然老化"
+}
+```
+
+**decision 说明**:
+- `no_damage`: 无损坏，取消赔款，直接生成退还事务，乐器在库状态
+- `adjust`: 调整定损金额
+- `confirm`: 确认原判（不调整）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "refund_deposit": 5000.00,
+    "status": "resolved"
+  }
+}
+```
+
+### 7.4 用户提交申诉
+```
+POST /api/user/appeals
+```
+**请求体**:
+```json
+{
+  "damage_report_id": "uuid",
+  "reason": "申诉理由",
+  "evidence": ["url1", "url2"]
+}
+```
+
+### 7.5 用户同意定损
+```
+POST /api/user/appeals/:damage_id/agree
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "payment_url": "https://pay.example.com/123"  // 仅押金不足时返回
+  }
+}
+```
+
+---
+
+## 8. 库管工作台 API
+
+### 8.1 获取订单列表
+```
+GET /api/warehouse/orders
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 订单状态 (preparing/shipped/in_lease/returning) |
+| site_id | string | 网点 ID |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {...},
+        "user": {...},
+        "status": "shipped",
+        "shipping_info": {
+          "tracking_number": "SF123456",
+          "company": "顺丰",
+          "shipped_at": "2024-01-15T10:00:00Z"
+        }
+      }
+    ],
+    "total": 10
+  }
+}
+```
+
+### 8.2 录入物流信息
+```
+PUT /api/warehouse/orders/:id/shipping
+```
+**请求体**:
+```json
+{
+  "tracking_number": "SF123456",
+  "company": "顺丰",
+  "shipped_at": "2024-01-15T10:00:00Z"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "order_id": "uuid",
+    "status": "shipped"
+  }
+}
+```
+
+### 8.3 确认收货（租赁中）
+```
+PUT /api/warehouse/orders/:id/delivered
+```
+**请求体**:
+```json
+{
+  "delivered_at": "2024-01-16T15:00:00Z"
+}
+```
+
+**说明**: 确认收货后订单状态变为 in_lease，以物流到达时间点为起租点
+
+### 8.4 归还验收
+```
+POST /api/warehouse/orders/:id/inspect
+```
+**请求体**:
+```json
+{
+  "instrument_sn": "SN123456",
+  "scan_time": "2024-01-31T10:00:00Z",
+  "photos": ["url1", "url2"],
+  "condition": "good",
+  "notes": "外观完好"
+}
+```
+
+**condition 说明**:
+- `good`: 正常，直接进入在库状态
+- `damaged`: 损坏，进入定损流程
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "status": "completed"  // 或 "inspecting"
+  }
+}
+```
+
+### 8.5 开始定损
+```
+POST /api/warehouse/orders/:id/assess-damage
+```
+**请求体**:
+```json
+{
+  "damage_description": "琴弦断裂",
+  "damage_photos": ["url1"],
+  "damage_amount": 500.00,
+  "notes": "需要更换琴弦"
+}
+```
+
+**说明**: 提交后订单状态变为 inspecting，创建 damage_report 记录
+
+---
+
+## 9. 用户租赁 API
+
+### 9.1 获取乐器列表（用户端）
+```
+GET /api/user/instruments
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| category_id | string | 分类筛选 |
+| site_id | string | 网点筛选 |
+| level | string | 级别筛选 |
+| status | string | 状态筛选 (available) |
+| sort | string | 排序方式 (price/distance/rating) |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "sn": "SN123456",
+        "brand": "Yamaha",
+        "model": "U1",
+        "category": "钢琴",
+        "level": "专业级",
+        "images": ["url1", "url2"],
+        "daily_rent": 100.00,
+        "site_id": "uuid",
+        "site_name": "北京总店",
+        "status": "available"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 9.2 获取乐器详情（用户端）
+```
+GET /api/user/instruments/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "brand": "Yamaha",
+    "model": "U1",
+    "description": "描述信息",
+    "category": "钢琴",
+    "level": "专业级",
+    "images": ["url1"],
+    "pricing": [
+      {
+        "name": "standard",
+        "daily_rent": 100.00,
+        "weekly_rent": 630.00,
+        "monthly_rent": 2400.00,
+        "deposit": 5000.00
+      }
+    ],
+    "site_id": "uuid",
+    "site_name": "北京总店",
+    "stock": 5
+  }
+}
+```
+
+### 9.3 创建租赁订单
+```
+POST /api/user/orders
+```
+**请求体**:
+```json
+{
+  "instrument_id": "uuid",
+  "start_date": "2024-02-01",
+  "end_date": "2024-02-15",
+  "delivery_address": {
+    "name": "张三",
+    "phone": "13800000000",
+    "address": "北京市朝阳区..."
+  },
+  "notes": "备注"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "order_id": "uuid",
+    "amount": 1500.00,  // 租金总额
+    "deposit": 5000.00,
+    "payment_url": "https://pay.example.com/123"
+  }
+}
+```
+
+### 9.4 获取我的租赁列表
+```
+GET /api/user/rentals
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {...},
+        "start_date": "2024-02-01",
+        "end_date": "2024-02-15",
+        "status": "active",
+        "days_remaining": 3
+      }
+    ]
+  }
+}
+```
+
+### 9.5 发起归还
+```
+POST /api/user/rentals/:id/return
+```
+**请求体**:
+```json
+{
+  "return_method": "logistics",
+  "logistics_company": "顺丰",
+  "tracking_number": "SF987654"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "归还已提交，请等待验收",
+  "data": {
+    "status": "returning"
+  }
+}
+```
+
+### 9.6 获取电子合同
+```
+GET /api/user/contracts/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "order_id": "uuid",
+    "contract_url": "https://cdn.example.com/contract_123.pdf",
+    "created_at": "2024-02-01T10:00:00Z"
+  }
+}
+```
+
+**说明**: 合同在支付完成后自动生成
+
+---
+
+## 10. 库存管理 API
 
 ### 7.1 获取库存列表
 ```

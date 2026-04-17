@@ -90,3 +90,9 @@ instrument_levels
 查询时自动加载：`gorm:"foreignKey:LevelID"`
 
 ---
+
+### 核心文档
+docs/cases.md
+docs/api_design.md
+docs/ui_design.md
+docs/database_design.md

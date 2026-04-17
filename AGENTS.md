@@ -196,3 +196,113 @@ As the codebase grows, this file should be updated with:
 - API patterns and data fetching strategies
 - State management patterns
 - Styling conventions (CSS modules, styled-components, etc.)
+
+## Frontend Navigation Structure
+
+### PC端侧边栏菜单 (Last Update: 2026-04-17, Commit: $COMMIT_HASH)
+
+#### 菜单层级
+
+**1. 仪表盘 (Dashboard)**
+- **路由**: `/`
+- **权限**: 所有已登录用户
+- **说明**: 系统首页
+
+**2. 乐器管理**
+- **路由**: 一级菜单
+- **权限**: 所有已登录用户
+- **子菜单**:
+  - 乐器列表 (`/instruments/list`)
+  - 分类设置 (`/instruments/categories`)
+  - 属性管理 (`/instruments/properties`)
+
+**3. 库存监控** ⭐
+- **路由**: 一级菜单
+- **权限**: site_manager, admin, owner
+- **子菜单**:
+  - 库存调拨 (`/inventory/transfer`)
+  - 租金设定 (`/inventory/rent-setting`)
+
+**4. 组织管理**
+- **路由**: 一级菜单
+- **权限**: 所有已登录用户
+- **子菜单**:
+  - 网点管理 (`/organization/sites`)
+
+**5. 系统管理**
+- **路由**: 一级菜单
+- **权限**: 所有已登录用户
+- **子菜单**:
+  - 客户端管理 (`/system/clients`)
+  - 租户管理 (`/system/tenants`)
+
+#### 权限控制汇总
+
+| 菜单 | site_manager | admin | owner | 普通用户 |
+|------|-------------|-------|-------|---------|
+| 仪表盘 | ✅ | ✅ | ✅ | ✅ |
+| 乐器管理 | ✅ | ✅ | ✅ | ✅ |
+| 库存监控 | ✅ | ✅ | ✅ | ❌ |
+| 组织管理 | ✅ | ✅ | ✅ | ✅ |
+| 系统管理 | ✅ | ✅ | ✅ | ✅ |
+
+#### 右上角用户信息
+
+**显示格式**: 👤 **{name}** (**{role}**)
+
+**数据来源**（优先级）:
+1. JWT token payload（优先）
+   - name: name, username, preferred_username, displayName, nickName, nickname
+   - email: email, mail
+   - role: role, roles, authorities
+2. localStorage fallback (`user_info`)
+
+**面包屑导航**:
+- TuneLoop: 可点击，返回首页
+- 乐器管理: 可点击，返回首页（在相关页面）
+
+#### 关键代码位置
+
+- **主布局**: `frontend-pc/src/App.jsx::MainLayout()`
+- **用户加载**: lines 66-99 (useEffect)
+- **菜单定义**: lines 101-129 (items)
+- **面包屑**: lines 146-169 (breadcrumbItems)
+- **用户显示**: lines 175-183 (Header)
+
+#### 权限判断逻辑
+
+```javascript
+// 库存菜单可见性 (lines 117-130)
+const role = userInfo.role || ''
+const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
+```
+
+支持的角色值: `site_manager`, `admin`, `owner`
+
+#### 最后更新记录
+
+- **日期**: 2026-04-17
+- **Commit**: $COMMIT_HASH
+- **修复内容**:
+  - ✅ 中文用户名显示（JWT token 多字段支持）
+  - ✅ 面包屑导航点击事件修复
+  - ✅ OWNER 角色库存菜单可见性
+  - ✅ 添加调试日志
+
+#### 构建与部署
+
+```bash
+# 拉取最新代码
+git pull origin main
+
+# 构建前端
+cd frontend-pc && npm install && npm run build
+
+# 验证
+cd frontend-pc && npm run build  # 应该成功
+```
+
+**注意**: 用户必须重新登录才能看到效果，因为 userInfo 从登录时的 JWT token 加载。
+
+--------------------------------------------------------------------------------
+
