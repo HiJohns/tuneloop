@@ -391,6 +391,67 @@ POST /api/merchant/inventory/transfer
 GET /api/merchant/inventory/transfers
 ```
 
+### 7.4 获取库存租金列表
+```
+GET /api/inventory/rent-setting
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| brand | string | 品牌筛选 |
+| model | string | 型号筛选 |
+| category_id | string | 分类 ID 筛选 |
+| level_id | string | 等级 ID 筛选 |
+| site_id | string | 网点 ID 筛选 |
+| page | int | 页码，默认 1 |
+| pageSize | int | 每页数量，默认 20 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "sn": "SN123456",
+        "category_name": "钢琴",
+        "level_name": "专业级",
+        "brand": "Yamaha",
+        "model": "U1",
+        "site_name": "北京总店",
+        "daily_rent": 100.00
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 7.5 批量更新租金
+```
+PUT /api/inventory/rent-setting/batch
+```
+**请求体**:
+```json
+{
+  "items": [
+    {"id": "uuid1", "daily_rent": 120.00},
+    {"id": "uuid2", "daily_rent": 150.00}
+  ]
+}
+```
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {"updated": 2}
+}
+```
+
 ---
 
 ## 8. 网点管理 API

@@ -89,6 +89,19 @@
 - `idx_instruments_tenant_category` ON (tenant_id, category_id)
 - `idx_instruments_tenant_status` ON (tenant_id, stock_status)
 
+**pricing JSONB 结构**:
+```json
+[
+  {
+    "name": "standard",      // 定价等级名称
+    "daily_rent": 100.00,    // 日租金
+    "monthly_rent": 2500.00, // 月租金
+    "deposit": 5000.00,      // 押金
+    "stock": 5               // 库存数量
+  }
+]
+```
+
 ### 2.4 instrument_levels - 乐器等级表
 
 | 字段名 | 类型 | 约束 | 说明 |
