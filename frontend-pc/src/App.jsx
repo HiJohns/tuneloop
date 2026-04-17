@@ -106,13 +106,15 @@ function MainLayout() {
         console.log('[DEBUG TIMING] Extracted user data - name:', name, 'email:', email, 'role:', role)
         console.log('[DEBUG TIMING] Setting userInfo state...')
         
+        // Remove role from payload before spreading to prevent overwrite
+        const { role: _payloadRole, ...payloadWithoutRole } = payload
         setUserInfo({
           name,
           email,
           role,
-          ...payload
+          ...payloadWithoutRole
         })
-        localStorage.setItem('user_info', JSON.stringify({ ...payload, role }))
+        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role }))
         console.log('[DEBUG TIMING] userInfo state SET SUCCESSFULLY')
       } catch (e) {
         console.error('[DEBUG TIMING] FAILED to parse token:', e.message)
