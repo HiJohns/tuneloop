@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -246,5 +249,189 @@ func (h *InventoryHandler) ListTransfers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"list": transfers},
+	})
+}
+
+// GET /api/inventory/rent-setting - Get inventory rent settings
+func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
+	brand := c.Query("brand")
+	model := c.Query("model")
+	categoryID := c.Query("category_id")
+	levelID := c.Query("level_id")
+	siteID := c.Query("site_id")
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB().WithContext(ctx)
+
+	// Base query
+	query := db.Model(&models.Instrument{}).
+		Select(`instruments.id, instruments.sn, instruments.category_name, 
+				instruments.level_name, instruments.site_id, instruments.pricing`).
+		Where("instruments.tenant_id = ?", tenantID)
+
+	// Apply filters
+	if siteID != "" {
+		query = query.Where("instruments.site_id = ?", siteID)
+	}
+	if categoryID != "" {
+		query = query.Where("instruments.category_id = ?", categoryID)
+	}
+	if levelID != "" {
+		query = query.Where("instruments.level_id = ?", levelID)
+	}
+
+	// Handle brand and model filters via instrument_properties
+	// This is a simplified version - in production, you'd need a proper join
+	if brand != "" || model != "" {
+		// For now, we'll filter after fetching due to JSONB complexity
+		// A better implementation would use a proper join with instrument_properties
+	}
+
+	// Get total count before pagination
+	var total int64
+	query.Count(&total)
+
+	// Pagination
+	offset := (page - 1) * pageSize
+	var instruments []models.Instrument
+	query.Offset(offset).Limit(pageSize).Find(&instruments)
+
+	// Transform data to include brand, model, site_name, and daily_rent
+	type RentSettingItem struct {
+		ID           string  `json:"id"`
+		SN           string  `json:"sn"`
+		CategoryName string  `json:"category_name"`
+		LevelName    string  `json:"level_name"`
+		Brand        string  `json:"brand"`
+		Model        string  `json:"model"`
+		SiteName     string  `json:"site_name"`
+		DailyRent    float64 `json:"daily_rent"`
+	}
+
+	var items []RentSettingItem
+
+	for _, inst := range instruments {
+		// Parse pricing JSONB
+		var pricing []map[string]interface{}
+		if inst.Pricing != "" {
+			json.Unmarshal([]byte(inst.Pricing), &pricing)
+		}
+
+		dailyRent := 0.0
+		if len(pricing) > 0 {
+			if dailyRentVal, ok := pricing[0]["daily_rent"].(float64); ok {
+				dailyRent = dailyRentVal
+			}
+		}
+
+		// Get brand and model from instrument_properties (simplified for now)
+		brand := ""
+		model := ""
+
+		// Get site name
+		siteName := ""
+		if inst.SiteID != nil {
+			var site models.Site
+			db.Select("name").First(&site, "id = ?", inst.SiteID)
+			siteName = site.Name
+		}
+
+		items = append(items, RentSettingItem{
+			ID:           inst.ID,
+			SN:           inst.SN,
+			CategoryName: inst.CategoryName,
+			LevelName:    inst.LevelName,
+			Brand:        brand,
+			Model:        model,
+			SiteName:     siteName,
+			DailyRent:    dailyRent,
+		})
+	}
+
+	// Apply brand/model filters after fetching (simplified approach)
+	// TODO: Implement proper filtering with JOIN
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list":     items,
+			"total":    total,
+			"page":     page,
+			"pageSize": pageSize,
+		},
+	})
+}
+
+// PUT /api/inventory/rent-setting/batch - Batch update rent settings
+func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
+	var req struct {
+		Items []struct {
+			ID        string  `json:"id" binding:"required"`
+			DailyRent float64 `json:"daily_rent" binding:"required"`
+		} `json:"items" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	updatedCount := 0
+
+	for _, item := range req.Items {
+		// Get current instrument
+		var instrument models.Instrument
+		if err := db.First(&instrument, "id = ?", item.ID).Error; err != nil {
+			log.Printf("[WARN] Failed to find instrument %s: %v", item.ID, err)
+			continue
+		}
+
+		// Parse current pricing
+		var pricing []map[string]interface{}
+		if instrument.Pricing != "" {
+			json.Unmarshal([]byte(instrument.Pricing), &pricing)
+		}
+
+		// Ensure pricing array exists
+		if len(pricing) == 0 {
+			pricing = []map[string]interface{}{
+				{"name": "standard"},
+			}
+		}
+
+		// Update daily_rent
+		pricing[0]["daily_rent"] = item.DailyRent
+
+		// Marshal back to JSON
+		updatedPricing, err := json.Marshal(pricing)
+		if err != nil {
+			log.Printf("[WARN] Failed to marshal pricing for instrument %s: %v", item.ID, err)
+			continue
+		}
+
+		// Update database
+		if err := db.Model(&models.Instrument{}).Where("id = ?", item.ID).Update("pricing", string(updatedPricing)).Error; err != nil {
+			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)
+			continue
+		}
+
+		updatedCount++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"updated": updatedCount,
+		},
 	})
 }

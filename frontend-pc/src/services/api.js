@@ -299,6 +299,8 @@ export const inventoryApi = {
   list: () => api.get('/merchant/inventory'),
   transfer: (data) => api.post('/merchant/inventory/transfer', data),
   listTransfers: () => api.get('/merchant/inventory/transfers'),
+  getRentSetting: (params) => api.get('/inventory/rent-setting', { params }),
+  batchUpdateRent: (data) => api.put('/inventory/rent-setting/batch', data),
 }
 
 export const maintenanceApi = {

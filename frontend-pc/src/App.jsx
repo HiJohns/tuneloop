@@ -5,7 +5,8 @@ import {
   
   SettingOutlined,
   
-  LogoutOutlined
+  LogoutOutlined,
+  UserOutlined
 } from '@ant-design/icons'
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
@@ -30,6 +31,7 @@ import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
 
 import PropertyList from './pages/admin/property/List'
+import RentSetting from './pages/admin/inventory/RentSetting'
 
 const { Header, Content, Sider } = Layout
 
@@ -62,12 +64,43 @@ function MainLayout() {
   const [userInfo, setUserInfo] = useState(null)
 
   useEffect(() => {
-    const info = localStorage.getItem('user_info')
-    if (info) {
+    // Try to get user info from JWT token first
+    const token = getToken()
+    console.log('[DEBUG] Token:', token ? 'exists' : 'not found')
+    if (token && token.includes('.')) {
       try {
-        setUserInfo(JSON.parse(info))
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        console.log('[DEBUG] JWT payload:', payload)
+        console.log('[DEBUG] Available fields:', Object.keys(payload))
+        
+        // Try multiple possible field names
+        const name = payload.name || payload.username || payload.preferred_username || 
+                     payload.displayName || payload.nickName || payload.nickname || ''
+        const email = payload.email || payload.mail || ''
+        const role = payload.role || payload.roles || payload.authorities || ''
+        
+        console.log('[DEBUG] Extracted - name:', name, 'email:', email, 'role:', role)
+        
+        setUserInfo({
+          name,
+          email,
+          role,
+          ...payload
+        })
+        localStorage.setItem('user_info', JSON.stringify(payload))
       } catch (e) {
-        console.error('Failed to parse user info:', e)
+        console.error('Failed to parse token for user info:', e)
+      }
+    } else {
+      // Fallback to localStorage if no valid token
+      const info = localStorage.getItem('user_info')
+      if (info) {
+        try {
+          setUserInfo(JSON.parse(info))
+          console.log('[DEBUG] Loaded from localStorage:', JSON.parse(info))
+        } catch (e) {
+          console.error('Failed to parse user info:', e)
+        }
       }
     }
   }, [])
@@ -78,10 +111,23 @@ function MainLayout() {
       children: [
         { key: '/instruments/list', label: '乐器列表' },
         { key: '/instruments/categories', label: '分类设置' },
-        { key: '/instruments/properties', label: '属性管理' },
-        { key: '/site/stock', label: '库存监控' }
+        { key: '/instruments/properties', label: '属性管理' }
       ]
     },
+    // Inventory monitoring menu - visible to MANAGER roles only
+    ...(userInfo ? (() => {
+      const role = userInfo.role || ''
+      console.log('[DEBUG] Inventory menu check - userInfo:', userInfo, 'role:', role)
+      const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
+      console.log('[DEBUG] Inventory menu visible:', shouldShow)
+      return shouldShow ? [{
+        key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
+        children: [
+          { key: '/inventory/transfer', label: '库存调拨' },
+          { key: '/inventory/rent-setting', label: '租金设定' }
+        ]
+      }] : []
+    })() : []),
     {
       key: 'organization', icon: <SettingOutlined />, label: '组织管理',
       children: [
@@ -106,11 +152,16 @@ function MainLayout() {
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
+  else if (['/inventory/transfer', '/inventory/rent-setting'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
   else if (['/organization/sites'].includes(location.pathname)) openKeys = ['organization']
   else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
 
   let pageTitle = '管理后台'
-  let breadcrumbItems = [{ title: 'TuneLoop' }]
+  
+  // Make breadcrumb items clickable
+  const breadcrumbItems = [
+    { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>TuneLoop</a> }
+  ]
   
   const routeMap = {
     '/': { title: '仪表盘 (Dashboard)', parent: '乐器管理' },
@@ -118,6 +169,8 @@ function MainLayout() {
     '/instruments/list': { title: '乐器列表', parent: '乐器管理' },
     '/instruments/properties': { title: '属性管理', parent: '乐器管理' },
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
+    '/inventory/transfer': { title: '库存调拨', parent: '库存监控' },
+    '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
     '/system/tenants': { title: '租户管理', parent: '系统管理' },
@@ -125,7 +178,14 @@ function MainLayout() {
 
   if (routeMap[location.pathname]) {
     pageTitle = routeMap[location.pathname].title
-    breadcrumbItems.push({ title: routeMap[location.pathname].parent })
+    // 父级菜单可点击（返回首页）
+    if (routeMap[location.pathname].parent === '乐器管理') {
+      breadcrumbItems.push({ 
+        title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>{routeMap[location.pathname].parent}</a> 
+      })
+    } else {
+      breadcrumbItems.push({ title: routeMap[location.pathname].parent })
+    }
     breadcrumbItems.push({ title: pageTitle })
   } else if (location.pathname.startsWith('/site/stock/')) {
     pageTitle = '资产详情'
@@ -163,10 +223,15 @@ function MainLayout() {
           </div>
           <div className="flex items-center gap-4">
             {userInfo && (
-              <span className="text-gray-600">
-                {userInfo.name || userInfo.email}
-                <span className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs">{userInfo.role}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <UserOutlined className="text-gray-600 text-lg" />
+                <span className="text-gray-700 font-medium">
+                  {userInfo.name || userInfo.email}
+                </span>
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                  {userInfo.role}
+                </span>
+              </div>
             )}
             <button
               onClick={handleLogout}
@@ -193,6 +258,8 @@ function MainLayout() {
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
+            <Route path="/inventory/transfer" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
+            <Route path="/inventory/rent-setting" element={<ProtectedRoute><RentSetting /></ProtectedRoute>} />
           
 <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />

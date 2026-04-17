@@ -180,6 +180,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			inventoryRequired.GET("/merchant/inventory", inventoryHandler.ListInventory)
 			inventoryRequired.POST("/merchant/inventory/transfer", inventoryHandler.TransferInventory)
 			inventoryRequired.GET("/merchant/inventory/transfers", inventoryHandler.ListTransfers)
+			inventoryRequired.GET("/inventory/rent-setting", inventoryHandler.GetRentSetting)
+			inventoryRequired.PUT("/inventory/rent-setting/batch", inventoryHandler.BatchUpdateRent)
 		}
 
 		userRequired := authRequired.Group("")
