@@ -383,6 +383,15 @@ function MainLayout() {
             <Route path="/organization/sites" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
+            <Route path="/maintenance/workers" element={<ProtectedRoute><MaintenanceWorkerManagement /></ProtectedRoute>} />
+           <Route path="/maintenance/sessions" element={<ProtectedRoute><MaintenanceSessionManagement /></ProtectedRoute>} />
+            <Route path="/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
+            <Route path="/user/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
+            <Route path="/warehouse" element={<ProtectedRoute><WarehouseManagement /></ProtectedRoute>} />
+            <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
+            <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
+            <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
+            <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />
            <Route path="/maintenance/sessions" element={<ProtectedRoute><MaintenanceSessionManagement /></ProtectedRoute>} />
            <Route path="/maintenance/workers" element={<ProtectedRoute><MaintenanceWorkerManagement /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
