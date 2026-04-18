@@ -314,6 +314,7 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 
 	setupWarehouseTables(t, db)
 	tenantID := uuid.New().String()
+	userID := uuid.New().String()
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
