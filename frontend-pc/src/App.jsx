@@ -24,6 +24,7 @@ import RolePermission from './pages/RolePermission'
 import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
+import MaintenanceWorkerManagement from './pages/MaintenanceWorkerManagement'
 import CategoryList from './pages/admin/category/List'
 import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
@@ -147,6 +148,12 @@ function MainLayout() {
         { key: '/instruments/list', label: '乐器列表' },
         { key: '/instruments/categories', label: '分类设置' },
         { key: '/instruments/properties', label: '属性管理' }
+      ]
+    },
+    {
+      key: 'maintenance', icon: <SettingOutlined />, label: '维修管理',
+      children: [
+        { key: '/maintenance/workers', label: '师傅管理' }
       ]
     },
     // Inventory monitoring menu - visible to MANAGER roles only
@@ -359,6 +366,7 @@ function MainLayout() {
             <Route path="/organization/sites" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
+           <Route path="/maintenance/workers" element={<ProtectedRoute><MaintenanceWorkerManagement /></ProtectedRoute>} />
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
