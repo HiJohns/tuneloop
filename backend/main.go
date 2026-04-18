@@ -55,6 +55,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
 
+	// New handlers for Issue #299 (Maintenance, Appeal, Warehouse, User Rental)
+	maintenanceWorkerHandler := handlers.NewMaintenanceWorkerHandler()
+	maintenanceSessionHandler := handlers.NewMaintenanceSessionHandler()
+	appealHandler := handlers.NewAppealHandler()
+	warehouseHandler := handlers.NewWarehouseHandler()
+	userRentalHandler := handlers.NewUserRentalHandler()
+
 	api := r.Group("/api")
 
 	api.GET("/health", func(c *gin.Context) {
@@ -233,6 +240,41 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			}
 
 			permHandler := handlers.NewPermissionHandler(database.GetDB())
+
+			// Issue #303: Maintenance Worker Management Routes
+			authRequired.GET("/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
+			authRequired.POST("/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
+			authRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
+			authRequired.DELETE("/maintenance/workers/:id", maintenanceWorkerHandler.DeleteWorker)
+
+			// Issue #304: Maintenance Session Routes (available via existing maintenance endpoints)
+			authRequired.POST("/maintenance/:id/start", maintenanceSessionHandler.StartWork)
+			authRequired.PUT("/maintenance/:id/status", maintenanceSessionHandler.UpdateStatus)
+			authRequired.POST("/maintenance/:id/record", maintenanceSessionHandler.SubmitRecord)
+			authRequired.POST("/maintenance/:id/inspect", maintenanceSessionHandler.Inspect)
+
+			// Issue #305: Appeal Processing Routes
+			authRequired.GET("/appeals", appealHandler.ListAppeals)
+			authRequired.GET("/appeals/:id", appealHandler.GetAppeal)
+			authRequired.PUT("/appeals/:id/resolve", appealHandler.ResolveAppeal)
+			authRequired.POST("/appeals", appealHandler.SubmitAppeal)
+			authRequired.POST("/appeals/:id/agree", appealHandler.AgreeDamage)
+			authRequired.GET("/user/appeals", appealHandler.ListAppeals)
+
+			// Issue #306: Warehouse Routes
+			authRequired.GET("/warehouse/orders", warehouseHandler.ListOrders)
+			authRequired.PUT("/warehouse/orders/:id/shipping", warehouseHandler.UpdateShipping)
+			authRequired.PUT("/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)
+			authRequired.PUT("/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
+			authRequired.PUT("/warehouse/orders/:id/damage", warehouseHandler.AssessDamage)
+
+			// Issue #307: User Rental Routes
+			authRequired.GET("/user/instruments", userRentalHandler.ListInstruments)
+			authRequired.GET("/user/instruments/:id", userRentalHandler.GetInstrument)
+			authRequired.POST("/user/orders", userRentalHandler.CreateOrder)
+			authRequired.GET("/user/rentals", userRentalHandler.ListRentals)
+			authRequired.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
+			authRequired.GET("/user/contracts/:id", userRentalHandler.GetContract)
 
 			// Admin/Owner 专属路由组
 			adminRequired := authRequired.Group("")
