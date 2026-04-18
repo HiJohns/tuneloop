@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 func stringPtr(s string) *string {
@@ -82,13 +81,23 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	// Update order logistics info
+	shippedAt := req.ShippedAt
+	company := req.Company
+	trackingNumber := req.TrackingNumber
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(map[string]interface{}{
-		"tracking_number": req.TrackingNumber,
-		"company":         req.Company,
-		"shipped_at":      req.ShippedAt,
+		"tracking_number": trackingNumber,
+		"courier_company": company,
+		"shipped_at":      shippedAt,
 		"status":          "shipped",
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})
+		return
+	}
+
+	// Get order to fetch org_id for history
+	var order models.Order
+	if err := db.Where("id = ? AND tenant_id = ?", orderID, tenantID).First(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to fetch order: " + err.Error()})
 		return
 	}
 
@@ -96,12 +105,15 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
 		TenantID:   tenantID,
+		OrgID:      stringPtr(order.OrgID),
 		OrderID:    orderID,
 		StatusFrom: "preparing",
 		StatusTo:   "shipped",
 		Notes:      "物流信息已录入",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 	if err := db.Create(&history).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record status history: " + err.Error()})
@@ -109,7 +121,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 		"data": gin.H{
 			"order_id": orderID,
@@ -162,7 +174,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 		"data": gin.H{
 			"order_id":    orderID,
@@ -207,16 +219,16 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	// Create assessment record
 	userID := middleware.GetUserID(ctx)
 	assessment := models.DamageAssessment{
-		ID:          uuid.New().String(),
-		TenantID:    tenantID,
-		OrderID:     orderID,
-		UserID:      order.UserID,
-		Condition:   req.Condition,
-		Notes:       req.Notes,
-		ScanTime:    &req.ScanTime,
-		AssessedBy:  stringPtr(userID),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:         uuid.New().String(),
+		TenantID:   tenantID,
+		OrderID:    orderID,
+		UserID:     order.UserID,
+		Condition:  req.Condition,
+		Notes:      req.Notes,
+		ScanTime:   &req.ScanTime,
+		AssessedBy: stringPtr(userID),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
@@ -250,7 +262,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 		"data": gin.H{
 			"order_id":      orderID,
@@ -311,7 +323,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 		"data": gin.H{
 			"order_id":      orderID,

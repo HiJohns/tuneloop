@@ -244,14 +244,15 @@ func CreateInstrument(c *gin.Context) {
 
 	instrument := models.Instrument{
 		TenantID:     tenantID,
-		OrgID:        tenantID,
 		SN:           req.SN,
 		LevelName:    levelName,
 		LevelID:      levelID,
-		CategoryID:   req.CategoryID,
 		CategoryName: categoryName,
 		Description:  req.Description,
 		StockStatus:  "available",
+	}
+	if req.CategoryID != "" {
+		instrument.CategoryID = &req.CategoryID
 	}
 
 	// Handle SiteID
@@ -381,7 +382,9 @@ func UpdateInstrument(c *gin.Context) {
 		return
 	}
 
-	instrument.CategoryID = req.CategoryID
+	if req.CategoryID != "" {
+		instrument.CategoryID = &req.CategoryID
+	}
 	instrument.Description = req.Description
 	instrument.Video = req.Video
 	log.Printf("[DEBUG] req.SN = '%s', req.Level = '%s', req.CategoryID = '%s'", req.SN, req.Level, req.CategoryID)
@@ -485,12 +488,12 @@ func UpdateInstrument(c *gin.Context) {
 		instrument.Pricing = string(pricingJSON)
 	}
 
-	// Step 2: 确保 tenant_id 和 org_id 不为空
-	// 确保 tenant_id 和 org_id 存在
-	if instrument.TenantID == "" || instrument.OrgID == "" {
+	// Step 2: 确保 tenant_id 不为空 (org_id 是可选的指针字段)
+	// 确保 tenant_id 存在
+	if instrument.TenantID == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50001,
-			"message": "instrument is missing tenant_id or org_id",
+			"message": "instrument is missing tenant_id",
 		})
 		return
 	}

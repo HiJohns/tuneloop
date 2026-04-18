@@ -35,8 +35,8 @@ type Category struct {
 type Instrument struct {
 	ID              string           `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID        string           `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID           string           `gorm:"type:uuid;index" json:"org_id"`
-	CategoryID      string           `gorm:"type:uuid;index" json:"category_id"`
+	OrgID           *string          `gorm:"type:uuid;index" json:"org_id"`
+	CategoryID      *string          `gorm:"type:uuid;index" json:"category_id"`
 	CategoryName    string           `gorm:"type:varchar(100)" json:"category_name"`
 	Name            string           `gorm:"type:varchar(255)" json:"name"`
 	Brand           string           `gorm:"type:varchar(100)" json:"brand"`
@@ -61,22 +61,25 @@ type Instrument struct {
 }
 
 type Order struct {
-	ID                string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID          string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID             string    `gorm:"type:uuid;index" json:"org_id"`
-	UserID            string    `gorm:"type:uuid;not null;index" json:"user_id"`
-	InstrumentID      string    `gorm:"type:uuid;not null" json:"instrument_id"`
-	Level             string    `gorm:"type:varchar(20);not null" json:"level"`
-	LeaseTerm         int       `gorm:"not null" json:"lease_term"`
-	DepositMode       string    `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
-	MonthlyRent       float64   `gorm:"type:decimal(10,2);not null" json:"monthly_rent"`
-	Deposit           float64   `gorm:"type:decimal(10,2);default:0" json:"deposit"`
-	AccumulatedMonths int       `gorm:"default:0" json:"accumulated_months"`
-	Status            string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
-	StartDate         *string   `gorm:"type:date" json:"start_date"`
-	EndDate           *string   `gorm:"type:date" json:"end_date"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID          string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID             string     `gorm:"type:uuid;index" json:"org_id"`
+	UserID            string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	InstrumentID      string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	Level             string     `gorm:"type:varchar(20);not null" json:"level"`
+	LeaseTerm         int        `gorm:"not null" json:"lease_term"`
+	DepositMode       string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
+	MonthlyRent       float64    `gorm:"type:decimal(10,2);not null" json:"monthly_rent"`
+	Deposit           float64    `gorm:"type:decimal(10,2);default:0" json:"deposit"`
+	AccumulatedMonths int        `gorm:"default:0" json:"accumulated_months"`
+	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	StartDate         *string    `gorm:"type:date" json:"start_date"`
+	EndDate           *string    `gorm:"type:date" json:"end_date"`
+	TrackingNumber    *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
+	CourierCompany    *string    `gorm:"type:varchar(100)" json:"courier_company"`
+	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 type Site struct {
@@ -421,11 +424,13 @@ type Appeal struct {
 type OrderStatusHistory struct {
 	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID      string    `gorm:"type:uuid;index" json:"org_id"`
+	OrgID      *string   `gorm:"type:uuid;index" json:"org_id"`
 	OrderID    string    `gorm:"type:uuid;not null;index" json:"order_id"`
 	StatusFrom string    `gorm:"type:varchar(20)" json:"status_from"`
 	StatusTo   string    `gorm:"type:varchar(20)" json:"status_to"`
 	Notes      string    `gorm:"type:text" json:"notes"`
 	ChangedBy  *string   `gorm:"type:uuid;index" json:"changed_by"`
 	ChangedAt  time.Time `json:"changed_at"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }

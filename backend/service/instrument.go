@@ -154,7 +154,7 @@ func (s *InstrumentService) ImportInstruments(file *excelize.File, tenantID stri
 			tx = s.db.Begin()
 			continue
 		}
-		instrument.CategoryID = categoryID
+		instrument.CategoryID = &categoryID
 
 		if err := tx.Create(&instrument).Error; err != nil {
 			result.Failed++

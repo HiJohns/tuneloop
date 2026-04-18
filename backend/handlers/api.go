@@ -157,9 +157,9 @@ func GetInstruments(c *gin.Context) {
 		}
 		// Get category_name from Category table if CategoryID exists
 		var catName string
-		if instrument.CategoryID != "" {
+		if instrument.CategoryID != nil {
 			var cat models.Category
-			if err := db.First(&cat, "id = ?", instrument.CategoryID).Error; err == nil {
+			if err := db.First(&cat, "id = ?", *instrument.CategoryID).Error; err == nil {
 				catName = cat.Name
 			}
 		}
