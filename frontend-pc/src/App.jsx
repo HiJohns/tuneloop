@@ -29,6 +29,11 @@ import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import AppealManagement from './pages/AppealManagement'
 import WarehouseManagement from './pages/WarehouseManagement'
 import UserRental from './pages/UserRental'
+import InstrumentListUser from './pages/InstrumentListUser'
+import InstrumentDetailUser from './pages/InstrumentDetailUser'
+import OrderPayment from './pages/OrderPayment'
+import ContractView from './pages/ContractView'
+import ReturnProcess from './pages/ReturnProcess'
 import CategoryList from './pages/admin/category/List'
 import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
@@ -143,9 +148,14 @@ function MainLayout() {
     }
     
     console.log('[DEBUG TIMING] ===== useEffect FINISHED at:', new Date().toISOString())
-  }, [])
-
+    {
   const items = [
+    {
+      key: 'browse', icon: <ShoppingOutlined />, label: '乐器浏览',
+      children: [
+        { key: '/instruments', label: '浏览乐器' }
+      ]
+    },
     {
       key: 'instruments', icon: <SettingOutlined />, label: '乐器管理',
       children: [
@@ -384,6 +394,11 @@ function MainLayout() {
             <Route path="/inventory/rent-setting" element={<ProtectedRoute><RentSetting /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
+            <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
+            <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
+            <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />
+            <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
+            <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           
 <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
