@@ -27,6 +27,8 @@ import TenantManagement from './pages/TenantManagement'
 import MaintenanceWorkerManagement from './pages/MaintenanceWorkerManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import AppealManagement from './pages/AppealManagement'
+import WarehouseManagement from './pages/WarehouseManagement'
+import UserRental from './pages/UserRental'
 import CategoryList from './pages/admin/category/List'
 import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
@@ -181,7 +183,8 @@ function MainLayout() {
           key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
           children: [
             { key: '/inventory/transfer', label: '库存调拨' },
-            { key: '/inventory/rent-setting', label: '租金设定' }
+            { key: '/inventory/rent-setting', label: '租金设定' },
+            { key: '/warehouse', label: '库管工作台' }
           ]
         }]
       } else {
@@ -379,6 +382,8 @@ function MainLayout() {
             <Route path="/user/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
             <Route path="/inventory/transfer" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute><RentSetting /></ProtectedRoute>} />
+            <Route path="/warehouse" element={<ProtectedRoute><WarehouseManagement /></ProtectedRoute>} />
+            <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
           
 <Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
