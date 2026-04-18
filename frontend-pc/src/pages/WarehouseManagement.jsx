@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select } from 'antd';
-import { TruckOutlined, CheckCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { useState, useEffect, useRef } from 'react';
+import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload } from 'antd';
+import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import QrScanner from 'qr-scanner';
 
 const { Title } = Typography;
 
@@ -32,6 +33,74 @@ export default function WarehouseManagement() {
       setLoading(false);
     }
   };
+  const [scanModalVisible, setScanModalVisible] = useState(false);
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+  const [scannedData, setScannedData] = useState("");
+  const handleOpenScanner = async () => {
+    setScanModalVisible(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        scannerRef.current = new QrScanner(
+          videoRef.current,
+          result => {
+            setScannedData(result.data);
+            handleScanResult(result.data);
+          },
+          { highlightScanRegion: true }
+        );
+        scannerRef.current.start();
+      }
+    } catch (error) {
+      message.error("相机访问失败: " + error.message);
+    }
+  };
+
+  const handleScanResult = (data) => {
+    message.success("扫描成功: " + data);
+    scannerRef.current?.stop();
+    setScanModalVisible(false);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const track = stream.getVideoTracks()[0];
+      const imageCapture = new ImageCapture(track);
+      const blob = await imageCapture.takePhoto();
+      const timestamp = new Date().toISOString();
+      const photoData = {
+        url: URL.createObjectURL(blob),
+        timestamp,
+        name: "inspection_" + timestamp + ".jpg"
+      };
+      setPhotos([...photos, photoData]);
+      message.success("照片已上传");
+      stream.getTracks().forEach(t => t.stop());
+    } catch (error) {
+      message.error("拍照失败: " + error.message);
+    }
+  };
+
+  const handleDamageAssessment = async (orderId) => {
+    try {
+      await api.put(`/warehouse/orders/${orderId}/damage`, damageAssessment);
+      message.success("定损处理完成");
+      setDamageModalVisible(false);
+      fetchOrders();
+    } catch (error) {
+      message.error("定损处理失败");
+    }
+  };
+
+  const [photos, setPhotos] = useState([]);
+  const [damageModalVisible, setDamageModalVisible] = useState(false);
+  const [damageAssessment, setDamageAssessment] = useState({ amount: 0, notes: "" });
+  const videoRef = useRef(null);
+  const scannerRef = useRef(null);
 
   const handleUpdateShipping = async (orderId, values) => {
     try {
@@ -275,6 +344,119 @@ export default function WarehouseManagement() {
             </Descriptions>
           </div>
         )}
+      </Modal>
+    </div>
+  );
+}
+
+      {/* QR Scanner Modal */}
+      <Modal
+        title="扫码验收"
+        open={scanModalVisible}
+        onCancel={() => {
+          setScanModalVisible(false);
+          scannerRef.current?.stop();
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setScanModalVisible(false);
+            scannerRef.current?.stop();
+          }}>
+            关闭
+          </Button>
+        ]}
+        width={600}
+      >
+        <div className="text-center">
+          <video 
+            ref={videoRef} 
+            style={{ width: '100%', maxWidth: '400px', border: '2px dashed #ddd', borderRadius: '8px' }}
+            autoPlay
+            muted
+            playsInline
+          />
+          <div className="mt-4">
+            {scannedData && (
+              <div className="bg-green-50 p-4 rounded">
+                <div className="font-semibold">扫描结果:</div>
+                <div className="text-green-600 font-mono">{scannedData}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Photo Upload Modal */}
+      <Modal
+        title="拍照上传"
+        open={photoModalVisible}
+        onCancel={() => setPhotoModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setPhotoModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={700}
+      >
+        <div className="space-y-4">
+          <Button 
+            type="primary" 
+            block
+            icon={<CameraOutlined />}
+            onClick={handleTakePhoto}
+          >
+            拍照
+          </Button>
+          
+          <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+            {photos.map((photo, idx) => (
+              <div key={idx} className="relative">
+                <img 
+                  src={photo.url} 
+                  alt={photo.name}
+                  className="w-full h-32 object-cover rounded"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
+                  {photo.timestamp}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Damage Assessment Modal */}
+      <Modal
+        title="定损处理"
+        open={damageModalVisible}
+        onCancel={() => setDamageModalVisible(false)}
+        onOk={() => {
+          const orderId = selectedOrder?.id;
+          if (orderId) handleDamageAssessment(orderId);
+        }}
+        okText="提交定损"
+      >
+        <div className="space-y-4">
+          <div>
+            <div className="text-sm font-semibold mb-2">定损金额:</div>
+            <Input 
+              type="number" 
+              prefix="¥"
+              value={damageAssessment.amount}
+              onChange={(e) => setDamageAssessment({...damageAssessment, amount: parseFloat(e.target.value)})}
+              placeholder="请输入定损金额"
+            />
+          </div>
+          <div>
+            <div className="text-sm font-semibold mb-2">定损说明:</div>
+            <Input.TextArea
+              rows={3}
+              value={damageAssessment.notes}
+              onChange={(e) => setDamageAssessment({...damageAssessment, notes: e.target.value})}
+              placeholder="请描述损坏情况..."
+            />
+          </div>
+        </div>
       </Modal>
     </div>
   );
