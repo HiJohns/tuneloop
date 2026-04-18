@@ -26,6 +26,7 @@ import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
 import MaintenanceWorkerManagement from './pages/MaintenanceWorkerManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
+import AppealManagement from './pages/AppealManagement'
 import CategoryList from './pages/admin/category/List'
 import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
@@ -198,7 +199,8 @@ function MainLayout() {
       key: 'system', icon: <SettingOutlined />, label: '系统管理',
       children: [
         { key: '/system/clients', label: '客户端管理' },
-        { key: '/system/tenants', label: '租户管理' }
+        { key: '/system/tenants', label: '租户管理' },
+        { key: '/appeals', label: '申诉处理' }
       ]
     }
   ]
@@ -373,6 +375,8 @@ function MainLayout() {
             <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
+            <Route path="/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
+            <Route path="/user/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
             <Route path="/inventory/transfer" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute><RentSetting /></ProtectedRoute>} />
           
