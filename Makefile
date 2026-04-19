@@ -4,8 +4,6 @@ kill-port:
 	@fuser -k 5556/tcp 2>/dev/null || true
 	@fuser -k 5557/tcp 2>/dev/null || true
 
-web-dev: build-frontend run-backend
-
 build-frontend: build-pc build-mobile
 
 build-pc:
@@ -60,3 +58,36 @@ install:
 init: install
 	@echo "Running database migrations..."
 	cd backend && go run cmd/migrate/main.go
+
+# Prerelease targets
+.PHONY: prerelease clean-prerelease prebuild-pc prebuild-mobile prebuild-backend
+
+clean-prerelease:
+	@echo "Cleaning prerelease directories..."
+clean-prerelease:
+	@echo "Cleaning prerelease directories..."
+	rm -rf prerelease/www prerelease/mobile prerelease/service
+
+prebuild-pc: clean-prerelease
+	@echo "Building PC frontend for prerelease..."
+	@mkdir -p prerelease/www
+	cd frontend-pc && VITE_API_BASE_URL=https://web.cadenzayueqi.com VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_pc VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
+	@cp -r frontend-pc/dist/* prerelease/www/
+
+prebuild-mobile:
+	@echo "Building Mobile frontend for prerelease..."
+	@mkdir -p prerelease/mobile
+	cd frontend-mobile && VITE_API_BASE_URL=https://wx.cadenzayueqi.com VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_WX_CLIENT_ID=tuneloop_wx VITE_IAM_WX_REDIRECT_URI=https://wx.cadenzayueqi.com/callback npm run build
+	@cp -r frontend-mobile/dist/* prerelease/mobile/
+
+prebuild-backend:
+	@echo "Building backend for prerelease..."
+	@mkdir -p prerelease/service
+	cd backend && go build -o ../prerelease/service/tuneloop .
+
+prerelease: clean-prerelease prebuild-backend prebuild-pc prebuild-mobile
+	@echo "=========================================="
+	@echo "预发布构建完成"
+	@echo "PC:   web.cadenzayueqi.com"
+	@echo "WX:   wx.cadenzayueqi.com"
+	@echo "=========================================="

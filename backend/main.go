@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func getEnv(key, defaultValue string) string {
@@ -312,6 +315,25 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 }
 
 func main() {
+	// Parse command line flags
+	var envFile string
+	flag.StringVar(&envFile, "env", "", "Path to .env file to load")
+	flag.Parse()
+
+	// Load environment file if specified
+	if envFile != "" {
+		if err := godotenv.Load(envFile); err != nil {
+			log.Printf("[WARN] Failed to load env file from %s: %v", envFile, err)
+		} else {
+			log.Printf("[INFO] Loaded configuration from: %s", envFile)
+		}
+	} else {
+		// Try to load .env from current directory
+		if err := godotenv.Load(); err == nil {
+			log.Printf("[INFO] Loaded configuration from default .env file")
+		}
+	}
+
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)
 	if err != nil {
@@ -329,10 +351,19 @@ func main() {
 		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
 	}
 
+	// Log current configuration
+	log.Printf("[INFO] IAM External URL: %s", os.Getenv("BEACONIAM_EXTERNAL_URL"))
+	log.Printf("[INFO] IAM PC Client ID: %s", os.Getenv("IAM_PC_CLIENT_ID"))
+	log.Printf("[INFO] IAM WX Client ID: %s", os.Getenv("IAM_WX_CLIENT_ID"))
+
 	iamService := services.NewIAMService()
 
 	wxPort := getEnv("TUNELOOP_WX_PORT", "5556")
 	wwwPort := getEnv("TUNELOOP_WWW_PORT", "5557")
+
+	// Log server ports
+	log.Printf("[INFO] Mobile server listening on port: %s", wxPort)
+	log.Printf("[INFO] PC server listening on port: %s", wwwPort)
 
 	wwwURL := fmt.Sprintf("http://localhost:%s", wwwPort)
 	wxURL := fmt.Sprintf("http://localhost:%s", wxPort)
