@@ -11,9 +11,9 @@ import MyService from './pages/MyService'
 
 const getWXConfig = () => {
   return window.APP_CONFIG?.wx || {
-    iamExternalUrl: "http://opencode.linxdeep.com:5552",
-    iamClientId: "tuneloop-wx",
-    iamRedirectUri: "http://opencode.linxdeep.com:5556/callback"
+    iamExternalUrl: import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '',
+    iamClientId: import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx',
+    iamRedirectUri: import.meta.env.VITE_IAM_WX_REDIRECT_URI || ''
   }
 }
 

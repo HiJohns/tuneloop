@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin } from 'antd'
 import {
-  
+  ShoppingOutlined,
   SettingOutlined,
-  
   LogoutOutlined,
   UserOutlined
 } from '@ant-design/icons'
@@ -61,7 +60,7 @@ function handleLogout() {
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   
   // Redirect to IAM OAuth page for proper logout
-  const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
+  const iamUrl = window.APP_CONFIG?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
   const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
   const redirectUri = encodeURIComponent(window.location.origin + '/callback')
   window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
@@ -148,7 +147,8 @@ function MainLayout() {
     }
     
     console.log('[DEBUG TIMING] ===== useEffect FINISHED at:', new Date().toISOString())
-    {
+  }, [])
+  
   const items = [
     {
       key: 'browse', icon: <ShoppingOutlined />, label: '乐器浏览',
@@ -434,9 +434,9 @@ function OAuthCallback() {
   
   const getOAuthUrl = () => {
     const config = window.APP_CONFIG?.pc || {
-      iamExternalUrl: "http://opencode.linxdeep.com:5552",
-      iamClientId: "tuneloop-pc",
-      iamRedirectUri: "http://opencode.linxdeep.com:5554/callback"
+      iamExternalUrl: import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '',
+      iamClientId: import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc',
+      iamRedirectUri: import.meta.env.VITE_IAM_PC_REDIRECT_URI || ''
     }
     const redirectUri = encodeURIComponent(config.iamRedirectUri)
     return `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`

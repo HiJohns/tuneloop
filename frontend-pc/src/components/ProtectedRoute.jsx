@@ -2,8 +2,8 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
 
-const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || 'http://opencode.linxdeep.com:5552'
-const CLIENT_ID = import.meta.env.VITE_IAM_CLIENT_ID || 'tuneloop'
+const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+const CLIENT_ID = import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
 
 function getToken() {
   // Check cookies first (same as api.js)

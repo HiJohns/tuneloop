@@ -64,8 +64,8 @@ function isWeChatBrowser() {
 }
 
 function redirectToIAM() {
-  const iamUrl = window.APP_CONFIG?.iamExternalUrl || 'http://opencode.linxdeep.com:5552'
-  const clientId = window.APP_CONFIG?.iamClientId || 'tuneloop'
+  const iamUrl = window.APP_CONFIG?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+  const clientId = window.APP_CONFIG?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
   const redirectUri = encodeURIComponent(window.location.origin + '/callback')
   
   if (isWeChatBrowser()) {
