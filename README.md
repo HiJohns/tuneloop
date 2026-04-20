@@ -165,6 +165,62 @@ npm install
 
 ---
 
+## 🚀 开发环境
+
+### 工作目录
+项目根目录
+
+### 启动服务
+```bash
+# 启动后端服务
+make run
+
+# 启动 PC 前端 Vite 服务
+make web-dev
+
+# 启动微信前端 Vite 服务
+make mobile-dev
+```
+
+### 访问地址
+- https://opencode.linxdeep.com:5552 => IAM 服务
+- https://opencode.linxdeep.com:5553 => Vite (wx) => :5556 (service/wx)
+- https://opencode.linxdeep.com:5552 => Vite (web) => :5557 (service/web)
+
+### 配置
+在根目录的 `.env` 中完成 IAM 相关跳转配置
+
+---
+
+## 🚀 预生产环境
+
+### 工作目录
+`prerelease/`
+
+### 编译
+```bash
+make prerelease
+```
+
+### 启动
+```bash
+# 使用 systemd 服务
+sudo service tuneloop start
+
+# 或手动启动
+cd prerelease && ./service/tuneloop --env=.env
+```
+
+### 访问地址
+- https://web.cadenzayueqi.com => NGINX => :5558 (PC端)
+- https://wx.cadenzayueqi.com => NGINX => :5559 (微信端)
+- https://iam.cadenzayueqi.com => NGINX => :5560 (IAM 服务)
+
+### 配置
+在 `prerelease/.env` 中完成微信端、PC 端的 IAM 相关跳转配置
+
+---
+
 ## 📁 项目结构
 
 ```

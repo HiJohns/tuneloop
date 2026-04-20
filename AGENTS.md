@@ -2,6 +2,19 @@
 
 This file contains instructions and guidelines for AI coding agents working in this repository.
 
+## 核心文档 (Core Documents)
+
+以下文档被视为项目的核心文档，修改这些文档需要同步更新相关配置和代码：
+
+- `README.md` - 项目主文档，包含开发环境和预生产环境配置
+- `AGENTS.md` - AI 助手工作指南
+- `docs/features.md` - 功能需求文档
+- `docs/api.md` - API 接口文档
+- `docs/ui.md` - UI 设计文档
+- `docs/iam.md` - IAM 集成说明
+
+---
+
 ## Repository Status
 **Note**: This repository is currently empty. The guidelines below represent standard best practices for modern web development. Update them as the project structure becomes established.
 
