@@ -85,7 +85,7 @@ function redirectToLogin() {
   } else {
     // 普通 H5 环境：跳转到 IAM OAuth
     const iamUrl = window.APP_CONFIG?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-    const clientId = window.APP_CONFIG?.iamClientId || import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx'
+    const clientId = window.APP_CONFIG?.iamClientId || import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx_wechat_1776711596'
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
     window.location.href = authUrl
