@@ -118,6 +118,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 
 	api.GET("/auth/callback", authHandler.Callback)
 	api.POST("/auth/callback", authHandler.Callback)
+	api.GET("/auth/oidc/authorization-url", authHandler.GetOIDCAuthorizationURL)
 	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/refresh", authHandler.Refresh)
 
@@ -355,6 +356,9 @@ func main() {
 	log.Printf("[INFO] IAM External URL: %s", os.Getenv("BEACONIAM_EXTERNAL_URL"))
 	log.Printf("[INFO] IAM PC Client ID: %s", os.Getenv("IAM_PC_CLIENT_ID"))
 	log.Printf("[INFO] IAM WX Client ID: %s", os.Getenv("IAM_WX_CLIENT_ID"))
+	log.Printf("[INFO] IAM PC Redirect URI: %s", os.Getenv("IAM_PC_REDIRECT_URI"))
+	log.Printf("[INFO] IAM WX Redirect URI: %s", os.Getenv("IAM_WX_REDIRECT_URI"))
+	log.Printf("[INFO] Working Directory: %s", func() string { dir, _ := os.Getwd(); return dir }())
 
 	iamService := services.NewIAMService()
 

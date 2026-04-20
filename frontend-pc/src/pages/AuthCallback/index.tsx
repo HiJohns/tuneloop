@@ -35,12 +35,15 @@ const AuthCallback: React.FC = () => {
     }
 
     // Call the backend callback endpoint to exchange code for token
-    fetch(`/api/auth/callback?code=${encodeURIComponent(code)}${state ? `&state=${encodeURIComponent(state)}` : ''}`)
+    fetch(`/api/auth/callback?code=${encodeURIComponent(code)}${state ? `&state=${encodeURIComponent(state)}` : ''}`, {
+      credentials: 'include'
+    })
       .then(response => response.json())
       .then(data => {
         if (data.code === 20000 && data.data && data.data.access_token) {
-          // Store the token
-          localStorage.setItem('access_token', data.data.access_token);
+          // Store the token with the correct key that getToken() expects
+          localStorage.setItem('token', data.data.access_token);
+          localStorage.setItem('token_expiry', (Date.now() + (data.data.expires_in || 3600) * 1000).toString());
           if (data.data.refresh_token) {
             localStorage.setItem('refresh_token', data.data.refresh_token);
           }
@@ -48,10 +51,8 @@ const AuthCallback: React.FC = () => {
           // Redirect to original URL or dashboard
           if (originalUrl) {
             sessionStorage.removeItem('original_request_url');
-            
             window.location.href = originalUrl;
           } else {
-            // Fallback to dashboard
             window.location.href = '/dashboard';
           }
         } else {

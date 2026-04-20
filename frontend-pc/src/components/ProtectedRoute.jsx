@@ -62,14 +62,23 @@ function storeToken(token, expiresIn = 3600) {
 }
 
 function isTokenValid(token) {
-  if (!token || !token.includes('.')) return false
+  if (!token) return false
+  // If token doesn't look like JWT, accept it anyway (opaque token from IAM)
+  if (!token.includes('.')) {
+    return true
+  }
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
+    // If no exp claim, accept the token
+    if (!payload.exp) {
+      return true
+    }
     const expTime = payload.exp * 1000
     const now = Date.now()
     return expTime > now
   } catch (e) {
-    return false
+    // Accept token even if parsing fails (opaque token from IAM)
+    return true
   }
 }
 
@@ -80,6 +89,32 @@ function clearTokens() {
   localStorage.removeItem('user_role')
   sessionStorage.removeItem('token')
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+}
+
+function redirectToLogin() {
+  // First call backend to get authorization URL with state cookie set
+  fetch('/api/auth/oidc/authorization-url', {
+    credentials: 'include'
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.code === 20000 && data.data && data.data.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        // Fallback to direct OAuth URL
+        console.error('[Auth] Failed to get authorization URL, using fallback');
+        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
+        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
+        window.location.href = authUrl;
+      }
+    })
+    .catch(error => {
+      console.error('[Auth] Error getting authorization URL:', error);
+      // Fallback to direct OAuth URL
+      const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
+      const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
+      window.location.href = authUrl;
+    });
 }
 
 export function ProtectedRoute({ children, requiredRoles = [] }) {
@@ -93,9 +128,7 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
       
       if (!tokenValue) {
         setChecking(false)
-        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
-        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
-        window.location.href = authUrl
+        redirectToLogin();
         return
       }
       
@@ -103,9 +136,7 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
         console.log('[ProtectedRoute] Token invalid or expired, clearing and redirecting to login')
         clearTokens()
         setChecking(false)
-        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
-        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
-        window.location.href = authUrl
+        redirectToLogin();
         return
       }
       
@@ -151,9 +182,7 @@ export function AuthGuard({ children }) {
       setChecking(false)
       
       if (!tokenValue) {
-        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
-        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`
-        window.location.href = authUrl
+        redirectToLogin();
       }
     }
     

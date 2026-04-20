@@ -71,13 +71,13 @@ clean-prerelease:
 prebuild-pc: clean-prerelease
 	@echo "Building PC frontend for prerelease..."
 	@mkdir -p prerelease/www
-	cd frontend-pc && VITE_API_BASE_URL=https://web.cadenzayueqi.com VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop-pc VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
+	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop-pc VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
 	@cp -r frontend-pc/dist/* prerelease/www/
 
 prebuild-mobile:
 	@echo "Building Mobile frontend for prerelease..."
 	@mkdir -p prerelease/mobile
-	cd frontend-mobile && VITE_API_BASE_URL=https://wx.cadenzayueqi.com VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_WX_CLIENT_ID=tuneloop-wx VITE_IAM_WX_REDIRECT_URI=https://wx.cadenzayueqi.com/callback npm run build
+	cd frontend-mobile && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_WX_CLIENT_ID=tuneloop-wx_wechat_1776711596 VITE_IAM_WX_REDIRECT_URI=https://wx.cadenzayueqi.com/callback npm run build
 	@cp -r frontend-mobile/dist/* prerelease/mobile/
 
 prebuild-backend:

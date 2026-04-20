@@ -156,11 +156,19 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 }
 
 func (s *IAMService) ExchangeCode(code string) (*TokenResponse, error) {
+	return s.ExchangeCodeWithRedirect(code, "")
+}
+
+func (s *IAMService) ExchangeCodeWithRedirect(code string, redirectURI string) (*TokenResponse, error) {
 	payload := map[string]string{
 		"grant_type":    "authorization_code",
 		"code":          code,
 		"client_id":     s.clientID,
 		"client_secret": s.clientSecret,
+	}
+
+	if redirectURI != "" {
+		payload["redirect_uri"] = redirectURI
 	}
 
 	jsonPayload, _ := json.Marshal(payload)
@@ -175,7 +183,8 @@ func (s *IAMService) ExchangeCode(code string) (*TokenResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("IAM token endpoint returned status: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IAM token endpoint returned status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	var tokenResp TokenResponse

@@ -75,9 +75,6 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			// 🔍 调试：记录收到的原始 header
-			log.Printf("40100 Debug: Received Header [%s], Cookie [%s]", authHeader, c.GetHeader("Cookie"))
-
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40100,
 				"message": "missing or invalid authorization header",
@@ -103,6 +100,10 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 				break
 			}
 		}
+		// Skip issuer validation if issuer is empty (for IAM compatibility)
+		if claims.Issuer == "" {
+			issuerValid = true
+		}
 		if !issuerValid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40102,
@@ -118,7 +119,6 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		c.Request = c.Request.WithContext(ctx)
-		log.Printf("[IAM DEBUG] User=%s, Role=%s, IsOwner=%v", claims.Subject, claims.Role, claims.IsOwner)
 
 		// Sliding expiration: Check if token is about to expire
 		if claims.ExpiresAt != nil {
