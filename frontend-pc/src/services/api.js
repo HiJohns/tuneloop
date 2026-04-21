@@ -95,20 +95,16 @@ function isTokenExpiringSoon(token) {
 }
 
 async function handleAuthError(token, retryCount, endpoint, options) {
-  // Step 1: 尝试刷新 token (不检查是否即将过期)
-  // 如果后端返回 40101，总是先尝试刷新，不进行额外的过期检查
   if (retryCount < 1) {
     try {
       await refreshAccessToken()
       Logger.log('AUTH', 'Token refreshed after auth error, retrying request')
-      // 刷新成功后重试原请求
       return await request(endpoint, options, retryCount + 1)
     } catch (e) {
       Logger.warn('AUTH', 'Token refresh failed in handleAuthError:', e.message)
     }
   }
   
-  // Step 2: 刷新失败，清除 token 并跳转
   Logger.warn('AUTH', 'Auth failed, clearing tokens and redirecting to IAM')
   clearTokens()
   redirectToIAM()

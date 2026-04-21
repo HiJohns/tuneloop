@@ -6,7 +6,6 @@ const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
 
 function getToken() {
-  // Check cookies first (same as api.js)
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const trimmed = cookie.trim()
@@ -18,12 +17,10 @@ function getToken() {
     }
   }
   
-  // Then check localStorage with expiry
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
   
   if (!token || !expiry) {
-    // Fall back to sessionStorage
     return sessionStorage.getItem('token') || null
   }
   
@@ -133,14 +130,12 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
       }
       
       if (!isTokenValid(tokenValue)) {
-        console.log('[ProtectedRoute] Token invalid or expired, clearing and redirecting to login')
         clearTokens()
         setChecking(false)
         redirectToLogin();
         return
       }
       
-      console.log('[ProtectedRoute] Token valid, allowing access')
       setToken(tokenValue)
       setChecking(false)
     }

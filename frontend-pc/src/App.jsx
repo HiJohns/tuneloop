@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin } from 'antd'
 import {
@@ -72,50 +72,18 @@ function MainLayout() {
   const location = useLocation()
   const [userInfo, setUserInfo] = useState(null)
 
-  // Track renders and useEffect execution
-  const renderCount = useRef(0)
-  const effectRunCount = useRef(0)
-  const tokenCheckCount = useRef(0)
-
-  renderCount.current++
-  console.log('[DEBUG TIMING] ===== MainLayout RENDER #' + renderCount.current + ' at:', new Date().toISOString())
-  console.log('[DEBUG TIMING]   userInfo state:', userInfo)
-  console.log('[DEBUG TIMING]   localStorage token exists:', !!localStorage.getItem('token'))
-  console.log('[DEBUG TIMING]   cookie token exists:', document.cookie.includes('token='))
-
   useEffect(() => {
-    effectRunCount.current++
-    console.log('[DEBUG TIMING] ===== useEffect RUN #' + effectRunCount.current + ' at:', new Date().toISOString())
-    
-    // Try to get user info from JWT token first
     const token = getToken()
-    tokenCheckCount.current++
-    console.log('[DEBUG TIMING] getToken() attempt #' + tokenCheckCount.current + ':', token ? 'TOKEN_FOUND' : 'TOKEN_NOT_FOUND')
-    
-    if (token) {
-      console.log('[DEBUG TIMING] Token length:', token.length)
-      console.log('[DEBUG TIMING] Token includes dots:', token.includes('.'))
-    }
     
     if (token && token.includes('.')) {
-      console.log('[DEBUG TIMING] Attempting to parse JWT token...')
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
-        console.log('[DEBUG TIMING] JWT payload successfully parsed:', payload)
-        console.log('[DEBUG TIMING] Available JWT fields:', Object.keys(payload))
-        
-        // Try multiple possible field names
-        // Handle empty string as well (treat as falsy)
         const name = payload.name || payload.username || payload.preferred_username || 
                      payload.displayName || payload.nickName || payload.nickname || 
                      (payload.is_owner ? '所有者' : '') || ''
         const email = payload.email || payload.mail || ''
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
         
-        console.log('[DEBUG TIMING] Extracted user data - name:', name, 'email:', email, 'role:', role)
-        console.log('[DEBUG TIMING] Setting userInfo state...')
-        
-        // Remove role from payload before spreading to prevent overwrite
         const { role: _payloadRole, ...payloadWithoutRole } = payload
         setUserInfo({
           name,
@@ -124,29 +92,19 @@ function MainLayout() {
           ...payloadWithoutRole
         })
         localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role }))
-        console.log('[DEBUG TIMING] userInfo state SET SUCCESSFULLY')
       } catch (e) {
-        console.error('[DEBUG TIMING] FAILED to parse token:', e.message)
+        // ignore parse errors
       }
     } else {
-      console.log('[DEBUG TIMING] No valid token found, falling back to localStorage user_info')
       const info = localStorage.getItem('user_info')
       if (info) {
-        console.log('[DEBUG TIMING] Found user_info in localStorage, parsing...')
         try {
-          const parsed = JSON.parse(info)
-          console.log('[DEBUG TIMING] localStorage user_info parsed:', parsed)
-          setUserInfo(parsed)
-          console.log('[DEBUG TIMING] userInfo state SET from localStorage')
+          setUserInfo(JSON.parse(info))
         } catch (e) {
-          console.error('[DEBUG TIMING] FAILED to parse localStorage user_info:', e.message)
+          // ignore parse errors
         }
-      } else {
-        console.log('[DEBUG TIMING] No user_info in localStorage either')
       }
     }
-    
-    console.log('[DEBUG TIMING] ===== useEffect FINISHED at:', new Date().toISOString())
   }, [])
   
   const items = [
@@ -173,22 +131,9 @@ function MainLayout() {
     },
     // Inventory monitoring menu - visible to MANAGER roles only
     ...(userInfo ? (() => {
-      console.log('[DEBUG TIMING] ===== INVENTORY MENU RENDER CHECK =====')
-      console.log('[DEBUG TIMING] Time:', new Date().toISOString())
-      console.log('[DEBUG TIMING] userInfo exists:', !!userInfo)
-      
       const role = userInfo.role || ''
-      console.log('[DEBUG TIMING] userInfo object:', userInfo)
-      console.log('[DEBUG TIMING] userInfo.role:', role)
-      console.log('[DEBUG TIMING] role === "site_manager":', role === 'site_manager')
-      console.log('[DEBUG TIMING] role === "admin":', role === 'admin')
-      console.log('[DEBUG TIMING] role === "owner":', role === 'owner')
-      
       const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
-      console.log('[DEBUG TIMING] shouldShow result:', shouldShow)
-      
       if (shouldShow) {
-        console.log('[DEBUG TIMING] ===== RETURNING INVENTORY MENU =====')
         return [{
           key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
           children: [
@@ -198,7 +143,6 @@ function MainLayout() {
           ]
         }]
       } else {
-        console.log('[DEBUG TIMING] ===== RETURNING EMPTY ARRAY (menu hidden) =====')
         return []
       }
     })() : []),
@@ -297,55 +241,6 @@ function MainLayout() {
             <h1 className="text-xl font-bold m-0" style={{ color: BRAND_COLOR }}>{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-4">
-            {/* DEBUG: Manual load button */}
-            <button
-              onClick={() => {
-                console.log('========== DEBUG BUTTON CLICKED ==========')
-                console.log('[DEBUG BUTTON] Time:', new Date().toISOString())
-                const token = getToken()
-                console.log('[DEBUG BUTTON] 1. Token exists:', !!token)
-                console.log('[DEBUG BUTTON] 2. Token value:', token)
-                
-                if (token && token.includes('.')) {
-                  try {
-                    const [header, payload, signature] = token.split('.')
-                    const decoded = JSON.parse(atob(payload))
-                    console.log('[DEBUG BUTTON] 3. JWT Payload:', decoded)
-                    console.log('[DEBUG BUTTON] 4. Payload keys:', Object.keys(decoded))
-                    console.log('[DEBUG BUTTON] 5. name field:', decoded.name)
-                    console.log('[DEBUG BUTTON] 6. username field:', decoded.username)
-                    console.log('[DEBUG BUTTON] 7. role field:', decoded.role)
-                    console.log('[DEBUG BUTTON] 8. localStorage user_info:', localStorage.getItem('user_info'))
-                  } catch (e) {
-                    console.log('[DEBUG BUTTON] Error parsing token:', e.message)
-                  }
-                } else {
-                  console.log('[DEBUG BUTTON] 3. No valid token found')
-                }
-                
-                console.log('[DEBUG BUTTON] 9. localStorage user_info:', localStorage.getItem('user_info'))
-                console.log('[DEBUG BUTTON] 10. localStorage token:', localStorage.getItem('token'))
-                console.log('[DEBUG BUTTON] 11. document.cookie:', document.cookie)
-                
-                // Also reload user info
-                const infoStr = localStorage.getItem('user_info')
-                if (infoStr) {
-                  try {
-                    const info = JSON.parse(infoStr)
-                    console.log('[DEBUG BUTTON] 12. Manually loaded userInfo:', info)
-                    setUserInfo(info)
-                    console.log('[DEBUG BUTTON] 13. userInfo state SET')
-                  } catch (e) {
-                    console.error('[DEBUG BUTTON] Error loading user_info:', e)
-                  }
-                }
-                console.log('========== DEBUG BUTTON FINISHED ==========')
-              }}
-              className="px-2 py-1 bg-yellow-500 text-white text-xs rounded"
-            >
-              调试
-            </button>
-            
             <div>
               {userInfo ? (
                 <div className="flex items-center gap-2">
@@ -500,6 +395,10 @@ function OAuthCallback() {
         if (tokenData.access_token) {
           const expiresIn = Math.max(tokenData.expires_in || 3600, 60)
           storeToken(tokenData.access_token, expiresIn)
+          
+          if (tokenData.refresh_token) {
+            localStorage.setItem('refresh_token', tokenData.refresh_token)
+          }
           
           if (tokenData.user_info) {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))

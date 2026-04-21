@@ -61,7 +61,7 @@ cd prerelease && ./service/tuneloop --env=.env
 - PC: `tuneloop_web` / secret: `3GHS49_Bck0fMcQRSSApynEaL8jKSXWv`
 - WX: `tuneloop_wechat` / secret: `7yCtXks9kGK5mI9Drmh8xRjcpSV1lPG9`
 
-**Config file:** `prerelease/.env`
+**Config file:** `prerelease/.env` (see `prerelease/.env.example` for reference)
 
 **Nginx proxy rules:**
 
