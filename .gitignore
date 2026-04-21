@@ -12,3 +12,26 @@ frontend-mobile/dist/assets/index-*.css
 .vscode/
 *.swp
 *.swo
+
+# Backend binaries
+backend/tuneloop-backend
+backend/main
+backend/handlers.test
+
+# Prerelease environment
+prerelease/
+prerelease/database/
+prerelease/service/tuneloop
+prerelease/service/tuneloop.log
+prerelease/service/out.log
+prerelease/service/error.log
+prerelease/www/
+prerelease/mobile/
+
+# Logs
+*.log
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
