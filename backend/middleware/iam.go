@@ -38,6 +38,7 @@ var validIssuers = []string{
 	"beacon-iam",
 	"http://opencode.linxdeep.com:5552",
 	"http://localhost:5552",
+	"https://iam.cadenzayueqi.com",
 }
 
 var publicRoutes = []string{

@@ -1,12 +1,6 @@
 *.swp
 .env
 
-# Build artifacts in dist directories (hashed filenames change with each build)
-frontend-pc/dist/assets/index-*.js
-frontend-pc/dist/assets/index-*.css
-frontend-mobile/dist/assets/index-*.js
-frontend-mobile/dist/assets/index-*.css
-
 # IDE
 .idea/
 .vscode/
@@ -14,9 +8,14 @@ frontend-mobile/dist/assets/index-*.css
 *.swo
 
 # Backend binaries
+backend/tuneloop
 backend/tuneloop-backend
 backend/main
 backend/handlers.test
+
+# Frontend build output
+frontend-pc/dist/
+frontend-mobile/dist/
 
 # Prerelease environment
 prerelease/

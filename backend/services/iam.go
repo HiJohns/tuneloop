@@ -136,17 +136,25 @@ func (s *IAMService) IsRS256Enabled() bool {
 func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	log.Printf("[ValidateToken] Starting validation, token length: %d", len(tokenString))
 
-	if err := s.loadPublicKey(); err != nil {
-		log.Printf("[ValidateToken] Failed to load public key: %v", err)
-		return nil, fmt.Errorf("failed to load public key: %w", err)
-	}
-	log.Printf("[ValidateToken] Public key loaded successfully, baseURL: %s", s.baseURL)
-
+	// Parse token to inspect the header and determine signing method
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		log.Printf("[ValidateToken] Token signing method: %v", token.Header["alg"])
+
+		// Handle RS256 (RSA with public key)
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
+			if err := s.loadPublicKey(); err != nil {
+				log.Printf("[ValidateToken] Failed to load public key for RS256: %v", err)
+				return nil, fmt.Errorf("failed to load public key: %w", err)
+			}
 			return s.publicKey, nil
 		}
+
+		// Handle HS256 (HMAC with secret)
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
+			log.Printf("[ValidateToken] Using HS256 with client secret")
+			return []byte(s.clientSecret), nil
+		}
+
 		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 	})
 

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getToken } from './services/api'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 import Home from './pages/Home'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
@@ -66,7 +68,7 @@ function OAuthCallback() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, client_type: 'wx' }),
         })
 
         if (!response.ok) {
@@ -75,11 +77,13 @@ function OAuthCallback() {
 
         const data = await response.json()
         
-        if (data.access_token) {
-          storeToken(data.access_token, data.expires_in || 3600)
+        const tokenData = data.data || data
+        
+        if (tokenData.access_token) {
+          storeToken(tokenData.access_token, tokenData.expires_in || 3600)
           
-          if (data.user_info) {
-            localStorage.setItem('user_info', JSON.stringify(data.user_info))
+          if (tokenData.user_info) {
+            localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
           }
           
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'

@@ -76,17 +76,18 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	state := c.Query("state")
 
 	// Handle POST requests with JSON body (frontend may send code via POST)
+	var postBody struct {
+		Code       string `json:"code"`
+		State      string `json:"state"`
+		ClientType string `json:"client_type"`
+	}
 	if c.Request.Method == "POST" {
-		var req struct {
-			Code  string `json:"code"`
-			State string `json:"state"`
-		}
-		if err := c.ShouldBindJSON(&req); err == nil {
+		if err := c.ShouldBindJSON(&postBody); err == nil {
 			if code == "" {
-				code = req.Code
+				code = postBody.Code
 			}
 			if state == "" {
-				state = req.State
+				state = postBody.State
 			}
 		}
 	}
@@ -108,6 +109,25 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	c.SetCookie("oauth_state", "", -1, "/", "", false, false)
 
 	redirectURI := os.Getenv("IAM_PC_REDIRECT_URI")
+
+	clientType := c.Query("client_type")
+	if clientType == "" {
+		clientType = postBody.ClientType
+	}
+	if clientType == "wx" || clientType == "wechat" || clientType == "mobile" {
+		if wxURI := os.Getenv("IAM_WX_REDIRECT_URI"); wxURI != "" {
+			redirectURI = wxURI
+		}
+	}
+
+	if referer := c.GetHeader("Referer"); redirectURI == os.Getenv("IAM_PC_REDIRECT_URI") && referer != "" {
+		if strings.Contains(referer, "wx.") || strings.Contains(referer, "wx-") {
+			if wxURI := os.Getenv("IAM_WX_REDIRECT_URI"); wxURI != "" {
+				redirectURI = wxURI
+			}
+		}
+	}
+
 	tokenResp, err := h.iamService.ExchangeCodeWithRedirect(code, redirectURI)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -134,7 +154,9 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	// Set cookie domain for subdomain sharing
 	cookieDomain := ""
 	if c.Request.Host != "" {
-		if strings.Contains(c.Request.Host, "linxdeep.com") {
+		if strings.Contains(c.Request.Host, "cadenzayueqi.com") {
+			cookieDomain = ".cadenzayueqi.com"
+		} else if strings.Contains(c.Request.Host, "linxdeep.com") {
 			cookieDomain = ".linxdeep.com"
 		}
 	}
