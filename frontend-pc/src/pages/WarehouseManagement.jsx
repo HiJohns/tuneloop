@@ -33,7 +33,7 @@ export default function WarehouseManagement() {
       setLoading(false);
     }
   };
-  // const [scanModalVisible, setScanModalVisible] = useState(false);
+  const [scanModalVisible, setScanModalVisible] = useState(false);
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
   const [scannedData, setScannedData] = useState("");
   const handleOpenScanner = async () => {
