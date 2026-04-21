@@ -59,22 +59,30 @@ func isPublicRoute(path string) bool {
 
 func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if isPublicRoute(c.Request.URL.Path) {
+		path := c.Request.URL.Path
+		log.Printf("[IAM DEBUG] Request: %s %s", c.Request.Method, path)
+
+		if isPublicRoute(path) {
+			log.Printf("[IAM DEBUG] Public route, skipping auth")
 			c.Next()
 			return
 		}
 
 		authHeader := c.GetHeader("Authorization")
+		log.Printf("[IAM DEBUG] Authorization header: %s", authHeader)
 
 		// 如果 Authorization header 为空，尝试从 Cookie 读取
 		if authHeader == "" {
 			if token, err := c.Cookie("token"); err == nil && token != "" {
 				authHeader = "Bearer " + token
-				fmt.Println("[Auth] Using token from Cookie")
+				log.Printf("[IAM DEBUG] Using token from Cookie, length: %d", len(token))
+			} else {
+				log.Printf("[IAM DEBUG] No token in cookie, err: %v", err)
 			}
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
+			log.Printf("[IAM DEBUG] Missing or invalid Authorization header, returning 401")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40100,
 				"message": "missing or invalid authorization header",
@@ -83,15 +91,19 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		log.Printf("[IAM DEBUG] Token string length: %d, first 20 chars: %s...", len(tokenString), tokenString[:min(20, len(tokenString))])
 
 		claims, err := iamService.ValidateToken(tokenString)
 		if err != nil {
+			log.Printf("[IAM DEBUG] Token validation failed: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40101,
 				"message": "invalid token: " + err.Error(),
 			})
 			return
 		}
+
+		log.Printf("[IAM DEBUG] Token validated, claims: sub=%s, tid=%s, role=%s, iss=%s", claims.Subject, claims.TenantID, claims.Role, claims.Issuer)
 
 		issuerValid := false
 		for _, issuer := range validIssuers {
@@ -105,6 +117,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 			issuerValid = true
 		}
 		if !issuerValid {
+			log.Printf("[IAM DEBUG] Invalid issuer: %s, valid issuers: %v", claims.Issuer, validIssuers)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40102,
 				"message": "invalid token issuer",

@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -133,11 +134,16 @@ func (s *IAMService) IsRS256Enabled() bool {
 }
 
 func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
+	log.Printf("[ValidateToken] Starting validation, token length: %d", len(tokenString))
+
 	if err := s.loadPublicKey(); err != nil {
+		log.Printf("[ValidateToken] Failed to load public key: %v", err)
 		return nil, fmt.Errorf("failed to load public key: %w", err)
 	}
+	log.Printf("[ValidateToken] Public key loaded successfully, baseURL: %s", s.baseURL)
 
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		log.Printf("[ValidateToken] Token signing method: %v", token.Header["alg"])
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
 			return s.publicKey, nil
 		}
@@ -145,13 +151,16 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	})
 
 	if err != nil {
+		log.Printf("[ValidateToken] Token parse error: %v", err)
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+		log.Printf("[ValidateToken] Token valid, sub=%s, tid=%s, role=%s", claims.Subject, claims.TenantID, claims.Role)
 		return claims, nil
 	}
 
+	log.Printf("[ValidateToken] Token claims extraction failed")
 	return nil, fmt.Errorf("invalid token")
 }
 

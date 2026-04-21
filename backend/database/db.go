@@ -250,10 +250,6 @@ func RunMigrationsWithLogging(db *gorm.DB) error {
 		return fmt.Errorf("failed to get current version: %w", err)
 	}
 
-	if dirty {
-		fmt.Printf("Warning: Database is in dirty state at version %d. Attempting to fix...\n", currentVersion)
-	}
-
 	fmt.Printf("Current database version: %d, Dirty: %v\n", currentVersion, dirty)
 
 	m, err := migrate.NewWithDatabaseInstance(
@@ -261,6 +257,16 @@ func RunMigrationsWithLogging(db *gorm.DB) error {
 		"postgres", driver)
 	if err != nil {
 		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	if dirty {
+		fmt.Printf("Warning: Database is in dirty state at version %d. Attempting to fix...\n", currentVersion)
+		// Force the version to clear the dirty flag - this assumes the migration
+		// partially succeeded and we want to retry from this version
+		if err := m.Force(int(currentVersion)); err != nil {
+			return fmt.Errorf("failed to force version %d: %w", currentVersion, err)
+		}
+		fmt.Printf("✓ Cleared dirty flag for version %d\n", currentVersion)
 	}
 
 	versionBefore, _, _ := driver.Version()
