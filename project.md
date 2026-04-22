@@ -167,7 +167,7 @@ These work correctly because `database/db.go` init() runs before `services/iam.g
 | `IAM_WX_CLIENT_SECRET` | `CQUJAXsFsOkvRa17zhOoHj2DGzcA1d3T` | `7yCtXks9kGK5mI9Drmh8xRjcpSV1lPG9` | IAM OAuth client secret for WX |
 | `IAM_WX_REDIRECT_URI` | `http://opencode.linxdeep.com:5553/callback` | `https://wx.cadenzayueqi.com/callback` | OAuth callback URL for WX |
 | `BEACONIAM_EXTERNAL_URL` | `http://opencode.linxdeep.com:5552` | `https://iam.cadenzayueqi.com` | IAM URL exposed to frontend |
-| `BEACONIAM_INTERNAL_URL` | `http://localhost:5552` | `http://localhost:5560` | IAM URL for backend-to-IAM calls |
+| `BEACONIAM_INTERNAL_URL` | `http://localhost:5561` | `http://localhost:5560` | IAM URL for backend-to-IAM calls (dev: Backend API on 5561) |
 | `IAM_NAMESPACE` | `tuneloop_dev` | `tuneloop` | IAM namespace |
 | `IAM_SECRET` | `7jqbyc3uRBOO-rXOm7-AEsGsAkfmBJJ0` | `XGClIrajpcSQA3wpf1ynJ2WDm0d3uhF9` | IAM shared secret |
 | `IAM_CLIENT_ID` | *(not set in dev .env)* | `tuneloop-pc` | Backend IAM client ID for token validation |
