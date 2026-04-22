@@ -196,8 +196,13 @@ export default function CategoryList() {
         await categoriesApi.update(editingCategory.id, formData)
         message.success('Updated successfully')
       } else {
-        await categoriesApi.create(formData)
+        const response = await categoriesApi.create(formData)
         message.success('Created successfully')
+        
+        // Auto-select the newly created category
+        if (response.code === 20000 && response.data?.id) {
+          setSelectedParentId(response.data.id)
+        }
       }
 
       setModalVisible(false)
@@ -225,9 +230,9 @@ export default function CategoryList() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex gap-4">
-        <Card title="分类管理" className="w-1/3" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>新建顶级分类</Button>}>
+    <div className="p-4 h-full">
+      <div className="flex gap-4 h-full">
+        <Card title="分类管理" className="w-1/3 flex flex-col" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>新建顶级分类</Button>}>
           {level1Categories.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
               <AppstoreOutlined style={{ fontSize: 64, marginBottom: 16 }} />
@@ -235,40 +240,45 @@ export default function CategoryList() {
               <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>新建顶级分类</Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">选择父分类（一级）</label>
-                <Select
-                  value={selectedParentId}
-                  onChange={setSelectedParentId}
-                  className="w-full"
-                  placeholder="Select a parent category"
-                >
-                  {level1Categories.map(cat => (
-                    <Option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</Option>
-                  ))}
-                </Select>
-              </div>
+            <div className="space-y-4 flex-1 flex flex-col">
+              <List
+                className="flex-1 overflow-auto border rounded"
+                size="small"
+                dataSource={level1Categories}
+                renderItem={(cat) => (
+                  <List.Item
+                    className={`cursor-pointer ${selectedParentId === cat.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                    onClick={() => setSelectedParentId(cat.id)}
+                  >
+                    <List.Item.Meta
+                      avatar={<span className="text-lg">{cat.icon}</span>}
+                      title={<span className="font-medium">{cat.name}</span>}
+                    />
+                  </List.Item>
+                )}
+              />
               <Button block icon={<PlusOutlined />} onClick={handleCreateSubCategory} disabled={!selectedParentId}>创建子分类</Button>
             </div>
           )}
         </Card>
 
-        <Card className="w-2/3" title={selectedParentId ? `"${getParentCategoryName()}" 的子分类列表` : '子分类列表'} extra={savingSort && <Spin size="small" />}>
+        <Card className="w-2/3 flex flex-col" title={selectedParentId ? `"${getParentCategoryName()}" 的子分类列表` : '子分类列表'} extra={savingSort && <Spin size="small" />}>
           {!selectedParentId ? (
             <Empty description="Please select a parent category from the left" />
           ) : subCategories.length === 0 ? (
             <Empty description="No sub categories, click '创建子分类' to add one" />
           ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                <div className="border rounded">
-                  {subCategories.map(category => (
-                    <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <div className="flex-1 overflow-auto">
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                  <div className="border rounded">
+                    {subCategories.map(category => (
+                      <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
           )}
         </Card>
       </div>
