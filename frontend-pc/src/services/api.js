@@ -86,8 +86,9 @@ function isTokenExpiringSoon(token) {
     const expTime = payload.exp * 1000
     const now = Date.now()
     const timeLeft = expTime - now
-    const thirtyPercentOf30Days = 30 * 24 * 60 * 60 * 1000 * 0.3
-    return timeLeft < thirtyPercentOf30Days
+    // Token有效期15分钟，当剩余<5分钟时触发续期
+    const REFRESH_THRESHOLD = 5 * 60 * 1000  // 5分钟
+    return timeLeft < REFRESH_THRESHOLD
   } catch (e) {
     Logger.error('AUTH', 'Failed to parse token:', e)
     return true
