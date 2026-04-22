@@ -262,7 +262,20 @@ export default function CategoryList() {
           )}
         </Card>
 
-        <Card className="w-2/3 flex flex-col" title={selectedParentId ? `"${getParentCategoryName()}" 的子分类列表` : '子分类列表'} extra={savingSort && <Spin size="small" />}>
+        <Card className="w-2/3 flex flex-col" title={selectedParentId ? `"${getParentCategoryName()}" 的子分类列表` : '子分类列表'} extra={
+          <Space>
+            {savingSort && <Spin size="small" />}
+            {selectedParentId && (
+              <Button 
+                size="small" 
+                icon={<EditOutlined />} 
+                onClick={() => handleEdit(level1Categories.find(c => c.id === selectedParentId))}
+              >
+                编辑
+              </Button>
+            )}
+          </Space>
+        }>
           {!selectedParentId ? (
             <Empty description="Please select a parent category from the left" />
           ) : subCategories.length === 0 ? (
