@@ -109,12 +109,6 @@ function MainLayout() {
   
   const items = [
     {
-      key: 'browse', icon: <ShoppingOutlined />, label: '乐器浏览',
-      children: [
-        { key: '/instruments', label: '浏览乐器' }
-      ]
-    },
-    {
       key: 'instruments', icon: <SettingOutlined />, label: '乐器管理',
       children: [
         { key: '/instruments/list', label: '乐器列表' },
@@ -137,7 +131,6 @@ function MainLayout() {
         return [{
           key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
           children: [
-            { key: '/inventory/transfer', label: '库存调拨' },
             { key: '/inventory/rent-setting', label: '租金设定' },
             { key: '/warehouse', label: '库管工作台' }
           ]
@@ -188,7 +181,6 @@ function MainLayout() {
     '/instruments/list': { title: '乐器列表', parent: '乐器管理' },
     '/instruments/properties': { title: '属性管理', parent: '乐器管理' },
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
-    '/inventory/transfer': { title: '库存调拨', parent: '库存监控' },
     '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
