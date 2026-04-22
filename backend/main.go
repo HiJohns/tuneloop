@@ -251,7 +251,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			authRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
 			authRequired.DELETE("/maintenance/workers/:id", maintenanceWorkerHandler.DeleteWorker)
 
-			// Issue #304: Maintenance Session Routes (available via existing maintenance endpoints)
+			// Issue #304: Maintenance Session Routes
+			authRequired.GET("/maintenance/sessions", maintenanceSessionHandler.ListSessions)
+			authRequired.GET("/maintenance/sessions/:id", maintenanceSessionHandler.GetSession)
 			authRequired.POST("/maintenance/:id/start", maintenanceSessionHandler.StartWork)
 			authRequired.PUT("/maintenance/:id/status", maintenanceSessionHandler.UpdateStatus)
 			authRequired.POST("/maintenance/:id/record", maintenanceSessionHandler.SubmitRecord)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
@@ -244,4 +245,157 @@ func (h *MaintenanceSessionHandler) Inspect(c *gin.Context) {
 			"comment":    req.Comment,
 		},
 	})
+}
+
+// GET /api/maintenance/sessions - List maintenance sessions
+func (h *MaintenanceSessionHandler) ListSessions(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	// Pagination parameters
+	page := 1
+	pageSize := 20
+	if p, err := parseIntParam(c.Query("page"), 1); err == nil && p > 0 {
+		page = p
+	}
+	if ps, err := parseIntParam(c.Query("page_size"), 20); err == nil && ps > 0 {
+		pageSize = ps
+	}
+	offset := (page - 1) * pageSize
+
+	db := database.GetDB().WithContext(ctx)
+
+	// Build query
+	query := db.Where("tenant_id = ?", tenantID)
+
+	// Optional filters
+	if ticketID := c.Query("ticket_id"); ticketID != "" {
+		query = query.Where("maintenance_ticket_id = ?", ticketID)
+	}
+	if workerID := c.Query("worker_id"); workerID != "" {
+		query = query.Where("worker_id = ?", workerID)
+	}
+	if status := c.Query("status"); status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	var sessions []models.MaintenanceSession
+	var total int64
+
+	// Count total
+	if err := query.Model(&models.MaintenanceSession{}).Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to count sessions: " + err.Error()})
+		return
+	}
+
+	// Query sessions with pagination
+	if err := query.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&sessions).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query sessions: " + err.Error()})
+		return
+	}
+
+	// Prepare result
+	result := make([]gin.H, len(sessions))
+	for i, session := range sessions {
+		item := gin.H{
+			"id":                     session.ID,
+			"maintenance_ticket_id":  session.MaintenanceTicketID,
+			"worker_id":              session.WorkerID,
+			"status":                 session.Status,
+			"start_time":             session.StartTime,
+			"end_time":               session.EndTime,
+			"progress_notes":         session.ProgressNotes,
+			"completion_notes":       session.CompletionNotes,
+			"inspection_result":      session.InspectionResult,
+			"inspection_comment":     session.InspectionComment,
+			"created_at":             session.CreatedAt,
+			"updated_at":             session.UpdatedAt,
+		}
+
+		result[i] = item
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"list":  result,
+			"total": total,
+			"page":  page,
+			"page_size": pageSize,
+		},
+	})
+}
+
+// GET /api/maintenance/sessions/:id - Get a single maintenance session
+func (h *MaintenanceSessionHandler) GetSession(c *gin.Context) {
+	sessionID := c.Param("id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "session ID is required"})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+
+	var session models.MaintenanceSession
+	if err := db.Where("id = ? AND tenant_id = ?", sessionID, tenantID).First(&session).Error; err != nil {
+		if err.Error() == "record not found" {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "session not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query session: " + err.Error()})
+		}
+		return
+	}
+
+	// Load related records
+	var records []models.MaintenanceSessionRecord
+	if err := db.Where("session_id = ?", sessionID).Order("created_at ASC").Find(&records).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query records: " + err.Error()})
+		return
+	}
+
+	recordData := make([]gin.H, len(records))
+	for i, record := range records {
+		recordData[i] = gin.H{
+			"id":         record.ID,
+			"record_type": record.RecordType,
+			"content":    record.Content,
+			"created_at": record.CreatedAt,
+		}
+	}
+
+	result := gin.H{
+		"id":                    session.ID,
+		"maintenance_ticket_id": session.MaintenanceTicketID,
+		"worker_id":            session.WorkerID,
+		"status":               session.Status,
+		"start_time":           session.StartTime,
+		"end_time":             session.EndTime,
+		"progress_notes":       session.ProgressNotes,
+		"completion_notes":     session.CompletionNotes,
+		"inspection_result":    session.InspectionResult,
+		"inspection_comment":   session.InspectionComment,
+		"created_at":           session.CreatedAt,
+		"updated_at":           session.UpdatedAt,
+		"records":              recordData,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data":    result,
+	})
+}
+
+// parseIntParam safely parses string to int with default value
+func parseIntParam(s string, defaultVal int) (int, error) {
+	if s == "" {
+		return defaultVal, nil
+	}
+	var val int
+	_, err := fmt.Sscanf(s, "%d", &val)
+	return val, err
 }
