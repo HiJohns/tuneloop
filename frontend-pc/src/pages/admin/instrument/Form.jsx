@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Modal, Form, Input, Select, TreeSelect, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
-import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
+import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, LinkOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -884,7 +884,14 @@ const loadCategoryChildren = async (node) => {
           <Col span={12}>
               <Form.Item
                 name="category_id"
-                label="乐器分类"
+                label={
+                  <span>
+                    乐器分类
+                    <a href="/instruments/categories" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 12 }}>
+                      <LinkOutlined /> 管理
+                    </a>
+                  </span>
+                }
                 rules={[{ required: true, message: '请选择分类' }]}
               >
                 <TreeSelect
@@ -919,7 +926,14 @@ const loadCategoryChildren = async (node) => {
           <Col span={12}>
             <Form.Item
               name="site_id"
-              label="归属网点"
+              label={
+                <span>
+                  归属网点
+                  <a href="/organization/sites" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 12 }}>
+                    <LinkOutlined /> 管理
+                  </a>
+                </span>
+              }
               rules={[{ required: true, message: '请选择网点' }]}
             >
               <TreeSelect
