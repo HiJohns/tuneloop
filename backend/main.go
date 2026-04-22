@@ -54,6 +54,7 @@ func extractPort(urlStr string) string {
 
 func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	siteHandler := handlers.NewSiteHandler()
+	staffHandler := &handlers.UserStaffHandler{}
 	propertyHandler := handlers.NewPropertyHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
 	authHandler := handlers.NewAuthHandler(database.GetDB())
@@ -174,6 +175,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			siteRequired.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
 			siteRequired.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
+
+			// Staff/User management routes (Issue #333)
+			authRequired.GET("/staff", staffHandler.ListStaff)
+			authRequired.POST("/users", staffHandler.CreateUser)
+			authRequired.PUT("/users/:id", staffHandler.UpdateUser)
+			authRequired.GET("/users/check", staffHandler.CheckUserExists)
 		}
 
 		propertyRequired := authRequired.Group("")
