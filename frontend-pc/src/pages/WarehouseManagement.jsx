@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload } from 'antd';
+import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input } from 'antd';
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
 // import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
