@@ -6,18 +6,22 @@ import (
 )
 
 type User struct {
-	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	IAMSub      string    `gorm:"type:varchar(255);uniqueIndex;not null" json:"iam_sub"`
-	TenantID    string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID       string    `gorm:"type:uuid;index;not null" json:"org_id"`
-	Name        string    `gorm:"type:varchar(255)" json:"name"`
-	Phone       string    `gorm:"type:varchar(50)" json:"phone"`
-	Email       string    `gorm:"type:varchar(255)" json:"email"`
-	CreditScore int       `gorm:"default:600" json:"credit_score"`
-	DepositMode string    `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
-	IsShadow    bool      `gorm:"default:true" json:"is_shadow"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	IAMSub      string     `gorm:"type:varchar(255);uniqueIndex;not null" json:"iam_sub"`
+	TenantID    string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID       string     `gorm:"type:uuid;index;not null" json:"org_id"`
+	Name        string     `gorm:"type:varchar(255)" json:"name"`
+	Phone       string     `gorm:"type:varchar(50)" json:"phone"`
+	Email       string     `gorm:"type:varchar(255)" json:"email"`
+	CreditScore int        `gorm:"default:600" json:"credit_score"`
+	DepositMode string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
+	IsShadow    bool       `gorm:"default:true" json:"is_shadow"`
+	Position    string     `gorm:"type:varchar(100)" json:"position"`
+	UserType    string     `gorm:"type:varchar(20);default:'员工'" json:"user_type"`
+	SiteID      *string    `gorm:"type:uuid;index" json:"site_id"`
+	DeletedAt   *time.Time `gorm:"index" json:"deleted_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 type Category struct {
@@ -96,6 +100,7 @@ type Site struct {
 	Phone         string     `gorm:"type:varchar(50)" json:"phone"`
 	BusinessHours string     `gorm:"type:varchar(100)" json:"business_hours"`
 	Status        string     `gorm:"type:varchar(20);default:'active'" json:"status"`
+	DeletedAt     *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
