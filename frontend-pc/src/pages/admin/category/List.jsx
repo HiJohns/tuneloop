@@ -227,12 +227,12 @@ export default function CategoryList() {
   return (
     <div className="p-4">
       <div className="flex gap-4">
-        <Card title="分类管理" className="w-1/3" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>Create Top Level</Button>}>
+        <Card title="分类管理" className="w-1/3" extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>新建顶级分类</Button>}>
           {level1Categories.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
               <AppstoreOutlined style={{ fontSize: 64, marginBottom: 16 }} />
-              <p className="text-lg mb-4">No categories</p>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>Create Top Level Category</Button>
+              <p className="text-lg mb-4">暂无分类</p>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>新建顶级分类</Button>
             </div>
           ) : (
             <div className="space-y-4">
