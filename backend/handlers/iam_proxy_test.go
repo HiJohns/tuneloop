@@ -284,7 +284,6 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 	// Test 1: Lookup non-existent user (should fail)
 	t.Run("LookupNonExistentUser", func(t *testing.T) {
-		g := gin.Default()
 		handler := NewIAMProxyHandler()
 
 		req := httptest.NewRequest("GET", "/api/iam/users/lookup?email=testuser_340_new@example.com", nil)
@@ -300,7 +299,6 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 	// Test 2: Create new user (should succeed)
 	t.Run("CreateNewUser", func(t *testing.T) {
-		g := gin.Default()
 		handler := NewIAMProxyHandler()
 
 		createData := map[string]interface{}{
@@ -333,7 +331,6 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 
 	// Test 3: Lookup existing user (should succeed)
 	t.Run("LookupExistingUser", func(t *testing.T) {
-		g := gin.Default()
 		handler := NewIAMProxyHandler()
 
 		req := httptest.NewRequest("GET", "/api/iam/users/lookup?identifier=existing_user_340@example.com", nil)
