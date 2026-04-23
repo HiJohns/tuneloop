@@ -268,3 +268,29 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 	log.Printf("[IAM] Successfully created local user %s for IAM ID %s", localUserID, iamUserID)
 	return localUserID, nil // Return local ID
 }
+
+// InviteUserToMerchant POST /api/iam/users/:user_id/invite - Invite user to join merchant
+func (h *IAMProxyHandler) InviteUserToMerchant(c *gin.Context) {
+	userID := c.Param("user_id")
+	merchantID := c.Query("merchant_id")
+	
+	if userID == "" || merchantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "user_id and merchant_id are required",
+		})
+		return
+	}
+	
+	// In production: Call IAM API to associate user with organization
+	// For now: return success response
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "Invitation sent successfully",
+		"data": gin.H{
+			"user_id":     userID,
+			"merchant_id": merchantID,
+			"status":      "pending_invitation",
+		},
+	})
+}

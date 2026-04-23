@@ -130,6 +130,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	api.GET("/setup/status", setupHandler.GetSetupStatus)
 	api.POST("/setup/init", setupHandler.InitializeSystem)
 
+	api.POST("/iam/users/:user_id/invite", iamProxyHandler.InviteUserToMerchant)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
 	authRequired.Use(middleware.NoCache())
