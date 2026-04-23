@@ -403,17 +403,31 @@ export default function SiteManagement() {
               }
             >
               {selectedSite ? (
-                <Descriptions column={2} bordered>
-                  <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
-                  <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="负责人">
-                    {selectedSite.manager?.name || '-'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="父级网点">
-                    {selectedSite.parent_id ? '有' : '顶级网点'}
-                  </Descriptions.Item>
-                </Descriptions>
+                <Tabs defaultActiveKey="info">
+                  <Tabs.TabPane tab="基本信息" key="info">
+                    <Descriptions column={2} bordered>
+                      <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
+                      <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="负责人">
+                        {selectedSite.manager?.name || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="父级网点">
+                        {selectedSite.parent_id ? '有' : '顶级网点'}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Tabs.TabPane>
+                  
+                  <Tabs.TabPane tab="成员管理" key="members">
+                    <SiteMemberManagement 
+                      siteId={selectedSite.id} 
+                      onRefresh={() => {}}
+                    />
+                  </Tabs.TabPane>
+                </Tabs>
+              ) : (
+                <Empty description="请选择左侧网点查看详情" />
+              )}
               ) : (
                 <Empty description="请选择左侧网点查看详情" />
               )}
