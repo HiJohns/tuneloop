@@ -67,6 +67,11 @@ func GetIAMInternalURL() string {
 	return os.Getenv("IAM_URL")
 }
 
+// SetIAMInternalURLForTesting sets the IAM internal URL for testing purposes
+func SetIAMInternalURLForTesting(url string) {
+	iamInternalURL = url
+}
+
 func GetIAMExternalURL() string {
 	if iamExternalURL != "" {
 		return iamExternalURL
