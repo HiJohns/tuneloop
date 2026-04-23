@@ -54,6 +54,9 @@ func extractPort(urlStr string) string {
 
 func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	siteHandler := handlers.NewSiteHandler()
+	// New handlers for Issue #345 (Merchant Management + Setup)
+	merchantHandler := handlers.NewMerchantHandler()
+	setupHandler := handlers.NewSetupHandler()
 	staffHandler := &handlers.UserStaffHandler{}
 	propertyHandler := handlers.NewPropertyHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
@@ -122,6 +125,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	api.GET("/auth/oidc/authorization-url", authHandler.GetOIDCAuthorizationURL)
 	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/refresh", authHandler.Refresh)
+	// Setup routes (public, no auth required)
+	api.GET("/setup/status", setupHandler.GetSetupStatus)
+	api.POST("/setup/init", setupHandler.InitializeSystem)
 
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
@@ -165,6 +171,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.POST("/orders/:id/pickup", handlers.PickupOrder)
 		authRequired.POST("/orders/:id/return", handlers.ReturnOrder)
 		authRequired.POST("/orders/:id/cancel", handlers.CancelOrder)
+
+		// Merchant management routes (require project_admin role)
+		authRequired.GET("/merchants", middleware.RequireRole("project_admin"), merchantHandler.ListMerchants)
+		authRequired.GET("/merchants/:id", middleware.RequireRole("project_admin"), merchantHandler.GetMerchant)
+		authRequired.POST("/merchants", middleware.RequireRole("project_admin"), merchantHandler.CreateMerchant)
+		authRequired.PUT("/merchants/:id", middleware.RequireRole("project_admin"), merchantHandler.UpdateMerchant)
+		authRequired.DELETE("/merchants/:id", middleware.RequireRole("project_admin"), merchantHandler.DeleteMerchant)
 
 		siteRequired := authRequired.Group("")
 		{
