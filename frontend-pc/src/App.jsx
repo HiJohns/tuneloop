@@ -41,6 +41,10 @@ import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
 
 import PropertyList from './pages/admin/property/List'
+import Setup from './pages/Setup'
+import MerchantManagement from './pages/MerchantManagement'
+import UserSelectionDialog from './components/UserSelectionDialog'
+
 import RentSetting from './pages/admin/inventory/RentSetting'
 
 const { Header, Content, Sider } = Layout
@@ -144,6 +148,7 @@ function MainLayout() {
       key: 'organization', icon: <SettingOutlined />, label: '组织管理',
       children: [
         { key: '/organization/sites', label: '网点管理' },
+        { key: '/merchants', label: '商户管理' },
         { key: '/staff', label: '人员管理' }
       ]
     },
@@ -263,6 +268,7 @@ function MainLayout() {
         <Content className="p-6 bg-gray-100 overflow-y-auto">
           <Routes>
             <Route path="/callback" element={<OAuthCallback />} />
+            <Route path="/setup" element={<Setup />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/assets" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">资产管理</div></ProtectedRoute>} />
             <Route path="/lease/ledger" element={<ProtectedRoute><LeaseLedger /></ProtectedRoute>} />
@@ -271,6 +277,7 @@ function MainLayout() {
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
             <Route path="/organization/sites" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
+            <Route path="/merchants" element={<ProtectedRoute><MerchantManagement /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
