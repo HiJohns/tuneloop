@@ -374,6 +374,7 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Check if site has children
 	var childCount int64
@@ -386,18 +387,47 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 		return
 	}
 
-	// Check if any instruments use this site
-	var instrumentCount int64
-	db.Model(&models.Instrument{}).Where("site_id = ?", siteID).Count(&instrumentCount)
-	if instrumentCount > 0 {
+	// Enhanced check: Check for available instruments
+	var availableCount int64
+	db.Model(&models.Instrument{}).
+		Where("site_id = ? AND stock_status = ?", siteID, "available").
+		Count(&availableCount)
+	if availableCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
-			"message": "该网点下存在乐器，无法删除",
+			"message": fmt.Sprintf("该网点下存在 %d 件在库乐器，请先转移资产", availableCount),
 		})
 		return
 	}
 
-	result := db.Model(&models.Site{}).Where("id = ?", siteID).Update("status", "closed")
+	// Enhanced check: Check for rented instruments
+	var rentedCount int64
+	db.Model(&models.Instrument{}).
+		Where("site_id = ? AND stock_status = ?", siteID, "rented").
+		Count(&rentedCount)
+	if rentedCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": fmt.Sprintf("该网点下存在 %d 件在租乐器，请先处理在租订单", rentedCount),
+		})
+		return
+	}
+
+	// Enhanced check: Check for site members
+	var memberCount int64
+	db.Model(&models.SiteMember{}).
+		Where("site_id = ?", siteID).
+		Count(&memberCount)
+	if memberCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40003,
+			"message": fmt.Sprintf("该网点下存在 %d 名成员，请先移除所有成员", memberCount),
+		})
+		return
+	}
+
+	// Soft delete by setting status to closed
+	result := db.Model(&models.Site{}).Where("id = ? AND tenant_id = ?", siteID, tenantID).Update("status", "closed")
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

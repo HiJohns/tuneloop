@@ -57,6 +57,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	// New handlers for Issue #345 (Merchant Management + Setup)
 	merchantHandler := handlers.NewMerchantHandler()
 	setupHandler := handlers.NewSetupHandler()
+	siteMemberHandler := handlers.NewSiteMemberHandler()
 	staffHandler := &handlers.UserStaffHandler{}
 	propertyHandler := handlers.NewPropertyHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
@@ -188,6 +189,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			siteRequired.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
 			siteRequired.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
+			siteRequired.GET("/sites/:id/members", siteMemberHandler.ListMembers)
+			siteRequired.POST("/sites/:id/members", siteMemberHandler.AddMember)
+			siteRequired.PUT("/sites/:id/members/:uid", siteMemberHandler.UpdateMemberRole)
+			siteRequired.DELETE("/sites/:id/members/:uid", siteMemberHandler.RemoveMember)
+
 
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", staffHandler.ListStaff)
