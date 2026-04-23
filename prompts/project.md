@@ -91,7 +91,7 @@ instrument_levels
 
 ---
 
-### 核心文档
+### 核心文档 / Core Documents
 docs/cases.md
 docs/api_design.md
 docs/ui_design.md

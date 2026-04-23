@@ -19,6 +19,7 @@ import ExpireWarning from './pages/ExpireWarning'
 import SupplierDB from './pages/SupplierDB'
 import InstrumentStock from './pages/InstrumentStock'
 import SiteManagement from './pages/SiteManagement'
+import StaffManagement from './pages/StaffManagement'
 import RolePermission from './pages/RolePermission'
 import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
@@ -142,7 +143,8 @@ function MainLayout() {
     {
       key: 'organization', icon: <SettingOutlined />, label: '组织管理',
       children: [
-        { key: '/organization/sites', label: '网点管理' }
+        { key: '/organization/sites', label: '网点管理' },
+        { key: '/staff', label: '人员管理' }
       ]
     },
     {
@@ -183,6 +185,7 @@ function MainLayout() {
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
     '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
+    '/staff': { title: '人员管理', parent: '组织管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
     '/system/tenants': { title: '租户管理', parent: '系统管理' },
   }
@@ -268,6 +271,7 @@ function MainLayout() {
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
             <Route path="/organization/sites" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
+            <Route path="/staff" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/maintenance/workers" element={<ProtectedRoute><MaintenanceWorkerManagement /></ProtectedRoute>} />

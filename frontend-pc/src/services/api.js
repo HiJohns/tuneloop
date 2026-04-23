@@ -292,6 +292,13 @@ export const sitesApi = {
   getTree: (rootId) => api.get(rootId ? `/sites/tree?root=${rootId}` : '/sites/tree'),
 }
 
+export const staffApi = {
+  list: (params) => api.get('/staff', { params }),
+  createUser: (data) => api.post('/users', data),
+  updateUser: (id, data) => api.put(`/users/${id}`, data),
+  checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
+}
+
 export const inventoryApi = {
   list: () => api.get('/merchant/inventory'),
   transfer: (data) => api.post('/merchant/inventory/transfer', data),
