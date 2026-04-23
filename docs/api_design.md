@@ -67,6 +67,340 @@ POST /api/auth/refresh
 
 ---
 
+## 2.4 冷启动 (Setup) API
+
+### 2.4.1 获取系统初始化状态
+
+```
+GET /api/setup/status
+```
+
+**说明**: 检查系统是否需要初始化（User 表是否为空），无需认证
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "requires_setup": true,
+    "user_count": 0
+  }
+}
+```
+
+### 2.4.2 初始化系统
+
+```
+POST /api/setup/init
+```
+
+**说明**: 创建系统第一个管理员账户，无需认证，仅 User 表为空时可调用
+
+**请求体**:
+```json
+{
+  "email": "admin@example.com",
+  "password": "secure_password"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "user_id": "uuid",
+    "oidc_url": "https://iam.example.com/oauth/authorize?..."
+  }
+}
+```
+
+**错误码**:
+- `40300`: 系统已初始化，禁止重复操作
+- `40001`: 请求参数错误（邮箱格式、密码强度）
+
+---
+
+## 2.5 商户管理 API
+
+**权限**: 仅 `project_admin` 角色可访问
+
+### 2.5.1 获取商户列表
+
+```
+GET /api/merchants
+```
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码，默认 1 |
+| pageSize | int | 每页数量，默认 20 |
+| status | string | 状态筛选 (active/inactive) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "name": "北京旗舰店",
+        "code": "beijing-flagship",
+        "contact_name": "张三",
+        "contact_email": "zhangsan@example.com",
+        "contact_phone": "13800000000",
+        "admin_uid": "user-uuid",
+        "status": "active",
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 2.5.2 获取商户详情
+
+```
+GET /api/merchants/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "name": "北京旗舰店",
+    "code": "beijing-flagship",
+    "contact_name": "张三",
+    "contact_email": "zhangsan@example.com",
+    "contact_phone": "13800000000",
+    "admin_uid": "user-uuid",
+    "status": "active",
+    "site_count": 5,
+    "active_orders": 12,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+### 2.5.3 创建商户
+
+```
+POST /api/merchants
+```
+
+**请求体**:
+```json
+{
+  "name": "北京旗舰店",
+  "code": "beijing-flagship",
+  "contact_name": "张三",
+  "contact_email": "zhangsan@example.com",
+  "contact_phone": "13800000000",
+  "admin_uid": "user-uuid"
+}
+```
+
+**说明**:
+1. 调用 IAM 创建 Organization（name = merchant.name, code = merchant.code）
+2. 调用 IAM 将 admin_uid 关联至该组织并赋予"组织管理员"角色
+3. 本地商户表记录信息
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "id": "uuid",
+    "name": "北京旗舰店",
+    "iam_org_id": "iam-org-uuid"
+  }
+}
+```
+
+**错误码**:
+- `40002`: 商户代码已存在
+- `40001`: admin_uid 用户不存在
+- `40300`: 无权限创建商户
+
+### 2.5.4 更新商户
+
+```
+PUT /api/merchants/:id
+```
+
+**请求体**:
+```json
+{
+  "name": "北京旗舰店新名称",
+  "contact_name": "李四",
+  "contact_email": "lisi@example.com",
+  "contact_phone": "13900000000"
+}
+```
+
+**说明**: code 和 admin_uid 不可修改
+
+### 2.5.5 删除商户
+
+```
+DELETE /api/merchants/:id
+```
+
+**说明**: 安全删除，前置检查：
+- 该商户下无 active 状态的网点
+- 该商户下无未结清的订单（status = 'paid' 或 'in_lease'）
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "message": "商户已删除"
+}
+```
+
+**错误码**:
+- `40002`: 商户下有活跃网点或未完成订单
+- `40300`: 无权限删除商户
+
+---
+
+## 2.6 网点成员管理 API
+
+### 2.6.1 获取网点成员列表
+
+```
+GET /api/sites/:id/members
+```
+
+**说明**: 获取指定网点的所有成员
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "user_id": "uuid",
+        "user_name": "张三",
+        "user_email": "zhangsan@example.com",
+        "role": "Manager",
+        "joined_at": "2024-01-15T10:00:00Z"
+      },
+      {
+        "user_id": "uuid2",
+        "user_name": "李四",
+        "user_email": "lisi@example.com",
+        "role": "Staff",
+        "joined_at": "2024-01-16T11:00:00Z"
+      }
+    ],
+    "total": 2
+  }
+}
+```
+
+### 2.6.2 添加网点成员
+
+```
+POST /api/sites/:id/members
+```
+
+**请求体**:
+```json
+{
+  "user_id": "user-uuid",
+  "role": "Staff"  // 可选，默认为 Staff
+}
+```
+
+**说明**: 使用「指定用户对话框」获取 user_id
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "site_id": "site-uuid",
+    "user_id": "user-uuid",
+    "role": "Staff"
+  }
+}
+```
+
+**错误码**:
+- `40002`: 该用户已是网点成员
+- `40001`: user_id 为空或无效
+
+### 2.6.3 更新成员角色
+
+```
+PUT /api/sites/:id/members/:user_id
+```
+
+**请求体**:
+```json
+{
+  "role": "Manager"  // Manager 或 Staff
+}
+```
+
+**说明**: 切换角色时检查保护规则
+
+**保护规则**:
+- 若目标用户是当前网点最后一名 Manager，禁止将其改为 Staff
+- 检查方法: 查询 `site_members` 表中 `site_id = :id AND role = 'Manager'` 的数量
+  - 若数量为 1 且目标用户 role = 'Manager' → 拒绝操作
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "site_id": "site-uuid",
+    "user_id": "user-uuid",
+    "new_role": "Manager"
+  }
+}
+```
+
+**错误码**:
+- `40002`: 最后一名管理员不可修改角色
+- `40400`: 成员不存在
+
+### 2.6.4 移除网点成员
+
+```
+DELETE /api/sites/:id/members/:user_id
+```
+
+**说明**: 移除成员，保护规则同上
+
+**保护规则**:
+- 最后一名 Manager 不可移除
+- 移除后 `site_members` 表中对应记录被删除（物理删除或标记为 inactive）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "成员已移除"
+}
+```
+
+**错误码**:
+- `40002`: 最后一名管理员不可移除
+- `40400`: 成员不存在
+
+---
+
 ## 3. 乐器管理 API
 
 ### 3.1 获取乐器列表

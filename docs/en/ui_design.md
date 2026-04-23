@@ -44,7 +44,123 @@ This document defines the UI design specifications for the TuneLoop instrument r
 
 ## 3. Page Designs
 
-### 3.1 Dashboard
+### 3.0 Setup Wizard
+
+**Route**: `/setup`  
+**Permission**: No login required (only accessible when system not initialized)
+
+**Page Flow**:
+1. **Status Check**: Call `GET /api/setup/status` on page load
+   - If `requires_setup = false` → automatic redirect to login page `/`
+   - If `requires_setup = true` → show initialization form
+2. **Initialization Form**:
+   - Email input field (with format validation)
+   - Password input field (with strength indicator)
+   - Confirm password input field (consistency validation)
+   - 'Create Admin' button (submit)
+3. **Submission Handling**:
+   - Call `POST /api/setup/init` after form validation
+   - Show loading state
+   - Backend returns OIDC authorization URL on success
+   - Frontend auto-redirects to IAM for first authentication
+4. **Error Handling**:
+   - System already initialized (403) → show error and redirect to login
+   - Parameter error (400) → highlight error fields
+
+**Interaction Details**:
+- Real-time form validation feedback
+- Password strength visualization (weak/medium/strong)
+- Submit button disabled state management
+
+---
+
+### 3.1 Merchant Management
+
+**Routes**:
+- List: `/merchants`
+- Create: `/merchants/new`
+- Detail: `/merchants/:id`
+
+**Permission**: Only `project_admin` role
+
+**Features**:
+- Merchant list page (name, code, contact, admin, created_at, status)
+- Create merchant form (name, code, contact info, admin assignment)
+- Delete merchant (with safety validation prompt)
+
+**Form Validation**:
+- Merchant code: allow only letters, numbers, hyphens
+- Email: standard email format
+- Phone: 11-digit mobile number
+
+---
+
+### 3.2 User Selection Dialog
+
+**Component Type**: Reusable modal dialog
+
+**Usage Scenarios**:
+- Merchant creation: selecting admin
+- Site management: adding members
+- Staff management: assigning sites
+
+**Dialog Structure**:
+
+1. **Search Area**:
+   - Input field (placeholder: "Enter username, name, email or phone")
+   - 'Search' button
+
+2. **Result Display** (different states based on search results):
+
+   **State A: User exists and belongs to current merchant**
+   ```
+   ┌─────────────────────────────┐
+   │ ✓ User found                │
+   │ Name: Zhang San             │
+   │ Email: zhangsan@example.com │
+   │                             │
+   │ [Confirm Selection]         │
+   └─────────────────────────────┘
+   ```
+
+   **State B: User exists in platform but not in this merchant**
+   ```
+   ┌──────────────────────────────────────┐
+   │ ⚠ User exists in Tuneloop            │
+   │ Name: Li Si                          │
+   │ Email: lisi@example.com              │
+   │                                      │
+   │ Invite to join this merchant?        │
+   │ [Cancel] [Invite & Select]           │
+   └──────────────────────────────────────┘
+   ```
+
+   **State C: User does not exist**
+   ```
+   ┌──────────────────────────────────────┐
+   │ ✗ User not found                     │
+   │                                      │
+   │ Create new user now?                 │
+   │                                      │
+   │ Name: [________]                     │
+   │ Email: [________]                    │
+   │ Phone: [________]                    │
+   │ Initial Password: [________]         │
+   │                                      │
+   │ [Cancel] [Create & Select]           │
+   └──────────────────────────────────────┘
+   ```
+
+3. **Action Buttons**:
+   - Cancel: Close dialog
+   - Confirm/Invite/Create: Execute action and return user_id + user_name
+
+**Interaction Details**:
+- Enter key for quick search
+- Form real-time validation
+- Email/phone uniqueness validation when creating user
+
+### 3.3 Dashboard
 
 **Route**: `/dashboard`
 
@@ -187,10 +303,47 @@ This document defines the UI design specifications for the TuneLoop instrument r
 
 **Route**: `/sites`
 
+**Permission**: Merchant admin or tenant global permission
+
 **Features**:
-- Site tree structure
-- Site detail
-- CRUD operations
+- Site tree structure (lazy-loaded)
+- Site detail (multi-tab)
+  - **Basic Info Tab**: name, type, address, phone, manager
+  - **Member Management Tab** (new):
+    - Member list table
+    - Add member button
+    - Member actions (switch role / remove)
+- Create/Edit/Delete site
+
+#### 3.10.1 Member Management Tab
+
+**Table columns**:
+- Username (clickable)
+- Role (Manager/Staff with colored tags)
+- Join time
+- Actions: switch role, remove member
+
+**Protection rules**:
+- Last Manager: disable buttons with tooltip "Last manager cannot be modified"
+
+**Add member**:
+- Click 'Add Member'
+- Open User Selection Dialog (see §3.2)
+- Default role: Staff
+
+#### 3.10.2 Enhanced Site Deletion
+
+**Pre-validation**:
+- **Asset check**: Check instruments table
+  - If available → Alert: "Transfer assets first"
+  - If rented → Alert: "Process in-lease orders first"
+- **Member check**: If members exist → Alert: "Remove all members first"
+
+**Flow**:
+- Run validation when delete clicked
+- Show confirm dialog if all checks pass
+- Call DELETE API
+- Success: Remove from tree, redirect to `/sites`
 
 ---
 

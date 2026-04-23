@@ -33,10 +33,55 @@
 | credit_score | INT | DEFAULT 600 | 信用评分 |
 | deposit_mode | VARCHAR(20) | DEFAULT 'standard' | 押金模式 |
 | is_shadow | BOOLEAN | DEFAULT true | 是否为影子用户 |
+| is_system_admin | BOOLEAN | DEFAULT false | 是否为系统管理员 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-### 2.2 categories - 乐器分类表
+### 2.2 merchants - 商户表
+
+**说明**: 商户对应 IAM 中的 Organization
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| org_id | UUID | INDEX, NOT NULL | IAM Organization ID |
+| name | VARCHAR(255) | NOT NULL | 商户名称 |
+| code | VARCHAR(100) | UNIQUE, NOT NULL | 商户代码（URL slug） |
+| contact_name | VARCHAR(255) | | 联系人姓名 |
+| contact_email | VARCHAR(255) | | 联系人邮箱 |
+| contact_phone | VARCHAR(50) | | 联系人电话 |
+| admin_uid | UUID | INDEX | 管理员用户 ID |
+| status | VARCHAR(20) | DEFAULT 'active' | 状态 (active/inactive) |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**索引**:
+- `idx_merchants_tenant_code` UNIQUE (tenant_id, code)
+- `idx_merchants_admin` (admin_uid)
+
+### 2.3 site_members - 网点成员表
+
+**说明**: 多对多关系表（users ↔ sites），支持用户属于多个网点
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| site_id | UUID | INDEX, NOT NULL | 网点 ID |
+| user_id | UUID | INDEX, NOT NULL | 用户 ID |
+| role | VARCHAR(20) | DEFAULT 'Staff' | 角色 (Manager/Staff) |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**约束**:
+- UNIQUE (tenant_id, site_id, user_id) — 同一用户在同一网点只能有一条记录
+
+**索引**:
+- `idx_site_members_site` (site_id, user_id)
+- `idx_site_members_user` (user_id, site_id)
+
+### 2.4 categories - 乐器分类表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
