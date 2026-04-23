@@ -38,7 +38,7 @@ func (h *IAMProxyHandler) LookupUser(c *gin.Context) {
 	}
 
 	// Forward request to IAM
-	url := fmt.Sprintf("%s/api/v1/users/lookup?identifier=%s", h.baseURL, identifier)
+	url := fmt.Sprintf("%s/api/v1/users/lookup?email=%s", h.baseURL, identifier)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
