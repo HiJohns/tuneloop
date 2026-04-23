@@ -228,3 +228,126 @@ func TestIAMProxyHandler_LookupUser_NotFound(t *testing.T) {
 	// Should forward the IAM response as-is (404)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+// Integration test for Issue #340: Full flow test
+func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
+	os.Setenv("BEACONIAM_INTERNAL_URL", "http://mock-iam-service")
+
+	// Create mock IAM service
+	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/users/lookup":
+			// Simulate user not found for new email
+			email := r.URL.Query().Get("email")
+			if email == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": "email is required"})
+				return
+			}
+			if email == "testuser_340_new@example.com" {
+				w.WriteHeader(http.StatusNotFound)
+				json.NewEncoder(w).Encode(map[string]string{"error": "user not found"})
+			} else if email == "existing_user_340@example.com" {
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":    "existing-user-id",
+					"email": email,
+					"name":  "Existing User",
+				})
+			}
+
+		case "/api/v1/users":
+			if r.Method == "POST" {
+				var payload map[string]interface{}
+				json.NewDecoder(r.Body).Decode(&payload)
+
+				// Return successful creation
+				w.WriteHeader(http.StatusCreated)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":        "new-user-id-340",
+					"email":     payload["email"],
+					"name":      payload["name"],
+					"tenant_id": payload["tid"],
+					"org_id":    payload["org_id"],
+				})
+			} else {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+			}
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer mockIAM.Close()
+
+	os.Setenv("BEACONIAM_INTERNAL_URL", mockIAM.URL)
+
+	// Test 1: Lookup non-existent user (should fail)
+	t.Run("LookupNonExistentUser", func(t *testing.T) {
+		g := gin.Default()
+		handler := NewIAMProxyHandler()
+
+		req := httptest.NewRequest("GET", "/api/iam/users/lookup?email=testuser_340_new@example.com", nil)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.SetCookie("token", "mock-token", 3600, "/", "localhost", false, true)
+
+		handler.LookupUser(c)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	// Test 2: Create new user (should succeed)
+	t.Run("CreateNewUser", func(t *testing.T) {
+		g := gin.Default()
+		handler := NewIAMProxyHandler()
+
+		createData := map[string]interface{}{
+			"email":    "testuser_340_new@example.com",
+			"phone":    "13800138000",
+			"name":     "Test User 340",
+			"role":     "site_manager",
+			"password": "TestPass123",
+		}
+		body, _ := json.Marshal(createData)
+
+		req := httptest.NewRequest("POST", "/api/iam/users", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.Set("tenant_id", "test-tenant-340")
+		c.Set("org_id", "test-org-340")
+		c.SetCookie("token", "mock-token", 3600, "/", "localhost", false, true)
+
+		handler.CreateUser(c)
+
+		assert.Equal(t, http.StatusOK, w.Code) // Or appropriate success code
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NotNil(t, response["id"])
+		assert.Equal(t, "testuser_340_new@example.com", response["email"])
+	})
+
+	// Test 3: Lookup existing user (should succeed)
+	t.Run("LookupExistingUser", func(t *testing.T) {
+		g := gin.Default()
+		handler := NewIAMProxyHandler()
+
+		req := httptest.NewRequest("GET", "/api/iam/users/lookup?identifier=existing_user_340@example.com", nil)
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = req
+		c.SetCookie("token", "mock-token", 3600, "/", "localhost", false, true)
+
+		handler.LookupUser(c)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+		assert.Equal(t, "existing-user-id", response["id"])
+	})
+}
