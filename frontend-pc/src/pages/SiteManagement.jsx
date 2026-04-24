@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm } from 'antd'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons'
 import { sitesApi } from '../services/api'
 import { api } from '../services/api'
 import Logger from '../utils/logger'
+import SiteMemberManagement from '../components/SiteMemberManagement'
 
 const { Option } = Select
 
@@ -425,9 +426,6 @@ export default function SiteManagement() {
                     />
                   </Tabs.TabPane>
                 </Tabs>
-              ) : (
-                <Empty description="请选择左侧网点查看详情" />
-              )}
               ) : (
                 <Empty description="请选择左侧网点查看详情" />
               )}
