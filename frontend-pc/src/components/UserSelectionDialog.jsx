@@ -33,14 +33,12 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
           },
         ]);
       } else if (response.data.code === 40400) {
-        // Scenario C: User not found
-        setSearchResults([
-          {
-            scenario: 'C',
-            display: '✗ User not found. Create new user?',
-            searchTerm: searchTerm,
-          },
-        ]);
+        // Scenario C: User not found - directly open create form
+        setSelectedUser({
+          scenario: 'C',
+          searchTerm: searchTerm,
+        });
+        setCreateModalVisible(true);
       } else {
         // Scenario B: User exists but not in merchant
         setSearchResults([
@@ -78,9 +76,6 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
         message.success('Invitation sent successfully');
         onSelect(selectedUser);
         handleClose();
-      } else if (selectedUser.scenario === 'C') {
-        // Open user creation modal
-        setCreateModalVisible(true);
       }
     } catch (error) {
       message.error('Operation failed');
@@ -150,38 +145,37 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
       )}
 
       {!loading && searchResults.length > 0 && (
-        <List
-          size="small"
-          bordered
-          dataSource={searchResults}
-          renderItem={(item) => (
-            <List.Item
-              style={{
-                cursor: 'pointer',
-                backgroundColor: selectedUser === item ? '#e6f7ff' : 'white',
-              }}
-              onClick={() => handleSelect(item)}
-            >
-              <List.Item.Meta
-                avatar={
-                  item.scenario === 'C' ? (
-                    <UserAddOutlined style={{ color: '#faad14' }} />
-                  ) : (
+        <>
+          <div style={{ padding: '8px 0', color: '#666', fontSize: '12px' }}>
+            请点击选择用户：
+          </div>
+          <List
+            size="small"
+            bordered
+            dataSource={searchResults}
+            renderItem={(item) => (
+              <List.Item
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedUser === item ? '#e6f7ff' : 'white',
+                }}
+                onClick={() => handleSelect(item)}
+              >
+                <List.Item.Meta
+                  avatar={
                     <UserOutlined style={{ color: item.scenario === 'A' ? '#52c41a' : '#1890ff' }} />
-                  )
-                }
-                title={item.display}
-                description={
-                  item.scenario === 'C'
-                    ? 'Would you like to create this user?'
-                    : item.scenario === 'B'
-                    ? `Email: ${item.userInfo.email}, Phone: ${item.userInfo.phone}`
-                    : `Member of current merchant`
-                }
-              />
-            </List.Item>
-          )}
-        />
+                  }
+                  title={item.display}
+                  description={
+                    item.scenario === 'B'
+                      ? `Email: ${item.userInfo.email}, Phone: ${item.userInfo.phone}`
+                      : `Member of current merchant`
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        </>
       )}
 
       {!loading && searchResults.length === 0 && searchTerm && (
