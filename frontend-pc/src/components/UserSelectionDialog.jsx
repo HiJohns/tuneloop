@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Input, Button, List, message, Card } from 'antd';
+import { Modal, Input, Button, List, message, Card, Form } from 'antd';
 import { SearchOutlined, UserAddOutlined, UserOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
@@ -8,6 +8,8 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -74,15 +76,44 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
           merchant_id: merchantId,
         });
         message.success('Invitation sent successfully');
+        onSelect(selectedUser);
+        handleClose();
       } else if (selectedUser.scenario === 'C') {
-        // Create new user
-        message.info('User creation flow would be triggered here');
+        // Open user creation modal
+        setCreateModalVisible(true);
       }
-
-      onSelect(selectedUser);
-      handleClose();
     } catch (error) {
       message.error('Operation failed');
+    }
+  };
+
+  const handleCreateUser = async (values) => {
+    try {
+      const response = await api.post('/api/iam/users', {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        password: values.password,
+      });
+
+      if (response.data.code === 20000) {
+        message.success('User created successfully');
+        const newUser = {
+          scenario: 'A',
+          userInfo: {
+            user_id: response.data.data.user_id,
+            name: values.name,
+            email: values.email,
+          },
+        };
+        onSelect(newUser);
+        handleClose();
+      }
+    } catch (error) {
+      message.error('Failed to create user');
+    } finally {
+      setCreateModalVisible(false);
+      form.resetFields();
     }
   };
 
@@ -93,7 +124,7 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
     onClose();
   };
 
-  return (
+  return (<> 
     <Modal
       title="Select User"
       visible={visible}
@@ -159,7 +190,48 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
         </div>
       )}
     </Modal>
-  );
+
+    <Modal
+      title="Create New User"
+      visible={createModalVisible}
+      onOk={() => form.submit()}
+      onCancel={() => {
+        setCreateModalVisible(false);
+        form.resetFields();
+      }}
+      width={500}
+    >
+      <Form form={form} layout="vertical" onFinish={handleCreateUser}>
+        <Form.Item
+          name="name"
+          label="Name"
+          rules={[{ required: true, message: 'Please enter user name' }]}
+        >
+          <Input placeholder="Enter full name" />
+        </Form.Item>
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[
+            { required: true, message: 'Please enter email' },
+            { type: 'email', message: 'Please enter a valid email' },
+          ]}
+        >
+          <Input placeholder="Enter email address" />
+        </Form.Item>
+        <Form.Item name="phone" label="Phone">
+          <Input placeholder="Enter phone number" />
+        </Form.Item>
+        <Form.Item
+          name="password"
+          label="Password"
+          rules={[{ required: true, message: 'Please enter password' }]}
+        >
+          <Input.Password placeholder="Enter initial password" />
+        </Form.Item>
+      </Form>
+    </Modal>
+  </>);
 };
 
 export default UserSelectionDialog;
