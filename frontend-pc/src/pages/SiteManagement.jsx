@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons'
 import { sitesApi } from '../services/api'
 import { api } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
+import UserSelectionDialog from '../components/UserSelectionDialog'
 
 const { Option } = Select
 
@@ -25,6 +26,7 @@ export default function SiteManagement() {
   const [lookupError, setLookupError] = useState({ message: '', visible: false })
   const [expandedKeys, setExpandedKeys] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
+  const [userDialogVisible, setUserDialogVisible] = useState(false)
 
   useEffect(() => {
     fetchSiteTree()
@@ -153,6 +155,19 @@ export default function SiteManagement() {
     }
     setViewMode('form')
     setLookupError({ message: '', visible: false })
+  }
+
+  const handleUserSelectFromDialog = (selectedUser) => {
+    if (!selectedUser) return
+    setManagerInfo({
+      name: selectedUser.name || selectedUser.user_name,
+      id: selectedUser.user_id,
+      email: selectedUser.email || selectedUser.user_email || '',
+      phone: selectedUser.phone || ''
+    })
+    setManagerInput(selectedUser.email || selectedUser.user_email || selectedUser.phone || '')
+    setUserDialogVisible(false)
+    form.setFieldsValue({ manager_id: selectedUser.user_id })
   }
 
   const handleCreateUser = async () => {
@@ -494,51 +509,29 @@ export default function SiteManagement() {
                 <Form.Item
                   name="manager_id"
                   label="负责人"
-                  validateStatus={lookupError.visible ? 'error' : ''}
-                  help={lookupError.visible && (
-                    <div className="text-red-600">
-                      用户不存在，{' '}
-                      <a
-                        className="text-red-600 hover:cursor-pointer underline"
-                        onClick={() => {
-                          // 打开创建用户对话框时，自动填入已输入的内容
-                          const isEmail = managerInput.includes('@')
-                          if (isEmail) {
-                            createUserForm.setFieldsValue({ 
-                              email: managerInput,
-                              phone: ''
-                            })
-                          } else {
-                            createUserForm.setFieldsValue({ 
-                              phone: managerInput,
-                              email: ''
-                            })
-                          }
-                          setCreateUserModalVisible(true)
-                        }}
-                      >
-                        点击这里创建用户
-                      </a>
-                    </div>
-                  )}
                 >
-                  <Input
-                    placeholder="请输入手机号或邮箱"
-                    disabled={managerInfo.id !== null}
-                    onChange={(e) => {
-                      // 当用户修改输入时，清空已匹配的 managerInfo
-                      if (managerInfo.id) {
-                        setManagerInfo({ name: '', id: null, email: '', phone: '' })
-                      }
-                      setManagerInput(e.target.value)
-                    }}
-                    data-testid="site-form-manager-id"
-                  />
-                  {managerInfo.name && (
-                    <div style={{ marginTop: 8, color: '#52c41a' }}>
-                      ✓ 已匹配: {managerInfo.name}
-                      {managerInfo.email ? ` (${managerInfo.email})` : managerInfo.phone ? ` (${managerInfo.phone})` : ''}
+                  {managerInfo.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <UserOutlined style={{ fontSize: 20, color: '#52c41a' }} />
+                      <span style={{ fontWeight: 500 }}>{managerInfo.name}</span>
+                      {managerInfo.email && <span style={{ color: '#999' }}>({managerInfo.email})</span>}
+                      <Button
+                        type="link"
+                        onClick={() => setUserDialogVisible(true)}
+                        data-testid="site-form-change-manager"
+                      >
+                        更换
+                      </Button>
                     </div>
+                  ) : (
+                    <Button
+                      type="dashed"
+                      icon={<TeamOutlined />}
+                      onClick={() => setUserDialogVisible(true)}
+                      data-testid="site-form-select-manager"
+                    >
+                      选择负责人
+                    </Button>
                   )}
                 </Form.Item>
               </Form>
@@ -546,6 +539,13 @@ export default function SiteManagement() {
           )}
         </div>
       </div>
+
+      <UserSelectionDialog
+        visible={userDialogVisible}
+        onClose={() => setUserDialogVisible(false)}
+        onSelect={handleUserSelectFromDialog}
+        merchantId="current-merchant-id"
+      />
 
       <Modal
         title="创建IAM用户"
