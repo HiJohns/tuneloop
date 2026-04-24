@@ -79,11 +79,47 @@ Input: username, name, email, or phone
 
 ### 1.1 Add Instrument
 
-Site staff logs in
-Access instrument list
-Click "Add Instrument"
-Complete settings and submit
-Instrument added to database
+**Roles**: Tenant Admin, Site Manager, Site Member
+
+#### Workflow
+
+1. **Navigate to Instrument Creation Page**
+   - Access instrument list from navigation `/instruments`
+   - Click "Add Instrument" button, navigate to `/instruments/new`
+
+2. **Fill Basic Information**
+   - **Serial Number (sn)**: Required, auto-validates uniqueness via API
+   - **Category**: TreeSelect with lazy loading, click to select, link to category management
+   - **Level**: Dropdown (Beginner, Professional, Master)
+   - **Site**:
+     - Tenant Admin: Can select any site
+     - Site Manager/Member: Auto-locked to current site, non-editable
+
+3. **Fill Additional Information**
+   - **Description**: Text input
+   - **Dynamic Properties**: Based on property definitions from property management
+     - Dropdown selection OR direct input
+     - Dropdown shows top 3 most-used values by default
+     - Real-time search filtering as user types
+     - Link to property management
+
+4. **Upload Media Files**
+   - Images: Max 6, drag-and-drop upload support
+   - Videos: Max 1
+   - Frontend uploads media first, receives file UUID
+   - Submit form with UUID attached
+
+5. **Submit or Cancel**
+   - Click "Submit": Create instrument, return to list
+   - Click "Cancel": Return to list without saving
+
+#### Permission Matrix
+
+| Role | Create Instrument | Default Site Locked |
+|------|------------------|-------------------|
+| Tenant Admin | ✅ | ❌ Selectable |
+| Site Manager | ✅ | ✅ Locked to current |
+| Site Member | ✅ | ✅ Locked to current |
 
 ### 1.2 Batch Import
 
