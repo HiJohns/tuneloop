@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Upload, Checkbox } from 'antd'
+import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, UploadOutlined, DownloadOutlined, ExportOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, DownloadOutlined, ExportOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 import InstrumentForm from './Form'
-import ImportResultModal from '../../../components/ImportResultModal'
 
 const { Option } = Select
 
@@ -32,8 +31,6 @@ export default function InstrumentList() {
   })
   
   // Import/Export state
-  const [importResultModalVisible, setImportResultModalVisible] = useState(false)
-  const [importResult, setImportResult] = useState(null)
   const [exportFieldModalVisible, setExportFieldModalVisible] = useState(false)
   const [selectedExportFields, setSelectedExportFields] = useState([])
 
@@ -316,58 +313,24 @@ export default function InstrumentList() {
   }
 
   // Import/Export handlers
-  const handleImport = async (file) => {
+  const downloadTemplate = async () => {
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      
-      const response = await fetch(`${API_BASE_URL}/instruments/import`, {
-        method: 'POST',
-        body: formData
+      const response = await fetch(`${API_BASE_URL}/instruments/batch-import/template`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       })
-      
-      const result = await response.json()
-      if (result.code === 20000) {
-        setImportResult({
-          success: result.data?.success || 0,
-          failed: result.data?.failed || 0,
-          total: result.data?.total || 0,
-          errors: result.data?.errors || []
-        })
-        setImportResultModalVisible(true)
-        fetchInstruments(pagination.page, pagination.pageSize)
-        message.success('导入完成')
-      } else {
-        throw new Error(result.message || '导入失败')
-      }
+      if (!response.ok) throw new Error('下载模板失败')
+      const blob = await response.blob()
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = 'instruments_import_template.csv'
+      link.click()
+      message.success('模板下载成功')
     } catch (error) {
-      message.error(error.message || '导入失败')
-      setImportResult({
-        success: 0,
-        failed: 1,
-        total: 1,
-        errors: [error.message]
-      })
-      setImportResultModalVisible(true)
+      message.error(error.message || '下载模板失败')
     }
-    
-    return false // Prevent automatic upload
-  }
-
-  const downloadTemplate = () => {
-    const template = [
-      ['name', 'brand', 'model', 'category_name', 'stock', 'description'],
-      ['雅马哈立式钢琴', 'Yamaha', 'U1', '钢琴', '5', '日本原装进口钢琴'],
-      ['马丁D-28吉他', 'Martin', 'D-28', '吉他', '8', '美国产经典民谣吉他']
-    ]
-    
-    const csvContent = template.map(row => row.join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = 'instruments_template.csv'
-    link.click()
-    message.success('模板下载成功')
   }
 
   const showExportFieldModal = () => {
@@ -467,17 +430,12 @@ export default function InstrumentList() {
       {/* Toolbar */}
       <div className="mb-4 flex justify-between items-center">
         <Space>
-          <Upload
-            accept=".csv,.xlsx,.xls"
-            showUploadList={false}
-            beforeUpload={handleImport}
+          <Button
+            icon={<ImportOutlined />}
+            onClick={() => navigate('/instruments/batch-import')}
           >
-            <Button
-              icon={<UploadOutlined />}
-            >
-              导入
-            </Button>
-          </Upload>
+            导入
+          </Button>
           <Button
             icon={<DownloadOutlined />}
             onClick={downloadTemplate}
@@ -515,10 +473,10 @@ export default function InstrumentList() {
         
         <Space>
           <Button
-            icon={<ExportOutlined />}
-            onClick={showExportFieldModal}
+            icon={<ImportOutlined />}
+            onClick={() => navigate('/instruments/batch-import')}
           >
-            导出
+            导入
           </Button>
           <Button
             type="primary"
@@ -619,16 +577,6 @@ export default function InstrumentList() {
           </Row>
         </Checkbox.Group>
       </Modal>
-
-      {/* Import Result Modal */}
-      <ImportResultModal
-        visible={importResultModalVisible}
-        onClose={() => {
-          setImportResultModalVisible(false)
-          setImportResult(null)
-        }}
-        importResult={importResult}
-      />
 
       <InstrumentForm
         open={formVisible}
