@@ -16,11 +16,13 @@ CREATE TABLE IF NOT EXISTS merchants (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-    UNIQUE (tenant_id, code),
-    INDEX idx_merchants_tenant (tenant_id),
-    INDEX idx_merchants_org (org_id),
-    INDEX idx_merchants_admin (admin_uid)
+    UNIQUE (tenant_id, code)
 );
+
+-- Create indexes with proper PostgreSQL syntax
+CREATE INDEX IF NOT EXISTS idx_merchants_tenant ON merchants (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_merchants_org ON merchants (org_id);
+CREATE INDEX IF NOT EXISTS idx_merchants_admin ON merchants (admin_uid);
 
 -- Create trigger for updated_at
 CREATE OR REPLACE FUNCTION update_merchants_updated_at()

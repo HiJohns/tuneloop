@@ -58,6 +58,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	merchantHandler := handlers.NewMerchantHandler()
 	setupHandler := handlers.NewSetupHandler()
 	siteMemberHandler := handlers.NewSiteMemberHandler()
+	iamProxyHandler := handlers.NewIAMProxyHandler()
 	staffHandler := &handlers.UserStaffHandler{}
 	propertyHandler := handlers.NewPropertyHandler()
 	inventoryHandler := handlers.NewInventoryHandler()
@@ -129,7 +130,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	// Setup routes (public, no auth required)
 	api.GET("/setup/status", setupHandler.GetSetupStatus)
 	api.POST("/setup/init", setupHandler.InitializeSystem)
-
 	api.POST("/iam/users/:user_id/invite", iamProxyHandler.InviteUserToMerchant)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService))
