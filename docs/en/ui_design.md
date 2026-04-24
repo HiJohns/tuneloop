@@ -202,38 +202,50 @@ This document defines the UI design specifications for the TuneLoop instrument r
 
 ### 3.3 Instrument Form
 
-**Important Changes** (2026-04-16):
-- Instruments no longer have a `name` field - identified solely by `sn` (serial number)
-- Brand, model, etc. are now dynamic properties
-
 **Routes**: 
-- New: `/instruments/new/edit`
+- New: `/instruments/new`
 - Edit: `/instruments/:id/edit`
 
 **Features**:
-- Basic Information
-  - Serial number (SN) - **unique identifier**
-  - Category - tree select
-  - Level - dropdown select
-  - Site - tree select
-- Dynamic Properties
-  - Rendered dynamically based on system config
-  - Examples: Brand, Model, Color, Year, etc.
-  - Configurable in Property Management page
-  - Optional
-- Description
-- Image Upload
-  - Drag-to-sort
-  - Upload progress
-  - Retry on failure
-- Video URL
+
+1. **Basic Information**
+   - Serial Number (sn) - **unique identifier**, auto-validates uniqueness on input
+   - Category - tree select with lazy loading, link to category management
+   - Level - dropdown (Beginner, Professional, Master)
+   - Site - tree select
+     - **Tenant Admin**: Can select any site
+     - **Site Manager/Member**: Auto-locked to current site, non-editable
+
+2. **Dynamic Properties**
+   - Dynamically rendered based on property definitions from property management
+   - Dropdown selection OR direct input
+   - **Dropdown shows top 3 most-used values by default**
+   - Real-time search filtering shows top 3 results containing input
+   - Link to property management
+
+3. **Description**
+   - Text input field
+
+4. **Media Upload**
+   - Images: Max 6, drag-to-sort
+   - Videos: Max 1 (**file upload supported**, not just URL)
+   - Upload progress bar
+   - Auto-retry on failure
+   - **Flow**: Upload media first → Get UUID → Submit form with UUID
 
 **Form Validation**:
 - Serial Number: Required, unique validation
 - Category: Required
 - Level: Required
-- Site: Required
+- Site: Required (auto-locked for site manager/member)
 - Dynamic Properties: Optional
+
+**Permissions & Behavior**:
+| Role | Site Selection | Form Behavior |
+|------|---------------|---------------|
+| Tenant Admin | Selectable | Normal |
+| Site Manager | Locked to current | Non-editable |
+| Site Member | Locked to current | Non-editable |
 
 ### 3.4 Instrument Detail
 
