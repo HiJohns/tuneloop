@@ -93,32 +93,20 @@ function redirectToLogin() {
 }
 
 export function getToken() {
-  // 1. 优先从 localStorage 获取（与 OAuthCallback 存储一致）
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
   
   if (token && expiry) {
-    const isExpired = new Date().getTime() > parseInt(expiry)
-    
-    if (isExpired) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('token_expiry')
-      localStorage.removeItem('user_info')
-      // 过期时尝试从 cookie 获取
-      const cookieToken = getTokenFromCookie()
-      return cookieToken
+    const now = new Date().getTime()
+    if (now <= parseInt(expiry)) {
+      return token
     }
-    return token
   }
   
-  // 2. 尝试从 sessionStorage 获取
   const sessionToken = sessionStorage.getItem('token')
   if (sessionToken) return sessionToken
   
-  // 3. 最后从 cookie 获取作为 fallback
-  // 这主要是为了处理页面刷新后 localStorage 不可用的场景
-  const cookieToken = getTokenFromCookie()
-  return cookieToken
+  return null
 }
 
 export function getTokenFromCookie() {

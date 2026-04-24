@@ -161,10 +161,18 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	}
 
 	if cookieDomain != "" {
-		c.SetCookie("token", tokenResp.AccessToken, 3600, "/", cookieDomain, false, false)
+		maxAge := tokenResp.ExpiresIn
+		if maxAge <= 0 {
+			maxAge = 900
+		}
+		c.SetCookie("token", tokenResp.AccessToken, maxAge, "/", cookieDomain, false, false)
 		c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", cookieDomain, false, true)
 	} else {
-		c.SetCookie("token", tokenResp.AccessToken, 3600, "/", "", false, false)
+		maxAge := tokenResp.ExpiresIn
+		if maxAge <= 0 {
+			maxAge = 900
+		}
+		c.SetCookie("token", tokenResp.AccessToken, maxAge, "/", "", false, false)
 		c.SetCookie("refresh_token", tokenResp.RefreshToken, 2592000, "/", "", false, true)
 	}
 

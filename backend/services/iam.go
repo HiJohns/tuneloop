@@ -83,10 +83,21 @@ func GetIAMExternalURL() string {
 }
 
 func NewIAMService() *IAMService {
+	clientID := os.Getenv("IAM_PC_CLIENT_ID")
+	if clientID == "" {
+		clientID = os.Getenv("IAM_CLIENT_ID")
+	}
+	clientSecret := os.Getenv("IAM_PC_CLIENT_SECRET")
+	if clientSecret == "" {
+		clientSecret = os.Getenv("IAM_CLIENT_SECRET")
+	}
+	if clientID == "" || clientSecret == "" {
+		log.Fatal("IAM client credentials not configured: IAM_PC_CLIENT_ID and IAM_PC_CLIENT_SECRET (or IAM_CLIENT_ID and IAM_CLIENT_SECRET) must be set")
+	}
 	return &IAMService{
 		baseURL:      GetIAMInternalURL(),
-		clientID:     os.Getenv("IAM_CLIENT_ID"),
-		clientSecret: os.Getenv("IAM_CLIENT_SECRET"),
+		clientID:     clientID,
+		clientSecret: clientSecret,
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
 }

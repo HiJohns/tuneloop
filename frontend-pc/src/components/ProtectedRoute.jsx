@@ -6,6 +6,17 @@ const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
 
 function getToken() {
+  const token = localStorage.getItem('token')
+  const expiry = localStorage.getItem('token_expiry')
+  
+  if (token && expiry) {
+    const now = new Date().getTime()
+    const exp = parseInt(expiry)
+    if (now <= exp) {
+      return token
+    }
+  }
+  
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const trimmed = cookie.trim()
@@ -17,24 +28,7 @@ function getToken() {
     }
   }
   
-  const token = localStorage.getItem('token')
-  const expiry = localStorage.getItem('token_expiry')
-  
-  if (!token || !expiry) {
-    return sessionStorage.getItem('token') || null
-  }
-  
-  const now = new Date().getTime()
-  const exp = parseInt(expiry)
-  
-  if (now > exp) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('token_expiry')
-    localStorage.removeItem('user_info')
-    return sessionStorage.getItem('token') || null
-  }
-  
-  return token
+  return sessionStorage.getItem('token') || null
 }
 
 async function getTokenWithRetry(maxRetries = 1, delay = 100) {
@@ -85,7 +79,12 @@ function clearTokens() {
   localStorage.removeItem('user_info')
   localStorage.removeItem('user_role')
   sessionStorage.removeItem('token')
-  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
+  cookieDomains.forEach(domain => {
+    const path = domain ? `; domain=${domain}` : ''
+    document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+    document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+  })
 }
 
 function redirectToLogin() {
