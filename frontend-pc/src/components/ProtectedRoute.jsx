@@ -125,14 +125,14 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
       
       if (!tokenValue) {
         setChecking(false)
-        redirectToLogin();
+        redirectToLogin()
         return
       }
       
       if (!isTokenValid(tokenValue)) {
         clearTokens()
         setChecking(false)
-        redirectToLogin();
+        redirectToLogin()
         return
       }
       
@@ -177,7 +177,7 @@ export function AuthGuard({ children }) {
       setChecking(false)
       
       if (!tokenValue) {
-        redirectToLogin();
+        redirectToLogin()
       }
     }
     

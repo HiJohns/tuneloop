@@ -75,7 +75,6 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
 
-	// Handle POST requests with JSON body (frontend may send code via POST)
 	var postBody struct {
 		Code       string `json:"code"`
 		State      string `json:"state"`
