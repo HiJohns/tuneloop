@@ -126,7 +126,7 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
 
   return (<> 
     <Modal
-      title="Select User"
+      title="选择用户"
       visible={visible}
       onOk={handleConfirm}
       onCancel={handleClose}
@@ -134,7 +134,7 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
     >
       <Card size="small" style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder="Enter username, email, or phone"
+          placeholder="请输入用户名、邮箱或手机号"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onSearch={handleSearch}
@@ -192,7 +192,7 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
     </Modal>
 
     <Modal
-      title="Create New User"
+      title="创建新用户"
       visible={createModalVisible}
       onOk={() => form.submit()}
       onCancel={() => {
@@ -207,7 +207,7 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
           label="Name"
           rules={[{ required: true, message: 'Please enter user name' }]}
         >
-          <Input placeholder="Enter full name" />
+          <Input placeholder="请输入姓名" />
         </Form.Item>
         <Form.Item
           name="email"
@@ -217,17 +217,17 @@ const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
             { type: 'email', message: 'Please enter a valid email' },
           ]}
         >
-          <Input placeholder="Enter email address" />
+          <Input placeholder="请输入邮箱地址" />
         </Form.Item>
         <Form.Item name="phone" label="Phone">
-          <Input placeholder="Enter phone number" />
+          <Input placeholder="请输入手机号" />
         </Form.Item>
         <Form.Item
           name="password"
           label="Password"
           rules={[{ required: true, message: 'Please enter password' }]}
         >
-          <Input.Password placeholder="Enter initial password" />
+          <Input.Password placeholder="请输入初始密码" />
         </Form.Item>
       </Form>
     </Modal>
