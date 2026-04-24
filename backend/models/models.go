@@ -17,6 +17,7 @@ type User struct {
 	DepositMode   string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
 	IsShadow      bool       `gorm:"default:true" json:"is_shadow"`
 	IsSystemAdmin bool       `gorm:"default:false" json:"is_system_admin"`
+	Status        string     `gorm:"type:varchar(20);default:'active'" json:"status"`
 	Position      string     `gorm:"type:varchar(100)" json:"position"`
 	UserType      string     `gorm:"type:varchar(20);default:'员工'" json:"user_type"`
 	SiteID        *string    `gorm:"type:uuid;index" json:"site_id"`
@@ -443,28 +444,27 @@ type OrderStatusHistory struct {
 
 // Merchant represents a merchant/organization entity aligned with IAM Organization
 type Merchant struct {
-	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID     string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID        string     `gorm:"type:uuid;index;not null" json:"org_id"`
-	Name         string     `gorm:"type:varchar(255);not null" json:"name"`
-	Code         string     `gorm:"type:varchar(100);not null;uniqueIndex:idx_merchants_tenant_code" json:"code"`
-	ContactName  string     `gorm:"type:varchar(255)" json:"contact_name"`
-	ContactEmail string     `gorm:"type:varchar(255)" json:"contact_email"`
-	ContactPhone string     `gorm:"type:varchar(50)" json:"contact_phone"`
-	AdminUID     string     `gorm:"type:uuid;index" json:"admin_uid"`
-	Status       string     `gorm:"type:varchar(20);default:'active'" json:"status"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID        string    `gorm:"type:uuid;index;not null" json:"org_id"`
+	Name         string    `gorm:"type:varchar(255);not null" json:"name"`
+	Code         string    `gorm:"type:varchar(100);not null;uniqueIndex:idx_merchants_tenant_code" json:"code"`
+	ContactName  string    `gorm:"type:varchar(255)" json:"contact_name"`
+	ContactEmail string    `gorm:"type:varchar(255)" json:"contact_email"`
+	ContactPhone string    `gorm:"type:varchar(50)" json:"contact_phone"`
+	AdminUID     string    `gorm:"type:uuid;index" json:"admin_uid"`
+	Status       string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // SiteMember represents the many-to-many relationship between users and sites
 type SiteMember struct {
-	ID       string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	SiteID   string     `gorm:"type:uuid;not null;uniqueIndex:idx_site_members_unique" json:"site_id"`
-	UserID   string     `gorm:"type:uuid;not null;uniqueIndex:idx_site_members_unique" json:"user_id"`
-	Role     string     `gorm:"type:varchar(20);default:'Staff'" json:"role"`
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SiteID    string    `gorm:"type:uuid;not null;uniqueIndex:idx_site_members_unique" json:"site_id"`
+	UserID    string    `gorm:"type:uuid;not null;uniqueIndex:idx_site_members_unique" json:"user_id"`
+	Role      string    `gorm:"type:varchar(20);default:'Staff'" json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
-

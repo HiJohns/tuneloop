@@ -138,6 +138,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		// IAM Proxy routes
 		iamProxyHandler := handlers.NewIAMProxyHandler()
 		authRequired.GET("/iam/users/lookup", iamProxyHandler.LookupUser)
+		authRequired.GET("/iam/users/search", iamProxyHandler.SearchUsers)
 		authRequired.POST("/iam/users", iamProxyHandler.CreateUser)
 
 		authRequired.GET("/categories", handlers.GetCategories)
@@ -154,16 +155,17 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.PUT("/instruments/:id", handlers.UpdateInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
 
-		// Owner 专属路由 - 使用中间件直接包裹
-		authRequired.POST("/instruments", middleware.RequireOwner(), handlers.CreateInstrument)
+		// Instrument CRUD - site_manager and above can create
+		authRequired.POST("/instruments", middleware.RequireSiteManager(), handlers.CreateInstrument)
 		authRequired.PUT("/instruments/:id/status", handlers.UpdateInstrumentStatus)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
-		authRequired.GET("/instruments/import/template", handlers.DownloadImportTemplate)
-		authRequired.POST("/instruments/batch-import", handlers.BatchImportInstruments)
-		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
+		authRequired.GET("/instruments/import/template", handlers.DownloadCSVTemplate)
 		authRequired.POST("/upload", handlers.HandleUpload)
+		authRequired.POST("/instruments/batch-import", handlers.ExecuteBatchImport)
+		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
+		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
 		authRequired.POST("/orders/preview", handlers.PreviewOrder)
 		authRequired.POST("/orders", handlers.CreateOrder)
@@ -195,9 +197,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			siteRequired.PUT("/sites/:id/members/:uid", siteMemberHandler.UpdateMemberRole)
 			siteRequired.DELETE("/sites/:id/members/:uid", siteMemberHandler.RemoveMember)
 
-
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", staffHandler.ListStaff)
+			authRequired.GET("/users/me", staffHandler.GetCurrentUser)
 			authRequired.POST("/users", staffHandler.CreateUser)
 			authRequired.PUT("/users/:id", staffHandler.UpdateUser)
 			authRequired.GET("/users/check", staffHandler.CheckUserExists)
@@ -208,6 +210,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			propertyRequired.GET("/properties", propertyHandler.ListProperties)
 			propertyRequired.POST("/property", propertyHandler.CreateProperty)
 			propertyRequired.PUT("/property/:id", propertyHandler.UpdateProperty)
+			propertyRequired.GET("/properties/:id/options/search", propertyHandler.SearchPropertyOptions)
 			propertyRequired.POST("/property/option", propertyHandler.CreatePropertyOption)
 			propertyRequired.PUT("/property/confirm", propertyHandler.ConfirmPropertyValue)
 			propertyRequired.PUT("/property/merge", propertyHandler.MergePropertyValues)

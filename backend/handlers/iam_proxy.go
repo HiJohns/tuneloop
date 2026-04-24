@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -117,6 +118,149 @@ func (h *IAMProxyHandler) LookupUser(c *gin.Context) {
 	}
 }
 
+// GET /api/iam/users/search?q=xxx&limit=10&merchant_id=xxx - Fuzzy search users
+func (h *IAMProxyHandler) SearchUsers(c *gin.Context) {
+	q := c.Query("q")
+	if q == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "q (search query) is required",
+		})
+		return
+	}
+
+	// Get limit parameter with default 10
+	limitStr := c.DefaultQuery("limit", "10")
+	limit := 10
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 50 {
+		limit = l
+	}
+
+	// Get tenant ID from context
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	if tenantID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40100,
+			"message": "tenant not authenticated",
+		})
+		return
+	}
+
+	merchantID := c.Query("merchant_id")
+
+	// Perform fuzzy search in local users table
+	db := database.GetDB().WithContext(ctx)
+	var users []models.User
+
+	// Build fuzzy search query
+	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
+
+	// Search in name, email, and phone fields
+	searchPattern := "%" + q + "%"
+	query = query.Where("name ILIKE ? OR email ILIKE ? OR phone ILIKE ?",
+		searchPattern, searchPattern, searchPattern)
+
+	// Limit results
+	query = query.Limit(limit)
+
+	// Execute query
+	if err := query.Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to search users: " + err.Error(),
+		})
+		return
+	}
+
+	// Build response
+	var result []gin.H
+	for _, user := range users {
+		// Determine which field matched
+		matchedField := ""
+		if user.Name != "" && containsIgnoreCase(user.Name, q) {
+			matchedField = "name"
+		} else if user.Email != "" && containsIgnoreCase(user.Email, q) {
+			matchedField = "email"
+		} else if user.Phone != "" && containsIgnoreCase(user.Phone, q) {
+			matchedField = "phone"
+		}
+
+		// Check if user is associated with merchant
+		associated := false
+		if merchantID != "" {
+			var count int64
+			db.Model(&models.SiteMember{}).
+				Where("tenant_id = ? AND user_id = ? AND site_id IN (SELECT id FROM sites WHERE org_id = ?)",
+					tenantID, user.ID, merchantID).
+				Count(&count)
+			associated = count > 0
+		}
+
+		result = append(result, gin.H{
+			"id":            user.ID,
+			"name":          user.Name,
+			"email":         user.Email,
+			"phone":         user.Phone,
+			"matched_field": matchedField,
+			"associated":    associated,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"users": result,
+		},
+	})
+}
+
+// Helper function for case-insensitive substring check
+func containsIgnoreCase(s, substr string) bool {
+	return len(s) >= len(substr) &&
+		(s == substr ||
+			len(s) > len(substr) &&
+				(containsIgnoreCaseHelper(s, substr) || containsIgnoreCaseHelper(reverse(s), reverse(substr))))
+}
+
+func containsIgnoreCaseHelper(s, substr string) bool {
+	if len(substr) == 0 {
+		return true
+	}
+	if len(s) < len(substr) {
+		return false
+	}
+	// Simple case-insensitive check for ASCII
+	for i := 0; i <= len(s)-len(substr); i++ {
+		match := true
+		for j := 0; j < len(substr); j++ {
+			if toLower(s[i+j]) != toLower(substr[j]) {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
+func toLower(b byte) byte {
+	if b >= 'A' && b <= 'Z' {
+		return b + 32
+	}
+	return b
+}
+
+func reverse(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
+}
+
 // POST /api/iam/users - Create IAM user (JIT provisioning)
 func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	var req struct {
@@ -152,6 +296,64 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    40100,
 			"message": "tenant not authenticated",
+		})
+		return
+	}
+
+	// Check uniqueness: name, email, or phone
+	db := database.GetDB().WithContext(ctx)
+	var conflicts []gin.H
+
+	// Check name uniqueness
+	if req.Name != "" {
+		var existingUser models.User
+		if err := db.Where("tenant_id = ? AND name = ? AND deleted_at IS NULL", tenantID, req.Name).First(&existingUser).Error; err == nil {
+			conflicts = append(conflicts, gin.H{
+				"id":            existingUser.ID,
+				"name":          existingUser.Name,
+				"email":         existingUser.Email,
+				"phone":         existingUser.Phone,
+				"matched_field": "name",
+			})
+		}
+	}
+
+	// Check email uniqueness
+	if req.Email != "" {
+		var existingUser models.User
+		if err := db.Where("tenant_id = ? AND email = ? AND deleted_at IS NULL", tenantID, req.Email).First(&existingUser).Error; err == nil {
+			conflicts = append(conflicts, gin.H{
+				"id":            existingUser.ID,
+				"name":          existingUser.Name,
+				"email":         existingUser.Email,
+				"phone":         existingUser.Phone,
+				"matched_field": "email",
+			})
+		}
+	}
+
+	// Check phone uniqueness
+	if req.Phone != "" {
+		var existingUser models.User
+		if err := db.Where("tenant_id = ? AND phone = ? AND deleted_at IS NULL", tenantID, req.Phone).First(&existingUser).Error; err == nil {
+			conflicts = append(conflicts, gin.H{
+				"id":            existingUser.ID,
+				"name":          existingUser.Name,
+				"email":         existingUser.Email,
+				"phone":         existingUser.Phone,
+				"matched_field": "phone",
+			})
+		}
+	}
+
+	// Return conflicts if any
+	if len(conflicts) > 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "user with same name, email, or phone already exists",
+			"data": gin.H{
+				"conflicts": conflicts,
+			},
 		})
 		return
 	}
@@ -296,6 +498,7 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 		CreditScore: 600,
 		DepositMode: "standard",
 		IsShadow:    true,
+		Status:      "pending", // New users created through JIT are pending
 	}
 
 	// Save to database
