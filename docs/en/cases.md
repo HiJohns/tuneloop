@@ -87,6 +87,49 @@ Instrument added to database
 
 ### 1.2 Batch Import
 
+**Scenario**: Tenant admin or site manager needs to import multiple instruments at once (e.g., inventory check-in)
+
+**Roles**: Tenant Admin, Site Manager
+
+**Prerequisites**: CSV template and corresponding image/video files prepared
+
+#### Workflow
+
+1. **Download Template**
+   - Navigate to instrument list page
+   - Click "Batch Import" button
+   - Download CSV template (fields: SN, category, level, description, dynamic property columns)
+   - Fill in data following template instructions
+
+2. **Upload CSV Validation**
+   - Select filled CSV file for upload
+   - System parses immediately and displays data in Grid table
+   - Auto-highlight errors:
+     - SN duplicates with database (red background)
+     - SN duplicates within file (red background)
+     - Required fields missing (red background)
+
+3. **Inline Error Correction**
+   - Double-click error cells to edit directly
+   - No need to re-upload file
+   - Auto-revalidates after modification
+
+4. **Upload Media Package (Optional)**
+   - Upload ZIP file (containing images/videos, naming format: SN_序号.jpg)
+   - System auto-matches to corresponding instruments
+   - Unmatched files shown in "Unmatched Zone", filename can be modified for rematching
+
+5. **Confirm Import**
+   - Click "Confirm Import"
+   - System creates instruments transactionally
+   - Results displayed: Success X items, Failure Y items with details
+
+#### Error Handling
+
+- File format error: Prompt correct CSV format
+- SN duplicates: Block import, show conflicts
+- Partial success: Show success/failure details, support retry for failed items
+
 ---
 
 ## 2. Rental Cycle

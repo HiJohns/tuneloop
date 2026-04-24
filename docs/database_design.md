@@ -165,7 +165,20 @@
 | advanced | 高级 |
 | professional | 专业级 |
 
-### 2.5 orders - 订单表
+### 2.5 instrument_properties - 乐器动态属性关联表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| instrument_id | UUID | NOT NULL, INDEX | 乐器 ID |
+| property_id | UUID | NOT NULL, INDEX | 属性定义 ID |
+| value | VARCHAR(255) | NOT NULL | 属性值 |
+| alias | VARCHAR(255) | | 别名（用于搜索优化） |
+| created_at | TIMESTAMP | | 创建时间 |
+
+**说明**: 乐器与属性值的多对多关联表，通过此表实现乐器的动态属性（品牌、型号、年份等）。同一乐器可以有多个属性值。
+
+### 2.6 orders - 订单表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|

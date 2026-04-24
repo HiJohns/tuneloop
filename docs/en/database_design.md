@@ -99,7 +99,20 @@ This document defines the database table structure for the TuneLoop instrument r
 | sort_order | INT | DEFAULT 0 | Sort order |
 | created_at | TIMESTAMP | | Created timestamp |
 
-### 2.5 orders
+### 2.5 instrument_properties - Instrument Dynamic Properties Table
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | Primary key |
+| instrument_id | UUID | NOT NULL, INDEX | Instrument ID |
+| property_id | UUID | NOT NULL, INDEX | Property definition ID |
+| value | VARCHAR(255) | NOT NULL | Property value |
+| alias | VARCHAR(255) | | Alias (for search optimization) |
+| created_at | TIMESTAMP | | Created timestamp |
+
+**Note**: Many-to-many relationship between instruments and property values. Enables dynamic properties (brand, model, year, etc.) for instruments.
+
+### 2.6 orders
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|

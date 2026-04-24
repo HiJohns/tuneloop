@@ -1665,9 +1665,54 @@ GET /api/instruments/import/template
 POST /api/instruments/batch-import/preview
 ```
 
+**Request (multipart/form-data)**:
+- `file`: CSV file (required)
+- `site_id`: UUID (optional, for site-scope import)
+
+**Response**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "total_rows": 50,
+    "valid_rows": 48,
+    "errors": [
+      { "row": 5, "sn": "SN-005", "error": "Duplicate SN in database" },
+      { "row": 12, "sn": "", "error": "Missing required field: sn" }
+    ],
+    "preview": [...]
+  }
+}
+```
+
+**Error Response**:
+```json
+{ "code": 40003, "message": "Invalid CSV format" }
+```
+
 ### 20.5 执行批量导入
 ```
 POST /api/instruments/batch-import
+```
+
+**Request (multipart/form-data)**:
+- `file`: CSV file (required)
+- `session_id`: UUID (optional, for ZIP media import)
+- `site_id`: UUID (optional, for site-scope import)
+
+**Response**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "total": 50,
+    "success": 48,
+    "failed": 2,
+    "failed_details": [
+      { "sn": "SN-005", "error": "Duplicate SN in database" }
+    ]
+  }
+}
 ```
 
 ---

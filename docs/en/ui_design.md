@@ -267,7 +267,34 @@ This document defines the UI design specifications for the TuneLoop instrument r
 - Property option management
 - Property alias merging
 
-### 3.7 Order Management
+### 3.7 Batch Import
+
+**Route**: `/instruments/batch-import`
+
+**Features**:
+- Step 1: Upload CSV File
+  - Drag-and-drop upload support
+  - Template download link
+  - Real-time parsing and Grid display
+- Step 2: Validation Preview
+  - Auto-highlight error rows (duplicate SN, missing required fields)
+  - Double-click cell for inline correction
+- Step 3: Upload Media (Optional)
+  - Upload ZIP file (containing images/videos)
+  - Auto-match to instruments (naming: SN_序号.jpg)
+  - Unmatched files shown in "Unmatched Zone"
+- Step 4: Confirm Import
+  - Transactional instrument creation
+  - Success/failure summary display
+
+**Interaction**:
+- Next/Previous button navigation
+- Error row double-click editing
+- Progress bar for processing status
+
+**Permissions**: Tenant Admin, Site Manager
+
+### 3.8 Order Management
 
 **Route**: `/orders`
 
