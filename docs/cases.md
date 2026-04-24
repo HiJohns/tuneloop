@@ -47,31 +47,138 @@
 
 ---
 
-## 0.2 指定用户对话框 (User Selection & Provisioning)
+## 0.2 指定用户流程 (User Selection & Provisioning)
 
-**设计思想**: 网状模型，先查后联，无则创建。
+**设计思想**: 批量选择、先查后联、无则创建、确认会话。
 
-### 0.2.1 搜索用户
+### 0.2.1 用户输入与搜索
 
-输入：用户名、姓名、邮箱或手机（任一）
+**界面元素**:
+- 用户输入框（支持模糊搜索）
+- 创建用户按钮
+- 已选用户列表
 
-### 0.2.2 结果处理
+**交互流程**:
+1. 在输入框中输入用户名、邮箱或手机号
+2. 系统自动以输入为关键字搜索（debounce 300ms）
+3. 下拉框显示搜索结果（最多10项），每项显示：
+   - 用户名
+   - 匹配的字段（如匹配到邮箱则显示邮箱）
+   - 是否已与当前商户关联（associated 标志）
+4. 点击结果项添加到已选用户列表
 
-**场景 A：用户已存在且属于当前商户**
-- 展示用户信息
-- 点击确认后直接返回 `User_ID` 和 `Name`
+**搜索逻辑**:
+- 后端分别模糊匹配 name、email、phone 字段
+- 返回匹配的用户列表，每项包含：id、name、email、phone、matched_field、associated
+- associated=false 表示该用户尚未与当前商户关联
 
-**场景 B：用户存在于平台，但不属于当前商户**
-- 交互提示：『该用户已在 Tuneloop 注册，是否邀请其加入本商户？』
-- 后端动作：确认后调用 IAM API，将该 UID 关联至当前商户组织
+### 0.2.2 已选用户列表
 
-**场景 C：用户完全不存在**
-- 交互提示：『未找到用户，是否立即创建？』
-- 创建表单：姓名、邮箱、手机、初始密码
-- 后端动作：
-  1. 调用 IAM 创建用户
-  2. 调用 IAM 关联至当前商户组织
-  3. 返回新生成的 UID
+**列表显示**:
+- 用户名
+- 邮箱
+- 手机号
+- 删除按钮（每行）
+- associated=false 的用户显示醒目标识
+
+**操作**:
+- 点击删除按钮从列表中移除用户
+- 支持多用户批量选择
+
+### 0.2.3 创建新用户
+
+**触发方式**:
+- 点击「创建用户」按钮（不选中搜索结果时）
+- 或在搜索结果中未找到目标用户时主动创建
+
+**创建表单**:
+- 用户名（必填）
+- 邮箱（必填，格式验证）
+- 手机号（选填）
+- 初始密码（必填）
+
+**唯一性检查**:
+- 实时检查：输入时自动验证唯一性
+- 发现冲突时弹框提醒：
+  - 选项1：选定该用户（关闭对话框并返回用户信息+ID）
+  - 选项2：继续编辑（标记冲突字段为错误，表单无法提交）
+
+**新用户状态**:
+- 通过此流程创建的用户初始状态为 `pending`
+- 系统同时创建确认会话（详见下文）
+- 对话框返回时，associated 标志总为 false
+
+### 0.2.4 确认会话 (Confirmation Session)
+
+**业务规则**:
+- 如果已选用户列表中存在 associated=false 的用户
+- 在确认按钮上方用醒目字体提示：
+  「只有在确认邮件中点击确认链接，或回复Y给确认短信时才会完成流程将用户加入商户」
+
+**会话创建时机**:
+- 提交商户创建/网点成员添加时
+- 对 associated=false 的用户创建确认会话
+
+**会话信息**:
+- 用户ID (user_id)
+- 确认类型 (confirm_type): email/phone
+- 确认目标 (confirm_target): 关联邮箱或手机号
+- 关联商户 (merchant_id)
+- 其他动作参数 (action_data):
+  - 指定为商户管理员 → target_merchant_id
+  - 指定为网点管理员 → target_site_id + role=Manager
+  - 指定为网点成员 → target_site_id + role=Staff
+- 状态 (status): waiting/confirmed/failed/rejected/expired
+- 信息 (message): 失败原因等
+- 确认令牌 (token): 用于邮件链接验证
+- 过期时间 (expires_at): 创建时间+24小时
+
+**确认流程**:
+
+**邮件确认**:
+1. 系统发送确认邮件（含确认链接：`/confirm?token=xxx`）
+2. 用户点击链接 → 确认会话状态更新为 confirmed
+3. 系统自动执行关联操作
+
+**短信确认**:
+1. 系统发送确认短信（内容：「回复 Y 确认加入商户」）
+2. 用户回复 Y → 运营商回调 `/confirmation/callback/sms?token=xxx`
+3. 系统验证 token → 确认会话状态更新为 confirmed
+4. 系统自动执行关联操作
+
+**优先级**: 邮件和短信均存在时，优先使用邮件
+
+**失败处理**:
+- SMTP 未配置 → 会话状态设为 failed，message='SMTP 未配置，请联系管理员'
+- 短信网关未配置 → 会话状态设为 failed，message='短信网关未配置，请联系管理员'
+- 超过24小时未确认 → 系统自动将状态更新为 expired
+
+**自动执行**:
+用户确认后，系统自动：
+- 更新用户状态（pending → active）
+- 根据 action_data 执行关联操作：
+  1. 指定为商户管理员 → 调用 IAM API 建立用户与商户组织的联系
+  2. 指定为网点管理员 → 在 site_members 表创建连接，role=Manager
+  3. 指定为网点成员 → 在 site_members 表创建连接，role=Staff
+
+### 0.2.5 后端实现要点
+
+**新增 API**:
+- `GET /api/iam/users/search?q=xxx&limit=10&merchant_id=xxx` —— 模糊搜索用户，返回关联状态
+- `POST /api/iam/users` —— 增强唯一性检查，冲突返回 40900
+- `POST /api/confirmation-sessions` —— 创建确认会话
+- `GET /api/confirmation-sessions/:id` —— 查询会话状态
+- `POST /api/confirmation-sessions/:id/confirm` —— 邮件确认回调
+- `POST /api/confirmation-sessions/:id/reject` —— 拒绝关联
+- `GET /api/confirmation/callback/sms` —— 短信回调
+
+**修改 API**:
+- `POST /api/merchants` —— 支持 user_ids 列表（替代 admin_uid）
+- `POST /api/sites/:id/members` —— 支持 user_ids 列表（替代单个 user_id）
+
+**数据模型**:
+- users 表新增 status 字段（active/pending）
+- 新增 confirmation_sessions 表
 
 ---
 

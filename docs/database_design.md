@@ -34,8 +34,13 @@
 | deposit_mode | VARCHAR(20) | DEFAULT 'standard' | 押金模式 |
 | is_shadow | BOOLEAN | DEFAULT true | 是否为影子用户 |
 | is_system_admin | BOOLEAN | DEFAULT false | 是否为系统管理员 |
+| status | VARCHAR(20) | DEFAULT 'active' | 用户状态: active/pending |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
+
+**状态说明**:
+- `active`: 正常活跃用户
+- `pending`: 新创建用户，待确认（通过指定用户流程创建）
 
 ### 2.2 merchants - 商户表
 
@@ -542,6 +547,43 @@ tenants (1) ---> (N) clients
 | created_at | TIMESTAMP | | 创建时间 |
 
 **说明**: 支付完成后自动生成，作为租赁凭证存入用户资料
+
+### 2.21 confirmation_sessions - 确认会话表
+
+**说明**: 处理用户加入商户/网点的二次确认流程，支持邮件和短信确认
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| org_id | UUID | INDEX | 组织 ID |
+| user_id | UUID | NOT NULL, INDEX | 待确认用户 ID |
+| confirm_type | VARCHAR(20) | NOT NULL | 确认方式: email/phone |
+| confirm_target | VARCHAR(255) | NOT NULL | 确认目标邮箱或手机号 |
+| merchant_id | UUID | INDEX | 关联商户 ID |
+| action_type | VARCHAR(50) | NOT NULL | 确认后执行动作: merchant_admin/site_manager/site_staff |
+| action_target_id | UUID | | 动作目标 ID（商户 ID 或网点 ID） |
+| status | VARCHAR(20) | DEFAULT 'waiting', INDEX | 会话状态 |
+| message | TEXT | | 状态信息（如失败原因） |
+| token | VARCHAR(100) | UNIQUE | 确认令牌（用于邮件链接） |
+| expires_at | TIMESTAMP | NOT NULL | 过期时间（创建时间+24h） |
+| confirmed_at | TIMESTAMP | | 确认时间 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**状态值**:
+- `waiting`: 等待确认（初始状态）
+- `confirmed`: 已确认（用户点击邮件链接或回复短信）
+- `failed`: 失败（SMTP/短信网关未配置，或发送失败）
+- `rejected`: 已拒绝（用户主动拒绝）
+- `expired`: 已过期（超过24小时未确认）
+
+**索引**:
+- `idx_confirmation_sessions_token` UNIQUE (token)
+- `idx_confirmation_sessions_user` (user_id, status)
+- `idx_confirmation_sessions_expires` (expires_at, status) —— 用于定时清理过期会话
+
+---
 
 ---
 

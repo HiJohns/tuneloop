@@ -203,13 +203,36 @@ POST /api/merchants
   "contact_name": "张三",
   "contact_email": "zhangsan@example.com",
   "contact_phone": "13800000000",
-  "admin_uid": "user-uuid"
+  "user_ids": [
+    {
+      "user_id": "user-uuid-1",
+      "action_type": "merchant_admin"
+    }
+  ]
 }
 ```
 
+**字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| name | string | 商户名称（必需） |
+| code | string | 商户代码（必需，唯一） |
+| contact_name | string | 联系人姓名 |
+| contact_email | string | 联系人邮箱 |
+| contact_phone | string | 联系人电话 |
+| user_ids | array | 管理员用户列表（必需，至少一个） |
+
+**user_ids 项说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| user_id | string | 用户 ID |
+| action_type | string | 动作类型: merchant_admin |
+
 **说明**:
 1. 调用 IAM 创建 Organization（name = merchant.name, code = merchant.code）
-2. 调用 IAM 将 admin_uid 关联至该组织并赋予"组织管理员"角色
+2. 对 user_ids 中的每个用户：
+   - 若用户已与商户关联（associated=true）→ 直接调用 IAM 关联至组织并赋予"组织管理员"角色
+   - 若用户未与商户关联（associated=false）→ 创建确认会话（状态 waiting），发送确认邮件/短信
 3. 本地商户表记录信息
 
 **响应**:
@@ -219,14 +242,30 @@ POST /api/merchants
   "data": {
     "id": "uuid",
     "name": "北京旗舰店",
-    "iam_org_id": "iam-org-uuid"
+    "iam_org_id": "iam-org-uuid",
+    "confirmation_sessions": [
+      {
+        "id": "session_uuid",
+        "user_id": "user-uuid-2",
+        "status": "waiting",
+        "confirm_type": "email"
+      }
+    ]
   }
 }
 ```
 
+**响应说明**:
+- `confirmation_sessions`: 包含所有状态为 waiting 的确认会话
+- 若所有用户都已直接关联，此数组为空
+
+**向后兼容**:
+- 仍支持 `admin_uid` 参数（字符串），但推荐使用 `user_ids`
+- `admin_uid` 和 `user_ids` 二选一，优先使用 `user_ids`
+
 **错误码**:
 - `40002`: 商户代码已存在
-- `40001`: admin_uid 用户不存在
+- `40001`: user_ids 为空或格式错误
 - `40300`: 无权限创建商户
 
 ### 2.5.4 更新商户
@@ -316,12 +355,34 @@ POST /api/sites/:id/members
 **请求体**:
 ```json
 {
-  "user_id": "user-uuid",
-  "role": "Staff"  // 可选，默认为 Staff
+  "user_ids": [
+    {
+      "user_id": "user-uuid-1",
+      "role": "Staff"
+    },
+    {
+      "user_id": "user-uuid-2",
+      "role": "Manager"
+    }
+  ]
 }
 ```
 
-**说明**: 使用「指定用户对话框」获取 user_id
+**字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| user_ids | array | 用户列表（必需，至少一个） |
+
+**user_ids 项说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| user_id | string | 用户 ID |
+| role | string | 角色: Manager/Staff |
+
+**说明**:
+- 对 user_ids 中的每个用户：
+  - 若用户已与商户关联（associated=true）→ 直接在 site_members 表创建记录
+  - 若用户未与商户关联（associated=false）→ 创建确认会话（状态 waiting），发送确认邮件/短信
 
 **响应**:
 ```json
@@ -329,15 +390,35 @@ POST /api/sites/:id/members
   "code": 20100,
   "data": {
     "site_id": "site-uuid",
-    "user_id": "user-uuid",
-    "role": "Staff"
+    "directly_added": [
+      {
+        "user_id": "user-uuid-1",
+        "role": "Staff"
+      }
+    ],
+    "confirmation_sessions": [
+      {
+        "id": "session_uuid",
+        "user_id": "user-uuid-2",
+        "status": "waiting",
+        "confirm_type": "email"
+      }
+    ]
   }
 }
 ```
 
+**响应说明**:
+- `directly_added`: 直接添加成功的用户列表
+- `confirmation_sessions`: 状态为 waiting 的确认会话列表
+
+**向后兼容**:
+- 仍支持 `user_id` 和 `role` 单个参数
+- 若 user_ids 未提供，使用 user_id 和 role
+
 **错误码**:
-- `40002`: 该用户已是网点成员
-- `40001`: user_id 为空或无效
+- `40002`: 用户已在网点成员中
+- `40001`: user_ids 为空或格式错误
 
 ### 2.6.3 更新成员角色
 
@@ -1617,19 +1698,318 @@ GET /api/system/tenants
 
 ## 18. IAM 代理 API
 
-### 18.1 查询用户
+### 18.1 查询用户（单用户）
 ```
 GET /api/iam/users/lookup
 ```
 
-### 18.2 创建用户
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| identifier | string | 邮箱或手机号（必需） |
+| merchant_id | string | 商户 ID（可选，用于检查关联状态） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "uuid",
+    "name": "张三",
+    "email": "zhangsan@example.com",
+    "phone": "13800000000",
+    "associated": true
+  }
+}
 ```
-POST /api/iam/users
+
+**错误响应**:
+- `code: 40400` — 用户未找到
+
+---
+
+### 18.2 模糊搜索用户（多结果）
+```
+GET /api/iam/users/search
+```
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| q | string | 搜索关键字（用户名/邮箱/手机） |
+| limit | int | 返回数量限制（默认10，最大50） |
+| merchant_id | string | 商户 ID（用于检查关联状态） |
+
+**说明**:
+- 在本地 users 表模糊匹配 name、email、phone 字段
+- 返回匹配的用户列表（不超过 limit 条）
+- 每项包含 matched_field 指示匹配到的字段
+- associated 标志表示用户是否已与 merchant_id 关联
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "users": [
+      {
+        "id": "uuid1",
+        "name": "张三",
+        "email": "zhangsan@example.com",
+        "phone": "13800000000",
+        "matched_field": "email",
+        "associated": true
+      },
+      {
+        "id": "uuid2",
+        "name": "李四",
+        "email": "lisi@example.com",
+        "phone": "13900000000",
+        "matched_field": "phone",
+        "associated": false
+      }
+    ]
+  }
+}
 ```
 
 ---
 
-## 19. 仪表盘 API
+### 18.3 创建用户（JIT 预配）
+```
+POST /api/iam/users
+```
+
+**请求体**:
+```json
+{
+  "name": "张三",
+  "email": "zhangsan@example.com",
+  "phone": "13800000000",
+  "password": "secure_password",
+  "role": "user"
+}
+```
+
+**说明**:
+- name 和 email/phone 至少一个为必填
+- 创建前检查 name、email、phone 的唯一性
+- 冲突时返回 40900 和冲突用户列表
+
+**响应**:
+- **成功** (`code: 20000`):
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "local_user_uuid",
+    "iam_id": "iam_user_uuid",
+    "status": "pending"
+  }
+}
+```
+
+- **冲突** (`code: 40900`):
+```json
+{
+  "code": 40900,
+  "message": "user with same name, phone, or email already exists",
+  "data": {
+    "conflicts": [
+      {
+        "id": "uuid",
+        "name": "张三",
+        "matched_field": "email",
+        "email": "zhangsan@example.com"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 18.4 邀请用户加入商户
+```
+POST /api/iam/users/:user_id/invite
+```
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| merchant_id | string | 目标商户 ID（必需） |
+
+**说明**:
+- 已被确认会话流程替代，此端点保留兼容
+- 实际调用时创建 waiting 状态的确认会话
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "user_id": "uuid",
+    "merchant_id": "uuid",
+    "status": "pending_invitation"
+  }
+}
+```
+
+---
+
+## 19. 确认会话 API
+
+确认会话用于处理用户加入商户/网点的二次确认流程，支持邮件和短信两种确认方式。
+
+### 19.1 创建确认会话
+
+```
+POST /api/confirmation-sessions
+```
+
+**请求体**:
+```json
+{
+  "user_id": "uuid",
+  "confirm_type": "email",
+  "confirm_target": "user@example.com",
+  "merchant_id": "uuid",
+  "action_type": "merchant_admin",
+  "action_target_id": "uuid"
+}
+```
+
+**字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| user_id | string | 待确认用户 ID |
+| confirm_type | string | 确认方式: email/phone |
+| confirm_target | string | 确认目标邮箱或手机号 |
+| merchant_id | string | 关联商户 ID |
+| action_type | string | 确认后执行动作: merchant_admin/site_manager/site_staff |
+| action_target_id | string | 动作目标 ID（商户 ID 或网点 ID） |
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "id": "session_uuid",
+    "user_id": "uuid",
+    "status": "waiting",
+    "token": "confirmation_token",
+    "expires_at": "2024-01-16T10:00:00Z"
+  }
+}
+```
+
+**说明**:
+- 创建会话后，系统自动发送确认邮件或短信
+- 若 SMTP 或短信网关未配置，会话状态设为 failed
+
+---
+
+### 19.2 查询确认会话
+
+```
+GET /api/confirmation-sessions/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "session_uuid",
+    "user_id": "uuid",
+    "confirm_type": "email",
+    "confirm_target": "user@example.com",
+    "merchant_id": "uuid",
+    "action_type": "merchant_admin",
+    "action_target_id": "uuid",
+    "status": "waiting",
+    "message": null,
+    "expires_at": "2024-01-16T10:00:00Z",
+    "confirmed_at": null,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 19.3 确认加入（邮件链接回调）
+
+```
+GET /api/confirmation-sessions/:id/confirm
+```
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| token | string | 确认令牌（必需） |
+
+**说明**:
+- 用户点击邮件中的确认链接后调用此端点
+- 系统验证 token 有效性
+- 验证通过后：
+  1. 更新会话状态为 confirmed
+  2. 更新用户状态（pending → active）
+  3. 执行关联操作（根据 action_type）
+
+**响应**:
+- 成功: 重定向至成功页面
+- 失败: 显示错误信息
+
+---
+
+### 19.4 拒绝加入
+
+```
+POST /api/confirmation-sessions/:id/reject
+```
+
+**请求体**:
+```json
+{
+  "token": "confirmation_token"
+}
+```
+
+**说明**:
+- 用户主动拒绝加入商户
+- 会话状态更新为 rejected
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "已拒绝加入商户"
+}
+```
+
+---
+
+### 19.5 短信确认回调
+
+```
+GET /api/confirmation/callback/sms
+```
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| token | string | 确认令牌（必需） |
+| reply | string | 用户回复内容（如 Y） |
+
+**说明**:
+- 短信运营商 webhook 回调
+- 用户回复 Y 视为确认
+- 逻辑同邮件确认
+
+---
+
+## 20. 仪表盘 API
 
 ### 19.1 获取统计数据
 ```
