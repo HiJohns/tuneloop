@@ -74,8 +74,47 @@ func (h *IAMProxyHandler) LookupUser(c *gin.Context) {
 		return
 	}
 
-	// Forward IAM response with original status code
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
+	// Wrap IAM response with unified format
+	var response map[string]interface{}
+	if err := json.Unmarshal(body, &response); err != nil {
+		// If IAM returns non-JSON error, wrap it
+		c.JSON(http.StatusOK, gin.H{
+			"code":    50000,
+			"message": string(body),
+		})
+		return
+	}
+
+	// Map IAM status codes to our code format
+	var code int
+	switch resp.StatusCode {
+	case http.StatusOK:
+		code = 20000
+	case http.StatusNotFound:
+		code = 40400
+	case http.StatusBadRequest:
+		code = 40000
+	default:
+		code = 50000
+	}
+
+	// Preserve IAM response in data if it was successful
+	if code == 20000 {
+		c.JSON(http.StatusOK, gin.H{
+			"code": code,
+			"data": response,
+		})
+	} else {
+		// For errors, wrap IAM message
+		message := "user not found"
+		if msg, ok := response["message"].(string); ok && msg != "" {
+			message = msg
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"code":    code,
+			"message": message,
+		})
+	}
 }
 
 // POST /api/iam/users - Create IAM user (JIT provisioning)
@@ -273,7 +312,7 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 func (h *IAMProxyHandler) InviteUserToMerchant(c *gin.Context) {
 	userID := c.Param("user_id")
 	merchantID := c.Query("merchant_id")
-	
+
 	if userID == "" || merchantID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
@@ -281,7 +320,7 @@ func (h *IAMProxyHandler) InviteUserToMerchant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// In production: Call IAM API to associate user with organization
 	// For now: return success response
 	c.JSON(http.StatusOK, gin.H{

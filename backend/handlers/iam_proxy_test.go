@@ -210,6 +210,7 @@ func TestIAMProxyHandler_LookupUser_NotFound(t *testing.T) {
 	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/users/lookup", r.URL.Path)
 		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "user not found"})
 	}))
 	defer mockIAM.Close()
 
@@ -225,8 +226,14 @@ func TestIAMProxyHandler_LookupUser_NotFound(t *testing.T) {
 
 	handler.LookupUser(c)
 
-	// Should forward the IAM response as-is (404)
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	// Should wrap IAM 404 as HTTP 200 with code 40400
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, 40400, int(response["code"].(float64)))
+	assert.Equal(t, "user not found", response["message"])
 }
 
 // Integration test for Issue #340: Full flow test
