@@ -272,3 +272,17 @@ func (s *IAMService) RefreshToken(refreshToken string) (*TokenResponse, error) {
 	}
 	return &tokenResp, nil
 }
+
+// GetSMTPHost returns the SMTP host configuration (stub implementation)
+func GetSMTPHost() string {
+	// TODO: Implement actual SMTP configuration retrieval
+	// For now, return empty string to indicate not configured
+	return ""
+}
+
+// GetSMSGateway returns the SMS gateway configuration (stub implementation)
+func GetSMSGateway() string {
+	// TODO: Implement actual SMS gateway configuration retrieval
+	// For now, return empty string to indicate not configured
+	return ""
+}

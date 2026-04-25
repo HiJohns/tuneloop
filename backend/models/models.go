@@ -468,3 +468,23 @@ type SiteMember struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// ConfirmationSession handles user invitation confirmation flow
+type ConfirmationSession struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string     `gorm:"type:uuid;index;not null" json:"org_id"`
+	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	ConfirmType    string     `gorm:"type:varchar(20);not null" json:"confirm_type"`
+	ConfirmTarget  string     `gorm:"type:varchar(255);not null" json:"confirm_target"`
+	MerchantID     string     `gorm:"type:uuid;index" json:"merchant_id"`
+	ActionType     string     `gorm:"type:varchar(50);not null" json:"action_type"`
+	ActionTargetID string     `gorm:"type:uuid" json:"action_target_id"`
+	Status         string     `gorm:"type:varchar(20);default:'waiting';index" json:"status"`
+	Message        string     `gorm:"type:text" json:"message"`
+	Token          string     `gorm:"type:varchar(100);uniqueIndex" json:"token"`
+	ExpiresAt      time.Time  `gorm:"not null" json:"expires_at"`
+	ConfirmedAt    *time.Time `json:"confirmed_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}

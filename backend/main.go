@@ -141,6 +141,16 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/iam/users/search", iamProxyHandler.SearchUsers)
 		authRequired.POST("/iam/users", iamProxyHandler.CreateUser)
 
+		// Confirmation Session routes
+		confirmationHandler := handlers.NewConfirmationSessionHandler()
+		authRequired.POST("/confirmation-sessions", confirmationHandler.Create)
+		authRequired.GET("/confirmation-sessions/:id", confirmationHandler.Get)
+		authRequired.POST("/confirmation-sessions/:id/confirm", confirmationHandler.Confirm)
+		authRequired.POST("/confirmation-sessions/:id/reject", confirmationHandler.Reject)
+
+		// SMS callback (no auth required)
+		api.GET("/confirmation/callback/sms", confirmationHandler.SMSCallback)
+
 		authRequired.GET("/categories", handlers.GetCategories)
 		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/categories/:id", handlers.GetCategoryByID)
