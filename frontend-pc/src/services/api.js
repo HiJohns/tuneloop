@@ -261,17 +261,23 @@ export const instrumentsApi = {
   batchImportPreview: (file) => {
     const formData = new FormData()
     formData.append('file', file)
-    return api.post('/instruments/batch-import/preview', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    return request('/instruments/batch-import/preview', {
+      method: 'POST',
+      body: formData,
+      headers: {}
     })
   },
-  batchImport: (file) => {
+  batchImportMedia: (file, sessionId) => {
     const formData = new FormData()
     formData.append('file', file)
-    return api.post('/instruments/batch-import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    formData.append('session_id', sessionId)
+    return request('/instruments/batch-import/media', {
+      method: 'POST',
+      body: formData,
+      headers: {}
     })
   },
+  batchImport: (sessionId) => api.post('/instruments/batch-import', { session_id: sessionId }),
 }
 
 export const ordersApi = {
@@ -294,6 +300,7 @@ export const sitesApi = {
 
 export const staffApi = {
   list: (params) => api.get('/staff', { params }),
+  getMe: () => api.get('/users/me'),
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
@@ -375,4 +382,8 @@ export const categoriesApi = {
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),
   delete: (id) => api.delete(`/categories/${id}`)
+}
+
+export const propertiesApi = {
+  searchOptions: (propertyId, q, limit = 3) => api.get(`/properties/${propertyId}/options/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 }

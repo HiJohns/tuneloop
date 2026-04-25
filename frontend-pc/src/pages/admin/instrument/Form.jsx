@@ -7,7 +7,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { api, sitesApi, instrumentsApi } from '../../../services/api'
+import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -112,6 +112,10 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [snChecking, setSnChecking] = useState(false)
   const [snDuplicate, setSnDuplicate] = useState(false)
   const [levels, setLevels] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
+  const [siteLocked, setSiteLocked] = useState(false)
+  const [videoFileList, setVideoFileList] = useState([])
+  const [videoUploading, setVideoUploading] = useState(false)
   const snCheckTimer = useRef(null)
   const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
@@ -165,6 +169,22 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       }
     }).catch(err => {
       console.error('[DEBUG] Failed to fetch instrument levels:', err)
+    })
+  }, [])
+
+  // Fetch current user info for site auto-lock
+  useEffect(() => {
+    staffApi.getMe().then(result => {
+      if (result.code === 20000 && result.data) {
+        setCurrentUser(result.data)
+        const role = (result.data.role || '').toLowerCase()
+        if ((role === 'site_manager' || role === 'staff') && result.data.site_id) {
+          setSiteLocked(true)
+          form.setFieldsValue({ site_id: result.data.site_id })
+        }
+      }
+    }).catch(err => {
+      console.warn('[DEBUG] Failed to fetch current user:', err)
     })
   }, [])
 
@@ -375,6 +395,15 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           video: instrumentData.video,
           status: instrumentData.status || 'active'
         })
+
+        if (instrumentData.video) {
+          setVideoFileList([{
+            uid: 'existing-video',
+            name: '视频文件',
+            status: 'done',
+            url: instrumentData.video
+          }])
+        }
 
         // Populate dynamic properties
         // API returns { "品牌": ["value1"], "型号": ["value2"] }
@@ -770,6 +799,23 @@ const loadCategoryChildren = async (node) => {
       
       console.log('[DEBUG] Final images array:', images)
       
+      // Upload video file if present
+      let videoUrl = values.video || ''
+      if (videoFileList.length > 0 && videoFileList[0].originFileObj) {
+        setVideoUploading(true)
+        try {
+          videoUrl = await uploadFileWithProgress(videoFileList[0], () => {})
+          setVideoFileList([{ ...videoFileList[0], status: 'done', url: videoUrl }])
+        } catch (err) {
+          console.error('Video upload failed:', err)
+          message.error('视频上传失败')
+          setLoading(false)
+          setVideoUploading(false)
+          return
+        } finally {
+          setVideoUploading(false)
+        }
+      }
       
       // Prepare form data - add sn, category_id, site_id, level_id, properties
       const formData = {
@@ -779,7 +825,7 @@ const loadCategoryChildren = async (node) => {
         level_id: values.level_id,
         description: values.description,
         images: images,
-        video: values.video || '',
+        video: videoUrl,
         status: initialData ? (values.status || 'active') : 'active',
       }
       
@@ -831,6 +877,7 @@ const loadCategoryChildren = async (node) => {
         }
         form.resetFields()
         setFileList([])
+        setVideoFileList([])
         setUploadStatus({ isUploading: false, progress: {}, failedFiles: [] })
       } else {
         throw new Error(result.message || '提交失败')
@@ -943,6 +990,7 @@ const loadCategoryChildren = async (node) => {
                 loadData={loadSiteChildren}
                 fieldNames={{ title: 'title', value: 'value', children: 'children' }}
                 showSearch
+                disabled={siteLocked}
               />
             </Form.Item>
           </Col>
@@ -965,13 +1013,33 @@ const loadCategoryChildren = async (node) => {
                       allowClear
                       showSearch
                       mode="tags"
+                      filterOption={false}
+                      onSearch={async (value) => {
+                        if (!value || value.length < 1) return
+                        try {
+                          const result = await propertiesApi.searchOptions(prop.id, value, 3)
+                          if (result.code === 20000 && result.data) {
+                            const updatedProps = properties.map(p => {
+                              if (p.id === prop.id) {
+                                return { ...p, _searchOptions: result.data }
+                              }
+                              return p
+                            })
+                            setProperties(updatedProps)
+                          }
+                        } catch (err) {
+                          console.warn('Property search failed:', err)
+                        }
+                      }}
                       onChange={(value) => {
                         console.log(`Value for ${prop.name}:`, value)
                       }}
                     >
-                      {prop.options?.map(opt => (
-                        <Option key={opt.value} value={opt.value}>{opt.value}</Option>
-                      ))}
+                      {(prop._searchOptions || prop.options || []).map(opt => {
+                        const optValue = typeof opt === 'string' ? opt : opt.value
+                        const optLabel = typeof opt === 'string' ? opt : (opt.frequency > 0 ? `${opt.value} (${opt.frequency})` : opt.value)
+                        return <Option key={optValue} value={optValue}>{optLabel}</Option>
+                      })}
                     </Select>
                   </Form.Item>
                 </Col>
@@ -1051,9 +1119,24 @@ const loadCategoryChildren = async (node) => {
 
         <Form.Item
           name="video"
-          label="视频URL"
+          label="视频"
         >
-          <Input placeholder="请输入视频URL（可选）" />
+          <Upload
+            maxCount={1}
+            accept="video/*"
+            fileList={videoFileList}
+            beforeUpload={(file) => {
+              setVideoFileList([file])
+              return false
+            }}
+            onRemove={() => {
+              setVideoFileList([])
+              form.setFieldsValue({ video: '' })
+            }}
+          >
+            <Button icon={<UploadOutlined />}>选择视频文件</Button>
+          </Upload>
+          {videoUploading && <Progress percent={100} status="active" size="small" style={{ width: 200, marginTop: 8 }} />}
         </Form.Item>
 
         <Form.Item>

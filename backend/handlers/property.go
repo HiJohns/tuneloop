@@ -406,6 +406,70 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	})
 }
 
+// GET /api/properties/:id/options/search - Autocomplete property options with frequency sorting
+func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
+	propertyID := c.Param("id")
+	query := c.Query("q")
+	limitStr := c.DefaultQuery("limit", "3")
+
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	var limit int
+	if _, err := fmt.Sscanf(limitStr, "%d", &limit); err != nil || limit <= 0 {
+		limit = 3
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	var prop models.Property
+	if err := db.Where("id = ? AND tenant_id = ?", propertyID, tenantID).First(&prop).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "property not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to query property: " + err.Error(),
+		})
+		return
+	}
+
+	type SearchResult struct {
+		Value     string `json:"value"`
+		Status    string `json:"status"`
+		Frequency int    `json:"frequency"`
+	}
+
+	var results []SearchResult
+	q := db.Table("property_options po").
+		Select("po.value, po.status, COALESCE(ip_cnt.cnt, 0) AS frequency").
+		Joins("LEFT JOIN (SELECT property_name, value, tenant_id, COUNT(*) AS cnt FROM instrument_properties WHERE tenant_id = ? GROUP BY property_name, value, tenant_id) ip_cnt ON ip_cnt.property_name = po.property_name AND ip_cnt.value = po.value AND ip_cnt.tenant_id = po.tenant_id",
+			tenantID).
+		Where("po.property_name = ? AND po.tenant_id = ? AND po.status != ?", prop.Name, tenantID, "obsolete")
+
+	if query != "" {
+		q = q.Where("po.value ILIKE ?", "%"+query+"%")
+	}
+
+	if err := q.Order("frequency DESC, po.value ASC").Limit(limit).Find(&results).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to search property options: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": results,
+	})
+}
+
 // DELETE /api/properties/:id - Delete a property (default properties protected)
 func (h *PropertyHandler) DeleteProperty(c *gin.Context) {
 	propertyID := c.Param("id")

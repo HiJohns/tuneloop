@@ -40,6 +40,7 @@ import CategoryForm from './pages/admin/category/Form'
 import InstrumentList from './pages/admin/instrument/List'
 import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
+import BatchImport from './pages/admin/instrument/BatchImport'
 
 import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
@@ -315,8 +316,9 @@ function MainLayout() {
             <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-             <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
-              <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
+              <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
+              <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
+               <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
               <Route path="/instruments/properties" element={<ProtectedRoute><PropertyList /></ProtectedRoute>} />
           </Routes>
         </Content>

@@ -92,9 +92,9 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"list":  result,
-			"total": total,
-			"page":  page,
+			"list":      result,
+			"total":     total,
+			"page":      page,
 			"page_size": pageSize,
 		},
 	})
@@ -337,6 +337,50 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data":    gin.H{"id": userID},
+	})
+}
+
+// GetCurrentUser returns the current user's profile
+// GET /api/users/me
+func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	db := database.GetDB().WithContext(ctx)
+
+	var user models.User
+	if err := db.Where("iam_sub = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&user).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"message": "success",
+			"data": gin.H{
+				"id":      userID,
+				"role":    middleware.GetRole(ctx),
+				"site_id": nil,
+			},
+		})
+		return
+	}
+
+	result := gin.H{
+		"id":        user.ID,
+		"name":      user.Name,
+		"phone":     user.Phone,
+		"email":     user.Email,
+		"position":  user.Position,
+		"user_type": user.UserType,
+		"role":      middleware.GetRole(ctx),
+		"site_id":   nil,
+	}
+	if user.SiteID != nil {
+		result["site_id"] = *user.SiteID
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data":    result,
 	})
 }
 
