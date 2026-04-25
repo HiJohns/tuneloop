@@ -480,6 +480,8 @@ type ConfirmationSession struct {
 	MerchantID     string     `gorm:"type:uuid;index" json:"merchant_id"`
 	ActionType     string     `gorm:"type:varchar(50);not null" json:"action_type"`
 	ActionTargetID string     `gorm:"type:uuid" json:"action_target_id"`
+	IAMSessionID   string     `gorm:"type:varchar(255);index" json:"iam_session_id"`
+	CallbackURL    string     `gorm:"type:varchar(500)" json:"callback_url"`
 	Status         string     `gorm:"type:varchar(20);default:'waiting';index" json:"status"`
 	Message        string     `gorm:"type:text" json:"message"`
 	Token          string     `gorm:"type:varchar(100);uniqueIndex" json:"token"`

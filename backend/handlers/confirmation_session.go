@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
@@ -95,14 +96,6 @@ func (h *ConfirmationSessionHandler) Create(c *gin.Context) {
 	if err := db.Create(&session).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create session"})
 		return
-	}
-
-	// Try to send notification (soft failure)
-	if err := h.sendNotification(&session, &user); err != nil {
-		// Update session with failure status
-		session.Status = "failed"
-		session.Message = fmt.Sprintf("通知发送失败: %v (SMTP或短信网关未配置)", err)
-		db.Save(&session)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -269,34 +262,80 @@ func generateSecureToken(length int) (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// sendNotification attempts to send confirmation notification (soft failure)
-func (h *ConfirmationSessionHandler) sendNotification(session *models.ConfirmationSession, user *models.User) error {
-	if session.ConfirmType == "email" {
-		// Check SMTP configuration
-		smtpHost := services.GetSMTPHost()
-		if smtpHost == "" {
-			return fmt.Errorf("SMTP not configured")
-		}
-		// TODO: Implement email sending via SMTP
-		// For now, just return error to simulate unconfigured state
-		return fmt.Errorf("SMTP configuration incomplete")
-	} else if session.ConfirmType == "phone" {
-		// Check SMS gateway configuration
-		smsGateway := services.GetSMSGateway()
-		if smsGateway == "" {
-			return fmt.Errorf("SMS gateway not configured")
-		}
-		// TODO: Implement SMS sending
-		return fmt.Errorf("SMS gateway configuration incomplete")
+// IAMConfirmationCallback GET /api/iam/confirmation-callback
+func (h *ConfirmationSessionHandler) IAMConfirmationCallback(c *gin.Context) {
+	sessionID := c.Query("session")
+	result := c.Query("result")
+	confirmType := c.Query("confirm_type")
+
+	if sessionID == "" || result == "" {
+		c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=missing_parameters")
+		return
 	}
-	return nil
+
+	log.Printf("[IAMCallback] Received callback: session=%s, result=%s, confirm_type=%s", sessionID, result, confirmType)
+
+	db := database.GetDB()
+
+	var session models.ConfirmationSession
+	if err := db.Where("iam_session_id = ? OR id = ?", sessionID, sessionID).First(&session).Error; err != nil {
+		log.Printf("[IAMCallback] Session not found: %s", sessionID)
+		c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=session_not_found")
+		return
+	}
+
+	now := time.Now()
+
+	switch result {
+	case "accept":
+		session.Status = "confirmed"
+		session.ConfirmedAt = &now
+		session.Message = "Confirmed via IAM callback"
+
+		if err := db.Save(&session).Error; err != nil {
+			log.Printf("[IAMCallback] Failed to update session: %v", err)
+			c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=save_failed")
+			return
+		}
+
+		if err := h.executeAction(&session); err != nil {
+			log.Printf("[IAMCallback] Failed to execute action: %v", err)
+			session.Status = "failed"
+			session.Message = fmt.Sprintf("Action execution failed: %v", err)
+			db.Save(&session)
+			c.Redirect(http.StatusFound, fmt.Sprintf("/confirmation-result?status=error&message=%s", err.Error()))
+			return
+		}
+
+		log.Printf("[IAMCallback] Successfully confirmed session %s", sessionID)
+		c.Redirect(http.StatusFound, "/confirmation-result?status=success&action="+session.ActionType)
+
+	case "reject":
+		session.Status = "rejected"
+		session.Message = "Rejected by user via IAM callback"
+		db.Save(&session)
+
+		log.Printf("[IAMCallback] Session %s rejected", sessionID)
+		c.Redirect(http.StatusFound, "/confirmation-result?status=rejected&action="+session.ActionType)
+
+	case "failed":
+		session.Status = "failed"
+		session.Message = "IAM confirmation failed"
+		db.Save(&session)
+
+		log.Printf("[IAMCallback] Session %s failed", sessionID)
+		c.Redirect(http.StatusFound, "/confirmation-result?status=failed&action="+session.ActionType)
+
+	default:
+		log.Printf("[IAMCallback] Unknown result: %s", result)
+		c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=unknown_result")
+	}
 }
 
 // executeAction executes the action after confirmation
 func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationSession) error {
 	db := database.GetDB()
 
-	// Update user status from pending to active if applicable
 	var user models.User
 	if err := db.Where("id = ?", session.UserID).First(&user).Error; err != nil {
 		return fmt.Errorf("user not found")
@@ -309,16 +348,23 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 		}
 	}
 
-	// Execute action based on type
 	switch session.ActionType {
 	case "merchant_admin":
-		// Associate user with merchant in IAM
-		// TODO: Call IAM API
-		_, err := associateUserWithOrganization(session.UserID, session.MerchantID, "merchant_admin")
-		return err
+		if session.MerchantID != "" {
+			var merchant models.Merchant
+			if err := db.Where("id = ?", session.MerchantID).First(&merchant).Error; err != nil {
+				return fmt.Errorf("merchant not found: %s", session.MerchantID)
+			}
+			if merchant.OrgID != "" {
+				iamClient := services.NewIAMClient()
+				if err := iamClient.BindUserToOrganization(session.UserID, merchant.OrgID, "admin", ""); err != nil {
+					return fmt.Errorf("IAM bind failed: %w", err)
+				}
+			}
+		}
+		return nil
 
 	case "site_manager", "site_staff":
-		// Add user to site_members table
 		role := "Manager"
 		if session.ActionType == "site_staff" {
 			role = "Staff"
@@ -332,12 +378,10 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 			CreatedAt: time.Now(),
 		}
 
-		// Avoid duplicate entry
 		result := db.Where("site_id = ? AND user_id = ?", session.ActionTargetID, session.UserID).FirstOrCreate(&siteMember)
 		if result.Error != nil {
 			return fmt.Errorf("failed to create site member: %w", result.Error)
 		}
-
 		return nil
 
 	default:
@@ -389,16 +433,7 @@ func (h *ConfirmationSessionHandler) SMSCallback(c *gin.Context) {
 	c.String(http.StatusOK, "Invalid reply. Please reply with Y to confirm.")
 }
 
-// Stub functions for external dependencies
-func associateUserWithOrganization(userID string, merchantID string, role string) (bool, error) {
-	// TODO: Implement actual IAM API call
-	// For now, return success as a stub
-	return true, nil
-}
-
-// Helper functions to get configuration
 func (h *ConfirmationSessionHandler) GetConfig() map[string]string {
-	// Return SMTP and SMS gateway configuration
 	return map[string]string{
 		"smtp_host":   services.GetSMTPHost(),
 		"sms_gateway": services.GetSMSGateway(),

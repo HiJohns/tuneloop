@@ -160,6 +160,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		// SMS callback (no auth required)
 		api.GET("/confirmation/callback/sms", confirmationHandler.SMSCallback)
 
+		// IAM confirmation callback (no auth required, IAM redirects here)
+		api.GET("/iam/confirmation-callback", confirmationHandler.IAMConfirmationCallback)
+
 		authRequired.GET("/categories", handlers.GetCategories)
 		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/categories/:id", handlers.GetCategoryByID)
