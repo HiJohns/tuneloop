@@ -1,231 +1,396 @@
-import { useState } from 'react';
-import { Modal, Input, Button, List, message, Card, Form } from 'antd';
-import { SearchOutlined, UserAddOutlined, UserOutlined } from '@ant-design/icons';
+import { useState, useEffect, useCallback } from 'react';
+import { Modal, AutoComplete, Button, message, Form, Input, Alert } from 'antd';
+import { UserAddOutlined, UserOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import { debounce } from 'lodash';
 
-const UserSelectionDialog = ({ visible, onClose, onSelect, merchantId }) => {
+const UserSelectionDialog = ({ visible, onClose, onConfirm, merchantId, title = '选择用户' }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [searchOptions, setSearchOptions] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [createForm] = Form.useForm();
+  const [formErrors, setFormErrors] = useState({});
 
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) {
-      message.warning('Please enter search term');
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (query) => {
+      if (!query || query.length < 2) {
+        setSearchOptions([]);
+        return;
+      }
+
+      try {
+        const response = await api.get('/api/iam/users/search', {
+          params: { q: query, limit: 10, merchant_id: merchantId }
+        });
+
+        if (response.data.code === 20000) {
+          const users = response.data.data.users || [];
+          const options = users.map(user => ({
+            label: (
+              <div style={{ padding: '8px' }}>
+                <div style={{ fontWeight: 'bold' }}>{user.name}</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  匹配: {user.matched_field === 'email' ? user.email : 
+                        user.matched_field === 'phone' ? user.phone : 
+                        user.name} {user.associated ? ' ✓ 已关联' : ' ⚠ 未关联'}
+                </div>
+              </div>
+            ),
+            value: user.id,
+            user: user
+          }));
+          setSearchOptions(options);
+        }
+      } catch (error) {
+        console.error('Search failed:', error);
+        message.error('搜索失败');
+      }
+    }, 300),
+    [merchantId]
+  );
+
+  // Handle search input change
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    debouncedSearch(value);
+  };
+
+  // Handle user selection from AutoComplete
+  const handleSelectUser = (value, option) => {
+    const user = option.user;
+    
+    // Check if already selected
+    if (selectedUsers.find(u => u.id === user.id)) {
+      message.warning('该用户已添加到列表');
       return;
     }
 
-    setLoading(true);
+    // Add to selected users
+    setSelectedUsers([...selectedUsers, user]);
+    setSearchTerm('');
+    setSearchOptions([]);
+    message.success(`已添加 ${user.name}`);
+  };
+
+  // Remove user from selected list
+  const handleRemoveUser = (userId) => {
+    setSelectedUsers(selectedUsers.filter(u => u.id !== userId));
+    message.success('已移除用户');
+  };
+
+  // Open create user modal
+  const openCreateModal = () => {
+    setCreateModalVisible(true);
+    createForm.resetFields();
+    setFormErrors({});
+  };
+
+  // Close create user modal
+  const closeCreateModal = () => {
+    setCreateModalVisible(false);
+    createForm.resetFields();
+    setFormErrors({});
+  };
+
+  // Check uniqueness for form fields
+  const checkFieldUniqueness = async (field, value) => {
+    if (!value) return;
+
     try {
-      const response = await api.get('/api/iam/users/lookup', {
-        params: { identifier: searchTerm, merchant_id: merchantId },
+      const response = await api.get('/api/users/check', {
+        params: field === 'email' ? { email: value } : 
+                field === 'phone' ? { phone: value } : {}
       });
 
-      if (response.data.code === 20000) {
-        // Scenario A: User found and belongs to merchant
-        setSearchResults([
-          {
-            ...response.data.data,
-            scenario: 'A',
-            display: `✓ Found user: ${response.data.data.name} (${response.data.data.email})`,
-          },
-        ]);
-      } else if (response.data.code === 40400) {
-        // Scenario C: User not found - directly open create form
-        setSelectedUser({
-          scenario: 'C',
-          searchTerm: searchTerm,
-        });
-        setCreateModalVisible(true);
+      if (response.data.code === 20000 && response.data.data.exists) {
+        const user = response.data.data.user;
+        setFormErrors(prev => ({
+          ...prev,
+          [field]: {
+            conflict: true,
+            user: user
+          }
+        }));
+        return { user, conflict: true };
       } else {
-        // Scenario B: User exists but not in merchant
-        setSearchResults([
-          {
-            scenario: 'B',
-            display: `⚠ User exists in platform but not in this merchant. Invite?`,
-            userInfo: response.data.data,
-          },
-        ]);
-      }
-    } catch (error) {
-      message.error('Search failed');
-      console.error('Search error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelect = (user) => {
-    setSelectedUser(user);
-  };
-
-  const handleConfirm = async () => {
-    if (!selectedUser) {
-      message.warning('Please select a user');
-      return;
-    }
-
-    try {
-      if (selectedUser.scenario === 'B') {
-        // Invite user to merchant
-        await api.post(`/api/iam/users/${selectedUser.userInfo.user_id}/invite`, {
-          merchant_id: merchantId,
+        setFormErrors(prev => {
+          const errors = { ...prev };
+          delete errors[field];
+          return errors;
         });
-        message.success('Invitation sent successfully');
-        onSelect(selectedUser);
-        handleClose();
+        return { conflict: false };
       }
     } catch (error) {
-      message.error('Operation failed');
+      console.error('Uniqueness check failed:', error);
     }
   };
 
+  // Handle create user form submission
   const handleCreateUser = async (values) => {
     try {
+      // Check for conflicts before submission
+      const emailCheck = formErrors.email?.conflict ? formErrors.email : await checkFieldUniqueness('email', values.email);
+      const phoneCheck = values.phone ? (formErrors.phone?.conflict ? formErrors.phone : await checkFieldUniqueness('phone', values.phone)) : { conflict: false };
+
+      if (emailCheck?.conflict || phoneCheck?.conflict) {
+        message.error('请处理重复用户冲突后再提交');
+        return;
+      }
+
+      // Submit to create user API
       const response = await api.post('/api/iam/users', {
         name: values.name,
         email: values.email,
         phone: values.phone,
-        password: values.password,
+        password: values.password
       });
 
       if (response.data.code === 20000) {
-        message.success('User created successfully');
         const newUser = {
-          scenario: 'A',
-          userInfo: {
-            user_id: response.data.data.user_id,
-            name: values.name,
-            email: values.email,
-          },
+          ...values,
+          id: response.data.data.id,
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          associated: false, // New users are always unassociated initially
+          status: 'pending'
         };
-        onSelect(newUser);
-        handleClose();
+
+        setSelectedUsers([...selectedUsers, newUser]);
+        closeCreateModal();
+        message.success('用户创建成功并已添加到列表');
       }
     } catch (error) {
-      message.error('Failed to create user');
-    } finally {
-      setCreateModalVisible(false);
-      form.resetFields();
+      console.error('Create user failed:', error);
+      message.error('创建用户失败');
     }
   };
 
-  const handleClose = () => {
-    setSearchTerm('');
-    setSearchResults([]);
-    setSelectedUser(null);
-    onClose();
+  // Handle conflict resolution (use existing user)
+  const handleUseExistingUser = (field) => {
+    const user = formErrors[field].user;
+    if (user) {
+      // Add to selected users
+      setSelectedUsers([...selectedUsers, {
+        ...user,
+        associated: true // Existing user is associated by default
+      }]);
+      createForm.resetFields();
+      closeCreateModal();
+      message.success('已使用现有用户');
+    }
   };
 
-  return (<> 
-    <Modal
-      title="选择用户"
-      visible={visible}
-      onOk={handleConfirm}
-      onCancel={handleClose}
-      width={600}
-    >
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Input.Search
-          placeholder="请输入用户名、邮箱或手机号"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onSearch={handleSearch}
-          enterButton={<Button type="primary" icon={<SearchOutlined />} />}
-          size="large"
-        />
-      </Card>
+  // Handle confirm selection
+  const handleConfirm = () => {
+    if (selectedUsers.length === 0) {
+      message.warning('请至少选择一个用户');
+      return;
+    }
+    onConfirm(selectedUsers);
+    setSelectedUsers([]);
+    setSearchTerm('');
+  };
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <span>Searching...</span>
+  // Check if there are unassociated users
+  const hasUnassociatedUsers = selectedUsers.some(u => !u.associated);
+
+  return (
+    <>
+      <Modal
+        title={title}
+        visible={visible}
+        onCancel={onClose}
+        onOk={handleConfirm}
+        width={600}
+        okText="确认选择"
+        cancelText="取消"
+      >
+        {/* AutoComplete search */}
+        <div style={{ marginBottom: 16 }}>
+          <AutoComplete
+            style={{ width: '100%' }}
+            placeholder="输入用户名、邮箱或手机号搜索"
+            value={searchTerm}
+            onChange={handleSearch}
+            onSelect={handleSelectUser}
+            options={searchOptions}
+            allowClear
+            size="large"
+          >
+            {/* Custom input with search icon would go here */}
+          </AutoComplete>
         </div>
-      )}
 
-      {!loading && searchResults.length > 0 && (
-        <>
-          <div style={{ padding: '8px 0', color: '#666', fontSize: '12px' }}>
-            请点击选择用户：
-          </div>
-          <List
-            size="small"
-            bordered
-            dataSource={searchResults}
-            renderItem={(item) => (
-              <List.Item
-                style={{
-                  cursor: 'pointer',
-                  backgroundColor: selectedUser === item ? '#e6f7ff' : 'white',
-                }}
-                onClick={() => handleSelect(item)}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <UserOutlined style={{ color: item.scenario === 'A' ? '#52c41a' : '#1890ff' }} />
-                  }
-                  title={item.display}
-                  description={
-                    item.scenario === 'B'
-                      ? `Email: ${item.userInfo.email}, Phone: ${item.userInfo.phone}`
-                      : `Member of current merchant`
-                  }
-                />
-              </List.Item>
-            )}
+        {/* Create user button */}
+        <div style={{ marginBottom: 16 }}>
+          <Button
+            type="dashed"
+            icon={<UserAddOutlined />}
+            onClick={openCreateModal}
+            block
+          >
+            创建新用户
+          </Button>
+        </div>
+
+        {/* Unassociated users warning */}
+        {hasUnassociatedUsers && (
+          <Alert
+            message="注意：以下用户尚未与当前商户关联，将在确认后收到确认邮件或短信"
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
           />
-        </>
-      )}
+        )}
 
-      {!loading && searchResults.length === 0 && searchTerm && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-          No results found. Try searching by email, phone, or username.
-        </div>
-      )}
-    </Modal>
+        {/* Selected users list */}
+        {selectedUsers.length > 0 && (
+          <div>
+            <h4>已选择的用户 ({selectedUsers.length})</h4>
+            <div>
+              {selectedUsers.map(user => (
+                <div
+                  key={user.id}
+                  style={{
+                    padding: '8px 12px',
+                    border: '1px solid #e8e8e8',
+                    borderRadius: '4px',
+                    marginBottom: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: !user.associated ? '#fff7e6' : '#f6ffed'
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold' }}>{user.name}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {user.email} {user.phone && ` • ${user.phone}`}
+                    </div>
+                    {!user.associated && (
+                      <div style={{ fontSize: '12px', color: '#fa8c16', marginTop: '4px' }}>
+                        ⚠ 未关联
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    onClick={() => handleRemoveUser(user.id)}
+                  >
+                    删除
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
 
-    <Modal
-      title="创建新用户"
-      visible={createModalVisible}
-      onOk={() => form.submit()}
-      onCancel={() => {
-        setCreateModalVisible(false);
-        form.resetFields();
-      }}
-      width={500}
-    >
-      <Form form={form} layout="vertical" onFinish={handleCreateUser}>
-        <Form.Item
-          name="name"
-          label="Name"
-          rules={[{ required: true, message: 'Please enter user name' }]}
+      {/* Create user modal */}
+      <Modal
+        title="创建新用户"
+        visible={createModalVisible}
+        onCancel={closeCreateModal}
+        footer={null}
+        width={500}
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={handleCreateUser}
         >
-          <Input placeholder="请输入姓名" />
-        </Form.Item>
-        <Form.Item
-          name="email"
-          label="Email"
-          rules={[
-            { required: true, message: 'Please enter email' },
-            { type: 'email', message: 'Please enter a valid email' },
-          ]}
-        >
-          <Input placeholder="请输入邮箱地址" />
-        </Form.Item>
-        <Form.Item name="phone" label="Phone">
-          <Input placeholder="请输入手机号" />
-        </Form.Item>
-        <Form.Item
-          name="password"
-          label="Password"
-          rules={[{ required: true, message: 'Please enter password' }]}
-        >
-          <Input.Password placeholder="请输入初始密码" />
-        </Form.Item>
-      </Form>
-    </Modal>
-  </>);
+          <Form.Item
+            name="name"
+            label="姓名"
+            rules={[{ required: true, message: '请输入姓名' }]}
+          >
+            <Input placeholder="请输入姓名" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="邮箱"
+            rules={[
+              { required: true, message: '请输入邮箱' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
+          >
+            <Input 
+              placeholder="请输入邮箱地址"
+              onBlur={(e) => checkFieldUniqueness('email', e.target.value)}
+              validationStatus={formErrors.email?.conflict ? 'error' : ''}
+            />
+            {formErrors.email?.conflict && (
+              <Alert
+                message={
+                  <div>
+                    邮箱已被用户 {formErrors.email.user.name} 占用
+                    <Button
+                      size="small"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleUseExistingUser('email')}
+                    >
+                      使用该用户
+                    </Button>
+                  </div>
+                }
+                type="error"
+                showIcon
+              />
+            )}
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="手机号"
+          >
+            <Input 
+              placeholder="请输入手机号"
+              onBlur={(e) => checkFieldUniqueness('phone', e.target.value)}
+              validationStatus={formErrors.phone?.conflict ? 'error' : ''}
+            />
+            {formErrors.phone?.conflict && (
+              <Alert
+                message={
+                  <div>
+                    手机号已被用户 {formErrors.phone.user.name} 占用
+                    <Button
+                      size="small"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleUseExistingUser('phone')}
+                    >
+                      使用该用户
+                    </Button>
+                  </div>
+                }
+                type="error"
+                showIcon
+              />
+            )}
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="初始密码"
+            rules={[{ required: true, message: '请输入密码' }]}
+          >
+            <Input.Password placeholder="请输入初始密码" />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block>
+              创建并添加
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
 };
 
 export default UserSelectionDialog;
