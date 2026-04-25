@@ -157,17 +157,20 @@ export default function SiteManagement() {
     setLookupError({ message: '', visible: false })
   }
 
-  const handleUserSelectFromDialog = (selectedUser) => {
-    if (!selectedUser) return
+  const handleUserSelectFromDialog = (selectedUsers) => {
+    if (!selectedUsers || selectedUsers.length === 0) return
+    
+    // Take the first user from the list (site manager typically only needs one)
+    const firstUser = selectedUsers[0]
     setManagerInfo({
-      name: selectedUser.name || selectedUser.user_name,
-      id: selectedUser.user_id,
-      email: selectedUser.email || selectedUser.user_email || '',
-      phone: selectedUser.phone || ''
+      name: firstUser.name || firstUser.user_name,
+      id: firstUser.user_id || firstUser.id,
+      email: firstUser.email || firstUser.user_email || '',
+      phone: firstUser.phone || ''
     })
-    setManagerInput(selectedUser.email || selectedUser.user_email || selectedUser.phone || '')
+    setManagerInput(firstUser.email || firstUser.user_email || firstUser.phone || '')
     setUserDialogVisible(false)
-    form.setFieldsValue({ manager_id: selectedUser.user_id })
+    form.setFieldsValue({ manager_id: firstUser.user_id || firstUser.id })
   }
 
   const handleCreateUser = async () => {
@@ -543,8 +546,9 @@ export default function SiteManagement() {
       <UserSelectionDialog
         visible={userDialogVisible}
         onClose={() => setUserDialogVisible(false)}
-        onSelect={handleUserSelectFromDialog}
+        onConfirm={handleUserSelectFromDialog}
         merchantId="current-merchant-id"
+        title="选择网点管理员"
       />
 
       <Modal

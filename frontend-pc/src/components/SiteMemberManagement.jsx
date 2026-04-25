@@ -34,22 +34,35 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     setUserDialogVisible(true);
   };
 
-  const handleUserSelect = async (selectedUser) => {
-    if (!selectedUser) return;
+  const handleUserSelect = async (selectedUsers) => {
+    if (!selectedUsers || selectedUsers.length === 0) return;
 
     try {
-      const response = await api.post(`/api/sites/${siteId}/members`, {
-        user_id: selectedUser.user_id,
+      const userIds = selectedUsers.map(user => ({
+        user_id: user.id || user.user_id,
         role: 'Staff'
+      }));
+
+      const response = await api.post(`/api/sites/${siteId}/members`, {
+        user_ids: userIds
       });
 
       if (response.data.code === 20100) {
-        message.success('Member added successfully');
+        const data = response.data.data;
+        const directCount = data.directly_added?.length || 0;
+        const pendingCount = data.confirmation_sessions?.length || 0;
+        
+        let messageText = `成功添加 ${directCount} 个用户`;
+        if (pendingCount > 0) {
+          messageText += `，${pendingCount} 个用户需等待邮件/短信确认`;
+        }
+        
+        message.success(messageText);
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to add member');
+      message.error(error.response?.data?.message || '添加成员失败');
     }
   };
 
@@ -165,8 +178,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       <UserSelectionDialog
         visible={userDialogVisible}
         onClose={() => setUserDialogVisible(false)}
-        onSelect={handleUserSelect}
+        onConfirm={handleUserSelect}
         merchantId="current-merchant-id"
+        title="选择网点成员"
       />
     </div>
   );
