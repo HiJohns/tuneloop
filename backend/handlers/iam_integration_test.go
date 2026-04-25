@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -388,17 +387,6 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
 
 	tenantID := uuid.New().String()
-	userID := uuid.New().String()
-
-	adminUser := models.User{
-		ID:       userID,
-		IAMSub:   userID,
-		TenantID: tenantID,
-		Name:     "Admin",
-		Email:    "admin@mock.com",
-		Phone:    "13800000000",
-	}
-	require.NoError(t, db.Create(&adminUser).Error)
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -414,10 +402,14 @@ func TestIAMMock_MerchantCreate_CallsIAM(t *testing.T) {
 	router.POST("/api/merchants", handler.CreateMerchant)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":         "Mock Merchant",
-		"code":         "MOCK" + uuid.New().String()[:8],
-		"admin_uid":    userID,
-		"contact_name": "Contact",
+		"name":           "Mock Merchant",
+		"code":           "MOCK" + uuid.New().String()[:8],
+		"address":        "Test Address",
+		"contact_phone":  "13800138000",
+		"admin_name":     "Mock Admin",
+		"admin_username": "mockadmin",
+		"admin_email":    "admin@mock.com",
+		"admin_phone":    "13800138000",
 	})
 	req := httptest.NewRequest("POST", "/api/merchants", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
