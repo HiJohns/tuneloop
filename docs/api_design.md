@@ -229,11 +229,12 @@ POST /api/merchants
 | action_type | string | 动作类型: merchant_admin |
 
 **说明**:
-1. 调用 IAM 创建 Organization（name = merchant.name, code = merchant.code）
-2. 对 user_ids 中的每个用户：
-   - 若用户已与商户关联（associated=true）→ 直接调用 IAM 关联至组织并赋予"组织管理员"角色
-   - 若用户未与商户关联（associated=false）→ 创建确认会话（状态 waiting），发送确认邮件/短信
-3. 本地商户表记录信息
+1. 调用 IAM `POST /api/v1/namespaces/:id/organizations` 创建顶级组织，传入管理员信息 + callback_url
+2. IAM 自动处理管理员关联：
+   - 用户名已存在 → 直接绑定 + 邮件通知（无需确认）
+   - 同邮箱/手机号已存在 → 返回 409 冲突
+   - 均不存在 → IAM 创建用户（status=pending）+ 发送确认邮件
+3. 本地商户表记录信息及 IAM 返回的 org_id
 
 **响应**:
 ```json
@@ -381,8 +382,9 @@ POST /api/sites/:id/members
 
 **说明**:
 - 对 user_ids 中的每个用户：
-  - 若用户已与商户关联（associated=true）→ 直接在 site_members 表创建记录
-  - 若用户未与商户关联（associated=false）→ 创建确认会话（状态 waiting），发送确认邮件/短信
+  - 调用 IAM `PUT /api/v1/users/:uid/organizations/:oid/bind` 绑定到网点对应的下级组织
+  - 下级组织绑定仅需邮件通知，**无需用户确认**，即时生效
+  - 本地 `site_members` 表同步创建记录
 
 **响应**:
 ```json
@@ -1859,57 +1861,9 @@ POST /api/iam/users/:user_id/invite
 
 ## 19. 确认会话 API
 
-确认会话用于处理用户加入商户/网点的二次确认流程，支持邮件和短信两种确认方式。
+**架构变更**: 确认流程委托 IAM 管理。Tuneloop 本地 confirmation_sessions 仅用于状态跟踪，不再主动发送邮件/短信。
 
-### 19.1 创建确认会话
-
-```
-POST /api/confirmation-sessions
-```
-
-**请求体**:
-```json
-{
-  "user_id": "uuid",
-  "confirm_type": "email",
-  "confirm_target": "user@example.com",
-  "merchant_id": "uuid",
-  "action_type": "merchant_admin",
-  "action_target_id": "uuid"
-}
-```
-
-**字段说明**:
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| user_id | string | 待确认用户 ID |
-| confirm_type | string | 确认方式: email/phone |
-| confirm_target | string | 确认目标邮箱或手机号 |
-| merchant_id | string | 关联商户 ID |
-| action_type | string | 确认后执行动作: merchant_admin/site_manager/site_staff |
-| action_target_id | string | 动作目标 ID（商户 ID 或网点 ID） |
-
-**响应**:
-```json
-{
-  "code": 20100,
-  "data": {
-    "id": "session_uuid",
-    "user_id": "uuid",
-    "status": "waiting",
-    "token": "confirmation_token",
-    "expires_at": "2024-01-16T10:00:00Z"
-  }
-}
-```
-
-**说明**:
-- 创建会话后，系统自动发送确认邮件或短信
-- 若 SMTP 或短信网关未配置，会话状态设为 failed
-
----
-
-### 19.2 查询确认会话
+### 19.1 查询确认会话
 
 ```
 GET /api/confirmation-sessions/:id
@@ -1922,11 +1876,13 @@ GET /api/confirmation-sessions/:id
   "data": {
     "id": "session_uuid",
     "user_id": "uuid",
+    "iam_session_id": "iam-session-uuid",
     "confirm_type": "email",
     "confirm_target": "user@example.com",
     "merchant_id": "uuid",
     "action_type": "merchant_admin",
     "action_target_id": "uuid",
+    "callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback",
     "status": "waiting",
     "message": null,
     "expires_at": "2024-01-16T10:00:00Z",
@@ -1936,76 +1892,81 @@ GET /api/confirmation-sessions/:id
 }
 ```
 
+**新增字段**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| iam_session_id | string | IAM 侧确认会话 ID |
+| callback_url | string | IAM 确认后的回调地址 |
+
 ---
 
-### 19.3 确认加入（邮件链接回调）
+### 19.2 IAM 确认回调端点
 
 ```
-GET /api/confirmation-sessions/:id/confirm
+GET /api/iam/confirmation-callback
 ```
+
+**说明**: 接收 IAM 确认后的 302 重定向
 
 **查询参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| token | string | 确认令牌（必需） |
+| session | string | IAM 确认会话 ID |
+| result | string | 操作结果: accept/reject/failed |
 
-**说明**:
-- 用户点击邮件中的确认链接后调用此端点
-- 系统验证 token 有效性
-- 验证通过后：
-  1. 更新会话状态为 confirmed
-  2. 更新用户状态（pending → active）
-  3. 执行关联操作（根据 action_type）
+**业务逻辑**:
+- `accept` + create_user：更新本地 user status → active
+- `accept` + create_org：更新 user status → active，同步 merchant/site 记录
+- `accept` + bind：创建 site_members 记录
+- `reject`：标记拒绝，如 create_org 则清理孤儿组织
+- `failed`：记录失败日志
 
-**响应**:
-- 成功: 重定向至成功页面
-- 失败: 显示错误信息
+**响应**: 302 重定向至前端结果页面
 
 ---
 
-### 19.4 拒绝加入
+### 19.3 IAM 代理 API（新增）
+
+#### 创建用户
 
 ```
-POST /api/confirmation-sessions/:id/reject
+POST /api/iam/users
+```
+
+**变更**: 移除 `skipEmail`，新增 `callback_url` 参数
+
+**请求体**:
+```json
+{
+  "username": "zhangsan",
+  "name": "张三",
+  "email": "zhangsan@example.com",
+  "phone": "13800000000",
+  "callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback",
+  "operator_id": "uuid"
+}
+```
+
+**说明**: 代理到 IAM `POST /api/v1/users`，IAM 自动创建确认会话并发送确认邮件
+
+#### 修改用户
+
+```
+PUT /api/iam/users/:id
 ```
 
 **请求体**:
 ```json
 {
-  "token": "confirmation_token"
+  "name": "张三",
+  "email": "newemail@example.com",
+  "phone": "13900000000",
+  "callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback",
+  "operator_id": "uuid"
 }
 ```
 
-**说明**:
-- 用户主动拒绝加入商户
-- 会话状态更新为 rejected
-
-**响应**:
-```json
-{
-  "code": 20000,
-  "message": "已拒绝加入商户"
-}
-```
-
----
-
-### 19.5 短信确认回调
-
-```
-GET /api/confirmation/callback/sms
-```
-
-**查询参数**:
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| token | string | 确认令牌（必需） |
-| reply | string | 用户回复内容（如 Y） |
-
-**说明**:
-- 短信运营商 webhook 回调
-- 用户回复 Y 视为确认
-- 逻辑同邮件确认
+**说明**: 代理到 IAM `PUT /api/v1/users/:id`，邮箱变更时 IAM 自动创建确认会话
 
 ---
 

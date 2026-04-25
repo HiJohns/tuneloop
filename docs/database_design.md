@@ -217,7 +217,7 @@
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| org_id | UUID | INDEX | 组织 ID |
+| org_id | UUID | INDEX | 网点自身的 IAM 组织 ID（非商户组织 ID，创建网点时由 IAM Create Organization 返回） |
 | parent_id | UUID | INDEX | 父网点 ID (顶级为 NULL) |
 | manager_id | UUID | INDEX | 负责人 ID |
 | name | VARCHAR(255) | NOT NULL | 网点名称 |
@@ -550,7 +550,7 @@ tenants (1) ---> (N) clients
 
 ### 2.21 confirmation_sessions - 确认会话表
 
-**说明**: 处理用户加入商户/网点的二次确认流程，支持邮件和短信确认
+**说明**: 本地状态跟踪表。确认流程委托 IAM 管理，IAM 确认后通过回调同步状态。本表不再主动创建会话，仅在回调时记录/更新。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -558,6 +558,8 @@ tenants (1) ---> (N) clients
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
 | org_id | UUID | INDEX | 组织 ID |
 | user_id | UUID | NOT NULL, INDEX | 待确认用户 ID |
+| iam_session_id | VARCHAR(100) | INDEX | IAM 侧确认会话 ID（关联 IAM Redis 会话） |
+| callback_url | VARCHAR(500) | | IAM 确认后回调地址 |
 | confirm_type | VARCHAR(20) | NOT NULL | 确认方式: email/phone |
 | confirm_target | VARCHAR(255) | NOT NULL | 确认目标邮箱或手机号 |
 | merchant_id | UUID | INDEX | 关联商户 ID |
@@ -572,16 +574,24 @@ tenants (1) ---> (N) clients
 | updated_at | TIMESTAMP | | 更新时间 |
 
 **状态值**:
-- `waiting`: 等待确认（初始状态）
-- `confirmed`: 已确认（用户点击邮件链接或回复短信）
-- `failed`: 失败（SMTP/短信网关未配置，或发送失败）
-- `rejected`: 已拒绝（用户主动拒绝）
-- `expired`: 已过期（超过24小时未确认）
+- `waiting`: 等待确认（IAM 会话已创建）
+- `confirmed`: 已确认（IAM 回调 result=accept）
+- `failed`: 失败（IAM 回调 result=failed）
+- `rejected`: 已拒绝（IAM 回调 result=reject）
+- `expired`: 已过期（IAM 24h 超时）
+
+**action_type 与 IAM confirm_type 映射**:
+| Tuneloop action_type | IAM confirm_type | 说明 |
+|----------------------|------------------|------|
+| merchant_admin | create_org | 商户创建时 IAM 自动处理管理员关联 |
+| site_manager | bind | 网点管理员绑定（下级组织仅通知，通常不创建会话） |
+| site_staff | bind | 网点成员绑定（同上） |
 
 **索引**:
 - `idx_confirmation_sessions_token` UNIQUE (token)
+- `idx_confirmation_sessions_iam_session` (iam_session_id)
 - `idx_confirmation_sessions_user` (user_id, status)
-- `idx_confirmation_sessions_expires` (expires_at, status) —— 用于定时清理过期会话
+- `idx_confirmation_sessions_expires` (expires_at, status)
 
 ---
 

@@ -41,9 +41,13 @@
 - **指定管理员**: 通过「指定用户对话框」获取用户 ID
 
 **后端动作**:
-1. 调用 IAM 创建"Organization"
-2. 调用 IAM 将指定用户关联至该组织，并赋予"组织管理员"角色
-3. Tuneloop 本地 `merchants` 表记录商户信息及管理员 UID
+1. 调用 IAM `POST /api/v1/namespaces/:id/organizations` 创建顶级组织，传入管理员信息 + `callback_url`
+2. IAM 自动处理管理员关联：
+   - 用户名已存在 → 直接绑定 + 邮件通知（无需确认）
+   - 同邮箱/手机号已存在 → 返回 409 冲突
+   - 均不存在 → IAM 创建用户（status=pending）+ 发送确认邮件
+3. IAM 确认后 302 重定向至 `callback_url`，Tuneloop 执行本地同步操作
+4. Tuneloop 本地 `merchants` 表记录商户信息及管理员 UID
 
 ---
 
@@ -110,75 +114,61 @@
 
 ### 0.2.4 确认会话 (Confirmation Session)
 
+**架构决策**: 确认流程委托 IAM 管理，Tuneloop 仅接收回调。
+
 **业务规则**:
-- 如果已选用户列表中存在 associated=false 的用户
-- 在确认按钮上方用醒目字体提示：
-  「只有在确认邮件中点击确认链接，或回复Y给确认短信时才会完成流程将用户加入商户」
+- 商户创建时，如指定管理员为新用户，IAM 自动发送确认邮件
+- 网点添加成员时，**无需确认**（下级组织仅邮件通知）
+- 确认提示（仅在商户创建场景）：
+  「管理员需在确认邮件中点击确认链接，才会完成商户创建流程」
 
-**会话创建时机**:
-- 提交商户创建/网点成员添加时
-- 对 associated=false 的用户创建确认会话
+**IAM 确认流程**:
+1. Tuneloop 调用 IAM API 时传入 `callback_url`
+2. IAM 创建确认会话（Redis，TTL=24h），发送确认邮件
+3. 用户点击邮件中的确认链接 → IAM `GET /confirm?session={id}&action={accept|reject}`
+4. IAM 处理确认后 302 重定向至 `callback_url?result=accept|reject|failed`
+5. Tuneloop 回调端点接收重定向，执行本地同步操作
 
-**会话信息**:
-- 用户ID (user_id)
-- 确认类型 (confirm_type): email/phone
-- 确认目标 (confirm_target): 关联邮箱或手机号
-- 关联商户 (merchant_id)
-- 其他动作参数 (action_data):
-  - 指定为商户管理员 → target_merchant_id
-  - 指定为网点管理员 → target_site_id + role=Manager
-  - 指定为网点成员 → target_site_id + role=Staff
-- 状态 (status): waiting/confirmed/failed/rejected/expired
-- 信息 (message): 失败原因等
-- 确认令牌 (token): 用于邮件链接验证
-- 过期时间 (expires_at): 创建时间+24小时
+**确认类型 (confirm_type)**:
+- `create_user`: 用户 status → active
+- `create_org`: 用户 status → active + 完成组织绑定；reject → 组织进入孤儿状态（24h 清理）
+- `update_user`: 更新用户邮箱
+- `bind`: 完成用户与组织绑定
 
-**确认流程**:
-
-**邮件确认**:
-1. 系统发送确认邮件（含确认链接：`/confirm?token=xxx`）
-2. 用户点击链接 → 确认会话状态更新为 confirmed
-3. 系统自动执行关联操作
-
-**短信确认**:
-1. 系统发送确认短信（内容：「回复 Y 确认加入商户」）
-2. 用户回复 Y → 运营商回调 `/confirmation/callback/sms?token=xxx`
-3. 系统验证 token → 确认会话状态更新为 confirmed
-4. 系统自动执行关联操作
-
-**优先级**: 邮件和短信均存在时，优先使用邮件
+**本地确认会话（状态跟踪）**:
+- Tuneloop 本地 `confirmation_sessions` 表仅用于状态跟踪
+- 新增 `iam_session_id` 字段关联 IAM 会话
+- 新增 `callback_url` 字段记录回调地址
+- 回调时同步更新本地会话状态
 
 **失败处理**:
-- SMTP 未配置 → 会话状态设为 failed，message='SMTP 未配置，请联系管理员'
-- 短信网关未配置 → 会话状态设为 failed，message='短信网关未配置，请联系管理员'
-- 超过24小时未确认 → 系统自动将状态更新为 expired
-
-**自动执行**:
-用户确认后，系统自动：
-- 更新用户状态（pending → active）
-- 根据 action_data 执行关联操作：
-  1. 指定为商户管理员 → 调用 IAM API 建立用户与商户组织的联系
-  2. 指定为网点管理员 → 在 site_members 表创建连接，role=Manager
-  3. 指定为网点成员 → 在 site_members 表创建连接，role=Staff
+- 超过24小时未确认 → IAM 自动将状态更新为 expired
+- 回调 result=failed → 本地记录失败日志
 
 ### 0.2.5 后端实现要点
 
+**IAM Client 代理层**:
+- `GetClientToken()` → IAM Token Endpoint (client_credentials grant)
+- `CreateOrganization(name, parentID, adminInfo, callbackURL)` → POST /namespaces/:id/organizations
+- `CreateUser(username, name, email, phone, callbackURL)` → POST /api/v1/users
+- `UpdateUser(userID, name, email, phone, password, callbackURL)` → PUT /api/v1/users/:id
+- `BindUserToOrganization(userID, orgID, role)` → PUT /users/:uid/organizations/:oid/bind
+- `UnbindUserFromOrganization(userID, orgID)` → PUT (action=unbind)
+
 **新增 API**:
 - `GET /api/iam/users/search?q=xxx&limit=10&merchant_id=xxx` —— 模糊搜索用户，返回关联状态
-- `POST /api/iam/users` —— 增强唯一性检查，冲突返回 40900
-- `POST /api/confirmation-sessions` —— 创建确认会话
-- `GET /api/confirmation-sessions/:id` —— 查询会话状态
-- `POST /api/confirmation-sessions/:id/confirm` —— 邮件确认回调
-- `POST /api/confirmation-sessions/:id/reject` —— 拒绝关联
-- `GET /api/confirmation/callback/sms` —— 短信回调
+- `POST /api/iam/users` —— 创建用户（传入 callback_url，移除 skipEmail）
+- `PUT /api/iam/users/:id` —— 修改用户（邮箱变更触发 IAM 确认）
+- `GET /api/iam/confirmation-callback` —— 接收 IAM 确认回调（302 重定向）
 
 **修改 API**:
-- `POST /api/merchants` —— 支持 user_ids 列表（替代 admin_uid）
-- `POST /api/sites/:id/members` —— 支持 user_ids 列表（替代单个 user_id）
+- `POST /api/merchants` —— 调用 IAM Create Organization（传入 admin 信息 + callback_url）
+- `POST /api/sites` —— 新增调用 IAM Create Organization (parent_id=商户org_id)
+- `POST /api/sites/:id/members` —— 调用 IAM Bind API（下级组织仅通知，无需确认）
 
 **数据模型**:
-- users 表新增 status 字段（active/pending）
-- 新增 confirmation_sessions 表
+- `sites.org_id` 语义变更：网点自身的 IAM 组织 ID（非商户的组织 ID）
+- `confirmation_sessions` 新增 `iam_session_id`、`callback_url` 字段
 
 ---
 
@@ -382,6 +372,11 @@ URL切换到/sites/new
 - 对话框返回用户 ID 和姓名，自动填入负责人字段
 - 初始角色默认为 `Manager`
 提交前检查网点名是否重复
+**后端动作**:
+1. 调用 IAM `POST /api/v1/namespaces/:id/organizations` 创建下级组织（parent_id = 所属商户的 org_id）
+2. 存储返回的 org_id 到 site 记录（网点自身的 IAM 组织 ID）
+3. 调用 IAM `PUT /api/v1/users/:uid/organizations/:oid/bind` 绑定管理员（下级组织仅通知，无需确认）
+4. 本地 `site_members` 表同步创建成员记录
 提交成功后左侧网点树自动更新并选中新建网点
 
 ### 4.1.3 查看网点详情
@@ -418,7 +413,9 @@ URL切换到/sites/:id/edit
 
 - 点击『增加成员』按钮
 - 调用「指定用户对话框」（见 §0.2）
-- 选择用户后，在 `site_members` 表建立该 UID 与 `Site_ID` 的关联
+- 选择用户后，调用 IAM `PUT /users/:uid/organizations/:oid/bind` 绑定到网点对应的下级组织
+- 下级组织绑定仅需邮件通知，**无需用户确认**，即时生效
+- 本地 `site_members` 表同步创建记录
 - 初始角色默认为 `Staff`
 
 #### 4.1.5.4 移除成员
@@ -476,6 +473,9 @@ URL为/staff
 点击人员列表中的『编辑』按钮
 弹出用户编辑对话框
 可修改姓名、归属网点、职位、用户类型
-（邮箱和电话不可修改）
+可修改邮箱和电话：
+- 邮箱变更：调用 IAM `PUT /api/v1/users/:id`，传入 `callback_url`，IAM 自动发送确认邮件
+- 确认后回调 Tuneloop 更新本地邮箱记录
+- 手机号变更：留 Stub（IAM 侧暂不实现）
 提交后列表刷新
 
