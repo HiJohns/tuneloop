@@ -32,6 +32,15 @@ func getAbsPath(relativePath string) string {
 	return filepath.Join(execDir, relativePath)
 }
 
+func getWWWPath() string {
+	// Check for WWW_PATH env var first (absolute path)
+	if wwwPath := os.Getenv("WWW_PATH"); wwwPath != "" {
+		return wwwPath
+	}
+	// Default: relative to service location
+	return "../www"
+}
+
 func extractPort(urlStr string) string {
 	u, err := url.Parse(urlStr)
 	if err != nil {
@@ -416,16 +425,10 @@ func main() {
 
 	pcRouter := gin.Default()
 	pcRouter.Use(cors.Default())
-
-	pcDistPath := getAbsPath("../frontend-pc/dist")
-	pcRouter.GET("/", func(c *gin.Context) {
-		c.File(filepath.Join(pcDistPath, "index.html"))
-	})
-	pcRouter.Static("/assets", filepath.Join(pcDistPath, "assets"))
-	pcRouter.StaticFile("/favicon.ico", filepath.Join(pcDistPath, "favicon.ico"))
-	pcRouter.StaticFile("/favicon.svg", filepath.Join(pcDistPath, "favicon.svg"))
-	pcRouter.Static("/uploads", getAbsPath("./uploads"))
 	setupAPIRoutes(pcRouter, iamService)
+
+	// Serve uploads (user uploaded files)
+	pcRouter.Static("/uploads", getAbsPath("./uploads"))
 
 	pcRouter.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
@@ -438,25 +441,20 @@ func main() {
 			return
 		}
 
-		// Check for missing static files (uploads, assets)
-		if strings.HasPrefix(path, "/uploads/") || strings.HasPrefix(path, "/assets/") {
-			c.Status(404)
-			return
-		}
-
-		// Serve index.html for SPA routing
-		c.File(filepath.Join(pcDistPath, "index.html"))
+		// Return 404 for non-API routes (frontend served by nginx)
+		c.Status(404)
 	})
 
 	mobileRouter := gin.Default()
 	mobileRouter.Use(cors.Default())
 
-	mobileDistPath := getAbsPath("../frontend-mobile/dist")
+	// Mobile frontend from configurable path
+	mobileDistPath := getAbsPath(getWWWPath() + "/mobile")
 	mobileRouter.GET("/", func(c *gin.Context) {
 		c.File(filepath.Join(mobileDistPath, "index.html"))
 	})
 	mobileRouter.Static("/assets", filepath.Join(mobileDistPath, "assets"))
-	mobileRouter.Static("/instruments", "../frontend-mobile/public/instruments")
+	mobileRouter.Static("/instruments", filepath.Join(mobileDistPath, "instruments"))
 	setupAPIRoutes(mobileRouter, iamService)
 	mobileRouter.Static("/uploads", getAbsPath("./uploads"))
 

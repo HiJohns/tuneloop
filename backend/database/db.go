@@ -192,8 +192,13 @@ func RunMigrations(db *gorm.DB) error {
 		return fmt.Errorf("failed to create postgres driver: %w", err)
 	}
 
+	migrationPath := os.Getenv("MIGRATION_PATH")
+	if migrationPath == "" {
+		migrationPath = "./database/migrations"
+	}
+
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://database/migrations",
+		"file://"+migrationPath,
 		"postgres", driver)
 	if err != nil {
 		return fmt.Errorf("failed to create migrate instance: %w", err)

@@ -82,8 +82,10 @@ prebuild-mobile:
 
 prebuild-backend:
 	@echo "Building backend for prerelease..."
-	@mkdir -p prerelease/service
+	@mkdir -p prerelease/service prerelease/database
 	cd backend && go build -o ../prerelease/service/tuneloop .
+	@echo "Copying database migrations..."
+	@cp -r backend/database/migrations prerelease/database/
 
 prerelease: clean-prerelease prebuild-backend prebuild-pc prebuild-mobile
 	@echo "=========================================="
