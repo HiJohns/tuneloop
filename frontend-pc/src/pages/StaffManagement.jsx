@@ -162,9 +162,23 @@ export default function StaffManagement() {
 
   const handleUpdateUser = async (values) => {
     try {
+      const emailChanged = editingUser.email && values.email && values.email !== editingUser.email
       const result = await staffApi.updateUser(editingUser.id, values)
       if (result.code === 20000) {
-        message.success('更新用户成功')
+        if (emailChanged) {
+          try {
+            await staffApi.updateIAMUser(editingUser.iam_sub || editingUser.id, {
+              name: values.name,
+              email: values.email,
+              phone: values.phone,
+            })
+            message.success('用户更新成功，邮箱变更需确认后生效')
+          } catch (iamError) {
+            message.warning('用户更新成功，但邮箱变更请求发送失败')
+          }
+        } else {
+          message.success('更新用户成功')
+        }
         setEditModalVisible(false)
         setEditingUser(null)
         userForm.resetFields()

@@ -1,4 +1,4 @@
-import { Form, Input, Select, Button, Space } from 'antd'
+import { Form, Input, Select, Button, Space, Alert } from 'antd'
 
 const { Option } = Select
 
@@ -26,7 +26,7 @@ export default function UserEditDialog({ form, onSubmit, onCancel, siteOptions, 
           { required: true, message: '请输入邮箱' }
         ]}
       >
-        <Input placeholder="请输入邮箱" disabled />
+        <Input placeholder="请输入邮箱" />
       </Form.Item>
 
       <Form.Item
@@ -34,8 +34,17 @@ export default function UserEditDialog({ form, onSubmit, onCancel, siteOptions, 
         label="手机号"
         rules={[{ required: true, message: '请输入手机号' }]}
       >
-        <Input placeholder="请输入手机号" disabled />
+        <Input placeholder="请输入手机号" />
       </Form.Item>
+
+      {initialValues?.email && (
+        <Alert
+          message="修改邮箱后，系统将发送确认邮件到新邮箱地址，需确认后方可生效。"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       <Form.Item
         name="site_id"

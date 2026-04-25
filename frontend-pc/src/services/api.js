@@ -303,6 +303,7 @@ export const staffApi = {
   getMe: () => api.get('/users/me'),
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
+  updateIAMUser: (id, data) => api.put(`/iam/users/${id}`, data),
   checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
 }
 

@@ -510,7 +510,85 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 	}
 
 	log.Printf("[IAM] Successfully created local user %s for IAM ID %s", localUserID, iamUserID)
-	return localUserID, nil // Return local ID
+	return localUserID, nil
+}
+
+// UpdateIAMUser PUT /api/iam/users/:id - Update user via IAM
+func (h *IAMProxyHandler) UpdateIAMUser(c *gin.Context) {
+	userID := c.Param("id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "user id is required",
+		})
+		return
+	}
+
+	var req struct {
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
+
+	iamClient := services.NewIAMClient()
+	iamReq := &services.UpdateUserRequest{
+		Name:        req.Name,
+		Email:       req.Email,
+		Phone:       req.Phone,
+		Password:    req.Password,
+		CallbackURL: callbackURL,
+		OperatorID:  middleware.GetUserID(ctx),
+	}
+
+	if err := iamClient.UpdateUser(userID, iamReq); err != nil {
+		log.Printf("[UpdateIAMUser] IAM UpdateUser failed for %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to update user in IAM: " + err.Error(),
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+	localUpdates := map[string]interface{}{}
+	if req.Name != "" {
+		localUpdates["name"] = req.Name
+	}
+	if req.Phone != "" {
+		localUpdates["phone"] = req.Phone
+	}
+	if len(localUpdates) > 0 {
+		db.Model(&models.User{}).Where("iam_sub = ? AND tenant_id = ?", userID, tenantID).Updates(localUpdates)
+	}
+
+	emailChanged := req.Email != ""
+	responseData := gin.H{
+		"id":     userID,
+		"status": "success",
+	}
+	if emailChanged {
+		responseData["email_confirmation"] = "pending"
+		responseData["message"] = "Email change requires confirmation. IAM will send a confirmation email."
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data":    responseData,
+	})
 }
 
 // InviteUserToMerchant POST /api/iam/users/:user_id/invite - Invite user to join merchant
