@@ -359,14 +359,16 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	}
 
 	// Prepare request payload
+	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
 	payload := map[string]interface{}{
-		"email":     req.Email,
-		"phone":     req.Phone,
-		"name":      req.Name,
-		"tid":       tenantID, // Set tenant ID
-		"org_id":    orgID,    // Set org ID
-		"password":  req.Password,
-		"skipEmail": true, // JIT provisioning, skip email verification
+		"email":        req.Email,
+		"phone":        req.Phone,
+		"name":         req.Name,
+		"tid":          tenantID,
+		"org_id":       orgID,
+		"password":     req.Password,
+		"callback_url": callbackURL,
+		"status":       "pending",
 	}
 
 	// Add role if provided

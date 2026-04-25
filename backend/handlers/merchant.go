@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -109,15 +111,14 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	// Support both old and new request format
 	var input struct {
 		Name         string                   `json:"name" binding:"required"`
 		Code         string                   `json:"code" binding:"required"`
 		ContactName  string                   `json:"contact_name"`
 		ContactEmail string                   `json:"contact_email"`
 		ContactPhone string                   `json:"contact_phone"`
-		AdminUID     string                   `json:"admin_uid"` // Old format (backward compatibility)
-		UserIDs      []map[string]interface{} `json:"user_ids"`  // New format: array of {user_id, action_type}
+		AdminUID     string                   `json:"admin_uid"`
+		UserIDs      []map[string]interface{} `json:"user_ids"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -130,9 +131,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
-	orgID := middleware.GetOrgID(c.Request.Context())
 
-	// Check if code already exists
 	var count int64
 	db.Model(&models.Merchant{}).Where("tenant_id = ? AND code = ?", tenantID, input.Code).Count(&count)
 	if count > 0 {
@@ -143,17 +142,13 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	// Determine admin user ID(s)
 	adminUserID := ""
 	var userIDsToProcess []map[string]interface{}
 
-	// Backward compatibility: check if using old admin_uid format
 	if input.AdminUID != "" && len(input.UserIDs) == 0 {
 		adminUserID = input.AdminUID
 		userIDsToProcess = []map[string]interface{}{{"user_id": input.AdminUID, "action_type": "merchant_admin"}}
 	} else if len(input.UserIDs) > 0 {
-		// New format: use user_ids array
-		// For now, just take the first user as admin_uid for merchant record
 		adminUserID = input.UserIDs[0]["user_id"].(string)
 		userIDsToProcess = input.UserIDs
 	} else {
@@ -164,9 +159,47 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
+	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
+
+	var adminUser models.User
+	if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40400,
+			"message": "Admin user not found: " + adminUserID,
+		})
+		return
+	}
+
+	iamClient := services.NewIAMClient()
+	orgResp, err := iamClient.CreateOrganization(&services.CreateOrganizationRequest{
+		Name:    input.Name,
+		Address: input.ContactName,
+		AdminInfo: &services.OrganizationAdmin{
+			Name:     adminUser.Name,
+			Username: adminUser.Name,
+			Email:    adminUser.Email,
+			Phone:    adminUser.Phone,
+		},
+		CallbackURL: callbackURL,
+		OperatorID:  middleware.GetUserID(c.Request.Context()),
+	})
+	if err != nil {
+		log.Printf("[CreateMerchant] IAM CreateOrganization failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to create organization in IAM: " + err.Error(),
+		})
+		return
+	}
+
+	iamOrgID := orgResp.OrgID
+	if iamOrgID == "" {
+		iamOrgID = middleware.GetOrgID(c.Request.Context())
+	}
+
 	merchant := models.Merchant{
 		TenantID:     tenantID,
-		OrgID:        orgID,
+		OrgID:        iamOrgID,
 		Name:         input.Name,
 		Code:         input.Code,
 		ContactName:  input.ContactName,
@@ -185,38 +218,25 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	// Process user associations
 	var directlyAdded []string
-	var confirmationSessions []gin.H
-
-	// For now, we'll process users but skip actual IAM/confirmation session creation
-	// Full implementation would call IAM and create confirmation sessions as needed
 	for _, userEntry := range userIDsToProcess {
-		// In full implementation:
-		// 1. Check if user is associated with merchant
-		// 2. If associated, call IAM directly
-		// 3. If not associated, create confirmation session via POST /api/confirmation-sessions
-		// For now, just track the admin user as directly added
 		if userID, ok := userEntry["user_id"].(string); ok && userID != "" {
 			directlyAdded = append(directlyAdded, userID)
 		}
 	}
 
-	responseData := gin.H{
-		"id":        merchant.ID,
-		"name":      merchant.Name,
-		"code":      merchant.Code,
-		"admin_uid": adminUserID,
-	}
-
-	// Return confirmation sessions list (stub for now, would be populated in full implementation)
-	if len(confirmationSessions) > 0 {
-		responseData["confirmation_sessions"] = confirmationSessions
-	}
-
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
-		"data": responseData,
+		"data": gin.H{
+			"id":             merchant.ID,
+			"name":           merchant.Name,
+			"code":           merchant.Code,
+			"iam_org_id":     iamOrgID,
+			"admin_uid":      adminUserID,
+			"directly_added": directlyAdded,
+			"iam_admin_id":   orgResp.AdminID,
+			"callback_url":   callbackURL,
+		},
 	})
 }
 
