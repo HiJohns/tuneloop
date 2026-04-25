@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -248,10 +250,44 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		managerUUID = &uuidVal
 	}
 
+	iamClient := services.NewIAMClient()
+	iamReq := &services.CreateOrganizationRequest{
+		Name:       req.Name,
+		ParentID:   orgID,
+		Address:    req.Address,
+		OperatorID: middleware.GetUserID(c.Request.Context()),
+	}
+	if managerUUID != nil {
+		var managerUser models.User
+		if err := db.Where("id = ?", managerUUID.String()).First(&managerUser).Error; err == nil {
+			iamReq.AdminInfo = &services.OrganizationAdmin{
+				Name:     managerUser.Name,
+				Username: managerUser.Name,
+				Email:    managerUser.Email,
+				Phone:    managerUser.Phone,
+			}
+		}
+	}
+
+	orgResp, err := iamClient.CreateOrganization(iamReq)
+	if err != nil {
+		log.Printf("[CreateSite] IAM CreateOrganization failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to create sub-organization in IAM: " + err.Error(),
+		})
+		return
+	}
+
+	siteOrgID := orgResp.OrgID
+	if siteOrgID == "" {
+		siteOrgID = orgID
+	}
+
 	site := models.Site{
 		Name:          req.Name,
 		TenantID:      tenantID,
-		OrgID:         orgID,
+		OrgID:         siteOrgID,
 		Address:       req.Address,
 		Type:          req.Type,
 		Latitude:      req.Latitude,
@@ -273,7 +309,11 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20000,
-		"data": site,
+		"data": gin.H{
+			"site":         site,
+			"iam_org_id":   siteOrgID,
+			"iam_admin_id": orgResp.AdminID,
+		},
 	})
 }
 

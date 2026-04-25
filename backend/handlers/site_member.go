@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -98,31 +100,55 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	}
 
 	var directlyAdded []gin.H
-	var confirmationSessions []gin.H
+	var bindErrors []gin.H
 
-	// Process each user
+	var site models.Site
+	if err := db.Where("id = ?", siteID).First(&site).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    40400,
+			"message": "Site not found",
+		})
+		return
+	}
+
+	iamClient := services.NewIAMClient()
+	operatorID := middleware.GetUserID(c.Request.Context())
+
 	for _, userEntry := range usersToProcess {
 		userID, ok := userEntry["user_id"].(string)
 		if !ok || userID == "" {
 			continue
 		}
 
-		role := input.Role // Default to input.Role
+		role := input.Role
 		if r, ok := userEntry["role"].(string); ok && r != "" {
 			role = r
 		}
 
-		// Check if already a member
 		var count int64
 		db.Model(&models.SiteMember{}).
 			Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
 			Count(&count)
 		if count > 0 {
-			// Skip already a member
 			continue
 		}
 
-		// For now, add directly (in full implementation, would check association and create confirmation session)
+		iamRole := "staff"
+		if role == "Manager" {
+			iamRole = "manager"
+		}
+
+		if site.OrgID != "" {
+			if err := iamClient.BindUserToOrganization(userID, site.OrgID, iamRole, operatorID); err != nil {
+				log.Printf("[AddMember] IAM BindUser failed for user %s to org %s: %v", userID, site.OrgID, err)
+				bindErrors = append(bindErrors, gin.H{
+					"user_id": userID,
+					"error":   err.Error(),
+				})
+				continue
+			}
+		}
+
 		member := models.SiteMember{
 			TenantID: tenantID,
 			SiteID:   siteID,
@@ -145,8 +171,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		})
 	}
 
-	// If no users were processed
-	if len(directlyAdded) == 0 {
+	if len(directlyAdded) == 0 && len(bindErrors) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
 			"message": "No valid users to add",
@@ -155,9 +180,11 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	}
 
 	responseData := gin.H{
-		"site_id":               siteID,
-		"directly_added":        directlyAdded,
-		"confirmation_sessions": confirmationSessions, // Empty for now
+		"site_id":        siteID,
+		"directly_added": directlyAdded,
+	}
+	if len(bindErrors) > 0 {
+		responseData["bind_errors"] = bindErrors
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -257,7 +284,15 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
-	// Delete member
+	var site models.Site
+	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
+		iamClient := services.NewIAMClient()
+		operatorID := middleware.GetUserID(c.Request.Context())
+		if err := iamClient.UnbindUserFromOrganization(userID, site.OrgID, operatorID); err != nil {
+			log.Printf("[RemoveMember] IAM UnbindUser failed for user %s from org %s: %v", userID, site.OrgID, err)
+		}
+	}
+
 	result := db.Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
 		Delete(&models.SiteMember{})
 
