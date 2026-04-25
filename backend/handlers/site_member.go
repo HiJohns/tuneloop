@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
@@ -62,9 +63,11 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		return
 	}
 
+	// Support both old and new request format
 	var input struct {
-		UserID string `json:"user_id" binding:"required"`
-		Role   string `json:"role" default:"Staff"`
+		UserID  string                   `json:"user_id"` // Old format (backward compatibility)
+		Role    string                   `json:"role" default:"Staff"`
+		UserIDs []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -75,39 +78,91 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		return
 	}
 
-	// Check if already a member
-	var count int64
-	db.Model(&models.SiteMember{}).
-		Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, input.UserID).
-		Count(&count)
-	if count > 0 {
+	// Determine user list to process
+	var usersToProcess []map[string]interface{}
+
+	// Backward compatibility: check if using old user_id format
+	if input.UserID != "" && len(input.UserIDs) == 0 {
+		usersToProcess = []map[string]interface{}{
+			{"user_id": input.UserID, "role": input.Role},
+		}
+	} else if len(input.UserIDs) > 0 {
+		// New format: use user_ids array
+		usersToProcess = input.UserIDs
+	} else {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "User is already a member of this site",
+			"code":    40001,
+			"message": "Either user_id (old format) or user_ids (new format) must be provided",
 		})
 		return
 	}
 
-	// Create site member
-	member := models.SiteMember{
-		TenantID: tenantID,
-		SiteID:   siteID,
-		UserID:   input.UserID,
-		Role:     input.Role,
+	var directlyAdded []gin.H
+	var confirmationSessions []gin.H
+
+	// Process each user
+	for _, userEntry := range usersToProcess {
+		userID, ok := userEntry["user_id"].(string)
+		if !ok || userID == "" {
+			continue
+		}
+
+		role := input.Role // Default to input.Role
+		if r, ok := userEntry["role"].(string); ok && r != "" {
+			role = r
+		}
+
+		// Check if already a member
+		var count int64
+		db.Model(&models.SiteMember{}).
+			Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
+			Count(&count)
+		if count > 0 {
+			// Skip already a member
+			continue
+		}
+
+		// For now, add directly (in full implementation, would check association and create confirmation session)
+		member := models.SiteMember{
+			TenantID: tenantID,
+			SiteID:   siteID,
+			UserID:   userID,
+			Role:     role,
+		}
+
+		result := db.Create(&member)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": fmt.Sprintf("Failed to add member %s: %s", userID, result.Error.Error()),
+			})
+			return
+		}
+
+		directlyAdded = append(directlyAdded, gin.H{
+			"user_id": userID,
+			"role":    role,
+		})
 	}
 
-	result := db.Create(&member)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to add member: " + result.Error.Error(),
+	// If no users were processed
+	if len(directlyAdded) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "No valid users to add",
 		})
 		return
+	}
+
+	responseData := gin.H{
+		"site_id":               siteID,
+		"directly_added":        directlyAdded,
+		"confirmation_sessions": confirmationSessions, // Empty for now
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
-		"data": member,
+		"data": responseData,
 	})
 }
 
@@ -174,8 +229,8 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"site_id": siteID,
-			"user_id": userID,
+			"site_id":  siteID,
+			"user_id":  userID,
 			"new_role": input.Role,
 		},
 	})

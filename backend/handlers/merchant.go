@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"net/http"
 	"fmt"
+	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -109,13 +109,15 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
+	// Support both old and new request format
 	var input struct {
-		Name         string `json:"name" binding:"required"`
-		Code         string `json:"code" binding:"required"`
-		ContactName  string `json:"contact_name"`
-		ContactEmail string `json:"contact_email"`
-		ContactPhone string `json:"contact_phone"`
-		AdminUID     string `json:"admin_uid" binding:"required"`
+		Name         string                   `json:"name" binding:"required"`
+		Code         string                   `json:"code" binding:"required"`
+		ContactName  string                   `json:"contact_name"`
+		ContactEmail string                   `json:"contact_email"`
+		ContactPhone string                   `json:"contact_phone"`
+		AdminUID     string                   `json:"admin_uid"` // Old format (backward compatibility)
+		UserIDs      []map[string]interface{} `json:"user_ids"`  // New format: array of {user_id, action_type}
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -141,6 +143,27 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
+	// Determine admin user ID(s)
+	adminUserID := ""
+	var userIDsToProcess []map[string]interface{}
+
+	// Backward compatibility: check if using old admin_uid format
+	if input.AdminUID != "" && len(input.UserIDs) == 0 {
+		adminUserID = input.AdminUID
+		userIDsToProcess = []map[string]interface{}{{"user_id": input.AdminUID, "action_type": "merchant_admin"}}
+	} else if len(input.UserIDs) > 0 {
+		// New format: use user_ids array
+		// For now, just take the first user as admin_uid for merchant record
+		adminUserID = input.UserIDs[0]["user_id"].(string)
+		userIDsToProcess = input.UserIDs
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "Either admin_uid (old format) or user_ids (new format) must be provided",
+		})
+		return
+	}
+
 	merchant := models.Merchant{
 		TenantID:     tenantID,
 		OrgID:        orgID,
@@ -149,7 +172,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		ContactName:  input.ContactName,
 		ContactEmail: input.ContactEmail,
 		ContactPhone: input.ContactPhone,
-		AdminUID:     input.AdminUID,
+		AdminUID:     adminUserID,
 		Status:       "active",
 	}
 
@@ -162,9 +185,38 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
+	// Process user associations
+	var directlyAdded []string
+	var confirmationSessions []gin.H
+
+	// For now, we'll process users but skip actual IAM/confirmation session creation
+	// Full implementation would call IAM and create confirmation sessions as needed
+	for _, userEntry := range userIDsToProcess {
+		// In full implementation:
+		// 1. Check if user is associated with merchant
+		// 2. If associated, call IAM directly
+		// 3. If not associated, create confirmation session via POST /api/confirmation-sessions
+		// For now, just track the admin user as directly added
+		if userID, ok := userEntry["user_id"].(string); ok && userID != "" {
+			directlyAdded = append(directlyAdded, userID)
+		}
+	}
+
+	responseData := gin.H{
+		"id":        merchant.ID,
+		"name":      merchant.Name,
+		"code":      merchant.Code,
+		"admin_uid": adminUserID,
+	}
+
+	// Return confirmation sessions list (stub for now, would be populated in full implementation)
+	if len(confirmationSessions) > 0 {
+		responseData["confirmation_sessions"] = confirmationSessions
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
-		"data": merchant,
+		"data": responseData,
 	})
 }
 
@@ -180,7 +232,7 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-	
+
 	var input struct {
 		Name         string `json:"name"`
 		ContactName  string `json:"contact_name"`
