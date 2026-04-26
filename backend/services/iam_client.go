@@ -8,8 +8,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type IAMClient struct {
@@ -118,7 +121,10 @@ func (c *IAMClient) doRequest(method, path string, payload interface{}) ([]byte,
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get client token: %w", err)
 	}
+	return c.doRequestWithToken(method, path, token, payload)
+}
 
+func (c *IAMClient) doRequestWithToken(method, path, token string, payload interface{}) ([]byte, int, error) {
 	var bodyReader io.Reader
 	if payload != nil {
 		body, err := json.Marshal(payload)
@@ -203,6 +209,38 @@ func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateO
 	return &result.Data, nil
 }
 
+func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganizationRequest) (*CreateOrganizationResponse, error) {
+	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", c.namespace)
+	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateOrganization request failed: %w", err)
+	}
+
+	if statusCode == http.StatusConflict {
+		return nil, fmt.Errorf("organization name conflict: %s", string(respBody))
+	}
+	if statusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Data CreateOrganizationResponse `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		var direct CreateOrganizationResponse
+		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
+			return &direct, nil
+		}
+		return nil, fmt.Errorf("failed to parse CreateOrganization response: %w", err)
+	}
+
+	log.Printf("[IAMClient] Created organization with user token: org_id=%s, admin_id=%s", result.Data.OrgID, result.Data.AdminID)
+	return &result.Data, nil
+}
+
 type CreateUserRequest struct {
 	Username    string `json:"username"`
 	Name        string `json:"name"`
@@ -242,6 +280,34 @@ func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, err
 	}
 
 	log.Printf("[IAMClient] Created user: user_id=%s, status=%s", result.Data.UserID, result.Data.Status)
+	return &result.Data, nil
+}
+
+func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*CreateUserResponse, error) {
+	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users", token, req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser request failed: %w", err)
+	}
+
+	if statusCode == http.StatusConflict {
+		return nil, fmt.Errorf("user already exists: %s", string(respBody))
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return nil, fmt.Errorf("CreateUser returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Data CreateUserResponse `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		var direct CreateUserResponse
+		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
+			return &direct, nil
+		}
+		return nil, fmt.Errorf("failed to parse CreateUser response: %w", err)
+	}
+
+	log.Printf("[IAMClient] Created user with user token: user_id=%s, status=%s", result.Data.UserID, result.Data.Status)
 	return &result.Data, nil
 }
 
@@ -310,6 +376,35 @@ func (c *IAMClient) BindUserToOrganization(userID, orgID, role, operatorID strin
 	return nil
 }
 
+func (c *IAMClient) BindUserToOrganizationWithToken(token, userID, orgID, role, operatorID string) error {
+	path := fmt.Sprintf("/api/v1/users/%s/organizations/%s/bind", userID, orgID)
+	req := &BindUserRequest{
+		Action:     "bind",
+		Role:       role,
+		OperatorID: operatorID,
+	}
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
+	if err != nil {
+		return fmt.Errorf("BindUser request failed: %w", err)
+	}
+
+	if statusCode == http.StatusBadRequest {
+		return fmt.Errorf("bad request (sole admin cannot be demoted): %s", string(respBody))
+	}
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user or organization not found: user=%s org=%s", userID, orgID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("BindUser returned status %d: %s", statusCode, string(respBody))
+	}
+
+	log.Printf("[IAMClient] Bound user %s to org %s with role %s (user token)", userID, orgID, role)
+	return nil
+}
+
 func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string) error {
 	path := fmt.Sprintf("/api/v1/users/%s/organizations/%s/bind", userID, orgID)
 	req := &BindUserRequest{
@@ -333,4 +428,15 @@ func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string)
 
 	log.Printf("[IAMClient] Unbound user %s from org %s", userID, orgID)
 	return nil
+}
+
+func ExtractUserToken(c *gin.Context) string {
+	if token, err := c.Cookie("token"); err == nil && token != "" {
+		return token
+	}
+	authHeader := c.GetHeader("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimPrefix(authHeader, "Bearer ")
+	}
+	return ""
 }

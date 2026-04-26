@@ -38,7 +38,7 @@
 - 商户名称
 - 商户代码（用于 URL 或数据隔离标识）
 - 联系人信息（姓名、邮箱、电话）
-- **指定管理员**: 通过「指定用户对话框」获取用户 ID
+- **指定管理员**: 表单内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），单选模式，选中后显示管理员姓名和邮箱
 
 **后端动作**:
 1. 调用 IAM `POST /api/v1/namespaces/:id/organizations` 创建顶级组织，传入管理员信息 + `callback_url`
@@ -53,23 +53,29 @@
 
 ## 0.2 指定用户流程 (User Selection & Provisioning)
 
-**设计思想**: 批量选择、先查后联、无则创建、确认会话。
+**设计思想**: 表单内联、先查后联、无则创建、确认会话。
+
+> **交互模式变更**: 用户搜索与创建功能**直接内嵌在表单中**，不再使用弹窗对话框。
+> 搜索框和创建用户按钮作为表单字段的一部分呈现，已选用户以列表形式显示在表单内。
 
 ### 0.2.1 用户输入与搜索
 
-**界面元素**:
-- 用户输入框（支持模糊搜索）
-- 创建用户按钮
-- 已选用户列表
+**界面元素**（内嵌于表单，Tab 切换）:
+- **搜索 Tab**：用户搜索输入框（AutoComplete）+ 搜索结果下拉列表
+- **创建 Tab**：点击即显示创建表单
+- 已选用户列表（显示在 Tab 区域下方）
 
 **交互流程**:
-1. 在输入框中输入用户名、邮箱或手机号
-2. 系统自动以输入为关键字搜索（debounce 300ms）
-3. 下拉框显示搜索结果（最多10项），每项显示：
+1. 默认为搜索 Tab
+2. 在搜索框中输入用户名、邮箱或手机号
+3. 系统自动以输入为关键字搜索（debounce 300ms）
+4. 下拉框显示搜索结果（最多10项），每项显示：
    - 用户名
    - 匹配的字段（如匹配到邮箱则显示邮箱）
    - 是否已与当前商户关联（associated 标志）
-4. 点击结果项添加到已选用户列表
+5. 点击结果项添加到已选用户列表
+6. 切换到创建 Tab 显示创建表单（隐藏搜索区域）
+7. 已选用户始终显示在 Tab 区域下方，可继续搜索添加（多选场景）
 
 **搜索逻辑**:
 - 后端分别模糊匹配 name、email、phone 字段
@@ -87,30 +93,31 @@
 
 **操作**:
 - 点击删除按钮从列表中移除用户
-- 支持多用户批量选择
+- 单选场景（如指定网点管理员）：只显示一条记录，选中后替换已有选择
+- 多选场景（如网点增加成员）：显示多条记录，支持批量选择
 
 ### 0.2.3 创建新用户
 
 **触发方式**:
-- 点击「创建用户」按钮（不选中搜索结果时）
-- 或在搜索结果中未找到目标用户时主动创建
+- 点击「创建」Tab，直接显示创建表单（无需额外按钮）
 
-**创建表单**:
+**创建表单**（内联展开）:
 - 用户名（必填）
 - 邮箱（必填，格式验证）
 - 手机号（选填）
-- 初始密码（必填）
+- IAM 自动生成初始密码并发送至用户邮箱/手机号
+- 「创建并添加」按钮 + 「取消」按钮
 
 **唯一性检查**:
 - 实时检查：输入时自动验证唯一性
-- 发现冲突时弹框提醒：
-  - 选项1：选定该用户（关闭对话框并返回用户信息+ID）
+- 发现冲突时内联提醒：
+  - 选项1：选定该用户（直接添加到已选列表，关闭创建表单）
   - 选项2：继续编辑（标记冲突字段为错误，表单无法提交）
 
 **新用户状态**:
 - 通过此流程创建的用户初始状态为 `pending`
 - 系统同时创建确认会话（详见下文）
-- 对话框返回时，associated 标志总为 false
+- 创建成功后 associated 标志总为 false
 
 ### 0.2.4 确认会话 (Confirmation Session)
 
@@ -148,11 +155,17 @@
 ### 0.2.5 后端实现要点
 
 **IAM Client 代理层**:
-- `GetClientToken()` → IAM Token Endpoint (client_credentials grant)
+- `GetClientToken()` → IAM Token Endpoint (client_credentials grant) — 仅用于 M2M 场景（回调、定时任务等）
+- `ExtractUserToken(c *gin.Context)` → 从请求 cookie 或 Authorization header 提取用户 JWT — 用于用户发起的操作
+- 用户发起的操作（创建组织/绑定用户等）使用用户 JWT，确保 IAM 权限检查（Owner/Admin 角色）通过
+- M2M 操作（回调处理等）使用 client_credentials
 - `CreateOrganization(name, parentID, adminInfo, callbackURL)` → POST /namespaces/:id/organizations
+- `CreateOrganizationWithToken(token, ...)` → 同上，使用用户 JWT 认证
 - `CreateUser(username, name, email, phone, callbackURL)` → POST /api/v1/users
+- `CreateUserWithToken(token, ...)` → 同上，使用用户 JWT 认证
 - `UpdateUser(userID, name, email, phone, password, callbackURL)` → PUT /api/v1/users/:id
 - `BindUserToOrganization(userID, orgID, role)` → PUT /users/:uid/organizations/:oid/bind
+- `BindUserToOrganizationWithToken(token, userID, orgID, role, operatorID)` → 同上，使用用户 JWT 认证
 - `UnbindUserFromOrganization(userID, orgID)` → PUT (action=unbind)
 
 **新增 API**:
@@ -368,8 +381,8 @@
 URL切换到/sites/new
 右侧显示新建网点表单
 填写网点名称、类型（加盟/直营/合作店）、地址、联系电话
-**指定网点管理员**：点击『选择负责人』按钮，打开「指定用户对话框」（见 §0.2）
-- 对话框返回用户 ID 和姓名，自动填入负责人字段
+**指定网点管理员**: 表单内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），单选模式
+- 选中后显示管理员姓名和邮箱，可点击「更换」重新选择
 - 初始角色默认为 `Manager`
 提交前检查网点名是否重复
 **后端动作**:
@@ -411,9 +424,9 @@ URL切换到/sites/:id/edit
 
 #### 4.1.5.3 增加成员
 
-- 点击『增加成员』按钮
-- 调用「指定用户对话框」（见 §0.2）
-- 选择用户后，调用 IAM `PUT /users/:uid/organizations/:oid/bind` 绑定到网点对应的下级组织
+- 成员列表上方内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），多选模式
+- 选中用户后显示在已选列表中，可继续搜索添加
+- 点击「确认添加」后，调用 IAM `PUT /users/:uid/organizations/:oid/bind` 绑定到网点对应的下级组织
 - 下级组织绑定仅需邮件通知，**无需用户确认**，即时生效
 - 本地 `site_members` 表同步创建记录
 - 初始角色默认为 `Staff`
