@@ -210,6 +210,9 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		BusinessHours string  `json:"business_hours"`
 		ParentID      *string `json:"parent_id"`
 		ManagerID     *string `json:"manager_id"`
+		AdminName     string  `json:"admin_name"`
+		AdminEmail    string  `json:"admin_email"`
+		AdminPhone    string  `json:"admin_phone"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -251,25 +254,16 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
+	userToken := services.ExtractUserToken(c)
+
 	iamReq := &services.CreateOrganizationRequest{
 		Name:       req.Name,
 		ParentID:   orgID,
 		Address:    req.Address,
 		OperatorID: middleware.GetUserID(c.Request.Context()),
 	}
-	if managerUUID != nil {
-		var managerUser models.User
-		if err := db.Where("id = ?", managerUUID.String()).First(&managerUser).Error; err == nil {
-			iamReq.AdminInfo = &services.OrganizationAdmin{
-				Name:     managerUser.Name,
-				Username: managerUser.Name,
-				Email:    managerUser.Email,
-				Phone:    managerUser.Phone,
-			}
-		}
-	}
 
-	orgResp, err := iamClient.CreateOrganization(iamReq)
+	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)
 	if err != nil {
 		log.Printf("[CreateSite] IAM CreateOrganization failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -282,6 +276,14 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	siteOrgID := orgResp.OrgID
 	if siteOrgID == "" {
 		siteOrgID = orgID
+	}
+
+	operatorID := middleware.GetUserID(c.Request.Context())
+
+	if managerUUID != nil {
+		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, managerUUID.String(), siteOrgID, "manager", operatorID); bindErr != nil {
+			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", managerUUID.String(), siteOrgID, bindErr)
+		}
 	}
 
 	site := models.Site{

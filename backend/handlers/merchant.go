@@ -118,6 +118,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		ContactEmail string                   `json:"contact_email"`
 		ContactPhone string                   `json:"contact_phone"`
 		AdminUID     string                   `json:"admin_uid"`
+		AdminName    string                   `json:"admin_name"`
+		AdminEmail   string                   `json:"admin_email"`
+		AdminPhone   string                   `json:"admin_phone"`
 		UserIDs      []map[string]interface{} `json:"user_ids"`
 	}
 
@@ -142,12 +145,17 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	adminUserID := ""
+	iamClient := services.NewIAMClient()
+	userToken := services.ExtractUserToken(c)
+
+	var adminUserID string
 	var userIDsToProcess []map[string]interface{}
 
 	if input.AdminUID != "" && len(input.UserIDs) == 0 {
 		adminUserID = input.AdminUID
 		userIDsToProcess = []map[string]interface{}{{"user_id": input.AdminUID, "action_type": "merchant_admin"}}
+	} else if input.AdminName != "" && input.AdminEmail != "" && len(input.UserIDs) == 0 {
+		userIDsToProcess = []map[string]interface{}{{"action_type": "merchant_admin"}}
 	} else if len(input.UserIDs) > 0 {
 		adminUserID = input.UserIDs[0]["user_id"].(string)
 		userIDsToProcess = input.UserIDs
@@ -161,24 +169,29 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
 
+	var adminName, adminEmail, adminPhone string
 	var adminUser models.User
-	if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40400,
-			"message": "Admin user not found: " + adminUserID,
-		})
-		return
+	if adminUserID != "" {
+		if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil {
+			adminName = adminUser.Name
+			adminEmail = adminUser.Email
+			adminPhone = adminUser.Phone
+		}
+	}
+	if adminName == "" && input.AdminName != "" && input.AdminEmail != "" {
+		adminName = input.AdminName
+		adminEmail = input.AdminEmail
+		adminPhone = input.AdminPhone
 	}
 
-	iamClient := services.NewIAMClient()
-	orgResp, err := iamClient.CreateOrganization(&services.CreateOrganizationRequest{
+	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, &services.CreateOrganizationRequest{
 		Name:    input.Name,
 		Address: input.ContactName,
 		AdminInfo: &services.OrganizationAdmin{
-			Name:     adminUser.Name,
-			Username: adminUser.Name,
-			Email:    adminUser.Email,
-			Phone:    adminUser.Phone,
+			Name:     adminName,
+			Username: adminName,
+			Email:    adminEmail,
+			Phone:    adminPhone,
 		},
 		CallbackURL: callbackURL,
 		OperatorID:  middleware.GetUserID(c.Request.Context()),
@@ -216,6 +229,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			"message": "Failed to create merchant: " + result.Error.Error(),
 		})
 		return
+	}
+
+	if adminUserID == "" && orgResp.AdminID != "" {
+		adminUserID = orgResp.AdminID
 	}
 
 	var directlyAdded []string

@@ -112,6 +112,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
+	userToken := services.ExtractUserToken(c)
 	operatorID := middleware.GetUserID(c.Request.Context())
 
 	for _, userEntry := range usersToProcess {
@@ -139,7 +140,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		}
 
 		if site.OrgID != "" {
-			if err := iamClient.BindUserToOrganization(userID, site.OrgID, iamRole, operatorID); err != nil {
+			if err := iamClient.BindUserToOrganizationWithToken(userToken, userID, site.OrgID, iamRole, operatorID); err != nil {
 				log.Printf("[AddMember] IAM BindUser failed for user %s to org %s: %v", userID, site.OrgID, err)
 				bindErrors = append(bindErrors, gin.H{
 					"user_id": userID,
