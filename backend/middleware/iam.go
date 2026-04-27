@@ -17,21 +17,30 @@ import (
 
 type IAMClaims struct {
 	jwt.RegisteredClaims
-	Tid  string `json:"tid"`
-	Oid  string `json:"oid"`
-	Role string `json:"role"`
-	Own  bool   `json:"own"`
-	Name string `json:"name"`
+	Tid   string   `json:"tid"`
+	Oid   string   `json:"oid"`
+	Role  string   `json:"role"`
+	Own   bool     `json:"own"`
+	Name  string   `json:"name"`
+	Roles []string `json:"roles"`
 }
 
 type ContextKey string
 
 const (
-	ContextKeyTenantID ContextKey = "tenant_id"
-	ContextKeyOrgID    ContextKey = "org_id"
-	ContextKeyUserID   ContextKey = "user_id"
-	ContextKeyRole     ContextKey = "role"
-	ContextKeyIsOwner  ContextKey = "is_owner"
+	ContextKeyTenantID        ContextKey = "tenant_id"
+	ContextKeyOrgID           ContextKey = "org_id"
+	ContextKeyUserID          ContextKey = "user_id"
+	ContextKeyRole            ContextKey = "role"
+	ContextKeyIsOwner         ContextKey = "is_owner"
+	ContextKeyFunctionalRoles ContextKey = "functional_roles"
+)
+
+const (
+	BusinessRoleSystemAdmin   = "system_admin"
+	BusinessRoleMerchantAdmin = "merchant_admin"
+	BusinessRoleSiteAdmin     = "site_admin"
+	BusinessRoleSiteMember    = "site_member"
 )
 
 var validIssuers = []string{
@@ -132,6 +141,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
+		ctx = context.WithValue(ctx, ContextKeyFunctionalRoles, claims.Roles)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Sliding expiration: Check if token is about to expire
@@ -249,4 +259,43 @@ func IsOwner(ctx context.Context) bool {
 		return own
 	}
 	return false
+}
+
+func GetFunctionalRoles(ctx context.Context) []string {
+	if roles, ok := ctx.Value(ContextKeyFunctionalRoles).([]string); ok {
+		return roles
+	}
+	return []string{}
+}
+
+func GetBusinessRole(ctx context.Context) string {
+	role := GetRole(ctx)
+	orgID := GetOrgID(ctx)
+	isOwner := IsOwner(ctx)
+
+	if role == "" && orgID == "" {
+		return BusinessRoleSiteMember
+	}
+
+	if isOwner {
+		db := database.GetDB().WithContext(ctx)
+		var org struct {
+			ParentID *string `gorm:"column:parent_id"`
+		}
+		err := db.Table("merchants").Where("id = ?", orgID).First(&org).Error
+		if err != nil || org.ParentID == nil {
+			return BusinessRoleMerchantAdmin
+		}
+		return BusinessRoleSiteAdmin
+	}
+
+	if role == "ADMIN" {
+		return BusinessRoleSiteAdmin
+	}
+
+	if role == "STAFF" || role == "WORKER" {
+		return BusinessRoleSiteMember
+	}
+
+	return BusinessRoleSiteMember
 }

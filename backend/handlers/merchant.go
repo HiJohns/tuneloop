@@ -19,13 +19,12 @@ func NewMerchantHandler() *MerchantHandler {
 	return &MerchantHandler{}
 }
 
-// ListMerchants GET /api/merchants - List merchants (project_admin only)
+// ListMerchants GET /api/merchants - List merchants (system_admin only)
 func (h *MerchantHandler) ListMerchants(c *gin.Context) {
-	role := middleware.GetRole(c.Request.Context())
-	if role != "project_admin" {
+	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
-			"message": "Only project admin can access merchant management",
+			"message": "Only system admin can access merchant management",
 		})
 		return
 	}
@@ -64,11 +63,10 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 
 // GetMerchant GET /api/merchants/:id - Get merchant detail
 func (h *MerchantHandler) GetMerchant(c *gin.Context) {
-	role := middleware.GetRole(c.Request.Context())
-	if role != "project_admin" {
+	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
-			"message": "Only project admin can access merchant management",
+			"message": "Only system admin can access merchant management",
 		})
 		return
 	}
@@ -102,11 +100,10 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 
 // CreateMerchant POST /api/merchants - Create a new merchant
 func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
-	role := middleware.GetRole(c.Request.Context())
-	if role != "project_admin" {
+	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
-			"message": "Only project admin can create merchants",
+			"message": "Only system admin can create merchants",
 		})
 		return
 	}
@@ -259,11 +256,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 // UpdateMerchant PUT /api/merchants/:id - Update merchant
 func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
-	role := middleware.GetRole(c.Request.Context())
-	if role != "project_admin" {
+	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
-			"message": "Only project admin can update merchants",
+			"message": "Only system admin can update merchants",
 		})
 		return
 	}
@@ -324,11 +320,10 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 
 // DeleteMerchant DELETE /api/merchants/:id - Delete merchant
 func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
-	role := middleware.GetRole(c.Request.Context())
-	if role != "project_admin" {
+	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
-			"message": "Only project admin can delete merchants",
+			"message": "Only system admin can delete merchants",
 		})
 		return
 	}

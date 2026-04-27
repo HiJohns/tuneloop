@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,8 +23,10 @@ func init() {
 }
 
 var (
-	iamInternalURL = os.Getenv("BEACONIAM_INTERNAL_URL")
-	iamExternalURL = os.Getenv("BEACONIAM_EXTERNAL_URL")
+	iamInternalURL              = os.Getenv("BEACONIAM_INTERNAL_URL")
+	iamExternalURL              = os.Getenv("BEACONIAM_EXTERNAL_URL")
+	publicKeyRefreshInterval    = 60 * time.Second
+	publicKeyMinRefreshInterval = 5 * time.Second
 )
 
 type IAMService struct {
@@ -32,9 +35,14 @@ type IAMService struct {
 	clientSecret string
 	httpClient   *http.Client
 	publicKey    *rsa.PublicKey
-	keyOnce      sync.Once
+	keyMutex     sync.Mutex
 	keyError     error
 	keyLoaded    bool
+	lastRefresh  time.Time
+
+	// refreshInterval is the minimum time between public key refreshes
+	// to prevent thundering herd against IAM. Default is 60s.
+	refreshInterval time.Duration
 }
 
 type TokenResponse struct {
@@ -50,10 +58,11 @@ type PublicKeyResponse struct {
 }
 
 type JWTClaims struct {
-	UserID   string `json:"sub"`
-	TenantID string `json:"tid"`
-	Role     string `json:"role"`
-	IsOwner  bool   `json:"is_owner"`
+	UserID   string   `json:"sub"`
+	TenantID string   `json:"tid"`
+	Role     string   `json:"role"`
+	IsOwner  bool     `json:"is_owner"`
+	Roles    []string `json:"roles"` // Functional roles
 	jwt.RegisteredClaims
 }
 
@@ -95,18 +104,27 @@ func NewIAMService() *IAMService {
 		log.Fatal("IAM client credentials not configured: IAM_PC_CLIENT_ID and IAM_PC_CLIENT_SECRET (or IAM_CLIENT_ID and IAM_CLIENT_SECRET) must be set")
 	}
 	return &IAMService{
-		baseURL:      GetIAMInternalURL(),
-		clientID:     clientID,
-		clientSecret: clientSecret,
-		httpClient:   &http.Client{Timeout: 10 * time.Second},
+		baseURL:         GetIAMInternalURL(),
+		clientID:        clientID,
+		clientSecret:    clientSecret,
+		httpClient:      &http.Client{Timeout: 10 * time.Second},
+		refreshInterval: publicKeyRefreshInterval,
 	}
 }
 
+// loadPublicKey loads the public key with debouncing to prevent thundering herd
 func (s *IAMService) loadPublicKey() error {
-	s.keyOnce.Do(func() {
+	now := time.Now()
+
+	s.keyMutex.Lock()
+	defer s.keyMutex.Unlock()
+
+	// Check if we should skip refresh due to debouncing
+	if s.lastRefresh.IsZero() || now.Sub(s.lastRefresh) >= s.refreshInterval {
+		s.lastRefresh = now
 		s.keyError = s.fetchAndParsePublicKey()
 		s.keyLoaded = s.keyError == nil
-	})
+	}
 	return s.keyError
 }
 
@@ -176,7 +194,35 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 
 	if err != nil {
 		log.Printf("[ValidateToken] Token parse error: %v", err)
-		return nil, fmt.Errorf("failed to parse token: %w", err)
+
+		// If RS256 signature verification failed, retry once after refreshing public key
+		if strings.Contains(err.Error(), "crypto/rsa: verification error") || strings.Contains(err.Error(), "signature is invalid") {
+			log.Printf("[ValidateToken] Signature verification failed, attempting public key refresh and retry")
+
+			// Force refresh by clearing lastRefresh and reloading
+			s.keyMutex.Lock()
+			s.lastRefresh = time.Time{} // Force refresh on next load
+			s.keyMutex.Unlock()
+
+			// Retry validation with refreshed key
+			token, err = jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
+					if err := s.loadPublicKey(); err != nil {
+						log.Printf("[ValidateToken] Failed to reload public key: %v", err)
+						return nil, fmt.Errorf("failed to reload public key: %w", err)
+					}
+					return s.publicKey, nil
+				}
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			})
+
+			if err != nil {
+				log.Printf("[ValidateToken] Retry failed: %v", err)
+				return nil, fmt.Errorf("token verification failed after key refresh: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to parse token: %w", err)
+		}
 	}
 
 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {

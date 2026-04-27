@@ -45,7 +45,6 @@ import BatchImport from './pages/admin/instrument/BatchImport'
 import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
 import MerchantManagement from './pages/MerchantManagement'
-import UserSelectionDialog from './components/UserSelectionDialog'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
 
@@ -90,15 +89,26 @@ function MainLayout() {
                      (payload.is_owner ? '所有者' : '') || ''
         const email = payload.email || payload.mail || ''
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
+        const roles = Array.isArray(payload.roles) ? payload.roles : [] // Functional roles from IAM #113
         
-        const { role: _payloadRole, ...payloadWithoutRole } = payload
+        // Compute businessRole from IAM role (heuristic - ideally from backend)
+        let businessRole = 'site_member'
+        if (role === 'owner' || role === 'OWNER') {
+          businessRole = payload.is_owner ? 'merchant_admin' : 'site_admin'
+        } else if (role === 'admin' || role === 'ADMIN') {
+          businessRole = 'site_admin'
+        }
+        
+        const { role: _payloadRole, roles: _payloadRoles, ...payloadWithoutRole } = payload
         setUserInfo({
           name,
           email,
           role,
+          roles,
+          businessRole,
           ...payloadWithoutRole
         })
-        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role }))
+        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole }))
       } catch (e) {
         // ignore parse errors
       }
@@ -130,10 +140,10 @@ function MainLayout() {
         { key: '/maintenance/sessions', label: '会话管理' }
       ]
     },
-    // Inventory monitoring menu - visible to MANAGER roles only
+    // Inventory monitoring menu - visible to ADMIN roles only
     ...(userInfo ? (() => {
-      const role = userInfo.role || ''
-      const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
+      const businessRole = userInfo.businessRole || 'site_member'
+      const shouldShow = businessRole === 'site_admin' || businessRole === 'merchant_admin'
       if (shouldShow) {
         return [{
           key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
