@@ -124,61 +124,81 @@ function MainLayout() {
     }
   }, [])
   
-  const items = [
-    {
-      key: 'instruments', icon: <SettingOutlined />, label: '乐器管理',
-      children: [
-        { key: '/instruments/list', label: '乐器列表' },
-        { key: '/instruments/categories', label: '分类设置' },
-        { key: '/instruments/properties', label: '属性管理' }
-      ]
-    },
-    {
-      key: 'maintenance', icon: <SettingOutlined />, label: '维修管理',
-      children: [
-        { key: '/maintenance/workers', label: '师傅管理' },
-        { key: '/maintenance/sessions', label: '会话管理' }
-      ]
-    },
-    // Inventory monitoring menu - visible to ADMIN roles only
-    ...(userInfo ? (() => {
-      const businessRole = userInfo.businessRole || 'site_member'
-      const shouldShow = businessRole === 'site_admin' || businessRole === 'merchant_admin'
-      if (shouldShow) {
-        return [{
-          key: 'inventory', icon: <SettingOutlined />, label: '库存监控',
-          children: [
-            { key: '/inventory/rent-setting', label: '租金设定' },
-            { key: '/warehouse', label: '库管工作台' }
-          ]
-        }]
-      } else {
-        return []
-      }
-    })() : []),
-    {
-      key: 'organization', icon: <SettingOutlined />, label: '组织管理',
-      children: [
-        { key: '/organization/sites', label: '网点管理' },
-        { key: '/merchants', label: '商户管理' },
-        { key: '/staff', label: '人员管理' }
-      ]
-    },
-    {
-      key: 'system', icon: <SettingOutlined />, label: '系统管理',
-      children: [
-        { key: '/system/clients', label: '客户端管理' },
-        { key: '/system/tenants', label: '租户管理' },
-        { key: '/appeals', label: '申诉处理' }
-      ]
-    }
-  ]
-
-  const onMenuClick = (e) => {
-    navigate(e.key)
+  const menuConfig = [
+  {
+    key: 'instruments',
+    icon: <SettingOutlined />,
+    label: '乐器管理',
+    structuralRoles: ['merchant_admin', 'site_admin', 'site_member'],
+    children: [
+      { key: '/instruments/list', label: '乐器列表', functionalRoles: null },
+      { key: '/instruments/categories', label: '分类设置', functionalRoles: ['default'] },
+      { key: '/instruments/properties', label: '属性管理', functionalRoles: ['default'] }
+    ]
+  },
+  {
+    key: 'maintenance',
+    icon: <ToolOutlined />,
+    label: '维修管理',
+    structuralRoles: ['merchant_admin', 'site_admin', 'site_member'],
+    children: [
+      { key: '/maintenance/workers', label: '师傅管理', functionalRoles: ['inventory_mgr', 'default'] },
+      { key: '/maintenance/sessions', label: '会话管理', functionalRoles: ['front_desk', 'repair_tech', 'default'] }
+    ]
+  },
+  {
+    key: 'inventory',
+    icon: <AppstoreOutlined />,
+    label: '库存监控',
+    structuralRoles: ['merchant_admin', 'site_admin'],
+    children: [
+      { key: '/inventory/rent-setting', label: '租金设定', functionalRoles: ['inventory_mgr'] },
+      { key: '/warehouse', label: '库管工作台', functionalRoles: ['inventory_mgr'] }
+    ]
+  },
+  {
+    key: 'organization',
+    icon: <TeamOutlined />,
+    label: '组织管理',
+    structuralRoles: ['merchant_admin', 'site_admin'],
+    children: [
+      { key: '/organization/sites', label: '网点管理', functionalRoles: null },
+      { key: '/merchants', label: '商户管理', functionalRoles: null },
+      { key: '/staff', label: '人员管理', functionalRoles: null }
+    ]
+  },
+  {
+    key: 'system',
+    icon: <SettingOutlined />,
+    label: '系统管理',
+    structuralRoles: ['system_admin'],
+    children: [
+      { key: '/system/clients', label: '客户端管理', functionalRoles: null },
+      { key: '/system/tenants', label: '租户管理', functionalRoles: null },
+      { key: '/appeals', label: '申诉处理', functionalRoles: null }
+    ]
   }
+]
 
-  const selectedKeys = [location.pathname]
+function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
+  if (!businessRole) return []
+  
+  return menuItems
+    .filter(item => item.structuralRoles.includes(businessRole))
+    .map(item => ({
+      ...item,
+      children: item.children?.map(child => {
+        if (!child.functionalRoles || child.functionalRoles.length === 0) return child
+        if (child.functionalRoles.includes('default') && functionalRoles.length === 0) return child
+        const hasMatch = child.functionalRoles.some(r => functionalRoles.includes(r) || r === 'default')
+        return hasMatch ? child : null
+      }).filter(Boolean)
+    }))
+}
+
+  const businessRole = userInfo?.businessRole || 'site_member'
+  const functionalRoles = userInfo?.roles || []
+  const filteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
   
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
@@ -241,7 +261,7 @@ function MainLayout() {
           mode="inline"
           selectedKeys={selectedKeys}
           defaultOpenKeys={openKeys}
-          items={items}
+          items={filteredItems}
           onClick={onMenuClick}
           style={{ backgroundColor: BRAND_COLOR }}
         />
