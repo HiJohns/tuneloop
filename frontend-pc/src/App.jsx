@@ -6,7 +6,10 @@ import {
   ShoppingOutlined,
   SettingOutlined,
   LogoutOutlined,
-  UserOutlined
+  UserOutlined,
+  ToolOutlined,
+  AppstoreOutlined,
+  TeamOutlined
 } from '@ant-design/icons'
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
@@ -171,7 +174,7 @@ function MainLayout() {
     key: 'system',
     icon: <SettingOutlined />,
     label: '系统管理',
-    structuralRoles: ['system_admin'],
+    structuralRoles: ['system_admin', 'merchant_admin'],
     children: [
       { key: '/system/clients', label: '客户端管理', functionalRoles: null },
       { key: '/system/tenants', label: '租户管理', functionalRoles: null },
@@ -200,6 +203,7 @@ function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
   const functionalRoles = userInfo?.roles || []
   const filteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
   
+  const selectedKeys = [location.pathname]
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
