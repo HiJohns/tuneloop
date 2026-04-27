@@ -199,6 +199,26 @@ function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
     }))
 }
 
+function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
+  if (!businessRole) return []
+  
+  return menuItems
+    .filter(item => item.structuralRoles.includes(businessRole))
+    .map(item => ({
+      ...item,
+      children: item.children?.map(child => {
+        if (!child.functionalRoles || child.functionalRoles.length === 0) return child
+        if (child.functionalRoles.includes('default') && functionalRoles.length === 0) return child
+        const hasMatch = child.functionalRoles.some(r => functionalRoles.includes(r) || r === 'default')
+        return hasMatch ? child : null
+      }).filter(Boolean)
+    }))
+}
+
+function onMenuClick(e) {
+  navigate(e.key)
+}
+
   const businessRole = userInfo?.businessRole || 'site_member'
   const functionalRoles = userInfo?.roles || []
   const filteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
