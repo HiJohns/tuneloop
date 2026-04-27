@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 type IAMClaims struct {
@@ -298,4 +299,63 @@ func GetBusinessRole(ctx context.Context) string {
 	}
 
 	return BusinessRoleSiteMember
+}
+
+func GetVisibleOrgIDs(ctx context.Context) ([]string, error) {
+	businessRole := GetBusinessRole(ctx)
+	orgID := GetOrgID(ctx)
+
+	if orgID == "" {
+		return nil, nil
+	}
+
+	switch businessRole {
+	case BusinessRoleSystemAdmin:
+		return nil, nil
+	case BusinessRoleSiteMember:
+		return []string{orgID}, nil
+	default:
+		return getOrgDescendants(ctx, orgID)
+	}
+}
+
+func getOrgDescendants(ctx context.Context, orgID string) ([]string, error) {
+	db := database.GetDB().WithContext(ctx)
+
+	type orgResult struct {
+		ID string
+	}
+
+	var results []orgResult
+
+	err := db.Table("merchants").
+		Select("id").
+		Where("parent_id = ?", orgID).
+		Find(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	orgIDs := []string{orgID}
+	for _, r := range results {
+		childIDs, err := getOrgDescendants(ctx, r.ID)
+		if err != nil {
+			return nil, err
+		}
+		orgIDs = append(orgIDs, childIDs...)
+	}
+
+	return orgIDs, nil
+}
+
+func ApplyOrgScope(db *gorm.DB, ctx context.Context) (*gorm.DB, error) {
+	orgIDs, err := GetVisibleOrgIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if orgIDs == nil {
+		return db, nil
+	}
+	return db.Where("org_id IN ?", orgIDs), nil
 }

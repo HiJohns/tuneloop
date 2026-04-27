@@ -33,7 +33,12 @@ func (h *SiteHandler) ListSites(c *gin.Context) {
 
 	query := db.Model(&models.Site{}).Where("tenant_id = ?", tenantID)
 
-	if city := c.Query("city"); city != "" {
+	// Apply org scope for data isolation (site_member only sees their org)
+	if scopedDB, err := middleware.ApplyOrgScope(query, c.Request.Context()); err == nil {
+		query = scopedDB
+	}
+
+	if status := c.Query("status"); status != "" {
 		// Note: city filter would require city field in Site model
 		// Skipping for now as not in current model
 	}
