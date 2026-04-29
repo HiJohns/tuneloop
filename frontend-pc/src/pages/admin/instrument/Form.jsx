@@ -1005,7 +1005,16 @@ const loadCategoryChildren = async (node) => {
                 <Col span={12} key={prop.id}>
                   <Form.Item
                     name={`prop_${prop.id}`}
-                    label={prop.name}
+                    label={
+                      <div>
+                        {prop.name}
+                        {prop.description && (
+                          <div style={{ fontSize: '12px', color: '#8c8c8c', fontWeight: 'normal' }}>
+                            ({prop.description})
+                          </div>
+                        )}
+                      </div>
+                    }
                     required={prop.is_required}
                   >
                     <Select 

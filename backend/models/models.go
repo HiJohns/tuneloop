@@ -271,6 +271,7 @@ type Property struct {
 	IsRequired   bool      `gorm:"default:false" json:"is_required"`
 	Unit         string    `gorm:"type:varchar(50)" json:"unit"`
 	Caption      string    `gorm:"type:varchar(100);not null" json:"caption"`
+	Description  string    `gorm:"type:text" json:"description"`
 	Status       string    `gorm:"type:varchar(20);default:'active';not null" json:"status"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`

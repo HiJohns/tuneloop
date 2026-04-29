@@ -80,6 +80,7 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		Name         string   `json:"name" binding:"required"`
 		PropertyType string   `json:"property_type" binding:"required"`
 		Unit         string   `json:"unit"`
+		Description  string   `json:"description"`
 		Options      []string `json:"options"`
 	}
 
@@ -111,6 +112,7 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		Name:         req.Name,
 		PropertyType: req.PropertyType,
 		Unit:         req.Unit,
+		Description:  req.Description,
 		TenantID:     tenantID,
 	}
 
@@ -155,6 +157,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 		Name         string   `json:"name" binding:"required"`
 		PropertyType string   `json:"property_type" binding:"required"`
 		Unit         string   `json:"unit"`
+		Description  string   `json:"description"`
 		Options      []string `json:"options"`
 	}
 
@@ -196,6 +199,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 	property.Name = req.Name
 	property.PropertyType = req.PropertyType
 	property.Unit = req.Unit
+	property.Description = req.Description
 
 	if err := db.Save(&property).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

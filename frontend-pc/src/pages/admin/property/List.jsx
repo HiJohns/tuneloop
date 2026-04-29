@@ -74,6 +74,7 @@ export default function PropertyList() {
         name: values.name,
         property_type: values.property_type,
         unit: values.unit || '',
+        description: values.description || '',
         min_value: values.min_value || null,
         max_value: values.max_value || null,
         options: optionsList.length > 0 ? optionsList : [],
@@ -147,10 +148,12 @@ export default function PropertyList() {
       title: '属性名称',
       dataIndex: 'name',
       key: 'name',
+      width: 120,
     },
     {
-      title: '说明',
-      key: 'description',
+      title: '类型',
+      key: 'property_type',
+      width: 80,
       render: (_, record) => {
         const { property_type, unit } = record
         
@@ -158,7 +161,7 @@ export default function PropertyList() {
           return '文本'
         } else if (property_type === 'int' || property_type === 'float') {
           if (unit) {
-            return `单位：${unit}`
+            return `数字(${unit})`
           } else {
             return '数字'
           }
@@ -170,8 +173,15 @@ export default function PropertyList() {
       },
     },
     {
+      title: '说明',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+    },
+    {
       title: '操作',
       key: 'action',
+      width: 80,
       render: (_, record) => (
         <Space>
           <Button 
@@ -307,6 +317,15 @@ export default function PropertyList() {
               <Option value="date">日期</Option>
               <Option value="time">时间</Option>
             </Select>
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="属性说明"
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="请输入该属性的填写说明（选填）"
+            />
           </Form.Item>
           <Form.Item shouldUpdate>
             {() => {
