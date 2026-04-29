@@ -101,12 +101,12 @@ const InlineUserSelector = ({
     onChange(selectedUsers.filter((u) => u.id !== userId));
   };
 
-  const checkFieldUniqueness = async (field, val) => {
-    if (!val) return;
-    try {
-      const response = await api.get('/api/users/check', {
-        params: field === 'email' ? { email: val } : field === 'phone' ? { phone: val } : {},
-      });
+	const checkFieldUniqueness = async (field, val) => {
+		if (!val) return;
+		try {
+			const response = await api.get('/users/check', {
+				params: field === 'email' ? { email: val } : field === 'phone' ? { phone: val } : {},
+			});
 
       if (response.data.code === 20000 && response.data.data.exists) {
         const user = response.data.data.user;
