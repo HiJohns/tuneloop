@@ -103,6 +103,10 @@ const InlineUserSelector = ({
 
 	const checkFieldUniqueness = async (field, val) => {
 		if (!val) return;
+		// Bug 3 fix: Skip API call for name field (backend only supports email/phone)
+		if (field === 'name') {
+			return { conflict: false };
+		}
 		try {
 			const response = await api.get('/users/check', {
 				params: field === 'email' ? { email: val } : field === 'phone' ? { phone: val } : {},
@@ -212,19 +216,8 @@ const InlineUserSelector = ({
     if (formErrors.email?.conflict || formErrors.phone?.conflict) {
       return false;
     }
-    return true;
+	return true;
   };
-
-  // Auto-add user when form is complete and valid
-  useEffect(() => {
-    if (activeTab === 'create' && isFormCompleteAndValid()) {
-      // Small delay to avoid immediate trigger during typing
-      const timer = setTimeout(() => {
-        handleCreateUser();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [createName, createEmail, createPhone, formErrors, activeTab]);
 
   const hasUnassociatedUsers = selectedUsers.some((u) => !u.associated);
 
@@ -315,13 +308,17 @@ const InlineUserSelector = ({
                 showIcon
                 style={{ marginTop: 4 }}
               />
-            )}
+		    )}
           </div>
 
-          <div style={{ marginTop: 8, padding: 8, backgroundColor: '#f6ffed', borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: '#52c41a' }}>
-              填写完成后将自动添加用户
-            </div>
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              type="primary"
+              onClick={handleCreateUser}
+              disabled={!isFormCompleteAndValid()}
+            >
+              添加
+            </Button>
           </div>
         </div>
       ),
