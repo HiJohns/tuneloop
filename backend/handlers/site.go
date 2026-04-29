@@ -317,6 +317,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20000,
 		"data": gin.H{
+			"id":           site.ID,
 			"site":         site,
 			"iam_org_id":   siteOrgID,
 			"iam_admin_id": orgResp.AdminID,
