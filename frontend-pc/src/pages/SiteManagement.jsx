@@ -5,7 +5,7 @@ import { sitesApi } from '../services/api'
 import { api } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
-import UserSelectionDialog from '../components/UserSelectionDialog'
+import InlineUserSelector from '../components/InlineUserSelector'
 
 const { Option } = Select
 
@@ -17,7 +17,6 @@ export default function SiteManagement() {
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
   const [managerInfo, setManagerInfo] = useState({ name: '', id: null, email: '', phone: '' })
-  const [managerInput, setManagerInput] = useState('')  // Add state for the input field
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
   const [createUserForm] = Form.useForm()
   const [viewMode, setViewMode] = useState('detail') // 'detail' | 'form'
@@ -26,7 +25,7 @@ export default function SiteManagement() {
   const [lookupError, setLookupError] = useState({ message: '', visible: false })
   const [expandedKeys, setExpandedKeys] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
-  const [userDialogVisible, setUserDialogVisible] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
 
   useEffect(() => {
     fetchSiteTree()
@@ -51,6 +50,24 @@ export default function SiteManagement() {
     } finally {
       setLoading(false)
       Logger.state('SiteManagement', { status: 'fetchSiteTree', action: 'END' })
+    }
+  }
+
+  const handleSyncFromIAM = async () => {
+    setSyncLoading(true)
+    try {
+      const result = await api.post('/api/iam/organizations/sync')
+      if (result.code === 20000) {
+        message.success(`同步成功：新增 ${result.data.synced} 个组织，跳过 ${result.data.skipped} 个`)
+        // Refresh the tree after sync
+        await fetchSiteTree()
+      } else {
+        message.error('同步失败：' + (result.message || '未知错误'))
+      }
+    } catch (err) {
+      message.error('同步失败：' + err.message)
+    } finally {
+      setSyncLoading(false)
     }
   }
 
@@ -115,7 +132,6 @@ export default function SiteManagement() {
     setFormMode('create')
     form.resetFields()
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
-    setManagerInput('')
     setViewMode('form')
     setLookupError({ message: '', visible: false })
   }
@@ -130,7 +146,6 @@ export default function SiteManagement() {
     setFormMode('create')
     form.resetFields()
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
-    setManagerInput('')
     setViewMode('form')
     setLookupError({ message: '', visible: false })
   }
@@ -148,63 +163,28 @@ export default function SiteManagement() {
         email: selectedSite.manager.email || '',
         phone: selectedSite.manager.phone || ''
       })
-      setManagerInput(selectedSite.manager.email || selectedSite.manager.phone || '')
     } else {
       setManagerInfo({ name: '', id: null, email: '', phone: '' })
-      setManagerInput('')
     }
     setViewMode('form')
     setLookupError({ message: '', visible: false })
   }
 
-  const handleUserSelectFromDialog = (selectedUsers) => {
-    if (!selectedUsers || selectedUsers.length === 0) return
-    
-    // Take the first user from the list (site manager typically only needs one)
-    const firstUser = selectedUsers[0]
-    setManagerInfo({
-      name: firstUser.name || firstUser.user_name,
-      id: firstUser.user_id || firstUser.id,
-      email: firstUser.email || firstUser.user_email || '',
-      phone: firstUser.phone || ''
-    })
-    setManagerInput(firstUser.email || firstUser.user_email || firstUser.phone || '')
-    setUserDialogVisible(false)
-    form.setFieldsValue({ manager_id: firstUser.user_id || firstUser.id })
-  }
-
-  const handleCreateUser = async () => {
-    try {
-      const values = await createUserForm.validateFields()
-      setSaving(true)
-      
-      const result = await api.post('/iam/users', {
-        email: values.email,
-        phone: values.phone,
-        name: values.name,
-        role: 'site_manager',  // 添加角色字段
-        password: values.password || undefined,
-      })
-
-      if (result.code === 20000 && result.data) {
-        message.success('IAM用户创建成功')
-        const user = result.data
-        setManagerInfo({ name: user.name, id: user.id })
-        form.setFieldsValue({ manager_id: user.id })
-        setCreateUserModalVisible(false)
-        createUserForm.resetFields()
-        
-        // 自动提交网点创建请求
-        await handleSubmit()
-      } else {
-        message.error('创建失败：' + (result.message || '未知错误'))
-      }
-    } catch (err) {
-      if (err.errorFields) return
-      message.error('创建失败：' + err.message)
-    } finally {
-      setSaving(false)
+  const handleManagerChange = (users) => {
+    if (!users || users.length === 0) {
+      setManagerInfo({ name: '', id: null, email: '', phone: '' })
+      form.setFieldsValue({ manager_id: null })
+      return
     }
+    const user = users[0]
+    setManagerInfo({
+      name: user.name || user.user_name,
+      id: user.user_id || user.id,
+      email: user.email || user.user_email || '',
+      phone: user.phone || '',
+      isNew: user.isNew || false,
+    })
+    form.setFieldsValue({ manager_id: user.user_id || user.id })
   }
 
   const handleDelete = async () => {
@@ -225,69 +205,26 @@ export default function SiteManagement() {
       
       Logger.state('SiteManagement', { action: 'handleSubmit', editingSite, values })
       
-      let managerData = managerInfo
+      // Check if manager is a new user (created via InlineUserSelector)
+      const isNewUser = managerInfo.isNew || false
       
-      // 获取 manager_id 值（优先使用 form 值，回退到 managerInput）
-      const managerIdValue = values.manager_id || managerInput
-      
-      // 如果填写了 manager_id 但 managerInfo.id 为 null，需要验证
-      // 添加检查：如果 identifier 是 UUID 格式，跳过验证（因为 lookup 不支持 ID 查询）
-      const isUUID = managerIdValue && managerIdValue.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-      
-      if (managerIdValue && !managerInfo.id && !isUUID) {
-        setLookupLoading(true)
-        setLookupError({ message: '', visible: false })
-        
-        try {
-          const lookupIdentifier = managerIdValue
-          const result = await api.get(`/iam/users/lookup?identifier=${encodeURIComponent(lookupIdentifier)}`)
-          
-          if (result.code === 20000 && result.data) {
-            // 用户存在，更新 managerInfo（用于显示）
-            const user = result.data
-            managerData = {
-              name: user.name || user.username || lookupIdentifier,
-              id: user.id,
-              email: user.email || '',
-              phone: user.phone || ''
-            }
-            setManagerInfo(managerData)
-            message.success(`已找到用户：${user.name || user.username}`)
-          } else if (result.code === 40400) {
-            // 用户不存在，显示错误指示
-            setLookupError({
-              message: '此用户不存在',
-              visible: true
-            })
-            setLookupLoading(false)
-            return // 阻止表单提交
-          }
-        } catch (lookupErr) {
-          Logger.error('SITE', 'Lookup error:', lookupErr)
-          message.error('用户查询失败：' + lookupErr.message)
-          setLookupLoading(false)
-          return
-        } finally {
-          setLookupLoading(false)
-        }
-      } else if (isUUID) {
-        // 如果 identifier 是 UUID，直接使用（已经拥有用户 ID）
-        managerData = {
-          ...managerInfo,
-          id: managerIdValue
-        }
-      }
-      
-      // 继续原有的创建/更新逻辑
-      Logger.log('SITE', 'Creating siteData with managerData:', managerData)
       const siteData = {
         name: values.name,
         address: values.address || '',
         type: values.type || '',
         phone: values.phone || '',
         parent_id: editingSite?.parent_id,
-        manager_id: managerData.id || null,
       }
+      
+      // If new user, pass admin info instead of manager_id
+      if (isNewUser && managerInfo.name && managerInfo.email) {
+        siteData.admin_name = managerInfo.name
+        siteData.admin_email = managerInfo.email
+        siteData.admin_phone = managerInfo.phone || ''
+      } else {
+        siteData.manager_id = managerInfo.id || null
+      }
+      
       Logger.log('SITE', 'siteData:', siteData)
       
       setSaving(true)
@@ -301,16 +238,14 @@ export default function SiteManagement() {
         Logger.log('SITE', 'Create mode - creating site')
         const result = await sitesApi.create(siteData)
         
-        // 如果是创建模式，自动选中新建的网点
         if (result.data?.id) {
           Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
           await refreshAndSelectTreeNode(result.data.id)
           
-          // 设置选中的网点详情
           const newSite = { 
             id: result.data.id, 
             ...siteData,
-            manager: managerData.id ? { id: managerData.id, name: managerData.name } : null
+            manager: managerInfo.id ? { id: managerInfo.id, name: managerInfo.name } : null
           }
           setSelectedSite(newSite)
           setViewMode('detail')
@@ -319,7 +254,6 @@ export default function SiteManagement() {
         }
       }
       
-      // 重置状态
       setManagerInfo({ name: '', id: null, email: '', phone: '' })
       setLookupError({ message: '', visible: false })
       form.resetFields()
@@ -360,9 +294,26 @@ export default function SiteManagement() {
           title="网点结构" 
           className="w-1/3"
           extra={
-            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreateTopLevel}>
-              创建顶级网点
-            </Button>
+            <Space>
+              <Button 
+                type="primary" 
+                size="small" 
+                icon={<PlusOutlined />} 
+                onClick={handleCreateTopLevel}
+              >
+                创建顶级网点
+              </Button>
+              <Button 
+                type="default" 
+                size="small" 
+                onClick={handleSyncFromIAM}
+                loading={syncLoading}
+                disabled={syncLoading}
+                title="从 IAM 同步组织数据"
+              >
+                从 IAM 同步
+              </Button>
+            </Space>
           }
         >
           {treeData.length === 0 ? (
@@ -471,7 +422,7 @@ export default function SiteManagement() {
                 </Space>
               }
             >
-              <Form form={form} layout="vertical" data-testid="site-form">
+              <Form form={form} layout="vertical" data-testid="site-form" onFinish={handleSubmit}>
                 <Form.Item
                   name="name"
                   label="网点名称"
@@ -520,21 +471,22 @@ export default function SiteManagement() {
                       {managerInfo.email && <span style={{ color: '#999' }}>({managerInfo.email})</span>}
                       <Button
                         type="link"
-                        onClick={() => setUserDialogVisible(true)}
+                        onClick={() => {
+                          setManagerInfo({ name: '', id: null, email: '', phone: '' })
+                          form.setFieldsValue({ manager_id: null })
+                        }}
                         data-testid="site-form-change-manager"
                       >
                         更换
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      type="dashed"
-                      icon={<TeamOutlined />}
-                      onClick={() => setUserDialogVisible(true)}
-                      data-testid="site-form-select-manager"
-                    >
-                      选择负责人
-                    </Button>
+                    <InlineUserSelector
+                      mode="single"
+                      merchantId="current-merchant-id"
+                      value={[]}
+                      onChange={handleManagerChange}
+                    />
                   )}
                 </Form.Item>
               </Form>
@@ -542,66 +494,6 @@ export default function SiteManagement() {
           )}
         </div>
       </div>
-
-      <UserSelectionDialog
-        visible={userDialogVisible}
-        onClose={() => setUserDialogVisible(false)}
-        onConfirm={handleUserSelectFromDialog}
-        merchantId="current-merchant-id"
-        title="选择网点管理员"
-      />
-
-      <Modal
-        title="创建IAM用户"
-        open={createUserModalVisible}
-        onCancel={() => {
-          setCreateUserModalVisible(false)
-          createUserForm.resetFields()
-        }}
-        onOk={handleCreateUser}
-        confirmLoading={saving}
-        width={500}
-      >
-        <Form form={createUserForm} layout="vertical" data-testid="create-user-form">
-          <Form.Item
-            name="phone"
-            label="手机号"
-            rules={[]}
-            data-testid="create-user-form-phone"
-          >
-            <Input placeholder="请输入手机号（选填）" />
-          </Form.Item>
-          <Form.Item
-            name="name"
-            label="姓名"
-            rules={[{ required: true, message: '请输入姓名' }]}
-            data-testid="create-user-form-name"
-          >
-            <Input placeholder="请输入姓名" />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="邮箱"
-            rules={[
-              { type: 'email', message: '请输入有效的邮箱地址' },
-              { required: true, message: '请输入邮箱' }
-            ]}
-            data-testid="create-user-form-email"
-          >
-            <Input placeholder="请输入邮箱" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            label="密码"
-            data-testid="create-user-form-password"
-          >
-            <Input.Password placeholder="留空则使用默认密码" />
-          </Form.Item>
-          <p style={{ color: '#999', fontSize: '12px' }}>
-            该用户将自动加入当前租户组织
-          </p>
-        </Form>
-      </Modal>
     </div>
   )
 }

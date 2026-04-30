@@ -1163,6 +1163,104 @@ const UserList: React.FC = () => {
 
 ---
 
+### 3.10 IAM 同步按钮 (IAM Sync Button)
+
+#### 3.10.1 网点管理 - IAM 组织同步按钮
+
+**位置**: `src/pages/SiteManagement.jsx` 页面头部
+
+**按钮文案**: "从 IAM 同步组织"
+
+**权限控制**:
+- 仅对 `role === 'ADMIN'` 或 `role === 'OWNER'` 的用户可见
+- 无权限用户不渲染此按钮
+
+**交互流程**:
+```javascript
+// 点击 handler
+const handleSyncFromIAM = async () => {
+  setSyncLoading(true);
+  try {
+    const response = await api.post('/api/iam/organizations/sync');
+    if (response.code === 20000) {
+      message.success(`同步成功：新增 ${response.data.synced} 个组织`);
+      // 重新加载网点树
+      fetchSiteTree();
+    }
+  } catch (error) {
+    message.error('同步失败：' + error.message);
+  } finally {
+    setSyncLoading(false);
+  }
+};
+```
+
+**UI 状态**:
+- **默认**: "从 IAM 同步组织" (Button type="primary")
+- **加载中**: 显示 `<Spin />` 图标 + "同步中..." (按钮 disabled)
+- **成功**: message.success + 自动刷新列表
+- **失败**: message.error
+
+**视觉设计**:
+```jsx
+<Button 
+  type="primary" 
+  icon={<CloudSyncOutlined />}
+  onClick={handleSyncFromIAM}
+  loading={syncLoading}
+  disabled={!isAdminOrOwner}
+>
+  从 IAM 同步组织
+</Button>
+```
+
+---
+
+### 3.10.2 人员管理 - IAM 用户同步按钮
+
+**位置**: `src/pages/StaffManagement.jsx` 页面头部（或用户管理页面）
+
+**按钮文案**: "从 IAM 同步用户"
+
+**权限控制**:
+- 仅对 `role === 'ADMIN'` 或 `role === 'OWNER'` 的用户可见
+
+**交互流程**:
+```javascript
+const handleSyncUsersFromIAM = async () => {
+  setSyncLoading(true);
+  try {
+    const response = await api.post('/api/iam/users/sync');
+    if (response.code === 20000) {
+      message.success(`同步成功：新增 ${response.data.synced} 个用户`);
+      // 重新加载用户列表
+      fetchUsers();
+    }
+  } catch (error) {
+    message.error('同步失败：' + error.message);
+  } finally {
+    setSyncLoading(false);
+  }
+};
+```
+
+**UI 状态**: 同 3.10.1
+
+**视觉设计**:
+```jsx
+<Button 
+  type="primary" 
+  icon={<UserAddOutlined />}
+  onClick={handleSyncUsersFromIAM}
+  loading={syncLoading}
+  disabled={!isAdminOrOwner}
+>
+  从 IAM 同步用户
+</Button>
+```
+
+---
+
 ## 四、原子组件设计 (Atomic Design)
 
 ### 4.1 基础组件清单

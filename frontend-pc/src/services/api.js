@@ -298,6 +298,11 @@ export const sitesApi = {
   getTree: (rootId) => api.get(rootId ? `/sites/tree?root=${rootId}` : '/sites/tree'),
 }
 
+export const iamApi = {
+  syncOrganizations: () => api.post('/api/iam/organizations/sync'),
+  syncUsers: () => api.post('/api/iam/users/sync'),
+}
+
 export const staffApi = {
   list: (params) => api.get('/staff', { params }),
   getMe: () => api.get('/users/me'),

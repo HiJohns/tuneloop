@@ -207,6 +207,64 @@
 }
 ```
 
+#### 2.5.3 同步 IAM 组织
+
+**接口**: `POST /api/iam/organizations/sync`
+
+**说明**: 手动触发从 IAM 同步组织列表到本地 sites 表
+
+**权限**: ADMIN, OWNER
+
+**请求 Body**: 无
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "synced": 3,
+    "skipped": 1,
+    "conflicts": 0
+  },
+  "message": "success"
+}
+```
+
+**字段说明**:
+- `synced`: 成功同步的组织数量
+- `skipped`: 跳过的组织数量（已存在且一致）
+- `conflicts`: 发生冲突的数量（IAM 与本地数据不一致，IAM 数据优先）
+
+---
+
+#### 2.5.4 同步 IAM 用户
+
+**接口**: `POST /api/iam/users/sync`
+
+**说明**: 手动触发从 IAM 同步用户列表到本地 users 表
+
+**权限**: ADMIN, OWNER
+
+**请求 Body**: 无
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "synced": 5,
+    "skipped": 2,
+    "conflicts": 0
+  },
+  "message": "success"
+}
+```
+
+**字段说明**:
+- `synced`: 成功同步的用户数量
+- `skipped`: 跳过的用户数量（已存在且一致）
+- `conflicts`: 发生冲突的数量（IAM 与本地数据不一致，IAM 数据优先）
+
 ---
 
 ## 三、白标化配置模块

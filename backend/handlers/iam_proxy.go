@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type IAMProxyHandler struct {
@@ -644,5 +645,168 @@ func (h *IAMProxyHandler) ListOrganizations(c *gin.Context) {
 		"code":    20000,
 		"data":    gin.H{"list": orgs},
 		"message": "success",
+	})
+}
+
+// POST /api/iam/organizations/sync
+func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
+	client := services.NewIAMClient()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	operatorID := middleware.GetUserID(ctx)
+
+	// Log sync operation for audit
+	log.Printf("[IAMProxy] SyncOrganizations triggered by operator: %s, tenant: %s", operatorID, tenantID)
+
+	// Fetch organizations from IAM
+	orgs, err := client.ListOrganizations()
+	if err != nil {
+		log.Printf("[IAMProxy] SyncOrganizations: failed to list from IAM: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch organizations from IAM: " + err.Error(),
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+	var synced, skipped, conflicts int
+
+	// Upsert each organization into sites table
+	for _, org := range orgs {
+		// Check if site already exists by org_id
+		var existingSite models.Site
+		err := db.Where("org_id = ?", org.ID).First(&existingSite).Error
+
+		if err == gorm.ErrRecordNotFound {
+			// Create new site
+			site := models.Site{
+				ID:       uuid.New().String(),
+				Name:     org.Name,
+				OrgID:    org.ID,
+				TenantID: tenantID,
+				Status:   "active",
+			}
+			if err := db.Create(&site).Error; err != nil {
+				log.Printf("[IAMProxy] SyncOrganizations: failed to create site %s: %v", org.Name, err)
+				conflicts++
+			} else {
+				synced++
+			}
+		} else if err == nil {
+			// Site exists - update if different (IAM wins on conflict)
+			if existingSite.Name != org.Name {
+				if err := db.Model(&existingSite).Update("name", org.Name).Error; err != nil {
+					log.Printf("[IAMProxy] SyncOrganizations: failed to update site %s: %v", org.Name, err)
+					conflicts++
+				} else {
+					synced++
+				}
+			} else {
+				// No change needed
+				skipped++
+			}
+		} else {
+			log.Printf("[IAMProxy] SyncOrganizations: error checking existing site: %v", err)
+			conflicts++
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "sync completed",
+		"data": gin.H{
+			"synced":    synced,
+			"skipped":   skipped,
+			"conflicts": conflicts,
+		},
+	})
+}
+
+// POST /api/iam/users/sync
+func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
+	client := services.NewIAMClient()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	// Fetch users from IAM
+	users, err := client.ListUsers()
+	if err != nil {
+		log.Printf("[IAMProxy] SyncUsers: failed to list from IAM: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch users from IAM: " + err.Error(),
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+	var synced, skipped, conflicts int
+
+	// Upsert each user
+	for _, user := range users {
+		var existingUser models.User
+		err := db.Where("iam_sub = ?", user.ID).Or("email = ?", user.Email).First(&existingUser).Error
+
+		if err == gorm.ErrRecordNotFound {
+			// Create new shadow user
+			newUser := models.User{
+				ID:       uuid.New().String(),
+				IAMSub:   user.ID,
+				Name:     user.Name,
+				Email:    user.Email,
+				Phone:    user.Phone,
+				TenantID: tenantID,
+				IsShadow: true,
+				Status:   "active",
+			}
+			if err := db.Create(&newUser).Error; err != nil {
+				log.Printf("[IAMProxy] SyncUsers: failed to create user %s: %v", user.Name, err)
+				conflicts++
+			} else {
+				synced++
+			}
+		} else if err == nil {
+			// User exists - update if different (IAM wins)
+			needsUpdate := false
+			updates := map[string]interface{}{}
+
+			if existingUser.Name != user.Name {
+				updates["name"] = user.Name
+				needsUpdate = true
+			}
+			if existingUser.Email != user.Email {
+				updates["email"] = user.Email
+				needsUpdate = true
+			}
+			if existingUser.Phone != user.Phone {
+				updates["phone"] = user.Phone
+				needsUpdate = true
+			}
+
+			if needsUpdate {
+				if err := db.Model(&existingUser).Updates(updates).Error; err != nil {
+					log.Printf("[IAMProxy] SyncUsers: failed to update user %s: %v", user.Name, err)
+					conflicts++
+				} else {
+					synced++
+				}
+			} else {
+				skipped++
+			}
+		} else {
+			log.Printf("[IAMProxy] SyncUsers: error checking existing user: %v", err)
+			conflicts++
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "sync completed",
+		"data": gin.H{
+			"synced":    synced,
+			"skipped":   skipped,
+			"conflicts": conflicts,
+		},
 	})
 }

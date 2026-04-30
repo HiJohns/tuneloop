@@ -253,6 +253,16 @@ type Organization struct {
 	UpdatedAt   string  `json:"updated_at"`
 }
 
+// User represents an IAM user
+type User struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Status   string `json:"status"`
+}
+
 // ListOrganizations 获取命名空间下的所有组织
 func (c *IAMClient) ListOrganizations() ([]Organization, error) {
 	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", c.namespace)
@@ -287,6 +297,27 @@ type CreateUserRequest struct {
 type CreateUserResponse struct {
 	UserID string `json:"user_id"`
 	Status string `json:"status"`
+}
+
+// ListUsers gets all users from IAM
+func (c *IAMClient) ListUsers() ([]User, error) {
+	respBody, statusCode, err := c.doRequest("GET", "/api/v1/users", nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListUsers request failed: %w", err)
+	}
+
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("ListUsers returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Data []User `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse ListUsers response: %w", err)
+	}
+
+	return result.Data, nil
 }
 
 func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
