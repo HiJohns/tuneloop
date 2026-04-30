@@ -149,6 +149,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/iam/users/lookup", iamProxyHandler.LookupUser)
 		authRequired.GET("/iam/users/search", iamProxyHandler.SearchUsers)
 		authRequired.POST("/iam/users", iamProxyHandler.CreateUser)
+		authRequired.GET("/iam/organizations", iamProxyHandler.ListOrganizations)
 		authRequired.PUT("/iam/users/:id", iamProxyHandler.UpdateIAMUser)
 
 		// Confirmation Session routes

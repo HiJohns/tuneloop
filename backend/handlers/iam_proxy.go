@@ -616,3 +616,33 @@ func (h *IAMProxyHandler) InviteUserToMerchant(c *gin.Context) {
 		},
 	})
 }
+
+// GET /api/iam/organizations
+func (h *IAMProxyHandler) ListOrganizations(c *gin.Context) {
+	client := services.NewIAMClient()
+	// Make sure user is authenticated
+	userToken := services.ExtractUserToken(c)
+	if userToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40100,
+			"message": "authentication required",
+		})
+		return
+	}
+
+	orgs, err := client.ListOrganizations()
+	if err != nil {
+		log.Printf("[IAMProxy] ListOrganizations failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch organizations: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"data":    gin.H{"list": orgs},
+		"message": "success",
+	})
+}

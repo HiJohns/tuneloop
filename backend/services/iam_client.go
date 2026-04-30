@@ -242,6 +242,39 @@ func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganiz
 	return &result.Data, nil
 }
 
+type Organization struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	ParentID    *string `json:"parent_id"`
+	NamespaceID string  `json:"namespace_id"`
+	Status      string  `json:"status"`
+	Description string  `json:"description"`
+	CreatedAt   string  `json:"created_at"`
+	UpdatedAt   string  `json:"updated_at"`
+}
+
+// ListOrganizations 获取命名空间下的所有组织
+func (c *IAMClient) ListOrganizations() ([]Organization, error) {
+	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", c.namespace)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListOrganizations request failed: %w", err)
+	}
+
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("ListOrganizations returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Data []Organization `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse ListOrganizations response: %w", err)
+	}
+
+	return result.Data, nil
+}
+
 type CreateUserRequest struct {
 	Username    string `json:"username"`
 	Name        string `json:"name"`
