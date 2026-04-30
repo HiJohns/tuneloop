@@ -60,6 +60,7 @@ type PublicKeyResponse struct {
 type JWTClaims struct {
 	UserID      string   `json:"sub"`
 	TenantID    string   `json:"tid"`
+	OrgID       string   `json:"oid"` // Organization ID (IAM token format)
 	NamespaceID string   `json:"nid"`
 	Role        string   `json:"role"`
 	IsOwner     bool     `json:"is_owner"`
@@ -227,7 +228,7 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	}
 
 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
-		log.Printf("[ValidateToken] Token valid, sub=%s, tid=%s, role=%s", claims.Subject, claims.TenantID, claims.Role)
+		log.Printf("[ValidateToken] Token valid, sub=%s, tid=%s, oid=%s, role=%s", claims.Subject, claims.TenantID, claims.OrgID, claims.Role)
 		return claims, nil
 	}
 

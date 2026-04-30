@@ -116,7 +116,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 			return
 		}
 
-		log.Printf("[IAM DEBUG] Token validated, claims: sub=%s, tid=%s, role=%s, iss=%s", claims.Subject, claims.TenantID, claims.Role, claims.Issuer)
+		log.Printf("[IAM DEBUG] Token validated, claims: sub=%s, tid=%s, oid=%s, role=%s, iss=%s", claims.Subject, claims.TenantID, claims.OrgID, claims.Role, claims.Issuer)
 
 		issuerValid := false
 		for _, issuer := range validIssuers {
@@ -138,9 +138,14 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 			return
 		}
 
-		ctx := database.SetTenantID(c.Request.Context(), claims.TenantID)
-		ctx = context.WithValue(ctx, ContextKeyTenantID, claims.TenantID)
-		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.TenantID)
+		// Use tid (tenant_id) from token; fall back to oid (org_id) if tid is empty
+		tenantID := claims.TenantID
+		if tenantID == "" {
+			tenantID = claims.OrgID
+		}
+		ctx := database.SetTenantID(c.Request.Context(), tenantID)
+		ctx = context.WithValue(ctx, ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, ContextKeyOrgID, tenantID)
 		ctx = context.WithValue(ctx, ContextKeyNamespaceID, claims.NamespaceID)
 		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
