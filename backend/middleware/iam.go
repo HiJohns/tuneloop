@@ -20,6 +20,7 @@ type IAMClaims struct {
 	jwt.RegisteredClaims
 	Tid   string   `json:"tid"`
 	Oid   string   `json:"oid"`
+	Nid   string   `json:"nid"`
 	Role  string   `json:"role"`
 	Own   bool     `json:"own"`
 	Name  string   `json:"name"`
@@ -31,6 +32,7 @@ type ContextKey string
 const (
 	ContextKeyTenantID        ContextKey = "tenant_id"
 	ContextKeyOrgID           ContextKey = "org_id"
+	ContextKeyNamespaceID     ContextKey = "namespace_id"
 	ContextKeyUserID          ContextKey = "user_id"
 	ContextKeyRole            ContextKey = "role"
 	ContextKeyIsOwner         ContextKey = "is_owner"
@@ -139,6 +141,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx := database.SetTenantID(c.Request.Context(), claims.TenantID)
 		ctx = context.WithValue(ctx, ContextKeyTenantID, claims.TenantID)
 		ctx = context.WithValue(ctx, ContextKeyOrgID, claims.TenantID)
+		ctx = context.WithValue(ctx, ContextKeyNamespaceID, claims.NamespaceID)
 		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
@@ -237,6 +240,13 @@ func GetTenantID(ctx context.Context) string {
 func GetOrgID(ctx context.Context) string {
 	if oid, ok := ctx.Value(ContextKeyOrgID).(string); ok {
 		return oid
+	}
+	return ""
+}
+
+func GetNamespaceID(ctx context.Context) string {
+	if nid, ok := ctx.Value(ContextKeyNamespaceID).(string); ok {
+		return nid
 	}
 	return ""
 }

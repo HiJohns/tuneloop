@@ -58,11 +58,12 @@ type PublicKeyResponse struct {
 }
 
 type JWTClaims struct {
-	UserID   string   `json:"sub"`
-	TenantID string   `json:"tid"`
-	Role     string   `json:"role"`
-	IsOwner  bool     `json:"is_owner"`
-	Roles    []string `json:"roles"` // Functional roles
+	UserID      string   `json:"sub"`
+	TenantID    string   `json:"tid"`
+	NamespaceID string   `json:"nid"`
+	Role        string   `json:"role"`
+	IsOwner     bool     `json:"is_owner"`
+	Roles       []string `json:"roles"` // Functional roles
 	jwt.RegisteredClaims
 }
 

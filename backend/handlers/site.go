@@ -262,10 +262,11 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	userToken := services.ExtractUserToken(c)
 
 	iamReq := &services.CreateOrganizationRequest{
-		Name:       req.Name,
-		ParentID:   orgID,
-		Address:    req.Address,
-		OperatorID: middleware.GetUserID(c.Request.Context()),
+		Name:        req.Name,
+		ParentID:    orgID,
+		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
+		Address:     req.Address,
+		OperatorID:  middleware.GetUserID(c.Request.Context()),
 	}
 
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)

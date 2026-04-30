@@ -158,6 +158,7 @@ func (c *IAMClient) doRequestWithToken(method, path, token string, payload inter
 type CreateOrganizationRequest struct {
 	Name         string             `json:"name"`
 	ParentID     string             `json:"parent_id,omitempty"`
+	NamespaceID  string             `json:"namespace_id,omitempty"`
 	Address      string             `json:"address,omitempty"`
 	ContactPhone string             `json:"contact_phone,omitempty"`
 	AdminInfo    *OrganizationAdmin `json:"admin_info,omitempty"`

@@ -182,8 +182,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, &services.CreateOrganizationRequest{
-		Name:    input.Name,
-		Address: input.ContactName,
+		Name:        input.Name,
+		Address:     input.ContactName,
+		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
 		AdminInfo: &services.OrganizationAdmin{
 			Name:     adminName,
 			Username: adminName,
