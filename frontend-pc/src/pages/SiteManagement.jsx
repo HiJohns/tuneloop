@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined } from '@ant-design/icons'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
@@ -26,6 +26,7 @@ export default function SiteManagement() {
   const [selectedKeys, setSelectedKeys] = useState([])
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
+  const [searchText, setSearchText] = useState('')
 
   useEffect(() => {
     // Load user role from localStorage
@@ -84,6 +85,7 @@ export default function SiteManagement() {
   const convertToTreeNode = (site) => ({
     key: site.id,
     title: site.name,
+    icon: site.children && site.children.length > 0 ? <TeamOutlined /> : <EnvironmentOutlined />,
     data: site,
     // For dynamic loading, set empty children array so Tree shows expand icon
     // Actual children will be loaded via loadData when node is expanded
@@ -331,14 +333,28 @@ export default function SiteManagement() {
           {treeData.length === 0 ? (
             renderEmptyState()
           ) : (
-            <Tree
-              showIcon
-              treeData={treeData}
-              selectedKeys={selectedKeys}
-              expandedKeys={expandedKeys}
-              onSelect={onSelect}
-              onExpand={setExpandedKeys}
-              loadData={async (node) => {
+            <>
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="搜索网点"
+                allowClear
+                size="small"
+                style={{ marginBottom: 12 }}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              <Tree
+                showIcon
+                treeData={treeData}
+                selectedKeys={selectedKeys}
+                expandedKeys={expandedKeys}
+                onSelect={onSelect}
+                onExpand={setExpandedKeys}
+                filterTreeNode={(node) => {
+                  if (!searchText) return true
+                  return String(node.title).toLowerCase().includes(searchText.toLowerCase())
+                }}
+                loadData={async (node) => {
                 const children = await loadChildren(node.key)
                 const updateTree = (nodes) => {
                   return nodes.map(n => {
@@ -354,6 +370,7 @@ export default function SiteManagement() {
                 setTreeData(updateTree(treeData))
               }}
             />
+            </>
           )}
         </Card>
 
