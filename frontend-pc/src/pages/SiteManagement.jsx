@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined } from '@ant-design/icons'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
@@ -357,37 +357,40 @@ export default function SiteManagement() {
           )}
         </Card>
 
-        <div className="w-2/3">
-          {viewMode === 'detail' && (
-            <Card 
-              title="网点详情" 
-              extra={
-                selectedSite && (
-                  <Space>
-                    <Button icon={<PlusOutlined />} onClick={handleCreateSubSite}>
-                      创建下级网点
-                    </Button>
-                    <Button icon={<EditOutlined />} onClick={handleEdit}>
-                      编辑
-                    </Button>
+        <div className="flex-1">
+          {viewMode === 'detail' && selectedSite ? (
+            <>
+              <Card className="mb-4">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Space align="center" wrap>
+                      <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{selectedSite.name}</h2>
+                      {selectedSite.type && <Tag color="blue">{selectedSite.type}</Tag>}
+                    </Space>
+                    <Descriptions style={{ marginTop: 8 }} column={2} size="small" colon={false}>
+                      <Descriptions.Item label={<><EnvironmentOutlined /> 地址</>}>{selectedSite.address || '-'}</Descriptions.Item>
+                      <Descriptions.Item label={<><UserOutlined /> 负责人</>}>{selectedSite.manager?.name || '-'}</Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                  <Space wrap>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateSubSite}>创建下级网点</Button>
+                    <Button icon={<EditOutlined />} onClick={handleEdit}>编辑</Button>
                     <Popconfirm
                       title="确定要删除该网点吗？"
                       onConfirm={handleDelete}
                       okText="确定"
                       cancelText="取消"
                     >
-                      <Button danger icon={<DeleteOutlined />}>
-                        删除
-                      </Button>
+                      <Button danger icon={<DeleteOutlined />}>删除</Button>
                     </Popconfirm>
                   </Space>
-                )
-              }
-            >
-              {selectedSite ? (
+                </div>
+              </Card>
+
+              <Card>
                 <Tabs defaultActiveKey="info">
                   <Tabs.TabPane tab="基本信息" key="info">
-                    <Descriptions column={2} bordered>
+                    <Descriptions column={2} bordered size="small">
                       <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
                       <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
                       <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
@@ -407,11 +410,11 @@ export default function SiteManagement() {
                     />
                   </Tabs.TabPane>
                 </Tabs>
-              ) : (
-                <Empty description="请选择左侧网点查看详情" />
-              )}
-            </Card>
-          )}
+              </Card>
+            </>
+          ) : viewMode === 'detail' && !selectedSite ? (
+            <Empty description="请选择左侧网点查看详情" />
+          ) : null}
           
           {viewMode === 'form' && (
             <Card 

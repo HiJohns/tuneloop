@@ -263,9 +263,33 @@ type User struct {
 	Status   string `json:"status"`
 }
 
-// ListOrganizations 获取命名空间下的所有组织
+// getNamespaceID resolves namespace ID from name/client_id
+func (c *IAMClient) getNamespaceID() (string, error) {
+	path := fmt.Sprintf("/api/v1/namespaces/%s", c.namespace)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return "", fmt.Errorf("getNamespaceID request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return "", fmt.Errorf("getNamespaceID returned status %d: %s", statusCode, string(respBody))
+	}
+	var ns struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(respBody, &ns); err != nil {
+		return "", fmt.Errorf("failed to parse namespace response: %w", err)
+	}
+	return ns.ID, nil
+}
+
+// ListOrganizations gets all organizations under the configured namespace
 func (c *IAMClient) ListOrganizations() ([]Organization, error) {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", c.namespace)
+	nsID, err := c.getNamespaceID()
+	if err != nil {
+		return nil, fmt.Errorf("ListOrganizations: failed to resolve namespace: %w", err)
+	}
+
+	path := fmt.Sprintf("/api/v1/organizations?namespace_id=%s&page_size=1000", nsID)
 	respBody, statusCode, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("ListOrganizations request failed: %w", err)
@@ -276,13 +300,13 @@ func (c *IAMClient) ListOrganizations() ([]Organization, error) {
 	}
 
 	var result struct {
-		Data []Organization `json:"data"`
+		Organizations []Organization `json:"organizations"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse ListOrganizations response: %w", err)
 	}
 
-	return result.Data, nil
+	return result.Organizations, nil
 }
 
 type CreateUserRequest struct {
