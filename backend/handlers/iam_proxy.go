@@ -682,7 +682,10 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	var synced, skipped, conflicts int
 
-	// Upsert each organization into sites table
+	// Map: IAM org_id -> local site_id (used for parent resolution)
+	orgToSite := make(map[string]string)
+
+	// Pass 1: Upsert each organization into sites table (without parent_id)
 	for _, org := range orgs {
 		// Check if site already exists by org_id
 		var existingSite models.Site
@@ -700,25 +703,58 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 			if err := db.Create(&site).Error; err != nil {
 				log.Printf("[IAMProxy] SyncOrganizations: failed to create site %s: %v", org.Name, err)
 				conflicts++
-			} else {
-				synced++
+				continue
 			}
+			orgToSite[org.ID] = site.ID
+			synced++
 		} else if err == nil {
 			// Site exists - update if different (IAM wins on conflict)
 			if existingSite.Name != org.Name {
 				if err := db.Model(&existingSite).Update("name", org.Name).Error; err != nil {
 					log.Printf("[IAMProxy] SyncOrganizations: failed to update site %s: %v", org.Name, err)
 					conflicts++
-				} else {
-					synced++
+					continue
 				}
-			} else {
-				// No change needed
+			}
+			orgToSite[org.ID] = existingSite.ID
+			if existingSite.Name == org.Name {
 				skipped++
+			} else {
+				synced++
 			}
 		} else {
 			log.Printf("[IAMProxy] SyncOrganizations: error checking existing site: %v", err)
 			conflicts++
+		}
+	}
+
+	// Pass 2: Resolve parent_id for all orgs that have one
+	for _, org := range orgs {
+		if org.ParentID == nil || *org.ParentID == "" {
+			continue
+		}
+
+		// Find local site_id for the parent org
+		parentSiteID, ok := orgToSite[*org.ParentID]
+		if !ok {
+			// Parent not in this sync batch, try DB lookup
+			var parentSite models.Site
+			if err := db.Where("org_id = ?", *org.ParentID).First(&parentSite).Error; err == nil {
+				parentSiteID = parentSite.ID
+			} else {
+				log.Printf("[IAMProxy] SyncOrganizations: parent org %s not found for site %s", *org.ParentID, org.Name)
+				continue
+			}
+		}
+
+		parentUUID, err := uuid.Parse(parentSiteID)
+		if err != nil {
+			log.Printf("[IAMProxy] SyncOrganizations: invalid parent site ID %s: %v", parentSiteID, err)
+			continue
+		}
+
+		if err := db.Model(&models.Site{}).Where("org_id = ?", org.ID).Update("parent_id", parentUUID).Error; err != nil {
+			log.Printf("[IAMProxy] SyncOrganizations: failed to update parent_id for site %s: %v", org.Name, err)
 		}
 	}
 
