@@ -655,6 +655,16 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 	operatorID := middleware.GetUserID(ctx)
 
+	// Check permissions: only ADMIN or OWNER can sync
+	role := middleware.GetRole(ctx)
+	if role != "ADMIN" && role != "OWNER" {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40300,
+			"message": "insufficient permissions",
+		})
+		return
+	}
+
 	// Log sync operation for audit
 	log.Printf("[IAMProxy] SyncOrganizations triggered by operator: %s, tenant: %s", operatorID, tenantID)
 
@@ -728,6 +738,16 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 	client := services.NewIAMClient()
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
+
+	// Check permissions: only ADMIN or OWNER can sync
+	role := middleware.GetRole(ctx)
+	if role != "ADMIN" && role != "OWNER" {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40300,
+			"message": "insufficient permissions",
+		})
+		return
+	}
 
 	// Fetch users from IAM
 	users, err := client.ListUsers()

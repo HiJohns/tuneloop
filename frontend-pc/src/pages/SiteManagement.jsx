@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons'
-import { sitesApi } from '../services/api'
-import { api } from '../services/api'
+import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
 import InlineUserSelector from '../components/InlineUserSelector'
@@ -26,8 +25,19 @@ export default function SiteManagement() {
   const [expandedKeys, setExpandedKeys] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
   const [syncLoading, setSyncLoading] = useState(false)
+  const [userRole, setUserRole] = useState('')
 
   useEffect(() => {
+    // Load user role from localStorage
+    const userInfo = localStorage.getItem('user_info')
+    if (userInfo) {
+      try {
+        const info = JSON.parse(userInfo)
+        setUserRole(info.role || '')
+      } catch (e) {
+        setUserRole('')
+      }
+    }
     fetchSiteTree()
   }, [])
 
@@ -56,7 +66,7 @@ export default function SiteManagement() {
   const handleSyncFromIAM = async () => {
     setSyncLoading(true)
     try {
-      const result = await api.post('/api/iam/organizations/sync')
+      const result = await iamApi.syncOrganizations()
       if (result.code === 20000) {
         message.success(`同步成功：新增 ${result.data.synced} 个组织，跳过 ${result.data.skipped} 个`)
         // Refresh the tree after sync
@@ -303,16 +313,18 @@ export default function SiteManagement() {
               >
                 创建顶级网点
               </Button>
-              <Button 
-                type="default" 
-                size="small" 
-                onClick={handleSyncFromIAM}
-                loading={syncLoading}
-                disabled={syncLoading}
-                title="从 IAM 同步组织数据"
-              >
-                从 IAM 同步
-              </Button>
+              {(userRole === 'ADMIN' || userRole === 'OWNER' || userRole === 'admin' || userRole === 'owner') && (
+                <Button 
+                  type="default" 
+                  size="small" 
+                  onClick={handleSyncFromIAM}
+                  loading={syncLoading}
+                  disabled={syncLoading}
+                  title="从 IAM 同步组织数据"
+                >
+                  从 IAM 同步
+                </Button>
+              )}
             </Space>
           }
         >
