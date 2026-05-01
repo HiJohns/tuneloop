@@ -299,8 +299,8 @@ export const sitesApi = {
 }
 
 export const iamApi = {
-  syncOrganizations: () => api.post('/api/iam/organizations/sync'),
-  syncUsers: () => api.post('/api/iam/users/sync'),
+  syncOrganizations: () => api.post('/iam/organizations/sync'),
+  syncUsers: () => api.post('/iam/users/sync'),
 }
 
 export const staffApi = {
