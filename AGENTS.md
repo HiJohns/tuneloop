@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> Universal coding rules: see `prompts/instructions.md` §1.1
+
 This file contains instructions and guidelines for AI coding agents working in this repository.
 
 ## 核心文档 (Core Documents)
@@ -60,147 +62,6 @@ npm test -- --testNamePattern="test description"
 - **Create React App**: `react-scripts start`, `react-scripts build`
 - **Turborepo**: `turbo run dev`, `turbo run build`, `turbo run lint`
 
-## Code Style Guidelines
-
-### General Principles
-- Write clean, readable, and maintainable code
-- Follow existing patterns in the codebase
-- Keep functions small and focused (single responsibility)
-- Use descriptive variable and function names
-- Add tests for new features and bug fixes
-
-### TypeScript/JavaScript
-- **Prefer TypeScript** for new files when available
-- Use explicit types over `any` or implicit typing
-- Use `interface` for object shapes that might be extended
-- Use `type` for unions, intersections, and primitive types
-- Enable strict mode in `tsconfig.json`
-
-```typescript
-// Good
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-// Avoid
-const user: any = { id: '1', name: 'John' };
-```
-
-### Imports & Exports
-- **JavaScript/TypeScript**: Use ES modules (`import/export`)
-- **Order imports**: External libraries → Internal modules → Relative imports
-- **Group imports**: React imports, then other libraries, then local files
-- Use absolute imports if configured (`@/components/...`)
-
-```typescript
-import React from 'react';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { User } from './types';
-```
-
-### Naming Conventions
-- **Files**: `kebab-case.ts` for utilities, `PascalCase.tsx` for components
-- **Components**: `PascalCase` (e.g., `UserProfile.tsx`)
-- **Functions**: `camelCase` (e.g., `getUserData()`)
-- **Constants**: `UPPER_SNAKE_CASE` (e.g., `API_BASE_URL`)
-- **Types/Interfaces**: `PascalCase` (e.g., `UserData`)
-- **Hooks**: Start with `use` (e.g., `useAuth()`)
-- **Boolean variables**: Start with `is/has/should` (e.g., `isLoading`, `hasPermission`)
-
-### Functions & Methods
-- Keep functions pure when possible
-- Use arrow functions for inline callbacks
-- For React components, use function declarations or arrow functions
-- Add JSDoc comments for complex functions
-
-```typescript
-/**
- * Calculates the total price with tax
- * @param amount - The base amount
- * @param taxRate - The tax rate as a decimal
- * @returns The total amount with tax
- */
-function calculateTotal(amount: number, taxRate: number): number {
-  return amount * (1 + taxRate);
-}
-```
-
-### Error Handling
-- Use try-catch for async operations and error-prone code
-- Provide meaningful error messages
-- Log errors appropriately (avoid console.log in production)
-- Handle edge cases and validation
-
-```typescript
-try {
-  const data = await fetchUserData();
-} catch (error) {
-  console.error('Failed to fetch user data:', error);
-  throw new Error('Unable to load user information');
-}
-```
-
-### Formatting
-- Use the existing formatter (Prettier is common)
-- Consistent indentation (2 spaces is standard)
-- Semicolons at the end of statements
-- Single quotes for strings
-- Trailing commas in multiline structures
-
-### React Guidelines
-- Use functional components with hooks
-- Follow React naming conventions (`PascalCase` for components, `camelCase` for props)
-- Keep components small and composable
-- Use `useCallback` and `useMemo` for performance optimization when needed
-- Manage state at the appropriate level (lift state up when needed)
-- Use `key` prop when rendering lists
-- Prefer composition over inheritance
-
-```tsx
-// Component naming
-function UserCard({ user, onEdit }: UserCardProps) {
-  return <div>{user.name}</div>;
-}
-
-// Hooks naming
-function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  // ...
-}
-```
-
-### Testing
-- Write unit tests for utilities and business logic
-- Write integration tests for API calls and data flow
-- Use descriptive test names
-- Follow AAA pattern (Arrange, Act, Assert)
-
-```typescript
-describe('calculateTotal', () => {
-  it('should calculate total with tax', () => {
-    // Arrange
-    const amount = 100;
-    const taxRate = 0.1;
-    
-    // Act
-    const result = calculateTotal(amount, taxRate);
-    
-    // Assert
-    expect(result).toBe(110);
-  });
-});
-```
-
-### Git Workflow
-- Create feature branches for new work
-- Write clear commit messages
-- Keep commits focused and atomic
-- Review code before merging
-- Update this file when project-specific conventions are established
-
 ## Learning More
 As the codebase grows, this file should be updated with:
 - Specific commands from `package.json` scripts
@@ -210,112 +71,100 @@ As the codebase grows, this file should be updated with:
 - State management patterns
 - Styling conventions (CSS modules, styled-components, etc.)
 
-## Frontend Navigation Structure
+> Detailed UI specifications, navigation structure, permissions, and code locations: see `docs/ui.md`
 
-### PC端侧边栏菜单 (Last Update: 2026-04-17, Commit: $COMMIT_HASH)
+---
 
-#### 菜单层级
+## 🛡️ 审核经验积累 (Audit Lessons Learned)
 
-**1. 仪表盘 (Dashboard)**
-- **路由**: `/`
-- **权限**: 所有已登录用户
-- **说明**: 系统首页
+### 2026-04-30: API 路径不匹配 Bug (#403)
 
-**2. 乐器管理**
-- **路由**: 一级菜单
-- **权限**: 所有已登录用户
-- **子菜单**:
-  - 乐器列表 (`/instruments/list`)
-  - 分类设置 (`/instruments/categories`)
-  - 属性管理 (`/instruments/properties`)
+**问题现象：**
+前端调用 `POST /api/api/iam/organizations/sync`，后端注册 `/api/iam/organizations/sync`，返回 404。
 
-**3. 库存监控** ⭐
-- **路由**: 一级菜单
-- **权限**: site_manager, admin, owner
-- **子菜单**:
-  - 库存调拨 (`/inventory/transfer`)
-  - 租金设定 (`/inventory/rent-setting`)
+**根因：**
+前端 axios 实例已配置 `baseURL = '/api'`，但 API 方法又额外添加了 `/api` 前缀，导致路径重复。
 
-**4. 组织管理**
-- **路由**: 一级菜单
-- **权限**: 所有已登录用户
-- **子菜单**:
-  - 网点管理 (`/organization/sites`)
+**为什么审核没发现：**
+- 只做了静态检查（go build, npm run lint）
+- 没有运行时端到端验证
+- 前后端分离审查，未对比路径一致性
 
-**5. 系统管理**
-- **路由**: 一级菜单
-- **权限**: 所有已登录用户
-- **子菜单**:
-  - 客户端管理 (`/system/clients`)
-  - 租户管理 (`/system/tenants`)
+**以后审核新增 API 端点时必须检查：**
+1. [ ] **路径一致性**：前端调用路径 vs 后端注册路径是否一致
+2. [ ] **baseURL 重复**：检查 axios/fetch 的 baseURL 是否导致路径前缀重复
+3. [ ] **运行时验证**：建议用 curl 或浏览器 DevTools 验证实际请求的 URL
+4. [ ] **响应码验证**：确认 200/201 而非 404
 
-#### 权限控制汇总
-
-| 菜单 | site_manager | admin | owner | 普通用户 |
-|------|-------------|-------|-------|---------|
-| 仪表盘 | ✅ | ✅ | ✅ | ✅ |
-| 乐器管理 | ✅ | ✅ | ✅ | ✅ |
-| 库存监控 | ✅ | ✅ | ✅ | ❌ |
-| 组织管理 | ✅ | ✅ | ✅ | ✅ |
-| 系统管理 | ✅ | ✅ | ✅ | ✅ |
-
-#### 右上角用户信息
-
-**显示格式**: 👤 **{name}** (**{role}**)
-
-**数据来源**（优先级）:
-1. JWT token payload（优先）
-   - name: name, username, preferred_username, displayName, nickName, nickname
-   - email: email, mail
-   - role: role, roles, authorities
-2. localStorage fallback (`user_info`)
-
-**面包屑导航**:
-- TuneLoop: 可点击，返回首页
-- 乐器管理: 可点击，返回首页（在相关页面）
-
-#### 关键代码位置
-
-- **主布局**: `frontend-pc/src/App.jsx::MainLayout()`
-- **用户加载**: lines 66-99 (useEffect)
-- **菜单定义**: lines 101-129 (items)
-- **面包屑**: lines 146-169 (breadcrumbItems)
-- **用户显示**: lines 175-183 (Header)
-
-#### 权限判断逻辑
-
-```javascript
-// 库存菜单可见性 (lines 117-130)
-const role = userInfo.role || ''
-const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
-```
-
-支持的角色值: `site_manager`, `admin`, `owner`
-
-#### 最后更新记录
-
-- **日期**: 2026-04-17
-- **Commit**: $COMMIT_HASH
-- **修复内容**:
-  - ✅ 中文用户名显示（JWT token 多字段支持）
-  - ✅ 面包屑导航点击事件修复
-  - ✅ OWNER 角色库存菜单可见性
-  - ✅ 添加调试日志
-
-#### 构建与部署
-
+**检查方法：**
 ```bash
-# 拉取最新代码
-git pull origin main
+# 1. 查看后端注册的路由
+grep -n "POST.*iam.*organizations" backend/main.go
 
-# 构建前端
-cd frontend-pc && npm install && npm run build
+# 2. 查看前端调用的路径
+grep -n "iam.*organizations" frontend-pc/src/services/api.js
 
-# 验证
-cd frontend-pc && npm run build  # 应该成功
+# 3. 检查 baseURL
+grep -n "baseURL\|API_BASE_URL" frontend-pc/src/services/api.js
+
+# 4. 运行时验证（后端启动后）
+curl -X POST http://localhost:5554/api/iam/organizations/sync -H "Authorization: Bearer $TOKEN"
 ```
 
-**注意**: 用户必须重新登录才能看到效果，因为 userInfo 从登录时的 JWT token 加载。
+---
 
---------------------------------------------------------------------------------
+*Last updated: 2026-05-01*
+
+---
+
+## Page URL Checklist
+
+Add new pages must verify:
+- [ ] Support list page URL (`/:page`)
+- [ ] Support detail page URL (`/:page/:id`)
+- [ ] Support edit page URL (`/:page/:id/edit`)
+- [ ] Support create page URL (`/:page/new`)
+- [ ] URL updates correctly after operations
+- [ ] Browser forward/back works correctly
+- [ ] Left menu active state syncs correctly
+
+## Properties & Instrument Level
+
+### Properties Data Model
+
+```
+properties (属性定义)     property_options (属性选项)    instrument_properties (乐器属性)
+├── id                   ├── id                        ├── id
+├── name                 ├── property_id (FK)          ├── instrument_id (FK)
+├── property_type        ├── value                     ├── property_id (FK)
+├── is_required          ├── status                    └── ...
+├── unit                 └── alias
+└── ...
+```
+
+### Create Instrument with Properties
+
+When POST /api/instruments includes `properties` field:
+1. Look up property definition by `key` in `properties` table (`name = key`)
+2. Match options by `property_id` and `value` in `property_options` table
+3. Auto-create missing options with `status = 'pending'`
+4. Create `instrument_properties` association records
+
+### Instrument Level Data Model
+
+```sql
+instrument_levels
+├── id (UUID, PK)
+├── caption (varchar) - display name: 入门/专业/大师
+├── code (varchar) - code: entry/professional/master
+└── sort_order (int) - sort order
+```
+
+Usage:
+1. Prefer `level_id`: `POST /api/instruments {"level_id": "uuid-here", ...}`
+2. Backward compatible: `POST /api/instruments {"level": "专业", ...}` (auto match)
+3. Fallback: if level not defined in instrument_levels table, use legacy string mapping
+
+---
+*Migrated from prompts/project.md during consolidation*-
 

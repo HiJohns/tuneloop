@@ -2983,3 +2983,404 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 
 *文档生成: 2026-03-21*<br>
 *覆盖度: 100% features.md (v26.3.16)*
+
+---
+
+## 补充章节 (Consolidated from api_design.md)
+
+> 以下章节从 `api_design.md` 合并而来，v2.0 api.md 中未覆盖。
+> 合并日期: 2026-05-01
+
+## 2.4 冷启动 (Setup) API
+
+### 2.4.1 获取系统初始化状态
+
+```
+GET /api/setup/status
+```
+
+**说明**: 检查系统是否需要初始化（User 表是否为空），无需认证
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "requires_setup": true,
+    "user_count": 0
+  }
+}
+```
+
+### 2.4.2 初始化系统
+
+```
+POST /api/setup/init
+```
+
+**说明**: 创建系统第一个管理员账户，无需认证，仅 User 表为空时可调用
+
+**请求体**:
+```json
+{
+  "email": "admin@example.com",
+  "password": "secure_password"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "user_id": "uuid",
+    "oidc_url": "https://iam.example.com/oauth/authorize?..."
+  }
+}
+```
+
+**错误码**:
+- `40300`: 系统已初始化，禁止重复操作
+- `40001`: 请求参数错误（邮箱格式、密码强度）
+
+## 7. 申诉处理 API
+
+### 7.1 获取申诉列表
+```
+GET /api/merchant/appeals
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 申诉状态 (pending/reviewing/resolved) |
+| site_id | string | 网点 ID |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {
+          "id": "uuid",
+          "category": "钢琴",
+          "level": "专业级",
+          "brand": "Yamaha",
+          "model": "U1"
+        },
+        "damage_report": {
+          "amount": 500.00,
+          "comment": "琴弦断裂",
+          "photos": ["url1"]
+        },
+        "user_appeal": {
+          "reason": "琴弦是自然老化",
+          "submitted_at": "2024-01-15T10:00:00Z"
+        },
+        "status": "reviewing",
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 7.2 获取申诉详情
+```
+GET /api/merchant/appeals/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "instrument": {...},
+    "lease_info": {
+      "rental_period": "2024-01-01 至 2024-01-31",
+      "total_rent": 2500.00
+    },
+    "damage_report": {...},
+    "user_appeal": {...},
+    "employee_info": {
+      "name": "李四",
+      "damage_assessment": "用户操作不当"
+    },
+    "status": "reviewing"
+  }
+}
+```
+
+### 7.3 处理申诉
+```
+PUT /api/merchant/appeals/:id/resolve
+```
+**请求体**:
+```json
+{
+  "decision": "adjust",  // no_damage, adjust, confirm
+  "adjust_amount": 200.00,  // 仅在 decision=adjust 时有效
+  "comment": "经理判定琴弦为自然老化"
+}
+```
+
+**decision 说明**:
+- `no_damage`: 无损坏，取消赔款，直接生成退还事务，乐器在库状态
+- `adjust`: 调整定损金额
+- `confirm`: 确认原判（不调整）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "refund_deposit": 5000.00,
+    "status": "resolved"
+  }
+}
+```
+
+### 7.4 用户提交申诉
+```
+POST /api/user/appeals
+```
+**请求体**:
+```json
+{
+  "damage_report_id": "uuid",
+  "reason": "申诉理由",
+  "evidence": ["url1", "url2"]
+}
+```
+
+### 7.5 用户同意定损
+```
+POST /api/user/appeals/:damage_id/agree
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "payment_url": "https://pay.example.com/123"  // 仅押金不足时返回
+  }
+}
+```
+
+## 8. 库管工作台 API
+
+### 8.1 获取订单列表
+```
+GET /api/warehouse/orders
+```
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| status | string | 订单状态 (preparing/shipped/in_lease/returning) |
+| site_id | string | 网点 ID |
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "instrument": {...},
+        "user": {...},
+        "status": "shipped",
+        "shipping_info": {
+          "tracking_number": "SF123456",
+          "company": "顺丰",
+          "shipped_at": "2024-01-15T10:00:00Z"
+        }
+      }
+    ],
+    "total": 10
+  }
+}
+```
+
+### 8.2 录入物流信息
+```
+PUT /api/warehouse/orders/:id/shipping
+```
+**请求体**:
+```json
+{
+  "tracking_number": "SF123456",
+  "company": "顺丰",
+  "shipped_at": "2024-01-15T10:00:00Z"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "order_id": "uuid",
+    "status": "shipped"
+  }
+}
+```
+
+### 8.3 确认收货（租赁中）
+```
+PUT /api/warehouse/orders/:id/delivered
+```
+**请求体**:
+```json
+{
+  "delivered_at": "2024-01-16T15:00:00Z"
+}
+```
+
+**说明**: 确认收货后订单状态变为 in_lease，以物流到达时间点为起租点
+
+### 8.4 归还验收
+```
+POST /api/warehouse/orders/:id/inspect
+```
+**请求体**:
+```json
+{
+  "instrument_sn": "SN123456",
+  "scan_time": "2024-01-31T10:00:00Z",
+  "photos": ["url1", "url2"],
+  "condition": "good",
+  "notes": "外观完好"
+}
+```
+
+**condition 说明**:
+- `good`: 正常，直接进入在库状态
+- `damaged`: 损坏，进入定损流程
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "status": "completed"  // 或 "inspecting"
+  }
+}
+```
+
+### 8.5 开始定损
+```
+POST /api/warehouse/orders/:id/assess-damage
+```
+**请求体**:
+```json
+{
+  "damage_description": "琴弦断裂",
+  "damage_photos": ["url1"],
+  "damage_amount": 500.00,
+  "notes": "需要更换琴弦"
+}
+```
+
+**说明**: 提交后订单状态变为 inspecting，创建 damage_report 记录
+
+## 19. 确认会话 API
+
+**架构变更**: 确认流程委托 IAM 管理。Tuneloop 本地 confirmation_sessions 仅用于状态跟踪，不再主动发送邮件/短信。
+
+### 19.1 查询确认会话
+
+```
+GET /api/confirmation-sessions/:id
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "session_uuid",
+    "user_id": "uuid",
+    "iam_session_id": "iam-session-uuid",
+    "confirm_type": "email",
+    "confirm_target": "user@example.com",
+    "merchant_id": "uuid",
+    "action_type": "merchant_admin",
+    "action_target_id": "uuid",
+    "callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback",
+    "status": "waiting",
+    "message": null,
+    "expires_at": "2024-01-16T10:00:00Z",
+    "confirmed_at": null,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+**新增字段**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| iam_session_id | string | IAM 侧确认会话 ID |
+| callback_url | string | IAM 确认后的回调地址 |
+
+## 20. 仪表盘 API
+
+### 19.1 获取统计数据
+```
+GET /api/admin/dashboard/stats
+```
+
+### 19.2 获取即将到期列表
+```
+GET /api/admin/dashboard/near-transfers
+```
+
+
+## 附录 A: 角色权限说明
+
+| 角色 | 说明 |
+|------|------|
+| ADMIN | 管理员 |
+| OWNER | 所有者 |
+| USER | 普通用户 |
+
+---
+
+## 附录 B: 乐器状态说明
+
+| 状态 | 说明 |
+|------|------|
+| available | 可租 |
+| rented | 已租出 |
+| maintenance | 维修中 |
+
+---
+
+## 附录 C: 订单状态说明
+
+| 状态 | 说明 |
+|------|------|
+| pending | 待支付 |
+| paid | 已支付 |
+| in_lease | 租赁中 |
+| completed | 已完成 |
+| cancelled | 已取消 |
+
+---
+
+*Model: glm-5*
