@@ -173,20 +173,23 @@ export function ProtectedRoute({ children, requiredRoles = [], requiredPermissio
     const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
     const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
     
-    const hasPermission = checkRule(
-      { visibleWhen: requiredPermission },
-      sysPerm,
-      cusPerm,
-      cusPermMapping
-    )
-    
-    if (!hasPermission) {
-      return (
-        <div style={{ padding: 40, textAlign: 'center' }}>
-          <h2>权限不足</h2>
-          <p>您没有权限访问此页面</p>
-        </div>
+    // Backward compatibility: skip bitmap check if both are zero (legacy JWT)
+    if (sysPerm !== 0 || cusPerm !== 0) {
+      const hasPermission = checkRule(
+        { visibleWhen: requiredPermission },
+        sysPerm,
+        cusPerm,
+        cusPermMapping
       )
+      
+      if (!hasPermission) {
+        return (
+          <div style={{ padding: 40, textAlign: 'center' }}>
+            <h2>权限不足</h2>
+            <p>您没有权限访问此页面</p>
+          </div>
+        )
+      }
     }
   }
 

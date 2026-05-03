@@ -380,30 +380,30 @@ function onMenuClick(e) {
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
-            <Route path="/organization/sites" element={<ProtectedRoute><SiteManagement /></ProtectedRoute>} />
-            <Route path="/merchants" element={<ProtectedRoute><MerchantManagement /></ProtectedRoute>} />
-            <Route path="/staff" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/maintenance/workers" element={<ProtectedRoute><MaintenanceWorkerManagement /></ProtectedRoute>} />
            <Route path="/maintenance/sessions" element={<ProtectedRoute><MaintenanceSessionManagement /></ProtectedRoute>} />
-            <Route path="/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
-            <Route path="/user/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
-            <Route path="/warehouse" element={<ProtectedRoute><WarehouseManagement /></ProtectedRoute>} />
+            <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:handle'] }}><AppealManagement /></ProtectedRoute>} />
+            <Route path="/user/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:handle'] }}><AppealManagement /></ProtectedRoute>} />
+            <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['inventory:view', 'inventory:manage'] }}><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
             <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
             <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />
-           <Route path="/maintenance/sessions" element={<ProtectedRoute><MaintenanceSessionManagement /></ProtectedRoute>} />
-           <Route path="/maintenance/workers" element={<ProtectedRoute><MaintenanceWorkerManagement /></ProtectedRoute>} />
-            <Route path="/settings/roles" element={<ProtectedRoute><RolePermission /></ProtectedRoute>} />
-            <Route path="/system/clients" element={<ProtectedRoute><ClientManagement /></ProtectedRoute>} />
-            <Route path="/system/tenants" element={<ProtectedRoute><TenantManagement /></ProtectedRoute>} />
-            <Route path="/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
-            <Route path="/user/appeals" element={<ProtectedRoute><AppealManagement /></ProtectedRoute>} />
+           <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['maintenance:view', 'maintenance:assign', 'maintenance:complete'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
+            <Route path="/maintenance/workers" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['maintenance:assign'] }}><MaintenanceWorkerManagement /></ProtectedRoute>} />
+            <Route path="/settings/roles" element={<ProtectedRoute requiredPermission={{ sysPermBits: [20] }}><RolePermission /></ProtectedRoute>} />
+            <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
+            <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
+            <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:handle'] }}><AppealManagement /></ProtectedRoute>} />
+            <Route path="/user/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:handle'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/inventory/transfer" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
-            <Route path="/inventory/rent-setting" element={<ProtectedRoute><RentSetting /></ProtectedRoute>} />
-            <Route path="/warehouse" element={<ProtectedRoute><WarehouseManagement /></ProtectedRoute>} />
+            <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rent:setting'] }}><RentSetting /></ProtectedRoute>} />
+            <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['inventory:view', 'inventory:manage'] }}><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
             <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
@@ -411,17 +411,17 @@ function onMenuClick(e) {
             <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
             <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           
-<Route path="/instruments/categories" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id/edit" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/new" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
-            <Route path="/instruments/list" element={<ProtectedRoute><InstrumentList /></ProtectedRoute>} />
+            <Route path="/instruments/list" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:create', 'instrument:edit', 'instrument:delete', 'inventory:view'] }}><InstrumentList /></ProtectedRoute>} />
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
               <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
               <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
                <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-              <Route path="/instruments/properties" element={<ProtectedRoute><PropertyList /></ProtectedRoute>} />
+               <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['property:manage'] }}><PropertyList /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>

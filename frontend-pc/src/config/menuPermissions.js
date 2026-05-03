@@ -124,9 +124,10 @@ function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
 
   // If no conditions, always visible
   if (!sysPermBits && !cusPermCodes) return true
+  if ((!sysPermBits || sysPermBits.length === 0) && (!cusPermCodes || cusPermCodes.length === 0)) return true
 
-  let sysMatch = true
-  let cusMatch = true
+  let sysMatch = false
+  let cusMatch = false
 
   if (sysPermBits && sysPermBits.length > 0) {
     sysMatch = sysPermBits.some(bit => (sysPerm & (1 << bit)) !== 0)
