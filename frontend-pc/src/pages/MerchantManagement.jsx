@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Modal, Form, Input, message, Card, Space, Popconfirm } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import InlineUserSelector from '../components/InlineUserSelector';
 
 const MerchantManagement = () => {
   const navigate = useNavigate();
@@ -10,6 +12,7 @@ const MerchantManagement = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(null);
+  const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '' });
 
   useEffect(() => {
     fetchMerchants();
@@ -31,6 +34,7 @@ const MerchantManagement = () => {
   const handleCreate = () => {
     setEditingMerchant(null);
     form.resetFields();
+    setAdminInfo({ name: '', id: null, email: '' });
     setModalOpen(true);
   };
 
@@ -52,11 +56,23 @@ const MerchantManagement = () => {
 
   const handleSubmit = async (values) => {
     try {
+      const isNewUser = adminInfo.isNew || false
+      const submitData = { ...values }
+      
+      // If new user, pass admin info instead of admin_uid
+      if (isNewUser && adminInfo.name && adminInfo.email) {
+        submitData.admin_name = adminInfo.name
+        submitData.admin_email = adminInfo.email
+        submitData.admin_phone = adminInfo.phone || ''
+      } else {
+        submitData.admin_uid = adminInfo.id || values.admin_uid
+      }
+
       if (editingMerchant) {
-        await api.put(`/api/merchants/${editingMerchant.id}`, values);
+        await api.put(`/api/merchants/${editingMerchant.id}`, submitData);
         message.success('Merchant updated successfully');
       } else {
-        await api.post('/api/merchants', values);
+        await api.post('/api/merchants', submitData);
         message.success('Merchant created successfully');
       }
       setModalOpen(false);
@@ -64,6 +80,22 @@ const MerchantManagement = () => {
     } catch (error) {
       message.error(error.response?.data?.message || 'Operation failed');
     }
+  };
+
+  const handleAdminChange = (users) => {
+    if (!users || users.length === 0) {
+      setAdminInfo({ name: '', id: null, email: '' });
+      form.setFieldsValue({ admin_uid: null });
+      return;
+    }
+    const user = users[0];
+    setAdminInfo({
+      name: user.name || user.user_name,
+      id: user.user_id || user.id,
+      email: user.email || '',
+      isNew: user.isNew || false,
+    });
+    form.setFieldsValue({ admin_uid: user.user_id || user.id });
   };
 
   const columns = [
@@ -190,10 +222,34 @@ const MerchantManagement = () => {
 
           <Form.Item
             name="admin_uid"
-            label="Admin User ID"
-            rules={[{ required: true, message: 'Please select admin user' }]}
+            label="管理员"
+            rules={[{ required: !editingMerchant, message: '请选择管理员' }]}
           >
-            <Input placeholder="User UUID" disabled={!!editingMerchant} />
+            {adminInfo.id ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <UserOutlined style={{ fontSize: 18, color: '#52c41a' }} />
+                <span style={{ fontWeight: 500 }}>{adminInfo.name}</span>
+                {adminInfo.email && <span style={{ color: '#999' }}>({adminInfo.email})</span>}
+                {!editingMerchant && (
+                  <Button
+                    type="link"
+                    onClick={() => {
+                      setAdminInfo({ name: '', id: null, email: '' });
+                      form.setFieldsValue({ admin_uid: null });
+                    }}
+                  >
+                    更换
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <InlineUserSelector
+                mode="single"
+                merchantId="current-merchant-id"
+                value={[]}
+                onChange={handleAdminChange}
+              />
+            )}
           </Form.Item>
         </Form>
       </Modal>

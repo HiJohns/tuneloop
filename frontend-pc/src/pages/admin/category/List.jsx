@@ -257,7 +257,6 @@ export default function CategoryList() {
                   </List.Item>
                 )}
               />
-              <Button block icon={<PlusOutlined />} onClick={handleCreateSubCategory} disabled={!selectedParentId}>创建子分类</Button>
             </div>
           )}
         </Card>
@@ -266,20 +265,23 @@ export default function CategoryList() {
           <Space>
             {savingSort && <Spin size="small" />}
             {selectedParentId && (
-              <Button 
-                size="small" 
-                icon={<EditOutlined />} 
-                onClick={() => handleEdit(level1Categories.find(c => c.id === selectedParentId))}
-              >
-                编辑
-              </Button>
+              <>
+                <Button size="small" icon={<PlusOutlined />} onClick={handleCreateSubCategory}>创建子分类</Button>
+                <Button 
+                  size="small" 
+                  icon={<EditOutlined />} 
+                  onClick={() => handleEdit(level1Categories.find(c => c.id === selectedParentId))}
+                >
+                  编辑
+                </Button>
+              </>
             )}
           </Space>
         }>
           {!selectedParentId ? (
             <Empty description="Please select a parent category from the left" />
           ) : subCategories.length === 0 ? (
-            <Empty description="No sub categories, click '创建子分类' to add one" />
+            <Empty description="暂无子分类，点击右上角「创建子分类」按钮添加" />
           ) : (
             <div className="flex-1 overflow-auto">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

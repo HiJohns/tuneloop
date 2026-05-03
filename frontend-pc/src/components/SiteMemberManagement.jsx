@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm } from 'antd';
-import { PlusOutlined, SwapOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SwapOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../services/api';
-import UserSelectionDialog from './UserSelectionDialog';
+import InlineUserSelector from './InlineUserSelector';
 
 const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [userDialogVisible, setUserDialogVisible] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState([]);
 
   useEffect(() => {
     if (siteId) {
@@ -30,21 +30,40 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     }
   };
 
-  const handleAddMember = (userData) => {
-    setUserDialogVisible(true);
+  const handleSelectedUsersChange = (users) => {
+    setSelectedUsers(users);
   };
 
-  const handleUserSelect = async (selectedUsers) => {
-    if (!selectedUsers || selectedUsers.length === 0) return;
+  const handleConfirmAddMembers = async () => {
+    if (!selectedUsers || selectedUsers.length === 0) {
+      message.warning('请至少选择一个用户');
+      return;
+    }
 
     try {
-      const userIds = selectedUsers.map(user => ({
-        user_id: user.id || user.user_id,
-        role: 'Staff'
-      }));
+      // Separate existing users and new users
+      const existingUsers = []
+      const newUsers = []
+      
+      selectedUsers.forEach(user => {
+        if (user.isNew) {
+          newUsers.push({
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: 'Staff'
+          })
+        } else {
+          existingUsers.push({
+            user_id: user.id || user.user_id,
+            role: 'Staff'
+          })
+        }
+      })
 
       const response = await api.post(`/api/sites/${siteId}/members`, {
-        user_ids: userIds
+        user_ids: existingUsers,
+        new_users: newUsers
       });
 
       if (response.data.code === 20100) {
@@ -58,6 +77,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         }
         
         message.success(messageText);
+        setSelectedUsers([]);
         fetchMembers();
         onRefresh && onRefresh();
       }
@@ -161,9 +181,21 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAddMember}>
-          Add Member
-        </Button>
+        <InlineUserSelector
+          mode="multi"
+          merchantId="current-merchant-id"
+          value={selectedUsers}
+          onChange={handleSelectedUsersChange}
+        />
+        {selectedUsers.length > 0 && (
+          <Button
+            type="primary"
+            onClick={handleConfirmAddMembers}
+            style={{ marginTop: 8 }}
+          >
+            确认添加 ({selectedUsers.length})
+          </Button>
+        )}
       </div>
 
       <Table
@@ -173,14 +205,6 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         rowKey="user_id"
         pagination={{ pageSize: 10 }}
         locale={{ emptyText: 'No members found' }}
-      />
-
-      <UserSelectionDialog
-        visible={userDialogVisible}
-        onClose={() => setUserDialogVisible(false)}
-        onConfirm={handleUserSelect}
-        merchantId="current-merchant-id"
-        title="选择网点成员"
       />
     </div>
   );
