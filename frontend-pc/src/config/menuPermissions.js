@@ -159,6 +159,13 @@ function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
     })
   }
 
+  // Grace period: cus_perm not yet initialized from IAM (cusPerm === 0)
+  // but user has system permissions (sysPerm > 0, i.e. admin-like accounts).
+  // Allow full menu access so they can bootstrap their own permissions.
+  if (cusPerm === 0 && sysPerm > 0) {
+    return true
+  }
+
   if (requireAllGroups) {
     return sysMatch && cusMatch
   }

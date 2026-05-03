@@ -46,6 +46,13 @@ tuneloop/
 
 ## Build & Development Commands
 
+### Database Access (PostgreSQL)
+
+```bash
+# Access PostgreSQL in development environment
+docker exec -it jobmaster-postgres psql -U tuneloop_user -d postgres
+```
+
 ### Package Managers
 **Detect package manager by checking for:**
 - `package-lock.json` → Use `npm`
