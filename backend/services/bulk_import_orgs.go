@@ -65,12 +65,15 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 	result := &BulkImportResult{}
 	result.Summary.Total = len(sorted)
 
-	// Preload existing sites by org_id
+	// Preload existing sites by org_id and name (dual lookup:
+	// IAM-synced sites use UUID OrgID; bulk-import sites use code OrgID)
 	var existingSites []models.Site
 	db.Where("tenant_id = ?", tenantID).Find(&existingSites)
 	existingByOrgID := make(map[string]models.Site)
+	existingByName := make(map[string]models.Site)
 	for _, s := range existingSites {
 		existingByOrgID[s.OrgID] = s
+		existingByName[s.Name] = s
 	}
 
 	// Map to track org_code -> local site_id (for parent resolution)
@@ -105,6 +108,10 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 		}
 
 		existingSite, exists := existingByOrgID[org.OrganizationCode]
+		if !exists {
+			// Fallback: try name-based lookup for IAM-synced sites (UUID OrgID)
+			existingSite, exists = existingByName[org.Name]
+		}
 
 		if dryRun {
 			if exists {

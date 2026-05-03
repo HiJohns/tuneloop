@@ -43,6 +43,24 @@ export default function SiteBulkImport() {
     }
   }
 
+  const downloadTemplate = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/admin/bulk-import/template/organizations', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (!response.ok) throw new Error('下载模板失败')
+      const blob = await response.blob()
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = 'bulk_sites_template.csv'
+      link.click()
+      message.success('模板下载成功')
+    } catch (err) {
+      message.error('下载模板失败: ' + err.message)
+    }
+  }
+
   const handleExecuteImport = async () => {
     if (fileList.length === 0) {
       message.error('请先上传 CSV 文件')
@@ -86,7 +104,7 @@ export default function SiteBulkImport() {
                 type="info"
                 showIcon
               />
-              <Button icon={<DownloadOutlined />} onClick={() => window.open('/api/admin/bulk-import/template/organizations')}>
+              <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>
                 下载模板
               </Button>
               <Upload

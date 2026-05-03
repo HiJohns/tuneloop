@@ -81,8 +81,11 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		siteByOrgID[s.OrgID] = s
 	}
 
-	// Preload IAM users (best effort)
-	iamUsers, _ := iamClient.ListUsers()
+	// Preload IAM users (best effort, log warning on failure)
+	iamUsers, err := iamClient.ListUsers()
+	if err != nil {
+		log.Printf("[BulkImport] Warning: failed to list IAM users: %v — existing users may be re-created", err)
+	}
 	iamUserByEmail := make(map[string]User)
 	for _, u := range iamUsers {
 		if u.Email != "" {
@@ -145,7 +148,8 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 		// Resolve organization
 		var siteID *string
-		var orgIDForIAM string
+		var orgIDForLocal string // OrgID to store in local users table
+		var orgIDForIAM string   // OrgID to use for IAM API calls
 		if acc.OrganizationCode != "" {
 			site, ok := siteByOrgID[acc.OrganizationCode]
 			if !ok {
@@ -159,7 +163,11 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 				continue
 			}
 			siteID = &site.ID
+			orgIDForLocal = site.OrgID
 			orgIDForIAM = site.OrgID
+		} else {
+			// Namespace-level user: use tenantID as OrgID
+			orgIDForLocal = tenantID
 		}
 
 		existingUser, exists := existingByEmail[acc.Email]
@@ -202,6 +210,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			}
 			if siteID != nil {
 				updates["site_id"] = *siteID
+				updates["org_id"] = orgIDForLocal
 			} else {
 				updates["site_id"] = nil
 			}
@@ -252,6 +261,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			newUser := models.User{
 				ID:       newUserID,
 				TenantID: tenantID,
+				OrgID:    orgIDForLocal,
 				Name:     acc.Name,
 				Email:    acc.Email,
 				Phone:    acc.Phone,
@@ -276,9 +286,25 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			}
 			iamResp, err := iamClient.CreateUser(createReq)
 			if err != nil {
-				// If user already exists in IAM, try to find and link
-				if strings.Contains(err.Error(), "already exists") && iamExists {
+				if iamExists {
+					// User already exists in IAM — link by IAMSub
 					newUser.IAMSub = iamUser.ID
+				} else if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "conflict") {
+					// Try to re-fetch the user from IAM to get the ID
+					refreshedUsers, refreshErr := iamClient.ListUsers()
+					if refreshErr == nil {
+						for _, u := range refreshedUsers {
+							if strings.EqualFold(u.Email, acc.Email) {
+								newUser.IAMSub = u.ID
+								break
+							}
+						}
+					}
+					if newUser.IAMSub == "" {
+						// Fallback: use email as IAMSub placeholder (should not normally happen)
+						log.Printf("[BulkImport] IAM user exists but could not resolve ID for %s", acc.Email)
+						newUser.IAMSub = acc.Email
+					}
 				} else {
 					LogImportError("account", acc.RowNum, acc.Email, err)
 					result.Summary.Failed++
