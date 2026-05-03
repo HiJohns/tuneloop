@@ -79,6 +79,8 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			"email":      user.Email,
 			"position":   user.Position,
 			"user_type":  user.UserType,
+			"role":       user.Role,
+			"org_id":     user.OrgID,
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
 		}

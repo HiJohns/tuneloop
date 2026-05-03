@@ -103,10 +103,11 @@ func TestAppeal(t *testing.T) {
 
 func TestOrderStatusHistory(t *testing.T) {
 	// Test struct creation
+	orgID := uuid.New().String()
 	history := OrderStatusHistory{
 		ID:         uuid.New().String(),
 		TenantID:   uuid.New().String(),
-		OrgID:      uuid.New().String(),
+		OrgID:      &orgID,
 		OrderID:    uuid.New().String(),
 		StatusFrom: "shipped",
 		StatusTo:   "in_lease",

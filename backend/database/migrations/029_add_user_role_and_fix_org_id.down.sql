@@ -1,0 +1,3 @@
+-- Rollback
+ALTER TABLE users DROP COLUMN IF EXISTS role;
+ALTER TABLE users ALTER COLUMN org_id SET NOT NULL;
