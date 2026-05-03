@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
+import { SysPermBits, checkRule } from '../config/menuPermissions'
 
 const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
@@ -78,6 +79,9 @@ function clearTokens() {
   localStorage.removeItem('token_expiry')
   localStorage.removeItem('user_info')
   localStorage.removeItem('user_role')
+  localStorage.removeItem('user_sys_perm')
+  localStorage.removeItem('user_cus_perm')
+  localStorage.removeItem('user_cus_perm_ext')
   sessionStorage.removeItem('token')
   const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
   cookieDomains.forEach(domain => {
@@ -113,7 +117,7 @@ function redirectToLogin() {
     });
 }
 
-export function ProtectedRoute({ children, requiredRoles = [] }) {
+export function ProtectedRoute({ children, requiredRoles = [], requiredPermission = null }) {
   const location = useLocation()
   const [token, setToken] = useState(null)
   const [checking, setChecking] = useState(true)
@@ -150,9 +154,33 @@ export function ProtectedRoute({ children, requiredRoles = [] }) {
     return null // Will redirect via useEffect
   }
 
+  // Check string-based roles (existing behavior)
   if (requiredRoles.length > 0) {
     const userRole = localStorage.getItem('user_role') || ''
     if (!requiredRoles.includes(userRole)) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <h2>权限不足</h2>
+          <p>您没有权限访问此页面</p>
+        </div>
+      )
+    }
+  }
+
+  // Check bit-based permissions (new #414 behavior)
+  if (requiredPermission) {
+    const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
+    const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+    const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+    
+    const hasPermission = checkRule(
+      { visibleWhen: requiredPermission },
+      sysPerm,
+      cusPerm,
+      cusPermMapping
+    )
+    
+    if (!hasPermission) {
       return (
         <div style={{ padding: 40, textAlign: 'center' }}>
           <h2>权限不足</h2>
@@ -202,6 +230,9 @@ export function useAuth() {
       localStorage.removeItem('token_expiry')
       localStorage.removeItem('user_info')
       localStorage.removeItem('user_role')
+      localStorage.removeItem('user_sys_perm')
+      localStorage.removeItem('user_cus_perm')
+      localStorage.removeItem('user_cus_perm_ext')
       window.location.href = '/'
     }
   }

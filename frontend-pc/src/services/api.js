@@ -393,3 +393,25 @@ export const categoriesApi = {
 export const propertiesApi = {
   searchOptions: (propertyId, q, limit = 3) => api.get(`/properties/${propertyId}/options/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 }
+
+// Permission API (#414)
+export const permissionConfigApi = {
+  // Fetch permission bit mapping from backend
+  getMapping: () => api.get('/config/permissions'),
+}
+
+// Initialize permission mapping cache on app load
+let permissionMappingLoaded = false
+
+export async function initPermissionMapping() {
+  if (permissionMappingLoaded) return
+  try {
+    const resp = await permissionConfigApi.getMapping()
+    if (resp && resp.code === 20000) {
+      localStorage.setItem('permission_mapping', JSON.stringify(resp.data.cus_perm_mapping || {}))
+      permissionMappingLoaded = true
+    }
+  } catch (e) {
+    console.warn('[Permissions] Failed to load permission mapping, using empty cache')
+  }
+}

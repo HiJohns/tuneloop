@@ -14,6 +14,7 @@ import {
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
 import { api } from './services/api'
+import { menuRules, checkRule, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
@@ -94,12 +95,27 @@ function MainLayout() {
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
         const roles = Array.isArray(payload.roles) ? payload.roles : [] // Functional roles from IAM #113
         
+        // Permission bitmaps from JWT (#414)
+        const sysPerm = parseInt(payload.sys_perm) || 0
+        const cusPerm = parseInt(payload.cus_perm) || 0
+        const cusPermExt = payload.cus_perm_ext || ''
+        
+        // Store permission bitmaps
+        localStorage.setItem('user_sys_perm', sysPerm.toString())
+        localStorage.setItem('user_cus_perm', cusPerm.toString())
+        localStorage.setItem('user_cus_perm_ext', cusPermExt)
+        
         // Compute businessRole from IAM role (heuristic - ideally from backend)
         let businessRole = 'site_member'
         if (role === 'owner' || role === 'OWNER') {
           businessRole = payload.is_owner ? 'merchant_admin' : 'site_admin'
         } else if (role === 'admin' || role === 'ADMIN') {
           businessRole = 'site_admin'
+        }
+        
+        // Override businessRole if namespace admin (has sys_perm but no cus_perm)
+        if (isNamespaceAdmin(sysPerm, cusPerm)) {
+          businessRole = 'system_admin'
         }
         
         const { role: _payloadRole, roles: _payloadRoles, ...payloadWithoutRole } = payload
@@ -109,9 +125,12 @@ function MainLayout() {
           role,
           roles,
           businessRole,
+          sysPerm,
+          cusPerm,
+          cusPermExt,
           ...payloadWithoutRole
         })
-        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole }))
+        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole, sysPerm, cusPerm, cusPermExt }))
       } catch (e) {
         // ignore parse errors
       }
@@ -199,29 +218,37 @@ function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
     }))
 }
 
-function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
-  if (!businessRole) return []
-  
-  return menuItems
-    .filter(item => item.structuralRoles.includes(businessRole))
-    .map(item => ({
-      ...item,
-      children: item.children?.map(child => {
-        if (!child.functionalRoles || child.functionalRoles.length === 0) return child
-        if (child.functionalRoles.includes('default') && functionalRoles.length === 0) return child
-        const hasMatch = child.functionalRoles.some(r => functionalRoles.includes(r) || r === 'default')
-        return hasMatch ? child : null
-      }).filter(Boolean)
-    }))
-}
-
 function onMenuClick(e) {
   navigate(e.key)
 }
 
   const businessRole = userInfo?.businessRole || 'site_member'
   const functionalRoles = userInfo?.roles || []
-  const filteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
+  const sysPerm = userInfo?.sysPerm || 0
+  const cusPerm = userInfo?.cusPerm || 0
+
+  // Permission mapping from localStorage (loaded by api.js)
+  const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+
+  // Filter menu using both role-based and bit-based rules
+  const roleFilteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
+  
+  // Apply bit-permission filter on top of role filter
+  const filteredItems = roleFilteredItems
+    .filter(item => {
+      // Find matching menu rule
+      const rule = menuRules.find(r => r.path === (item.key || ''))
+      if (!rule) return true // No rule = visible by default
+      return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
+    })
+    .map(item => ({
+      ...item,
+      children: item.children?.filter(child => {
+        const rule = menuRules.find(r => r.path === (child.key || ''))
+        if (!rule) return true
+        return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
+      })
+    }))
   
   const selectedKeys = [location.pathname]
   let openKeys = []
