@@ -71,9 +71,12 @@ function redirectToLogin() {
     wxMiniProgram: typeof wx !== 'undefined' ? !!wx.miniProgram : false
   })
   
-  // 清理 token
+  // 清理 token 和权限
   localStorage.removeItem('token')
   localStorage.removeItem('token_expiry')
+  localStorage.removeItem('user_sys_perm')
+  localStorage.removeItem('user_cus_perm')
+  localStorage.removeItem('user_cus_perm_ext')
   sessionStorage.removeItem('token')
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   
@@ -275,6 +278,26 @@ export const maintenanceApi = {
 export const ownershipApi = {
   get: (id) => api.get(`/user/ownership/${id}`),
   download: (id) => api.get(`/user/ownership/${id}/download`),
+}
+
+// Permission config API (#414)
+export const permissionConfigApi = {
+  getMapping: () => api.get('/config/permissions'),
+}
+
+let permissionMappingLoaded = false
+
+export async function initPermissionMapping() {
+  if (permissionMappingLoaded) return
+  try {
+    const resp = await permissionConfigApi.getMapping()
+    if (resp && resp.code === 20000) {
+      localStorage.setItem('permission_mapping', JSON.stringify(resp.data.cus_perm_mapping || {}))
+      permissionMappingLoaded = true
+    }
+  } catch (e) {
+    console.warn('[Permissions] Failed to load permission mapping')
+  }
 }
 
 export default api

@@ -25,11 +25,38 @@ function storeToken(token, expiresIn = 3600) {
   localStorage.setItem('token_expiry', expiry.toString())
 }
 
+function parseJWT(token) {
+  if (!token || !token.includes('.')) return {}
+  try {
+    return JSON.parse(atob(token.split('.')[1]))
+  } catch (e) {
+    return {}
+  }
+}
+
+function cachePermissions(claims) {
+  const sysPerm = parseInt(claims.sys_perm) || 0
+  const cusPerm = parseInt(claims.cus_perm) || 0
+  localStorage.setItem('user_sys_perm', sysPerm.toString())
+  localStorage.setItem('user_cus_perm', cusPerm.toString())
+  localStorage.setItem('user_cus_perm_ext', claims.cus_perm_ext || '')
+}
+
+function isNamespaceAdmin() {
+  const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
+  const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+  return sysPerm > 0 && cusPerm === 0
+}
+
 const publicRoutes = ['/', '/success', '/callback']
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
   const location = window.location.pathname
+  
+  if (!requireAuth) {
+    return children
+  }
   
   if (!token && !publicRoutes.includes(location)) {
     const config = getWXConfig()
@@ -86,6 +113,9 @@ function OAuthCallback() {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
           }
           
+          // Cache permission bitmaps from JWT (#414)
+          cachePermissions(parseJWT(tokenData.access_token))
+          
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
           sessionStorage.removeItem('post_auth_redirect')
           window.location.href = redirectTo
@@ -116,7 +146,6 @@ function OAuthCallback() {
 
 function App() {
   useEffect(() => {
-    // 在应用启动时获取配置
     fetch('/api/config')
       .then(res => res.json())
       .then(data => {
@@ -134,14 +163,19 @@ function App() {
     if (!token && !publicRoutes.includes(location)) {
       sessionStorage.setItem('post_auth_redirect', location)
     }
+    
+    // Cache permissions from existing JWT on app start
+    if (token) {
+      cachePermissions(parseJWT(token))
+    }
   }, [])
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/callback" element={<OAuthCallback />} />
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/instrument/:id" element={<ProtectedRoute><Detail /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute requireAuth={false}><Home /></ProtectedRoute>} />
+        <Route path="/instrument/:id" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
         <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/success" element={<Success />} />
         <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
