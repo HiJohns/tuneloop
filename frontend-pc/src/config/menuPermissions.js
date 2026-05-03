@@ -41,7 +41,7 @@ const menuRules = [
   // Dashboard — always visible for logged-in users
   { path: '/', visibleWhen: {} },
 
-  // Merchant management — needs tenant_view sys_perm
+  // Merchant management — now top-level menu (namespace admin, merchant admin, site admin)
   {
     path: '/merchants',
     visibleWhen: { sysPermBits: [SysPermBits.tenant_view] }
