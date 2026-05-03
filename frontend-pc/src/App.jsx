@@ -98,19 +98,14 @@ function MainLayout() {
         const roles = Array.isArray(payload.roles) ? payload.roles : [] // Functional roles from IAM #113
         
         // Permission bitmaps from JWT (#414)
-        const sysPerm = parseInt(payload.sys_perm) || 0
-        const cusPerm = parseInt(payload.cus_perm) || 0
-        const cusPermExt = payload.cus_perm_ext || ''
-        
-        // Store permission bitmaps
-        localStorage.setItem('user_sys_perm', sysPerm.toString())
-        localStorage.setItem('user_cus_perm', cusPerm.toString())
-        localStorage.setItem('user_cus_perm_ext', cusPermExt)
-        
-        // Compute businessRole from IAM role (heuristic - ideally from backend)
+        // IAM may emit camelCase (sysPerm) or snake_case (sys_perm), read both
+        const sysPerm = parseInt(payload.sys_perm || payload.sysPerm) || 0
+        const cusPerm = parseInt(payload.cus_perm || payload.cusPerm) || 0
+        const cusPermExt = payload.cus_perm_ext || payload.cusPermExt || ''
+        const isOwner = !!(payload.is_owner || payload.isOwner)
         let businessRole = 'site_member'
         if (role === 'owner' || role === 'OWNER') {
-          businessRole = payload.is_owner ? 'merchant_admin' : 'site_admin'
+          businessRole = isOwner ? 'merchant_admin' : 'site_admin'
         } else if (role === 'admin' || role === 'ADMIN') {
           businessRole = 'site_admin'
         }
@@ -130,6 +125,7 @@ function MainLayout() {
           sysPerm,
           cusPerm,
           cusPermExt,
+          isOwner,
           ...payloadWithoutRole
         })
         localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole, sysPerm, cusPerm, cusPermExt }))
@@ -255,11 +251,12 @@ function onMenuClick(e) {
   const roleFilteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
   
   // Apply bit-permission filter on top of role filter
+  const isOwnerUser = userInfo?.isOwner || false
   const filteredItems = roleFilteredItems
     .filter(item => {
-      // Find matching menu rule
       const rule = menuRules.find(r => r.path === (item.key || ''))
-      if (!rule) return true // No rule = visible by default
+      if (!rule) return true
+      if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
       return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
     })
     .map(item => ({
@@ -267,6 +264,7 @@ function onMenuClick(e) {
       children: item.children?.filter(child => {
         const rule = menuRules.find(r => r.path === (child.key || ''))
         if (!rule) return true
+        if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       })
     }))
