@@ -17,6 +17,30 @@ This file contains instructions and guidelines for AI coding agents working in t
 
 ---
 
+## Project Structure
+
+```
+tuneloop/
+├── backend/                 # Go REST API server
+│   ├── main.go              # Route registration & server entry
+│   ├── middleware/           # Auth (IAMInterceptor), permission guards
+│   ├── handlers/            # HTTP handlers
+│   ├── services/            # IAM client, permission registry
+│   ├── models/              # GORM data models
+│   └── database/            # DB init, migrations, context keys
+├── frontend-pc/             # PC Web admin (React + Vite + Ant Design)
+│   └── src/
+│       ├── App.jsx          # Main layout, menu config, permission filter
+│       ├── pages/           # Page components
+│       ├── components/      # Shared components (ProtectedRoute, etc.)
+│       ├── services/api.js  # Axios API client + auth interceptors
+│       └── config/          # menuPermissions.js — permission rules
+├── frontend-mobile/         # WeChat mini-program / mobile web (Vite)
+│   └── src/
+├── docs/                    # Core documentation (bilingual: zh + en)
+└── scripts/                 # Build & CI helper scripts
+```
+
 ## Repository Status
 **Note**: This repository is currently empty. The guidelines below represent standard best practices for modern web development. Update them as the project structure becomes established.
 
@@ -113,7 +137,7 @@ curl -X POST http://localhost:5554/api/iam/organizations/sync -H "Authorization:
 
 ---
 
-*Last updated: 2026-05-01*
+*Last updated: 2026-05-03*
 
 ---
 
