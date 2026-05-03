@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { staffApi, sitesApi, iamAdminApi, iamApi } from '../services/api'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import UserCreateDialog from '../components/UserCreateDialog'
 import UserEditDialog from '../components/UserEditDialog'
 
 const { Option } = Select
 
 export default function StaffManagement() {
+  const navigate = useNavigate()
   const [staffList, setStaffList] = useState([])
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
@@ -345,6 +346,12 @@ export default function StaffManagement() {
                 从 IAM 同步
               </Button>
             )}
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => navigate('/staff/bulk-import')}
+            >
+              批量导入
+            </Button>
             <Button 
               type="primary" 
               icon={<PlusOutlined />}

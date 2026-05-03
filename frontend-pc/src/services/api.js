@@ -367,6 +367,45 @@ export const depositApi = {
   update: (id, data) => api.put(`/merchant/deposits/${id}`, data),
 }
 
+export const bulkImportApi = {
+  previewOrganizations: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request('/admin/bulk-import/organizations?dry_run=true', {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+  importOrganizations: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request('/admin/bulk-import/organizations', {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+  previewAccounts: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request('/admin/bulk-import/accounts?dry_run=true', {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+  importAccounts: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request('/admin/bulk-import/accounts', {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+}
+
 export const iamAdminApi = {
   // Client Management
   getClients: () => api.get('/system/clients'),

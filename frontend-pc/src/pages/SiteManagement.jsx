@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
@@ -9,6 +10,7 @@ import InlineUserSelector from '../components/InlineUserSelector'
 const { Option } = Select
 
 export default function SiteManagement() {
+  const navigate = useNavigate()
   const [treeData, setTreeData] = useState([])
   const [selectedSite, setSelectedSite] = useState(null)
   const [editingSite, setEditingSite] = useState(null)
@@ -314,6 +316,13 @@ export default function SiteManagement() {
                 onClick={handleCreateTopLevel}
               >
                 创建顶级网点
+              </Button>
+              <Button
+                size="small"
+                icon={<UploadOutlined />}
+                onClick={() => navigate('/organization/sites/bulk-import')}
+              >
+                批量导入
               </Button>
               {(userRole === 'ADMIN' || userRole === 'OWNER' || userRole === 'admin' || userRole === 'owner') && (
                 <Button 

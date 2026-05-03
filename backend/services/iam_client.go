@@ -648,3 +648,8 @@ func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, permCodes [
 	}
 	return nil
 }
+
+// GetNamespace returns the configured namespace name.
+func (c *IAMClient) GetNamespace() string {
+	return c.namespace
+}

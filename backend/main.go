@@ -80,6 +80,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	warehouseHandler := handlers.NewWarehouseHandler()
 	userRentalHandler := handlers.NewUserRentalHandler()
 
+	// Bulk import handler (Issue #423)
+	iamClient := services.NewIAMClient()
+	bulkImportHandler := handlers.NewBulkImportHandler(iamClient, permRegistry)
+
 	api := r.Group("/api")
 
 	api.GET("/health", func(c *gin.Context) {
@@ -372,6 +376,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)
 			authRequired.GET("/admin/dashboard/near-transfers", dashboardHandler.GetNearTransfers)
+
+			// Issue #423: Bulk Import Routes
+			authRequired.POST("/admin/bulk-import/organizations", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), bulkImportHandler.ImportOrganizations)
+			authRequired.POST("/admin/bulk-import/accounts", middleware.RequireSysPerm(middleware.SysPermUserCreate), bulkImportHandler.ImportAccounts)
+			authRequired.GET("/admin/bulk-import/template/organizations", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), bulkImportHandler.DownloadOrganizationTemplate)
+			authRequired.GET("/admin/bulk-import/template/accounts", middleware.RequireSysPerm(middleware.SysPermUserCreate), bulkImportHandler.DownloadAccountTemplate)
 
 			leaseHandler := handlers.NewLeaseHandler(database.GetDB())
 			authRequired.GET("/merchant/leases", leaseHandler.ListLeases)

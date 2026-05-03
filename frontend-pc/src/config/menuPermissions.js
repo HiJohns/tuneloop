@@ -104,6 +104,22 @@ const menuRules = [
       requireAllGroups: true
     }
   },
+  {
+    path: '/staff/bulk-import',
+    visibleWhen: {
+      sysPermBits: [SysPermBits.user_create],
+      cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
+      requireAllGroups: true
+    }
+  },
+  {
+    path: '/organization/sites/bulk-import',
+    visibleWhen: {
+      sysPermBits: [SysPermBits.organization_create],
+      cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
+      requireAllGroups: true
+    }
+  },
 
   // System management — needs sys_perm
   {

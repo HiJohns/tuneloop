@@ -45,6 +45,8 @@ import InstrumentList from './pages/admin/instrument/List'
 import InstrumentForm from './pages/admin/instrument/Form'
 import InstrumentDetail from './pages/admin/instrument/Detail'
 import BatchImport from './pages/admin/instrument/BatchImport'
+import SiteBulkImport from './pages/SiteBulkImport'
+import StaffBulkImport from './pages/StaffBulkImport'
 
 import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
@@ -419,9 +421,11 @@ function onMenuClick(e) {
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
               <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
-              <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
-               <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-               <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['property:manage'] }}><PropertyList /></ProtectedRoute>} />
+               <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
+                <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
+                <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['property:manage'] }}><PropertyList /></ProtectedRoute>} />
+                <Route path="/organization/sites/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [12] }}><SiteBulkImport /></ProtectedRoute>} />
+                <Route path="/staff/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [17] }}><StaffBulkImport /></ProtectedRoute>} />
           </Routes>
         </Content>
       </Layout>
