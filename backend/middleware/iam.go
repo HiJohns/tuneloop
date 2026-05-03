@@ -18,13 +18,17 @@ import (
 
 type IAMClaims struct {
 	jwt.RegisteredClaims
-	Tid   string   `json:"tid"`
-	Oid   string   `json:"oid"`
-	Nid   string   `json:"nid"`
-	Role  string   `json:"role"`
-	Own   bool     `json:"own"`
-	Name  string   `json:"name"`
-	Roles []string `json:"roles"`
+	Tid       string   `json:"tid"`
+	Oid       string   `json:"oid"`
+	Gid       string   `json:"gid"`
+	Nid       string   `json:"nid"`
+	Role      string   `json:"role"`
+	Own       bool     `json:"own"`
+	Name      string   `json:"name"`
+	Roles     []string `json:"roles"`
+	SysPerm   int64    `json:"sys_perm"`
+	CusPerm   int64    `json:"cus_perm"`
+	CusPermExt string  `json:"cus_perm_ext,omitempty"`
 }
 
 type ContextKey string
@@ -37,6 +41,10 @@ const (
 	ContextKeyRole            ContextKey = "role"
 	ContextKeyIsOwner         ContextKey = "is_owner"
 	ContextKeyFunctionalRoles ContextKey = "functional_roles"
+	ContextKeyGid             ContextKey = "gid"
+	ContextKeySysPerm         ContextKey = "sys_perm"
+	ContextKeyCusPerm         ContextKey = "cus_perm"
+	ContextKeyCusPermExt      ContextKey = "cus_perm_ext"
 )
 
 const (
@@ -151,6 +159,10 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		ctx = context.WithValue(ctx, ContextKeyFunctionalRoles, claims.Roles)
+		ctx = context.WithValue(ctx, ContextKeyGid, claims.Gid)
+		ctx = context.WithValue(ctx, ContextKeySysPerm, claims.SysPerm)
+		ctx = context.WithValue(ctx, ContextKeyCusPerm, claims.CusPerm)
+		ctx = context.WithValue(ctx, ContextKeyCusPermExt, claims.CusPermExt)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Sliding expiration: Check if token is about to expire
@@ -282,6 +294,34 @@ func GetFunctionalRoles(ctx context.Context) []string {
 		return roles
 	}
 	return []string{}
+}
+
+func GetGid(ctx context.Context) string {
+	if gid, ok := ctx.Value(ContextKeyGid).(string); ok {
+		return gid
+	}
+	return ""
+}
+
+func GetSysPerm(ctx context.Context) int64 {
+	if perm, ok := ctx.Value(ContextKeySysPerm).(int64); ok {
+		return perm
+	}
+	return 0
+}
+
+func GetCusPerm(ctx context.Context) int64 {
+	if perm, ok := ctx.Value(ContextKeyCusPerm).(int64); ok {
+		return perm
+	}
+	return 0
+}
+
+func GetCusPermExt(ctx context.Context) string {
+	if ext, ok := ctx.Value(ContextKeyCusPermExt).(string); ok {
+		return ext
+	}
+	return ""
 }
 
 func GetBusinessRole(ctx context.Context) string {

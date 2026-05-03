@@ -61,10 +61,14 @@ type JWTClaims struct {
 	UserID      string   `json:"sub"`
 	TenantID    string   `json:"tid"`
 	OrgID       string   `json:"oid"` // Organization ID (IAM token format)
+	Gid         string   `json:"gid"` // Group ID (current organization)
 	NamespaceID string   `json:"nid"`
 	Role        string   `json:"role"`
 	IsOwner     bool     `json:"is_owner"`
-	Roles       []string `json:"roles"` // Functional roles
+	Roles       []string `json:"roles"`    // Functional roles
+	SysPerm     int64    `json:"sys_perm"` // System permission bitmap
+	CusPerm     int64    `json:"cus_perm"` // Customer permission bitmap
+	CusPermExt  string   `json:"cus_perm_ext,omitempty"`
 	jwt.RegisteredClaims
 }
 

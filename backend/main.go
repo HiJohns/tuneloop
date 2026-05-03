@@ -131,6 +131,20 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		})
 	})
 
+	api.GET("/config/permissions", func(c *gin.Context) {
+		sysPermMapping := gin.H{}
+		for bit, name := range middleware.SysPermBitNames {
+			sysPermMapping[name] = bit
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"sys_perm_mapping": sysPermMapping,
+				"cus_perm_mapping": gin.H{},
+			},
+		})
+	})
+
 	api.GET("/auth/callback", authHandler.Callback)
 	api.POST("/auth/callback", authHandler.Callback)
 	api.GET("/auth/oidc/authorization-url", authHandler.GetOIDCAuthorizationURL)
@@ -150,8 +164,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.GET("/iam/users/search", iamProxyHandler.SearchUsers)
 		authRequired.POST("/iam/users", iamProxyHandler.CreateUser)
 		authRequired.GET("/iam/organizations", iamProxyHandler.ListOrganizations)
-		authRequired.POST("/iam/organizations/sync", iamProxyHandler.SyncOrganizations)
-		authRequired.POST("/iam/users/sync", iamProxyHandler.SyncUsers)
+		authRequired.POST("/iam/organizations/sync", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), iamProxyHandler.SyncOrganizations)
+		authRequired.POST("/iam/users/sync", middleware.RequireSysPerm(middleware.SysPermUserCreate), iamProxyHandler.SyncUsers)
 		authRequired.PUT("/iam/users/:id", iamProxyHandler.UpdateIAMUser)
 
 		// Confirmation Session routes
@@ -202,21 +216,21 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 		authRequired.POST("/orders/:id/return", handlers.ReturnOrder)
 		authRequired.POST("/orders/:id/cancel", handlers.CancelOrder)
 
-		// Merchant management routes (require project_admin role)
-		authRequired.GET("/merchants", middleware.RequireRole("project_admin"), merchantHandler.ListMerchants)
-		authRequired.GET("/merchants/:id", middleware.RequireRole("project_admin"), merchantHandler.GetMerchant)
-		authRequired.POST("/merchants", middleware.RequireRole("project_admin"), merchantHandler.CreateMerchant)
-		authRequired.PUT("/merchants/:id", middleware.RequireRole("project_admin"), merchantHandler.UpdateMerchant)
-		authRequired.DELETE("/merchants/:id", middleware.RequireRole("project_admin"), merchantHandler.DeleteMerchant)
+		// Merchant management routes (require tenant sys_perm + project_admin role)
+		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), middleware.RequireRole("project_admin"), merchantHandler.ListMerchants)
+		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), middleware.RequireRole("project_admin"), merchantHandler.GetMerchant)
+		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), middleware.RequireRole("project_admin"), merchantHandler.CreateMerchant)
+		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), middleware.RequireRole("project_admin"), merchantHandler.UpdateMerchant)
+		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), middleware.RequireRole("project_admin"), merchantHandler.DeleteMerchant)
 
 		siteRequired := authRequired.Group("")
 		{
 			siteRequired.GET("/common/sites", siteHandler.ListSites)
 			siteRequired.GET("/common/sites/nearby", siteHandler.GetNearbySites)
 			siteRequired.GET("/common/sites/:id", siteHandler.GetSiteDetail)
-			siteRequired.POST("/merchant/sites", siteHandler.CreateSite)
-			siteRequired.PUT("/merchant/sites/:id", siteHandler.UpdateSite)
-			siteRequired.DELETE("/merchant/sites/:id", siteHandler.DeleteSite)
+		siteRequired.POST("/merchant/sites", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
+		siteRequired.PUT("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationUpdate), siteHandler.UpdateSite)
+		siteRequired.DELETE("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationDelete), siteHandler.DeleteSite)
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
 			siteRequired.GET("/sites/:id/members", siteMemberHandler.ListMembers)
 			siteRequired.POST("/sites/:id/members", siteMemberHandler.AddMember)
@@ -226,8 +240,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", staffHandler.ListStaff)
 			authRequired.GET("/users/me", staffHandler.GetCurrentUser)
-			authRequired.POST("/users", staffHandler.CreateUser)
-			authRequired.PUT("/users/:id", staffHandler.UpdateUser)
+			authRequired.POST("/users", middleware.RequireSysPerm(middleware.SysPermUserCreate), staffHandler.CreateUser)
+			authRequired.PUT("/users/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.UpdateUser)
 			authRequired.GET("/users/check", staffHandler.CheckUserExists)
 		}
 
@@ -341,6 +355,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			// Admin/Owner 专属路由组
 			adminRequired := authRequired.Group("")
 			adminRequired.Use(middleware.RequireRole("ADMIN", "OWNER"))
+			adminRequired.Use(middleware.RequireSysPerm(middleware.SysPermRoleView))
 			{
 				adminRequired.GET("/admin/permissions", permHandler.GetPermissions)
 				adminRequired.GET("/admin/roles", permHandler.GetRoles)
@@ -351,8 +366,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 			}
 
 			systemHandler := handlers.NewSystemHandler()
-			authRequired.GET("/system/clients", systemHandler.GetClients)
-			authRequired.GET("/system/tenants", systemHandler.GetTenants)
+			authRequired.GET("/system/clients", middleware.RequireSysPerm(middleware.SysPermNamespaceView), systemHandler.GetClients)
+			authRequired.GET("/system/tenants", middleware.RequireSysPerm(middleware.SysPermTenantList), systemHandler.GetTenants)
 
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)

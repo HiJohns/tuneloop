@@ -357,23 +357,33 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 			"code":    20000,
 			"message": "success",
 			"data": gin.H{
-				"id":      userID,
-				"role":    middleware.GetRole(ctx),
-				"site_id": nil,
+				"id":            userID,
+				"role":          middleware.GetRole(ctx),
+				"business_role": middleware.GetBusinessRole(ctx),
+				"gid":           middleware.GetGid(ctx),
+				"sys_perm":      middleware.GetSysPerm(ctx),
+				"cus_perm":      middleware.GetCusPerm(ctx),
+				"cus_perm_ext":  middleware.GetCusPermExt(ctx),
+				"site_id":       nil,
 			},
 		})
 		return
 	}
 
 	result := gin.H{
-		"id":        user.ID,
-		"name":      user.Name,
-		"phone":     user.Phone,
-		"email":     user.Email,
-		"position":  user.Position,
-		"user_type": user.UserType,
-		"role":      middleware.GetRole(ctx),
-		"site_id":   nil,
+		"id":            user.ID,
+		"name":          user.Name,
+		"phone":         user.Phone,
+		"email":         user.Email,
+		"position":      user.Position,
+		"user_type":     user.UserType,
+		"role":          middleware.GetRole(ctx),
+		"business_role": middleware.GetBusinessRole(ctx),
+		"gid":           middleware.GetGid(ctx),
+		"sys_perm":      middleware.GetSysPerm(ctx),
+		"cus_perm":      middleware.GetCusPerm(ctx),
+		"cus_perm_ext":  middleware.GetCusPermExt(ctx),
+		"site_id":       nil,
 	}
 	if user.SiteID != nil {
 		result["site_id"] = *user.SiteID
