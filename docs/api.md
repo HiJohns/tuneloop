@@ -1,7 +1,7 @@
 # TuneLoop API 文档
 
-> 版本: v2.0 (整合 Lin-IAM 深度集成要求)
-> 最后更新: 2026-03-21
+> 版本: v2.1 (引入权限控制体系: sys_perm + cus_perm)
+> 最后更新: 2026-05-03
 > 覆盖度: 100% features.md
 
 ---
@@ -39,6 +39,75 @@
 所有列表接口支持:
 - `page`: 页码 (默认: 1)
 - `pageSize`: 每页数量 (默认: 20, 最大: 100)
+
+### 1.5 权限模型 (v2.1)
+
+权限控制基于 JWT 中的两层位图：
+
+**系统权限 (sys_perm)** — IAM 内置，位码 0-24：
+
+| 位码 | 代码 | TuneLoop 用途 |
+|------|------|-------------|
+| 5 | tenant_view | 商户管理查看 |
+| 7 | tenant_create | 创建商户 |
+| 8 | tenant_update | 编辑商户 |
+| 9 | tenant_delete | 删除商户 |
+| 10 | organization_view | 网点管理查看 |
+| 12 | organization_create | 创建网点 / IAM 组织同步 |
+| 13 | organization_update | 编辑网点 |
+| 14 | organization_delete | 删除网点 |
+| 15 | user_view | 人员管理查看 |
+| 17 | user_create | 创建人员 / IAM 用户同步 |
+| 18 | user_update | 编辑人员 |
+| 19 | user_delete | 删除人员 |
+| 20 | role_view | 角色配置查看 |
+| 23 | role_update | 编辑角色权限 |
+| 0 | namespace_view | 客户端管理查看 |
+
+**业务权限 (cus_perm)** — TuneLoop 自定义，启动时向 IAM 注册：
+
+| 代码 | 说明 |
+|------|------|
+| instrument:create | 创建乐器 |
+| instrument:edit | 编辑乐器 |
+| instrument:delete | 删除乐器 |
+| category:manage | 分类管理 |
+| property:manage | 属性管理 |
+| inventory:view | 库存查看 |
+| inventory:manage | 库存管理/调拨 |
+| rent:setting | 租金设定 |
+| order:view | 订单/租约查看 |
+| order:manage | 订单管理 |
+| maintenance:view | 维修查看 |
+| maintenance:assign | 维修派单 |
+| maintenance:complete | 维修完成 |
+| finance:config | 财务配置 |
+| appeal:handle | 申诉处理 |
+
+**API 权限要求汇总**：
+
+| 端点分类 | 权限类型 | 示例权限 |
+|---------|---------|---------|
+| 认证（登录/回调/刷新） | 无 | — |
+| 乐器查看/分类查看 | 已登录 | — |
+| 乐器创建/编辑/删除 | cus_perm | instrument:create/edit/delete |
+| 分类配置 | cus_perm | category:manage |
+| 属性管理 | cus_perm | property:manage |
+| 库存查看 | cus_perm | inventory:view |
+| 库存调拨 | cus_perm | inventory:manage |
+| 租金设定 | cus_perm | rent:setting |
+| 订单创建 | 已登录 | — |
+| 订单/租约管理 | cus_perm | order:view/manage |
+| 维修提交 | 已登录 | — |
+| 维修管理/派单 | cus_perm | maintenance:view/assign/complete |
+| 商户管理 | sys_perm | tenant_* (位码 5-9) |
+| 网点管理 | sys_perm | organization_* (位码 10-14) |
+| 人员管理 | sys_perm | user_* (位码 15-19) |
+| IAM 同步 | sys_perm | organization_create / user_create |
+| 角色权限配置 | sys_perm | role_* (位码 20-24) |
+| 客户端管理 | sys_perm | namespace_* (位码 0-4) |
+| 财务配置 | cus_perm | finance:config |
+| 申诉处理 | cus_perm | appeal:handle |
 
 ---
 

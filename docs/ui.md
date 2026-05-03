@@ -1,7 +1,7 @@
 # TuneLoop UI 设计文档
 
-> 版本: v2.0 (整合 Lin-IAM 白标化与产品交互深度优化)
-> 最后更新: 2026-03-21
+> 版本: v2.1 (整合权限控制体系: sys_perm + cus_perm 驱动的菜单可见性)
+> 最后更新: 2026-05-03
 > 覆盖度: 100% features.md
 
 ---
@@ -1644,15 +1644,26 @@ components/
   - 客户端管理 (`/system/clients`)
   - 租户管理 (`/system/tenants`)
 
-### 权限控制汇总
+### 权限控制汇总 (v2.1 — sys_perm + cus_perm 位图驱动)
 
-| 菜单 | site_manager | admin | owner | 普通用户 |
-|------|-------------|-------|-------|---------|
-| 仪表盘 | ✅ | ✅ | ✅ | ✅ |
-| 乐器管理 | ✅ | ✅ | ✅ | ✅ |
-| 库存监控 | ✅ | ✅ | ✅ | ❌ |
-| 组织管理 | ✅ | ✅ | ✅ | ✅ |
-| 系统管理 | ✅ | ✅ | ✅ | ✅ |
+| 菜单 | 命名空间管理员 | 商户管理员(owner) | 网点管理员(admin) | 网点员工(staff) | 所需权限 |
+|------|-------------|-------|-------|--------|---------|
+| 仪表盘 | ✅ | ✅ | ✅ | ✅ | 已登录 |
+| 商户管理 | ✅ | ❌ | ❌ | ❌ | sys_perm: tenant_view |
+| 客户端管理 | ✅ | ❌ | ❌ | ❌ | sys_perm: namespace_view |
+| 乐器管理 | ❌ | ✅ | ✅ | ✅ | cus_perm: instrument:create 等 |
+| 库存监控 | ❌ | ✅ | ✅ | ❌ | cus_perm: inventory:view/manage |
+| 维修管理 | ❌ | ✅ | ✅ | ✅ | cus_perm: maintenance:view/assign/complete |
+| 组织管理(网点/人员) | ❌ | ✅ | ✅(本网点) | ❌ | sys_perm: organization_/user_ + cus_perm(business) |
+| 系统管理(角色/申诉) | ❌ | ✅ | ✅(本网点) | ❌ | sys_perm: role_ + cus_perm: appeal:handle |
+| 财务配置 | ❌ | ✅ | ❌ | ❌ | cus_perm: finance:config |
+
+**命名空间管理员规则**: `sys_perm > 0 && cus_perm = 0` → 仅仪表盘 + 商户管理 + 客户端管理可见。
+
+**菜单可见性 = sys_perm + cus_perm + businessRole 组合判断**：
+- 组合菜单（网点管理/人员管理/角色配置）：需 sys_perm 授权 **且** cus_perm 含有任一业务权限
+- 纯业务菜单（乐器/库存/维修/财务）：仅需对应 cus_perm 代码
+- 纯管理菜单（商户/客户端）：仅需对应 sys_perm 位码
 
 ### 右上角用户信息
 
@@ -1677,15 +1688,29 @@ components/
 - **面包屑**: lines 146-169 (breadcrumbItems)
 - **用户显示**: lines 175-183 (Header)
 
-### 权限判断逻辑
+### 权限判断逻辑 (v2.1 — 位图驱动)
 
 ```javascript
-// 库存菜单可见性 (lines 117-130)
-const role = userInfo.role || ''
-const shouldShow = role === 'site_manager' || role === 'admin' || role === 'owner'
+// 前端从 JWT 解析 sys_perm/cus_perm (frontend-pc/src/App.jsx)
+const sysPerm = parseInt(payload.sys_perm) || 0
+const cusPerm = parseInt(payload.cus_perm) || 0
+
+// 命名空间管理员检测 (frontend-pc/src/config/menuPermissions.js)
+function isNamespaceAdmin(sysPerm, cusPerm) {
+  return sysPerm > 0 && cusPerm === 0
+}
+
+// 菜单规则判断 (checkRule)
+function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
+  // sysPermBits: 组内 OR；cusPermCodes: 组内 OR
+  // requireAllGroups: true → 两组必须同时满足
+}
 ```
 
-支持的角色值: `site_manager`, `admin`, `owner`
+**核心文件**:
+- `frontend-pc/src/config/menuPermissions.js` — 菜单权限规则定义
+- `frontend-pc/src/components/ProtectedRoute.jsx` — requiredPermission 路由守卫
+- `frontend-pc/src/services/api.js` — permissionConfigApi + initPermissionMapping
 
 ### 最后更新记录
 

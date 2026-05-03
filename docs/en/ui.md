@@ -1,9 +1,30 @@
 # TuneLoop UI Design Document
 
+> Version: v2.1 (Permission-driven menu visibility)
+> Last updated: 2026-05-03
+
 ## 1. Overview
 
 ### 1.1 Purpose
 This document defines the UI design specifications for the TuneLoop instrument rental management system, including page structure, features, interaction logic, and visual design principles.
+
+### 1.2 Permission Model (v2.1)
+
+Menu visibility is driven by JWT bitmaps: `sys_perm` (IAM built-in, bits 0-24) + `cus_perm` (TuneLoop-defined, 15 codes).
+
+| Menu | Namespace Admin | Merchant Admin | Site Admin | Site Staff | Required Permission |
+|------|----------------|---------------|------------|-----------|-------------------|
+| Dashboard | ✅ | ✅ | ✅ | ✅ | Logged in |
+| Merchants | ✅ | ❌ | ❌ | ❌ | sys_perm: tenant_view |
+| Clients | ✅ | ❌ | ❌ | ❌ | sys_perm: namespace_view |
+| Instruments | ❌ | ✅ | ✅ | ✅ | cus_perm: instrument:create etc |
+| Inventory | ❌ | ✅ | ✅ | ❌ | cus_perm: inventory:view |
+| Maintenance | ❌ | ✅ | ✅ | ✅ | cus_perm: maintenance:view |
+| Organization | ❌ | ✅ | ✅(own site) | ❌ | sys_perm: org_/user_ + biz cus_perm |
+| System | ❌ | ✅ | ✅(own site) | ❌ | sys_perm: role_ + cus_perm: appeal |
+| Finance | ❌ | ✅ | ❌ | ❌ | cus_perm: finance:config |
+
+**Core files**: `frontend-pc/src/config/menuPermissions.js`, `frontend-pc/src/components/ProtectedRoute.jsx`
 
 ### 1.2 Tech Stack
 - **Frontend Framework**: React 18 + Vite

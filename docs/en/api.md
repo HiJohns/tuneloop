@@ -1,6 +1,7 @@
 # TuneLoop API Design Document
 
-## 1. Overview
+> Version: v2.1 (Permission control: sys_perm + cus_perm)
+> Last updated: 2026-05-03
 
 ### 1.1 Purpose
 This document defines all backend API endpoints for the TuneLoop instrument rental management system, including endpoint definitions, request parameters, response formats, and error code specifications.
@@ -30,6 +31,37 @@ This document defines all backend API endpoints for the TuneLoop instrument rent
 | 40300 | Forbidden |
 | 40400 | Resource Not Found |
 | 50000 | Internal Server Error |
+
+### 1.4 Permission Model (v2.1)
+
+Two-layer bitmap-based permission control via JWT:
+
+**System Permissions (sys_perm)** — IAM built-in, bits 0-24:
+
+| Bit | Code | TuneLoop Usage |
+|-----|------|---------------|
+| 0 | namespace_view | Client management |
+| 5-9 | tenant_* | Merchant CRUD |
+| 10-14 | organization_* | Site CRUD / IAM org sync |
+| 15-19 | user_* | Staff management / IAM user sync |
+| 20-24 | role_* | Role & permission config |
+
+**Customer Permissions (cus_perm)** — TuneLoop-defined, registered at startup:
+
+| Code | Purpose |
+|------|---------|
+| instrument:create/edit/delete | Instrument CRUD |
+| category:manage | Category config |
+| property:manage | Property config |
+| inventory:view/manage | Inventory management |
+| rent:setting | Rental pricing |
+| order:view/manage | Order/lease management |
+| maintenance:view/assign/complete | Maintenance workflows |
+| finance:config | Finance config |
+| appeal:handle | Appeal processing |
+
+**Menu Visibility Rule**: `sys_perm + cus_perm + businessRole` combined judgment.
+Namespace admin (`sys_perm > 0 && cus_perm = 0`) sees only Dashboard + Merchants + Client Management.
 
 ---
 
