@@ -550,3 +550,101 @@ func ExtractUserToken(c *gin.Context) string {
 	}
 	return ""
 }
+
+// PermissionDef represents a customer permission to register with IAM.
+type PermissionDef struct {
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// PermissionMapping represents a registered customer permission with bit code.
+type PermissionMapping struct {
+	Code    string `json:"code"`
+	BitCode int    `json:"bit_code"`
+	Name    string `json:"name"`
+	IsActive bool  `json:"is_active"`
+}
+
+type registerCustomerPermissionsReq struct {
+	Permissions []PermissionDef `json:"permissions"`
+}
+
+type listCustomerPermissionsResp struct {
+	NamespaceID string              `json:"namespace_id"`
+	Permissions []PermissionMapping `json:"permissions"`
+}
+
+type setPermissionCodesReq struct {
+	PermissionCodes []string `json:"permission_codes"`
+}
+
+// RegisterCustomerPermissions registers custom permission definitions with IAM.
+// Idempotent: submitting the same code multiple times returns the existing bit code.
+func (c *IAMClient) RegisterCustomerPermissions(namespaceID string, perms []PermissionDef) ([]PermissionMapping, error) {
+	req := registerCustomerPermissionsReq{Permissions: perms}
+	path := fmt.Sprintf("/api/v1/namespaces/%s/customer-permissions", namespaceID)
+
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return nil, fmt.Errorf("RegisterCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("RegisterCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var resp listCustomerPermissionsResp
+	if err := json.Unmarshal(respBody, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse RegisterCustomerPermissions response: %w", err)
+	}
+	return resp.Permissions, nil
+}
+
+// GetCustomerPermissions fetches all registered customer permissions from IAM.
+func (c *IAMClient) GetCustomerPermissions(namespaceID string) ([]PermissionMapping, error) {
+	path := fmt.Sprintf("/api/v1/namespaces/%s/customer-permissions", namespaceID)
+
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("GetCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var resp listCustomerPermissionsResp
+	if err := json.Unmarshal(respBody, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse GetCustomerPermissions response: %w", err)
+	}
+	return resp.Permissions, nil
+}
+
+// SetRoleCustomerPermissions sets the cus_perm bit codes for a role template.
+func (c *IAMClient) SetRoleCustomerPermissions(namespaceID, roleID string, permCodes []string) error {
+	req := setPermissionCodesReq{PermissionCodes: permCodes}
+	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates/%s/customer-permissions", namespaceID, roleID)
+
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return fmt.Errorf("SetRoleCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("SetRoleCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
+}
+
+// SetUserCustomerPermissions sets the direct cus_perm bit codes for a user in an organization.
+func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, permCodes []string) error {
+	req := setPermissionCodesReq{PermissionCodes: permCodes}
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
+
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return fmt.Errorf("SetUserCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("SetUserCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
+}

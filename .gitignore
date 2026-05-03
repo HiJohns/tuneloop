@@ -35,3 +35,4 @@ prerelease/mobile/
 .DS_Store
 Thumbs.db
 tmp/
+tmp/.permission_cache.json

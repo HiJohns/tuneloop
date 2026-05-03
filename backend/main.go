@@ -61,7 +61,7 @@ func extractPort(urlStr string) string {
 	}
 }
 
-func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
+func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry *services.PermissionRegistry) {
 	siteHandler := handlers.NewSiteHandler()
 	// New handlers for Issue #345 (Merchant Management + Setup)
 	merchantHandler := handlers.NewMerchantHandler()
@@ -132,15 +132,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService) {
 	})
 
 	api.GET("/config/permissions", func(c *gin.Context) {
-		sysPermMapping := gin.H{}
-		for bit, name := range middleware.SysPermBitNames {
-			sysPermMapping[name] = bit
+		cusPermMapping := gin.H{}
+		for code, bit := range permRegistry.GetCusPermMapping() {
+			cusPermMapping[code] = bit
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
-				"sys_perm_mapping": sysPermMapping,
-				"cus_perm_mapping": gin.H{},
+				"sys_perm_mapping": middleware.SysPermBitNames,
+				"cus_perm_mapping": cusPermMapping,
 			},
 		})
 	})
@@ -425,6 +425,22 @@ func main() {
 		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
 	}
 
+	// Bootstrap customer permissions with IAM (#414)
+	iamClient := services.NewIAMClient()
+	namespaceID := os.Getenv("IAM_NAMESPACE")
+	if namespaceID == "" {
+		namespaceID = "tuneloop"
+	}
+	permRegistry := services.NewPermissionRegistry(iamClient)
+	if err := permRegistry.RegisterAndSync(namespaceID); err != nil {
+		fmt.Printf("Warning: Customer permission bootstrap failed: %v\n", err)
+		log.Printf("[INFO] Continuing with mock permission registry")
+	} else {
+		log.Printf("[INFO] Customer permissions registered and cached")
+		// Replace mock registry with real implementation
+		middleware.PermissionRegistry = permRegistry
+	}
+
 	// Log current configuration
 	log.Printf("[INFO] IAM External URL: %s", os.Getenv("BEACONIAM_EXTERNAL_URL"))
 	log.Printf("[INFO] IAM PC Client ID: %s", os.Getenv("IAM_PC_CLIENT_ID"))
@@ -447,7 +463,7 @@ func main() {
 
 	pcRouter := gin.Default()
 	pcRouter.Use(cors.Default())
-	setupAPIRoutes(pcRouter, iamService)
+	setupAPIRoutes(pcRouter, iamService, permRegistry)
 
 	// Serve uploads (user uploaded files)
 	pcRouter.Static("/uploads", getAbsPath("./uploads"))
@@ -477,7 +493,7 @@ func main() {
 	})
 	mobileRouter.Static("/assets", filepath.Join(mobileDistPath, "assets"))
 	mobileRouter.Static("/instruments", filepath.Join(mobileDistPath, "instruments"))
-	setupAPIRoutes(mobileRouter, iamService)
+	setupAPIRoutes(mobileRouter, iamService, permRegistry)
 	mobileRouter.Static("/uploads", getAbsPath("./uploads"))
 
 	mobileRouter.NoRoute(func(c *gin.Context) {
