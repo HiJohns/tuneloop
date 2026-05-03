@@ -775,7 +775,8 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 
-	// Check permissions: only ADMIN or OWNER can sync
+	log.Printf("[IAMProxy] SyncUsers: tenantID=%s", tenantID)
+
 	role := middleware.GetRole(ctx)
 	if role != "ADMIN" && role != "OWNER" {
 		c.JSON(http.StatusForbidden, gin.H{
@@ -785,7 +786,6 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 		return
 	}
 
-	// Fetch users from IAM
 	users, err := client.ListUsers()
 	if err != nil {
 		log.Printf("[IAMProxy] SyncUsers: failed to list from IAM: %v", err)
@@ -795,6 +795,8 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 		})
 		return
 	}
+
+	log.Printf("[IAMProxy] SyncUsers: got %d users from IAM", len(users))
 
 	db := database.GetDB().WithContext(ctx)
 	var synced, skipped, conflicts int
@@ -806,6 +808,10 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 
 		if err == gorm.ErrRecordNotFound {
 			// Create new shadow user
+			orgID := user.OrgID
+			if orgID == "" {
+				orgID = tenantID // Use tenantID as default org if org_id is empty
+			}
 			newUser := models.User{
 				ID:       uuid.New().String(),
 				IAMSub:   user.ID,
@@ -813,6 +819,8 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				Email:    user.Email,
 				Phone:    user.Phone,
 				TenantID: tenantID,
+				OrgID:    orgID,
+				Role:     user.Role,
 				IsShadow: true,
 				Status:   "active",
 			}
@@ -837,6 +845,14 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 			}
 			if existingUser.Phone != user.Phone {
 				updates["phone"] = user.Phone
+				needsUpdate = true
+			}
+			if existingUser.Role != user.Role {
+				updates["role"] = user.Role
+				needsUpdate = true
+			}
+			if user.OrgID != "" && existingUser.OrgID != user.OrgID {
+				updates["org_id"] = user.OrgID
 				needsUpdate = true
 			}
 

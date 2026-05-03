@@ -43,8 +43,12 @@ func NewIAMClient() *IAMClient {
 	if namespace == "" {
 		namespace = "tuneloop"
 	}
+
+	baseURL := GetIAMInternalURL()
+	log.Printf("[IAMClient] NewIAMClient: baseURL=%s, clientID=%s, namespace=%s", baseURL, clientID, namespace)
+
 	return &IAMClient{
-		baseURL:      GetIAMInternalURL(),
+		baseURL:      baseURL,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		namespace:    namespace,
@@ -261,6 +265,8 @@ type User struct {
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
 	Status   string `json:"status"`
+	OrgID    string `json:"org_id"`
+	Role     string `json:"role"`
 }
 
 // getNamespaceID resolves namespace ID from name/client_id
@@ -325,22 +331,37 @@ type CreateUserResponse struct {
 
 // ListUsers gets all users from IAM
 func (c *IAMClient) ListUsers() ([]User, error) {
+	log.Printf("[IAMClient] ListUsers: baseURL=%s, namespace=%s, clientID=%s", c.baseURL, c.namespace, c.clientID)
+
 	respBody, statusCode, err := c.doRequest("GET", "/api/v1/users", nil)
 	if err != nil {
+		log.Printf("[IAMClient] ListUsers: doRequest error: %v", err)
 		return nil, fmt.Errorf("ListUsers request failed: %w", err)
 	}
 
+	log.Printf("[IAMClient] ListUsers: statusCode=%d, responseLen=%d", statusCode, len(respBody))
+
 	if statusCode != http.StatusOK {
+		log.Printf("[IAMClient] ListUsers: non-200 response: %s", string(respBody))
 		return nil, fmt.Errorf("ListUsers returned status %d: %s", statusCode, string(respBody))
 	}
 
 	var result struct {
-		Data []User `json:"data"`
+		Users []User `json:"users"`
+		Data  []User `json:"data"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
+		log.Printf("[IAMClient] ListUsers: unmarshal error: %v, response: %s", err, string(respBody))
 		return nil, fmt.Errorf("failed to parse ListUsers response: %w", err)
 	}
 
+	log.Printf("[IAMClient] ListUsers: parsed result - users count=%d, data count=%d", len(result.Users), len(result.Data))
+
+	if len(result.Users) > 0 {
+		log.Printf("[IAMClient] ListUsers: returning %d users from 'users' field", len(result.Users))
+		return result.Users, nil
+	}
+	log.Printf("[IAMClient] ListUsers: returning %d users from 'data' field", len(result.Data))
 	return result.Data, nil
 }
 
