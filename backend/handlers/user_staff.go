@@ -72,6 +72,22 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		return
 	}
 
+	// Batch load site names
+	siteNames := make(map[string]string)
+	var siteIDs []string
+	for _, user := range users {
+		if user.SiteID != nil && *user.SiteID != "" {
+			siteIDs = append(siteIDs, *user.SiteID)
+		}
+	}
+	if len(siteIDs) > 0 {
+		var sites []models.Site
+		db.Where("id IN ?", siteIDs).Find(&sites)
+		for _, s := range sites {
+			siteNames[s.ID] = s.Name
+		}
+	}
+
 	var result []gin.H
 	for _, user := range users {
 		item := gin.H{
@@ -88,6 +104,9 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		}
 		if user.SiteID != nil {
 			item["site_id"] = *user.SiteID
+			if name, ok := siteNames[*user.SiteID]; ok {
+				item["site_name"] = name
+			}
 		}
 		result = append(result, item)
 	}
