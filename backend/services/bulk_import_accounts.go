@@ -256,6 +256,13 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 						log.Printf("[BulkImport] IAM SetUserCustomerPermissions warning for %s: %v", acc.Email, err)
 					}
 				}
+
+				// Bind user to organization if applicable
+				if orgIDForIAM != "" {
+					if err := iamClient.BindUserToOrganization(iamUser.ID, orgIDForIAM, "member", ""); err != nil {
+						log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
+					}
+				}
 			}
 
 			result.Summary.Updated++
