@@ -211,15 +211,7 @@ function MainLayout() {
     children: [
       { key: '/organization/sites', label: '网点管理', functionalRoles: null },
       { key: '/merchants', label: '商户管理', functionalRoles: null },
-      { key: '/staff', label: '人员管理', functionalRoles: null }
-    ]
-  },
-  {
-    key: 'system',
-    icon: <SettingOutlined />,
-    label: '系统管理',
-    structuralRoles: ['system_admin', 'merchant_admin'],
-    children: [
+      { key: '/staff', label: '人员管理', functionalRoles: null },
       { key: '/system/clients', label: '客户端管理', functionalRoles: null },
       { key: '/system/tenants', label: '租户管理', functionalRoles: null },
       { key: '/appeals', label: '申诉处理', functionalRoles: null }
