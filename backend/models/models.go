@@ -90,10 +90,11 @@ type Order struct {
 }
 
 type Site struct {
-	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID         string     `gorm:"type:uuid;index" json:"org_id"`
-	ParentID      *uuid.UUID `gorm:"type:uuid;index" json:"parent_id"`
+	ID                string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID          string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID            string     `gorm:"type:uuid;index" json:"org_id"`
+	OrganizationCode string    `gorm:"type:varchar(255);index" json:"organization_code"`
+	ParentID         *uuid.UUID `gorm:"type:uuid;index" json:"parent_id"`
 	ManagerID     *uuid.UUID `gorm:"column:manager_id;type:uuid;index" json:"manager_id"`
 	Name          string     `gorm:"type:varchar(255);not null" json:"name"`
 	Address       string     `gorm:"type:varchar(500)" json:"address"`

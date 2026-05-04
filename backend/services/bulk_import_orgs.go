@@ -65,23 +65,29 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 	result := &BulkImportResult{}
 	result.Summary.Total = len(sorted)
 
-	// Preload existing sites by org_id and name (dual lookup:
-	// IAM-synced sites use UUID OrgID; bulk-import sites use code OrgID)
+	// Preload existing sites by organization_code and name
+	// OrganizationCode stores CSV code (e.g., TUNELOOP), OrgID is UUID from IAM
 	var existingSites []models.Site
 	db.Where("tenant_id = ?", tenantID).Find(&existingSites)
-	existingByOrgID := make(map[string]models.Site)
+	existingByCode := make(map[string]models.Site)
 	existingByName := make(map[string]models.Site)
 	for _, s := range existingSites {
-		existingByOrgID[s.OrgID] = s
-		existingByName[s.Name] = s
+		if s.OrganizationCode != "" {
+			existingByCode[s.OrganizationCode] = s
+		}
+		if s.Name != "" {
+			existingByName[s.Name] = s
+		}
 	}
 
-	// Map to track org_code -> local site_id (for parent resolution)
+	// Map to track organization_code -> local site_id (for parent resolution)
 	codeToSiteID := make(map[string]string)
 	codeToOrgID := make(map[string]string)
 	for _, s := range existingSites {
-		codeToSiteID[s.OrgID] = s.ID // org_id is the code in our case
-		codeToOrgID[s.OrgID] = s.OrgID
+		if s.OrganizationCode != "" {
+			codeToSiteID[s.OrganizationCode] = s.ID
+			codeToOrgID[s.OrganizationCode] = s.OrgID
+		}
 	}
 
 	for _, org := range sorted {
@@ -107,7 +113,7 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			continue
 		}
 
-		existingSite, exists := existingByOrgID[org.OrganizationCode]
+		existingSite, exists := existingByCode[org.OrganizationCode]
 		if !exists {
 			existingSite, exists = existingByName[org.Name]
 		}
@@ -115,9 +121,8 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			lowerCode := strings.ToLower(org.OrganizationCode)
 			lowerName := strings.ToLower(org.Name)
 			for _, s := range existingSites {
-				if strings.ToLower(s.OrgID) == lowerCode ||
-					strings.ToLower(s.Name) == lowerName ||
-					strings.ToLower(s.Name) == lowerCode {
+				if (s.OrganizationCode != "" && strings.ToLower(s.OrganizationCode) == lowerCode) ||
+					(s.Name != "" && strings.ToLower(s.Name) == lowerName) {
 					existingSite = s
 					exists = true
 					break
@@ -197,14 +202,15 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			})
 		} else {
 			// Create new site and IAM organization
-			newSiteID := uuid.New().String()
+			orgID := uuid.New().String()
 			newSite := models.Site{
-				ID:       newSiteID,
-				TenantID: tenantID,
-				OrgID:    org.OrganizationCode,
-				Name:     org.Name,
-				Type:     org.Type,
-				Status:   "active",
+				ID:                uuid.New().String(),
+				TenantID:          tenantID,
+				OrgID:             orgID, // Valid UUID
+				OrganizationCode: org.OrganizationCode, // CSV code
+				Name:              org.Name,
+				Type:              org.Type,
+				Status:            "active",
 			}
 			if parentID != nil {
 				newSite.ParentID = parentID
@@ -237,8 +243,8 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 				// Non-fatal: local site is created, IAM sync can be retried
 			}
 
-			codeToSiteID[org.OrganizationCode] = newSiteID
-			codeToOrgID[org.OrganizationCode] = org.OrganizationCode
+			codeToSiteID[org.OrganizationCode] = newSite.ID
+			codeToOrgID[org.OrganizationCode] = newSite.OrgID
 
 			result.Summary.Created++
 			result.Details = append(result.Details, BulkImportDetail{
