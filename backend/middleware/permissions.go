@@ -132,7 +132,7 @@ func RequireSysPerm(bit int) gin.HandlerFunc {
 // RequireCusPerm checks whether the user has a specific cus_perm bit set.
 // Uses the global PermissionRegistry to resolve name to bit position.
 // When cus_perm is 0 (no bitmap from IAM yet), passes through for compatibility.
-// If the bit is -1 (mock mode), the permission is rejected.
+// If the bit is -1 (mock mode), the permission check is skipped (pass-through).
 func RequireCusPerm(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bit := PermissionRegistry.GetCusPermBit(name)

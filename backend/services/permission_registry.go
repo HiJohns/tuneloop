@@ -66,8 +66,11 @@ func (r *PermissionRegistry) RegisterAndSync(namespaceID string) error {
 	r.lastSync = time.Now()
 	log.Printf("[PermissionRegistry] Registered %d permissions with IAM", len(registered))
 
-	// Save to cache
-	r.saveToCache()
+	snapshot := make(map[string]int, len(r.cusPermMap))
+	for k, v := range r.cusPermMap {
+		snapshot[k] = v
+	}
+	r.saveToCache(snapshot)
 
 	// Start background sync
 	go r.backgroundSync(namespaceID)
@@ -176,9 +179,9 @@ func (r *PermissionRegistry) loadFromCache() error {
 	return nil
 }
 
-func (r *PermissionRegistry) saveToCache() {
+func (r *PermissionRegistry) saveToCache(snapshot map[string]int) {
 	entry := cacheEntry{
-		CusPermMap: r.cusPermMap,
+		CusPermMap: snapshot,
 		LastSync:   r.lastSync.Format(time.RFC3339),
 	}
 	data, err := json.Marshal(entry)
@@ -213,8 +216,12 @@ func (r *PermissionRegistry) backgroundSync(namespaceID string) {
 			}
 		}
 		r.lastSync = time.Now()
+		snapshot := make(map[string]int, len(r.cusPermMap))
+		for k, v := range r.cusPermMap {
+			snapshot[k] = v
+		}
 		r.mu.Unlock()
-		r.saveToCache()
+		r.saveToCache(snapshot)
 		log.Printf("[PermissionRegistry] Background sync: %d permissions", len(mappings))
 	}
 }

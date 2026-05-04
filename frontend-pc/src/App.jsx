@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons'
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
-import { api } from './services/api'
+import { api, initPermissionMapping } from './services/api'
 import { menuRules, checkRule, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
@@ -578,6 +578,7 @@ function App() {
         }
       })
       .catch(err => console.error('Failed to load config:', err))
+    initPermissionMapping()
   }, [])
   
   return (

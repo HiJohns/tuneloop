@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { getToken } from './services/api'
+import { getToken, initPermissionMapping } from './services/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 import Home from './pages/Home'
@@ -154,9 +154,7 @@ function App() {
         }
       })
       .catch(err => console.error('Failed to load config:', err))
-  }, [])
-  
-  useEffect(() => {
+    initPermissionMapping()
     const token = getToken()
     const location = window.location.pathname
     
