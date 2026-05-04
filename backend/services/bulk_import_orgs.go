@@ -109,8 +109,20 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 
 		existingSite, exists := existingByOrgID[org.OrganizationCode]
 		if !exists {
-			// Fallback: try name-based lookup for IAM-synced sites (UUID OrgID)
 			existingSite, exists = existingByName[org.Name]
+		}
+		if !exists {
+			lowerCode := strings.ToLower(org.OrganizationCode)
+			lowerName := strings.ToLower(org.Name)
+			for _, s := range existingSites {
+				if strings.ToLower(s.OrgID) == lowerCode ||
+					strings.ToLower(s.Name) == lowerName ||
+					strings.ToLower(s.Name) == lowerCode {
+					existingSite = s
+					exists = true
+					break
+				}
+			}
 		}
 
 		if dryRun {
