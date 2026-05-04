@@ -73,12 +73,18 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		}
 	}
 
-	// Preload sites by org_id (organization_code)
+	// Preload sites by organization_code and name
 	var sites []models.Site
-	db.Where("tenant_id = ?", tenantID).Find(&sites)
-	siteByOrgID := make(map[string]models.Site)
+	db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID).Find(&sites)
+	siteByCode := make(map[string]models.Site)
+	siteByName := make(map[string]models.Site)
 	for _, s := range sites {
-		siteByOrgID[s.OrgID] = s
+		if s.OrganizationCode != "" {
+			siteByCode[s.OrganizationCode] = s
+		}
+		if s.Name != "" {
+			siteByName[s.Name] = s
+		}
 	}
 
 	// Preload IAM users (best effort, log warning on failure)
@@ -148,10 +154,23 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 		// Resolve organization
 		var siteID *string
-		var orgIDForLocal string // OrgID to store in local users table
-		var orgIDForIAM string   // OrgID to use for IAM API calls
+		var orgIDForLocal string
+		var orgIDForIAM string
 		if acc.OrganizationCode != "" {
-			site, ok := siteByOrgID[acc.OrganizationCode]
+			site, ok := siteByCode[acc.OrganizationCode]
+			if !ok {
+				site, ok = siteByName[acc.Name]
+			}
+			if !ok {
+				lowerCode := strings.ToLower(acc.OrganizationCode)
+				for _, s := range sites {
+					if s.OrganizationCode != "" && strings.ToLower(s.OrganizationCode) == lowerCode {
+						site = s
+						ok = true
+						break
+					}
+				}
+			}
 			if !ok {
 				result.Summary.Failed++
 				result.Details = append(result.Details, BulkImportDetail{
@@ -166,7 +185,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			orgIDForLocal = site.OrgID
 			orgIDForIAM = site.OrgID
 		} else {
-			// Namespace-level user: use tenantID as OrgID
 			orgIDForLocal = tenantID
 		}
 
