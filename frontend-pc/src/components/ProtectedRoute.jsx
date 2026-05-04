@@ -236,6 +236,7 @@ export function useAuth() {
       localStorage.removeItem('user_sys_perm')
       localStorage.removeItem('user_cus_perm')
       localStorage.removeItem('user_cus_perm_ext')
+      localStorage.removeItem('user_is_owner')
       window.location.href = '/'
     }
   }

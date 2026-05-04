@@ -65,6 +65,10 @@ function handleLogout() {
   localStorage.removeItem('token_expiry')
   localStorage.removeItem('user_info')
   localStorage.removeItem('user_role')
+  localStorage.removeItem('user_sys_perm')
+  localStorage.removeItem('user_cus_perm')
+  localStorage.removeItem('user_cus_perm_ext')
+  localStorage.removeItem('user_is_owner')
   localStorage.removeItem('refresh_token')
   
   // Clear cookies
@@ -128,7 +132,11 @@ function MainLayout() {
           isOwner,
           ...payloadWithoutRole
         })
-        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole, sysPerm, cusPerm, cusPermExt }))
+        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole, sysPerm, cusPerm, cusPermExt, isOwner }))
+        localStorage.setItem('user_sys_perm', sysPerm.toString())
+        localStorage.setItem('user_cus_perm', cusPerm.toString())
+        localStorage.setItem('user_cus_perm_ext', cusPermExt || '')
+        localStorage.setItem('user_is_owner', isOwner ? '1' : '0')
       } catch (e) {
         // ignore parse errors
       }
