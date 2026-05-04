@@ -155,11 +155,14 @@ async function request(endpoint, options = {}, retryCount = 0) {
     } catch (e) {
       Logger.warn('AUTH', 'Token refresh failed:', e.message)
     }
-  }
+}
   
   const headers = {
-    'Content-Type': 'application/json',
     ...options.headers,
+  }
+  // Don't set Content-Type for FormData — browser will auto-set multipart/form-data with boundary
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
   }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
