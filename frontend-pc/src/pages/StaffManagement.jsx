@@ -79,8 +79,24 @@ export default function StaffManagement() {
       const result = await sitesApi.getTree()
       console.log('[DEBUG] fetchSiteTree result:', result)
       if (result.code === 20000) {
-        console.log('[DEBUG] siteTree list:', result.data?.list)
-        setSiteTree(result.data?.list || [])
+        const topSites = result.data?.list || []
+        setSiteTree(topSites)
+        // Also load children of all top-level sites to build complete tree
+        const loadAllChildren = async (sites) => {
+          for (const site of sites) {
+            if (site.hasChildren) {
+              const childResult = await sitesApi.getTree(site.id)
+              if (childResult.code === 20000) {
+                site.children = childResult.data?.list || []
+                await loadAllChildren(site.children)
+              }
+            }
+          }
+        }
+        await loadAllChildren(topSites)
+        // Force re-render
+        setSiteTree([...topSites])
+        console.log('[DEBUG] siteTree with children:', topSites)
       }
     } catch (error) {
       console.error('[DEBUG] 加载网点数据失败:', error)
