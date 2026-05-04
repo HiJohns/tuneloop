@@ -73,17 +73,17 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		}
 	}
 
-	// Preload sites by organization_code and name
+	// Preload sites by organization_code and name (lowercase for case-insensitive lookup)
 	var sites []models.Site
 	db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID).Find(&sites)
 	siteByCode := make(map[string]models.Site)
 	siteByName := make(map[string]models.Site)
 	for _, s := range sites {
 		if s.OrganizationCode != "" {
-			siteByCode[s.OrganizationCode] = s
+			siteByCode[strings.ToLower(s.OrganizationCode)] = s
 		}
 		if s.Name != "" {
-			siteByName[s.Name] = s
+			siteByName[strings.ToLower(s.Name)] = s
 		}
 	}
 
@@ -157,19 +157,10 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		var orgIDForLocal string
 		var orgIDForIAM string
 		if acc.OrganizationCode != "" {
-			site, ok := siteByCode[acc.OrganizationCode]
+			lowerCode := strings.ToLower(acc.OrganizationCode)
+			site, ok := siteByCode[lowerCode]
 			if !ok {
-				site, ok = siteByName[acc.Name]
-			}
-			if !ok {
-				lowerCode := strings.ToLower(acc.OrganizationCode)
-				for _, s := range sites {
-					if s.OrganizationCode != "" && strings.ToLower(s.OrganizationCode) == lowerCode {
-						site = s
-						ok = true
-						break
-					}
-				}
+				site, ok = siteByName[strings.ToLower(acc.Name)]
 			}
 			if !ok {
 				result.Summary.Failed++
