@@ -175,7 +175,8 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 		if exists {
 			// Update existing site
 			updates := map[string]interface{}{
-				"name": org.Name,
+				"name":   org.Name,
+				"status": "active",
 			}
 			if org.Type != "" {
 				updates["type"] = org.Type
