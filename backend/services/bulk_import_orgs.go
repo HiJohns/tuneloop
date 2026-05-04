@@ -156,9 +156,9 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 		if org.ParentCode != "" {
 			parentSiteID, ok := codeToSiteID[org.ParentCode]
 			if !ok {
-				// Try to find in DB
-				var parentSite models.Site
-				if err := db.Where("org_id = ? AND tenant_id = ?", org.ParentCode, tenantID).First(&parentSite).Error; err == nil {
+// Try to find in DB by organization_code
+			var parentSite models.Site
+			if err := db.Where("organization_code = ? AND tenant_id = ?", org.ParentCode, tenantID).First(&parentSite).Error; err == nil {
 					parentSiteID = parentSite.ID
 					codeToSiteID[org.ParentCode] = parentSiteID
 					codeToOrgID[org.ParentCode] = parentSite.OrgID
