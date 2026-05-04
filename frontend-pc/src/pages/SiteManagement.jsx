@@ -87,11 +87,10 @@ export default function SiteManagement() {
   const convertToTreeNode = (site) => ({
     key: site.id,
     title: site.name,
-    icon: site.children && site.children.length > 0 ? <TeamOutlined /> : <EnvironmentOutlined />,
+    icon: site.hasChildren ? <TeamOutlined /> : <EnvironmentOutlined />,
     data: site,
-    // For dynamic loading, set empty children array so Tree shows expand icon
-    // Actual children will be loaded via loadData when node is expanded
-    children: []
+    isLeaf: !site.hasChildren,
+    children: site.children ? site.children.map(convertToTreeNode) : [],
   })
 
   const loadChildren = async (siteId) => {

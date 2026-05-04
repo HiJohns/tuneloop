@@ -619,28 +619,28 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 
+	// When root is provided, fetch all for tree building; otherwise fetch top-level only
 	var sites []models.Site
 	query := db.Where("tenant_id = ? AND status = 'active'", tenantID)
-
-	// Issue #239: When no rootID parameter, fetch ONLY top-level sites (parent_id IS NULL)
-	// When rootID is provided, fetch children of that parent
 	if rootID != "" {
-		query = query.Where("parent_id = ?", rootID)
-		fmt.Printf("[DEBUG] GetSiteTree - Loading children for rootID: %s\n", rootID)
+		// Need all sites to build complete tree
+		if err := query.Find(&sites).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to query sites: " + err.Error(),
+			})
+			return
+		}
 	} else {
-		// Initial load: only return top-level sites
+		// Initial load: return top-level only (for backward compat)
 		query = query.Where("parent_id IS NULL")
-	}
-
-	// Debug: Log query and tenant
-	fmt.Printf("[DEBUG] GetSiteTree - TenantID: %s, RootID: %s\n", tenantID, rootID)
-
-	if err := query.Find(&sites).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "failed to query sites: " + err.Error(),
-		})
-		return
+		if err := query.Find(&sites).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to query sites: " + err.Error(),
+			})
+			return
+		}
 	}
 
 	fmt.Printf("[DEBUG] GetSiteTree - Query completed. Found %d sites\n", len(sites))
@@ -657,19 +657,17 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 		Children    []SiteTreeNode          `json:"children"`
 	}
 
-	var result []SiteTreeNode
+	// Build tree structure from flat list
+	siteMap := make(map[string]*SiteTreeNode)
+	var rootSites []SiteTreeNode
+
+	// First pass: create all nodes
 	for _, site := range sites {
-		fmt.Printf("[DEBUG] GetSiteTree - Site ID: %s, ManagerID: %v\n", site.ID, site.ManagerID)
 		var manager *map[string]interface{}
 		if site.ManagerID != nil {
 			user, err := lookupOrSyncManager(c, db, site.ManagerID.String())
-			if err != nil {
-				fmt.Printf("[WARN] Failed to lookup manager %s: %v\n", site.ManagerID.String(), err)
-			} else if user != nil {
-				m := map[string]interface{}{
-					"id":   user.ID,
-					"name": user.Name,
-				}
+			if err == nil && user != nil {
+				m := map[string]interface{}{"id": user.ID, "name": user.Name}
 				manager = &m
 			}
 		}
@@ -698,15 +696,36 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 			HasChildren: hasChildren,
 			Children:    []SiteTreeNode{},
 		}
-
-		result = append(result, node)
+		siteMap[site.ID] = &node
 	}
 
-	fmt.Printf("[DEBUG] GetSiteTree - Returning %d sites in result\n", len(result))
+	// Second pass: build tree hierarchy
+	fmt.Printf("[DEBUG] Building tree, total nodes: %d\n", len(siteMap))
+	for id, node := range siteMap {
+		fmt.Printf("[DEBUG] Processing node: %s, parent: %v\n", id, node.ParentID)
+	}
+	for _, node := range siteMap {
+		if node.ParentID == nil || *node.ParentID == "" {
+			rootSites = append(rootSites, *node)
+		} else {
+			parentID := *node.ParentID
+			if parent, ok := siteMap[parentID]; ok {
+				fmt.Printf("[DEBUG] Adding %s to parent %s's children\n", node.Name, parent.Name)
+				parent.Children = append(parent.Children, *node)
+				parent.HasChildren = true
+				parent.IsLeaf = false
+			} else {
+				fmt.Printf("[DEBUG] Parent %s not found, treating %s as root\n", parentID, node.Name)
+				rootSites = append(rootSites, *node)
+			}
+		}
+	}
+
+	fmt.Printf("[DEBUG] GetSiteTree - Returning %d root sites with full tree\n", len(rootSites))
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": gin.H{"list": result},
+		"data": gin.H{"list": rootSites},
 	})
 }
 
