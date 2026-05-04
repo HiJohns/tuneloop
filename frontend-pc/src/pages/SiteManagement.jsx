@@ -90,7 +90,6 @@ export default function SiteManagement() {
     icon: site.hasChildren ? <TeamOutlined /> : <EnvironmentOutlined />,
     data: site,
     isLeaf: !site.hasChildren,
-    children: site.children ? site.children.map(convertToTreeNode) : [],
   })
 
   const loadChildren = async (siteId) => {
@@ -361,6 +360,21 @@ export default function SiteManagement() {
 filterTreeNode={(node) => {
                   if (!searchText) return true
                   return String(node.title).toLowerCase().includes(searchText.toLowerCase())
+                }}
+                loadData={async (node) => {
+                  const children = await loadChildren(node.key)
+                  const updateTree = (nodes) => {
+                    return nodes.map((n, i) => {
+                      if (n.key === node.key) {
+                        return { ...n, children }
+                      }
+                      if (n.children) {
+                        return { ...n, children: updateTree(n.children) }
+                      }
+                      return n
+                    })
+                  }
+                  setTreeData(updateTree(treeData))
                 }}
               />
             </>

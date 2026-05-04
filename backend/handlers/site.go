@@ -614,13 +614,22 @@ func getEnv(key, defaultValue string) string {
 
 // GET /api/sites/tree - Get site tree structure
 func (h *SiteHandler) GetSiteTree(c *gin.Context) {
+	rootID := c.Query("root")
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	db := database.GetDB().WithContext(c.Request.Context())
 
-	// Load all active sites for complete tree building
 	var sites []models.Site
 	query := db.Where("tenant_id = ? AND status = 'active'", tenantID)
+
+	if rootID != "" {
+		// Return direct children of the given root (not root itself)
+		query = query.Where("parent_id = ?", rootID)
+	} else {
+		// Return top-level sites only
+		query = query.Where("parent_id IS NULL")
+	}
+
 	if err := query.Find(&sites).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
@@ -628,8 +637,6 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 		})
 		return
 	}
-
-	fmt.Printf("[DEBUG] GetSiteTree - Query completed. Found %d sites\n", len(sites))
 
 	type SiteTreeNode struct {
 		ID          string                  `json:"id"`
@@ -643,11 +650,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 		Children    []SiteTreeNode          `json:"children"`
 	}
 
-	// Build tree structure from flat list
-	siteMap := make(map[string]*SiteTreeNode)
-	var rootSites []SiteTreeNode
-
-	// First pass: create all nodes
+	var result []SiteTreeNode
 	for _, site := range sites {
 		var manager *map[string]interface{}
 		if site.ManagerID != nil {
@@ -671,7 +674,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 			hasChildren = true
 		}
 
-		node := SiteTreeNode{
+		result = append(result, SiteTreeNode{
 			ID:          site.ID,
 			Name:        site.Name,
 			Address:     site.Address,
@@ -680,38 +683,12 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 			Manager:     manager,
 			IsLeaf:      !hasChildren,
 			HasChildren: hasChildren,
-			Children:    []SiteTreeNode{},
-		}
-		siteMap[site.ID] = &node
+		})
 	}
-
-	// Second pass: build tree hierarchy
-	fmt.Printf("[DEBUG] Building tree, total nodes: %d\n", len(siteMap))
-	for id, node := range siteMap {
-		fmt.Printf("[DEBUG] Processing node: %s, parent: %v\n", id, node.ParentID)
-	}
-	for _, node := range siteMap {
-		if node.ParentID == nil || *node.ParentID == "" {
-			rootSites = append(rootSites, *node)
-		} else {
-			parentID := *node.ParentID
-			if parent, ok := siteMap[parentID]; ok {
-				fmt.Printf("[DEBUG] Adding %s to parent %s's children\n", node.Name, parent.Name)
-				parent.Children = append(parent.Children, *node)
-				parent.HasChildren = true
-				parent.IsLeaf = false
-			} else {
-				fmt.Printf("[DEBUG] Parent %s not found, treating %s as root\n", parentID, node.Name)
-				rootSites = append(rootSites, *node)
-			}
-		}
-	}
-
-	fmt.Printf("[DEBUG] GetSiteTree - Returning %d root sites with full tree\n", len(rootSites))
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": gin.H{"list": rootSites},
+		"data": gin.H{"list": result},
 	})
 }
 
