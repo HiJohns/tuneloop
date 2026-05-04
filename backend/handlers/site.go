@@ -287,6 +287,17 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	operatorID := middleware.GetUserID(c.Request.Context())
 
 	if managerUUID != nil {
+		if req.AdminEmail != "" {
+			createUserReq := &services.CreateUserRequest{
+				Username: req.AdminEmail,
+				Name:     req.AdminName,
+				Email:    req.AdminEmail,
+				Phone:    req.AdminPhone,
+			}
+			if _, createErr := iamClient.CreateUser(createUserReq); createErr != nil {
+				log.Printf("[CreateSite] IAM CreateUser for manager %s: %v — will attempt bind", req.AdminEmail, createErr)
+			}
+		}
 		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, managerUUID.String(), siteOrgID, "manager", operatorID); bindErr != nil {
 			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", managerUUID.String(), siteOrgID, bindErr)
 		}

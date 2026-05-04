@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -196,6 +198,17 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if err := db.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user: " + err.Error()})
 		return
+	}
+
+	iamClient := services.NewIAMClient()
+	createReq := &services.CreateUserRequest{
+		Username: req.Email,
+		Name:     req.Name,
+		Email:    req.Email,
+		Phone:    req.Phone,
+	}
+	if _, err := iamClient.CreateUser(createReq); err != nil {
+		log.Printf("[UserStaff] IAM CreateUser failed for %s: %v", req.Email, err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
