@@ -30,6 +30,13 @@ type clientTokenCache struct {
 	expiresAt   time.Time
 }
 
+func (c *clientTokenCache) reset() {
+	c.mu.Lock()
+	c.accessToken = ""
+	c.expiresAt = time.Time{}
+	c.mu.Unlock()
+}
+
 func NewIAMClient() *IAMClient {
 	clientID := os.Getenv("IAM_PC_CLIENT_ID")
 	if clientID == "" {
@@ -125,7 +132,17 @@ func (c *IAMClient) doRequest(method, path string, payload interface{}) ([]byte,
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get client token: %w", err)
 	}
-	return c.doRequestWithToken(method, path, token, payload)
+	body, status, err := c.doRequestWithToken(method, path, token, payload)
+	if status == http.StatusUnauthorized {
+		log.Printf("[IAMClient] API call returned 401, clearing token cache and retrying once")
+		c.tokenCache.reset()
+		token, err = c.GetClientToken()
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to re-acquire client token after 401: %w", err)
+		}
+		return c.doRequestWithToken(method, path, token, payload)
+	}
+	return body, status, err
 }
 
 func (c *IAMClient) doRequestWithToken(method, path, token string, payload interface{}) ([]byte, int, error) {
