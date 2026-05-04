@@ -65,10 +65,10 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 	result := &BulkImportResult{}
 	result.Summary.Total = len(sorted)
 
-	// Preload existing sites by organization_code and name
+	// Preload existing sites by organization_code and name (exclude soft-deleted)
 	// OrganizationCode stores CSV code (e.g., TUNELOOP), OrgID is UUID from IAM
 	var existingSites []models.Site
-	db.Where("tenant_id = ?", tenantID).Find(&existingSites)
+	db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID).Find(&existingSites)
 	existingByCode := make(map[string]models.Site)
 	existingByName := make(map[string]models.Site)
 	for _, s := range existingSites {
@@ -156,9 +156,9 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 		if org.ParentCode != "" {
 			parentSiteID, ok := codeToSiteID[org.ParentCode]
 			if !ok {
-// Try to find in DB by organization_code
+// Try to find in DB by organization_code (exclude soft-deleted)
 			var parentSite models.Site
-			if err := db.Where("organization_code = ? AND tenant_id = ?", org.ParentCode, tenantID).First(&parentSite).Error; err == nil {
+			if err := db.Where("organization_code = ? AND tenant_id = ? AND deleted_at IS NULL", org.ParentCode, tenantID).First(&parentSite).Error; err == nil {
 					parentSiteID = parentSite.ID
 					codeToSiteID[org.ParentCode] = parentSiteID
 					codeToOrgID[org.ParentCode] = parentSite.OrgID
@@ -193,6 +193,13 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 					Reason: fmt.Sprintf("update failed: %v", err),
 				})
 				continue
+			}
+			// Update mapping for parent resolution by subsequent rows
+			codeToSiteID[org.OrganizationCode] = existingSite.ID
+			codeToOrgID[org.OrganizationCode] = existingSite.OrgID
+			// Also set organization_code if it was empty (e.g., manually created site)
+			if existingSite.OrganizationCode == "" {
+				db.Model(&existingSite).Update("organization_code", org.OrganizationCode)
 			}
 			result.Summary.Updated++
 			result.Details = append(result.Details, BulkImportDetail{
