@@ -614,33 +614,19 @@ func getEnv(key, defaultValue string) string {
 
 // GET /api/sites/tree - Get site tree structure
 func (h *SiteHandler) GetSiteTree(c *gin.Context) {
-	rootID := c.Query("root")
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	db := database.GetDB().WithContext(c.Request.Context())
 
-	// When root is provided, fetch all for tree building; otherwise fetch top-level only
+	// Load all active sites for complete tree building
 	var sites []models.Site
 	query := db.Where("tenant_id = ? AND status = 'active'", tenantID)
-	if rootID != "" {
-		// Need all sites to build complete tree
-		if err := query.Find(&sites).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "failed to query sites: " + err.Error(),
-			})
-			return
-		}
-	} else {
-		// Initial load: return top-level only (for backward compat)
-		query = query.Where("parent_id IS NULL")
-		if err := query.Find(&sites).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "failed to query sites: " + err.Error(),
-			})
-			return
-		}
+	if err := query.Find(&sites).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to query sites: " + err.Error(),
+		})
+		return
 	}
 
 	fmt.Printf("[DEBUG] GetSiteTree - Query completed. Found %d sites\n", len(sites))

@@ -358,26 +358,11 @@ export default function SiteManagement() {
                 expandedKeys={expandedKeys}
                 onSelect={onSelect}
                 onExpand={setExpandedKeys}
-                filterTreeNode={(node) => {
+filterTreeNode={(node) => {
                   if (!searchText) return true
                   return String(node.title).toLowerCase().includes(searchText.toLowerCase())
                 }}
-                loadData={async (node) => {
-                const children = await loadChildren(node.key)
-                const updateTree = (nodes) => {
-                  return nodes.map(n => {
-                    if (n.key === node.key) {
-                      return { ...n, children }
-                    }
-                    if (n.children) {
-                      return { ...n, children: updateTree(n.children) }
-                    }
-                    return n
-                  })
-                }
-                setTreeData(updateTree(treeData))
-              }}
-            />
+              />
             </>
           )}
         </Card>
