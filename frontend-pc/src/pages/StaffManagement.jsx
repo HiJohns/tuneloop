@@ -77,29 +77,11 @@ export default function StaffManagement() {
   const fetchSiteTree = async () => {
     try {
       const result = await sitesApi.getTree()
-      console.log('[DEBUG] fetchSiteTree result:', result)
       if (result.code === 20000) {
-        const topSites = result.data?.list || []
-        setSiteTree(topSites)
-        // Also load children of all top-level sites to build complete tree
-        const loadAllChildren = async (sites) => {
-          for (const site of sites) {
-            if (site.hasChildren) {
-              const childResult = await sitesApi.getTree(site.id)
-              if (childResult.code === 20000) {
-                site.children = childResult.data?.list || []
-                await loadAllChildren(site.children)
-              }
-            }
-          }
-        }
-        await loadAllChildren(topSites)
-        // Force re-render
-        setSiteTree([...topSites])
-        console.log('[DEBUG] siteTree with children:', topSites)
+        setSiteTree(result.data?.list || [])
       }
     } catch (error) {
-      console.error('[DEBUG] 加载网点数据失败:', error)
+      console.error('加载网点数据失败:', error)
     }
   }
 
@@ -273,16 +255,10 @@ export default function StaffManagement() {
     },
     {
       title: '归属网点',
-      dataIndex: 'site_id',
-      key: 'site_id',
+      dataIndex: 'site_name',
+      key: 'site_name',
       width: 150,
-      render: (siteId) => {
-        console.log('[DEBUG] render site_id:', siteId, 'siteTree length:', siteTree.length)
-        if (!siteId) return '-';
-        const site = findSiteById(siteTree, siteId);
-        console.log('[DEBUG] findSiteById result:', site)
-        return site ? site.name : '-';
-      }
+      render: (siteName) => siteName || '-'
     },
     {
       title: '职位',
@@ -338,12 +314,8 @@ export default function StaffManagement() {
   ]
 
   const findSiteById = (sites, id) => {
-    console.log('[DEBUG] findSiteById called, id:', id, 'sites length:', sites.length)
     for (const site of sites) {
-      if (site.id === id) {
-        console.log('[DEBUG] findSiteById found:', site)
-        return site
-      }
+      if (site.id === id) return site
       if (site.children) {
         const found = findSiteById(site.children, id)
         if (found) return found
