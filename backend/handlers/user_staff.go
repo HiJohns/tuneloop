@@ -538,9 +538,9 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 	})
 }
 
-// ResendConfirmation resends confirmation email to users
-// POST /api/users/resend-confirmation
-func (h *UserStaffHandler) ResendConfirmation(c *gin.Context) {
+// ResetPassword sends password reset emails to users
+// POST /api/users/reset-password
+func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 	var req struct {
 		UserIDs []string `json:"user_ids" binding:"required"`
 	}
@@ -580,10 +580,10 @@ func (h *UserStaffHandler) ResendConfirmation(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
-	result, err := iamClient.ResendConfirmationWithToken(userToken, iamSubs)
+	result, err := iamClient.ResetPasswordWithToken(userToken, iamSubs)
 	if err != nil {
-		log.Printf("[ResendConfirmation] IAM ResendConfirmation failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resend confirmation: " + err.Error()})
+		log.Printf("[ResetPassword] IAM ResetPassword failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reset password: " + err.Error()})
 		return
 	}
 

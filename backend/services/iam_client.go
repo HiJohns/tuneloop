@@ -588,39 +588,39 @@ func (c *IAMClient) DeleteUser(iamUserID string) error {
 	return nil
 }
 
-type ResendConfirmationResult struct {
+type ResetPasswordResult struct {
 	Sent    int `json:"sent"`
 	Skipped int `json:"skipped"`
 }
 
-func (c *IAMClient) ResendConfirmationWithToken(userToken string, userIDs []string) (*ResendConfirmationResult, error) {
+func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string) (*ResetPasswordResult, error) {
 	req := map[string]interface{}{
 		"user_ids": userIDs,
 	}
-	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users/resend-confirmation", userToken, req)
+	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users/reset-password", userToken, req)
 	if err != nil {
-		return nil, fmt.Errorf("ResendConfirmation request failed: %w", err)
+		return nil, fmt.Errorf("ResetPassword request failed: %w", err)
 	}
 
 	if statusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("permission denied: %s", string(respBody))
 	}
 	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("ResendConfirmation returned status %d: %s", statusCode, string(respBody))
+		return nil, fmt.Errorf("ResetPassword returned status %d: %s", statusCode, string(respBody))
 	}
 
 	var result struct {
-		Data ResendConfirmationResult `json:"data"`
+		Data ResetPasswordResult `json:"data"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		var direct ResendConfirmationResult
+		var direct ResetPasswordResult
 		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
 			return &direct, nil
 		}
-		return nil, fmt.Errorf("failed to parse ResendConfirmation response: %w", err)
+		return nil, fmt.Errorf("failed to parse ResetPassword response: %w", err)
 	}
 
-	log.Printf("[IAMClient] ResendConfirmation: sent=%d, skipped=%d", result.Data.Sent, result.Data.Skipped)
+	log.Printf("[IAMClient] ResetPassword: sent=%d, skipped=%d", result.Data.Sent, result.Data.Skipped)
 	return &result.Data, nil
 }
 

@@ -256,21 +256,21 @@ export default function StaffManagement() {
     })
   }
 
-  const handleResendConfirmation = async (userIds) => {
+  const handleResetPassword = async (userIds) => {
     try {
-      const result = await staffApi.resendConfirmation(userIds)
+      const result = await staffApi.resetPassword(userIds)
       if (result.code === 20000) {
         const { sent, skipped } = result.data
         if (skipped > 0) {
-          message.success(`已发送 ${sent} 封确认邮件，${skipped} 个用户被跳过（非待确认状态）`)
+          message.success(`已发送 ${sent} 封重设密码邮件，${skipped} 个用户被跳过`)
         } else {
-          message.success(`已成功发送 ${sent} 封确认邮件`)
+          message.success(`已成功发送 ${sent} 封重设密码邮件`)
         }
       } else {
         throw new Error(result.message || '发送失败')
       }
     } catch (error) {
-      message.error('重发确认邮件失败: ' + error.message)
+      message.error('重设密码邮件发送失败: ' + error.message)
     }
   }
 
@@ -305,14 +305,14 @@ export default function StaffManagement() {
     })
   }
 
-  const handleBatchResendConfirmation = async () => {
+  const handleBatchResetPassword = async () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要重发确认邮件的用户')
+      message.warning('请先选择要重设密码的用户')
       return
     }
     setBatchLoading(true)
     try {
-      await handleResendConfirmation(selectedRowKeys)
+      await handleResetPassword(selectedRowKeys)
       setSelectedRowKeys([])
     } finally {
       setBatchLoading(false)
@@ -397,16 +397,14 @@ export default function StaffManagement() {
           >
             编辑
           </Button>
-          {record.status === 'pending' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<MailOutlined />}
-              onClick={() => handleResendConfirmation([record.id])}
-            >
-              重发确认
-            </Button>
-          )}
+          <Button
+            type="link"
+            size="small"
+            icon={<MailOutlined />}
+            onClick={() => handleResetPassword([record.id])}
+          >
+            重设密码
+          </Button>
           <Popconfirm
             title={`确定删除用户「${record.name}」？`}
             onConfirm={() => handleDeleteUser(record)}
@@ -513,10 +511,10 @@ export default function StaffManagement() {
                   <Button
                     size="small"
                     icon={<MailOutlined />}
-                    onClick={handleBatchResendConfirmation}
+                    onClick={handleBatchResetPassword}
                     loading={batchLoading}
                   >
-                    重发确认邮件
+                    重设密码
                   </Button>
                   <Button
                     size="small"
