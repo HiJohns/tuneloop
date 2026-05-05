@@ -550,8 +550,14 @@ func (h *UserStaffHandler) ResendConfirmation(c *gin.Context) {
 		return
 	}
 
+	userToken := services.ExtractUserToken(c)
+	if userToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "user token is required"})
+		return
+	}
+
 	iamClient := services.NewIAMClient()
-	result, err := iamClient.ResendConfirmation(req.UserIDs)
+	result, err := iamClient.ResendConfirmationWithToken(userToken, req.UserIDs)
 	if err != nil {
 		log.Printf("[ResendConfirmation] IAM ResendConfirmation failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resend confirmation: " + err.Error()})

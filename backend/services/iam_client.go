@@ -38,15 +38,25 @@ func (c *clientTokenCache) reset() {
 }
 
 func NewIAMClient() *IAMClient {
-	clientID := os.Getenv("IAM_PC_CLIENT_ID")
+	// Backend API call identity: IAM_NAMESPACE + IAM_SECRET
+	clientID := os.Getenv("IAM_NAMESPACE")
+	clientSecret := os.Getenv("IAM_SECRET")
+
+	// Fallback to legacy env vars for backward compatibility
 	if clientID == "" {
-		clientID = os.Getenv("IAM_CLIENT_ID")
+		clientID = os.Getenv("IAM_PC_CLIENT_ID")
+		if clientID == "" {
+			clientID = os.Getenv("IAM_CLIENT_ID")
+		}
 	}
-	clientSecret := os.Getenv("IAM_PC_CLIENT_SECRET")
 	if clientSecret == "" {
-		clientSecret = os.Getenv("IAM_CLIENT_SECRET")
+		clientSecret = os.Getenv("IAM_PC_CLIENT_SECRET")
+		if clientSecret == "" {
+			clientSecret = os.Getenv("IAM_CLIENT_SECRET")
+		}
 	}
-	namespace := os.Getenv("IAM_NAMESPACE")
+
+	namespace := clientID
 	if namespace == "" {
 		namespace = "tuneloop"
 	}
@@ -583,11 +593,11 @@ type ResendConfirmationResult struct {
 	Skipped int `json:"skipped"`
 }
 
-func (c *IAMClient) ResendConfirmation(userIDs []string) (*ResendConfirmationResult, error) {
+func (c *IAMClient) ResendConfirmationWithToken(userToken string, userIDs []string) (*ResendConfirmationResult, error) {
 	req := map[string]interface{}{
 		"user_ids": userIDs,
 	}
-	respBody, statusCode, err := c.doRequest("POST", "/api/v1/users/resend-confirmation", req)
+	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users/resend-confirmation", userToken, req)
 	if err != nil {
 		return nil, fmt.Errorf("ResendConfirmation request failed: %w", err)
 	}
