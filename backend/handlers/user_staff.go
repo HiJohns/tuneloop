@@ -550,6 +550,29 @@ func (h *UserStaffHandler) ResendConfirmation(c *gin.Context) {
 		return
 	}
 
+	// Map local user IDs to IAM subs
+	db := database.GetDB().WithContext(c.Request.Context())
+	var users []models.User
+	if err := db.Where("id IN ? AND tenant_id = ? AND deleted_at IS NULL", req.UserIDs, middleware.GetTenantID(c.Request.Context())).Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query users: " + err.Error()})
+		return
+	}
+
+	var iamSubs []string
+	for _, user := range users {
+		if user.IAMSub != "" {
+			iamSubs = append(iamSubs, user.IAMSub)
+		}
+	}
+	if len(iamSubs) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"message": "success",
+			"data":    gin.H{"sent": 0, "skipped": len(req.UserIDs)},
+		})
+		return
+	}
+
 	userToken := services.ExtractUserToken(c)
 	if userToken == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "user token is required"})
@@ -557,7 +580,7 @@ func (h *UserStaffHandler) ResendConfirmation(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
-	result, err := iamClient.ResendConfirmationWithToken(userToken, req.UserIDs)
+	result, err := iamClient.ResendConfirmationWithToken(userToken, iamSubs)
 	if err != nil {
 		log.Printf("[ResendConfirmation] IAM ResendConfirmation failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resend confirmation: " + err.Error()})
