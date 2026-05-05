@@ -584,6 +584,7 @@ func (c *IAMClient) DeleteUser(iamUserID string) error {
 		return fmt.Errorf("DeleteUser returned status %d: %s", statusCode, string(respBody))
 	}
 
+	log.Printf("[IAMClient] Deleted user: user_id=%s", iamUserID)
 	return nil
 }
 

@@ -514,14 +514,19 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 
 	for _, user := range users {
 		if err := db.Model(&models.User{}).Where("id = ?", user.ID).Update("deleted_at", now).Error; err != nil {
+			log.Printf("[BatchDeleteUsers] failed to soft-delete user %s: %v", user.ID, err)
 			continue
 		}
 		deleted++
 
 		if user.IAMSub != "" {
-			iamClient.DeleteUser(user.IAMSub)
+			if err := iamClient.DeleteUser(user.IAMSub); err != nil {
+				log.Printf("[BatchDeleteUsers] IAM DeleteUser failed for %s: %v", user.IAMSub, err)
+			}
 			if user.OrgID != "" {
-				iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, "")
+				if err := iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, ""); err != nil {
+					log.Printf("[BatchDeleteUsers] IAM UnbindUser failed for %s from org %s: %v", user.IAMSub, user.OrgID, err)
+				}
 			}
 		}
 	}
