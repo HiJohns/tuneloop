@@ -314,7 +314,7 @@ export const staffApi = {
   updateIAMUser: (id, data) => api.put(`/iam/users/${id}`, data),
   checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
   batchDelete: (ids) => api.delete('/users/batch', { data: { ids } }),
-  resetPassword: (userIds) => api.post('/users/reset-password', { user_ids: userIds }),
+  resetPassword: (userIds, redirectUrl) => api.post('/users/reset-password', { user_ids: userIds, redirect_url: redirectUrl }),
 }
 
 export const inventoryApi = {

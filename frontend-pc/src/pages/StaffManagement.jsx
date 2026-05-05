@@ -258,7 +258,8 @@ export default function StaffManagement() {
 
   const handleResetPassword = async (userIds) => {
     try {
-      const result = await staffApi.resetPassword(userIds)
+      const redirectUrl = window.location.origin
+      const result = await staffApi.resetPassword(userIds, redirectUrl)
       if (result.code === 20000) {
         const { sent, skipped } = result.data
         if (skipped > 0) {

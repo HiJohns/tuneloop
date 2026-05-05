@@ -3,8 +3,10 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -543,7 +545,8 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 // POST /api/users/reset-password
 func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 	var req struct {
-		UserIDs []string `json:"user_ids" binding:"required"`
+		UserIDs     []string `json:"user_ids" binding:"required"`
+		RedirectURL string   `json:"redirect_url"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil || len(req.UserIDs) == 0 {
@@ -580,9 +583,9 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	redirectURL := os.Getenv("IAM_PC_REDIRECT_URI")
+	redirectURL := req.RedirectURL
 	if redirectURL == "" {
-		redirectURL = os.Getenv("IAM_REDIRECT_URI")
+		redirectURL = getResetPasswordRedirectURL(c)
 	}
 
 	iamClient := services.NewIAMClient()
@@ -601,4 +604,53 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 			"skipped": result.Skipped,
 		},
 	})
+}
+
+// getResetPasswordRedirectURL returns the Tuneloop public URL for IAM to redirect after password reset.
+// Priority: TUNELOOP_WWW_URL > derived from IAM_PC_REDIRECT_URI (strip /callback) > default localhost
+func getResetPasswordRedirectURL(c *gin.Context) string {
+	// 1. Detect client type from Referer or User-Agent
+	referer := c.GetHeader("Referer")
+	ua := c.GetHeader("User-Agent")
+	isWechat := strings.Contains(referer, ":5553") || strings.Contains(referer, ":5556") || strings.Contains(ua, "MicroMessenger")
+
+	if isWechat {
+		// WeChat end: use IAM_WX_REDIRECT_URI
+		if redirectURI := os.Getenv("IAM_WX_REDIRECT_URI"); redirectURI != "" {
+			if u, err := url.Parse(redirectURI); err == nil {
+				u.Path = ""
+				u.RawQuery = ""
+				u.Fragment = ""
+				return u.String()
+			}
+		}
+	} else {
+		// PC Web end: use IAM_PC_REDIRECT_URI
+		if redirectURI := os.Getenv("IAM_PC_REDIRECT_URI"); redirectURI != "" {
+			if u, err := url.Parse(redirectURI); err == nil {
+				u.Path = ""
+				u.RawQuery = ""
+				u.Fragment = ""
+				return u.String()
+			}
+		}
+	}
+
+	// 2. Explicit Tuneloop WWW URL
+	if wwwURL := os.Getenv("TUNELOOP_WWW_URL"); wwwURL != "" {
+		return strings.TrimSuffix(wwwURL, "/")
+	}
+
+	// 3. Fallback to legacy env var
+	if redirectURI := os.Getenv("IAM_REDIRECT_URI"); redirectURI != "" {
+		if u, err := url.Parse(redirectURI); err == nil {
+			u.Path = ""
+			u.RawQuery = ""
+			u.Fragment = ""
+			return u.String()
+		}
+	}
+
+	// 4. Default (should not reach here in production)
+	return "http://localhost:5554"
 }
