@@ -593,9 +593,10 @@ type ResetPasswordResult struct {
 	Skipped int `json:"skipped"`
 }
 
-func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string) (*ResetPasswordResult, error) {
+func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, redirectURL string) (*ResetPasswordResult, error) {
 	req := map[string]interface{}{
-		"user_ids": userIDs,
+		"user_ids":      userIDs,
+		"redirect_url":  redirectURL,
 	}
 	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users/reset-password", userToken, req)
 	if err != nil {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 	"tuneloop-backend/database"
@@ -579,8 +580,13 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
+	redirectURL := os.Getenv("IAM_PC_REDIRECT_URI")
+	if redirectURL == "" {
+		redirectURL = os.Getenv("IAM_REDIRECT_URI")
+	}
+
 	iamClient := services.NewIAMClient()
-	result, err := iamClient.ResetPasswordWithToken(userToken, iamSubs)
+	result, err := iamClient.ResetPasswordWithToken(userToken, iamSubs, redirectURL)
 	if err != nil {
 		log.Printf("[ResetPassword] IAM ResetPassword failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reset password: " + err.Error()})
