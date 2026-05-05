@@ -557,6 +557,63 @@ func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string)
 	return nil
 }
 
+func (c *IAMClient) DeleteUser(iamUserID string) error {
+	path := fmt.Sprintf("/api/v1/users/%s", iamUserID)
+	respBody, statusCode, err := c.doRequest("DELETE", path, nil)
+	if err != nil {
+		return fmt.Errorf("DeleteUser request failed: %w", err)
+	}
+
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user not found: %s", iamUserID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("DeleteUser returned status %d: %s", statusCode, string(respBody))
+	}
+
+	log.Printf("[IAMClient] Deleted user: user_id=%s", iamUserID)
+	return nil
+}
+
+type ResendConfirmationResult struct {
+	Sent    int `json:"sent"`
+	Skipped int `json:"skipped"`
+}
+
+func (c *IAMClient) ResendConfirmation(userIDs []string) (*ResendConfirmationResult, error) {
+	req := map[string]interface{}{
+		"user_ids": userIDs,
+	}
+	respBody, statusCode, err := c.doRequest("POST", "/api/v1/users/resend-confirmation", req)
+	if err != nil {
+		return nil, fmt.Errorf("ResendConfirmation request failed: %w", err)
+	}
+
+	if statusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("ResendConfirmation returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Data ResendConfirmationResult `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		var direct ResendConfirmationResult
+		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
+			return &direct, nil
+		}
+		return nil, fmt.Errorf("failed to parse ResendConfirmation response: %w", err)
+	}
+
+	log.Printf("[IAMClient] ResendConfirmation: sent=%d, skipped=%d", result.Data.Sent, result.Data.Skipped)
+	return &result.Data, nil
+}
+
 func ExtractUserToken(c *gin.Context) string {
 	if token, err := c.Cookie("token"); err == nil && token != "" {
 		return token

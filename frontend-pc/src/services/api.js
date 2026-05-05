@@ -313,6 +313,8 @@ export const staffApi = {
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   updateIAMUser: (id, data) => api.put(`/iam/users/${id}`, data),
   checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
+  batchDelete: (ids) => api.delete('/users/batch', { data: { ids } }),
+  resendConfirmation: (userIds) => api.post('/users/resend-confirmation', { user_ids: userIds }),
 }
 
 export const inventoryApi = {

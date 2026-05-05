@@ -98,6 +98,8 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			"position":   user.Position,
 			"user_type":  user.UserType,
 			"role":       user.Role,
+			"status":     user.Status,
+			"iam_sub":    user.IAMSub,
 			"org_id":     user.OrgID,
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
@@ -476,6 +478,92 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 				"phone": user.Phone,
 				"email": user.Email,
 			},
+		},
+	})
+}
+
+// BatchDeleteUsers soft-deletes multiple users
+// DELETE /api/users/batch
+func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
+	var req struct {
+		IDs []string `json:"ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "ids is required and must not be empty"})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+
+	var users []models.User
+	if err := db.Where("id IN ? AND tenant_id = ? AND deleted_at IS NULL", req.IDs, tenantID).Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query users: " + err.Error()})
+		return
+	}
+
+	now := time.Now()
+	deleted := 0
+	iamClient := services.NewIAMClient()
+
+	for _, user := range users {
+		if err := db.Model(&models.User{}).Where("id = ?", user.ID).Update("deleted_at", now).Error; err != nil {
+			log.Printf("[BatchDeleteUsers] failed to soft-delete user %s: %v", user.ID, err)
+			continue
+		}
+		deleted++
+
+		if user.IAMSub != "" {
+			if err := iamClient.DeleteUser(user.IAMSub); err != nil {
+				log.Printf("[BatchDeleteUsers] IAM DeleteUser failed for %s: %v", user.IAMSub, err)
+			}
+			if user.OrgID != "" {
+				if err := iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, ""); err != nil {
+					log.Printf("[BatchDeleteUsers] IAM UnbindUser failed for %s from org %s: %v", user.IAMSub, user.OrgID, err)
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"deleted": deleted,
+			"failed":  len(req.IDs) - deleted,
+		},
+	})
+}
+
+// ResendConfirmation resends confirmation email to users
+// POST /api/users/resend-confirmation
+func (h *UserStaffHandler) ResendConfirmation(c *gin.Context) {
+	var req struct {
+		UserIDs []string `json:"user_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.UserIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "user_ids is required and must not be empty"})
+		return
+	}
+
+	iamClient := services.NewIAMClient()
+	result, err := iamClient.ResendConfirmation(req.UserIDs)
+	if err != nil {
+		log.Printf("[ResendConfirmation] IAM ResendConfirmation failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resend confirmation: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"sent":    result.Sent,
+			"skipped": result.Skipped,
 		},
 	})
 }

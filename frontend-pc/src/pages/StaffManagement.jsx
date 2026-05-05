@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined } from '@ant-design/icons'
 import { staffApi, sitesApi, iamAdminApi, iamApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 import UserCreateDialog from '../components/UserCreateDialog'
@@ -26,10 +26,11 @@ export default function StaffManagement() {
   const [currentNewUser, setCurrentNewUser] = useState(null)
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
+  const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const [batchLoading, setBatchLoading] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
-    // Load user role from localStorage
     const userInfo = localStorage.getItem('user_info')
     if (userInfo) {
       try {
@@ -147,10 +148,8 @@ export default function StaffManagement() {
 
   const handleCreateUser = async (values) => {
     try {
-      // First check if user exists
       const checkResult = await staffApi.checkUserExists(values.email || values.phone)
       if (checkResult.code === 20000 && checkResult.data?.exists) {
-        // Show conflict dialog
         setConflictUsers(checkResult.data.users || [])
         setCurrentNewUser(values)
         setConflictModalVisible(true)
@@ -158,7 +157,6 @@ export default function StaffManagement() {
         return
       }
 
-      // Create user
       const result = await staffApi.createUser(values)
       if (result.code === 20000) {
         message.success('创建用户成功')
@@ -235,6 +233,97 @@ export default function StaffManagement() {
     setEditModalVisible(true)
   }
 
+  const handleDeleteUser = (user) => {
+    Modal.confirm({
+      title: '删除确认',
+      content: `确定要删除用户「${user.name}」吗？此操作不可恢复。`,
+      okText: '确定删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const result = await staffApi.batchDelete([user.id])
+          if (result.code === 20000) {
+            message.success('删除成功')
+            fetchStaffList()
+          } else {
+            throw new Error(result.message || '删除失败')
+          }
+        } catch (error) {
+          message.error('删除失败: ' + error.message)
+        }
+      }
+    })
+  }
+
+  const handleResendConfirmation = async (userIds) => {
+    try {
+      const result = await staffApi.resendConfirmation(userIds)
+      if (result.code === 20000) {
+        const { sent, skipped } = result.data
+        if (skipped > 0) {
+          message.success(`已发送 ${sent} 封确认邮件，${skipped} 个用户被跳过（非待确认状态）`)
+        } else {
+          message.success(`已成功发送 ${sent} 封确认邮件`)
+        }
+      } else {
+        throw new Error(result.message || '发送失败')
+      }
+    } catch (error) {
+      message.error('重发确认邮件失败: ' + error.message)
+    }
+  }
+
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要删除的用户')
+      return
+    }
+    Modal.confirm({
+      title: '批量删除确认',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作不可恢复。`,
+      okText: '确定删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setBatchLoading(true)
+        try {
+          const result = await staffApi.batchDelete(selectedRowKeys)
+          if (result.code === 20000) {
+            message.success(`已成功删除 ${result.data.deleted} 个用户`)
+            setSelectedRowKeys([])
+            fetchStaffList()
+          } else {
+            throw new Error(result.message || '批量删除失败')
+          }
+        } catch (error) {
+          message.error('批量删除失败: ' + error.message)
+        } finally {
+          setBatchLoading(false)
+        }
+      }
+    })
+  }
+
+  const handleBatchResendConfirmation = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要重发确认邮件的用户')
+      return
+    }
+    setBatchLoading(true)
+    try {
+      await handleResendConfirmation(selectedRowKeys)
+      setSelectedRowKeys([])
+    } finally {
+      setBatchLoading(false)
+    }
+  }
+
+  const handleRowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys)
+  }
+
   const columns = [
     {
       title: '姓名',
@@ -288,15 +377,15 @@ export default function StaffManagement() {
       key: 'status',
       width: 80,
       render: (status) => {
-        return status === 'active' ? 
-          <Tag color="green">正常</Tag> : 
-          <Tag color="red">禁用</Tag>
+        if (status === 'active') return <Tag color="green">正常</Tag>
+        if (status === 'pending') return <Tag color="orange">待确认</Tag>
+        return <Tag color="red">禁用</Tag>
       }
     },
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space>
@@ -308,6 +397,32 @@ export default function StaffManagement() {
           >
             编辑
           </Button>
+          {record.status === 'pending' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<MailOutlined />}
+              onClick={() => handleResendConfirmation([record.id])}
+            >
+              重发确认
+            </Button>
+          )}
+          <Popconfirm
+            title={`确定删除用户「${record.name}」？`}
+            onConfirm={() => handleDeleteUser(record)}
+            okText="确定"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+            >
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       )
     }
@@ -386,18 +501,51 @@ export default function StaffManagement() {
           </Form.Item>
         </Form>
 
+        {selectedRowKeys.length > 0 && (
+          <Alert
+            className="mb-4"
+            type="info"
+            showIcon
+            message={
+              <div className="flex justify-between items-center">
+                <span>已选择 <strong>{selectedRowKeys.length}</strong> 项</span>
+                <Space>
+                  <Button
+                    size="small"
+                    icon={<MailOutlined />}
+                    onClick={handleBatchResendConfirmation}
+                    loading={batchLoading}
+                  >
+                    重发确认邮件
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={handleBatchDelete}
+                    loading={batchLoading}
+                  >
+                    批量删除
+                  </Button>
+                  <Button size="small" onClick={() => setSelectedRowKeys([])}>取消选择</Button>
+                </Space>
+              </div>
+            }
+          />
+        )}
+
         <Table
           columns={columns}
           dataSource={staffList}
           rowKey="id"
           loading={loading}
+          rowSelection={handleRowSelection}
           pagination={{
             ...pagination,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条记录`
           }}
           onChange={handleTableChange}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1400 }}
         />
       </Card>
 
@@ -477,4 +625,3 @@ export default function StaffManagement() {
     </div>
   )
 }
-
