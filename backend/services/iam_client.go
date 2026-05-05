@@ -584,7 +584,6 @@ func (c *IAMClient) DeleteUser(iamUserID string) error {
 		return fmt.Errorf("DeleteUser returned status %d: %s", statusCode, string(respBody))
 	}
 
-	log.Printf("[IAMClient] Deleted user: user_id=%s", iamUserID)
 	return nil
 }
 
@@ -621,7 +620,6 @@ func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, r
 		return nil, fmt.Errorf("failed to parse ResetPassword response: %w", err)
 	}
 
-	log.Printf("[IAMClient] ResetPassword: sent=%d, skipped=%d", result.Data.Sent, result.Data.Skipped)
 	return &result.Data, nil
 }
 

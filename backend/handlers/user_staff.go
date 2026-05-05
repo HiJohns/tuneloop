@@ -514,19 +514,14 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 
 	for _, user := range users {
 		if err := db.Model(&models.User{}).Where("id = ?", user.ID).Update("deleted_at", now).Error; err != nil {
-			log.Printf("[BatchDeleteUsers] failed to soft-delete user %s: %v", user.ID, err)
 			continue
 		}
 		deleted++
 
 		if user.IAMSub != "" {
-			if err := iamClient.DeleteUser(user.IAMSub); err != nil {
-				log.Printf("[BatchDeleteUsers] IAM DeleteUser failed for %s: %v", user.IAMSub, err)
-			}
+			iamClient.DeleteUser(user.IAMSub)
 			if user.OrgID != "" {
-				if err := iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, ""); err != nil {
-					log.Printf("[BatchDeleteUsers] IAM UnbindUser failed for %s from org %s: %v", user.IAMSub, user.OrgID, err)
-				}
+				iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, "")
 			}
 		}
 	}
@@ -591,7 +586,6 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 	iamClient := services.NewIAMClient()
 	result, err := iamClient.ResetPasswordWithToken(userToken, iamSubs, redirectURL)
 	if err != nil {
-		log.Printf("[ResetPassword] IAM ResetPassword failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reset password: " + err.Error()})
 		return
 	}
