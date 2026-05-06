@@ -23,9 +23,10 @@ type PermissionRegistry struct {
 // NewPermissionRegistry creates a permission registry backed by IAM.
 func NewPermissionRegistry(iamClient *IAMClient) *PermissionRegistry {
 	return &PermissionRegistry{
-		iamClient:  iamClient,
-		cusPermMap: make(map[string]int),
-		cacheFile:  "tmp/.permission_cache.json",
+		iamClient:      iamClient,
+		cusPermMap:     make(map[string]int),
+		cusPermDetails: make(map[string]PermissionMapping),
+		cacheFile:      "tmp/.permission_cache.json",
 	}
 }
 
@@ -37,9 +38,16 @@ func (r *PermissionRegistry) RegisterAndSync(namespaceID string) error {
 		log.Printf("[PermissionRegistry] Loaded %d permissions from cache", len(r.cusPermMap))
 	}
 
+	// Resolve namespace name to UUID if needed
+	nsID, err := r.iamClient.getNamespaceID()
+	if err != nil {
+		log.Printf("[PermissionRegistry] Failed to resolve namespace ID: %v", err)
+		nsID = namespaceID // fallback to passed value
+	}
+
 	// Register permissions with IAM
 	perms := r.getTuneLoopPermissions()
-	registered, err := r.iamClient.RegisterCustomerPermissions(namespaceID, perms)
+	registered, err := r.iamClient.RegisterCustomerPermissions(nsID, perms)
 	if err != nil {
 		log.Printf("[PermissionRegistry] Failed to register permissions with IAM: %v", err)
 		if len(r.cusPermMap) > 0 {

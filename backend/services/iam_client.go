@@ -485,7 +485,7 @@ type BindUserRequest struct {
 }
 
 func (c *IAMClient) BindUserToOrganization(userID, orgID, role, operatorID string) error {
-	path := fmt.Sprintf("/api/v1/users/%s/organizations/%s/bind", userID, orgID)
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID)
 	req := &BindUserRequest{
 		Action:     "bind",
 		Role:       role,
@@ -514,7 +514,7 @@ func (c *IAMClient) BindUserToOrganization(userID, orgID, role, operatorID strin
 }
 
 func (c *IAMClient) BindUserToOrganizationWithToken(token, userID, orgID, role, operatorID string) error {
-	path := fmt.Sprintf("/api/v1/users/%s/organizations/%s/bind", userID, orgID)
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID)
 	req := &BindUserRequest{
 		Action:     "bind",
 		Role:       role,
