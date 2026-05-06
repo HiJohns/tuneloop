@@ -133,7 +133,7 @@ export default function StaffManagement() {
   const handleSearch = (values) => {
     setSearchParams({
       name: values.name || '',
-      siteId: values.siteId || null
+      site_id: values.siteId || null
     })
     setPagination({ ...pagination, current: 1 })
   }

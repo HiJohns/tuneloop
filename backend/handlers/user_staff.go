@@ -43,6 +43,16 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 	// Build query
 	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
 
+	// Auto-scope to user's site for site-scoped roles
+	businessRole := middleware.GetBusinessRole(ctx)
+	if businessRole == "site_admin" || businessRole == "site_member" {
+		currentUserID := middleware.GetUserID(ctx)
+		var currentUser models.User
+		if err := db.Where("iam_sub = ?", currentUserID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+			query = query.Where("site_id = ?", *currentUser.SiteID)
+		}
+	}
+
 	// Optional filters
 	if name := c.Query("name"); name != "" {
 		query = query.Where("name ILIKE ?", "%"+name+"%")
