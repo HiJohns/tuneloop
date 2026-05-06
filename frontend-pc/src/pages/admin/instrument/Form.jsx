@@ -178,7 +178,12 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       if (result.code === 20000 && result.data) {
         setCurrentUser(result.data)
         const role = (result.data.role || '').toLowerCase()
-        if ((role === 'site_manager' || role === 'staff') && result.data.site_id) {
+        const businessRole = (result.data.business_role || '').toLowerCase()
+        // Lock site for site_admin (business_role='admin') and site_member (business_role='staff')
+        // Also check role field for backward compatibility
+        const isSiteUser = businessRole === 'admin' || businessRole === 'staff' ||
+                          role === 'site_admin' || role === 'site_member' || role === 'site_manager' || role === 'staff'
+        if (isSiteUser && result.data.site_id) {
           setSiteLocked(true)
           form.setFieldsValue({ site_id: result.data.site_id })
         }
