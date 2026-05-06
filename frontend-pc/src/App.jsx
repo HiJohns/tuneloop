@@ -255,8 +255,9 @@ function onMenuClick(e) {
         if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       })
-    }))
-  
+}))
+    .filter(item => item.children && item.children.length > 0);
+
   const selectedKeys = [location.pathname]
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
