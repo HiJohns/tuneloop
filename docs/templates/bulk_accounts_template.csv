@@ -1,4 +1,4 @@
-email,name,role_template,organization_code,phone,tags
+email,name,role,organization_code,phone,tags
 admin@tuneloop.com,系统管理员,namespace_admin,,,
 admin_debug@tuneloop.com,调试管理员,merchant_admin,TUNELOOP,,
 tech_zhang@tuneloop.com,张工,site_member,TUNELOOP,,IT

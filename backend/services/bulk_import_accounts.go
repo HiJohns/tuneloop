@@ -37,7 +37,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			RowNum:           rec.RowNum,
 			Email:            strings.TrimSpace(rec.Fields["email"]),
 			Name:             strings.TrimSpace(rec.Fields["name"]),
-			RoleTemplate:     strings.TrimSpace(rec.Fields["role_template"]),
+			RoleTemplate:     strings.TrimSpace(rec.Fields["role"]),
 			OrganizationCode: strings.TrimSpace(rec.Fields["organization_code"]),
 			Phone:            strings.TrimSpace(rec.Fields["phone"]),
 			Tags:             strings.TrimSpace(rec.Fields["tags"]),

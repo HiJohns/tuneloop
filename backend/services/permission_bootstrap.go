@@ -56,6 +56,7 @@ func GetDefaultRolePermissions() []DefaultRolePermissions {
 		{
 			RoleCode: "staff", // Site staff (group member)
 			Perms: []string{
+				"instrument:view",
 				"maintenance:view", "maintenance:complete",
 			},
 		},

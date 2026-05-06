@@ -135,12 +135,13 @@ var middlewareSysPermMap = map[string]int{
 	"role_delete":          24,
 }
 
-// getTuneLoopPermissions returns the 15 cus_perm definitions for TuneLoop.
+// getTuneLoopPermissions returns the 16 cus_perm definitions for TuneLoop.
 func (r *PermissionRegistry) getTuneLoopPermissions() []PermissionDef {
 	return []PermissionDef{
 		{Code: "instrument:create", Name: "创建乐器"},
 		{Code: "instrument:edit", Name: "编辑乐器"},
 		{Code: "instrument:delete", Name: "删除乐器"},
+		{Code: "instrument:view", Name: "查看乐器"},
 		{Code: "category:manage", Name: "分类管理"},
 		{Code: "property:manage", Name: "属性管理"},
 		{Code: "inventory:view", Name: "库存查看"},

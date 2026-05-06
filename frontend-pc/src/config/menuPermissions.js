@@ -53,10 +53,10 @@ const menuRules = [
     visibleWhen: { sysPermBits: [SysPermBits.namespace_view] }
   },
 
-  // Instrument management — needs any business cus_perm
+  // Instrument management — needs any business cus_perm OR instrument:view
   {
     path: '/instruments/list',
-    visibleWhen: { cusPermCodes: ['instrument:create', 'instrument:edit', 'instrument:delete', 'inventory:view'] }
+    visibleWhen: { cusPermCodes: ['instrument:create', 'instrument:edit', 'instrument:delete', 'inventory:view', 'instrument:view'] }
   },
   {
     path: '/instruments/categories',

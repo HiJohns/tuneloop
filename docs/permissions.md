@@ -83,24 +83,25 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 1 | instrument:create | 乐器 | 创建乐器 | 乐器列表 |
 | 2 | instrument:edit | 乐器 | 编辑乐器 | 乐器列表 |
 | 3 | instrument:delete | 乐器 | 删除乐器 | 乐器列表 |
-| 4 | category:manage | 乐器 | 管理分类 | 分类设置 |
-| 5 | property:manage | 乐器 | 管理属性 | 属性管理 |
-| 6 | inventory:view | 库存 | 查看库存 | 库管工作台 |
-| 7 | inventory:manage | 库存 | 管理库存 | 库管工作台 |
-| 8 | rent:setting | 库存 | 租金设定 | 租金设定 |
-| 9 | order:view | 订单 | 查看订单 | 订单管理 |
-| 10 | order:manage | 订单 | 管理订单 | 订单管理 |
-| 11 | maintenance:view | 维修 | 查看维修 | 会话管理 |
-| 12 | maintenance:assign | 维修 | 分派维修 | 师傅管理 / 会话管理 |
-| 13 | maintenance:complete | 维修 | 完成维修 | 会话管理 |
-| 14 | finance:config | 财务 | 财务配置 | 财务配置 |
-| 15 | appeal:handle | 申诉 | 处理申诉 | 申诉处理 |
+| 4 | instrument:view | 乐器 | 查看乐器 | 乐器列表 |
+| 5 | category:manage | 乐器 | 管理分类 | 分类设置 |
+| 6 | property:manage | 乐器 | 管理属性 | 属性管理 |
+| 7 | inventory:view | 库存 | 查看库存 | 库管工作台 |
+| 8 | inventory:manage | 库存 | 管理库存 | 库管工作台 |
+| 9 | rent:setting | 库存 | 租金设定 | 租金设定 |
+| 10 | order:view | 订单 | 查看订单 | 订单管理 |
+| 11 | order:manage | 订单 | 管理订单 | 订单管理 |
+| 12 | maintenance:view | 维修 | 查看维修 | 会话管理 |
+| 13 | maintenance:assign | 维修 | 分派维修 | 师傅管理 / 会话管理 |
+| 14 | maintenance:complete | 维修 | 完成维修 | 会话管理 |
+| 15 | finance:config | 财务 | 财务配置 | 财务配置 |
+| 16 | appeal:handle | 申诉 | 处理申诉 | 申诉处理 |
 
 **权限域分组总结：**
 
 | 权限域 | cus_perm 数量 | 权限代码 |
 |--------|-------------|---------|
-| 乐器 | 5 | instrument:create, instrument:edit, instrument:delete, category:manage, property:manage |
+| 乐器 | 6 | instrument:create, instrument:edit, instrument:delete, instrument:view, category:manage, property:manage |
 | 库存 | 3 | inventory:view, inventory:manage, rent:setting |
 | 订单 | 2 | order:view, order:manage |
 | 维修 | 3 | maintenance:view, maintenance:assign, maintenance:complete |
@@ -123,9 +124,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 角色 | 角色代码 | cus_perm 数量 | 分配的权限 |
 |------|---------|-------------|----------|
-| 商户管理员 | owner | 15 (全部) | instrument:create, instrument:edit, instrument:delete, category:manage, property:manage, inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, finance:config, appeal:handle |
+| 商户管理员 | owner | 16 (全部) | instrument:create, instrument:edit, instrument:delete, instrument:view, category:manage, property:manage, inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, finance:config, appeal:handle |
 | 网点管理员 | admin | 8 | inventory:view, inventory:manage, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, appeal:handle |
-| 网点员工 | staff | 2 | maintenance:view, maintenance:complete |
+| 网点员工 | staff | 3 | instrument:view, maintenance:view, maintenance:complete |
 | 维修工程师 | worker | 2 | maintenance:view, maintenance:complete |
 
 ### 4.2 完整角色-权限对照矩阵
@@ -135,6 +136,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | instrument:create | ❌ | ✅ | ❌ | ❌ | ❌ |
 | instrument:edit | ❌ | ✅ | ❌ | ❌ | ❌ |
 | instrument:delete | ❌ | ✅ | ❌ | ❌ | ❌ |
+| instrument:view | ❌ | ✅ | ❌ | ✅ | ❌ |
 | category:manage | ❌ | ✅ | ❌ | ❌ | ❌ |
 | property:manage | ❌ | ✅ | ❌ | ❌ | ❌ |
 | inventory:view | ❌ | ✅ | ✅ | ❌ | ❌ |
@@ -176,7 +178,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 菜单路径 | 路由 | 所需 cus_perm (OR) |
 |---------|------|-------------------|
-| 乐器列表 | /instruments/list | instrument:create, instrument:edit, instrument:delete, inventory:view |
+| 乐器列表 | /instruments/list | instrument:create, instrument:edit, instrument:delete, inventory:view, instrument:view |
 | 分类设置 | /instruments/categories | category:manage |
 | 属性管理 | /instruments/properties | property:manage |
 | 租金设定 | /inventory/rent-setting | rent:setting |
