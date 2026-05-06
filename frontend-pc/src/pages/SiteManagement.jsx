@@ -415,6 +415,7 @@ filterTreeNode={(node) => {
                 <Tabs defaultActiveKey="info">
                   <Tabs.TabPane tab="基本信息" key="info">
                     <Descriptions column={2} bordered size="small">
+                      <Descriptions.Item label="网点ID">{selectedSite.id}</Descriptions.Item>
                       <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
                       <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
                       <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
