@@ -1646,24 +1646,15 @@ components/
 
 ### 权限控制汇总 (v2.1 — sys_perm + cus_perm 位图驱动)
 
-| 菜单 | 命名空间管理员 | 商户管理员(owner) | 网点管理员(admin) | 网点员工(staff) | 所需权限 |
-|------|-------------|-------|-------|--------|---------|
-| 仪表盘 | ✅ | ✅ | ✅ | ✅ | 已登录 |
-| 商户管理 | ✅ | ❌ | ❌ | ❌ | sys_perm: tenant_view |
-| 客户端管理 | ✅ | ❌ | ❌ | ❌ | sys_perm: namespace_view |
-| 乐器管理 | ❌ | ✅ | ✅ | ✅ | cus_perm: instrument:create 等 |
-| 库存监控 | ❌ | ✅ | ✅ | ❌ | cus_perm: inventory:view/manage |
-| 维修管理 | ❌ | ✅ | ✅ | ✅ | cus_perm: maintenance:view/assign/complete |
-| 组织管理(网点/人员) | ❌ | ✅ | ✅(本网点) | ❌ | sys_perm: organization_/user_ + cus_perm(business) |
-| 系统管理(角色/申诉) | ❌ | ✅ | ✅(本网点) | ❌ | sys_perm: role_ + cus_perm: appeal:handle |
-| 财务配置 | ❌ | ✅ | ❌ | ❌ | cus_perm: finance:config |
-
-**命名空间管理员规则**: `sys_perm > 0 && cus_perm = 0` → 仅仪表盘 + 商户管理 + 客户端管理可见。
+> 完整权限-人员矩阵和菜单-权限映射参见 [`docs/permissions.md`](./permissions.md)。
+> 以下为本 UI 文档特化的菜单可见性规则概览。
 
 **菜单可见性 = sys_perm + cus_perm + businessRole 组合判断**：
 - 组合菜单（网点管理/人员管理/角色配置）：需 sys_perm 授权 **且** cus_perm 含有任一业务权限
 - 纯业务菜单（乐器/库存/维修/财务）：仅需对应 cus_perm 代码
 - 纯管理菜单（商户/客户端）：仅需对应 sys_perm 位码
+
+角色可见菜单详见 [`docs/permissions.md` §四](./permissions.md#四角色-权限分配矩阵)，各菜单项所需权限详见 [`docs/permissions.md` §五](./permissions.md#五菜单-权限映射)。
 
 ### 右上角用户信息
 
@@ -1690,22 +1681,7 @@ components/
 
 ### 权限判断逻辑 (v2.1 — 位图驱动)
 
-```javascript
-// 前端从 JWT 解析 sys_perm/cus_perm (frontend-pc/src/App.jsx)
-const sysPerm = parseInt(payload.sys_perm) || 0
-const cusPerm = parseInt(payload.cus_perm) || 0
-
-// 命名空间管理员检测 (frontend-pc/src/config/menuPermissions.js)
-function isNamespaceAdmin(sysPerm, cusPerm) {
-  return sysPerm > 0 && cusPerm === 0
-}
-
-// 菜单规则判断 (checkRule)
-function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
-  // sysPermBits: 组内 OR；cusPermCodes: 组内 OR
-  // requireAllGroups: true → 两组必须同时满足
-}
-```
+> 参见 [`docs/permissions.md` §七](./permissions.md#七权限检查流程)
 
 **核心文件**:
 - `frontend-pc/src/config/menuPermissions.js` — 菜单权限规则定义
