@@ -83,3 +83,27 @@ func TestGetAllValidRoleTemplateCodes(t *testing.T) {
 		t.Errorf("GetAllValidRoleTemplateCodes() len = %d, want %d", len(codes), len(AllRoleTemplates))
 	}
 }
+
+func TestGetBusinessRole(t *testing.T) {
+	tests := []struct {
+		roleTemplate string
+		wantRole    string
+	}{
+		{"site_admin", "admin"},
+		{"merchant_admin", "owner"},
+		{"site_member", "staff"},
+		{"worker", "worker"},
+		{"namespace_admin", ""},
+		{"customer", ""},
+		{"invalid_role", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.roleTemplate, func(t *testing.T) {
+			got := GetBusinessRole(tt.roleTemplate)
+			if got != tt.wantRole {
+				t.Errorf("GetBusinessRole(%q) = %q, want %q", tt.roleTemplate, got, tt.wantRole)
+			}
+		})
+	}
+}

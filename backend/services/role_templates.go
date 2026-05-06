@@ -85,6 +85,21 @@ func ValidateRoleTemplate(code string) error {
 	return nil
 }
 
+var BusinessRoleMapping = map[string]string{
+	"merchant_admin": "owner",
+	"site_admin":     "admin",
+	"site_member":    "staff",
+	"worker":         "worker",
+}
+
+func GetBusinessRole(roleTemplate string) string {
+	role, ok := BusinessRoleMapping[roleTemplate]
+	if !ok {
+		return ""
+	}
+	return role
+}
+
 // ComputeSysPermBitmap calculates the sys_perm integer bitmap from bit positions.
 func ComputeSysPermBitmap(bits []int) int64 {
 	var result int64

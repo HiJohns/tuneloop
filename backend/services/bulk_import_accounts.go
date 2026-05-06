@@ -259,7 +259,11 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 				// Bind user to organization if applicable
 				if orgIDForIAM != "" {
-					if err := iamClient.BindUserToOrganization(iamUser.ID, orgIDForIAM, "member", ""); err != nil {
+					iamRole := GetBusinessRole(acc.RoleTemplate)
+					if iamRole == "" {
+						iamRole = "member"
+					}
+					if err := iamClient.BindUserToOrganization(iamUser.ID, orgIDForIAM, iamRole, ""); err != nil {
 						log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
 					}
 				}
@@ -358,7 +362,11 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 			// Also bind user to organization if applicable
 			if newUser.IAMSub != "" && orgIDForIAM != "" {
-				if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, "member", ""); err != nil {
+				iamRole := GetBusinessRole(acc.RoleTemplate)
+				if iamRole == "" {
+					iamRole = "member"
+				}
+				if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, iamRole, ""); err != nil {
 					log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
 				}
 			}
