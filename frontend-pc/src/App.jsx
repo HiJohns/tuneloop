@@ -95,8 +95,7 @@ function MainLayout() {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
         const name = payload.name || payload.username || payload.preferred_username || 
-                     payload.displayName || payload.nickName || payload.nickname || 
-                     (payload.is_owner ? '所有者' : '') || ''
+                     payload.displayName || payload.nickName || payload.nickname || ''
         const email = payload.email || payload.mail || ''
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
         const roles = Array.isArray(payload.roles) ? payload.roles : [] // Functional roles from IAM #113
