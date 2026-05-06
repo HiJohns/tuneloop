@@ -14,6 +14,7 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/api.md` - API 接口文档
 - `docs/ui.md` - UI 设计文档
 - `docs/iam.md` - IAM 集成说明
+- `docs/permissions.md` - 权限-人员矩阵
 
 ---
 
