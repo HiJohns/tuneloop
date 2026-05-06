@@ -75,6 +75,11 @@ func TestGetRoleTemplateSysPerm(t *testing.T) {
 	if GetRoleTemplateSysPerm("customer") != 0 {
 		t.Error("GetRoleTemplateSysPerm('customer') should be 0")
 	}
+
+	// site_admin should have 0 (no sys_perm, only manages own site)
+	if GetRoleTemplateSysPerm("site_admin") != 0 {
+		t.Error("GetRoleTemplateSysPerm('site_admin') should be 0")
+	}
 }
 
 func TestGetAllValidRoleTemplateCodes(t *testing.T) {

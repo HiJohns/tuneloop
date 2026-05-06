@@ -38,7 +38,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	},
 	"site_admin": {
 		Name:        "网点管理员",
-		SysPermBits: []int{10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
+		SysPermBits: []int{},
 		CusPermCodes: []string{
 			"inventory:view", "inventory:manage",
 			"order:view", "order:manage",
