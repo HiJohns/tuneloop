@@ -191,16 +191,8 @@ function MainLayout() {
     structuralRoles: ['merchant_admin', 'site_admin'],
     children: [
       { key: '/organization/sites', label: '网点管理', functionalRoles: null },
-      { key: '/staff', label: '人员管理', functionalRoles: null }
-    ]
-  },
-  {
-    key: 'merchants',
-    icon: <TeamOutlined />,
-    label: '商户管理',
-    structuralRoles: ['system_admin', 'merchant_admin', 'site_admin'],
-    children: [
-      { key: '/merchants', label: '商户管理', functionalRoles: null }
+      { key: '/staff', label: '人员管理', functionalRoles: null },
+      { key: '/appeals', label: '申诉处理', functionalRoles: null }
     ]
   },
   {
@@ -209,12 +201,9 @@ function MainLayout() {
     label: '系统管理',
     structuralRoles: ['system_admin', 'merchant_admin'],
     children: [
-      { key: '/organization/sites', label: '网点管理', functionalRoles: null },
       { key: '/merchants', label: '商户管理', functionalRoles: null },
-      { key: '/staff', label: '人员管理', functionalRoles: null },
       { key: '/system/clients', label: '客户端管理', functionalRoles: null },
-      { key: '/system/tenants', label: '租户管理', functionalRoles: null },
-      { key: '/appeals', label: '申诉处理', functionalRoles: null }
+      { key: '/system/tenants', label: '租户管理', functionalRoles: null }
     ]
   }
 ]
@@ -274,8 +263,8 @@ function onMenuClick(e) {
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
   else if (['/inventory/transfer', '/inventory/rent-setting'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
-  else if (['/organization/sites'].includes(location.pathname)) openKeys = ['organization']
-  else if (['/merchants'].includes(location.pathname)) openKeys = ['merchants']
+  else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
+  else if (['/merchants'].includes(location.pathname)) openKeys = ['system']
   else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
 
   let pageTitle = '管理后台'
@@ -293,8 +282,9 @@ function onMenuClick(e) {
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
     '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
-    '/merchants': { title: '商户管理', parent: '商户管理' },
+    '/merchants': { title: '商户管理', parent: '系统管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
+    '/appeals': { title: '申诉处理', parent: '组织管理' },
     '/system/clients': { title: '客户端管理', parent: '系统管理' },
     '/system/tenants': { title: '租户管理', parent: '系统管理' },
   }

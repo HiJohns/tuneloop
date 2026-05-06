@@ -1636,11 +1636,14 @@ components/
 - **权限**: 所有已登录用户
 - **子菜单**:
   - 网点管理 (`/organization/sites`)
+  - 人员管理 (`/staff`)
+  - 申诉处理 (`/appeals`)
 
 **5. 系统管理**
 - **路由**: 一级菜单
 - **权限**: 所有已登录用户
 - **子菜单**:
+  - 商户管理 (`/merchants`)
   - 客户端管理 (`/system/clients`)
   - 租户管理 (`/system/tenants`)
 
