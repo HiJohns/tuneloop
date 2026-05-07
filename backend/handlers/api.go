@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -133,6 +134,8 @@ func GetInstruments(c *gin.Context) {
 		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
 			query = query.Where("site_id = ?", *currentUser.SiteID)
 		}
+		// Bypass GORM tenant scope for site-level users: instruments are scoped by site, not tenant
+		query = query.Session(&gorm.Session{Context: context.Background()})
 	} else {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
