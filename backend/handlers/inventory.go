@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -49,7 +50,19 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 			var instruments []models.Instrument
 			db := database.GetDB().WithContext(ctx)
 
-			query := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
+			businessRole := middleware.GetBusinessRole(ctx)
+			query := db.Model(&models.Instrument{})
+
+			if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
+				userID := middleware.GetUserID(ctx)
+				var currentUser models.User
+				if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+					query = query.Where("site_id = ?", *currentUser.SiteID)
+				}
+				query = query.Session(&gorm.Session{Context: context.Background()})
+			} else {
+				query = query.Where("tenant_id = ?", tenantID)
+			}
 
 			if category != "" {
 				query = query.Where("category_id = ?", category)
