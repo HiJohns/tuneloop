@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func stringPtr(s string) *string {
@@ -34,12 +36,24 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	query := db.Model(&models.Order{}).Where("tenant_id = ?", tenantID)
+	businessRole := middleware.GetBusinessRole(ctx)
+	query := db.Model(&models.Order{})
+
+	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
+		userID := middleware.GetUserID(ctx)
+		var currentUser models.User
+		if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+			query = query.Where("site_id = ?", *currentUser.SiteID)
+		}
+		query = query.Session(&gorm.Session{Context: context.Background()})
+	} else {
+		query = query.Where("tenant_id = ?", tenantID)
+		if siteID != "" {
+			query = query.Where("site_id = ?", siteID)
+		}
+	}
 	if status != "" {
 		query = query.Where("status = ?", status)
-	}
-	if siteID != "" {
-		query = query.Where("site_id = ?", siteID)
 	}
 
 	var total int64
