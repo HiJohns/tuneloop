@@ -131,7 +131,8 @@ func GetInstruments(c *gin.Context) {
 	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
 		userID := middleware.GetUserID(ctx)
 		var currentUser models.User
-		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+		// Bypass GORM tenant scope: user lookup uses iam_sub, not tenant_id
+		if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
 			query = query.Where("site_id = ?", *currentUser.SiteID)
 		}
 		// Bypass GORM tenant scope for site-level users: instruments are scoped by site, not tenant
