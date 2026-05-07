@@ -125,7 +125,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 角色 | 角色代码 | cus_perm 数量 | 分配的权限 |
 |------|---------|-------------|----------|
 | 商户管理员 | owner | 16 (全部) | instrument:create, instrument:edit, instrument:delete, instrument:view, category:manage, property:manage, inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, finance:config, appeal:handle |
-| 网点管理员 | admin | 8 | inventory:view, inventory:manage, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, appeal:handle |
+| 网点管理员 | admin | 9 | inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, appeal:handle |
 | 网点员工 | staff | 3 | instrument:view, maintenance:view, maintenance:complete |
 | 维修工程师 | worker | 2 | maintenance:view, maintenance:complete |
 
@@ -141,7 +141,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | property:manage | ❌ | ✅ | ❌ | ❌ | ❌ |
 | inventory:view | ❌ | ✅ | ✅ | ❌ | ❌ |
 | inventory:manage | ❌ | ✅ | ✅ | ❌ | ❌ |
-| rent:setting | ❌ | ✅ | ❌ | ❌ | ❌ |
+| rent:setting | ❌ | ✅ | ✅ | ❌ | ❌ |
 | order:view | ❌ | ✅ | ✅ | ❌ | ❌ |
 | order:manage | ❌ | ✅ | ✅ | ❌ | ❌ |
 | maintenance:view | ❌ | ✅ | ✅ | ✅ | ✅ |
