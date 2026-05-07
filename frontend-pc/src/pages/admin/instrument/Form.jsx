@@ -194,19 +194,14 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   // Ensure site user's own site appears in the tree even if API filters it out
   useEffect(() => {
-    console.log('[DEBUG patchTree] currentUser.site_id:', currentUser?.site_id, 'siteLocked:', siteLocked, 'siteTree length:', siteTree.length)
     if (currentUser?.site_id && siteLocked) {
       setSiteTree(prev => {
-        const found = prev.find(s => s.value === currentUser.site_id)
-        console.log('[DEBUG patchTree] checking prev tree for site_id:', currentUser.site_id, 'found:', !!found)
-        if (found) return prev
-        const newNode = {
+        if (prev.find(s => s.value === currentUser.site_id)) return prev
+        return [...prev, {
           key: currentUser.site_id,
           title: currentUser.site_name || currentUser.site_id,
           value: currentUser.site_id
-        }
-        console.log('[DEBUG patchTree] injecting node:', newNode)
-        return [...prev, newNode]
+        }]
       })
     }
   }, [currentUser, siteLocked, siteTree.length])

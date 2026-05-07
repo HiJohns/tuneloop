@@ -492,3 +492,101 @@ URL为/staff
 - 手机号变更：留 Stub（IAM 侧暂不实现）
 提交后列表刷新
 
+
+---
+
+## 附录：权限相关流程总结
+
+### 1. 权限体系架构
+
+TuneLoop 使用 **双层位图** 实现权限控制：
+
+| 层级 | 来源 | 字段 | 用途 |
+|------|------|------|------|
+| **sys_perm** | IAM 内置位码 (0-24) | JWT 字段 | 控制结构操作：网点管理、人员管理、角色配置等 |
+| **cus_perm** | TuneLoop 业务注册 | JWT 字段 | 控制业务操作：乐器 CRUD、库存、订单、维修等 |
+
+**关键概念澄清**：
+- sys_perm 和 cus_perm 只是**权限来源不同**，不是级别高低
+- site_admin 可以有 sys_perm（看到菜单）+ cus_perm（业务操作）
+- **授权范围**由后端 API 的 site_id/org_id 过滤控制（不是前端菜单）
+
+### 2. 角色模板定义位置
+
+**Beaconiam 端** (`internal/models/functional_role_template.go`)：
+- 存储角色模板基础信息
+- 包含 `cus_perm`（客户权限位图）
+- **当前缺失 `sys_perm` 字段**（见 beaconiam Issue #157）
+
+**TuneLoop 端** (`backend/services/role_templates.go`)：
+- 定义完整的角色权限映射
+- 包含 `SysPermBits`（系统权限位码数组）
+- 包含 `CusPermCodes`（客户权限代码数组）
+
+### 3. 权限计算流程（登录时）
+
+```
+用户登录
+  ↓
+Beaconiam /oauth/token
+  ↓ 计算最终权限：
+  - SysPerm = organization.sys_perm OR user_org_relations.sys_perm OR functional_role_templates.sys_perm
+  - CusPerm = organization.cus_perm OR user_org_relations.cus_perm OR functional_role_templates.cus_perm
+  ↓
+生成 JWT Token（包含 sys_perm, cus_perm）
+  ↓
+返回给前端
+```
+
+### 4. 前端菜单过滤流程
+
+```
+用户登录成功
+  ↓
+App.jsx 解析 JWT：
+  - sys_perm = payload.sys_perm || payload.sysPerm
+  - cus_perm = payload.cus_perm || payload.cusPerm
+  - 从 localStorage 读取 permission_mapping
+  ↓
+filterMenuByRole() - 角色过滤
+  ↓
+checkRule() - 权限位过滤
+  - 检查 menuRules 中的 sysPermBits / cusPermCodes
+  - requireAllGroups: true 要求两个条件同时满足
+  ↓
+渲染可见菜单
+```
+
+### 5. 修改角色权限后的刷新问题
+
+当修改 `backend/services/role_templates.go` 后：
+- **已登录用户的权限不会自动刷新**（JWT token 已签发）
+- 需要用户**清除 localStorage 并重新登录**
+- 如果用户不主动刷新，需要实现 perm_version 机制（见 tunerloop Issues #446, #447 及 beaconiam Issue #156）
+
+### 6. 相关 Issue
+
+| Issue | 仓库 | 标题 | 状态 |
+|-------|------|------|------|
+| #156 | beaconiam | JWT 权限变更后需手动清除 localStorage，缺乏自动刷新机制 | todo |
+| #157 | beaconiam | FunctionalRoleTemplate 缺少 sys_perm 字段 | todo |
+| #446 | tuneloop | 后端权限变更时递增 JWT perm_version | todo |
+| #447 | tuneloop | 前端 JWT perm_version 检测 | todo |
+
+### 7. sys_perm 位码对照表
+
+| 位码 | 名称 | 控制的菜单 |
+|------|------|-----------|
+| 0 | namespace_view | 客户端管理 |
+| 5 | tenant_view | 商户管理 |
+| 10 | organization_view | 网点管理 |
+| 11 | organization_list | 网点管理 |
+| 15 | user_view | 人员管理 |
+| 16 | user_list | 人员管理 |
+| 17 | user_create | 人员批量导入 |
+| 20 | role_view | 角色管理 |
+
+---
+*最后更新: 2026-05-07*
+*Model: kimi-k2.6*
+
