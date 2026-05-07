@@ -76,13 +76,9 @@ func TestGetRoleTemplateSysPerm(t *testing.T) {
 		t.Error("GetRoleTemplateSysPerm('customer') should be 0")
 	}
 
-	// site_admin should have organization_view (10), organization_list (11), user_view (15), user_list (16), user_create (17)
-	expectedSiteAdmin := int64(0)
-	for _, b := range []int{10, 11, 15, 16, 17} {
-		expectedSiteAdmin |= 1 << b
-	}
-	if GetRoleTemplateSysPerm("site_admin") != expectedSiteAdmin {
-		t.Errorf("GetRoleTemplateSysPerm('site_admin') = %b, want %b", GetRoleTemplateSysPerm("site_admin"), expectedSiteAdmin)
+	// site_admin should have no sys_perm (only CusPerm from role_templates)
+	if GetRoleTemplateSysPerm("site_admin") != 0 {
+		t.Errorf("GetRoleTemplateSysPerm('site_admin') = %b, want 0", GetRoleTemplateSysPerm("site_admin"))
 	}
 }
 
