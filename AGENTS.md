@@ -143,9 +143,57 @@ grep -n "baseURL\|API_BASE_URL" frontend-pc/src/services/api.js
 curl -X POST http://localhost:5554/api/iam/organizations/sync -H "Authorization: Bearer $TOKEN"
 ```
 
+### 2026-05-06: JWT RSA 签名验证失败 — 多套 beaconiam 实例密钥不匹配
+
+**问题现象：**
+登录成功进入 Dashboard 后立即被踢回登录页，后端日志反复报错 `crypto/rsa: verification error`，返回 401。
+
+**环境上下文：**
+- 同一台服务器运行 **两套 beaconiam 实例**：
+  - **预生产服**：端口 5560（NGINX 代理），独立 JWT 密钥对
+  - **开发/测试服**：端口 5561（`go run cmd/api/main.go`），独立 JWT 密钥对
+- Tuneloop 后端 `.env` 配置 `BEACONIAM_INTERNAL_URL=http://localhost:5561`
+
+**根因：**
+用户浏览器中的 token 是**预生产服 beaconiam（5560）** 签发的，但 Tuneloop 后端调用的是**开发服 beaconiam（5561）** 的 `/api/v1/auth/public-key.pem` 来验证签名。两套实例各自持有不同的 RSA 密钥对，公钥不匹配导致签名验证必然失败。
+
+**时间线还原：**
+1. 23:15 — 预生产服 beaconiam 启动（5560），生成密钥 A
+2. 23:26 — 用户登录，拿到预生产服签发的 token（`iss: http://opencode.linxdeep.com:5552`）
+3. 23:31 — 开发服 beaconiam 启动（5561），生成密钥 B
+4. 23:39 — 开发服 Vite 启动（5552），用户重新登录但仍携带旧 token
+5. Tuneloop 后端用密钥 B 的公钥验证密钥 A 签发的 token → 失败
+
+**以后审核 JWT 验证失败时必须检查：**
+1. [ ] **Token 签发方**：解码 token payload，确认 `iss` 字段指向哪个 beaconiam 实例
+2. [ ] **公钥一致性**：对比签发方公钥 vs 验证方公钥是否相同
+3. [ ] **环境隔离**：确认当前测试的是预生产服还是开发服，不要混用端口
+4. [ ] **密钥轮换后处理**：beaconiam 重启生成新密钥后，必须清除浏览器 localStorage 里的 `token` 并重新登录
+5. [ ] **配置一致性**：确认 `.env` 里的 `BEACONIAM_INTERNAL_URL` 与实际签 token 的实例一致
+
+**检查方法：**
+```bash
+# 1. 查看各个 beaconiam 实例的公钥（对比是否一致）
+curl -s http://localhost:5560/api/v1/auth/public-key.pem | sha256sum
+curl -s http://localhost:5561/api/v1/auth/public-key.pem | sha256sum
+
+# 2. 查看 token 的签发方（复制 payload 部分到 jwt.io 或 python 解码）
+echo "TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '.iss'
+
+# 3. 确认 Tuneloop 后端配置的验证端点
+grep "BEACONIAM_INTERNAL_URL" /home/coder/tuneloop/.env
+
+# 4. 强制刷新 token：浏览器 DevTools → Application → Local Storage → 删除 token → 刷新页面重新登录
+```
+
+**关键认知：**
+- `opencode.linxdeep.com` 域名解析到当前服务器，5552 端口是开发服 Vite（代理到 5561），5560 是预生产服 NGINX。
+- 两套服务的 `jwt_private.pem` / `jwt_public.pem` 完全独立，不存在共享。
+- 只要 token 的签发方和验证方不是同一个 beaconiam 进程（或同一份密钥文件），就一定会出现 `crypto/rsa: verification error`。
+
 ---
 
-*Last updated: 2026-05-03*
+*Last updated: 2026-05-06*
 
 ---
 
