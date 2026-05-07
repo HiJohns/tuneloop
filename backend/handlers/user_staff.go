@@ -393,13 +393,13 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 // GET /api/users/me
 func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
 	userID := middleware.GetUserID(ctx)
 
 	db := database.GetDB().WithContext(ctx)
 
 	var user models.User
-	if err := db.Where("iam_sub = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&user).Error; err != nil {
+	if err := db.Where("iam_sub = ? AND org_id = ? AND deleted_at IS NULL", userID, orgID).First(&user).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    20000,
 			"message": "success",
