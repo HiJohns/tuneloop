@@ -29,7 +29,28 @@ func BootstrapDefaultPermissions(iamClient *IAMClient, namespaceID string) error
 	// After successful registration, set default role permissions.
 	// Note: role template IDs are derived from the role code names defined in IAM.
 	// The exact IDs depend on the IAM setup and may need to be configured.
-	log.Printf("[Bootstrap] Customer permissions registered. Default role permissions should be set via IAM admin UI or API.")
+	log.Printf("[Bootstrap] Customer permissions registered. Syncing default role permissions to IAM...")
+
+	defaultPerms := GetDefaultRolePermissions()
+	roleTemplates, err := iamClient.ListRoleTemplates(namespaceID)
+	if err != nil {
+		log.Printf("[Bootstrap] Warning: failed to list role templates: %v", err)
+	} else {
+		for _, rp := range defaultPerms {
+			for _, rt := range roleTemplates {
+				if rt.Code == rp.RoleCode {
+					if err := iamClient.SetRoleCustomerPermissions(namespaceID, rt.ID, rp.Perms); err != nil {
+						log.Printf("[Bootstrap] Warning: failed to set cus_perms for role %s: %v", rp.RoleCode, err)
+					} else {
+						log.Printf("[Bootstrap] Synced cus_perms for role %s: %v", rp.RoleCode, rp.Perms)
+					}
+					break
+				}
+			}
+		}
+		// Increment perm_version to notify clients
+		iamClient.IncrementPermVersion()
+	}
 
 	return nil
 }
