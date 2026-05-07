@@ -510,6 +510,10 @@ func (c *IAMClient) BindUserToOrganization(userID, orgID, role, operatorID strin
 	}
 
 	log.Printf("[IAMClient] Bound user %s to org %s with role %s", userID, orgID, role)
+
+	// Increment perm_version to notify clients of permission change
+	c.IncrementPermVersion()
+
 	return nil
 }
 
@@ -539,6 +543,10 @@ func (c *IAMClient) BindUserToOrganizationWithToken(token, userID, orgID, role, 
 	}
 
 	log.Printf("[IAMClient] Bound user %s to org %s with role %s (user token)", userID, orgID, role)
+
+	// Increment perm_version to notify clients of permission change
+	c.IncrementPermVersion()
+
 	return nil
 }
 
@@ -564,6 +572,10 @@ func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string)
 	}
 
 	log.Printf("[IAMClient] Unbound user %s from org %s", userID, orgID)
+
+	// Increment perm_version to notify clients of permission change
+	c.IncrementPermVersion()
+
 	return nil
 }
 
@@ -730,10 +742,28 @@ func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, permCodes [
 	if statusCode != http.StatusOK {
 		return fmt.Errorf("SetUserCustomerPermissions returned status %d: %s", statusCode, string(respBody))
 	}
+
+	// Increment perm_version to notify clients of permission change
+	c.IncrementPermVersion()
+
 	return nil
 }
 
 // GetNamespace returns the configured namespace name.
 func (c *IAMClient) GetNamespace() string {
 	return c.namespace
+}
+
+// IncrementPermVersion increments the global permission version in IAM.
+func (c *IAMClient) IncrementPermVersion() error {
+	path := "/api/v1/perm-version/increment"
+	respBody, statusCode, err := c.doRequest("POST", path, nil)
+	if err != nil {
+		return fmt.Errorf("IncrementPermVersion request failed: %w", err)
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return fmt.Errorf("IncrementPermVersion returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Incremented perm_version")
+	return nil
 }
