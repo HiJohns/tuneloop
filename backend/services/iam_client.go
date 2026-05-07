@@ -342,6 +342,23 @@ func (c *IAMClient) ListOrganizations() ([]Organization, error) {
 	return result.Organizations, nil
 }
 
+// GetOrganization fetches a single organization by ID from IAM.
+func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
+	path := fmt.Sprintf("/api/v1/organizations/%s", orgID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetOrganization request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("GetOrganization returned status %d: %s", statusCode, string(respBody))
+	}
+	var org Organization
+	if err := json.Unmarshal(respBody, &org); err != nil {
+		return nil, fmt.Errorf("failed to parse GetOrganization response: %w", err)
+	}
+	return &org, nil
+}
+
 type CreateUserRequest struct {
 	Username    string `json:"username"`
 	Name        string `json:"name"`

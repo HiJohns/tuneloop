@@ -45,6 +45,7 @@ const (
 	ContextKeySysPerm         ContextKey = "sys_perm"
 	ContextKeyCusPerm         ContextKey = "cus_perm"
 	ContextKeyCusPermExt      ContextKey = "cus_perm_ext"
+	ContextKeyIAMClient       ContextKey = "iam_client"
 )
 
 const (
@@ -78,7 +79,7 @@ func isPublicRoute(path string) bool {
 	return false
 }
 
-func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
+func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 		log.Printf("[IAM DEBUG] Request: %s %s", c.Request.Method, path)
@@ -163,6 +164,7 @@ func IAMInterceptor(iamService *services.IAMService) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, ContextKeySysPerm, claims.SysPerm)
 		ctx = context.WithValue(ctx, ContextKeyCusPerm, claims.CusPerm)
 		ctx = context.WithValue(ctx, ContextKeyCusPermExt, claims.CusPermExt)
+		ctx = context.WithValue(ctx, ContextKeyIAMClient, iamClient)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Sliding expiration: Check if token is about to expire
@@ -334,13 +336,13 @@ func GetBusinessRole(ctx context.Context) string {
 	}
 
 	if isOwner {
-		db := database.GetDB().WithContext(ctx)
-		var org struct {
-			ParentID *string `gorm:"column:parent_id"`
-		}
-		err := db.Table("organizations").Where("id = ?", orgID).First(&org).Error
-		if err != nil || org.ParentID == nil {
-			return BusinessRoleMerchantAdmin
+		// Use IAM API to check if org has parent (top-level vs sub-level)
+		iamClient, _ := ctx.Value(ContextKeyIAMClient).(*services.IAMClient)
+		if iamClient != nil {
+			org, err := iamClient.GetOrganization(orgID)
+			if err == nil && org.ParentID == nil {
+				return BusinessRoleMerchantAdmin
+			}
 		}
 		return BusinessRoleSiteAdmin
 	}
@@ -375,33 +377,37 @@ func GetVisibleOrgIDs(ctx context.Context) ([]string, error) {
 }
 
 func getOrgDescendants(ctx context.Context, orgID string) ([]string, error) {
-	db := database.GetDB().WithContext(ctx)
-
-	type orgResult struct {
-		ID string
+	iamClient, _ := ctx.Value(ContextKeyIAMClient).(*services.IAMClient)
+	if iamClient == nil {
+		return []string{orgID}, nil
 	}
 
-	var results []orgResult
-
-	err := db.Table("organizations").
-		Select("id").
-		Where("parent_id = ?", orgID).
-		Find(&results).Error
-
+	orgs, err := iamClient.ListOrganizations()
 	if err != nil {
-		return nil, err
+		return []string{orgID}, nil
 	}
 
-	orgIDs := []string{orgID}
-	for _, r := range results {
-		childIDs, err := getOrgDescendants(ctx, r.ID)
-		if err != nil {
-			return nil, err
+	// Build parent→children map
+	children := map[string][]string{}
+	for _, org := range orgs {
+		if org.ParentID != nil {
+			children[*org.ParentID] = append(children[*org.ParentID], org.ID)
 		}
-		orgIDs = append(orgIDs, childIDs...)
 	}
 
-	return orgIDs, nil
+	// Recursively collect descendants
+	result := []string{orgID}
+	queue := []string{orgID}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for _, childID := range children[current] {
+			result = append(result, childID)
+			queue = append(queue, childID)
+		}
+	}
+
+	return result, nil
 }
 
 func ApplyOrgScope(db *gorm.DB, ctx context.Context) (*gorm.DB, error) {
