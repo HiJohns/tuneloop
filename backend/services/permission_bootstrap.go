@@ -58,6 +58,7 @@ func GetDefaultRolePermissions() []DefaultRolePermissions {
 			RoleCode: "admin", // Site admin (group admin)
 			Perms: []string{
 				"inventory:view", "inventory:manage",
+				"rent:setting",
 				"order:view", "order:manage",
 				"maintenance:view", "maintenance:assign", "maintenance:complete",
 				"appeal:handle",
