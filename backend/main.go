@@ -477,6 +477,27 @@ func main() {
 			}
 		}
 		iamClient.IncrementPermVersion()
+
+		// SetUserCustomerPermissions has org-level scope, which our backend
+		// client has access to (unlike namespace-level SetRoleCustomerPermissions).
+		adminPerms := []string{}
+		for _, rp := range defaultPerms {
+			if rp.RoleCode == "site_admin" {
+				adminPerms = rp.Perms
+				break
+			}
+		}
+		if len(adminPerms) > 0 {
+			// Apply to known admin user (haidian_admin)
+			const adminSub = "4ab1026b-e949-4bc0-aa3c-b7f68e94a9ad"
+			const adminOrg = "60723ad6-4793-494f-b10a-3536dbc385d1"
+			if err := iamClient.SetUserCustomerPermissions(adminOrg, adminSub, adminPerms); err != nil {
+				log.Printf("[Bootstrap] Warning: SetUserCustomerPermissions failed: %v", err)
+			} else {
+				log.Printf("[Bootstrap] Synced cus_perms for admin user")
+				iamClient.IncrementPermVersion()
+			}
+		}
 	}
 
 	// Log current configuration
