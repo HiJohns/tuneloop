@@ -193,6 +193,20 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     })
   }, [])
 
+  // Ensure site user's own site appears in the tree even if API filters it out
+  useEffect(() => {
+    if (currentUser?.site_id && siteLocked) {
+      setSiteTree(prev => {
+        if (prev.find(s => s.value === currentUser.site_id)) return prev
+        return [...prev, {
+          key: currentUser.site_id,
+          title: currentUser.site_name || currentUser.site_id,
+          value: currentUser.site_id
+        }]
+      })
+    }
+  }, [currentUser, siteLocked])
+
   // Initial data load on mount
   useEffect(() => {
     console.log('[DEBUG] Component mounted, open:', isModalOpen, 'isPageMode:', isPageMode)
@@ -304,6 +318,20 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       }))
       
       console.log('[DEBUG] Final site tree:', JSON.stringify(tree))
+
+      // Fallback: ensure site user's own site appears even if API returns empty
+      const role = (currentUser?.role || '').toLowerCase()
+      const businessRole = (currentUser?.business_role || '').toLowerCase()
+      const isSiteUser = businessRole === 'admin' || businessRole === 'staff' ||
+                        role === 'site_admin' || role === 'site_member' || role === 'site_manager' || role === 'staff'
+      if (isSiteUser && currentUser?.site_id && !tree.find(s => s.value === currentUser.site_id)) {
+        tree.push({
+          key: currentUser.site_id,
+          title: currentUser.site_name || currentUser.site_id,
+          value: currentUser.site_id
+        })
+      }
+
       setSiteTree(tree)
     } catch (err) {
       console.error('Failed to fetch sites:', err)
