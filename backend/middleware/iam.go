@@ -338,7 +338,7 @@ func GetBusinessRole(ctx context.Context) string {
 		var org struct {
 			ParentID *string `gorm:"column:parent_id"`
 		}
-		err := db.Table("merchants").Where("id = ?", orgID).First(&org).Error
+		err := db.Table("organizations").Where("id = ?", orgID).First(&org).Error
 		if err != nil || org.ParentID == nil {
 			return BusinessRoleMerchantAdmin
 		}
@@ -383,7 +383,7 @@ func getOrgDescendants(ctx context.Context, orgID string) ([]string, error) {
 
 	var results []orgResult
 
-	err := db.Table("merchants").
+	err := db.Table("organizations").
 		Select("id").
 		Where("parent_id = ?", orgID).
 		Find(&results).Error
