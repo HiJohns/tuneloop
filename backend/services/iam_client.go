@@ -840,14 +840,22 @@ func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
 		return nil, fmt.Errorf("ListRoleTemplates returned status %d: %s", statusCode, string(respBody))
 	}
 
-	var result struct {
+	var result []struct {
+		ID   string `json:"id"`
+		Code string `json:"code"`
+	}
+	// Try wrapped format first, then plain array
+	var wrapped struct {
 		Templates []struct {
 			ID   string `json:"id"`
 			Code string `json:"code"`
 		} `json:"role_templates"`
 	}
+	if err := json.Unmarshal(respBody, &wrapped); err == nil && len(wrapped.Templates) > 0 {
+		return wrapped.Templates, nil
+	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse ListRoleTemplates response: %w", err)
 	}
-	return result.Templates, nil
+	return result, nil
 }
