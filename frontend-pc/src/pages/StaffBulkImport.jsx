@@ -145,6 +145,17 @@ export default function StaffBulkImport() {
                 rowClassName={(record) => record.action === 'failed' ? 'bg-red-50' : ''}
               />
             )}
+            <div style={{ marginTop: 16, textAlign: 'right' }}>
+              {previewData?.summary?.failed === 0 ? (
+                <Button type="primary" onClick={() => setCurrentStep(2)}>
+                  下一步：确认导入
+                </Button>
+              ) : (
+                <Button type="primary" onClick={() => setCurrentStep(2)}>
+                  下一步：确认导入（跳过错误）
+                </Button>
+              )}
+            </div>
           </>
         )
       case 2:
@@ -159,9 +170,11 @@ export default function StaffBulkImport() {
               {previewData?.summary?.failed > 0 && (
                 <Alert message={`警告：${previewData.summary.failed} 条记录存在错误，将被跳过`} type="warning" showIcon />
               )}
-              <Button type="primary" onClick={handleExecuteImport} loading={executing}>
-                确认导入
-              </Button>
+              <div style={{ marginTop: 16, textAlign: 'right' }}>
+                <Button type="primary" onClick={handleExecuteImport} loading={executing}>
+                  确认导入
+                </Button>
+              </div>
             </Space>
           </Card>
         )
@@ -190,6 +203,13 @@ export default function StaffBulkImport() {
                 )}
               </>
             )}
+            {!executing && (
+              <div style={{ marginTop: 16, textAlign: 'right' }}>
+                <Button type="primary" onClick={() => navigate('/staff')}>
+                  返回人员管理
+                </Button>
+              </div>
+            )}
           </Card>
         )
       default:
@@ -210,25 +230,6 @@ export default function StaffBulkImport() {
           {steps.map(step => <Steps.Step key={step.title} title={step.title} />)}
         </Steps>
         {renderStepContent()}
-        <div style={{ marginTop: 24, textAlign: 'right' }}>
-          <Space>
-            {currentStep === 1 && previewData?.summary?.failed === 0 && (
-              <Button type="primary" onClick={() => setCurrentStep(2)}>
-                下一步：确认导入
-              </Button>
-            )}
-            {currentStep === 1 && previewData?.summary?.failed > 0 && (
-              <Button type="primary" onClick={() => setCurrentStep(2)}>
-                下一步：确认导入（跳过错误）
-              </Button>
-            )}
-            {currentStep === 3 && !executing && (
-              <Button type="primary" onClick={() => navigate('/staff')}>
-                返回人员管理
-              </Button>
-            )}
-          </Space>
-        </div>
       </Card>
     </div>
   )
