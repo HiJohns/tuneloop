@@ -47,13 +47,18 @@ function storeTokens(accessToken, refreshToken) {
   document.cookie = `token=${accessToken}; path=/; max-age=604800`
 }
 
-function getRefreshToken() {
-  return localStorage.getItem('refresh_token')
+function storePermVersion(permVersion) {
+  localStorage.setItem('perm_version', String(permVersion || 0))
+}
+
+function getPermVersion() {
+  return parseInt(localStorage.getItem('perm_version') || '0')
 }
 
 function clearTokens() {
   localStorage.removeItem('token')
   localStorage.removeItem('refresh_token')
+  localStorage.removeItem('perm_version')
   sessionStorage.removeItem('token')
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
 }
@@ -172,6 +177,19 @@ async function request(endpoint, options = {}, retryCount = 0) {
     ...options,
     headers,
   })
+
+  // Check perm_version mismatch and force re-login if changed
+  const responsePermVersion = response.headers.get('x-perm-version')
+  if (responsePermVersion) {
+    const serverVersion = parseInt(responsePermVersion)
+    const storedVersion = getPermVersion()
+    if (serverVersion > 0 && storedVersion > 0 && serverVersion !== storedVersion) {
+      console.warn('[AUTH] perm_version changed:', storedVersion, '->', serverVersion, ', forcing re-login')
+      clearTokens()
+      redirectToIAM()
+      throw new Error('Permission version changed, please re-login')
+    }
+  }
 
   // Handle 401 Unauthorized
   // 统一处理：调用通用认证错误处理函数

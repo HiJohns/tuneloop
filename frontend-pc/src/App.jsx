@@ -136,6 +136,9 @@ function MainLayout() {
         localStorage.setItem('user_cus_perm', cusPerm.toString())
         localStorage.setItem('user_cus_perm_ext', cusPermExt || '')
         localStorage.setItem('user_is_owner', isOwner ? '1' : '0')
+        // Store perm_version from JWT payload
+        const permVersion = payload.perm_version || payload.permVersion || 0
+        localStorage.setItem('perm_version', String(permVersion))
       } catch (e) {
         // ignore parse errors
       }
