@@ -65,7 +65,7 @@ type DefaultRolePermissions struct {
 func GetDefaultRolePermissions() []DefaultRolePermissions {
 	return []DefaultRolePermissions{
 		{
-			RoleCode: "owner", // Merchant admin (tenant admin)
+			RoleCode: "merchant_admin", // Owner / tenant admin
 			Perms: []string{
 				"instrument:create", "instrument:edit", "instrument:delete",
 				"category:manage", "property:manage",
@@ -76,7 +76,7 @@ func GetDefaultRolePermissions() []DefaultRolePermissions {
 			},
 		},
 		{
-			RoleCode: "admin", // Site admin (group admin)
+			RoleCode: "site_admin", // Site admin
 			Perms: []string{
 				"inventory:view", "inventory:manage",
 				"rent:setting",
@@ -86,7 +86,7 @@ func GetDefaultRolePermissions() []DefaultRolePermissions {
 			},
 		},
 		{
-			RoleCode: "staff", // Site staff (group member)
+			RoleCode: "site_member", // Site staff
 			Perms: []string{
 				"instrument:view",
 				"maintenance:view", "maintenance:complete",
