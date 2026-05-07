@@ -281,10 +281,21 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	// Base query
+	businessRole := middleware.GetBusinessRole(ctx)
 	query := db.Model(&models.Instrument{}).
 		Select(`instruments.id, instruments.sn, instruments.category_name, 
-				instruments.level_name, instruments.site_id, instruments.pricing`).
-		Where("instruments.tenant_id = ?", tenantID)
+				instruments.level_name, instruments.site_id, instruments.pricing`)
+
+	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
+		userID := middleware.GetUserID(ctx)
+		var currentUser models.User
+		if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+			query = query.Where("instruments.site_id = ?", *currentUser.SiteID)
+		}
+		query = query.Session(&gorm.Session{Context: context.Background()})
+	} else {
+		query = query.Where("instruments.tenant_id = ?", tenantID)
+	}
 
 	// Apply filters
 	if siteID != "" {
