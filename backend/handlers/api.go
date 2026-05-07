@@ -124,9 +124,22 @@ func GetInstruments(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
+	query := db.Model(&models.Instrument{})
+	businessRole := middleware.GetBusinessRole(ctx)
+
+	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
+		userID := middleware.GetUserID(ctx)
+		var currentUser models.User
+		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+			query = query.Where("site_id = ?", *currentUser.SiteID)
+		}
+	} else {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+
 	// Get total count
 	var total int64
-	if err := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to count instruments",
@@ -136,7 +149,7 @@ func GetInstruments(c *gin.Context) {
 
 	// Get paginated results
 	var instruments []models.Instrument
-	if err := db.Where("tenant_id = ?", tenantID).Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
+	if err := query.Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch instruments",
