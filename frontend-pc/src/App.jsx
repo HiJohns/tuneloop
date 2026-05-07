@@ -14,7 +14,7 @@ import {
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
 import { api, initPermissionMapping } from './services/api'
-import { menuRules, checkRule, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
+import { menuRules, checkRule, isNamespaceAdmin } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
