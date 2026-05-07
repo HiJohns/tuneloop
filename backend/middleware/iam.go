@@ -152,18 +152,21 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 		if tenantID == "" {
 			tenantID = claims.OrgID
 		}
+		orgID := claims.OrgID
+		if orgID == "" {
+			orgID = tenantID
+		}
 
 		// Resolve top-level tenant: if this org has a parent, trace up to root
 		if iamClient != nil {
 			org, err := iamClient.GetOrganization(tenantID)
 			if err == nil && org.ParentID != nil {
-				// Walk up the parent chain to find the top-level org
 				currentID := *org.ParentID
 				for {
 					parent, err := iamClient.GetOrganization(currentID)
 					if err != nil || parent.ParentID == nil {
 						if err == nil {
-							tenantID = currentID // Use the top-level org
+							tenantID = currentID
 						}
 						break
 					}
@@ -174,9 +177,9 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 
 		ctx := database.SetTenantID(c.Request.Context(), tenantID)
 		ctx = context.WithValue(ctx, ContextKeyTenantID, tenantID)
-		ctx = context.WithValue(ctx, ContextKeyOrgID, tenantID)
+		ctx = context.WithValue(ctx, ContextKeyOrgID, orgID)
 		ctx = context.WithValue(ctx, ContextKeyNamespaceID, claims.NamespaceID)
-		ctx = context.WithValue(ctx, ContextKeyUserID, claims.Subject)
+		ctx = context.WithValue(ctx, ContextKeyUserID, claims.UserID)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
 		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
 		ctx = context.WithValue(ctx, ContextKeyFunctionalRoles, claims.Roles)
