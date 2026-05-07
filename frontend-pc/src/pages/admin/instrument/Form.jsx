@@ -179,9 +179,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         setCurrentUser(result.data)
         const role = (result.data.role || '').toLowerCase()
         const businessRole = (result.data.business_role || '').toLowerCase()
-        // Lock site for site_admin (business_role='admin') and site_member (business_role='staff')
-        // Also check role field for backward compatibility
-        const isSiteUser = businessRole === 'admin' || businessRole === 'staff' ||
+        const isSiteUser = businessRole === 'admin' || businessRole === 'site_admin' ||
+                          businessRole === 'staff' || businessRole === 'site_member' ||
                           role === 'site_admin' || role === 'site_member' || role === 'site_manager' || role === 'staff'
         if (isSiteUser && result.data.site_id) {
           setSiteLocked(true)
@@ -195,17 +194,29 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   // Ensure site user's own site appears in the tree even if API filters it out
   useEffect(() => {
+    console.log('[DEBUG patchTree] currentUser.site_id:', currentUser?.site_id, 'siteLocked:', siteLocked, 'siteTree length:', siteTree.length)
     if (currentUser?.site_id && siteLocked) {
       setSiteTree(prev => {
-        if (prev.find(s => s.value === currentUser.site_id)) return prev
-        return [...prev, {
+        const found = prev.find(s => s.value === currentUser.site_id)
+        console.log('[DEBUG patchTree] checking prev tree for site_id:', currentUser.site_id, 'found:', !!found)
+        if (found) return prev
+        const newNode = {
           key: currentUser.site_id,
           title: currentUser.site_name || currentUser.site_id,
           value: currentUser.site_id
-        }]
+        }
+        console.log('[DEBUG patchTree] injecting node:', newNode)
+        return [...prev, newNode]
       })
     }
-  }, [currentUser, siteLocked])
+  }, [currentUser, siteLocked, siteTree.length])
+
+  // Re-apply site value after siteTree is populated to ensure name displays correctly
+  useEffect(() => {
+    if (siteLocked && currentUser?.site_id && siteTree.length > 0) {
+      form.setFieldsValue({ site_id: currentUser.site_id })
+    }
+  }, [siteTree, siteLocked, currentUser?.site_id])
 
   // Initial data load on mount
   useEffect(() => {
