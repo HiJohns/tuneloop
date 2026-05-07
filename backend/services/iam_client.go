@@ -543,7 +543,7 @@ func (c *IAMClient) BindUserToOrganizationWithToken(token, userID, orgID, role, 
 }
 
 func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string) error {
-	path := fmt.Sprintf("/api/v1/users/%s/organizations/%s/bind", userID, orgID)
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID)
 	req := &BindUserRequest{
 		Action:     "unbind",
 		OperatorID: operatorID,
