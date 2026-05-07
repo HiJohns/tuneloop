@@ -449,8 +449,34 @@ func main() {
 		log.Printf("[INFO] Continuing with mock permission registry")
 	} else {
 		log.Printf("[INFO] Customer permissions registered and cached")
-		// Replace mock registry with real implementation
 		middleware.PermissionRegistry = permRegistry
+	}
+
+	// Sync default cus_perm assignments to IAM role templates
+	log.Printf("[Bootstrap] Syncing default role permissions to IAM...")
+	defaultPerms := services.GetDefaultRolePermissions()
+	// ListRoleTemplates requires UUID namespace, not string name
+	nsID := os.Getenv("IAM_NAMESPACE_ID")
+	if nsID == "" {
+		nsID = "5cf62b89-fbea-4fd8-b9fc-4821a4ce3ff9"
+	}
+	roleTemplates, err := iamClient.ListRoleTemplates(nsID)
+	if err != nil {
+		log.Printf("[Bootstrap] Warning: failed to list role templates: %v", err)
+	} else {
+		for _, rp := range defaultPerms {
+			for _, rt := range roleTemplates {
+				if rt.Code == rp.RoleCode {
+					if err := iamClient.SetRoleCustomerPermissions(nsID, rt.ID, rp.Perms); err != nil {
+						log.Printf("[Bootstrap] Warning: failed to set cus_perms for role %s: %v", rp.RoleCode, err)
+					} else {
+						log.Printf("[Bootstrap] Synced cus_perms for role %s", rp.RoleCode)
+					}
+					break
+				}
+			}
+		}
+		iamClient.IncrementPermVersion()
 	}
 
 	// Log current configuration
