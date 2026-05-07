@@ -159,97 +159,66 @@ function MainLayout() {
     key: 'instruments',
     icon: <SettingOutlined />,
     label: '乐器管理',
-    structuralRoles: ['merchant_admin', 'site_admin', 'site_member'],
     children: [
-      { key: '/instruments/list', label: '乐器列表', functionalRoles: null },
-      { key: '/instruments/categories', label: '分类设置', functionalRoles: ['default'] },
-      { key: '/instruments/properties', label: '属性管理', functionalRoles: ['default'] }
+      { key: '/instruments/list', label: '乐器列表' },
+      { key: '/instruments/categories', label: '分类设置' },
+      { key: '/instruments/properties', label: '属性管理' }
     ]
   },
   {
     key: 'maintenance',
     icon: <ToolOutlined />,
     label: '维修管理',
-    structuralRoles: ['merchant_admin', 'site_admin', 'site_member'],
     children: [
-      { key: '/maintenance/workers', label: '师傅管理', functionalRoles: ['inventory_mgr', 'default'] },
-      { key: '/maintenance/sessions', label: '会话管理', functionalRoles: ['front_desk', 'repair_tech', 'default'] }
+      { key: '/maintenance/workers', label: '师傅管理' },
+      { key: '/maintenance/sessions', label: '会话管理' }
     ]
   },
   {
     key: 'inventory',
     icon: <AppstoreOutlined />,
     label: '库存监控',
-    structuralRoles: ['merchant_admin', 'site_admin'],
     children: [
-      { key: '/inventory/rent-setting', label: '租金设定', functionalRoles: ['inventory_mgr'] },
-      { key: '/warehouse', label: '库管工作台', functionalRoles: ['inventory_mgr'] }
+      { key: '/inventory/rent-setting', label: '租金设定' },
+      { key: '/warehouse', label: '库管工作台' }
     ]
   },
   {
     key: 'organization',
     icon: <TeamOutlined />,
     label: '组织管理',
-    structuralRoles: ['merchant_admin', 'site_admin'],
     children: [
-      { key: '/organization/sites', label: '网点管理', functionalRoles: null },
-      { key: '/staff', label: '人员管理', functionalRoles: null },
-      { key: '/appeals', label: '申诉处理', functionalRoles: null }
+      { key: '/organization/sites', label: '网点管理' },
+      { key: '/staff', label: '人员管理' },
+      { key: '/appeals', label: '申诉处理' }
     ]
   },
   {
     key: 'system',
     icon: <SettingOutlined />,
     label: '系统管理',
-    structuralRoles: ['system_admin', 'merchant_admin'],
     children: [
-      { key: '/merchants', label: '商户管理', functionalRoles: null },
-      { key: '/system/clients', label: '客户端管理', functionalRoles: null },
-      { key: '/system/tenants', label: '租户管理', functionalRoles: null }
+      { key: '/merchants', label: '商户管理' },
+      { key: '/system/clients', label: '客户端管理' },
+      { key: '/system/tenants', label: '租户管理' }
     ]
   }
 ]
 
-function filterMenuByRole(menuItems, businessRole, functionalRoles = []) {
-  if (!businessRole) return []
-  
-  return menuItems
-    .filter(item => item.structuralRoles.includes(businessRole))
-    .map(item => ({
-      ...item,
-      children: item.children?.map(child => {
-        if (!child.functionalRoles || child.functionalRoles.length === 0) return child
-        if (child.functionalRoles.includes('default') && functionalRoles.length === 0) return child
-        const hasMatch = child.functionalRoles.some(r => functionalRoles.includes(r) || r === 'default')
-        return hasMatch ? child : null
-      }).filter(Boolean)
-    }))
-}
 
 function onMenuClick(e) {
   navigate(e.key)
 }
 
-  const businessRole = userInfo?.businessRole || 'site_member'
-  const functionalRoles = userInfo?.roles || []
   const sysPerm = userInfo?.sysPerm || 0
   const cusPerm = userInfo?.cusPerm || 0
 
   // Permission mapping from localStorage (loaded by api.js)
   const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
 
-  // Filter menu using both role-based and bit-based rules
-  const roleFilteredItems = filterMenuByRole(menuConfig, businessRole, functionalRoles)
-  
-  // Apply bit-permission filter on top of role filter
+  // Filter menu: children by permission, parent visible if any child visible
   const isOwnerUser = userInfo?.isOwner || false
-  const filteredItems = roleFilteredItems
-    .filter(item => {
-      const rule = menuRules.find(r => r.path === (item.key || ''))
-      if (!rule) return true
-      if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
-      return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
-    })
+  const filteredItems = menuConfig
     .map(item => ({
       ...item,
       children: item.children?.filter(child => {
@@ -258,7 +227,7 @@ function onMenuClick(e) {
         if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       })
-}))
+    }))
     .filter(item => item.children && item.children.length > 0);
 
   const selectedKeys = [location.pathname]
