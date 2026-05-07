@@ -69,8 +69,8 @@ func (h *MaintenanceWorkerHandler) ListWorkers(c *gin.Context) {
 	siteID := c.Query("site_id")
 
 	db := database.GetDB().WithContext(ctx)
-	query := db.Model(&models.MaintenanceWorker{})
 	businessRole := middleware.GetBusinessRole(ctx)
+	query := db.Model(&models.MaintenanceWorker{})
 
 	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
 		userID := middleware.GetUserID(ctx)
