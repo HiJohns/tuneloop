@@ -16,6 +16,16 @@ func BootstrapDefaultPermissions(iamClient *IAMClient, namespaceID string) error
 		return fmt.Errorf("failed to register customer permissions: %w", err)
 	}
 
+	// Sync sys_perm from role_templates.go to IAM functional_role_templates
+	log.Printf("[Bootstrap] Syncing role template sys_perm to IAM")
+	for code, template := range AllRoleTemplates {
+		if len(template.SysPermBits) > 0 {
+			if err := iamClient.SyncRoleTemplateSysPerm(namespaceID, code, template.SysPermBits); err != nil {
+				log.Printf("[Bootstrap] Warning: failed to sync sys_perm for role %s: %v", code, err)
+			}
+		}
+	}
+
 	// After successful registration, set default role permissions.
 	// Note: role template IDs are derived from the role code names defined in IAM.
 	// The exact IDs depend on the IAM setup and may need to be configured.
