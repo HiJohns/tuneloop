@@ -408,13 +408,20 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	db := database.GetDB()
+	orgID := middleware.GetOrgID(ctx)
 	updatedCount := 0
 
 	for _, item := range req.Items {
-		// Get current instrument
+		// Lookup instrument by org_id, bypass GORM tenant scope
+		// (instrument tenant_id may be sub-org, not matching resolved context tenant)
+		query := db.Session(&gorm.Session{Context: context.Background()}).
+			Where("id = ?", item.ID)
+		if orgID != "" {
+			query = query.Where("org_id = ?", orgID)
+		}
 		var instrument models.Instrument
-		if err := db.First(&instrument, "id = ?", item.ID).Error; err != nil {
+		if err := query.First(&instrument).Error; err != nil {
 			log.Printf("[WARN] Failed to find instrument %s: %v", item.ID, err)
 			continue
 		}
@@ -442,8 +449,13 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			continue
 		}
 
-		// Update database
-		if err := db.Model(&models.Instrument{}).Where("id = ?", item.ID).Update("pricing", string(updatedPricing)).Error; err != nil {
+		// Update database — use same session to bypass tenant scope
+		updateQuery := db.Session(&gorm.Session{Context: context.Background()}).
+			Where("id = ?", item.ID)
+		if orgID != "" {
+			updateQuery = updateQuery.Where("org_id = ?", orgID)
+		}
+		if err := updateQuery.Model(&models.Instrument{}).Update("pricing", string(updatedPricing)).Error; err != nil {
 			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)
 			continue
 		}
