@@ -64,14 +64,13 @@ function isWeChatMiniProgram() {
 /**
  * 统一的登录重定向函数
  */
-function redirectToLogin() {
+export function redirectToLogin() {
   console.log('[redirectToLogin] Environment check:', {
     isWeChat: isWeChatMiniProgram(),
     wxExists: typeof wx !== 'undefined',
     wxMiniProgram: typeof wx !== 'undefined' ? !!wx.miniProgram : false
   })
   
-  // 清理 token 和权限
   localStorage.removeItem('token')
   localStorage.removeItem('token_expiry')
   localStorage.removeItem('user_sys_perm')
@@ -81,14 +80,13 @@ function redirectToLogin() {
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   
   if (isWeChatMiniProgram()) {
-    // 微信小程序环境：跳转到小程序登录页
     wx.miniProgram.redirectTo({
       url: '/pages/login/login'
     })
   } else {
-    // 普通 H5 环境：跳转到 IAM OAuth
-    const iamUrl = window.APP_CONFIG?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-    const clientId = window.APP_CONFIG?.iamClientId || import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx_wechat_1776711596'
+    const wxConfig = window.APP_CONFIG?.wx || {}
+    const iamUrl = wxConfig.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+    const clientId = wxConfig.iamClientId || import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx'
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
     window.location.href = authUrl
@@ -215,15 +213,13 @@ export async function apiFetch(url, options = {}) {
       headers,
     })
     
-    // 统一 401 处理
-    if (response.status === 401) {
+    if (response.status === 401 && !url.includes('/public/')) {
       redirectToLogin()
       throw new Error('Unauthorized')
     }
     
     return response
   } catch (error) {
-    // 网络错误也可能需要重新登录
     throw error
   }
 }

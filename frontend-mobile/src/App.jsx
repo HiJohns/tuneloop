@@ -10,6 +10,12 @@ import Success from './pages/Success'
 import Booking from './pages/Booking'
 import Profile from './pages/Profile'
 import MyService from './pages/MyService'
+import MyLeases from './pages/MyLeases'
+import Messages from './pages/Messages'
+import StaffInstruments from './pages/StaffInstruments'
+import ShippingInterface from './pages/ShippingInterface'
+import ReceivingInterface from './pages/ReceivingInterface'
+import Cart from './pages/Cart'
 
 const getWXConfig = () => {
   return window.APP_CONFIG?.wx || {
@@ -69,10 +75,15 @@ function ProtectedRoute({ children, requireAuth = true }) {
   return children
 }
 
+let oauthCallbackExecuted = false
+
 function OAuthCallback() {
   const [loading] = useState(true)
 
   useEffect(() => {
+    if (oauthCallbackExecuted) return
+    oauthCallbackExecuted = true
+
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const error = params.get('error')
@@ -113,7 +124,6 @@ function OAuthCallback() {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
           }
           
-          // Cache permission bitmaps from JWT (#414)
           cachePermissions(parseJWT(tokenData.access_token))
           
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
@@ -180,6 +190,12 @@ function App() {
         <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
+        <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
+        <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
+        <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
+        <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

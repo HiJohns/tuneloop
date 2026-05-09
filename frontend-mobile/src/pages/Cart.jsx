@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
+import { getToken, redirectToLogin } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -86,6 +87,29 @@ export default function Cart() {
     setTempAddress(address)
   }, [])
 
+  useEffect(() => {
+    const token = getToken()
+    const pending = sessionStorage.getItem('pending_order')
+    if (token && pending && cart.items.length === 1) {
+      sessionStorage.removeItem('pending_order')
+      const item = cart.items[0]
+      const amount = calculateItemAmount(item)
+      const returnDate = calculateDeadline(item)
+      navigate('/success', {
+        state: {
+          order_id: 'TL' + Date.now(),
+          instrument_name: item.name,
+          instrument_sn: item.sn,
+          lease_term: `${item.lease_term || 1}${item.cycle === 'day' ? '天' : item.cycle === 'week' ? '周' : '个月'}`,
+          return_date: returnDate,
+          total_amount: amount.total,
+        },
+      })
+    } else if (token && pending) {
+      sessionStorage.removeItem('pending_order')
+    }
+  }, [cart.items.length])
+
   const recalculateGroups = (items) => {
     const groups = {}
     for (const item of items) {
@@ -113,7 +137,7 @@ export default function Cart() {
   }
 
   const clearInvalidItems = () => {
-    const updated = cart.items.filter(i => i.stock_status === 'in_stock')
+    const updated = cart.items.filter(i => i.stock_status === 'available')
     const newCart = { items: updated }
     localStorage.setItem('cart', JSON.stringify(newCart))
     setCart(newCart)
@@ -151,12 +175,14 @@ export default function Cart() {
   const totals = calculateTotals()
 
   const handleOrder = () => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (!token) {
       sessionStorage.setItem('post_auth_redirect', '/cart')
-      navigate('/profile')
+      sessionStorage.setItem('pending_order', 'true')
+      redirectToLogin()
       return
     }
+    sessionStorage.removeItem('pending_order')
     if (cart.items.length === 1) {
       const item = cart.items[0]
       const amount = calculateItemAmount(item)
