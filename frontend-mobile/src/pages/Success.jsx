@@ -1,79 +1,76 @@
-import { useNavigate } from 'react-router-dom'
-import { CheckCircle, Bell, Calendar } from 'lucide-react'
+import { useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { CheckCircle, Calendar, Package, Hash } from 'lucide-react'
 
 export default function Success() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const orderData = location.state || {}
+
+  useEffect(() => {
+    localStorage.removeItem('cart')
+    window.dispatchEvent(new Event('cartUpdated'))
+  }, [])
+
+  const handleDone = () => {
+    navigate('/')
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Success Icon */}
-      <div className="bg-white p-8 text-center">
-        <div className="flex justify-center mb-4">
-          <CheckCircle className="text-green-500" size={64} />
+    <div className="min-h-screen bg-green-50 flex flex-col p-4">
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="text-center mb-8">
+          <CheckCircle className="text-green-500 mx-auto" size={80} />
         </div>
-        <h1 className="text-xl font-bold text-gray-800">支付成功</h1>
-        <p className="text-gray-500 mt-2">您的订单已创建成功</p>
+        
+        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">租赁成功</h1>
+        <p className="text-gray-500 text-center mb-8">您的订单已创建成功</p>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <Hash size={18} className="text-gray-400" />
+              <div>
+                <p className="text-gray-500 text-xs">订单号</p>
+                <p className="font-medium">{orderData.order_id || 'TL' + Date.now()}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <Package size={18} className="text-gray-400" />
+              <div>
+                <p className="text-gray-500 text-xs">乐器</p>
+                <p className="font-medium">{orderData.instrument_name || '-'}</p>
+                <p className="text-xs text-gray-400">{orderData.instrument_sn || '-'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <Calendar size={18} className="text-gray-400" />
+              <div>
+                <p className="text-gray-500 text-xs">租赁期间</p>
+                <p className="font-medium">{orderData.lease_term || 12} 个月</p>
+                <p className="text-xs text-gray-400">预期归还: {orderData.return_date || '待确定'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 pt-2">
+              <div className="text-gray-400 text-xl">¥</div>
+              <div>
+                <p className="text-gray-500 text-xs">支付金额</p>
+                <p className="text-xl font-bold text-orange-500">¥{orderData.total_amount?.toFixed(0) || 0}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Order Info */}
-      <div className="bg-white mx-4 mt-4 rounded-lg p-4">
-        <h2 className="font-medium text-gray-800 mb-3">订单信息</h2>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-500">订单号</span>
-            <span className="text-gray-800">TL202603140001</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">乐器</span>
-            <span className="text-gray-800">雅马哈 U1 立式钢琴</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">租期</span>
-            <span className="text-gray-800">3个月</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">支付金额</span>
-            <span className="text-orange-500 font-medium">¥19,400</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Reminder Status */}
-      <div className="bg-green-50 mx-4 mt-4 rounded-lg p-4 flex items-center gap-3">
-        <Bell className="text-green-500 flex-shrink-0" size={24} />
-        <div>
-          <p className="font-medium text-green-800">到期提醒已开启</p>
-          <p className="text-green-600 text-sm mt-0.5">
-            我们将在租赁到期前3天、1天提醒您
-          </p>
-        </div>
-      </div>
-
-      {/* Dates Info */}
-      <div className="bg-white mx-4 mt-4 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-gray-600 mb-2">
-          <Calendar size={18} />
-          <span className="font-medium">预计到期日</span>
-        </div>
-        <p className="text-gray-800">2026年6月14日</p>
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="mt-auto p-4 bg-white border-t">
-        <div className="flex gap-3">
-          <button 
-            onClick={() => navigate('/')}
-            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600"
-          >
-            返回首页
-          </button>
-          <button 
-            className="flex-1 py-3 bg-orange-500 text-white rounded-lg font-medium"
-          >
-            查看订单
-          </button>
-        </div>
-      </div>
+      <button
+        onClick={handleDone}
+        className="w-full py-4 bg-brand-primary text-white rounded-xl font-bold text-lg"
+      >
+        完成
+      </button>
     </div>
   )
 }

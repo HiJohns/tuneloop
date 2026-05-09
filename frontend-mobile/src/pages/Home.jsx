@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { instrumentsApi, apiFetch } from '../services/api'
-import { ChevronRight, Search, Heart } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { instrumentsApi, apiFetch, getToken, redirectToLogin } from '../services/api'
+import { ChevronRight, Search, Heart, ShoppingCart } from 'lucide-react'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -10,41 +10,32 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   </svg>
 `)
 
-function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
-  // 调试：打印 images 数据
-  console.log('[Image Debug] Instrument:', instrument.name, 'Images:', instrument.images)
-  
-  // 安全检查: 确保 levels 存在且有数据
-  if (!instrument.levels || !instrument.levels.length) {
-    return (
-      <div 
-        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
-        onClick={onClick}
-      >
-         <div className="relative">
-            <img 
-              src={instrument.images?.[0] || PLACEHOLDER_IMAGE} 
-              alt={instrument.name}
-              className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src = PLACEHOLDER_IMAGE
-              }}
-            />
-         </div>
-        <div className="p-3">
-          <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
-          <p className="text-gray-400 text-sm">暂无报价</p>
-        </div>
-      </div>
-    )
+function parseImages(images) {
+  if (!images) return []
+  if (Array.isArray(images)) return images
+  if (typeof images === 'string') {
+    try { return JSON.parse(images) } catch { return [] }
   }
+  return []
+}
+
+function parsePricing(pricing) {
+  if (!pricing) return {}
+  if (typeof pricing === 'object') return pricing
+  if (typeof pricing === 'string') {
+    try { return JSON.parse(pricing) } catch { return {} }
+  }
+  return {}
+}
+
+function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
+  // Safe parse JSON images and pricing
+  const images = parseImages(instrument.images)
+  const pricing = parsePricing(instrument.pricing)
+  const dailyRent = pricing[0]?.daily_rent || 0
+const monthlyRent = Math.round(dailyRent * 25)
+  const weeklyRent = Math.round(dailyRent * 6)
   
-  const defaultLevel = instrument.levels[0]
-  const firstPayment = defaultLevel.monthlyRent + defaultLevel.deposit
-  const promotionTag = defaultLevel.name === "大师级" ? "限量" : 
-                       defaultLevel.name === "入门级" ? "热销" : ""
-   
   const handleFavoriteClick = (e) => {
     e.stopPropagation()
     onToggleFavorite(instrument.id)
@@ -56,48 +47,48 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
       onClick={onClick}
     >
        <div className="relative">
-          <img 
-            src={instrument.images?.[0] || PLACEHOLDER_IMAGE} 
-            alt={instrument.name}
-            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-            onError={(e) => {
-              e.target.onerror = null
-              e.target.src = PLACEHOLDER_IMAGE
-            }}
-          />
-         {promotionTag && (
-          <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
-            {promotionTag}
-          </div>
-        )}
-        <button
-          onClick={handleFavoriteClick}
-          className="absolute top-2 right-2 text-white bg-black/30 rounded-full p-1"
-        >
-          <Heart size={16} fill={isFavorite ? "red" : "none"} color={isFavorite ? "red" : "white"} />
-        </button>
-      </div>
-      <div className="p-3">
-        <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
-        <p className="text-brand-primary text-lg font-bold">
-          ¥{defaultLevel.monthlyRent}<span className="text-brand-unit text-sm">/月</span>
-        </p>
-        <p className="text-gray-500 text-sm">
-          押金: ¥{defaultLevel.deposit}
-        </p>
-        <p className="text-gray-400 text-xs">
-          首期实付 ¥{firstPayment} (含押金)
-        </p>
-      </div>
+         <img 
+           src={images[0] || PLACEHOLDER_IMAGE}
+           alt={instrument.name}
+           className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+           onError={(e) => {
+             e.target.onerror = null
+             e.target.src = PLACEHOLDER_IMAGE
+           }}
+         />
+         {dailyRent > 0 && (
+           <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
+             特惠
+           </div>
+         )}
+         <button
+           onClick={handleFavoriteClick}
+           className="absolute top-2 right-2 text-white bg-black/30 rounded-full p-1"
+         >
+           <Heart size={16} fill={isFavorite ? "red" : "none"} color={isFavorite ? "red" : "white"} />
+         </button>
+       </div>
+       <div className="p-3">
+         <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
+         <p className="text-brand-primary text-lg font-bold">
+           ¥{monthlyRent}<span className="text-brand-unit text-sm">/月</span>
+         </p>
+         <p className="text-gray-500 text-sm">
+           押金: ¥{pricing[0]?.deposit || 0}
+         </p>
+       </div>
     </div>
   )
 }
 
 export default function Home() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tenant = searchParams.get('tenant')
   const [activeCategory, setActiveCategory] = useState("全部")
   const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState([])
+  const [, setForceUpdate] = useState(0)
   const [toast, setToast] = useState({ visible: false, message: "" })
   const [instruments, setInstruments] = useState([])
   const [categories, setCategories] = useState(["全部"])
@@ -112,7 +103,10 @@ export default function Home() {
       if (!append) setLoading(true)
       else setLoadingMore(true)
       
-      const response = await apiFetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/instruments?page=${pageNum}&pageSize=20`)
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+      const token = getToken()
+      const endpoint = token ? '/instruments' : '/public/instruments'
+      const response = await apiFetch(`${baseUrl}${endpoint}?page=${pageNum}&pageSize=20${tenant ? `&tenant=${tenant}` : ''}`)
       const result = await response.json()
       
       if (result.code === 20000) {
@@ -151,11 +145,18 @@ export default function Home() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [])
+  }, [tenant])
 
   useEffect(() => {
     fetchInstruments(1, false)
   }, [fetchInstruments])
+
+  // Listen for cart updates to refresh floating icon
+  useEffect(() => {
+    const handleCartUpdate = () => forceUpdate(prev => prev + 1)
+    window.addEventListener('cartUpdated', handleCartUpdate)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+  }, [])
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -324,6 +325,30 @@ export default function Home() {
         </div>
       )}
 
+      {/* Floating Cart Icon */}
+      {(() => {
+        try {
+          const cartData = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+          const cartCount = cartData.items?.length || 0
+          if (cartCount > 0) {
+            return (
+              <button
+                onClick={() => navigate('/cart')}
+                className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-lg z-50"
+              >
+                <ShoppingCart size={24} />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  {cartCount}
+                </span>
+              </button>
+            )
+          }
+          return null
+        } catch {
+          return null
+        }
+      })()}
+
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
         <div className="flex justify-around py-3 max-w-[480px] mx-auto">
@@ -341,13 +366,26 @@ export default function Home() {
             <span className="text-xl">🔧</span>
             <span className="text-xs mt-1">维修</span>
           </div>
-          <div 
-            className="flex flex-col items-center text-gray-400 cursor-pointer"
-            onClick={() => navigate('/profile')}
-          >
-            <span className="text-xl">👤</span>
-            <span className="text-xs mt-1">我的</span>
-          </div>
+          {getToken() ? (
+            <div 
+              className="flex flex-col items-center text-gray-400 cursor-pointer"
+              onClick={() => navigate('/profile')}
+            >
+              <span className="text-xl">👤</span>
+              <span className="text-xs mt-1">我的</span>
+            </div>
+          ) : (
+            <div 
+              className="flex flex-col items-center text-brand-primary cursor-pointer"
+              onClick={() => {
+                sessionStorage.setItem('post_auth_redirect', window.location.pathname)
+                redirectToLogin()
+              }}
+            >
+              <span className="text-xl">🔑</span>
+              <span className="text-xs mt-1">登录</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

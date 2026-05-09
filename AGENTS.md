@@ -246,5 +246,18 @@ Usage:
 3. Fallback: if level not defined in instrument_levels table, use legacy string mapping
 
 ---
+
 *Migrated from prompts/project.md during consolidation*-
+
+---
+
+## 🚫 红线禁令 (Absolute Prohibitions)
+
+**严禁**：AI 不得自行终止任何非自己启动的进程（包括但不限于 `pkill`、`kill`、`fuser -k` 等命令）。
+- 如需终止进程，**必须先告知用户**，由用户手动执行。
+
+**严禁**：AI 不得自行修改数据库记录。
+- 如需修改 DB，**必须先告知用户**，由用户手动执行或获得明确授权。
+
+---
 

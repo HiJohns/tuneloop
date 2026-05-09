@@ -46,22 +46,13 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 
 		// Check if user is Owner or Admin - allow querying all inventory
 		if userRole == "OWNER" || userRole == "ADMIN" {
-			// Query all instruments for the tenant (no site filter)
 			var instruments []models.Instrument
 			db := database.GetDB().WithContext(ctx)
 
-			businessRole := middleware.GetBusinessRole(ctx)
 			query := db.Model(&models.Instrument{})
-
-			if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-				userID := middleware.GetUserID(ctx)
-				var currentUser models.User
-				if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
-					query = query.Where("site_id = ?", *currentUser.SiteID)
-				}
-				query = query.Session(&gorm.Session{Context: context.Background()})
-			} else {
-				query = query.Where("tenant_id = ?", tenantID)
+			orgID := middleware.GetOrgID(ctx)
+			if orgID != "" {
+				query = query.Where("org_id = ?", orgID)
 			}
 
 			if category != "" {
@@ -278,26 +269,26 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
+	userID := middleware.GetUserID(ctx)
 	db := database.GetDB().WithContext(ctx)
 
-	// Base query
-	businessRole := middleware.GetBusinessRole(ctx)
 	query := db.Model(&models.Instrument{}).
 		Select(`instruments.id, instruments.sn, instruments.category_name, 
 				instruments.level_name, instruments.site_id, instruments.pricing`)
 
-	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-		userID := middleware.GetUserID(ctx)
+	query = query.Where("instruments.tenant_id = ?", tenantID)
+
+	// Site-level filtering: restrict to user's site
+	if userID != "" {
 		var currentUser models.User
-		if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
-			query = query.Where("instruments.site_id = ?", *currentUser.SiteID)
+		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil {
+			if currentUser.SiteID != nil && *currentUser.SiteID != "" {
+				query = query.Where("instruments.site_id = ?", *currentUser.SiteID)
+			}
 		}
-		query = query.Session(&gorm.Session{Context: context.Background()})
-	} else {
-		query = query.Where("instruments.tenant_id = ?", tenantID)
 	}
 
-	// Apply filters
+	// URL param takes precedence over user context
 	if siteID != "" {
 		query = query.Where("instruments.site_id = ?", siteID)
 	}
@@ -326,14 +317,17 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	// Transform data to include brand, model, site_name, and daily_rent
 	type RentSettingItem struct {
-		ID           string  `json:"id"`
-		SN           string  `json:"sn"`
-		CategoryName string  `json:"category_name"`
-		LevelName    string  `json:"level_name"`
-		Brand        string  `json:"brand"`
-		Model        string  `json:"model"`
-		SiteName     string  `json:"site_name"`
-		DailyRent    float64 `json:"daily_rent"`
+		ID                string  `json:"id"`
+		SN                string  `json:"sn"`
+		CategoryName      string  `json:"category_name"`
+		LevelName         string  `json:"level_name"`
+		Brand             string  `json:"brand"`
+		Model             string  `json:"model"`
+		SiteName          string  `json:"site_name"`
+		DailyRent         float64 `json:"daily_rent"`
+		Deposit           float64 `json:"deposit"`
+		ShippingFee      float64 `json:"shipping_fee"`
+		OverdueDailyFee  float64 `json:"overdue_daily_fee"`
 	}
 
 	var items []RentSettingItem
@@ -346,9 +340,23 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		}
 
 		dailyRent := 0.0
+		deposit := 0.0
+		shippingFee := 0.0
+		overdueDailyFee := 0.0
 		if len(pricing) > 0 {
 			if dailyRentVal, ok := pricing[0]["daily_rent"].(float64); ok {
 				dailyRent = dailyRentVal
+			}
+			if depositVal, ok := pricing[0]["deposit"].(float64); ok {
+				deposit = depositVal
+			}
+			if shippingFeeVal, ok := pricing[0]["shipping_fee"].(float64); ok {
+				shippingFee = shippingFeeVal
+			}
+			if overdueDailyFeeVal, ok := pricing[0]["overdue_daily_fee"].(float64); ok {
+				overdueDailyFee = overdueDailyFeeVal
+			} else {
+				overdueDailyFee = dailyRent
 			}
 		}
 
@@ -365,14 +373,17 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		}
 
 		items = append(items, RentSettingItem{
-			ID:           inst.ID,
-			SN:           inst.SN,
-			CategoryName: inst.CategoryName,
-			LevelName:    inst.LevelName,
-			Brand:        brand,
-			Model:        model,
-			SiteName:     siteName,
-			DailyRent:    dailyRent,
+			ID:                inst.ID,
+			SN:                inst.SN,
+			CategoryName:      inst.CategoryName,
+			LevelName:        inst.LevelName,
+			Brand:             brand,
+			Model:             model,
+			SiteName:          siteName,
+			DailyRent:         dailyRent,
+			Deposit:          deposit,
+			ShippingFee:      shippingFee,
+			OverdueDailyFee:  overdueDailyFee,
 		})
 	}
 
@@ -394,8 +405,11 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	var req struct {
 		Items []struct {
-			ID        string  `json:"id" binding:"required"`
-			DailyRent float64 `json:"daily_rent" binding:"required"`
+			ID               string  `json:"id" binding:"required"`
+			DailyRent        float64 `json:"daily_rent"`
+			Deposit         float64 `json:"deposit"`
+			ShippingFee     float64 `json:"shipping_fee"`
+			OverdueDailyFee float64 `json:"overdue_daily_fee"`
 		} `json:"items" binding:"required"`
 	}
 
@@ -445,8 +459,17 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			}
 		}
 
-		// Update daily_rent
-		pricing[0]["daily_rent"] = item.DailyRent
+		// Update pricing fields
+		if item.DailyRent > 0 {
+			pricing[0]["daily_rent"] = item.DailyRent
+		}
+		pricing[0]["deposit"] = item.Deposit
+		pricing[0]["shipping_fee"] = item.ShippingFee
+		if item.OverdueDailyFee > 0 {
+			pricing[0]["overdue_daily_fee"] = item.OverdueDailyFee
+		} else if item.DailyRent > 0 {
+			pricing[0]["overdue_daily_fee"] = item.DailyRent
+		}
 
 		// Marshal back to JSON
 		updatedPricing, err := json.Marshal(pricing)

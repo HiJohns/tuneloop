@@ -59,13 +59,13 @@ export default function InventoryRentSetting() {
     }
   }
 
-  const handleRentChange = (id, value) => {
+  const handleRentChange = (id, field, value) => {
     // Mark as edited
     setEditedIds(prev => new Set(prev).add(id))
     
     // Update table data
     setTableData(prev => prev.map(item => 
-      item.id === id ? { ...item, daily_rent: value } : item
+      item.id === id ? { ...item, [field]: value } : item
     ))
   }
 
@@ -81,6 +81,9 @@ export default function InventoryRentSetting() {
       .map(item => ({
         id: item.id,
         daily_rent: item.daily_rent,
+        deposit: item.deposit || 0,
+        shipping_fee: item.shipping_fee || 0,
+        overdue_daily_fee: item.overdue_daily_fee || item.daily_rent,
       }))
 
     try {
@@ -151,7 +154,58 @@ export default function InventoryRentSetting() {
           min={0}
           precision={2}
           value={value}
-          onChange={(val) => handleRentChange(record.id, val)}
+          onChange={(val) => handleRentChange(record.id, 'daily_rent', val)}
+          style={{ width: '100%' }}
+          formatter={(val) => `¥ ${val}`}
+          parser={(val) => val.replace(/\¥\s?/g, '')}
+        />
+      ),
+    },
+    {
+      title: '押金',
+      dataIndex: 'deposit',
+      key: 'deposit',
+      width: 120,
+      render: (value, record) => (
+        <InputNumber
+          min={0}
+          precision={2}
+          value={value}
+          onChange={(val) => handleRentChange(record.id, 'deposit', val)}
+          style={{ width: '100%' }}
+          formatter={(val) => `¥ ${val}`}
+          parser={(val) => val.replace(/\¥\s?/g, '')}
+        />
+      ),
+    },
+    {
+      title: '物流费',
+      dataIndex: 'shipping_fee',
+      key: 'shipping_fee',
+      width: 120,
+      render: (value, record) => (
+        <InputNumber
+          min={0}
+          precision={2}
+          value={value}
+          onChange={(val) => handleRentChange(record.id, 'shipping_fee', val)}
+          style={{ width: '100%' }}
+          formatter={(val) => `¥ ${val}`}
+          parser={(val) => val.replace(/\¥\s?/g, '')}
+        />
+      ),
+    },
+    {
+      title: '逾期日费',
+      dataIndex: 'overdue_daily_fee',
+      key: 'overdue_daily_fee',
+      width: 120,
+      render: (value, record) => (
+        <InputNumber
+          min={0}
+          precision={2}
+          value={value}
+          onChange={(val) => handleRentChange(record.id, 'overdue_daily_fee', val)}
           style={{ width: '100%' }}
           formatter={(val) => `¥ ${val}`}
           parser={(val) => val.replace(/\¥\s?/g, '')}
