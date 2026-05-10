@@ -204,7 +204,7 @@ export default function Cart() {
           end_date: returnDate,
         })
 
-        if (resp.data?.code === 20000 || resp.data?.code === 20100) {
+        if (resp.data?.code === 20000 || resp.data?.code === 20100 || resp.data?.code === 201 || resp.ok) {
           clearCart()
           navigate('/success', {
             state: {
