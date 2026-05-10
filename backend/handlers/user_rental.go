@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"log"
 )
 
 type UserRentalHandler struct{}
@@ -273,6 +274,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if err := db.Create(&leaseSession).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session: " + err.Error()})
 		return
+	}
+
+	// Update instrument stock_status to reserved
+	if err := db.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+		log.Printf("[WARN] Failed to update instrument stock_status: %v", err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

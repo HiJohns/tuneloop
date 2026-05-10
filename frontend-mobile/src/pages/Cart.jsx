@@ -179,7 +179,7 @@ export default function Cart() {
 
   const totals = calculateTotals()
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     const token = getToken()
     if (!token) {
       sessionStorage.setItem('post_auth_redirect', '/cart')
@@ -192,16 +192,37 @@ export default function Cart() {
       const item = cart.items[0]
       const amount = calculateItemAmount(item)
       const returnDate = calculateDeadline(item)
-      navigate('/success', {
-        state: {
-          order_id: 'TL' + Date.now(),
-          instrument_name: item.name,
-          instrument_sn: item.sn,
-          lease_term: `${item.lease_term || 1}${item.cycle === 'day' ? '天' : item.cycle === 'week' ? '周' : '个月'}`,
-          return_date: returnDate,
-          total_amount: amount.total,
-        },
-      })
+
+      try {
+        const resp = await api.post('/orders', {
+          instrument_id: item.instrument_id,
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: returnDate,
+        })
+
+        if (resp.data?.code === 20000 || resp.data?.code === 20100) {
+          clearCart()
+          navigate('/success', {
+            state: {
+              order_id: resp.data.data.order_id || 'TL' + Date.now(),
+              instrument_name: item.name,
+              instrument_sn: item.sn,
+              category_name: item.category_name,
+              site_name: item.site_name,
+              site_address: item.site_address,
+              tenant_name: item.tenant_name,
+              lease_term: `${item.lease_term || 1}${item.cycle === 'day' ? '天' : item.cycle === 'week' ? '周' : '个月'}`,
+              return_date: returnDate,
+              total_amount: amount.total,
+            },
+          })
+        } else {
+          alert(resp.data?.message || '下单失败')
+        }
+      } catch (err) {
+        console.error('Order failed:', err)
+        alert('下单失败: ' + (err.message || '未知错误'))
+      }
     } else {
       alert('多乐器下单功能开发中，请分别下单')
     }

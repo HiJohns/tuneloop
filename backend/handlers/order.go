@@ -444,7 +444,7 @@ func CancelOrder(c *gin.Context) {
 
 	// Restore inventory when cancelling order (optional but recommended)
 	// Get instrument and update stock_status back to available
-	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", "available").Error; err != nil {
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
 		// Log error but continue with cancellation
 		// In production, might want to handle this more carefully
 	}
