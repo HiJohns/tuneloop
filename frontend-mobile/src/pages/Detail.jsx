@@ -105,11 +105,15 @@ export default function Detail() {
     filtered.push({
       instrument_id: instrument.id,
       name: instrument.name,
+      sn: instrument.sn,
+      category_name: instrument.category_name,
       brand: instrument.brand,
       model: instrument.model,
       tenant_id: instrument.tenant_id,
+      tenant_name: instrument.tenant_name || '',
       site_id: instrument.site_id,
-      site_name: instrument.site,
+      site_name: instrument.site_name,
+      site_address: instrument.site_address || '',
       images: instrument.images,
       pricing: instrument.pricing,
       cycle: cycle,
@@ -127,9 +131,8 @@ export default function Detail() {
     const fetchInstrument = async () => {
       try {
         setLoading(true)
-        const token = getToken()
         const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-        const endpoint = token ? `/instruments/${id}` : `/public/instruments/${id}`
+        const endpoint = `/public/instruments/${id}`
         const response = await apiFetch(`${baseUrl}${endpoint}`)
         const result = await response.json()
         if (result.code === 20000) {
