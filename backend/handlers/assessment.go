@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -132,8 +133,8 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 			return
 		}
 
-		// Update instrument status to repairing
-		if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).Update("stock_status", "repairing").Error; err != nil {
+		// Update instrument status to maintenance
+		if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusMaintenance).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
 				"message": "Failed to update instrument status",

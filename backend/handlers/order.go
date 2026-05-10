@@ -5,6 +5,7 @@ import (
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/internal/service"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -163,8 +164,8 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// Update inventory status to unavailable
-	if err := db.Model(&instrument).Update("stock_status", "unavailable").Error; err != nil {
+	// Update inventory status to reserved
+	if err := db.Model(&instrument).Update("stock_status", models.StockStatusReserved).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update inventory: " + err.Error(),
@@ -196,7 +197,8 @@ func GetOrders(c *gin.Context) {
 	// Note: Simplified for brevity, should parse from query params in real implementation
 
 	db := database.GetDB().WithContext(c.Request.Context())
-	query := db.Model(&models.Order{})
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	query := db.Model(&models.Order{}).Where("tenant_id = ?", tenantID)
 
 	// Filter by status if provided
 	if status != "" {
@@ -463,6 +465,44 @@ func CancelOrder(c *gin.Context) {
 			"old_status": "pending",
 			"new_status": "cancelled",
 			"updated_at": time.Now().Format(time.RFC3339),
+		},
+	})
+}
+
+// GetOrderByInstrumentSN GET /api/orders/by-instrument-sn - Find active order by instrument SN
+func GetOrderByInstrumentSN(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	sn := c.Query("sn")
+
+	if sn == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "sn parameter is required"})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+
+	var instrument models.Instrument
+	if err := db.Where("sn = ? AND tenant_id = ?", sn, tenantID).First(&instrument).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	var order models.Order
+	if err := db.Where("instrument_id = ? AND tenant_id = ? AND status NOT IN ?",
+		instrument.ID, tenantID, []string{"cancelled", "completed"}).
+		Order("created_at DESC").First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "no active order found for this instrument"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":       order.ID,
+			"order_status":   order.Status,
+			"instrument_id":  instrument.ID,
+			"instrument_sn":  sn,
 		},
 	})
 }

@@ -141,10 +141,12 @@ export default function InstrumentList() {
       render: (status) => {
         const statusMap = {
           available: { color: 'green', text: '可租' },
-          rented: { color: 'orange', text: '已租出' },
+          reserved: { color: 'blue', text: '已预约' },
+          shipping: { color: 'cyan', text: '物流中' },
+          rented: { color: 'orange', text: '租赁中' },
+          returning: { color: 'orange', text: '归还中' },
           maintenance: { color: 'red', text: '维修中' },
-          active: { color: 'green', text: '上架' },
-          inactive: { color: 'default', text: '下架' }
+          archived: { color: 'default', text: '已下架' }
         }
         const config = statusMap[status] || { color: 'default', text: status || '未知' }
         return <Tag color={config.color}>{config.text}</Tag>

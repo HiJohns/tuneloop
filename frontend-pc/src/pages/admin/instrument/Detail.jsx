@@ -47,11 +47,11 @@ export default function InstrumentDetail() {
           brand: 'Yamaha',
           model: 'U1',
           category_name: '钢琴',
-          level: 'advanced',
+level: 'advanced',
           description: '专业级立式钢琴，音色优美，适合各种演奏场合',
           images: ['/images/piano1.jpg', '/images/piano2.jpg'],
           video: '',
-          status: 'active',
+          stock_status: 'available',
           stock: {
             total: 5,
             available: 3,
@@ -102,7 +102,7 @@ export default function InstrumentDetail() {
         description: '专业级立式钢琴，音色优美，适合各种演奏场合',
         images: ['/images/piano1.jpg'],
         video: '',
-        status: 'active',
+        stock_status: 'available',
         stock: {
           total: 5,
           available: 3,
@@ -131,11 +131,15 @@ export default function InstrumentDetail() {
   }
 
   const statusMap = {
-    active: { color: 'green', text: '可租' },
-    inactive: { color: 'red', text: '下架' },
-    maintenance: { color: 'orange', text: '维修中' }
+    available: { color: 'green', text: '可租' },
+    reserved: { color: 'blue', text: '已预约' },
+    shipping: { color: 'cyan', text: '物流中' },
+    rented: { color: 'orange', text: '租赁中' },
+    returning: { color: 'orange', text: '归还中' },
+    maintenance: { color: 'red', text: '维修中' },
+    archived: { color: 'default', text: '已下架' }
   }
-  const statusConfig = statusMap[instrument.status] || { color: 'default', text: '未知' }
+  const statusConfig = statusMap[instrument.stock_status] || { color: 'default', text: '未知' }
 
   const levelMap = {
     beginner: '入门级',

@@ -555,7 +555,15 @@ func UpdateInstrumentStatus(c *gin.Context) {
 	}
 
 	// Validate stock_status value
-	validStatuses := []string{"available", "unavailable", "rented", "maintenance"}
+	validStatuses := []string{
+		models.StockStatusAvailable,
+		models.StockStatusReserved,
+		models.StockStatusShipping,
+		models.StockStatusRented,
+		models.StockStatusReturning,
+		models.StockStatusMaintenance,
+		models.StockStatusArchived,
+	}
 	isValid := false
 	for _, status := range validStatuses {
 		if req.StockStatus == status {
@@ -567,7 +575,7 @@ func UpdateInstrumentStatus(c *gin.Context) {
 	if !isValid {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
-			"message": "invalid stock_status. Valid values: available, unavailable, rented, maintenance",
+			"message": "invalid stock_status. Valid values: available, reserved, shipping, rented, returning, maintenance, archived",
 		})
 		return
 	}
@@ -655,11 +663,16 @@ func CheckInstrumentSN(c *gin.Context) {
 		"data": gin.H{
 			"exists": true,
 			"info": gin.H{
-				"id":       instrument.ID,
-				"site":     siteName,
-				"category": categoryName,
-				"brand":    instrument.Brand,
-				"model":    instrument.Model,
+				"id":           instrument.ID,
+				"name":         instrument.Name,
+				"site":         siteName,
+				"site_id":      instrument.SiteID,
+				"category":     categoryName,
+				"category_id":  instrument.CategoryID,
+				"category_name": instrument.CategoryName,
+				"brand":        instrument.Brand,
+				"model":        instrument.Model,
+				"stock_status": instrument.StockStatus,
 			},
 		},
 	})

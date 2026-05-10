@@ -63,8 +63,44 @@ type Instrument struct {
 	Pricing         string           `gorm:"type:jsonb;default:'{}'" json:"pricing"`
 	StockStatus     string           `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
 	Properties      string           `gorm:"type:jsonb;default:'{}'" json:"properties"`
-	CreatedAt       time.Time        `json:"created_at"`
-	UpdatedAt       time.Time        `json:"updated_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+const (
+	StockStatusAvailable   = "available"
+	StockStatusReserved    = "reserved"
+	StockStatusShipping    = "shipping"
+	StockStatusRented      = "rented"
+	StockStatusReturning   = "returning"
+	StockStatusMaintenance = "maintenance"
+	StockStatusArchived   = "archived"
+)
+
+// Notification 通知消息表
+type Notification struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID     string    `gorm:"type:uuid;index" json:"org_id"`
+	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	Type      string    `gorm:"type:varchar(20);not null;index" json:"type"`
+	Title     string    `gorm:"type:varchar(255);not null" json:"title"`
+	Content   string    `gorm:"type:text" json:"content"`
+	RefID     string    `gorm:"type:uuid;index" json:"ref_id"`
+	RefType   string    `gorm:"type:varchar(50)" json:"ref_type"`
+	Status    string    `gorm:"type:varchar(20);default:'unread';index" json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// InstrumentPhotoSpec 乐器拍照要求规范表
+type InstrumentPhotoSpec struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID         string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	CategoryID       string    `gorm:"type:uuid;index;not null" json:"category_id"`
+	PhotoRequirements string   `gorm:"type:jsonb;default:'[]'" json:"photo_requirements"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type Order struct {
