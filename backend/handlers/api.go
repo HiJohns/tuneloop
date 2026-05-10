@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -110,9 +109,7 @@ func GetInstrumentByID(c *gin.Context) {
 func GetInstruments(c *gin.Context) {
 	db := database.GetDB()
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 
-	// Parse pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 
@@ -126,22 +123,27 @@ func GetInstruments(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := db.Model(&models.Instrument{})
-	businessRole := middleware.GetBusinessRole(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	userID := middleware.GetUserID(ctx)
 
-	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-		userID := middleware.GetUserID(ctx)
+	// Scope by user's site_id if they have one (staff role)
+	if userID != "" {
 		var currentUser models.User
-		// Bypass GORM tenant scope: user lookup uses iam_sub, not tenant_id
-		if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
-			query = query.Where("site_id = ?", *currentUser.SiteID)
+		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil {
+			if currentUser.SiteID != nil {
+				query = query.Where("site_id = ?", *currentUser.SiteID)
+			} else if currentUser.Role == "site_member" && currentUser.TenantID != "" {
+				// If staff has no site_id but has tenant_id, scope to tenant
+				query = query.Where("tenant_id = ?", currentUser.TenantID)
+			}
 		}
-		// Bypass GORM tenant scope for site-level users: instruments are scoped by site, not tenant
-		query = query.Session(&gorm.Session{Context: context.Background()})
-	} else {
-		query = query.Where("tenant_id = ?", tenantID)
 	}
 
-	// Get total count
+	// Fallback: org_id filter (for admin/owner roles)
+	if orgID != "" {
+		query = query.Where("org_id = ?", orgID)
+	}
+
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

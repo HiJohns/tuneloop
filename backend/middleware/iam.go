@@ -178,6 +178,7 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 		ctx := database.SetTenantID(c.Request.Context(), tenantID)
 		ctx = context.WithValue(ctx, ContextKeyTenantID, tenantID)
 		ctx = context.WithValue(ctx, ContextKeyOrgID, orgID)
+		ctx = database.SetOrgID(ctx, orgID)
 		ctx = context.WithValue(ctx, ContextKeyNamespaceID, claims.NamespaceID)
 		ctx = context.WithValue(ctx, ContextKeyUserID, claims.UserID)
 		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
