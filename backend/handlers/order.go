@@ -93,14 +93,21 @@ func CreateOrder(c *gin.Context) {
 		// For customers not belonging to any tenant, use zero UUID
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
-	orgID := c.GetString("org_id")
+	orgID := middleware.GetOrgID(c.Request.Context())
+	if orgID == "" {
+		orgID = "00000000-0000-0000-0000-000000000000"
+	}
+	userID := middleware.GetUserID(c.Request.Context())
+	if userID == "" {
+		userID = "00000000-0000-0000-0000-000000000000"
+	}
 
 	// Calculate pricing
 	creditScore := 600
-	if userID := c.GetString("user_id"); userID != "" {
+	if userID != "00000000-0000-0000-0000-000000000000" {
 		db := database.GetDB().WithContext(c.Request.Context())
 		var user models.User
-		if err := db.First(&user, "id = ?", userID).Error; err == nil {
+		if err := db.First(&user, "iam_sub = ?", userID).Error; err == nil {
 			creditScore = user.CreditScore
 		}
 	}
@@ -147,7 +154,7 @@ func CreateOrder(c *gin.Context) {
 		ID:           orderID,
 		TenantID:     tenantID,
 		OrgID:        orgID,
-		UserID:       c.GetString("user_id"),
+		UserID:       userID,
 		InstrumentID: req.InstrumentID,
 		Level:        req.Level,
 		LeaseTerm:    req.LeaseTerm,
