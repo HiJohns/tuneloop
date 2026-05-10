@@ -87,10 +87,11 @@ func CreateOrder(c *gin.Context) {
 	// Generate order ID (UUID format)
 	orderID := uuid.New().String()
 
-	// Get tenant ID from context
-	tenantID := c.GetString("tenant_id")
+	// Get tenant ID from JWT context
+	tenantID := middleware.GetTenantID(c.Request.Context())
 	if tenantID == "" {
-		tenantID = "default_tenant"
+		// For customers not belonging to any tenant, use zero UUID
+		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
 	orgID := c.GetString("org_id")
 
