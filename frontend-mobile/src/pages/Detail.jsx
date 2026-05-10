@@ -243,8 +243,26 @@ export default function Detail() {
       </div>
 
       <div className="bg-white p-4 pb-24">
-<h1 className="text-xl font-bold text-gray-800">{instrument.name}</h1>
+        <h1 className="text-xl font-bold text-gray-800">{instrument.name || instrument.category_name}</h1>
+        {instrument.sn && <p className="text-sm text-gray-400 mt-1">编号: {instrument.sn}</p>}
         <p className="text-gray-500 mt-1">{instrument.description}</p>
+
+        {/* Site/Merchant Info */}
+        {(instrument.tenant_name || instrument.site_name) && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+            {instrument.tenant_name && (
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">商户:</span> {instrument.tenant_name}
+              </p>
+            )}
+            {instrument.site_name && (
+              <p className="text-sm text-gray-600 mt-1">
+                <span className="font-medium">网点:</span> {instrument.site_name}
+                {instrument.site_address && <span className="text-gray-400"> ({instrument.site_address})</span>}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-4">
           <span className="text-gray-700 font-medium">租赁周期</span>
