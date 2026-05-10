@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { CheckCircle, Calendar, Package, Hash } from 'lucide-react'
+import { CheckCircle, Calendar, Package, Hash, MapPin, User } from 'lucide-react'
 
 export default function Success() {
   const navigate = useNavigate()
@@ -40,8 +40,25 @@ export default function Success() {
               <Package size={18} className="text-gray-400" />
               <div>
                 <p className="text-gray-500 text-xs">乐器</p>
-                <p className="font-medium">{orderData.instrument_name || '-'}</p>
+                <p className="font-medium">{orderData.category_name || '-'}</p>
                 <p className="text-xs text-gray-400">{orderData.instrument_sn || '-'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <User size={18} className="text-gray-400" />
+              <div>
+                <p className="text-gray-500 text-xs">商户</p>
+                <p className="font-medium">{orderData.tenant_name || '-'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <MapPin size={18} className="text-gray-400" />
+              <div>
+                <p className="text-gray-500 text-xs">取琴网点</p>
+                <p className="font-medium">{orderData.site_name || '-'}</p>
+                <p className="text-xs text-gray-400">{orderData.site_address || ''}</p>
               </div>
             </div>
             
@@ -49,7 +66,7 @@ export default function Success() {
               <Calendar size={18} className="text-gray-400" />
               <div>
                 <p className="text-gray-500 text-xs">租赁期间</p>
-                <p className="font-medium">{orderData.lease_term || 12} 个月</p>
+                <p className="font-medium">{orderData.lease_term || '-'}</p>
                 <p className="text-xs text-gray-400">预期归还: {orderData.return_date || '待确定'}</p>
               </div>
             </div>

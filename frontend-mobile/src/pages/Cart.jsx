@@ -38,11 +38,12 @@ function calculateItemAmount(item) {
   const pricing = parsePricing(item.pricing)
   const dailyRent = pricing[0]?.daily_rent || 0
   const deposit = pricing[0]?.deposit || 0
+  const shippingFee = pricing[0]?.shipping_fee || 0
   const cycle = item.cycle || 'month'
   const termCount = item.lease_term || 1
   const multiplier = CYCLE_MULTIPLIER[cycle] || 25
   const rent = dailyRent * multiplier * termCount
-  return { rent, deposit, total: rent + deposit }
+  return { rent, deposit, shippingFee, total: rent + deposit + shippingFee }
 }
 
 function calculateDeadline(item) {
@@ -100,6 +101,10 @@ export default function Cart() {
           order_id: 'TL' + Date.now(),
           instrument_name: item.name,
           instrument_sn: item.sn,
+          category_name: item.category_name,
+          site_name: item.site_name,
+          site_address: item.site_address,
+          tenant_name: item.tenant_name,
           lease_term: `${item.lease_term || 1}${item.cycle === 'day' ? '天' : item.cycle === 'week' ? '周' : '个月'}`,
           return_date: returnDate,
           total_amount: amount.total,
