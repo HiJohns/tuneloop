@@ -192,10 +192,14 @@ export default function Cart() {
       const item = cart.items[0]
       const amount = calculateItemAmount(item)
       const returnDate = calculateDeadline(item)
+      const cycle = item.cycle || 'month'
+      const leaseTerm = item.lease_term || 1
 
       try {
         const resp = await api.post('/orders', {
           instrument_id: item.instrument_id,
+          level: item.level || 'standard',
+          lease_term: leaseTerm,
           start_date: new Date().toISOString().split('T')[0],
           end_date: returnDate,
         })
