@@ -584,8 +584,8 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 	}
 
 	var order models.Order
-	if err := db.Where("instrument_id = ? AND tenant_id = ? AND status NOT IN ?",
-		instrument.ID, tenantID, []string{"cancelled", "completed"}).
+	if err := db.Where("instrument_id = ? AND status NOT IN ?",
+		instrument.ID, []string{"cancelled", "completed"}).
 		Order("created_at DESC").First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "no active order found for this instrument"})
 		return
