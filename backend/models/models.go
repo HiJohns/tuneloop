@@ -114,6 +114,7 @@ type Order struct {
 	DepositMode       string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
 	MonthlyRent       float64    `gorm:"type:decimal(10,2);not null" json:"monthly_rent"`
 	Deposit           float64    `gorm:"type:decimal(10,2);default:0" json:"deposit"`
+	ShippingFee        float64    `gorm:"type:decimal(10,2);default:0" json:"shipping_fee"`
 	AccumulatedMonths int        `gorm:"default:0" json:"accumulated_months"`
 	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	StartDate         *string    `gorm:"type:date" json:"start_date"`

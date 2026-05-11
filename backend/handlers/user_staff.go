@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -43,12 +44,10 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 	// Build query
 	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
 
-	// Auto-scope to user's site for site-scoped roles
-	businessRole := middleware.GetBusinessRole(ctx)
-	if businessRole == "site_admin" || businessRole == "site_member" {
-		currentUserID := middleware.GetUserID(ctx)
-		var currentUser models.User
-		if err := db.Where("iam_sub = ?", currentUserID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+	currentUserID := middleware.GetUserID(ctx)
+	var currentUser models.User
+	if err := db.Where("iam_sub = ?", currentUserID).First(&currentUser).Error; err == nil {
+		if (currentUser.Role == "site_admin" || currentUser.Role == "site_member") && currentUser.SiteID != nil {
 			query = query.Where("site_id = ?", *currentUser.SiteID)
 		}
 	}
@@ -440,6 +439,72 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data":    result,
+	})
+}
+
+// UpdateCurrentUser PUT /api/users/me
+func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	var req struct {
+		Name     string `json:"name"`
+		Phone    string `json:"phone"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		return
+	}
+
+	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
+
+	iamClient := services.NewIAMClient()
+	iamReq := &services.UpdateUserRequest{
+		Name:        req.Name,
+		Email:       req.Email,
+		Phone:       req.Phone,
+		Password:    req.Password,
+		CallbackURL: callbackURL,
+		OperatorID:  userID,
+	}
+
+	if err := iamClient.UpdateUser(userID, iamReq); err != nil {
+		log.Printf("[UpdateCurrentUser] IAM UpdateUser failed for %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to update user in IAM: " + err.Error(),
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+	localUpdates := map[string]interface{}{}
+	if req.Name != "" {
+		localUpdates["name"] = req.Name
+	}
+	if req.Phone != "" {
+		localUpdates["phone"] = req.Phone
+	}
+	if len(localUpdates) > 0 {
+		db.Model(&models.User{}).Where("iam_sub = ? AND tenant_id = ?", userID, tenantID).Updates(localUpdates)
+	}
+
+	emailChanged := req.Email != ""
+	responseData := gin.H{
+		"status": "success",
+	}
+	if emailChanged {
+		responseData["email_confirmation"] = "pending"
+		responseData["message"] = "Email change requires confirmation. IAM will send a confirmation email."
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data":    responseData,
 	})
 }
 

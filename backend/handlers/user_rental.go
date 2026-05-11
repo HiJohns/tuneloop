@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 	"log"
 )
 
@@ -195,20 +197,34 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// Begin transaction with row lock to prevent oversell
+	tx := db.Begin()
+	var lockedInstrument models.Instrument
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ? AND tenant_id = ? AND stock_status = ?", req.InstrumentID, tenantID, "available").
+		First(&lockedInstrument).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "instrument already reserved"})
+		return
+	}
+
 	// Parse start and end dates
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid start_date format"})
 		return
 	}
 
 	endDate, err := time.Parse("2006-01-02", req.EndDate)
 	if err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format"})
 		return
 	}
 
 	if endDate.Before(startDate) {
+		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date must be after start_date"})
 		return
 	}
@@ -216,24 +232,27 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Calculate rental amount
 	days := int(endDate.Sub(startDate).Hours() / 24)
 	months := days / 30
-	remainingDays := days % 30
 
 	// Parse pricing for calculation
 	var pricing []map[string]interface{}
-	dailyRent := 0.0
+	dailyRent, deposit, shippingFee := 0.0, 0.0, 0.0
 	if instrument.Pricing != "" {
-		db.Raw("SELECT * FROM jsonb_to_recordset(?::jsonb) AS x(daily_rent numeric)", instrument.Pricing).Scan(&pricing)
-		if len(pricing) > 0 {
+		if err := json.Unmarshal([]byte(instrument.Pricing), &pricing); err == nil && len(pricing) > 0 {
 			if val, ok := pricing[0]["daily_rent"].(float64); ok {
 				dailyRent = val
+			}
+			if val, ok := pricing[0]["deposit"].(float64); ok {
+				deposit = val
+			}
+			if val, ok := pricing[0]["shipping_fee"].(float64); ok {
+				shippingFee = val
 			}
 		}
 	}
 
-	totalAmount := dailyRent * float64(remainingDays)
-	if months > 0 {
-		totalAmount += dailyRent * 30 * 0.8 * float64(months)
-	}
+	// monthly rent = daily_rent * 25
+	monthlyRent := dailyRent * 25
+	totalAmount := monthlyRent + deposit + shippingFee
 
 	// Create order
 	startDateStr := req.StartDate
@@ -245,6 +264,9 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		InstrumentID: req.InstrumentID,
 		Level:        instrument.Level,
 		LeaseTerm:    months,
+		MonthlyRent:  monthlyRent,
+		Deposit:      deposit,
+		ShippingFee:  shippingFee,
 		Status:       "pending",
 		StartDate:    &startDateStr,
 		EndDate:      &endDateStr,
@@ -252,7 +274,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		UpdatedAt:    time.Now(),
 	}
 
-	if err := db.Create(&order).Error; err != nil {
+	if err := tx.Create(&order).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
 		return
 	}
@@ -271,14 +294,24 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		UpdatedAt:    time.Now(),
 	}
 
-	if err := db.Create(&leaseSession).Error; err != nil {
+	if err := tx.Create(&leaseSession).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session: " + err.Error()})
 		return
 	}
 
 	// Update instrument stock_status to reserved
-	if err := db.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
-		log.Printf("[WARN] Failed to update instrument stock_status: %v", err)
+	if err := tx.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+		tx.Rollback()
+		log.Printf("[ERROR] Failed to update instrument stock_status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reserve instrument"})
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to commit transaction"})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -287,7 +320,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		"data": gin.H{
 			"order_id":    order.ID,
 			"amount":      totalAmount,
-			"deposit":     dailyRent * 50, // Example deposit calculation
+			"deposit":     deposit,
 			"lease_id":    leaseSession.ID,
 			"payment_url": "https://pay.example.com/" + order.ID,
 		},

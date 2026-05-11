@@ -197,19 +197,37 @@ export default function Detail() {
       return
     }
     
-    const amount = calculatedRent + deposit + (pricing[0]?.shipping_fee || 0)
+    const leaseTerm = termCount || 1
     const returnDate = getExpiryDate()
     
-    navigate('/success', {
-      state: {
-        order_id: 'TL' + Date.now(),
-        instrument_name: instrument?.name,
-        instrument_sn: instrument?.sn,
-        lease_term: `${termCount}${cycle === 'day' ? '天' : cycle === 'week' ? '周' : '月'}`,
-        return_date: returnDate,
-        total_amount: amount,
-      },
-    })
+    try {
+      const resp = await ordersApi.create({
+        instrument_id: instrument?.id,
+        level: instrument?.level || 'standard',
+        lease_term: leaseTerm,
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: returnDate,
+      })
+      
+      if (resp.data?.code === 20000 || resp.data?.code === 20100) {
+        navigate('/success', {
+          state: {
+            order_id: resp.data.data.order_id,
+            instrument_name: instrument?.name,
+            instrument_sn: instrument?.sn,
+            category_name: instrument?.category_name,
+            tenant_name: instrument?.tenant_name,
+            site_name: instrument?.site_name,
+            site_address: instrument?.site_address,
+            lease_term: `${leaseTerm}个月`,
+            return_date: returnDate,
+            total_amount: resp.data.data.first_payment_amount,
+          },
+        })
+      }
+    } catch (err) {
+      alert('租赁失败: ' + (err.response?.data?.message || err.message))
+    }
   }
 
   if (loading) {
@@ -264,6 +282,7 @@ export default function Detail() {
           </div>
         )}
 
+        {isRentable && (
         <div className="mt-4">
           <span className="text-gray-700 font-medium">租赁周期</span>
           
@@ -308,7 +327,9 @@ export default function Detail() {
             截止日期: <span className="font-medium">{getExpiryDate()}</span>
           </div>
         </div>
+        )}
 
+        {isRentable && (
         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
           <p className="font-medium text-sm text-blue-800 mb-1">费用明细</p>
           <div className="space-y-1 text-sm">
@@ -330,7 +351,9 @@ export default function Detail() {
             </div>
           </div>
         </div>
+        )}
 
+        {isRentable && (
         <div className="mt-3 p-2 bg-orange-50 rounded-lg text-sm">
           <p className="text-orange-800">
             ⚠️ 逾期后将每日自动扣款，按 ¥{overdueDailyFee}/日 计算
@@ -339,7 +362,9 @@ export default function Detail() {
             💰 押金将在乐器归还、质检通过后原路退还。如乐器损坏，将在定损后从押金中抵扣
           </p>
         </div>
+        )}
 
+        {isRentable && (
         <div className="mt-3 p-3 bg-purple-50 rounded-lg mb-24">
           <p className="font-medium text-sm text-purple-800 flex items-center gap-1">
             <span>🎁</span>
@@ -349,6 +374,7 @@ export default function Detail() {
             租满12个月可直接获得所有权
           </p>
         </div>
+        )}
       </div>
 
       {/* Floating Cart Icon */}
@@ -365,28 +391,35 @@ export default function Detail() {
       )}
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <div className="mb-2 p-3 bg-green-50 rounded-lg border border-green-200">
-          <p className="text-center font-bold text-lg text-brand-primary">
-            合计：¥{totalAmount.toFixed(0)}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {isRentable && (
-            <button 
-              onClick={handleAddToCart}
-              className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-100 text-orange-600"
-            >
-              <ShoppingCart size={18} />
-              加入购物车
-            </button>
-          )}
-          <button 
-            onClick={handleCreateOrder}
-            className={`py-3 rounded-lg font-medium bg-orange-500 text-white ${isRentable ? 'flex-1' : 'w-full'}`}
-          >
-            立即租赁
-          </button>
-        </div>
+        {isRentable ? (
+          <>
+            <div className="mb-2 p-3 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-center font-bold text-lg text-brand-primary">
+                合计：¥{totalAmount.toFixed(0)}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={handleAddToCart}
+                className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-100 text-orange-600"
+              >
+                <ShoppingCart size={18} />
+                加入购物车
+              </button>
+              <button 
+                onClick={handleCreateOrder}
+                className="py-3 rounded-lg font-medium bg-orange-500 text-white flex-1"
+              >
+                立即租赁
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="p-3 bg-gray-100 rounded-lg text-center">
+            <p className="text-gray-500 font-medium">该乐器目前不可租赁</p>
+            <p className="text-gray-400 text-sm mt-1">乐器已被预约，暂时无法租赁</p>
+          </div>
+        )}
       </div>
 
       {cartToast && (

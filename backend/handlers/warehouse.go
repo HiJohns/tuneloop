@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"context"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 func stringPtr(s string) *string {
@@ -27,7 +27,6 @@ func NewWarehouseHandler() *WarehouseHandler {
 // GET /api/warehouse/orders - Get order list with status filter
 func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 
 	status := c.Query("status")
 	siteID := c.Query("site_id")
@@ -36,18 +35,14 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	businessRole := middleware.GetBusinessRole(ctx)
 	query := db.Model(&models.Order{})
 
-	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-		orgID := middleware.GetOrgID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	if orgID != "" {
 		query = query.Where("org_id = ?", orgID)
-		query = query.Session(&gorm.Session{Context: context.Background()})
-	} else {
-		query = query.Where("tenant_id = ?", tenantID)
-		if siteID != "" {
-			query = query.Where("site_id = ?", siteID)
-		}
+	}
+	if siteID != "" {
+		query = query.Where("site_id = ?", siteID)
 	}
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -331,6 +326,22 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	if err := db.Create(&history).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record status history: " + err.Error()})
 		return
+	}
+
+	orgID := middleware.GetOrgID(ctx)
+	notification := models.Notification{
+		TenantID: tenantID,
+		OrgID:    orgID,
+		UserID:   order.UserID,
+		Type:     "damage",
+		Title:    "定损通知",
+		Content:  fmt.Sprintf("您的乐器租赁订单已被定损评估，定损金额：%.2f，说明：%s", req.DamageAmount, req.DamageDescription),
+		RefID:    orderID,
+		RefType:  "order",
+		Status:   "unread",
+	}
+	if err := db.Create(&notification).Error; err != nil {
+		log.Printf("[AssessDamage] Failed to create notification: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

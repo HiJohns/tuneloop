@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type MaintenanceSessionHandler struct{}
@@ -252,9 +250,7 @@ func (h *MaintenanceSessionHandler) Inspect(c *gin.Context) {
 // GET /api/maintenance/sessions - List maintenance sessions
 func (h *MaintenanceSessionHandler) ListSessions(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 
-	// Pagination parameters
 	page := 1
 	pageSize := 20
 	if p, err := parseIntParam(c.Query("page"), 1); err == nil && p > 0 {
@@ -267,16 +263,10 @@ func (h *MaintenanceSessionHandler) ListSessions(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Build query
-	businessRole := middleware.GetBusinessRole(ctx)
 	query := db.Model(&models.MaintenanceSession{})
-
-	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-		orgID := middleware.GetOrgID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	if orgID != "" {
 		query = query.Where("org_id = ?", orgID)
-		query = query.Session(&gorm.Session{Context: context.Background()})
-	} else {
-		query = query.Where("tenant_id = ?", tenantID)
 	}
 
 	// Optional filters

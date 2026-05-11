@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 )
 
 type PreviewOrderRequest struct {
@@ -33,30 +35,60 @@ func PreviewOrder(c *gin.Context) {
 		req.DepositMode = "standard"
 	}
 
-	creditScore := 600
-	if userID := c.GetString("user_id"); userID != "" {
-		db := database.GetDB().WithContext(c.Request.Context())
-		var user models.User
-		if err := db.First(&user, "id = ?", userID).Error; err == nil {
-			creditScore = user.CreditScore
+	// Parse instrument pricing
+	db := database.GetDB().WithContext(c.Request.Context())
+	var instrument models.Instrument
+	if err := db.First(&instrument, "id = ?", req.InstrumentID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	var monthlyRent, deposit, shippingFee float64
+	var pricingList []map[string]interface{}
+	if instrument.Pricing != "" {
+		if err := json.Unmarshal([]byte(instrument.Pricing), &pricingList); err == nil && len(pricingList) > 0 {
+			p := pricingList[0]
+			dailyRent, _ := p["daily_rent"].(float64)
+			deposit, _ = p["deposit"].(float64)
+			shippingFee, _ = p["shipping_fee"].(float64)
+			monthlyRent = dailyRent * 25
 		}
 	}
 
-	pricingReq := &service.PricingRequest{
-		InstrumentID: req.InstrumentID,
-		Level:        req.Level,
-		LeaseTerm:    req.LeaseTerm,
-		DepositMode:  req.DepositMode,
-		CreditScore:  creditScore,
-	}
+	var resp *service.PricingResponse
+	if monthlyRent > 0 {
+		resp = &service.PricingResponse{
+			FirstMonthRent: monthlyRent,
+			Deposit:       deposit,
+			TotalAmount:   monthlyRent + deposit + shippingFee,
+		}
+	} else {
+		// fallback to pricing service
+		creditScore := 600
+		if uID := c.GetString("user_id"); uID != "" {
+			var user models.User
+			if err := db.First(&user, "id = ?", uID).Error; err == nil {
+				creditScore = user.CreditScore
+			}
+		}
 
-	resp, err := pricingService.CalculatePrice(c.Request.Context(), pricingReq)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "pricing calculation failed: " + err.Error(),
-		})
-		return
+		pricingReq := &service.PricingRequest{
+			InstrumentID: req.InstrumentID,
+			Level:        req.Level,
+			LeaseTerm:    req.LeaseTerm,
+			DepositMode:  req.DepositMode,
+			CreditScore:  creditScore,
+		}
+
+		var pricingErr error
+		resp, pricingErr = pricingService.CalculatePrice(c.Request.Context(), pricingReq)
+		if pricingErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "pricing calculation failed: " + pricingErr.Error(),
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -102,34 +134,7 @@ func CreateOrder(c *gin.Context) {
 		userID = "00000000-0000-0000-0000-000000000000"
 	}
 
-	// Calculate pricing
-	creditScore := 600
-	if userID != "00000000-0000-0000-0000-000000000000" {
-		db := database.GetDB().WithContext(c.Request.Context())
-		var user models.User
-		if err := db.First(&user, "iam_sub = ?", userID).Error; err == nil {
-			creditScore = user.CreditScore
-		}
-	}
-
-	pricingReq := &service.PricingRequest{
-		InstrumentID: req.InstrumentID,
-		Level:        req.Level,
-		LeaseTerm:    req.LeaseTerm,
-		DepositMode:  req.DepositMode,
-		CreditScore:  creditScore,
-	}
-
-	resp, err := pricingService.CalculatePrice(c.Request.Context(), pricingReq)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "pricing calculation failed: " + err.Error(),
-		})
-		return
-	}
-
-	// Check inventory availability
+	// Check instrument and get actual pricing
 	db := database.GetDB().WithContext(c.Request.Context())
 	var instrument models.Instrument
 	if err := db.First(&instrument, "id = ?", req.InstrumentID).Error; err != nil {
@@ -142,11 +147,85 @@ func CreateOrder(c *gin.Context) {
 
 	// Check if instrument is available
 	if instrument.StockStatus != "available" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "instrument not available",
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "instrument already reserved",
 		})
 		return
+	}
+
+	// Begin transaction with row lock to prevent oversell
+	tx := db.Begin()
+	var lockedInstrument models.Instrument
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ? AND stock_status = ?", req.InstrumentID, models.StockStatusAvailable).
+		First(&lockedInstrument).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "instrument already reserved",
+		})
+		return
+	}
+
+	// Update inventory status to reserved
+	if err := tx.Model(&lockedInstrument).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to reserve instrument: " + err.Error(),
+		})
+		return
+	}
+
+	// Parse pricing from instrument.Pricing JSON
+	var monthlyRent, deposit, shippingFee float64
+	var pricingList []map[string]interface{}
+	if instrument.Pricing != "" {
+		if err := json.Unmarshal([]byte(instrument.Pricing), &pricingList); err == nil && len(pricingList) > 0 {
+			p := pricingList[0]
+			dailyRent, _ := p["daily_rent"].(float64)
+			deposit, _ = p["deposit"].(float64)
+			shippingFee, _ = p["shipping_fee"].(float64)
+			// monthly rent = daily_rent * 25 (cases.md §2.2)
+			monthlyRent = dailyRent * 25
+		}
+	}
+
+	// Calculate pricing result
+	var pricingResp *service.PricingResponse
+	if monthlyRent > 0 {
+		pricingResp = &service.PricingResponse{
+			FirstMonthRent: monthlyRent,
+			Deposit:       deposit,
+			TotalAmount:   monthlyRent + deposit + shippingFee,
+		}
+	} else {
+		// Fallback to pricing service for legacy data
+		creditScore := 600
+		if userID != "00000000-0000-0000-0000-000000000000" {
+			var user models.User
+			if err := db.First(&user, "iam_sub = ?", userID).Error; err == nil {
+				creditScore = user.CreditScore
+			}
+		}
+		pricingReq := &service.PricingRequest{
+			InstrumentID: req.InstrumentID,
+			Level:        req.Level,
+			LeaseTerm:    req.LeaseTerm,
+			DepositMode:  req.DepositMode,
+			CreditScore:  creditScore,
+		}
+		var err error
+		pricingResp, err = pricingService.CalculatePrice(c.Request.Context(), pricingReq)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "pricing calculation failed: " + err.Error(),
+			})
+			return
+		}
+		shippingFee = 0
 	}
 
 	// Create order record
@@ -159,12 +238,15 @@ func CreateOrder(c *gin.Context) {
 		Level:        req.Level,
 		LeaseTerm:    req.LeaseTerm,
 		DepositMode:  req.DepositMode,
-		MonthlyRent:  resp.FirstMonthRent,
-		Deposit:      resp.Deposit,
-		Status:       "pending", // pending, paid, in_lease, completed, cancelled
+		MonthlyRent:  pricingResp.FirstMonthRent,
+		Deposit:     pricingResp.Deposit,
+		ShippingFee:  shippingFee,
+		Status:       "pending",
 	}
 
-	if err := db.Create(&order).Error; err != nil {
+	// Create order record within transaction
+	if err := tx.Create(&order).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to create order: " + err.Error(),
@@ -172,11 +254,11 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// Update inventory status to reserved
-	if err := db.Model(&instrument).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "failed to update inventory: " + err.Error(),
+			"message": "failed to commit transaction: " + err.Error(),
 		})
 		return
 	}
@@ -189,8 +271,8 @@ func CreateOrder(c *gin.Context) {
 		"data": gin.H{
 			"order_id":             orderID,
 			"payment_url":          paymentURL,
-			"first_payment_amount": resp.TotalAmount,
-			"created_at":           time.Now().Format(time.RFC3339),
+			"first_payment_amount": pricingResp.TotalAmount,
+			"created_at":         time.Now().Format(time.RFC3339),
 		},
 	})
 }

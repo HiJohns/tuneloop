@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type MaintenanceWorkerHandler struct{}
@@ -62,25 +60,17 @@ func (h *MaintenanceWorkerHandler) CreateWorker(c *gin.Context) {
 // GET /api/maintenance/workers - List maintenance workers with filters
 func (h *MaintenanceWorkerHandler) ListWorkers(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 
 	name := c.Query("name")
 	phone := c.Query("phone")
 	siteID := c.Query("site_id")
 
 	db := database.GetDB().WithContext(ctx)
-	businessRole := middleware.GetBusinessRole(ctx)
 	query := db.Model(&models.MaintenanceWorker{})
 
-	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-		userID := middleware.GetUserID(ctx)
-		var currentUser models.User
-		if err := db.Session(&gorm.Session{Context: context.Background()}).Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
-			query = query.Where("site_id = ?", *currentUser.SiteID)
-		}
-		query = query.Session(&gorm.Session{Context: context.Background()})
-	} else {
-		query = query.Where("tenant_id = ?", tenantID)
+	orgID := middleware.GetOrgID(ctx)
+	if orgID != "" {
+		query = query.Where("org_id = ?", orgID)
 	}
 	query = query.Where("deleted_at IS NULL")
 

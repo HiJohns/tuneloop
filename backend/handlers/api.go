@@ -123,25 +123,18 @@ func GetInstruments(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := db.Model(&models.Instrument{})
-	orgID := middleware.GetOrgID(ctx)
 	userID := middleware.GetUserID(ctx)
 
-	// Scope by user's site_id if they have one (staff role)
+	// Scope by user role: site_id → tenant_id
 	if userID != "" {
 		var currentUser models.User
 		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil {
 			if currentUser.SiteID != nil {
 				query = query.Where("site_id = ?", *currentUser.SiteID)
-			} else if currentUser.Role == "site_member" && currentUser.TenantID != "" {
-				// If staff has no site_id but has tenant_id, scope to tenant
+			} else if currentUser.TenantID != "" {
 				query = query.Where("tenant_id = ?", currentUser.TenantID)
 			}
 		}
-	}
-
-	// Fallback: org_id filter (for admin/owner roles)
-	if orgID != "" {
-		query = query.Where("org_id = ?", orgID)
 	}
 
 	var total int64

@@ -236,10 +236,20 @@
 
   <!-- 底部 CTA -->
   <view class="bottom-bar">
+    <block wx:if="{{instrument.stock_status === 'in_stock'}}">
+      <button class="btn-cart" bindtap="addToCart">🛒 加入购物车</button>
+    </block>
     <button class="btn-primary" bindtap="createOrder">立即租用</button>
   </view>
 </view>
 ```
+
+**购物车交互（新增）**:
+- **加入购物车**：乐器状态为 `in_stock` 时，底部操作栏并排显示"加入购物车"和"立即租赁"按钮
+- **加入成功弹窗**：点击"加入购物车"后弹出确认对话框，显示"加入成功"消息
+  - "继续浏览" → 关闭弹窗，留在当前页
+  - "提交订单" → 导航至 `/cart` 购物车页面
+- **购物车存储**：使用 localStorage 存储，数据结构为 `{items: [{instrument_id, name, tenant_id, ...}]}`
 
 **核心交互**:
 1. **服务权益对比**：动态高亮当前选中级别的免费项
@@ -411,6 +421,56 @@
 **交互**:
 - `downloadPDF`: 调用 `/api/user/ownership/:id/download` 获取PDF流
 - `shareCertificate`: 调用微信分享API
+
+---
+
+### 2.7 购物车页 (`/cart`) 【新增】
+
+**布局结构**:
+```html
+<view class="cart-page">
+  <view class="cart-header">
+    <text>购物车</text>
+  </view>
+
+  <!-- 按租户分组 -->
+  <view class="cart-group" wx:for="{{groups}}">
+    <view class="group-header">租户: {{item.tenant_id}}</view>
+    <view class="cart-item" wx:for="{{item.items}}">
+      <image src="{{subItem.images[0]}}" class="item-image" />
+      <view class="item-info">
+        <text class="item-name">{{subItem.name}}</text>
+        <text class="item-brand">{{subItem.brand}} {{subItem.model}}</text>
+        <text class="item-price">¥{{subItem.pricing.monthly_rent}}/月起</text>
+      </view>
+      <button class="btn-delete" bindtap="removeItem" data-id="{{subItem.instrument_id}}">
+        🗑️
+      </button>
+    </view>
+  </view>
+
+  <!-- 空购物车 -->
+  <view wx:if="{{items.length === 0}}" class="cart-empty">
+    <text>购物车为空</text>
+    <button bindtap="goHome">去逛逛</button>
+  </view>
+
+  <!-- 底部下单栏 -->
+  <view class="bottom-bar" wx:if="{{items.length > 0}}">
+    <button class="btn-order" bindtap="handleOrder">
+      下单 ({{items.length}} 件)
+    </button>
+  </view>
+</view>
+```
+
+**交互**:
+- **分组显示**：按 `tenant_id` 将购物车中的乐器分组，每组显示租户标识
+- **单项删除**：每个乐器项右侧有删除按钮，点击从购物车移除
+- **下单校验**：
+  - 未登录 → 跳转登录页，登录后返回购物车
+  - 已登录 → 单乐器跳转现有结算流程，多乐器目前提示开发中
+- **数据持久化**：购物车数据存储在 localStorage，下单后自动清空
 
 ---
 

@@ -326,6 +326,69 @@
 
 ---
 
+## 三、公共浏览 API（无需认证）
+
+### 3.1 乐器列表
+
+**接口**: `GET /api/public/instruments`
+
+**查询参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码 (默认: 1) |
+| pageSize | int | 每页数量 (默认: 20, 最大: 100) |
+| category_id | string | 分类 ID (可选) |
+| site_id | string | 网点 ID (可选) |
+| level_id | string | 级别 ID (可选) |
+| tenant | string | 租户 ID (可选, 不传则返回所有租户) |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "name": "乐器名称",
+        "brand": "品牌",
+        "model": "型号",
+        "category_id": "cat-01",
+        "category_name": "分类名",
+        "level_name": "级别名",
+        "images": ["url1", "url2"],
+        "pricing": {},
+        "stock_status": "in_stock",
+        "tenant_id": "uuid",
+        "site_id": "uuid",
+        "site_name": "网点名",
+        "description": "描述"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+### 3.2 乐器详情
+
+**接口**: `GET /api/public/instruments/:id`
+
+**响应**: 同上单条乐器数据, 包含 `tenant_id` 用于购物车按租户分组
+
+### 3.3 分类列表
+
+**接口**: `GET /api/public/categories`
+
+### 3.4 网点列表
+
+**接口**: `GET /api/public/sites`
+
+---
+
 ## 四、网点与 LBS 模块
 
 ### 4.1 网点列表

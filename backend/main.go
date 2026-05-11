@@ -158,6 +158,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/setup/status", setupHandler.GetSetupStatus)
 	api.POST("/setup/init", setupHandler.InitializeSystem)
 	api.POST("/iam/users/:user_id/invite", iamProxyHandler.InviteUserToMerchant)
+	// Public browsing routes (no auth required)
+	api.GET("/public/instruments", handlers.GetPublicInstruments)
+	api.GET("/public/instruments/:id", handlers.GetPublicInstrumentByID)
+	api.GET("/public/categories", handlers.GetPublicCategories)
+	api.GET("/public/sites", handlers.GetPublicSites)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())
@@ -214,6 +219,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/orders/preview", handlers.PreviewOrder)
 		authRequired.POST("/orders", handlers.CreateOrder)
 		authRequired.GET("/orders", handlers.GetOrders)
+		authRequired.GET("/orders/by-instrument-sn", handlers.GetOrderByInstrumentSN)
 		authRequired.GET("/orders/:id", handlers.GetOrder)
 		authRequired.POST("/orders/:id/pay", handlers.PayOrder)
 		authRequired.POST("/orders/:id/pickup", handlers.PickupOrder)
@@ -244,11 +250,17 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", staffHandler.ListStaff)
 			authRequired.GET("/users/me", staffHandler.GetCurrentUser)
+			authRequired.PUT("/users/me", staffHandler.UpdateCurrentUser)
 			authRequired.POST("/users", middleware.RequireSysPerm(middleware.SysPermUserCreate), staffHandler.CreateUser)
 			authRequired.PUT("/users/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.UpdateUser)
 			authRequired.DELETE("/users/batch", middleware.RequireSysPerm(middleware.SysPermUserDelete), staffHandler.BatchDeleteUsers)
 			authRequired.POST("/users/reset-password", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.ResetPassword)
 			authRequired.GET("/users/check", staffHandler.CheckUserExists)
+
+			// Notification routes
+			authRequired.GET("/notifications", handlers.GetNotifications)
+			authRequired.POST("/notifications/:id/read", handlers.MarkNotificationRead)
+			authRequired.GET("/instrument-photo-specs/:category_id", handlers.GetInstrumentPhotoSpecs)
 		}
 
 		propertyRequired := authRequired.Group("")

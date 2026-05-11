@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type AppealHandler struct{}
@@ -23,7 +21,6 @@ func NewAppealHandler() *AppealHandler {
 // GET /api/merchant/appeals - Get appeal list
 func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 
 	status := c.Query("status")
 	siteID := c.Query("site_id")
@@ -33,14 +30,9 @@ func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	query := db.Model(&models.Appeal{})
-	businessRole := middleware.GetBusinessRole(ctx)
-
-	if businessRole == middleware.BusinessRoleSiteAdmin || businessRole == middleware.BusinessRoleSiteMember {
-		orgID := middleware.GetOrgID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	if orgID != "" {
 		query = query.Where("org_id = ?", orgID)
-		query = query.Session(&gorm.Session{Context: context.Background()})
-	} else {
-		query = query.Where("tenant_id = ?", tenantID)
 	}
 	if status != "" {
 		query = query.Where("status = ?", status)

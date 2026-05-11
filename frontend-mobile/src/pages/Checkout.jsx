@@ -173,7 +173,20 @@ export default function Checkout() {
       {/* Bottom Action */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         <button 
-          onClick={() => navigate('/success')}
+          onClick={() => navigate('/success', {
+            state: {
+              order_id: 'CHECKOUT-' + Date.now(),
+              instrument_name: instrument?.name,
+              instrument_sn: instrument?.sn,
+              category_name: instrument?.category_name,
+              tenant_name: instrument?.tenant_name,
+              site_name: instrument?.site_name,
+              site_address: instrument?.site_address,
+              lease_term: `${rentMonths}个月`,
+              return_date: '',
+              total_amount: payment.total,
+            },
+          })}
           className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium"
         >
           确认支付 ¥{payment.total}

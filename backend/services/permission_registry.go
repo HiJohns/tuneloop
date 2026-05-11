@@ -81,7 +81,7 @@ func (r *PermissionRegistry) RegisterAndSync(namespaceID string) error {
 	r.saveToCache(snapshot)
 
 	// Start background sync
-	go r.backgroundSync(namespaceID)
+	go r.backgroundSync(nsID)
 	return nil
 }
 
@@ -211,7 +211,16 @@ func (r *PermissionRegistry) backgroundSync(namespaceID string) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
-		mappings, err := r.iamClient.GetCustomerPermissions(namespaceID)
+		nsID := namespaceID
+		if !isUUID(nsID) {
+			resolved, err := r.iamClient.getNamespaceID()
+			if err != nil {
+				log.Printf("[PermissionRegistry] Background sync skipped: cannot resolve namespace UUID: %v", err)
+				continue
+			}
+			nsID = resolved
+		}
+		mappings, err := r.iamClient.GetCustomerPermissions(nsID)
 		if err != nil {
 			log.Printf("[PermissionRegistry] Background sync failed: %v", err)
 			continue
@@ -241,4 +250,25 @@ func (r *PermissionRegistry) UpdateGlobalRegistry() {
 	// accepts a PermissionRegistryInterface.
 	// For now, the middleware uses the mock registry; we upgrade it here.
 	_ = r // suppression for unused
+}
+
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	n := 0
+	for i, c := range s {
+		switch i {
+		case 8, 13, 18, 23:
+			if c != '-' {
+				return false
+			}
+		default:
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				return false
+			}
+			n++
+		}
+	}
+	return n == 32
 }
