@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Image } from 'lucide-react'
 
+// Helper to get token from localStorage
+const getToken = () => {
+  return localStorage.getItem('token')
+}
+
 export default function ImageUploader({ onUpload, maxImages = 5 }) {
   const [images, setImages] = useState([])
   const [uploading, setUploading] = useState(false)
@@ -17,7 +22,8 @@ export default function ImageUploader({ onUpload, maxImages = 5 }) {
     const newImages = files.map(file => ({
       file,
       preview: URL.createObjectURL(file),
-      name: file.name
+      name: file.name,
+      capturedAt: new Date().toISOString() // Store capture time per ui.md §3.19
     }))
     
     setImages(prev => [...prev, ...newImages])
@@ -27,37 +33,51 @@ export default function ImageUploader({ onUpload, maxImages = 5 }) {
     if (images.length === 0) return
     
     setUploading(true)
-    const uploadedUrls = []
+    const successfullyUploaded = [] // Track successful uploads
     
     try {
       for (const img of images) {
         const formData = new FormData()
         formData.append('file', img.file)
         
+        // Add authentication header to prevent 401
+        const token = getToken()
         const resp = await fetch(`${baseUrl}/upload`, {
           method: 'POST',
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
           body: formData,
         })
         
         const result = await resp.json()
         
         if (result.code === 20000 && result.data?.url) {
-          uploadedUrls.push({
+          successfullyUploaded.push({
             url: result.data.url,
             filename: img.name,
-            timestamp: new Date().toISOString()
+            timestamp: img.capturedAt || new Date().toISOString()
           })
         } else {
-          throw new Error(result.message || 'Upload failed')
+          // If any upload fails, stop and keep remaining images for retry
+          console.error(`Upload failed for ${img.name}:`, result.message)
+          break
         }
       }
       
       setUploading(false)
-      if (onUpload) {
-        onUpload(uploadedUrls)
+      
+      // Only clear images if all were uploaded successfully
+      if (successfullyUploaded.length === images.length) {
+        setImages([])
+      } else {
+        // Remove successfully uploaded images, keep failed ones for retry
+        setImages(prev => prev.slice(successfullyUploaded.length))
       }
-      // Clear selection after successful upload
-      setImages([])
+      
+      if (onUpload && successfullyUploaded.length > 0) {
+        onUpload(successfullyUploaded)
+      }
     } catch (err) {
       setUploading(false)
       alert(`上传失败: ${err.message}`)
@@ -65,6 +85,11 @@ export default function ImageUploader({ onUpload, maxImages = 5 }) {
   }
 
   const removeImage = (index) => {
+    // Revoke object URL to prevent memory leak
+    const imgToRemove = images[index]
+    if (imgToRemove?.preview) {
+      URL.revokeObjectURL(imgToRemove.preview)
+    }
     setImages(prev => prev.filter((_, i) => i !== index))
   }
 

@@ -108,9 +108,10 @@ export default function ShippingInterface() {
   const handleSubmit = async () => {
     if (items.length === 0) return
     
-    // Check if photos are required and uploaded
-    if (photoSpecs.length > 0 && uploadedPhotos.length === 0) {
-      alert('请上传所需的照片')
+    // Check if required photos are uploaded (per spec, not just any photo)
+    const requiredPhotoCount = photoSpecs.filter(spec => spec.required).length
+    if (requiredPhotoCount > 0 && uploadedPhotos.length < requiredPhotoCount) {
+      alert(`请上传所需的 ${requiredPhotoCount} 张照片，当前已上传 ${uploadedPhotos.length} 张`)
       return
     }
     
@@ -234,7 +235,7 @@ export default function ShippingInterface() {
 
         <button
           onClick={handleSubmit}
-          disabled={items.length === 0 || submitting || (photoSpecs.length > 0 && uploadedPhotos.length === 0)}
+          disabled={items.length === 0 || submitting || (photoSpecs.filter(spec => spec.required).length > 0 && uploadedPhotos.length < photoSpecs.filter(spec => spec.required).length)}
           className="w-full py-3 bg-brand-primary text-white rounded-xl disabled:opacity-50 font-medium"
         >
           {submitting ? 'Submitting...' : `Submit (${items.length} items)`}
