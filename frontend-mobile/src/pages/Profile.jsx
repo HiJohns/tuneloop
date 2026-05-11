@@ -167,7 +167,7 @@ export default function Profile() {
       <div className="p-4 space-y-3">
         <div className="bg-white rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium">Personal Info</h3>
+            <h3 className="font-medium">个人信息</h3>
             <button onClick={() => setShowEdit(true)} className="text-brand-primary">
               <Edit3 size={18} />
             </button>
@@ -196,7 +196,7 @@ export default function Profile() {
         {(businessRole === 'site_admin' || businessRole === 'site_member') ? (
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
-              <h3 className="font-medium mb-3">Staff Functions</h3>
+              <h3 className="font-medium mb-3">员工功能</h3>
               <div className="grid grid-cols-3 gap-4">
                 <button
                   onClick={() => navigate('/staff/instruments')}
