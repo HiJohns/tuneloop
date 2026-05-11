@@ -235,6 +235,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.DamageAssessment{},
 		&models.Appeal{},
 		&models.OrderStatusHistory{},
+		&models.InstrumentPhotoBatch{},
 	)
 }
 

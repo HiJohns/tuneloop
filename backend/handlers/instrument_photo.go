@@ -17,12 +17,8 @@ import (
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
-
-type UploadPhotosRequest struct {
-	BatchType string                  `json:"batch_type" binding:"required,oneof=outbound return maintenance"`
-	Photos    []*multipart.FileHeader `form:"photos" binding:"required,min=1"`
-}
 
 type PhotoBatchResponse struct {
 	BatchID      string    `json:"batch_id"`
@@ -142,43 +138,43 @@ func UploadInstrumentPhotos(c *gin.Context) {
 	
 	var photos []photoMetadata
 	
-	for _, file := range files {
-		// Save file
+	// Helper to save a single file and return metadata
+	saveFile := func(file *multipart.FileHeader) (*photoMetadata, error) {
 		src, err := file.Open()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50002,
-				"message": "failed to open uploaded file: " + err.Error(),
-			})
-			return
+			return nil, fmt.Errorf("failed to open uploaded file: %w", err)
 		}
 		defer src.Close()
 
-		dstPath := filepath.Join(batchPath, file.Filename)
+		dstPath := filepath.Join(batchPath, filepath.Base(file.Filename))
 		dst, err := os.Create(dstPath)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50003,
-				"message": "failed to create destination file: " + err.Error(),
-			})
-			return
+			return nil, fmt.Errorf("failed to create destination file: %w", err)
 		}
 		defer dst.Close()
 
 		if _, err := io.Copy(dst, src); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50004,
-				"message": "failed to save photo: " + err.Error(),
-			})
-			return
+			return nil, fmt.Errorf("failed to save photo: %w", err)
 		}
 
-		photos = append(photos, photoMetadata{
+		return &photoMetadata{
 			Filename:  file.Filename,
 			Position:  strings.TrimSuffix(file.Filename, filepath.Ext(file.Filename)),
 			Timestamp: time.Now(),
 			Size:      file.Size,
-		})
+		}, nil
+	}
+	
+	for _, file := range files {
+		photo, err := saveFile(file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50004,
+				"message": err.Error(),
+			})
+			return
+		}
+		photos = append(photos, *photo)
 	}
 
 	// Create manifest.yaml
@@ -247,7 +243,14 @@ func UploadInstrumentPhotos(c *gin.Context) {
 	}
 
 	for _, filePath := range filesToZip {
-		relPath, _ := filepath.Rel(batchPath, filePath)
+		relPath, err := filepath.Rel(batchPath, filePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50008,
+				"message": "failed to get relative path: " + err.Error(),
+			})
+			return
+		}
 		zipFileWriter, err := zipWriter.Create(relPath)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -275,7 +278,10 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		}
 	}
 
-	// Save to database
+	// Use photo storage service to update latest
+	photoService := services.NewPhotoStorageService()
+
+	// Save to database FIRST
 	photoBatch := models.InstrumentPhotoBatch{
 		ID:           batchID,
 		InstrumentID: instrumentID,
@@ -292,19 +298,14 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		})
 		return
 	}
-
-	// Update latest symlink
-	latestDir := filepath.Join(photoBaseDir, "latest")
-	os.RemoveAll(latestDir) // Remove existing symlink/dir
-	if err := os.Symlink(batchPath, latestDir); err != nil {
-		// If symlink fails (Windows), copy files instead
-		if err := copyDir(batchPath, latestDir); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50013,
-				"message": "failed to update latest directory: " + err.Error(),
-			})
-			return
-		}
+	
+	// Update latest using service only AFTER successful DB save
+	if err := photoService.UpdateLatest(tenantID, instrumentSN, batchDir); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50013,
+			"message": "failed to update latest directory: " + err.Error(),
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -351,7 +352,7 @@ func GetLatestInstrumentPhotos(c *gin.Context) {
 		return
 	}
 
-	// Determine tenant and instrument paths
+	// Use photo storage service
 	tenantID := instrument.TenantID
 	if tenantID == "" {
 		tenantID = "default"
@@ -361,31 +362,14 @@ func GetLatestInstrumentPhotos(c *gin.Context) {
 		instrumentSN = "unknown_sn"
 	}
 
-	// Check if latest symlink exists
-	latestDir := filepath.Join(".", "uploads", "photos", tenantID, instrumentSN, "latest")
-	if _, err := os.Stat(latestDir); os.IsNotExist(err) {
+	photoService := services.NewPhotoStorageService()
+	photos, err := photoService.GetLatestPhotos(tenantID, instrumentSN)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40401,
-			"message": "no photo batches found for this instrument",
+			"message": "no photo batches found for this instrument: " + err.Error(),
 		})
 		return
-	}
-
-	// List files in latest directory (excluding subdirectories)
-	var photos []string
-	entries, err := os.ReadDir(latestDir)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "failed to read latest directory: " + err.Error(),
-		})
-		return
-	}
-
-	for _, entry := range entries {
-		if !entry.IsDir() && entry.Name() != "manifest.yaml" {
-			photos = append(photos, filepath.Join("/uploads/photos", tenantID, instrumentSN, "latest", entry.Name()))
-		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -396,32 +380,5 @@ func GetLatestInstrumentPhotos(c *gin.Context) {
 			"photos":        photos,
 			"count":         len(photos),
 		},
-	})
-}
-
-// Helper function to copy directory (for Windows compatibility)
-func copyDir(src, dst string) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-
-		dstPath := filepath.Join(dst, relPath)
-
-		if info.IsDir() {
-			return os.MkdirAll(dstPath, info.Mode())
-		}
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		return os.WriteFile(dstPath, data, info.Mode())
 	})
 }
