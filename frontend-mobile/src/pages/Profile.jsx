@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, apiFetch, getToken, redirectToLogin } from '../services/api'
-import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key } from 'lucide-react'
+import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock } from 'lucide-react'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ phone: '', email: '' })
@@ -92,18 +92,28 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
   )
 }
 
+function parseImages(images) {
+  if (!images) return []
+  if (Array.isArray(images)) return images
+  if (typeof images === 'string') {
+    try { return JSON.parse(images) } catch { return [] }
+  }
+  return []
+}
+
 export default function Profile() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
+  const [activeLeases, setActiveLeases] = useState([])
+  const [leaseHistory, setLeaseHistory] = useState([])
+
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        setLoading(true)
-        const token = getToken()
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
         const resp = await apiFetch(`${baseUrl}/users/me`)
         const result = await resp.json()
         if (result.code === 20000) {
@@ -116,6 +126,26 @@ export default function Profile() {
     }
     fetchUser()
   }, [])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [])
+
+  const fetchOrders = async () => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders`)
+      const result = await resp.json()
+      if (result.code === 20000) {
+        const allOrders = result.data?.list || []
+        const active = allOrders.filter(o => ['in_lease', 'shipping', 'returning'].includes(o.status))
+        const history = allOrders.filter(o => ['returned', 'completed'].includes(o.status))
+        setActiveLeases(active)
+        setLeaseHistory(history)
+      }
+    } catch (err) {
+      console.error('Failed to fetch orders:', err)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -138,6 +168,36 @@ export default function Profile() {
   }
 
   const businessRole = user?.business_role || ''
+
+  const statusLabel = {
+    pending: '待付款',
+    paid: '待发货',
+    shipped: '已发货',
+    in_lease: '租赁中',
+    returning: '归还中',
+    returned: '已归还',
+    completed: '已完成',
+    cancelled: '已取消',
+  }
+
+  const statusColor = {
+    in_lease: 'bg-green-100 text-green-700',
+    shipping: 'bg-blue-100 text-blue-700',
+    returning: 'bg-yellow-100 text-yellow-700',
+    returned: 'bg-gray-100 text-gray-600',
+    completed: 'bg-gray-100 text-gray-600',
+  }
+
+  const isOverdue = (order) => {
+    if (order.status !== 'in_lease' || !order.end_date) return false
+    return new Date(order.end_date) < new Date()
+  }
+
+  const overdueDays = (order) => {
+    if (!isOverdue(order) || !order.end_date) return 0
+    const diff = new Date() - new Date(order.end_date)
+    return Math.ceil(diff / (1000 * 60 * 60 * 24))
+  }
 
   if (loading) {
     return (
@@ -165,6 +225,7 @@ export default function Profile() {
       </div>
 
       <div className="p-4 space-y-3">
+        {/* Personal Info - localized */}
         <div className="bg-white rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-medium">个人信息</h3>
@@ -173,15 +234,13 @@ export default function Profile() {
             </button>
           </div>
           <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex justify-between"><span>Name</span><span>{user?.name || '-'}</span></div>
-            <div className="flex justify-between"><span>Phone</span><span>{user?.phone || '-'}</span></div>
-            <div className="flex justify-between"><span>Email</span><span>{user?.email || '-'}</span></div>
-            <div className="flex justify-between"><span>Role</span><span>{businessRole || '-'}</span></div>
-            <div className="flex justify-between"><span>Type</span><span>{user?.user_type || '-'}</span></div>
-            <div className="flex justify-between"><span>Position</span><span>{user?.position || '-'}</span></div>
+            <div className="flex justify-between"><span>姓名</span><span>{user?.name || '-'}</span></div>
+            <div className="flex justify-between"><span>电话</span><span>{user?.phone || '-'}</span></div>
+            <div className="flex justify-between"><span>邮箱</span><span>{user?.email || '-'}</span></div>
           </div>
         </div>
 
+        {/* Set Password */}
         <div className="bg-white rounded-xl p-4">
           <button
             onClick={handlePasswordSetup}
@@ -193,6 +252,80 @@ export default function Profile() {
           </button>
         </div>
 
+        {/* Current Rentals */}
+        {activeLeases.length > 0 && (
+          <div className="bg-white rounded-xl p-4">
+            <h3 className="font-medium mb-3 flex items-center gap-2">
+              <Package size={18} className="text-brand-primary" />
+              当前租赁
+            </h3>
+            <div className="space-y-3">
+              {activeLeases.map(order => (
+                <div
+                  key={order.id}
+                  className="border rounded-lg p-3 cursor-pointer"
+                  onClick={() => navigate(`/instrument/${order.instrument_id}`)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-medium text-sm">Order #{order.id?.slice(0, 8)}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${statusColor[order.status] || 'bg-gray-100'}`}>
+                      {statusLabel[order.status] || order.status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    {order.start_date && <p>开始: {order.start_date}</p>}
+                    {order.end_date && <p>结束: {order.end_date}</p>}
+                    {isOverdue(order) && (
+                      <p className="text-red-500 font-medium">
+                        超期 {overdueDays(order)} 天 · 超期费 ¥{((order.monthly_rent || 0) / 30 * overdueDays(order)).toFixed(0)}
+                      </p>
+                    )}
+                    {order.status === 'shipping' && order.tracking_number && (
+                      <p>物流: {order.courier_company || ''} {order.tracking_number}</p>
+                    )}
+                    {order.status === 'returning' && order.tracking_number && (
+                      <p>归还物流: {order.courier_company || ''} {order.tracking_number}</p>
+                    )}
+                    <p>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Rental History */}
+        {leaseHistory.length > 0 && (
+          <div className="bg-white rounded-xl p-4">
+            <h3 className="font-medium mb-3 flex items-center gap-2">
+              <History size={18} className="text-gray-400" />
+              租赁历史
+            </h3>
+            <div className="space-y-2">
+              {leaseHistory
+                .sort((a, b) => new Date(b.end_date || b.updated_at) - new Date(a.end_date || a.updated_at))
+                .map(order => (
+                <div
+                  key={order.id}
+                  className="border rounded-lg p-3 cursor-pointer"
+                  onClick={() => navigate(`/instrument/${order.instrument_id}`)}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-sm font-medium">Order #{order.id?.slice(0, 8)}</span>
+                    <span className="text-xs text-gray-500">{statusLabel[order.status]}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    {order.start_date && <p>开始: {order.start_date}</p>}
+                    {order.end_date && <p>归还: {order.end_date}</p>}
+                    <p>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* My Account (customer) or Staff Functions */}
         {(businessRole === 'site_admin' || businessRole === 'site_member') ? (
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
@@ -226,14 +359,6 @@ export default function Profile() {
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium mb-3">My Account</h3>
-              <button
-                onClick={() => navigate('/my-leases')}
-                className="flex items-center gap-3 w-full py-2 border-b"
-              >
-                <span className="text-xl">📋</span>
-                <span className="flex-1 text-left text-sm">My Leases</span>
-                <ChevronRight size={16} className="text-gray-300" />
-              </button>
               <button
                 onClick={() => navigate('/messages')}
                 className="flex items-center gap-3 w-full py-2"
