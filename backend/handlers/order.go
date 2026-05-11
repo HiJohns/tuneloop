@@ -290,6 +290,11 @@ func GetOrders(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	query := db.Model(&models.Order{}).Where("tenant_id = ?", tenantID)
 
+	// Filter by user_id if available (for customer profile view)
+	if userID := middleware.GetUserID(c.Request.Context()); userID != "" {
+		query = query.Where("user_id = ?", userID)
+	}
+
 	// Filter by status if provided
 	if status != "" {
 		query = query.Where("status = ?", status)

@@ -53,6 +53,7 @@ const (
 	BusinessRoleMerchantAdmin = "merchant_admin"
 	BusinessRoleSiteAdmin     = "site_admin"
 	BusinessRoleSiteMember    = "site_member"
+	BusinessRoleCustomer      = "customer"
 )
 
 var validIssuers = []string{
@@ -355,8 +356,9 @@ func GetBusinessRole(ctx context.Context) string {
 	orgID := GetOrgID(ctx)
 	isOwner := IsOwner(ctx)
 
+	// Empty role should return customer, not staff member
 	if role == "" && orgID == "" {
-		return BusinessRoleSiteMember
+		return BusinessRoleCustomer
 	}
 
 	if isOwner {
