@@ -1,133 +1,92 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Statistic, Modal, Form, InputNumber, Input, Alert, Badge, Switch } from 'antd'
-import { ArrowLeftOutlined, EditOutlined, StockOutlined, DollarOutlined, PlusOutlined, MinusOutlined, HistoryOutlined, SettingOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Statistic, Spin, Empty } from 'antd'
+import { ArrowLeftOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
+
+function parsePricing(pricing) {
+  if (!pricing) return null
+  if (Array.isArray(pricing)) return pricing[0] || null
+  if (typeof pricing === 'string') {
+    try { const arr = JSON.parse(pricing); return Array.isArray(arr) ? (arr[0] || null) : null } catch { return null }
+  }
+  if (typeof pricing === 'object') return pricing
+  return null
+}
 
 export default function InstrumentDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [stockModalVisible, setStockModalVisible] = useState(false)
-  const [stockForm] = Form.useForm()
-  const [stockLogs, setStockLogs] = useState([])
-  const [thresholdAlert, setThresholdAlert] = useState(null)
-  const [thresholdForm] = Form.useForm()
-  const [thresholdModalVisible, setThresholdModalVisible] = useState(false)
+  const [leaseData, setLeaseData] = useState(null)
+  const [leaseLoading, setLeaseLoading] = useState(false)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   useEffect(() => {
     fetchInstrument()
   }, [id])
 
-  // Check for low stock alert - MUST be before any conditional returns
   useEffect(() => {
-    if (instrument && instrument.stock && instrument.stock.available < 2) {
-      setThresholdAlert({
-        threshold: 2,
-        enabled: true
-      })
-    }
-  }, [instrument])
+    if (instrument?.sn) fetchLeaseData()
+  }, [instrument?.sn])
 
   const fetchInstrument = async () => {
     setLoading(true)
     try {
       const response = await fetch(`${API_BASE_URL}/instruments/${id}`)
       if (!response.ok) throw new Error('Failed to fetch instrument')
-      
       const data = await response.json()
       if (data.code === 20000) {
         setInstrument(data.data)
-      } else {
-        // Fallback demo data
-        setInstrument({
-          id: id,
-          name: '雅马哈立式钢琴 U1',
-          brand: 'Yamaha',
-          model: 'U1',
-          category_name: '钢琴',
-level: 'advanced',
-          description: '专业级立式钢琴，音色优美，适合各种演奏场合',
-          images: ['/images/piano1.jpg', '/images/piano2.jpg'],
-          video: '',
-          stock_status: 'available',
-          stock: {
-            total: 5,
-            available: 3,
-            rented: 2,
-            maintenance: 0
-          },
-          pricing: {
-            daily: 50,
-            weekly: 300,
-            monthly: 1200,
-            deposit: 5000
-          },
-          specs: [
-            {
-              id: 'spec_001',
-              name: '标准版 121cm',
-              daily_rent: 150,
-              weekly_rent: 900,
-              monthly_rent: 3750,
-              deposit: 3000,
-              stock: 5
-            },
-            {
-              id: 'spec_002',
-              name: '专业版 131cm',
-              daily_rent: 180,
-              weekly_rent: 1080,
-              monthly_rent: 4500,
-              deposit: 3500,
-              stock: 5
-            }
-          ],
-          rating: 4.8,
-          review_count: 128,
-          created_at: '2024-01-15T10:00:00Z',
-          updated_at: '2024-03-20T15:30:00Z'
-        })
       }
     } catch (error) {
-      message.error('加载乐器详情失败: ' + error.message)
-      setInstrument({
-        id: id,
-        name: '雅马哈立式钢琴 U1',
-        brand: 'Yamaha',
-        model: 'U1',
-        category_name: '钢琴',
-        level: 'advanced',
-        description: '专业级立式钢琴，音色优美，适合各种演奏场合',
-        images: ['/images/piano1.jpg'],
-        video: '',
-        stock_status: 'available',
-        stock: {
-          total: 5,
-          available: 3,
-          rented: 2,
-          maintenance: 0
-        },
-        pricing: {
-          daily: 50,
-          weekly: 300,
-          monthly: 1200,
-          deposit: 5000
-        },
-        specs: [],
-        rating: 4.8,
-        review_count: 128,
-        created_at: '2024-01-15T10:00:00Z',
-        updated_at: '2024-03-20T15:30:00Z'
-      })
+      console.error('Failed to fetch instrument:', error)
     } finally {
       setLoading(false)
     }
   }
 
+  const fetchLeaseData = async () => {
+    if (!instrument?.sn) return
+    setLeaseLoading(true)
+    try {
+      const orderResp = await fetch(`${API_BASE_URL}/orders/by-instrument-sn?sn=${encodeURIComponent(instrument.sn)}`)
+      const orderResult = await orderResp.json()
+      if (orderResult.code !== 20000 || !orderResult.data?.order_id) {
+        setLeaseData(null)
+        setLeaseLoading(false)
+        return
+      }
+
+      const detailResp = await fetch(`${API_BASE_URL}/orders/${orderResult.data.order_id}`)
+      const detailResult = await detailResp.json()
+      if (detailResult.code !== 20000) {
+        setLeaseData(null)
+        setLeaseLoading(false)
+        return
+      }
+
+      const order = detailResult.data
+      let userData = null
+      if (order.user_id) {
+        const userResp = await fetch(`${API_BASE_URL}/users/${order.user_id}`)
+        const userResult = await userResp.json()
+        if (userResult.code === 20000) userData = userResult.data
+      }
+
+      setLeaseData({ order, user: userData })
+    } catch (error) {
+      console.error('Failed to fetch lease data:', error)
+    }
+    setLeaseLoading(false)
+  }
+
+  if (loading) {
+    return <div className="p-6 flex items-center justify-center h-64"><Spin size="large" /></div>
+  }
+
   if (!instrument) {
-    return <div className="p-6">加载中...</div>
+    return <div className="p-6">乐器不存在</div>
   }
 
   const statusMap = {
@@ -148,129 +107,9 @@ level: 'advanced',
     professional: '专业级'
   }
 
-  const specsColumns = [
-    {
-      title: '规格名称',
-      dataIndex: 'name',
-      key: 'name'
-    },
-    {
-      title: '日租金',
-      dataIndex: 'daily_rent',
-      key: 'daily_rent',
-      render: (value) => `¥${value}`
-    },
-    {
-      title: '周租金',
-      dataIndex: 'weekly_rent',
-      key: 'weekly_rent',
-      render: (value) => `¥${value}`
-    },
-    {
-      title: '月租金',
-      dataIndex: 'monthly_rent',
-      key: 'monthly_rent',
-      render: (value) => `¥${value}`
-    },
-    {
-      title: '押金',
-      dataIndex: 'deposit',
-      key: 'deposit',
-      render: (value) => `¥${value}`
-    },
-    {
-      title: '库存',
-      dataIndex: 'stock',
-      key: 'stock'
-    }
-  ]
+  const pricing = parsePricing(instrument.pricing)
 
-  // Stock management functions
-  const adjustStock = (type) => {
-    stockForm.resetFields()
-    stockForm.setFieldsValue({ type })
-    setStockModalVisible(true)
-  }
-
-  const handleStockSubmit = async () => {
-    try {
-      const values = await stockForm.validateFields()
-      
-      const response = await fetch(`${API_BASE_URL}/instruments/${id}/stock`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: values.type,
-          quantity: parseInt(values.quantity),
-          notes: values.notes || '',
-          spec_id: values.spec_id
-        })
-      })
-      
-      if (!response.ok) throw new Error('库存调整失败')
-      
-      const result = await response.json()
-      if (result.code === 20000) {
-        message.success('库存调整成功')
-        setStockModalVisible(false)
-        fetchInstrument()
-        fetchStockLogs()
-      } else {
-        throw new Error(result.message || '库存调整失败')
-      }
-    } catch (error) {
-      message.error(error.message || '库存调整失败')
-    }
-  }
-
-  const fetchStockLogs = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/instruments/${id}/stock-logs`)
-      if (!response.ok) throw new Error('获取库存记录失败')
-      
-      const result = await response.json()
-      if (result.code === 20000) {
-        setStockLogs(result.data || [])
-      }
-    } catch (error) {
-      console.error('Fetch stock logs failed:', error)
-    }
-  }
-
-  const setStockThreshold = async () => {
-    try {
-      const values = await thresholdForm.validateFields()
-      
-      const response = await fetch(`${API_BASE_URL}/instruments/${id}/stock-threshold`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          threshold: values.threshold,
-          alert_enabled: values.alert_enabled
-        })
-      })
-      
-      if (!response.ok) throw new Error('设置库存预警失败')
-      
-      const result = await response.json()
-      if (result.code === 20000) {
-        message.success('库存预警设置成功')
-        setThresholdModalVisible(false)
-        setThresholdAlert({
-          threshold: values.threshold,
-          enabled: values.alert_enabled
-        })
-      } else {
-        throw new Error(result.message || '设置库存预警失败')
-      }
-    } catch (error) {
-      message.error(error.message || '设置库存预警失败')
-    }
-  }
+  const activeStatuses = ['reserved', 'shipping', 'rented', 'returning']
 
   return (
     <div className="p-6">
@@ -290,62 +129,14 @@ level: 'advanced',
             {instrument.category_name}
           </p>
         </div>
-        <Space>
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/instruments/${instrument?.id || id}/edit`)}
-          >
-            编辑
-          </Button>
-          <Button 
-            icon={<StockOutlined />}
-            onClick={() => navigate(`/instruments/stock/${instrument.id}`)}
-          >
-            库存管理
-          </Button>
-        </Space>
+        <Button 
+          type="primary" 
+          icon={<EditOutlined />}
+          onClick={() => navigate(`/instruments/${instrument?.id || id}/edit`)}
+        >
+          编辑
+        </Button>
       </div>
-
-      {/* Overview Cards */}
-      <Row gutter={16} className="mb-6">
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="总库存"
-              value={instrument.stock?.total || 0}
-              prefix={<StockOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="可租数量"
-              value={instrument.stock?.available || 0}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="在租数量"
-              value={instrument.stock?.rented || 0}
-              valueStyle={{ color: '#fa8c16' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="维修数量"
-              value={instrument.stock?.maintenance || 0}
-              valueStyle={{ color: '#f5222d' }}
-            />
-          </Card>
-        </Col>
-      </Row>
 
       <Tabs defaultActiveKey="basic" items={[
         {
@@ -422,28 +213,28 @@ level: 'advanced',
                 <Col span={6}>
                   <Statistic
                     title="日租金"
-                    value={`¥${instrument.pricing?.daily || 0}`}
+                    value={`¥${pricing?.daily_rent || 0}`}
                     prefix={<DollarOutlined />}
                   />
                 </Col>
                 <Col span={6}>
                   <Statistic
                     title="周租金"
-                    value={`¥${instrument.pricing?.weekly || 0}`}
+                    value={`¥${pricing?.weekly_rent || 0}`}
                     prefix={<DollarOutlined />}
                   />
                 </Col>
                 <Col span={6}>
                   <Statistic
                     title="月租金"
-                    value={`¥${instrument.pricing?.monthly || 0}`}
+                    value={`¥${pricing?.monthly_rent || 0}`}
                     prefix={<DollarOutlined />}
                   />
                 </Col>
                 <Col span={6}>
                   <Statistic
                     title="押金"
-                    value={`¥${instrument.pricing?.deposit || 0}`}
+                    value={`¥${pricing?.deposit || 0}`}
                     prefix={<DollarOutlined />}
                     valueStyle={{ color: '#cf1322' }}
                   />
@@ -453,218 +244,69 @@ level: 'advanced',
           )
         },
         {
-          label: '规格配置',
-          key: 'specs',
+          label: '租赁状态',
+          key: 'lease',
           children: (
-            <Card title="规格列表">
-              {instrument.specifications && instrument.specifications.length > 0 ? (
-                <Table
-                  columns={specsColumns}
-                  dataSource={instrument.specifications || [] || []}
-                  rowKey="id"
-                  pagination={false}
-                />
+            <Card title="当前租赁信息">
+              {leaseLoading ? (
+                <Spin />
+              ) : !activeStatuses.includes(instrument.stock_status) ? (
+                <Empty description="当前无租赁信息" />
+              ) : !leaseData ? (
+                <Empty description="未找到关联订单" />
               ) : (
-                <div className="text-center text-gray-500 py-8">
-                  暂无规格配置
+                <div className="space-y-4">
+                  <Descriptions column={2} bordered size="small">
+                    <Descriptions.Item label="租赁人">
+                      <Space>
+                        <UserOutlined />
+                        {leaseData.user?.name || '-'}
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="电话">
+                      {leaseData.user?.phone || '-'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="地址" span={2}>
+                      <Space>
+                        <EnvironmentOutlined />
+                        {leaseData.user?.address || '-'}
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="租期开始">
+                      <Space>
+                        <CalendarOutlined />
+                        {leaseData.order?.start_date || '-'}
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="租期结束">
+                      {leaseData.order?.end_date || '-'}
+                    </Descriptions.Item>
+                    {(instrument.stock_status === 'shipping' || instrument.stock_status === 'returning') && (
+                      <>
+                        <Descriptions.Item label="物流公司">
+                          <Space>
+                            <TruckOutlined />
+                            {leaseData.order?.courier_company || '-'}
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="物流单号">
+                          {leaseData.order?.tracking_number || '-'}
+                        </Descriptions.Item>
+                      </>
+                    )}
+                  </Descriptions>
+
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>日租金: ¥{leaseData.order?.monthly_rent ? (leaseData.order.monthly_rent / 30).toFixed(0) : 0}</p>
+                    <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
+                    <p>押金: ¥{leaseData.order?.deposit || 0}</p>
+                  </div>
                 </div>
               )}
             </Card>
           )
-        },
-        {
-          label: '库存管理',
-          key: 'stock-log',
-          children: (
-            <>
-              {/* Stock Threshold Alert */}
-              {thresholdAlert && thresholdAlert.enabled && instrument?.stock?.available <= thresholdAlert.threshold && (
-                <Alert
-                  message="库存预警"
-                  description={`当前可租库存仅 ${instrument.stock.available} 件，低于预警阈值 ${thresholdAlert.threshold}`}
-                  type="warning"
-                  showIcon
-                  className="mb-4"
-                />
-              )}
-              
-              <Card title="库存状态" className="mb-4">
-                <Row gutter={16}>
-                  <Col span={6}>
-                    <Statistic
-                      title="总库存"
-                      value={instrument.stock?.total || 0}
-                      valueStyle={{ color: instrument.stock?.total < 5 ? '#faad14' : undefined }}
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <Badge count={instrument.stock?.available <= 2 ? '低' : 0}>
-                      <Statistic
-                        title="可租数量"
-                        value={instrument.stock?.available || 0}
-                        valueStyle={{ color: instrument.stock?.available < 3 ? '#ff4d4f' : '#52c41a' }}
-                      />
-                    </Badge>
-                  </Col>
-                  <Col span={6}>
-                    <Statistic
-                      title="在租数量"
-                      value={instrument.stock?.rented || 0}
-                      valueStyle={{ color: '#fa8c16' }}
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <Statistic
-                      title="维修数量"
-                      value={instrument.stock?.maintenance || 0}
-                      valueStyle={{ color: '#f5222d' }}
-                    />
-                  </Col>
-                </Row>
-                
-                <div className="mt-4 flex gap-4">
-                  <Button icon={<PlusOutlined />} onClick={() => adjustStock('increase')} type="primary">
-                    增加库存
-                  </Button>
-                  <Button icon={<MinusOutlined />} onClick={() => adjustStock('decrease')} danger>
-                    减少库存
-                  </Button>
-                  <Button icon={<SettingOutlined />} onClick={() => setThresholdModalVisible(true)}>
-                    设置预警
-                  </Button>
-                </div>
-              </Card>
-              
-              <Card title="库存变动记录">
-                <Table
-                  columns={[
-                    { 
-                      title: '时间', 
-                      dataIndex: 'created_at', 
-                      key: 'created_at',
-                      render: (text) => new Date(text).toLocaleString()
-                    },
-                    { 
-                      title: '类型', 
-                      dataIndex: 'type', 
-                      key: 'type',
-                      render: (type) => {
-                        const typeMap = {
-                          'increase': { text: '入库', color: 'green' },
-                          'decrease': { text: '出库', color: 'red' },
-                          'rental': { text: '租赁', color: 'blue' },
-                          'return': { text: '归还', color: 'orange' },
-                          'maintenance': { text: '维修', color: 'purple' }
-                        }
-                        const config = typeMap[type] || { text: type, color: 'default' }
-                        return <Tag color={config.color}>{config.text}</Tag>
-                      }
-                    },
-                    { 
-                      title: '数量', 
-                      dataIndex: 'quantity', 
-                      key: 'quantity',
-                      render: (value, record) => {
-                        const prefix = record.type === 'increase' || record.type === 'return' ? '+' : '-'
-                        return <span style={{ color: prefix === '+' ? 'green' : 'red' }}>{prefix}{value}</span>
-                      }
-                    },
-                    { title: '备注', dataIndex: 'notes', key: 'notes' },
-                    { title: '操作人', dataIndex: 'operator', key: 'operator' }
-                  ]}
-                  dataSource={stockLogs || []}
-                  rowKey="id"
-                  locale={{ emptyText: '暂无库存记录' }}
-                  pagination={{ pageSize: 10 }}
-                />
-              </Card>
-            </>
-          )
         }
       ]} />
-      
-      {/* Stock Adjustment Modal */}
-      <Modal
-        title="库存调整"
-        open={stockModalVisible}
-        onOk={handleStockSubmit}
-        onCancel={() => setStockModalVisible(false)}
-        width={500}
-      >
-        <Form
-          form={stockForm}
-          layout="vertical"
-        >
-          <Form.Item
-            name="type"
-            label="调整类型"
-            hidden
-          >
-            <Input />
-          </Form.Item>
-          
-          <Form.Item
-            name="quantity"
-            label="数量"
-            rules={[{ required: true, message: '请输入调整数量' }]}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} placeholder="输入数量" />
-          </Form.Item>
-          
-          <Form.Item
-            name="notes"
-            label="备注"
-          >
-            <Input.TextArea rows={3} placeholder="请输入调整原因或备注" />
-          </Form.Item>
-        </Form>
-      </Modal>
-      
-      {/* Stock Threshold Modal */}
-      <Modal
-        title="设置库存预警"
-        open={thresholdModalVisible}
-        onOk={setStockThreshold}
-        onCancel={() => setThresholdModalVisible(false)}
-        width={500}
-      >
-        <Form
-          form={thresholdForm}
-          layout="vertical"
-          initialValues={{
-            threshold: thresholdAlert?.threshold || 2,
-            alert_enabled: thresholdAlert?.enabled !== false
-          }}
-        >
-          <Form.Item
-            name="threshold"
-            label="库存预警阈值"
-            rules={[{ required: true, message: '请输入预警阈值' }]}
-          >
-            <InputNumber
-              min={0}
-              style={{ width: '100%' }}
-              placeholder="当库存低于此值时预警"
-              addonAfter="件"
-            />
-          </Form.Item>
-          
-          <Form.Item
-            name="alert_enabled"
-            label="启用预警"
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-          
-          <Alert
-            message="提示"
-            description="当可租库存低于设定阈值时，系统将显示预警提示"
-            type="info"
-            showIcon
-          />
-        </Form>
-      </Modal>
     </div>
   )
 }
