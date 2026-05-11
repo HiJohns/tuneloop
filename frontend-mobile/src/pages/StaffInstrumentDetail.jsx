@@ -79,7 +79,7 @@ export default function StaffInstrumentDetail() {
       alert('乐器不在已预约状态，无法发货')
       return
     }
-    navigate('/staff/shipping')
+    navigate(`/staff/shipping?instrument=${instrument.id}`)
   }
 
   const handleReceive = async () => {

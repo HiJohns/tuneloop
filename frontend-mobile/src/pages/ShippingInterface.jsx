@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { ArrowLeft, Camera, Scan, Plus, X } from 'lucide-react'
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [snInput, setSnInput] = useState('')
   const [items, setItems] = useState([])
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
@@ -12,6 +13,44 @@ export default function ShippingInterface() {
   const [photoSpecs, setPhotoSpecs] = useState([])
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+
+  // Auto-fetch instrument(s) from URL params on mount
+  useEffect(() => {
+    const ids = searchParams.get('instrument')
+    if (ids) {
+      ids.split(',').forEach(id => {
+        fetchInstrumentById(id.trim())
+      })
+    }
+  }, [])
+
+  const fetchInstrumentById = async (instrumentId) => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/instruments/${instrumentId}`)
+      const result = await resp.json()
+      if (result.code === 20000 && result.data) {
+        const inst = result.data
+        if (inst.stock_status !== 'reserved') {
+          alert(`Instrument ${inst.sn} is not in reserved status (current: ${inst.stock_status})`)
+          return
+        }
+        const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+        const orderResult = await orderResp.json()
+        const orderID = orderResult.code === 20000 ? orderResult.data?.order_id : null
+        setItems(prev => [...prev.filter(i => i.sn !== inst.sn), {
+          sn: inst.sn,
+          name: inst.name,
+          brand: inst.brand,
+          model: inst.model,
+          category_id: inst.category_id,
+          order_id: orderID,
+        }])
+        if (inst.category_id) fetchPhotoSpecs(inst.category_id)
+      }
+    } catch (err) {
+      console.error('Failed to fetch instrument:', err)
+    }
+  }
 
   const checkInstrument = async (sn) => {
     try {
