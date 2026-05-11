@@ -530,3 +530,13 @@ type ConfirmationSession struct {
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
+
+// InstrumentPhotoBatch stores photo batch metadata for instruments
+type InstrumentPhotoBatch struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	BatchType    string    `gorm:"type:varchar(20);not null;index" json:"batch_type"`
+	StoragePath  string    `gorm:"type:varchar(500);not null" json:"storage_path"`
+	OperatorID   string    `gorm:"type:uuid;index" json:"operator_id"`
+	CreatedAt    time.Time `json:"created_at"`
+}

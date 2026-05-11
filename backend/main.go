@@ -207,6 +207,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// Instrument CRUD - site_manager and above can create
 		authRequired.POST("/instruments", middleware.RequireSiteManager(), handlers.CreateInstrument)
 		authRequired.PUT("/instruments/:id/status", handlers.UpdateInstrumentStatus)
+		authRequired.POST("/instruments/:id/photos/upload", handlers.UploadInstrumentPhotos)
+		authRequired.GET("/instruments/:id/photos/latest", handlers.GetLatestInstrumentPhotos)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
