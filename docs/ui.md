@@ -2009,9 +2009,9 @@ cd frontend-pc && npm run build  # 应该成功
   - 简介
   - 分类、级别
 - 租金信息
-  - 日租金
-  - 周租金（日租金×7×0.9）
-  - 月租金（日租金×30×0.8）
+  - 日租金（instrument.pricing[0].daily_rent）
+  - 周租金（instrument.pricing[0].weekly_rent，未定义时使用 daily_rent×7×0.9 回退）
+  - 月租金（instrument.pricing[0].monthly_rent，未定义时使用 daily_rent×30×0.8 回退）
   - 押金说明
 - 下单按钮
   - 指定租赁时间（起止日期）

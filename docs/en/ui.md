@@ -275,6 +275,14 @@ Menu visibility is driven by JWT bitmaps: `sys_perm` (IAM built-in, bits 0-24) +
 **Features**:
 - Image gallery
 - Basic info card
+  - Brand, model
+  - Description
+  - Category, level
+- Pricing information
+  - Daily rent (instrument.pricing[0].daily_rent)
+  - Weekly rent (instrument.pricing[0].weekly_rent, falls back to daily_rent×7×0.9 if undefined)
+  - Monthly rent (instrument.pricing[0].monthly_rent, falls back to daily_rent×30×0.8 if undefined)
+  - Deposit information
 - Lease history
 - Maintenance history
 - Current status

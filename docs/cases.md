@@ -457,10 +457,10 @@ flowchart TD
 - 可以看到乐器最新一批图片
 - 可以看到品牌、型号、简介
 - 可以看到日、周、月租金、押金说明
-- 费用计算公式：费用 = 单期费用 × 期数 + 押金 + 物流费
-  - 日租金 = daily_rent
-  - 周租金 = daily_rent × 6
-  - 月租金 = daily_rent × 25
+  - 费用计算公式：费用 = 单期费用 × 期数 + 押金 + 物流费
+  - 日租金 = instrument.pricing[0].daily_rent
+  - 周租金 = instrument.pricing[0].weekly_rent（未定义时使用 daily_rent × 6 作为回退）
+  - 月租金 = instrument.pricing[0].monthly_rent（未定义时使用 daily_rent × 25 作为回退）
 - 押金：后台设定（乐器归还、质检通过后原路退还，损坏则定损抵扣）
 - 物流费：后台设定
 - 逾期日费：后台设定（默认等于日租金），逾期后每日自动扣款
