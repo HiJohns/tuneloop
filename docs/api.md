@@ -941,6 +941,193 @@ Content-Disposition: attachment; filename="instrument_import_template.xlsx"
 - Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值
 - 输入长度限制: 超过1000字符自动截断
 - 严格数值验证: 价格字段必须为有效数字\n\n#### 5.6.1 导入乐器信息\n\n**接口**: `POST /api/instruments/import`\n\n**Content-Type**: `multipart/form-data`\n\n**表单字段**:\n- `file`: Excel文件 (.xlsx, .xls)\n\n**请求示例**:\n```bash\ncurl -X POST http://localhost:5554/api/instruments/import \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  -F "file=@instruments.xlsx"\n```\n\n**成功响应 (部分成功)**:\n```json\n{\n  "code": 20000,\n  "data": {\n    "total": 100,\n    "success": 95,\n    "failed": 5,\n    "errors": [\n      {\n        "row": 10,\n        "error": "Missing required field: name"\n      },\n      {\n        "row": 25,\n        "error": "Invalid price format"\n      }\n    ]\n  },\n  "message": "Import completed: 95 success, 5 failed (23.5 records/s)"\n}\n```\n\n**错误响应**:\n```json\n{\n  "code": 40003,\n  "message": "Only Excel files (.xlsx, .xls) are supported"\n}\n```\n\n**Excel模板字段**:\n| 字段名 | 中文标题 | 必填 | 说明 |\n|--------|----------|------|------|\n| name | 乐器名称 | ✅ | 乐器名称 |\n| brand | 品牌 | ❌ | 品牌名称 |\n| model | 型号 | ❌ | 型号 |\n| category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |\n| level | 级别 | ❌ | enum: entry/pro/master，默认entry |\n| daily_rate | 日租金 | ❌ | 数字格式，如: 50 |\n| monthly_rate | 月租金 | ❌ | 数字格式 |\n| deposit | 押金 | ❌ | 数字格式 |\n| stock | 库存数量 | ❌ | 整数，默认0 |\n| status | 状态 | ❌ | enum: available/rented/maintenance，默认available |\n| description | 描述 | ❌ | 乐器描述 |\n| images | 图片URL | ❌ | 支持多个，逗号分隔 |\n\n**业务规则**:\n- 支持部分成功导入，每行独立验证\n- 重复检测: name + brand + model 组合唯一\n- 分类模糊匹配，未找到时自动归类到"未分类"\n- 批次提交，每100条提交一次事务\n\n---\n\n#### 5.6.2 导出乐器列表\n\n**接口**: `GET /api/instruments/export`\n\n**查询参数**:\n- `category`: 分类筛选 (可选)\n- `status`: 状态筛选 (可选)\n- `search_text`: 搜索文本，匹配name或brand (可选)\n- `fields`: 导出字段，逗号分隔 (可选，默认全部)\n\n**请求示例**:\n```bash\ncurl -X GET "http://localhost:5554/api/instruments/export?category=钢琴&status=available&fields=name,brand,price" \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instruments.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instruments_1234567890.xlsx"\n\n[Binary Excel File Content]\n```\n\n**错误响应**:\n```json\n{\n  "code": 40006,\n  "message": "Export failed: no instruments found with given filters"\n}\n```\n\n**可用导出字段**:\n- `name` - 乐器名称\n- `brand` - 品牌\n- `model` - 型号\n- `category_name` - 分类名称\n- `level` - 级别\n- `daily_rate` - 日租金\n- `monthly_rate` - 月租金\n- `deposit` - 押金\n- `stock` - 库存\n- `status` - 状态\n- `description` - 描述\n- `images` - 图片URL\n\n---\n\n#### 5.6.3 下载导入模板\n\n**接口**: `GET /api/instruments/import/template`\n\n**请求示例**:\n```bash\ncurl -X GET http://localhost:5554/api/instruments/import/template \\  -H "Authorization: Bearer <JWT_TOKEN>" \\  --output instrument_template.xlsx\n```\n\n**成功响应**:\n```\nHTTP/1.1 200 OK\nContent-Type: application/octet-stream\nContent-Disposition: attachment; filename="instrument_import_template.xlsx"\n\n[Binary Excel File Content]\n```\n\n**模板内容**:\n- 第1行: 字段标题（红色为必填）\n- 第2行: 示例数据\n- 第4-8行: 填写说明\n\n**安全特性**:\n- Excel公式注入防护: 自动转义以`=`, `+`, `-`, `@`开头的值\n- 输入长度限制: 超过1000字符自动截断\n- 严格数值验证: 价格字段必须为有效数字
+
+---
+
+### 5.8 乐器照片存储
+
+#### 5.8.1 上传乐器照片批次
+
+**接口**: `POST /api/instruments/:id/photos/upload`
+
+**Content-Type**: `multipart/form-data`
+
+**路径参数**:
+- `id`: 乐器ID (UUID)
+
+**表单字段**:
+- `photos`: 图片文件数组 (支持多个文件)
+- `batch_type`: 批次类型 (enum: outbound/return/maintenance)
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**请求示例**:
+```bash
+curl -X POST http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-426614174000/photos/upload \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -F "batch_type=outbound" \
+  -F "photos=@front.jpg" \
+  -F "photos=@side.jpg"
+```
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "batch_id": "abc123...",
+    "instrument_id": "123e4567-e89b-12d3-a456-426614174000",
+    "batch_type": "outbound",
+    "storage_path": "/uploads/photos/tenant_abc/SN-12345/batch_20240101_120000.zip",
+    "photo_count": 2,
+    "created_at": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 40004,
+  "message": "No photos uploaded"
+}
+```
+
+**存储结构**:
+```
+uploads/photos/{tenant_id}/{instrument_sn}/batch_{timestamp}/
+  ├─ photo1.jpg
+  ├─ photo2.jpg
+  └─ manifest.yaml
+```
+
+**manifest.yaml 内容**:
+```yaml
+version: "1.0"
+batch_id: abc123...
+instrument_id: 123e4567-e89b-12d3-a456-426614174000
+instrument_sn: SN-12345
+batch_type: outbound
+operator_id: user_789
+tenant_id: tenant_abc
+created_at: "2024-01-01T12:00:00Z"
+photos:
+  - filename: front.jpg
+    position: front
+    timestamp: "2024-01-01T12:00:01Z"
+    size: 2048576
+  - filename: side.jpg
+    position: side
+    timestamp: "2024-01-01T12:00:02Z"
+    size: 1872451
+```
+
+---
+
+#### 5.8.2 获取最新照片批次
+
+**接口**: `GET /api/instruments/:id/photos/latest`
+
+**路径参数**:
+- `id`: 乐器ID (UUID)
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**请求示例**:
+```bash
+curl -X GET http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-426614174000/photos/latest \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "instrument_id": "123e4567-e89b-12d3-a456-426614174000",
+    "instrument_sn": "SN-12345",
+    "photos": [
+      "/uploads/photos/tenant_abc/SN-12345/latest/front.jpg",
+      "/uploads/photos/tenant_abc/SN-12345/latest/side.jpg"
+    ],
+    "count": 2
+  }
+}
+```
+
+**错误响应 (无照片)**:
+```json
+{
+  "code": 40401,
+  "message": "No photo batches found for this instrument"
+}
+```
+
+**存储结构**:
+系统将创建 `uploads/photos/{tenant_id}/{instrument_sn}/latest/` 软链接，指向最新的员工拍照批次目录。
+
+---
+
+#### 5.8.3 获取乐器照片批次列表
+
+**接口**: `GET /api/instruments/:id/photos/batches`
+
+**路径参数**:
+- `id`: 乐器ID (UUID)
+
+**查询参数**:
+- `page`: 页码 (默认: 1)
+- `pageSize`: 每页数量 (默认: 20, 最大: 100)
+- `batch_type`: 按批次类型筛选 (可选)
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-426614174000/photos/batches?page=1&batch_type=outbound" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "items": [
+      {
+        "batch_id": "abc123...",
+        "batch_type": "outbound",
+        "storage_path": "/uploads/photos/tenant_abc/SN-12345/batch_20240101_120000.zip",
+        "photo_count": 2,
+        "operator_id": "user_789",
+        "created_at": "2024-01-01T12:00:00Z"
+      },
+      {
+        "batch_id": "def456...",
+        "batch_type": "return",
+        "storage_path": "/uploads/photos/tenant_abc/SN-12345/batch_20240115_140000.zip",
+        "photo_count": 3,
+        "operator_id": "user_012",
+        "created_at": "2024-01-15T14:00:00Z"
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "code": 40400,
+  "message": "Instrument not found"
+}
+```
+
+---
+
 ## 六、订单模块
 
 ### 6.1 预计算首期费用

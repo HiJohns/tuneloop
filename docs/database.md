@@ -183,7 +183,47 @@
 
 **说明**: 乐器与属性值的多对多关联表，通过此表实现乐器的动态属性（品牌、型号、年份等）。同一乐器可以有多个属性值。
 
-### 2.6 orders - 订单表
+### 2.6 instrument_photo_batches - 乐器照片批次表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| instrument_id | UUID | NOT NULL, INDEX | 乐器 ID (外键) |
+| batch_type | VARCHAR(20) | NOT NULL, INDEX | 批次类型: outbound/return/maintenance |
+| storage_path | VARCHAR(500) | NOT NULL | ZIP 文件存储路径 |
+| operator_id | UUID | INDEX | 拍照员工 ID (外键) |
+| created_at | TIMESTAMP | NOT NULL | 批次创建时间 |
+
+**说明**: 记录乐器照片批次信息。每次员工按拍照要求对乐器拍照，生成一个批次，同一天同一乐器的员工拍照归为同一批次，打包为 ZIP 文件存储。
+
+**存储结构**:
+```
+uploads/photos/{tenant_id}/{instrument_sn}/batch_{timestamp}/
+  ├─ photo1.jpg
+  ├─ photo2.jpg
+  └─ manifest.yaml
+```
+
+**manifest.yaml 格式**:
+```yml
+version: "1.0"
+batch_id: uuid
+instrument_id: uuid
+instrument_sn: string
+batch_type: outbound|return|maintenance
+operator_id: uuid
+tenant_id: uuid
+created_at: RFC3339
+photos:
+  - filename: string
+    position: string
+    timestamp: RFC3339
+    size: int64
+```
+
+---
+
+### 2.7 orders - 订单表
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
