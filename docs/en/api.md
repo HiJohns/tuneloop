@@ -250,6 +250,22 @@ PUT /api/orders/:id/terminate
 
 ---
 
+### 5.12 Instrument Photo Storage
+
+**POST /api/instruments/:id/photos/upload**
+Upload photos for an instrument batch.
+
+**GET /api/instruments/:id/photos/latest**
+Get latest batch photos for an instrument.
+
+**GET /api/instruments/:id/photos/batches**
+List all photo batches for an instrument.
+```
+PUT /api/orders/:id/terminate
+```
+
+---
+
 ## 6. Maintenance APIs
 
 ### 6.1 Submit Repair Request
