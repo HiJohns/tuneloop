@@ -112,7 +112,7 @@ export default function StaffInstruments() {
               <div
                 key={inst.id}
                 className="bg-white rounded-xl p-3 shadow-sm flex gap-3"
-                onClick={() => navigate(`/instrument/${inst.id}`)}
+                onClick={() => navigate(`/staff/instrument/${inst.id}`)}
               >
                 {(() => {
                   const instImages = parseImages(inst.images)

@@ -13,6 +13,7 @@ import MyService from './pages/MyService'
 import MyLeases from './pages/MyLeases'
 import Messages from './pages/Messages'
 import StaffInstruments from './pages/StaffInstruments'
+import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
 import ShippingInterface from './pages/ShippingInterface'
 import ReceivingInterface from './pages/ReceivingInterface'
 import Cart from './pages/Cart'
@@ -193,6 +194,7 @@ function App() {
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
+        <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
