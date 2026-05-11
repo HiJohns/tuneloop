@@ -5,6 +5,7 @@ export default function ImageUploader({ onUpload, maxImages = 5 }) {
   const [images, setImages] = useState([])
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef(null)
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
@@ -26,16 +27,41 @@ export default function ImageUploader({ onUpload, maxImages = 5 }) {
     if (images.length === 0) return
     
     setUploading(true)
+    const uploadedUrls = []
     
-    // Simulate API call
-    setTimeout(() => {
-      const mockUrl = "https://dummy.tuneloop.com/uploads/mock-image.jpg"
+    try {
+      for (const img of images) {
+        const formData = new FormData()
+        formData.append('file', img.file)
+        
+        const resp = await fetch(`${baseUrl}/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+        
+        const result = await resp.json()
+        
+        if (result.code === 20000 && result.data?.url) {
+          uploadedUrls.push({
+            url: result.data.url,
+            filename: img.name,
+            timestamp: new Date().toISOString()
+          })
+        } else {
+          throw new Error(result.message || 'Upload failed')
+        }
+      }
+      
       setUploading(false)
       if (onUpload) {
-        onUpload(mockUrl)
+        onUpload(uploadedUrls)
       }
-      alert("上传成功！")
-    }, 1500)
+      // Clear selection after successful upload
+      setImages([])
+    } catch (err) {
+      setUploading(false)
+      alert(`上传失败: ${err.message}`)
+    }
   }
 
   const removeImage = (index) => {

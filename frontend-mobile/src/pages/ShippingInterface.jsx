@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { ArrowLeft, Camera, Scan, Plus, X } from 'lucide-react'
+import ImageUploader from '../components/ImageUploader'
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
@@ -11,6 +12,7 @@ export default function ShippingInterface() {
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
   const [submitting, setSubmitting] = useState(false)
   const [photoSpecs, setPhotoSpecs] = useState([])
+  const [uploadedPhotos, setUploadedPhotos] = useState([])
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -105,6 +107,13 @@ export default function ShippingInterface() {
 
   const handleSubmit = async () => {
     if (items.length === 0) return
+    
+    // Check if photos are required and uploaded
+    if (photoSpecs.length > 0 && uploadedPhotos.length === 0) {
+      alert('请上传所需的照片')
+      return
+    }
+    
     setSubmitting(true)
     try {
       for (const item of items) {
@@ -119,6 +128,7 @@ export default function ShippingInterface() {
             tracking_number: logistics.trackingNumber,
             company: logistics.company,
             shipped_at: new Date().toISOString(),
+            photos: uploadedPhotos,
           }),
         })
         const result = await resp.json()
@@ -192,11 +202,15 @@ export default function ShippingInterface() {
               <Camera size={18} className="text-brand-primary" />
               Photo Requirements
             </h3>
-            <ul className="space-y-1 text-sm text-gray-600">
+            <ul className="space-y-1 text-sm text-gray-600 mb-3">
               {photoSpecs.map((spec, idx) => (
                 <li key={idx}>• {spec.position}: {spec.description} {spec.required ? '(Required)' : '(Optional)'}</li>
               ))}
             </ul>
+            <ImageUploader 
+              maxImages={5} 
+              onUpload={(photos) => setUploadedPhotos(photos)}
+            />
           </div>
         )}
 
@@ -220,7 +234,7 @@ export default function ShippingInterface() {
 
         <button
           onClick={handleSubmit}
-          disabled={items.length === 0 || submitting}
+          disabled={items.length === 0 || submitting || (photoSpecs.length > 0 && uploadedPhotos.length === 0)}
           className="w-full py-3 bg-brand-primary text-white rounded-xl disabled:opacity-50 font-medium"
         >
           {submitting ? 'Submitting...' : `Submit (${items.length} items)`}
