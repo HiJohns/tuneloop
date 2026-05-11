@@ -359,7 +359,7 @@
         "level_name": "级别名",
         "images": ["url1", "url2"],
         "pricing": {},
-        "stock_status": "in_stock",
+        "stock_status": "available", // available/reserved/shipping/rented/returning/maintenance/expired/archived
         "tenant_id": "uuid",
         "site_id": "uuid",
         "site_name": "网点名",
@@ -656,7 +656,7 @@
         "level_name": "专业级",
         "monthly_rent": 800,
         "deposit": 5000,
-        "stock_status": "available" // available, renting_out, maintenance
+        "stock_status": "available" // available, reserved, shipping, rented, returning, maintenance, expired, archived
       }
     ],
     "total": 120

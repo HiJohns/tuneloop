@@ -185,6 +185,58 @@
 
 ---
 
+
+---
+
+## 0.3 乐器状态机 (Instrument State Machine)
+
+乐器在生命周期中可能经历以下状态转换：
+
+```mermaid
+flowchart TD
+  available[可租 available] -- 用户下单 --> reserved[已预约 reserved]
+  reserved -- 物流取货 --> shipping[物流中 shipping]
+  shipping -- 用户签收 --> rented[租赁中 rented]
+  rented -- 用户提交给返程物流 --> returning[归还中 returning]
+  returning -- 员工签收状态正常 --> available
+  returning -- 员工签收有损坏 --> maintenance[维修 maintenance]
+  maintenance -- 维修师傅完成处理 --> available
+  rented -- 超期 --> expired[超期 expired]
+  expired -- 用户提交给返程物流 --> returning
+  available -- 经理选择下架 --> archived[下架 archived]
+  maintenance -- 经理选择下架 --> archived
+  archived -- 经理选择恢复 --> available
+```
+
+### 状态定义
+
+| 状态代码 | 中文名 | 说明 |
+|----------|--------|------|
+| `available` | 可租 | 乐器在库，可供租赁 |
+| `reserved` | 已预约 | 用户已下单但尚未发货 |
+| `shipping` | 物流中 | 乐器已交付物流，运输中 |
+| `rented` | 租赁中 | 用户已签收，租期内 |
+| `returning` | 归还中 | 用户已提交归还，返程物流中 |
+| `maintenance` | 维修 | 乐器损坏，等待或正在维修 |
+| `expired` | 超期 | 租赁期已过但用户尚未归还 |
+| `archived` | 下架 | 乐器已下架，不对外租赁 |
+
+### 角色可见性
+
+- **用户（顾客）**:
+  - 查看乐器列表：除了下架外可见所有乐器，状态只显示"可租"/"不可租"（非 available 即为不可租）
+  - 在租赁列表中可看到自己租赁乐器的真实状态
+- **员工**:
+  - 查看乐器列表：除下架外可见所有乐器及真实状态
+- **网点经理**:
+  - 查看乐器列表：可见所有乐器（含下架）
+  - available/maintenance 状态可切换为 archived，archived 可切换回 available/maintenance
+  - 提供开关，可切换查看下级网点乐器（含所属网点列）
+- **商户管理员**:
+  - 同网点经理，可查看下级网点所有乐器
+
+---
+
 ## 1. 乐器列表
 ### 1.1 乐器录入
 
