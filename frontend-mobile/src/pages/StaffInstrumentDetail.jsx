@@ -160,7 +160,7 @@ export default function StaffInstrumentDetail() {
   return (
     <div className="min-h-screen bg-brand-bg pb-24">
       <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate('/staff/instruments')}>
+        <button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold">乐器详情</h1>
