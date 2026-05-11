@@ -29,6 +29,8 @@ export default function Dashboard() {
   const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
   const [assets, setAssets] = useState([])
+  const [leasesData, setLeasesData] = useState([])
+  const [today, setToday] = useState('')
   const [totalAssets, setTotalAssets] = useState(0)
   const [activeRentals, setActiveRentals] = useState(0)
   const [todaysNewOrders, setTodaysNewOrders] = useState(0)
@@ -42,30 +44,32 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const todayStr = new Date().toISOString().split('T')[0]
+      setToday(todayStr)
       const [inventoryRes, sitesRes, leasesRes, ordersRes, maintenanceRes] = await Promise.all([
         inventoryApi.list(),
         sitesApi.list(),
         leaseApi.list(),
-        ordersApi.list? ordersApi.list({ start_date: today, end_date: today }) : Promise.resolve({ data: [] }),
+        ordersApi.list? ordersApi.list({ start_date: todayStr, end_date: todayStr }) : Promise.resolve({ data: [] }),
         maintenanceApi.listMerchant(),
       ])
       
       const inventoryData = inventoryRes?.data?.list || []
       const sitesData = sitesRes?.data?.list || []
-      const leasesData = leasesRes?.data?.list || []
+      const leasesList = leasesRes?.data?.list || []
       const ordersResponse = ordersRes?.data?.list || []
       const maintenanceData = maintenanceRes?.data?.list || []
       
       setAssets(inventoryData)
+      setLeasesData(leasesList) // Fix: add leases to state
       setTotalAssets(inventoryData.length) // Fix 5: Total Assets 改为资产总数
       setSites(sitesData.map(s => ({
         value: s.id,
         label: s.name,
       })))
       
-      if (leasesData.length > 0) {
-        const activeLeases = leasesData.filter(l => l.status === 'active')
+      if (leasesList.length > 0) {
+        const activeLeases = leasesList.filter(l => l.status === 'active')
         setActiveRentals(activeLeases.length)
       }
       
@@ -101,8 +105,6 @@ export default function Dashboard() {
       navigate('/maintenance')
     }
   }
-
-  const today = new Date().toISOString().split('T')[0]
 
   const filteredAssets = selectedSite
     ? assets.filter(a => a.siteId === selectedSite)
