@@ -26,10 +26,11 @@ const getWXConfig = () => {
   }
 }
 
-function storeToken(token, expiresIn = 3600) {
+function storeToken(accessToken, expiresIn = 3600, refreshToken) {
   const expiry = new Date().getTime() + (expiresIn * 1000)
-  localStorage.setItem('token', token)
+  localStorage.setItem('token', accessToken)
   localStorage.setItem('token_expiry', expiry.toString())
+  if (refreshToken) localStorage.setItem('refresh_token', refreshToken)
 }
 
 function parseJWT(token) {
@@ -119,7 +120,7 @@ function OAuthCallback() {
         const tokenData = data.data || data
         
         if (tokenData.access_token) {
-          storeToken(tokenData.access_token, tokenData.expires_in || 3600)
+          storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
           
           if (tokenData.user_info) {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))

@@ -121,6 +121,56 @@ export function getTokenFromCookie() {
   return null
 }
 
+async function refreshAccessToken() {
+  const refreshToken = localStorage.getItem('refresh_token')
+  if (!refreshToken) throw new Error('No refresh token')
+
+  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+
+  if (!response.ok) throw new Error('Token refresh failed')
+
+  const data = await response.json()
+  if (data.code === 20000 && data.data?.access_token) {
+    localStorage.setItem('token', data.data.access_token)
+    if (data.data.refresh_token) localStorage.setItem('refresh_token', data.data.refresh_token)
+    return data.data.access_token
+  }
+  throw new Error('Invalid refresh response')
+}
+
+function processApiResponse(endpoint, data) {
+  // 标准化响应：确保返回数组
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  // 提取常见包装字段
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.data)) return data.data
+    if (Array.isArray(data.items)) return data.items
+    if (Array.isArray(data.result)) return data.result
+    if (Array.isArray(data.list)) return data.list
+
+    // 处理嵌套格式: { code: 20000, data: { instruments: [...] } }
+    if (data.data && typeof data.data === 'object') {
+      if (Array.isArray(data.data.instruments)) return data.data.instruments
+      if (Array.isArray(data.data.list)) return data.data.list
+    }
+
+    if (data.success && Array.isArray(data.data)) return data.data
+
+    if (data.code === 0 && Array.isArray(data.data)) return data.data
+    if (data.code === 20000 && Array.isArray(data.data)) return data.data
+  }
+
+  // 非数组响应返回完整对象（保留原始格式）
+  return data
+}
+
 async function request(endpoint, options = {}) {
   console.log('[API Debug] Making request to:', endpoint)
   
@@ -141,6 +191,16 @@ async function request(endpoint, options = {}) {
   })
 
   if (response.status === 401) {
+    // 尝试刷新 token 后重试
+    try {
+      const newToken = await refreshAccessToken()
+      headers['Authorization'] = `Bearer ${newToken}`
+      const retryResp = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers })
+      if (retryResp.ok) {
+        const retryData = await retryResp.json()
+        return processApiResponse(endpoint, retryData)
+      }
+    } catch {}
     redirectToLogin()
     return
   }
@@ -151,43 +211,23 @@ async function request(endpoint, options = {}) {
   }
 
   const data = await response.json()
-  
-  // 处理 token 过期错误
+
+  // 处理 token 过期错误 — 尝试刷新后重试
   if (data.code === 40101 || data.code === 401) {
+    try {
+      const newToken = await refreshAccessToken()
+      headers['Authorization'] = `Bearer ${newToken}`
+      const retryResp = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers })
+      if (retryResp.ok) {
+        const retryData = await retryResp.json()
+        return processApiResponse(endpoint, retryData)
+      }
+    } catch {}
     redirectToLogin()
     return []
   }
-  
-  // 标准化响应：确保返回数组
-  if (Array.isArray(data)) {
-    return data
-  }
-  
-  // 提取常见包装字段
-  if (data && typeof data === 'object') {
-    if (Array.isArray(data.data)) return data.data
-    if (Array.isArray(data.items)) return data.items
-    if (Array.isArray(data.result)) return data.result
-    if (Array.isArray(data.list)) return data.list
-    
-    // 处理嵌套格式: { code: 20000, data: { instruments: [...] } }
-    if (data.data && typeof data.data === 'object') {
-      // 后端返回: { code: 20000, data: { instruments: [...] } }
-      if (Array.isArray(data.data.instruments)) return data.data.instruments
-      // 后端返回: { code: 20000, data: { list: [...] } }
-      if (Array.isArray(data.data.list)) return data.data.list
-    }
-    
-    // 处理统一响应格式: { success: true, data: [...] }
-    if (data.success && Array.isArray(data.data)) return data.data
-    
-    // 处理 code 格式: { code: 0, data: [...] }
-    if (data.code === 0 && Array.isArray(data.data)) return data.data
-    if (data.code === 20000 && Array.isArray(data.data)) return data.data
-  }
-  
-  // 非数组响应返回完整对象（保留原始格式）
-  return data
+
+  return processApiResponse(endpoint, data)
 }
 
 /**
