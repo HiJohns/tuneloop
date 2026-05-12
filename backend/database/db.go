@@ -156,6 +156,11 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 
 	registerTenantCallbacks(db)
 
+	// 补充 GORM AutoMigrate 创建 SQL 迁移文件中缺失的表
+	if err := AutoMigrate(db); err != nil {
+		return nil, fmt.Errorf("failed to auto-migrate: %w", err)
+	}
+
 	return db, nil
 }
 
