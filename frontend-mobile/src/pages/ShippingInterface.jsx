@@ -33,7 +33,7 @@ export default function ShippingInterface() {
       if (result.code === 20000 && result.data) {
         const inst = result.data
         if (inst.stock_status !== 'reserved') {
-          alert(`Instrument ${inst.sn} is not in reserved status (current: ${inst.stock_status})`)
+          alert(`乐器 ${inst.sn} 未处于已预约状态（当前: ${inst.stock_status}）`)
           return
         }
         const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
@@ -61,7 +61,7 @@ export default function ShippingInterface() {
       if (result.code === 20000 && result.data?.exists) {
         const inst = result.data.info
         if (inst.stock_status !== 'reserved') {
-          alert(`Instrument ${sn} is not in reserved status (current: ${inst.stock_status})`)
+          alert(`乐器 ${sn} 未处于已预约状态（当前: ${inst.stock_status}）`)
           return
         }
 
@@ -82,7 +82,7 @@ export default function ShippingInterface() {
           fetchPhotoSpecs(inst.category_id)
         }
       } else {
-        alert('Instrument not found')
+        alert('未找到该乐器')
       }
     } catch (err) {
       console.error('Failed to check instrument:', err)
@@ -119,7 +119,7 @@ export default function ShippingInterface() {
     try {
       for (const item of items) {
         if (!item.order_id) {
-          alert(`No active order found for instrument ${item.sn}`)
+          alert(`乐器 ${item.sn} 没有活跃的订单`)
           setSubmitting(false)
           return
         }
@@ -134,15 +134,15 @@ export default function ShippingInterface() {
         })
         const result = await resp.json()
         if (result.code !== 20000) {
-          alert(`Failed to ship ${item.sn}: ${result.message}`)
+          alert(`发货失败 ${item.sn}: ${result.message}`)
           setSubmitting(false)
           return
         }
       }
-      alert('All items shipped successfully')
+      alert('全部发货成功')
       navigate('/staff/instruments')
     } catch (err) {
-      alert('Shipping failed: ' + err.message)
+      alert('发货失败: ' + err.message)
     }
     setSubmitting(false)
   }
@@ -173,7 +173,7 @@ export default function ShippingInterface() {
               <Plus size={18} />
             </button>
             <button
-              onClick={() => alert('QR scanner is not yet available')}
+              onClick={() => alert('扫码功能暂不可用')}
               className="px-4 py-2 border rounded-lg"
             >
               <Scan size={18} />

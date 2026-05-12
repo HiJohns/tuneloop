@@ -145,6 +145,11 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// 顾客无租户时继承乐器的 tenant_id
+	if tenantID == "00000000-0000-0000-0000-000000000000" && instrument.TenantID != "" {
+		tenantID = instrument.TenantID
+	}
+
 	// Check if instrument is available
 	if instrument.StockStatus != "available" {
 		c.JSON(http.StatusConflict, gin.H{
@@ -587,7 +592,7 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 	if err := db.Where("instrument_id = ? AND status NOT IN ?",
 		instrument.ID, []string{"cancelled", "completed"}).
 		Order("created_at DESC").First(&order).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "no active order found for this instrument"})
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "未找到该乐器的活跃订单"})
 		return
 	}
 
