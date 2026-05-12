@@ -41,9 +41,10 @@ export default function ShippingInterface() {
         const orderID = orderResult.code === 20000 ? orderResult.data?.order_id : null
         setItems(prev => [...prev.filter(i => i.sn !== inst.sn), {
           sn: inst.sn,
-          name: inst.name,
-          brand: inst.brand,
-          model: inst.model,
+          images: inst.images,
+          pricing: inst.pricing,
+          category_name: inst.category_name,
+          level_name: inst.level_name,
           category_id: inst.category_id,
           order_id: orderID,
         }])
@@ -71,9 +72,10 @@ export default function ShippingInterface() {
 
         setItems(prev => [...prev.filter(i => i.sn !== sn), {
           sn,
-          name: inst.name,
-          brand: inst.brand,
-          model: inst.model,
+          images: inst.images,
+          pricing: inst.pricing,
+          category_name: inst.category_name,
+          level_name: inst.level_name,
           category_id: inst.category_id,
           order_id: orderID,
         }])
@@ -151,18 +153,18 @@ export default function ShippingInterface() {
     <div className="min-h-screen bg-brand-bg pb-20">
       <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
         <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">Shipping</h1>
+        <h1 className="text-lg font-bold">发货</h1>
       </div>
 
       <div className="p-4 space-y-4">
         <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">Add Instrument</h3>
+          <h3 className="font-medium mb-3">添加乐器</h3>
           <div className="flex gap-2">
             <input
               type="text"
               value={snInput}
               onChange={e => setSnInput(e.target.value)}
-              placeholder="Enter SN or scan QR code"
+              placeholder="输入识别码或扫描二维码"
               className="flex-1 border rounded-lg px-3 py-2"
               onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
             />
@@ -182,63 +184,86 @@ export default function ShippingInterface() {
         </div>
 
         {items.length > 0 && (
-          <div className="space-y-2">
-            {items.map((item, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-3 flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-sm">{item.name}</p>
-                  <p className="text-xs text-gray-500">{item.brand} {item.model} | SN: {item.sn}</p>
+          <div>
+            <h3 className="font-medium mb-2">货品列表</h3>
+            <div className="space-y-2">
+              {items.map((item, idx) => (
+                <div key={idx} className="bg-white rounded-xl p-3 flex gap-3 items-center">
+                  <img
+                    src={(() => { try { const imgs = JSON.parse(item.images || '[]'); return imgs[0] || '' } catch { return '' } })()}
+                    alt={item.sn}
+                    className="w-14 h-14 object-cover rounded-lg flex-shrink-0 bg-gray-100"
+                    onError={(e) => { (e.target).src = ''; (e.target).style.display = 'none' }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">SN: {item.sn}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {[item.category_name, item.level_name].filter(Boolean).join(' | ') || '-'}
+                    </p>
+                    {(() => {
+                      try {
+                        const pricing = JSON.parse(item.pricing || '[]')
+                        if (pricing[0]) {
+                          const p = pricing[0]
+                          return <p className="text-xs text-blue-600 font-medium mt-0.5">¥{p.daily_rent}/天 · ¥{p.monthly_rent}/月</p>
+                        }
+                      } catch {}
+                      return null
+                    })()}
+                  </div>
+                  <button onClick={() => removeItem(item.sn)} className="text-red-500 flex-shrink-0">
+                    <X size={18} />
+                  </button>
                 </div>
-                <button onClick={() => removeItem(item.sn)} className="text-red-500">
-                  <X size={18} />
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {photoSpecs.length > 0 && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="font-medium mb-2 flex items-center gap-2">
-              <Camera size={18} className="text-brand-primary" />
-              Photo Requirements
-            </h3>
+        <div className="bg-white rounded-xl p-4">
+          <h3 className="font-medium mb-2 flex items-center gap-2">
+            <Camera size={18} className="text-brand-primary" />
+            拍照要求
+          </h3>
+          {photoSpecs.length > 0 ? (
             <ul className="space-y-1 text-sm text-gray-600 mb-3">
               {photoSpecs.map((spec, idx) => (
-                <li key={idx}>• {spec.position}: {spec.description} {spec.required ? '(Required)' : '(Optional)'}</li>
+                <li key={idx}>• {spec.position}: {spec.description} {spec.required ? '(必需)' : '(可选)'}</li>
               ))}
             </ul>
-            <ImageUploader 
-              maxImages={5} 
-              onUpload={(photos) => setUploadedPhotos(photos)}
-            />
-          </div>
-        )}
+          ) : (
+            <p className="text-sm text-gray-500 mb-3">请拍摄乐器照片作为发货留档</p>
+          )}
+          <ImageUploader
+            maxImages={5}
+            onUpload={(photos) => setUploadedPhotos(photos)}
+          />
+        </div>
 
         <div className="bg-white rounded-xl p-4 space-y-3">
-          <h3 className="font-medium">Logistics Info</h3>
+          <h3 className="font-medium">物流信息</h3>
           <input
             type="text"
             value={logistics.company}
             onChange={e => setLogistics({ ...logistics, company: e.target.value })}
-            placeholder="Courier company"
+            placeholder="承运公司"
             className="w-full border rounded-lg px-3 py-2"
           />
           <input
             type="text"
             value={logistics.trackingNumber}
             onChange={e => setLogistics({ ...logistics, trackingNumber: e.target.value })}
-            placeholder="Tracking number"
+            placeholder="快递单号"
             className="w-full border rounded-lg px-3 py-2"
           />
         </div>
 
         <button
           onClick={handleSubmit}
-          disabled={items.length === 0 || submitting || (photoSpecs.filter(spec => spec.required).length > 0 && uploadedPhotos.length < photoSpecs.filter(spec => spec.required).length)}
+          disabled={items.length === 0 || submitting || uploadedPhotos.length === 0}
           className="w-full py-3 bg-brand-primary text-white rounded-xl disabled:opacity-50 font-medium"
         >
-          {submitting ? 'Submitting...' : `Submit (${items.length} items)`}
+          {submitting ? '提交中...' : `提交（${items.length} 件）`}
         </button>
       </div>
     </div>
