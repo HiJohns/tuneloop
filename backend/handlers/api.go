@@ -330,7 +330,7 @@ func GetCategories(c *gin.Context) {
 	}
 
 	categoryMap := make(map[string]map[string]interface{})
-	var result []map[string]interface{}
+	result := make([]map[string]interface{}, 0)
 
 	for _, cat := range categories {
 		categoryData := map[string]interface{}{
