@@ -31,10 +31,9 @@ type CreateInstrumentRequest struct {
 	Specifications []map[string]interface{} `json:"specifications"`
 	Properties     map[string]interface{}   `json:"properties"` // Accept frontend's properties field
 
-	// Deprecated fields - kept for backward compatibility, use Properties instead
-	Brand string `json:"brand"`
-	Model string `json:"model"`
+	// Level - 保留用于向后兼容（旧版 API 可能使用 level 字符串）
 	Level string `json:"level"`
+	// Brand, Model 字段已删除 - 遗留字段
 }
 
 // processProperties handles the properties association logic for instruments
@@ -388,7 +387,7 @@ func UpdateInstrument(c *gin.Context) {
 	instrument.Description = req.Description
 	instrument.Video = req.Video
 	log.Printf("[DEBUG] req.SN = '%s', req.Level = '%s', req.CategoryID = '%s'", req.SN, req.Level, req.CategoryID)
-	instrument.SN = req.SN
+	// SN 是乐器唯一标识，创建后不可修改 - 禁止覆盖
 
 	if req.SiteID != "" {
 		if siteUUID, err := uuid.Parse(req.SiteID); err == nil {
@@ -488,8 +487,76 @@ func UpdateInstrument(c *gin.Context) {
 		instrument.Pricing = string(pricingJSON)
 	}
 
-	// Step 2: 确保 tenant_id 不为空 (org_id 是可选的指针字段)
-	// 确保 tenant_id 存在
+	// Step 2: 构建 updates map，只更新非空字段（避免零值覆盖）
+	updates := map[string]interface{}{}
+
+	// Description - 只有非空才更新
+	if req.Description != "" {
+		updates["description"] = req.Description
+	}
+
+	// Video - 只有非空才更新
+	if req.Video != "" {
+		updates["video"] = req.Video
+	}
+
+	// CategoryID - 必须是有效 UUID 才更新
+	if req.CategoryID != "" {
+		if _, err := uuid.Parse(req.CategoryID); err == nil {
+			updates["category_id"] = req.CategoryID
+			// 同时更新 category_name
+			var cat struct {
+				Name string `json:"name"`
+			}
+			if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+				updates["category_name"] = cat.Name
+			}
+		}
+	}
+
+	// LevelID - 必须是有效 UUID 才更新
+	if req.LevelID != "" {
+		if parsedID, err := uuid.Parse(req.LevelID); err == nil {
+			updates["level_id"] = parsedID
+			// 同时更新 level_name
+			var level models.InstrumentLevel
+			if err := db.Where("id = ?", parsedID).First(&level).Error; err == nil {
+				updates["level_name"] = level.Caption
+			}
+		}
+	}
+
+	// SiteID - 必须是有效 UUID 才更新
+	if req.SiteID != "" {
+		if siteUUID, err := uuid.Parse(req.SiteID); err == nil {
+			updates["site_id"] = siteUUID
+		}
+	}
+
+	// StockStatus - 只有非空才更新
+	if req.Status != "" {
+		updates["stock_status"] = req.Status
+	}
+
+	// Images - 非空数组才更新
+	if req.Images != nil && len(req.Images) > 0 {
+		imagesJSON, _ := json.Marshal(req.Images)
+		updates["images"] = string(imagesJSON)
+	}
+
+	// Specifications - 非空数组才更新
+	if req.Specifications != nil && len(req.Specifications) > 0 {
+		specsJSON, _ := json.Marshal(req.Specifications)
+		updates["specifications"] = string(specsJSON)
+	}
+
+	// Pricing - 非空才更新
+	if req.Pricing != nil {
+		pricingJSON, _ := json.Marshal(req.Pricing)
+		updates["pricing"] = string(pricingJSON)
+	}
+
+	// Step 3: 确保 tenant_id 不为空
 	if instrument.TenantID == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50001,
@@ -498,12 +565,15 @@ func UpdateInstrument(c *gin.Context) {
 		return
 	}
 
-	if err := db.Save(&instrument).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "failed to update instrument: " + err.Error(),
-		})
-		return
+	// 只有当有字段需要更新时才执行更新
+	if len(updates) > 0 {
+		if err := db.Model(&instrument).Where("id = ? AND tenant_id = ?", instrument.ID, instrument.TenantID).Updates(updates).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to update instrument: " + err.Error(),
+			})
+			return
+		}
 	}
 
 	// Process properties if provided (delete existing and recreate)
@@ -664,14 +734,12 @@ func CheckInstrumentSN(c *gin.Context) {
 			"exists": true,
 			"info": gin.H{
 				"id":           instrument.ID,
-				"name":         instrument.Name,
+				"sn":           instrument.SN,
 				"site":         siteName,
 				"site_id":      instrument.SiteID,
 				"category":     categoryName,
 				"category_id":  instrument.CategoryID,
 				"category_name": instrument.CategoryName,
-				"brand":        instrument.Brand,
-				"model":        instrument.Model,
 				"stock_status": instrument.StockStatus,
 			},
 		},

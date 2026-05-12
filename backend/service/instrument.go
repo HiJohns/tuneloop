@@ -127,11 +127,9 @@ func (s *InstrumentService) ImportInstruments(file *excelize.File, tenantID stri
 
 		instrument.TenantID = tenantID
 
+		// 乐器唯一标识为 SN（识别码），重复检查基于 SN
 		var existing models.Instrument
-		dupQuery := tx.Where("tenant_id = ? AND name = ?", tenantID, instrument.Name)
-		if instrument.Brand != "" {
-			dupQuery = dupQuery.Where("brand = ?", instrument.Brand)
-		}
+		dupQuery := tx.Where("tenant_id = ? AND sn = ?", tenantID, instrument.SN)
 		if err := dupQuery.First(&existing).Error; err == nil {
 			result.Failed++
 			result.Errors = append(result.Errors, ImportError{
@@ -226,12 +224,14 @@ func (s *InstrumentService) parseRow(row []string, columnIndex map[string]int, r
 		return ""
 	}
 
-	instrument.Name = getCellValue("name")
-	if instrument.Name == "" {
-		return nil, fmt.Errorf("name is required")
+	// 乐器唯一标识为 SN（识别码），创建时必须提供
+	instrument.SN = getCellValue("sn")
+	if instrument.SN == "" {
+		return nil, fmt.Errorf("sn (识别码) is required")
 	}
 
-	instrument.Brand = getCellValue("brand")
+	// Brand 字段已删除 - 遗留字段不再支持
+	// instrument.Brand = getCellValue("brand")
 	instrument.Description = getCellValue("description")
 
 	level := strings.ToLower(getCellValue("level"))
@@ -440,10 +440,8 @@ func (s *InstrumentService) resolveCategory(instrument *models.Instrument, tenan
 
 func (s *InstrumentService) getFieldValue(instrument *models.Instrument, field string) string {
 	switch field {
-	case "name":
-		return s.sanitizeValue(instrument.Name)
-	case "brand":
-		return s.sanitizeValue(instrument.Brand)
+	case "sn":
+		return s.sanitizeValue(instrument.SN)
 	case "level":
 		return s.sanitizeValue(instrument.Level)
 	case "stock":
@@ -452,6 +450,7 @@ func (s *InstrumentService) getFieldValue(instrument *models.Instrument, field s
 		return s.sanitizeValue(instrument.StockStatus)
 	case "description":
 		return s.sanitizeValue(instrument.Description)
+	// name, brand 字段已删除
 	default:
 		return ""
 	}

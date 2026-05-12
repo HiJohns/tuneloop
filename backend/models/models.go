@@ -45,15 +45,15 @@ type Instrument struct {
 	OrgID           *string          `gorm:"type:uuid;index" json:"org_id"`
 	CategoryID      *string          `gorm:"type:uuid;index" json:"category_id"`
 	CategoryName    string           `gorm:"type:varchar(100)" json:"category_name"`
-	Name            string           `gorm:"type:varchar(255)" json:"name"`
-	Brand           string           `gorm:"type:varchar(100)" json:"brand"`
+	// Name 字段已删除 - 乐器无名称，完全靠 SN 识别
+	// Brand 字段已删除 - 遗留字段
 	Level           string           `gorm:"type:varchar(20)" json:"level"`      // deprecated, use LevelID instead
 	LevelName       string           `gorm:"type:varchar(50)" json:"level_name"` // deprecated
 	LevelID         *uuid.UUID       `gorm:"type:uuid;index" json:"level_id"`
 	InstrumentLevel *InstrumentLevel `gorm:"foreignKey:LevelID" json:"instrument_level,omitempty"`
-	Model           string           `gorm:"type:varchar(100)" json:"model"`
+	// Model 字段已删除 - 遗留字段
 	SN              string           `gorm:"type:varchar(100)" json:"sn"`
-	Site            string           `gorm:"type:varchar(255)" json:"site"`
+	Site            string           `gorm:"type:varchar(255)" json:"site"` // legacy, 建议用 SiteID
 	SiteID          *uuid.UUID       `gorm:"type:uuid;index" json:"site_id"`
 	CurrentSiteID   *uuid.UUID       `gorm:"type:uuid;index" json:"current_site_id"`
 	Description     string           `gorm:"type:text" json:"description"`

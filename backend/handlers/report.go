@@ -53,13 +53,8 @@ func GenerateAssessmentReport(db *gorm.DB, orderID string, c *gin.Context) ([]by
 	pdf.Ln(10)
 
 	pdf.SetFont("Arial", "", 12)
-	pdf.Cell(40, 8, fmt.Sprintf("乐器名称: %s", instrument.Name))
-	pdf.Ln(8)
-	pdf.Cell(40, 8, fmt.Sprintf("品牌: %s", instrument.Brand))
-	pdf.Ln(8)
-	pdf.Cell(40, 8, fmt.Sprintf("型号: %s", instrument.Model))
-	pdf.Ln(8)
-	pdf.Cell(40, 8, fmt.Sprintf("序列号: %s", instrument.SN))
+	// 乐器无名称，使用 SN（识别码）作为主要标识
+	pdf.Cell(40, 8, fmt.Sprintf("识别码(SN): %s", instrument.SN))
 	pdf.Ln(12)
 
 	// Lease information
