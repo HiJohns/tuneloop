@@ -127,12 +127,16 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		return
 	}
 
-	// Get site info (name and address)
+	// Get site info (name and address) - fallback to CurrentSiteID if SiteID is nil
 	siteName := "-"
 	siteAddress := "-"
-	if instrument.SiteID != nil {
+	lookupSiteID := instrument.SiteID
+	if lookupSiteID == nil {
+		lookupSiteID = instrument.CurrentSiteID
+	}
+	if lookupSiteID != nil {
 		var site models.Site
-		if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
+		if err := db.First(&site, "id = ?", lookupSiteID).Error; err == nil {
 			siteName = site.Name
 			if site.Address != "" {
 				siteAddress = site.Address

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, MapPin, Package, Truck, Box, Wrench, RotateCcw, CheckCircle } from 'lucide-react'
+import { ArrowLeft, MapPin, Package, Truck, Box, Wrench, RotateCcw, CheckCircle, User } from 'lucide-react'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -228,6 +228,40 @@ export default function StaffInstrumentDetail() {
           </div>
         </div>
       </div>
+
+      {/* Booker Info Card - Only show for reserved status */}
+      {instrument.stock_status === 'reserved' && (instrument.booker_name || instrument.booker_phone) && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <User size={18} className="text-yellow-600" />
+            <span className="font-medium text-yellow-800">预约人信息</span>
+          </div>
+          {instrument.booker_name && (
+            <div className="mb-2 text-sm">
+              <span className="text-gray-500">姓名：</span>
+              <span className="text-gray-800">{instrument.booker_name}</span>
+            </div>
+          )}
+          {instrument.booker_phone && (
+            <div className="mb-2 text-sm">
+              <span className="text-gray-500">电话：</span>
+              <span className="text-gray-800">{instrument.booker_phone}</span>
+            </div>
+          )}
+          {instrument.booker_email && (
+            <div className="mb-2 text-sm">
+              <span className="text-gray-500">邮箱：</span>
+              <span className="text-gray-800">{instrument.booker_email}</span>
+            </div>
+          )}
+          {instrument.delivery_address && (
+            <div className="text-sm">
+              <span className="text-gray-500">收货地址：</span>
+              <span className="text-gray-800">{instrument.delivery_address}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
