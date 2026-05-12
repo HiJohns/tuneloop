@@ -107,6 +107,12 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		return
 	}
 
+	// 同步更新乐器状态为 shipping（对应 cases.md §0.3 状态机）
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusShipping).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument: " + err.Error()})
+		return
+	}
+
 	// Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
