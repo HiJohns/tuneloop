@@ -592,9 +592,16 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var instrument models.Instrument
-	if err := db.Where("sn = ? AND tenant_id = ?", sn, tenantID).First(&instrument).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
-		return
+	if tenantID != "" {
+		if err := db.Where("sn = ? AND tenant_id = ?", sn, tenantID).First(&instrument).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+			return
+		}
+	} else {
+		if err := db.Where("sn = ?", sn).First(&instrument).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+			return
+		}
 	}
 
 	var order models.Order

@@ -9,6 +9,7 @@ import Checkout from './pages/Checkout'
 import Success from './pages/Success'
 import Booking from './pages/Booking'
 import Profile from './pages/Profile'
+import ReceiveConfirm from './pages/ReceiveConfirm'
 import MyService from './pages/MyService'
 import MyLeases from './pages/MyLeases'
 import Messages from './pages/Messages'
@@ -191,6 +192,7 @@ function App() {
         <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/receive/:orderId" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />
         <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />

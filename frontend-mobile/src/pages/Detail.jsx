@@ -126,6 +126,7 @@ export default function Detail() {
   }
 
   const isRentable = instrument?.stock_status === 'available'
+  const [activeOrder, setActiveOrder] = useState(null)
 
   useEffect(() => {
     const fetchInstrument = async () => {
@@ -139,6 +140,18 @@ export default function Detail() {
           const inst = result.data
           inst._parsedPricing = parsePricing(inst.pricing)
           setInstrument(inst)
+
+          if (requiredToken() && inst.sn) {
+            try {
+              const orderResp = await fetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+              })
+              const orderResult = await orderResp.json()
+              if (orderResult.code === 20000 && orderResult.data) {
+                setActiveOrder(orderResult.data)
+              }
+            } catch {}
+          }
         }
         setLoading(false)
       } catch (error) {
@@ -414,6 +427,18 @@ export default function Detail() {
               </button>
             </div>
           </>
+        ) : activeOrder ? (
+          <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+            <p className="text-cyan-700 font-medium">乐器物流中</p>
+            <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
+            <button
+              onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+              className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
+            >
+              <CheckCircle size={18} className="inline mr-1" />
+              确认收货
+            </button>
+          </div>
         ) : (
           <div className="p-3 bg-gray-100 rounded-lg text-center">
             <p className="text-gray-500 font-medium">该乐器目前不可租赁</p>
