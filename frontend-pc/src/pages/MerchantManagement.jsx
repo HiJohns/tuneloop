@@ -24,7 +24,7 @@ const MerchantManagement = () => {
       const response = await api.get('/api/merchants');
       setMerchants(response.data.list || []);
     } catch (error) {
-      message.error('Failed to fetch merchants');
+      message.error('获取商户列表失败');
       console.error('Fetch error:', error);
     } finally {
       setLoading(false);
@@ -47,10 +47,10 @@ const MerchantManagement = () => {
   const handleDelete = async (id) => {
     try {
       await api.delete(`/api/merchants/${id}`);
-      message.success('Merchant deleted successfully');
+      message.success('商户删除成功');
       fetchMerchants();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to delete merchant');
+      message.error(error.response?.data?.message || '删除商户失败');
     }
   };
 
@@ -70,15 +70,15 @@ const MerchantManagement = () => {
 
       if (editingMerchant) {
         await api.put(`/api/merchants/${editingMerchant.id}`, submitData);
-        message.success('Merchant updated successfully');
+        message.success('商户更新成功');
       } else {
         await api.post('/api/merchants', submitData);
-        message.success('Merchant created successfully');
+        message.success('商户创建成功');
       }
       setModalOpen(false);
       fetchMerchants();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Operation failed');
+      message.error(error.response?.data?.message || '操作失败');
     }
   };
 
@@ -100,43 +100,43 @@ const MerchantManagement = () => {
 
   const columns = [
     {
-      title: 'Name',
+      title: '名称',
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: 'Code',
+      title: '编码',
       dataIndex: 'code',
       key: 'code',
     },
     {
-      title: 'Contact',
+      title: '联系人',
       dataIndex: 'contact_name',
       key: 'contact_name',
     },
     {
-      title: 'Contact Email',
+      title: '联系邮箱',
       dataIndex: 'contact_email',
       key: 'contact_email',
     },
     {
-      title: 'Status',
+      title: '状态',
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
         <span style={{ color: status === 'active' ? 'green' : 'red' }}>
-          {status?.toUpperCase()}
+          {status === 'active' ? '启用' : '停用'}
         </span>
       ),
     },
     {
-      title: 'Created At',
+      title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date) => new Date(date).toLocaleDateString(),
     },
     {
-      title: 'Actions',
+      title: '操作',
       key: 'actions',
       render: (_, record) => (
         <Space>
@@ -144,7 +144,7 @@ const MerchantManagement = () => {
             Edit
           </Button>
           <Popconfirm
-            title="Are you sure to delete this merchant?"
+            title="确定要删除此商户吗？"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
@@ -161,7 +161,7 @@ const MerchantManagement = () => {
   return (
     <div style={{ padding: 24 }}>
       <Card
-        title="Merchant Management"
+        title="商户管理"
         extra={
           <Button type="primary" onClick={handleCreate}>
             Create Merchant
@@ -190,7 +190,7 @@ const MerchantManagement = () => {
             label="Merchant Name"
             rules={[{ required: true, message: 'Please enter merchant name' }]}
           >
-            <Input placeholder="Enter merchant name" />
+            <Input placeholder="输入商户名称" />
           </Form.Item>
 
           <Form.Item
@@ -204,8 +204,8 @@ const MerchantManagement = () => {
             <Input placeholder="enter-code-here" disabled={!!editingMerchant} />
           </Form.Item>
 
-          <Form.Item name="contact_name" label="Contact Name">
-            <Input placeholder="Enter contact name" />
+          <Form.Item name="contact_name" label="联系人">
+            <Input placeholder="输入联系人姓名" />
           </Form.Item>
 
           <Form.Item

@@ -24,15 +24,15 @@ function SortableItem({ category, onEdit, onDelete }) {
         <MenuOutlined {...attributes} {...listeners} className="cursor-grab text-gray-400" />
         <span className="font-medium">{category.name}</span>
         {category.icon && <span>{category.icon}</span>}
-        {!category.visible && <span className="text-xs text-gray-400">(hidden)</span>}
+        {!category.visible && <span className="text-xs text-gray-400">(隐藏)</span>}
       </div>
       <Space size="small">
         <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(category)} />
         <Popconfirm
-          title="Delete this category?"
+          title="确定要删除此分类吗？"
           onConfirm={() => onDelete(category.id)}
-          okText="Yes"
-          cancelText="No"
+          okText="确定"
+          cancelText="取消"
         >
           <Button size="small" danger icon={<DeleteOutlined />} />
         </Popconfirm>
@@ -86,7 +86,7 @@ export default function CategoryList() {
         setSelectedParentId(data[0].id)
       }
     } catch (err) {
-      message.error('Failed to load categories: ' + err.message)
+      message.error('加载分类失败: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -112,7 +112,7 @@ export default function CategoryList() {
     setSavingSort(true)
     try {
       await api.put('/categories/sort', { items: sortUpdates })
-      message.success('Sort order updated')
+      message.success('排序已更新')
       await fetchCategories()
     } catch (err) {
       message.error('Failed to update sort: ' + err.message)
@@ -166,7 +166,7 @@ export default function CategoryList() {
   const handleDelete = async (categoryId) => {
     try {
       await categoriesApi.delete(categoryId)
-      message.success('Deleted successfully')
+      message.success('删除成功')
       await fetchCategories()
     } catch (err) {
       message.error('Failed to delete: ' + err.message)
@@ -194,10 +194,9 @@ export default function CategoryList() {
 
       if (formMode === 'edit' && editingCategory?.id) {
         await categoriesApi.update(editingCategory.id, formData)
-        message.success('Updated successfully')
+        message.success('更新成功')
       } else {
-        const response = await categoriesApi.create(formData)
-        message.success('Created successfully')
+        message.success('创建成功')
         
         // Auto-select the newly created category
         if (response.code === 20000 && response.data?.id) {
@@ -304,27 +303,27 @@ export default function CategoryList() {
         onCancel={() => setModalVisible(false)}
         onOk={handleFormSubmit}
         confirmLoading={saving}
-        okText="Submit"
-        cancelText="Cancel"
+        okText="提交"
+        cancelText="取消"
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Category Name" rules={[{ required: true, message: 'Please enter category name' }, { min: 2, message: 'At least 2 characters' }, { max: 50, message: 'Max 50 characters' }]}>
-            <Input placeholder="Enter category name" />
+            <Input placeholder="输入分类名称" />
           </Form.Item>
 
           {formMode === 'create' && editingCategory?.parent_id && (
-            <Form.Item label="Parent Category">
+            <Form.Item label="父分类">
               <div className="p-2 bg-gray-50 rounded">{getParentCategoryName()}</div>
             </Form.Item>
           )}
 
-          <Form.Item name="icon" label="Icon" extra="Enter emoji or icon URL">
-            <Input placeholder="e.g. 🎹" />
+          <Form.Item name="icon" label="图标" extra="输入 emoji 或图标 URL">
+            <Input placeholder="例如 🎹" />
           </Form.Item>
 
           {formMode === 'edit' && (
-            <Form.Item name="visible" label="Visibility" valuePropName="checked">
-              <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+            <Form.Item name="visible" label="可见性" valuePropName="checked">
+              <Switch checkedChildren="可见" unCheckedChildren="隐藏" />
             </Form.Item>
           )}
         </Form>
