@@ -356,8 +356,8 @@ func GetBusinessRole(ctx context.Context) string {
 	orgID := GetOrgID(ctx)
 	isOwner := IsOwner(ctx)
 
-	// Empty role should return customer, not staff member
-	if role == "" && orgID == "" {
+	// Empty role or USER role should return customer, not staff member
+	if role == "" || role == "USER" {
 		return BusinessRoleCustomer
 	}
 
