@@ -253,7 +253,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('total-assets')}>
             <Statistic
-              title="Total Assets"
+              title="资产总数"
               value={totalAssets}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
@@ -263,7 +263,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('active-rentals')}>
             <Statistic
-              title="Active Rentals"
+              title="在租数"
               value={activeRentals}
               prefix={<ShoppingOutlined />}
               valueStyle={{ color: '#52c41a' }}
@@ -273,7 +273,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('new-orders')}>
             <Statistic
-              title="Today's New Orders"
+              title="今日新订单"
               value={todaysNewOrders}
               prefix={<BarChartOutlined />}
               valueStyle={{ color: '#722ed1' }}
@@ -283,7 +283,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('maintenance')}>
             <Statistic
-              title="Maintenance Due"
+              title="待处理工单"
               value={maintenanceDue}
               prefix={<ToolOutlined />}
               valueStyle={{ color: '#faad14' }}
@@ -294,15 +294,15 @@ export default function Dashboard() {
 
       <Row gutter={16} className="mb-6">
         <Col span={12}>
-          <Card title="Revenue Trend" style={{ height: '300px' }}>
+          <Card title="收入趋势" style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={[
-                { month: 'Jan', revenue: 4000 },
-                { month: 'Feb', revenue: 3000 },
-                { month: 'Mar', revenue: 5000 },
-                { month: 'Apr', revenue: 4500 },
-                { month: 'May', revenue: 6000 },
-                { month: 'Jun', revenue: 5500 },
+                { month: '1月', revenue: 4000 },
+                { month: '2月', revenue: 3000 },
+                { month: '3月', revenue: 5000 },
+                { month: '4月', revenue: 4500 },
+                { month: '5月', revenue: 6000 },
+                { month: '6月', revenue: 5500 },
               ]}>
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -313,14 +313,14 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="Asset Status Distribution" style={{ height: '300px' }}>
+          <Card title="资产状态分布" style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Available', value: assets.filter(a => a.stock_status === 'available').length },
-                    { name: 'Rented', value: assets.filter(a => a.stock_status === 'rented').length },
-                    { name: 'Repairing', value: assets.filter(a => a.stock_status === 'maintenance').length },
+                    { name: '可租', value: assets.filter(a => a.stock_status === 'available').length },
+                    { name: '在租', value: assets.filter(a => a.stock_status === 'rented').length },
+                    { name: '维修中', value: assets.filter(a => a.stock_status === 'maintenance').length },
                   ]}
                   cx="50%"
                   cy="50%"
@@ -343,34 +343,34 @@ export default function Dashboard() {
 
       <Row gutter={16} className="mb-6">
         <Col span={8}>
-          <Card title="Available Assets" variant="borderless" style={{ background: '#fff1f0' }}>
+          <Card title="可租资产" variant="borderless" style={{ background: '#fff1f0' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
               {assets.filter(a => a.stock_status === 'available').length}
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
-              Ready for rent
+              可租
             </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="Overdue Returns" variant="borderless" style={{ background: '#fff7e6' }}>
+          <Card title="逾期未归还" variant="borderless" style={{ background: '#fff7e6' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
               {leasesData.filter(lease => 
                 lease.end_date < today && lease.status === 'active'
               ).length}
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
-              Assets past return date
+              已逾期
             </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="Pending Maintenance Tasks" variant="borderless" style={{ background: '#f6ffed' }}>
+          <Card title="待处理维修" variant="borderless" style={{ background: '#f6ffed' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
               {maintenanceDue || 0}
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
-              Tasks requiring attention
+              需处理
             </div>
           </Card>
         </Col>
@@ -397,7 +397,7 @@ export default function Dashboard() {
         </Form.Item>
       </Form>
 
-      <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>Asset Details</h3>
+      <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>资产明细</h3>
       <Table 
         columns={columns} 
         dataSource={displayedAssets || []} 
