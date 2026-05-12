@@ -7,7 +7,7 @@ import (
 
 type User struct {
 	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	IAMSub        string     `gorm:"type:varchar(255);uniqueIndex;not null" json:"iam_sub"`
+	IAMSub        string     `gorm:"type:varchar(255);index:idx_users_iam_sub,unique;not null" json:"iam_sub"`
 	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID         string     `gorm:"type:uuid;index;not null" json:"org_id"`
 	Name          string     `gorm:"type:varchar(255)" json:"name"`
@@ -480,6 +480,10 @@ type OrderStatusHistory struct {
 	ChangedAt  time.Time `json:"changed_at"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+func (OrderStatusHistory) TableName() string {
+	return "order_status_history"
 }
 
 // Merchant represents a merchant/organization entity aligned with IAM Organization
