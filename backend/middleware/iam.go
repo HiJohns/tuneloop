@@ -263,7 +263,7 @@ func RequireOwner() gin.HandlerFunc {
 func RequireSiteManager() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole := GetRole(c.Request.Context())
-		if userRole != "OWNER" && userRole != "ADMIN" && userRole != "SITE_MANAGER" {
+		if userRole != "OWNER" && userRole != "ADMIN" && userRole != "SITE_MANAGER" && userRole != "STAFF" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"code":    40302,
 				"message": "site manager privileges required",
