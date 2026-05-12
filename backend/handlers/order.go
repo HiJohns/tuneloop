@@ -293,11 +293,20 @@ func GetOrders(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
-	query := db.Model(&models.Order{}).Where("tenant_id = ?", tenantID)
-
-	// Filter by user_id if available (for customer profile view)
-	if userID := middleware.GetUserID(c.Request.Context()); userID != "" {
-		query = query.Where("user_id = ?", userID)
+	userID := middleware.GetUserID(c.Request.Context())
+	query := db.Model(&models.Order{})
+	if tenantID != "" {
+		// 员工：按所属网点过滤（JOIN instruments 获取 site_id）
+		var currentUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
+			query = query.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
+				Where("instruments.site_id = ?", *currentUser.SiteID)
+		}
+	} else {
+		// 顾客无租户：只看自己的订单
+		if userID != "" {
+			query = query.Where("user_id = ?", userID)
+		}
 	}
 
 	// Filter by status if provided
