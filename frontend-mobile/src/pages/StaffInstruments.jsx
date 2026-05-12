@@ -6,7 +6,7 @@ import { ArrowLeft, Search, Truck } from 'lucide-react'
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
     <rect fill="#f3f4f6" width="200" height="160"/>
-    <text x="100" y="80" text-anchor="middle" fill="#9ca3af" font-size="14">No Image</text>
+    <text x="100" y="80" text-anchor="middle" fill="#9ca3af" font-size="14">无图片</text>
   </svg>
 `)
 
@@ -23,7 +23,7 @@ export default function StaffInstruments() {
   const navigate = useNavigate()
   const [instruments, setInstruments] = useState([])
   const [categories, setCategories] = useState([])
-  const [activeCategory, setActiveCategory] = useState('All')
+  const [activeCategory, setActiveCategory] = useState('全部')
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -35,7 +35,7 @@ export default function StaffInstruments() {
         setLoading(true)
         const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
         let url = `${baseUrl}/instruments?page=${page}&pageSize=${pageSize}`
-        if (activeCategory !== 'All') {
+        if (activeCategory !== '全部') {
           url += `&category_id=${activeCategory}`
         }
         const resp = await apiFetch(url)
@@ -44,7 +44,7 @@ export default function StaffInstruments() {
           setInstruments(result.data?.list || [])
           setTotal(result.data?.total || 0)
           if (page === 1) {
-            const cats = ['All', ...new Set((result.data?.list || []).map(i => i.category_name || i.category).filter(Boolean))]
+            const cats = ['全部', ...new Set((result.data?.list || []).map(i => i.category_name || i.category).filter(Boolean))]
             setCategories(cats)
           }
         }
@@ -117,16 +117,16 @@ export default function StaffInstruments() {
                 {(() => {
                   const instImages = parseImages(inst.images)
                   return (
-                <img
+                  <img
                   src={instImages[0] || PLACEHOLDER_IMAGE}
-                  alt={inst.name}
+                  alt={inst.sn}
                   className="w-20 h-20 object-cover rounded-lg bg-gray-100"
                   onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE }}
                 />
                 )})()}
                 <div className="flex-1">
-                  <h3 className="font-medium text-sm">{inst.name}</h3>
-                  <p className="text-xs text-gray-500">{inst.brand} {inst.model}</p>
+                  <h3 className="font-medium text-sm">SN: {inst.sn}</h3>
+                  <p className="text-xs text-gray-500">{inst.category_name || inst.level_name || '-'}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[inst.stock_status] || 'bg-gray-100'}`}>
                       {statusLabel[inst.stock_status] || inst.stock_status}
