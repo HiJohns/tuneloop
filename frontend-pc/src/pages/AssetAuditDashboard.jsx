@@ -33,7 +33,7 @@ export default function AssetAuditDashboard() {
           totalRevenue: data.total_revenue || 0
         });
       } else {
-        throw new Error(result.message || 'Failed to fetch dashboard stats');
+        throw new Error(result.message || '获取仪表盘数据失败');
       }
     } catch (err) {
       setError(err.message);
