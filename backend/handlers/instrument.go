@@ -790,3 +790,29 @@ func GetInstrumentLevels(c *gin.Context) {
 		"data": levels,
 	})
 }
+
+// DeleteInstrument handles DELETE /api/instruments/:id
+func DeleteInstrument(c *gin.Context) {
+	db := database.GetDB()
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	instrumentID := c.Param("id")
+
+	var instrument models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "乐器不存在"})
+		return
+	}
+
+	if instrument.StockStatus == "rented" || instrument.StockStatus == "reserved" {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "乐器正在使用中，无法删除"})
+		return
+	}
+
+	if err := db.Delete(&instrument).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "删除乐器失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "乐器已删除"})
+}
