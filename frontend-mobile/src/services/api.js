@@ -186,9 +186,8 @@ async function request(endpoint, options = {}) {
     if (data.code === 20000 && Array.isArray(data.data)) return data.data
   }
   
-  // 兜底: 返回空数组
-  console.warn(`API ${endpoint} returned non-array data:`, data)
-  return []
+  // 非数组响应返回完整对象（保留原始格式）
+  return data
 }
 
 /**

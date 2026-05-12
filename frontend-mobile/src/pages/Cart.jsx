@@ -204,11 +204,11 @@ export default function Cart() {
           end_date: returnDate,
         })
 
-        if (resp.data?.code === 20000 || resp.data?.code === 20100 || resp.data?.code === 201 || resp.ok) {
+        if (resp.code === 20000 || resp.code === 20100) {
           clearCart()
           navigate('/success', {
             state: {
-              order_id: resp.data.data.order_id || 'TL' + Date.now(),
+              order_id: resp.data?.order_id || 'TL' + Date.now(),
               instrument_name: item.name,
               instrument_sn: item.sn,
               category_name: item.category_name,
