@@ -168,7 +168,7 @@ export default function ShippingInterface() {
         }
       }
       alert('全部发货成功')
-      navigate('/staff/instruments')
+      navigate('/staff/instruments', { replace: true })
     } catch (err) {
       alert('发货失败: ' + err.message)
     }
