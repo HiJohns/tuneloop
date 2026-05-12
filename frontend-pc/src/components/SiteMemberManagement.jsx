@@ -23,7 +23,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         setMembers(response.data.data.list || []);
       }
     } catch (error) {
-      message.error('Failed to fetch members');
+      message.error('获取成员列表失败');
       console.error('Fetch error:', error);
     } finally {
       setLoading(false);
@@ -95,12 +95,12 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       });
 
       if (response.data.code === 20000) {
-        message.success('Role updated successfully');
+        message.success('角色更新成功');
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to update role');
+      message.error(error.response?.data?.message || '更新角色失败');
     }
   };
 
@@ -109,12 +109,12 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       const response = await api.delete(`/api/sites/${siteId}/members/${userId}`);
 
       if (response.data.code === 20000) {
-        message.success('Member removed successfully');
+        message.success('成员移除成功');
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to remove member');
+      message.error(error.response?.data?.message || '移除成员失败');
     }
   };
 
@@ -126,33 +126,33 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
 
   const columns = [
     {
-      title: 'Name',
+      title: '姓名',
       dataIndex: 'user_name',
       key: 'user_name',
     },
     {
-      title: 'Email',
+      title: '邮箱',
       dataIndex: 'user_email',
       key: 'user_email',
     },
     {
-      title: 'Role',
+      title: '角色',
       dataIndex: 'role',
       key: 'role',
       render: (role) => (
         <Tag color={role === 'Manager' ? 'blue' : 'default'}>
-          {role}
+          {role === 'Manager' ? '管理员' : '员工'}
         </Tag>
       ),
     },
     {
-      title: 'Joined At',
+      title: '加入时间',
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date) => new Date(date).toLocaleDateString(),
     },
     {
-      title: 'Actions',
+      title: '操作',
       key: 'actions',
       render: (_, record) => (
         <Space>
@@ -162,15 +162,15 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
             onClick={() => handleSwitchRole(record.user_id, record.role)}
             disabled={isLastManager(record.user_id, record.role)}
           >
-            Switch Role
+            切换角色
           </Button>
           <Popconfirm
-            title="Remove this member?"
+            title="确认移除此成员？"
             onConfirm={() => handleRemoveMember(record.user_id)}
             disabled={isLastManager(record.user_id, record.role)}
           >
             <Button type="link" danger icon={<DeleteOutlined />} disabled={isLastManager(record.user_id, record.role)}>
-              Remove
+              移除
             </Button>
           </Popconfirm>
         </Space>
@@ -204,7 +204,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         loading={loading}
         rowKey="user_id"
         pagination={{ pageSize: 10 }}
-        locale={{ emptyText: 'No members found' }}
+        locale={{ emptyText: '暂无成员' }}
       />
     </div>
   );

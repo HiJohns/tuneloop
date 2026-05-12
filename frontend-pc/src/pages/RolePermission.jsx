@@ -4,13 +4,13 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined } from '@ant-d
 import { permissionApi } from '../services/api'
 
 const PERMISSION_CATEGORIES = {
-  dashboard: { label: 'Dashboard', icon: '📊' },
-  assets: { label: 'Assets', icon: '🎸' },
-  leases: { label: 'Leases', icon: '📋' },
-  maintenance: { label: 'Maintenance', icon: '🔧' },
-  finance: { label: 'Finance', icon: '💰' },
-  users: { label: 'Users', icon: '👥' },
-  settings: { label: 'Settings', icon: '⚙️' },
+  dashboard: { label: '仪表盘', icon: '📊' },
+  assets: { label: '资产', icon: '🎸' },
+  leases: { label: '租约', icon: '📋' },
+  maintenance: { label: '维修', icon: '🔧' },
+  finance: { label: '财务', icon: '💰' },
+  users: { label: '用户', icon: '👥' },
+  settings: { label: '设置', icon: '⚙️' },
 }
 
 export default function RolePermission() {

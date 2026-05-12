@@ -319,7 +319,7 @@ function onMenuClick(e) {
                   </span>
                 </div>
               ) : (
-                <span className="text-gray-500">userInfo is null</span>
+                <span className="text-gray-500">用户信息加载中...</span>
               )}
             </div>
             <button
@@ -409,7 +409,7 @@ function OAuthCallback() {
     const error = params.get('error')
 
     if (error) {
-      setErrorMsg(`OAuth Error: ${error}`)
+      setErrorMsg(`OAuth 错误: ${error}`)
       setLoading(false)
       setTimeout(() => {
         window.location.href = getOAuthUrl()
@@ -418,7 +418,7 @@ function OAuthCallback() {
     }
 
     if (!code) {
-      setErrorMsg('Missing authorization code')
+      setErrorMsg('缺少授权码')
       setLoading(false)
       setTimeout(() => {
         window.location.href = getOAuthUrl()
@@ -478,7 +478,7 @@ function OAuthCallback() {
         }
       } catch (error) {
         setLoading(false)
-        setErrorMsg(error.message || 'Authentication failed')
+        setErrorMsg(error.message || '认证失败')
         localStorage.removeItem('token')
         localStorage.removeItem('token_expiry')
         setTimeout(() => {
