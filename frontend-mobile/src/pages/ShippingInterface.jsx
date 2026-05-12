@@ -12,7 +12,7 @@ export default function ShippingInterface() {
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
   const [submitting, setSubmitting] = useState(false)
   const [photoSpecs, setPhotoSpecs] = useState([])
-  const [uploadedPhotos, setUploadedPhotos] = useState([])
+  const [pendingPhotoFiles, setPendingPhotoFiles] = useState([])
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -109,15 +109,41 @@ export default function ShippingInterface() {
 
   const handleSubmit = async () => {
     if (items.length === 0) return
-    
-    // Check if required photos are uploaded (per spec, not just any photo)
-    const requiredPhotoCount = photoSpecs.filter(spec => spec.required).length
-    if (requiredPhotoCount > 0 && uploadedPhotos.length < requiredPhotoCount) {
-      alert(`请上传所需的 ${requiredPhotoCount} 张照片，当前已上传 ${uploadedPhotos.length} 张`)
+    if (pendingPhotoFiles.length === 0) {
+      alert('请先拍摄或选择乐器照片')
       return
     }
-    
+
     setSubmitting(true)
+
+    // Step 1: 上传所有照片（此时没有独立的"上传"按钮了）
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const photoUrls = []
+    try {
+      for (const file of pendingPhotoFiles) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const resp = await fetch(`${baseUrl}/upload`, {
+          method: 'POST',
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+          body: formData,
+        })
+        const result = await resp.json()
+        if (result.code === 20000 && result.data?.url) {
+          photoUrls.push(result.data.url)
+        } else {
+          alert('照片上传失败: ' + (result.message || '未知错误'))
+          setSubmitting(false)
+          return
+        }
+      }
+    } catch (err) {
+      alert('照片上传失败: ' + err.message)
+      setSubmitting(false)
+      return
+    }
+
+    // Step 2: 提交物流信息
     try {
       for (const item of items) {
         if (!item.order_id) {
@@ -131,7 +157,7 @@ export default function ShippingInterface() {
             tracking_number: logistics.trackingNumber,
             company: logistics.company,
             shipped_at: new Date().toISOString(),
-            photos: uploadedPhotos,
+            photos: photoUrls,
           }),
         })
         const result = await resp.json()
@@ -236,7 +262,7 @@ export default function ShippingInterface() {
           )}
           <ImageUploader
             maxImages={5}
-            onUpload={(photos) => setUploadedPhotos(photos)}
+            onChange={(files) => setPendingPhotoFiles(files)}
           />
         </div>
 
@@ -260,7 +286,7 @@ export default function ShippingInterface() {
 
         <button
           onClick={handleSubmit}
-          disabled={items.length === 0 || submitting || uploadedPhotos.length === 0}
+          disabled={items.length === 0 || submitting || pendingPhotoFiles.length === 0}
           className="w-full py-3 bg-brand-primary text-white rounded-xl disabled:opacity-50 font-medium"
         >
           {submitting ? '提交中...' : `提交（${items.length} 件）`}
