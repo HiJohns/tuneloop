@@ -163,7 +163,7 @@ export default function Profile() {
     const iamUrl = window.APP_CONFIG?.wx?.iamExternalUrl ||
                    import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
     if (iamUrl) {
-      window.location.href = `${iamUrl}/auth/setup-password`
+      window.open(`${iamUrl}/auth/setup-password`, '_blank')
     }
   }
 
@@ -240,14 +240,14 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Set Password */}
+        {/* 设置密码 */}
         <div className="bg-white rounded-xl p-4">
           <button
             onClick={handlePasswordSetup}
             className="flex items-center gap-3 w-full py-2"
           >
             <Key size={18} className="text-gray-400" />
-            <span className="flex-1 text-left text-sm">Set Password</span>
+            <span className="flex-1 text-left text-sm">设置密码</span>
             <ChevronRight size={16} className="text-gray-300" />
           </button>
         </div>
