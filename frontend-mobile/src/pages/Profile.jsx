@@ -137,7 +137,7 @@ export default function Profile() {
       const result = await resp.json()
       if (result.code === 20000) {
         const allOrders = result.data?.list || []
-        const active = allOrders.filter(o => ['pending', 'paid', 'in_lease', 'shipping', 'returning'].includes(o.status))
+        const active = allOrders.filter(o => ['pending', 'paid', 'in_lease', 'shipping', 'shipped', 'returning'].includes(o.status))
         const history = allOrders.filter(o => ['returned', 'completed'].includes(o.status))
         setActiveLeases(active)
         setLeaseHistory(history)
