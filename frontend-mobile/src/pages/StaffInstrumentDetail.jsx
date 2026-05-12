@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, MapPin, Package, Truck, Box, Wrench, RotateCcw, CheckCircle, User } from 'lucide-react'
+import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User } from 'lucide-react'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -82,36 +82,6 @@ export default function StaffInstrumentDetail() {
     navigate(`/staff/shipping?instrument=${instrument.id}`)
   }
 
-  const handleReceive = async () => {
-    if (instrument.stock_status !== 'shipping') {
-      alert('乐器不在物流中状态')
-      return
-    }
-    try {
-      setActionLoading(true)
-      const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(instrument.sn)}`)
-      const orderResult = await orderResp.json()
-      if (orderResult.code !== 20000 || !orderResult.data?.order_id) {
-        alert('未找到关联订单')
-        setActionLoading(false)
-        return
-      }
-      const deliverResp = await apiFetch(`${baseUrl}/warehouse/orders/${orderResult.data.order_id}/delivery`, {
-        method: 'PUT',
-        body: JSON.stringify({ delivered_at: new Date().toISOString() }),
-      })
-      const deliverResult = await deliverResp.json()
-      if (deliverResult.code === 20000) {
-        alert('确认收货成功')
-        navigate('/staff/instruments')
-      } else {
-        alert('确认收货失败: ' + deliverResult.message)
-      }
-    } catch (err) {
-      alert('操作失败: ' + err.message)
-    }
-    setActionLoading(false)
-  }
 
   const handleReturn = async () => {
     if (instrument.stock_status !== 'rented') {
@@ -273,16 +243,6 @@ export default function StaffInstrumentDetail() {
             >
               <Truck size={18} />
               发货
-            </button>
-          )}
-          {instrument.stock_status === 'shipping' && (
-            <button
-              onClick={handleReceive}
-              disabled={actionLoading}
-              className="py-3 bg-green-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <Box size={18} />
-              确认到达
             </button>
           )}
           {instrument.stock_status === 'rented' && (
