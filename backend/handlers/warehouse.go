@@ -155,12 +155,24 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 
 	orderID := c.Param("id")
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
-
 	db := database.GetDB().WithContext(ctx)
 
-	// Update order status and record delivery time as lease start
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(map[string]interface{}{
+	// 1. Look up the order to get its tenant_id (customer JWT has no tenant context)
+	var order models.Order
+	if err := db.First(&order, "id = ?", orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	// 2. Verify the user owns this order
+	userID := middleware.GetUserID(ctx)
+	if order.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "not your order"})
+		return
+	}
+
+	// 3. Update order status and record delivery time as lease start
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).Updates(map[string]interface{}{
 		"status":       "in_lease",
 		"delivered_at": req.DeliveredAt,
 	}).Error; err != nil {
@@ -168,11 +180,10 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		return
 	}
 
-	// Record status history
-	userID := middleware.GetUserID(ctx)
+	// 4. Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
-		TenantID:   tenantID,
+		TenantID:   order.TenantID,
 		OrderID:    orderID,
 		StatusFrom: "shipped",
 		StatusTo:   "in_lease",
