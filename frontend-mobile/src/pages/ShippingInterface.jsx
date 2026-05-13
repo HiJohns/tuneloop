@@ -11,8 +11,6 @@ export default function ShippingInterface() {
   const [items, setItems] = useState([])
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [photoSpecs, setPhotoSpecs] = useState([])
-  const [pendingPhotoFiles, setPendingPhotoFiles] = useState([])
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -47,8 +45,8 @@ export default function ShippingInterface() {
           level_name: inst.level_name,
           category_id: inst.category_id,
           order_id: orderID,
+          photos: [],
         }])
-        if (inst.category_id) fetchPhotoSpecs(inst.category_id)
       }
     } catch (err) {
       console.error('Failed to fetch instrument:', err)
@@ -78,11 +76,9 @@ export default function ShippingInterface() {
           level_name: inst.level_name,
           category_id: inst.category_id,
           order_id: orderID,
+          photos: [],
         }])
         setSnInput('')
-        if (inst.category_id) {
-          fetchPhotoSpecs(inst.category_id)
-        }
       } else {
         alert('未找到该乐器')
       }
@@ -91,16 +87,8 @@ export default function ShippingInterface() {
     }
   }
 
-  const fetchPhotoSpecs = async (categoryId) => {
-    try {
-      const resp = await apiFetch(`${baseUrl}/instrument-photo-specs/${categoryId}`)
-      const result = await resp.json()
-      if (result.code === 20000) {
-        setPhotoSpecs(result.data?.photo_requirements || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch photo specs:', err)
-    }
+  const updateItemPhotos = (sn, files) => {
+    setItems(prev => prev.map(i => i.sn === sn ? { ...i, photos: files } : i))
   }
 
   const removeItem = (sn) => {
@@ -109,48 +97,51 @@ export default function ShippingInterface() {
 
   const handleSubmit = async () => {
     if (items.length === 0) return
-    if (pendingPhotoFiles.length === 0) {
-      alert('请先拍摄或选择乐器照片')
-      return
+    for (const item of items) {
+      if (item.photos.length === 0) {
+        alert(`请为乐器 ${item.sn} 拍摄或选择照片`)
+        return
+      }
     }
 
     setSubmitting(true)
-
-    // Step 1: 上传所有照片（此时没有独立的"上传"按钮了）
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-    const photoUrls = []
-    try {
-      for (const file of pendingPhotoFiles) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const resp = await fetch(`${baseUrl}/upload`, {
-          method: 'POST',
-          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-          body: formData,
-        })
-        const result = await resp.json()
-        if (result.code === 20000 && result.data?.url) {
-          photoUrls.push(result.data.url)
-        } else {
-          alert('照片上传失败: ' + (result.message || '未知错误'))
-          setSubmitting(false)
-          return
-        }
-      }
-    } catch (err) {
-      alert('照片上传失败: ' + err.message)
-      setSubmitting(false)
-      return
-    }
 
-    // Step 2: 提交物流信息
-    try {
-      for (const item of items) {
-        if (!item.order_id) {
-          alert(`乐器 ${item.sn} 没有活跃的订单`)
-          setSubmitting(false)
-          return
+    for (const item of items) {
+      if (!item.order_id) {
+        alert(`乐器 ${item.sn} 没有活跃的订单`)
+        setSubmitting(false)
+        return
+      }
+
+      // Upload photos for this item
+      const photoUrls = []
+      try {
+        for (const file of item.photos) {
+          const formData = new FormData()
+          formData.append('file', file)
+          const resp = await fetch(`${baseUrl}/upload`, {
+            method: 'POST',
+            headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+            body: formData,
+          })
+          const result = await resp.json()
+          if (result.code === 20000 && result.data?.url) {
+            photoUrls.push(result.data.url)
+          } else {
+            alert(`照片上传失败 ${item.sn}: ${result.message || '未知错误'}`)
+            setSubmitting(false)
+            return
+          }
         }
+      } catch (err) {
+        alert(`照片上传失败 ${item.sn}: ${err.message}`)
+        setSubmitting(false)
+        return
+      }
+
+      // Submit shipping for this item
+      try {
         const resp = await apiFetch(`${baseUrl}/warehouse/orders/${item.order_id}/shipping`, {
           method: 'PUT',
           body: JSON.stringify({
@@ -166,12 +157,15 @@ export default function ShippingInterface() {
           setSubmitting(false)
           return
         }
+      } catch (err) {
+        alert(`发货失败 ${item.sn}: ${err.message}`)
+        setSubmitting(false)
+        return
       }
-      alert('全部发货成功')
-      navigate('/staff/instruments', { replace: true })
-    } catch (err) {
-      alert('发货失败: ' + err.message)
     }
+
+    alert('全部发货成功')
+    navigate('/staff/instruments', { replace: true })
     setSubmitting(false)
   }
 
@@ -183,6 +177,7 @@ export default function ShippingInterface() {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Add Instrument */}
         <div className="bg-white rounded-xl p-4">
           <h3 className="font-medium mb-3">添加乐器</h3>
           <div className="flex gap-2">
@@ -209,63 +204,7 @@ export default function ShippingInterface() {
           </div>
         </div>
 
-        {items.length > 0 && (
-          <div>
-            <h3 className="font-medium mb-2">货品列表</h3>
-            <div className="space-y-2">
-              {items.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-xl p-3 flex gap-3 items-center">
-                  <img
-                    src={(() => { try { const imgs = JSON.parse(item.images || '[]'); return imgs[0] || '' } catch { return '' } })()}
-                    alt={item.sn}
-                    className="w-14 h-14 object-cover rounded-lg flex-shrink-0 bg-gray-100"
-                    onError={(e) => { (e.target).src = ''; (e.target).style.display = 'none' }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">SN: {item.sn}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {[item.category_name, item.level_name].filter(Boolean).join(' | ') || '-'}
-                    </p>
-                    {(() => {
-                      try {
-                        const pricing = JSON.parse(item.pricing || '[]')
-                        if (pricing[0]) {
-                          const p = pricing[0]
-                          return <p className="text-xs text-blue-600 font-medium mt-0.5">¥{p.daily_rent}/天 · ¥{p.monthly_rent}/月</p>
-                        }
-                      } catch {}
-                      return null
-                    })()}
-                  </div>
-                  <button onClick={() => removeItem(item.sn)} className="text-red-500 flex-shrink-0">
-                    <X size={18} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-2 flex items-center gap-2">
-            <Camera size={18} className="text-brand-primary" />
-            拍照要求
-          </h3>
-          {photoSpecs.length > 0 ? (
-            <ul className="space-y-1 text-sm text-gray-600 mb-3">
-              {photoSpecs.map((spec, idx) => (
-                <li key={idx}>• {spec.position}: {spec.description} {spec.required ? '(必需)' : '(可选)'}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-500 mb-3">请拍摄乐器照片作为发货留档</p>
-          )}
-          <ImageUploader
-            maxImages={5}
-            onChange={(files) => setPendingPhotoFiles(files)}
-          />
-        </div>
-
+        {/* Logistics Info */}
         <div className="bg-white rounded-xl p-4 space-y-3">
           <h3 className="font-medium">物流信息</h3>
           <input
@@ -284,9 +223,57 @@ export default function ShippingInterface() {
           />
         </div>
 
+        {/* Items List */}
+        {items.length > 0 && (
+          <div>
+            <h3 className="font-medium mb-2">货品列表</h3>
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <div key={idx} className="bg-white rounded-xl p-3">
+                  <div className="flex gap-3 items-start mb-3">
+                    <img
+                      src={(() => { try { const imgs = JSON.parse(item.images || '[]'); return imgs[0] || '' } catch { return '' } })()}
+                      alt={item.sn}
+                      className="w-14 h-14 object-cover rounded-lg flex-shrink-0 bg-gray-100"
+                      onError={(e) => { (e.target).src = ''; (e.target).style.display = 'none' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">SN: {item.sn}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {[item.category_name, item.level_name].filter(Boolean).join(' | ') || '-'}
+                      </p>
+                      {(() => {
+                        try {
+                          const pricing = JSON.parse(item.pricing || '[]')
+                          if (pricing[0]) {
+                            const p = pricing[0]
+                            return <p className="text-xs text-blue-600 font-medium mt-0.5">¥{p.daily_rent}/天 · ¥{p.monthly_rent}/月</p>
+                          }
+                        } catch {}
+                        return null
+                      })()}
+                    </div>
+                    <button onClick={() => removeItem(item.sn)} className="text-red-500 flex-shrink-0">
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className="border-t pt-3">
+                    <p className="text-xs text-gray-500 mb-2">拍摄乐器照片作为发货留档</p>
+                    <ImageUploader
+                      maxImages={5}
+                      onChange={(files) => updateItemPhotos(item.sn, files)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Submit Button */}
         <button
           onClick={handleSubmit}
-          disabled={items.length === 0 || submitting || pendingPhotoFiles.length === 0}
+          disabled={items.length === 0 || submitting}
           className="w-full py-3 bg-brand-primary text-white rounded-xl disabled:opacity-50 font-medium"
         >
           {submitting ? '提交中...' : `提交（${items.length} 件）`}
