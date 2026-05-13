@@ -264,7 +264,10 @@ export default function Profile() {
                 <div
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => navigate(`/instrument/${order.instrument_id}`)}
+                  onClick={() => {
+                    const isStaff = businessRole === 'site_admin' || businessRole === 'site_member'
+                    navigate(isStaff ? `/staff/instrument/${order.instrument_id}` : `/instrument/${order.instrument_id}`)
+                  }}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-medium text-sm">Order #{order.id?.slice(0, 8)}</span>
@@ -308,7 +311,10 @@ export default function Profile() {
                 <div
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => navigate(`/instrument/${order.instrument_id}`)}
+                  onClick={() => {
+                    const isStaff = businessRole === 'site_admin' || businessRole === 'site_member'
+                    navigate(isStaff ? `/staff/instrument/${order.instrument_id}` : `/instrument/${order.instrument_id}`)
+                  }}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-sm font-medium">Order #{order.id?.slice(0, 8)}</span>
