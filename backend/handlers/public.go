@@ -153,26 +153,40 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		}
 	}
 
+	response := map[string]interface{}{
+		"id":              instrument.ID,
+		"sn":               instrument.SN,
+		"category_id":     instrument.CategoryID,
+		"category_name":   instrument.CategoryName,
+		"level_name":      instrument.LevelName,
+		"level_id":        instrument.LevelID,
+		"images":          instrument.Images,
+		"video":           instrument.Video,
+		"pricing":         instrument.Pricing,
+		"stock_status":    instrument.StockStatus,
+		"tenant_id":       instrument.TenantID,
+		"tenant_name":     tenantName,
+		"site_id":         instrument.SiteID,
+		"site_name":       siteName,
+		"site_address":    siteAddress,
+		"description":     instrument.Description,
+	}
+
+	// Fetch dynamic properties from instrument_properties table
+	var instrumentProps []models.InstrumentProperty
+	if err := db.Where("instrument_id = ?", id).Find(&instrumentProps).Error; err == nil {
+		propsMap := make(map[string][]string)
+		for _, prop := range instrumentProps {
+			propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
+		}
+		response["properties"] = propsMap
+	} else {
+		response["properties"] = map[string]interface{}{}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": map[string]interface{}{
-			"id":              instrument.ID,
-			"sn":               instrument.SN,
-			"category_id":     instrument.CategoryID,
-			"category_name":   instrument.CategoryName,
-			"level_name":      instrument.LevelName,
-			"level_id":        instrument.LevelID,
-			"images":          instrument.Images,
-			"video":           instrument.Video,
-			"pricing":         instrument.Pricing,
-			"stock_status":    instrument.StockStatus,
-			"tenant_id":       instrument.TenantID,
-			"tenant_name":     tenantName,
-			"site_id":         instrument.SiteID,
-			"site_name":       siteName,
-			"site_address":    siteAddress,
-			"description":     instrument.Description,
-		},
+		"data": response,
 	})
 }
 

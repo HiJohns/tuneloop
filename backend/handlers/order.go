@@ -361,9 +361,38 @@ func GetOrder(c *gin.Context) {
 		return
 	}
 
+	// Fetch user name (graceful fallback)
+	userName := ""
+	var user models.User
+	if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {
+		userName = user.Name
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": order,
+		"data": map[string]interface{}{
+			"id":                order.ID,
+			"tenant_id":         order.TenantID,
+			"user_id":           order.UserID,
+			"user_name":         userName,
+			"instrument_id":     order.InstrumentID,
+			"level":             order.Level,
+			"lease_term":        order.LeaseTerm,
+			"deposit_mode":      order.DepositMode,
+			"monthly_rent":      order.MonthlyRent,
+			"deposit":           order.Deposit,
+			"shipping_fee":      order.ShippingFee,
+			"accumulated_months": order.AccumulatedMonths,
+			"status":            order.Status,
+			"start_date":        order.StartDate,
+			"end_date":          order.EndDate,
+			"tracking_number":   order.TrackingNumber,
+			"courier_company":   order.CourierCompany,
+			"shipped_at":        order.ShippedAt,
+			"delivered_at":      order.DeliveredAt,
+			"created_at":        order.CreatedAt,
+			"updated_at":        order.UpdatedAt,
+		},
 	})
 }
 
