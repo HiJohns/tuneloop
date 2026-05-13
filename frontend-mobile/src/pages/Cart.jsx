@@ -182,6 +182,11 @@ export default function Cart() {
 
   const totals = calculateTotals()
 
+  const clearCart = () => {
+    localStorage.setItem('cart', JSON.stringify({ items: [] }))
+    window.dispatchEvent(new Event('cartUpdated'))
+  }
+
   const handleOrder = async () => {
     const token = getToken()
     if (!token) {
