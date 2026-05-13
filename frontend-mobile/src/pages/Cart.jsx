@@ -80,7 +80,7 @@ export default function Cart() {
       const siteId = item.site_id || 'unknown'
       const siteName = item.site_name || '未知网点'
       if (!groups[tid]) {
-        groups[tid] = { name: item.tenant_name || '', sites: {} }
+        groups[tid] = { name: item.tenant_name || item.tenant_id || '', sites: {} }
       }
       if (!groups[tid].sites[siteId]) {
         groups[tid].sites[siteId] = { name: siteName, items: [] }
@@ -125,7 +125,7 @@ export default function Cart() {
       const siteId = item.site_id || 'unknown'
       const siteName = item.site_name || '未知网点'
       if (!groups[tid]) {
-        groups[tid] = { name: item.tenant_name || '', sites: {} }
+        groups[tid] = { name: item.tenant_name || item.tenant_id || '', sites: {} }
       }
       if (!groups[tid].sites[siteId]) {
         groups[tid].sites[siteId] = { name: siteName, items: [] }
