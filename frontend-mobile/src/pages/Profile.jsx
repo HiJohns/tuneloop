@@ -253,7 +253,7 @@ export default function Profile() {
         </div>
 
         {/* Current Rentals */}
-        {activeLeases.length > 0 && (
+        {businessRole !== 'site_admin' && businessRole !== 'site_member' && activeLeases.length > 0 && (
           <div className="bg-white rounded-xl p-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <Package size={18} className="text-brand-primary" />
@@ -298,7 +298,7 @@ export default function Profile() {
         )}
 
         {/* Rental History */}
-        {leaseHistory.length > 0 && (
+        {businessRole !== 'site_admin' && businessRole !== 'site_member' && leaseHistory.length > 0 && (
           <div className="bg-white rounded-xl p-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <History size={18} className="text-gray-400" />
