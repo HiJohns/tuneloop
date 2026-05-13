@@ -426,17 +426,29 @@ export default function Detail() {
             </div>
           </>
         ) : activeOrder ? (
-          <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
-            <p className="text-cyan-700 font-medium">乐器物流中</p>
-            <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
-            <button
-              onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
-              className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
-            >
-              <CheckCircle size={18} className="inline mr-1" />
-              确认收货
-            </button>
-          </div>
+          activeOrder.order_status === 'in_lease' ? (
+            <div className="p-3 bg-green-50 rounded-lg text-center">
+              <p className="text-green-700 font-medium">租赁中</p>
+              <p className="text-gray-500 text-sm">该乐器正在使用中</p>
+            </div>
+          ) : activeOrder.order_status === 'returning' ? (
+            <div className="p-3 bg-orange-50 rounded-lg text-center">
+              <p className="text-orange-700 font-medium">归还中</p>
+              <p className="text-gray-500 text-sm">该乐器正在归还流程中</p>
+            </div>
+          ) : (
+            <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+              <p className="text-cyan-700 font-medium">乐器物流中</p>
+              <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
+              <button
+                onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
+              >
+                <CheckCircle size={18} className="inline mr-1" />
+                确认收货
+              </button>
+            </div>
+          )
         ) : (
           <div className="p-3 bg-gray-100 rounded-lg text-center">
             <p className="text-gray-500 font-medium">该乐器目前不可租赁</p>
