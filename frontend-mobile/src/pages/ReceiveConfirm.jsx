@@ -100,7 +100,14 @@ export default function ReceiveConfirm() {
     </div>
   }
 
-  const images = instrument?.images ? (Array.isArray(instrument.images) ? instrument.images : []) : []
+  const images = (() => {
+    if (!instrument?.images) return []
+    if (Array.isArray(instrument.images)) return instrument.images
+    if (typeof instrument.images === 'string') {
+      try { return JSON.parse(instrument.images) } catch { return [] }
+    }
+    return []
+  })()
 
   return (
     <div className="min-h-screen bg-brand-bg pb-24">
@@ -122,7 +129,9 @@ export default function ReceiveConfirm() {
             <div className="flex justify-between"><span className="text-gray-500">识别码</span><span>{instrument?.sn || '-'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">类别</span><span>{instrument?.category_name || '-'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">所属网点</span><span>{instrument?.site_name || '-'}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">动态属性</span><span>{instrument?.properties ? JSON.stringify(instrument.properties) : '-'}</span></div>
+            {instrument?.properties && Object.keys(instrument.properties).length > 0 && (
+              <div className="flex justify-between"><span className="text-gray-500">动态属性</span><span>{JSON.stringify(instrument.properties)}</span></div>
+            )}
           </div>
         </div>
 
@@ -131,7 +140,7 @@ export default function ReceiveConfirm() {
           <div className="bg-white rounded-xl p-4">
             <h3 className="font-medium mb-3">租赁信息</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">租期</span><span>{order.start_date || '-'} 至 {order.end_date || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">租期</span><span>{order.start_date ? order.start_date.slice(0, 10) : '-'} 至 {order.end_date ? order.end_date.slice(0, 10) : '-'}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">月租金</span><span>¥{order.monthly_rent || 0}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">押金</span><span>¥{order.deposit || 0}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">租赁人</span><span>{order.user_name || '-'}</span></div>
