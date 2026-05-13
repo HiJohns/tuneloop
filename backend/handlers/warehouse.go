@@ -302,6 +302,29 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
+	// Send notification to user
+	orgID := middleware.GetOrgID(ctx)
+	notificationTitle := "租赁完成"
+	notificationContent := "您的乐器租赁订单已完成，押金将退还至您的账户。"
+	if req.Condition == "damaged" {
+		notificationTitle = "归还验收有损坏"
+		notificationContent = fmt.Sprintf("您的乐器归还验收发现损坏，定损金额将根据评估结果从押金中扣除。定损理由：%s", req.Notes)
+	}
+	notification := models.Notification{
+		TenantID: tenantID,
+		OrgID:    orgID,
+		UserID:   order.UserID,
+		Type:     "order",
+		Title:    notificationTitle,
+		Content:  notificationContent,
+		RefID:    orderID,
+		RefType:  "order",
+		Status:   "unread",
+	}
+	if err := db.Create(&notification).Error; err != nil {
+		log.Printf("[InspectReturn] Failed to create notification: %v", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
