@@ -509,6 +509,19 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
+	var req struct {
+		CourierCompany string   `json:"courier_company"`
+		TrackingNumber string   `json:"tracking_number"`
+		Photos         []string `json:"photos"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
@@ -542,7 +555,11 @@ func ReturnOrder(c *gin.Context) {
 
 	// Update order status: in_lease -> returning
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).
-		Update("status", "returning").Error; err != nil {
+		Updates(map[string]interface{}{
+			"status":          "returning",
+			"courier_company": req.CourierCompany,
+			"tracking_number": req.TrackingNumber,
+		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),

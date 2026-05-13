@@ -241,31 +241,6 @@ export default function Detail() {
     }
   }
 
-  const handleReturnOrder = async () => {
-    const token = getToken()
-    if (!token) {
-      sessionStorage.setItem('post_auth_redirect', window.location.pathname)
-      redirectToLogin()
-      return
-    }
-    try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-      const resp = await fetch(`${baseUrl}/orders/${activeOrder.order_id}/return`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const result = await resp.json()
-      if (result.code === 20000) {
-        alert('已提交归还申请')
-        window.location.reload()
-      } else {
-        alert('归还失败: ' + (result.message || ''))
-      }
-    } catch (err) {
-      alert('操作失败: ' + err.message)
-    }
-  }
-
   if (loading) {
     return <div className="p-4">加载中...</div>
   }
@@ -463,7 +438,7 @@ export default function Detail() {
                 </p>
               )}
               <button
-                onClick={handleReturnOrder}
+                onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
                 className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
               >
                 归还乐器
