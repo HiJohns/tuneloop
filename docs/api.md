@@ -3525,7 +3525,7 @@ PUT /api/warehouse/orders/:id/shipping
 
 ### 8.3 确认收货（租赁中）
 ```
-PUT /api/warehouse/orders/:id/delivered
+PUT /api/warehouse/orders/:id/delivery
 ```
 **请求体**:
 ```json

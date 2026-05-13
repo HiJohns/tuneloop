@@ -142,7 +142,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	})
 }
 
-// PUT /api/warehouse/orders/:id/delivered - Confirm delivery (record lease start)
+// PUT /api/warehouse/orders/:id/delivery - Confirm delivery (record lease start)
 func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	var req struct {
 		DeliveredAt time.Time `json:"delivered_at" binding:"required"`

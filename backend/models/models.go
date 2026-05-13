@@ -122,6 +122,7 @@ type Order struct {
 	TrackingNumber    *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
 	CourierCompany    *string    `gorm:"type:varchar(100)" json:"courier_company"`
 	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
+	DeliveredAt       *time.Time `gorm:"type:timestamp" json:"delivered_at"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 }

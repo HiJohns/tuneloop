@@ -141,11 +141,9 @@ export default function Detail() {
           inst._parsedPricing = parsePricing(inst.pricing)
           setInstrument(inst)
 
-          if (requiredToken() && inst.sn) {
+          if (inst.sn) {
             try {
-              const orderResp = await fetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`, {
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-              })
+              const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
               const orderResult = await orderResp.json()
               if (orderResult.code === 20000 && orderResult.data) {
                 setActiveOrder(orderResult.data)
