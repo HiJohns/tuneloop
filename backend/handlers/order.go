@@ -688,6 +688,10 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 			"order_status":   order.Status,
 			"instrument_id":  instrument.ID,
 			"instrument_sn":  sn,
+			"start_date":     order.StartDate,
+			"end_date":       order.EndDate,
+			"monthly_rent":   order.MonthlyRent,
+			"deposit":        order.Deposit,
 		},
 	})
 }

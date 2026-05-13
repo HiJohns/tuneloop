@@ -241,6 +241,31 @@ export default function Detail() {
     }
   }
 
+  const handleReturnOrder = async () => {
+    const token = getToken()
+    if (!token) {
+      sessionStorage.setItem('post_auth_redirect', window.location.pathname)
+      redirectToLogin()
+      return
+    }
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+      const resp = await fetch(`${baseUrl}/orders/${activeOrder.order_id}/return`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        alert('已提交归还申请')
+        window.location.reload()
+      } else {
+        alert('归还失败: ' + (result.message || ''))
+      }
+    } catch (err) {
+      alert('操作失败: ' + err.message)
+    }
+  }
+
   if (loading) {
     return <div className="p-4">加载中...</div>
   }
@@ -427,14 +452,37 @@ export default function Detail() {
           </>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
-            <div className="p-3 bg-green-50 rounded-lg text-center">
+            <div className="p-3 bg-green-50 rounded-lg space-y-2">
               <p className="text-green-700 font-medium">租赁中</p>
-              <p className="text-gray-500 text-sm">该乐器正在使用中</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
+              {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
+                <p className="text-red-600 font-bold">
+                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                </p>
+              )}
+              <button
+                onClick={handleReturnOrder}
+                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
+              >
+                归还乐器
+              </button>
             </div>
           ) : activeOrder.order_status === 'returning' ? (
-            <div className="p-3 bg-orange-50 rounded-lg text-center">
+            <div className="p-3 bg-orange-50 rounded-lg space-y-2">
               <p className="text-orange-700 font-medium">归还中</p>
               <p className="text-gray-500 text-sm">该乐器正在归还流程中</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
+            </div>
+          ) : ['pending', 'paid'].includes(activeOrder.order_status) ? (
+            <div className="p-3 bg-blue-50 rounded-lg space-y-2">
+              <p className="text-blue-700 font-medium">已预约</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
             </div>
           ) : (
             <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
