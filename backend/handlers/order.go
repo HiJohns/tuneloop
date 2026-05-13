@@ -498,7 +498,7 @@ func PickupOrder(c *gin.Context) {
 	})
 }
 
-// ReturnOrder confirms order return (in_lease -> completed)
+// ReturnOrder initiates order return (in_lease -> returning)
 func ReturnOrder(c *gin.Context) {
 	orderID := c.Param("id")
 	if orderID == "" {
@@ -509,9 +509,10 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 
-	// Find order and check status
+	// Find order
 	var order models.Order
 	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -529,11 +530,51 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
-	// Update order status to completed
-	if err := db.Model(&order).Update("status", "completed").Error; err != nil {
+	// Verify user ownership (customer-facing, no tenant context)
+	userID := middleware.GetUserID(ctx)
+	if order.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    40300,
+			"message": "not your order",
+		})
+		return
+	}
+
+	// Update order status: in_lease -> returning
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).
+		Update("status", "returning").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),
+		})
+		return
+	}
+
+	// Update instrument status -> returning
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusReturning).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to update instrument status: " + err.Error(),
+		})
+		return
+	}
+
+	// Record status history
+	history := models.OrderStatusHistory{
+		ID:         uuid.New().String(),
+		TenantID:   order.TenantID,
+		OrderID:    orderID,
+		StatusFrom: "in_lease",
+		StatusTo:   "returning",
+		Notes:      "顾客发起归还",
+		ChangedBy:  stringPtr(userID),
+		ChangedAt:  time.Now(),
+	}
+	if err := db.Create(&history).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to record status history: " + err.Error(),
 		})
 		return
 	}
@@ -543,8 +584,7 @@ func ReturnOrder(c *gin.Context) {
 		"data": gin.H{
 			"order_id":   orderID,
 			"old_status": "in_lease",
-			"new_status": "completed",
-			"updated_at": time.Now().Format(time.RFC3339),
+			"new_status": "returning",
 		},
 	})
 }

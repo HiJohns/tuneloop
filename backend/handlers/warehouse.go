@@ -180,6 +180,13 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		return
 	}
 
+	// 3.5 Update instrument status to rented
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusRented).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
+		return
+	}
+
 	// 4. Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
@@ -207,7 +214,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	})
 }
 
-// POST /api/warehouse/orders/:id/inspect - Return inspection
+// PUT /api/warehouse/orders/:id/return-inspect - Return inspection
 func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	var req struct {
 		InstrumentSN string    `json:"instrument_sn" binding:"required"`
@@ -268,6 +275,17 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
+	// Update instrument status
+	instStatus := models.StockStatusAvailable
+	if req.Condition == "damaged" {
+		instStatus = models.StockStatusMaintenance
+	}
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", instStatus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
+		return
+	}
+
 	// Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
@@ -296,7 +314,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	})
 }
 
-// POST /api/warehouse/orders/:id/assess-damage - Start damage assessment
+// PUT /api/warehouse/orders/:id/damage - Start damage assessment
 func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	var req struct {
 		DamageDescription string  `json:"damage_description" binding:"required"`
@@ -325,6 +343,13 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	// Update order status to inspecting
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", "inspecting").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
+		return
+	}
+
+	// Update instrument status to maintenance
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusMaintenance).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}
 
