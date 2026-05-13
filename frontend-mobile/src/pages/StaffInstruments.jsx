@@ -82,7 +82,7 @@ export default function StaffInstruments() {
         <button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold">Instrument Management</h1>
+        <h1 className="text-lg font-bold">乐器管理</h1>
       </div>
 
       <div className="bg-white border-b overflow-x-auto">
