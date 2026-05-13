@@ -420,12 +420,6 @@ export default function Detail() {
                 <ShoppingCart size={18} />
                 加入购物车
               </button>
-              <button 
-                onClick={handleCreateOrder}
-                className="py-3 rounded-lg font-medium bg-orange-500 text-white flex-1"
-              >
-                立即租赁
-              </button>
             </div>
           </>
         ) : activeOrder ? (
