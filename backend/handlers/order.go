@@ -101,6 +101,8 @@ type CreateOrderRequest struct {
 	InstrumentID    string `json:"instrument_id" binding:"required"`
 	Level           string `json:"level" binding:"required"`
 	LeaseTerm       int    `json:"lease_term" binding:"required"`
+	StartDate       string `json:"start_date"`
+	EndDate         string `json:"end_date"`
 	DepositMode     string `json:"deposit_mode"`
 	DeliveryType    string `json:"delivery_type"`
 	AgreementSigned bool   `json:"agreement_signed"`
@@ -242,6 +244,8 @@ func CreateOrder(c *gin.Context) {
 		InstrumentID: req.InstrumentID,
 		Level:        req.Level,
 		LeaseTerm:    req.LeaseTerm,
+		StartDate:    &req.StartDate,
+		EndDate:      &req.EndDate,
 		DepositMode:  req.DepositMode,
 		MonthlyRent:  pricingResp.FirstMonthRent,
 		Deposit:     pricingResp.Deposit,
