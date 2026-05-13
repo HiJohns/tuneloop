@@ -435,17 +435,15 @@ type DamageReport struct {
 
 // DamageAssessment 定损评估记录表
 type DamageAssessment struct {
-	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID     string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrderID      string     `gorm:"type:uuid;not null;index" json:"order_id"`
-	InstrumentID string     `gorm:"type:uuid;not null" json:"instrument_id"`
-	UserID       string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	AssessedBy   *string    `gorm:"type:uuid;index" json:"assessed_by"`
-	Condition    string     `gorm:"type:varchar(20);index" json:"condition"`
-	Notes        string     `gorm:"type:text" json:"notes"`
-	ScanTime     *time.Time `json:"scan_time"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrderID       string     `gorm:"type:uuid;not null;index" json:"order_id"`
+	InspectorID   *string    `gorm:"type:uuid;index" json:"inspector_id"`
+	Description   string     `gorm:"type:text" json:"description"`
+	EstimatedCost *float64   `gorm:"type:decimal(10,2)" json:"estimated_cost"`
+	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // Appeal 申诉记录表

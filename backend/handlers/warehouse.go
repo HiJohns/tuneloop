@@ -248,17 +248,19 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 
 	// Create assessment record
 	userID := middleware.GetUserID(ctx)
+	assessmentStatus := "completed"
+	if req.Condition == "damaged" {
+		assessmentStatus = "damaged"
+	}
 	assessment := models.DamageAssessment{
-		ID:         uuid.New().String(),
-		TenantID:   tenantID,
-		OrderID:    orderID,
-		UserID:     order.UserID,
-		Condition:  req.Condition,
-		Notes:      req.Notes,
-		ScanTime:   &req.ScanTime,
-		AssessedBy: stringPtr(userID),
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		ID:          uuid.New().String(),
+		TenantID:    tenantID,
+		OrderID:     orderID,
+		InspectorID: stringPtr(userID),
+		Description: req.Notes,
+		Status:      assessmentStatus,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
