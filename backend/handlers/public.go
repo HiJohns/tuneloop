@@ -1,14 +1,44 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+// resolveTenantName resolves tenant name from local DB with IAM fallback
+func resolveTenantName(db *gorm.DB, tenantID string) string {
+	if tenantID == "" {
+		return ""
+	}
+	var tenant models.Tenant
+	if err := db.First(&tenant, "id = ?", tenantID).Error; err == nil {
+		return tenant.Name
+	}
+	// Fallback to IAM
+	iamClient := services.NewIAMClient()
+	org, err := iamClient.GetOrganization(tenantID)
+	if err != nil || org == nil {
+		return ""
+	}
+	// Async sync to local DB for future requests
+	go func() {
+		syncDB := database.GetDB()
+		if err := syncDB.Clauses(clause.OnConflict{DoNothing: true}).
+			Create(&models.Tenant{ID: tenantID, Name: org.Name}).Error; err != nil {
+			log.Printf("[resolveTenantName] Failed to sync tenant %s: %v", tenantID, err)
+		}
+	}()
+	return org.Name
+}
 
 func GetPublicInstruments(c *gin.Context) {
 	db := database.GetDB()
@@ -144,14 +174,8 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		}
 	}
 
-	// Get tenant name (fallback to empty if not found)
-	tenantName := ""
-	if instrument.TenantID != "" {
-		var tenant models.Tenant
-		if err := db.First(&tenant, "id = ?", instrument.TenantID).Error; err == nil {
-			tenantName = tenant.Name
-		}
-	}
+	// Get tenant name with IAM fallback
+	tenantName := resolveTenantName(db, instrument.TenantID)
 
 	response := map[string]interface{}{
 		"id":              instrument.ID,
