@@ -437,7 +437,6 @@ type DamageReport struct {
 type DamageAssessment struct {
 	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID     string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID        string     `gorm:"type:uuid;index" json:"org_id"`
 	OrderID      string     `gorm:"type:uuid;not null;index" json:"order_id"`
 	InstrumentID string     `gorm:"type:uuid;not null" json:"instrument_id"`
 	UserID       string     `gorm:"type:uuid;not null;index" json:"user_id"`
