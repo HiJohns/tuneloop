@@ -196,7 +196,10 @@ export default function Detail() {
     } else {
       today.setMonth(today.getMonth() + termCount)
     }
-    return today.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+    const y = today.getFullYear()
+    const m = String(today.getMonth() + 1).padStart(2, '0')
+    const d = String(today.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   const handleCreateOrder = async () => {
