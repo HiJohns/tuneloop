@@ -177,33 +177,6 @@ export default function ShippingInterface() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Add Instrument */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">添加乐器</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={snInput}
-              onChange={e => setSnInput(e.target.value)}
-              placeholder="输入识别码或扫描二维码"
-              className="flex-1 border rounded-lg px-3 py-2"
-              onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
-            />
-            <button
-              onClick={() => snInput && checkInstrument(snInput)}
-              className="px-4 py-2 bg-brand-primary text-white rounded-lg"
-            >
-              <Plus size={18} />
-            </button>
-            <button
-              onClick={() => alert('扫码功能暂不可用')}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <Scan size={18} />
-            </button>
-          </div>
-        </div>
-
         {/* Logistics Info */}
         <div className="bg-white rounded-xl p-4 space-y-3">
           <h3 className="font-medium">物流信息</h3>
@@ -269,6 +242,33 @@ export default function ShippingInterface() {
             </div>
           </div>
         )}
+
+        {/* Add Instrument */}
+        <div className="bg-white rounded-xl p-4">
+          <h3 className="font-medium mb-3">添加乐器</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={snInput}
+              onChange={e => setSnInput(e.target.value)}
+              placeholder="输入识别码或扫描二维码"
+              className="flex-1 border rounded-lg px-3 py-2"
+              onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
+            />
+            <button
+              onClick={() => snInput && checkInstrument(snInput)}
+              className="px-4 py-2 bg-brand-primary text-white rounded-lg"
+            >
+              <Plus size={18} />
+            </button>
+            <button
+              onClick={() => alert('扫码功能暂不可用')}
+              className="px-4 py-2 border rounded-lg"
+            >
+              <Scan size={18} />
+            </button>
+          </div>
+        </div>
 
         {/* Submit Button */}
         <button
