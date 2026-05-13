@@ -57,7 +57,10 @@ function calculateDeadline(item) {
   } else {
     today.setMonth(today.getMonth() + termCount)
   }
-  return today.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+    const y = today.getFullYear()
+    const m = String(today.getMonth() + 1).padStart(2, '0')
+    const d = String(today.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
 }
 
 export default function Cart() {
@@ -77,7 +80,7 @@ export default function Cart() {
       const siteId = item.site_id || 'unknown'
       const siteName = item.site_name || '未知网点'
       if (!groups[tid]) {
-        groups[tid] = { name: item.tenant_name || '商户', sites: {} }
+        groups[tid] = { name: item.tenant_name || '', sites: {} }
       }
       if (!groups[tid].sites[siteId]) {
         groups[tid].sites[siteId] = { name: siteName, items: [] }
@@ -122,7 +125,7 @@ export default function Cart() {
       const siteId = item.site_id || 'unknown'
       const siteName = item.site_name || '未知网点'
       if (!groups[tid]) {
-        groups[tid] = { name: item.tenant_name || '商户', sites: {} }
+        groups[tid] = { name: item.tenant_name || '', sites: {} }
       }
       if (!groups[tid].sites[siteId]) {
         groups[tid].sites[siteId] = { name: siteName, items: [] }
@@ -188,6 +191,10 @@ export default function Cart() {
       return
     }
     sessionStorage.removeItem('pending_order')
+    if (!address.trim()) {
+      alert('请先填写收货地址')
+      return
+    }
     if (cart.items.length === 1) {
       const item = cart.items[0]
       const amount = calculateItemAmount(item)
