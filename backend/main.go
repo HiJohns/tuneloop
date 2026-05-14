@@ -475,6 +475,18 @@ func main() {
 	if nsID == "" {
 		nsID = "5cf62b89-fbea-4fd8-b9fc-4821a4ce3ff9"
 	}
+
+	// Sync sys_perm from role_templates.go to IAM functional_role_templates
+	log.Printf("[Bootstrap] Syncing role template sys_perm to IAM...")
+	for code, template := range services.AllRoleTemplates {
+		if len(template.SysPermBits) > 0 {
+			if err := iamClient.SyncRoleTemplateSysPerm(nsID, code, template.SysPermBits); err != nil {
+				log.Printf("[Bootstrap] Warning: failed to sync sys_perm for role %s: %v", code, err)
+			} else {
+				log.Printf("[Bootstrap] Synced sys_perm for role %s: bits=%v", code, template.SysPermBits)
+			}
+		}
+	}
 	roleTemplates, err := iamClient.ListRoleTemplates(nsID)
 	if err != nil {
 		log.Printf("[Bootstrap] Warning: failed to list role templates: %v", err)

@@ -67,7 +67,7 @@ func GetDefaultRolePermissions() []DefaultRolePermissions {
 		{
 			RoleCode: "merchant_admin", // Owner / tenant admin
 			Perms: []string{
-				"instrument:create", "instrument:edit", "instrument:delete",
+				"instrument:create", "instrument:edit", "instrument:delete", "instrument:view",
 				"category:manage", "property:manage",
 				"inventory:view", "inventory:manage", "rent:setting",
 				"order:view", "order:manage",

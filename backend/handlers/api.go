@@ -159,12 +159,16 @@ func GetInstruments(c *gin.Context) {
 
 	query := db.Model(&models.Instrument{})
 	userID := middleware.GetUserID(ctx)
+	recursive := c.Query("recursive") == "true"
 
-	// Scope by user role: site_id → tenant_id
+	// Scope by user role: tenant_id (if admin with recursive) → site_id → tenant_id
 	if userID != "" {
 		var currentUser models.User
 		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil {
-			if currentUser.SiteID != nil {
+			role := middleware.GetRole(ctx)
+			if recursive && (role == "OWNER" || role == "ADMIN") && currentUser.TenantID != "" {
+				query = query.Where("tenant_id = ?", currentUser.TenantID)
+			} else if currentUser.SiteID != nil {
 				query = query.Where("site_id = ?", *currentUser.SiteID)
 			} else if currentUser.TenantID != "" {
 				query = query.Where("tenant_id = ?", currentUser.TenantID)
