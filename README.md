@@ -197,21 +197,23 @@ make mobile-dev
 > 详细操作手册：**[docs/prerelease-guide.md](docs/prerelease-guide.md)**
 
 ### 工作目录
-`/opt/tuneloop/` (symlink → `/opt/flow/YYYYMMDD-HHMMSS/`)
+`/opt/tuneloop/` (symlink → `/opt/flow/<version>/`)
 
 ### 编译
 ```bash
-make release    # 打包 tuneloop + beaconiam → /opt/flow/YYYYMMDD-HHMMSS.zip
+make release    # 一步完成 PC+Mobile+Backend 编译，输出 zip
 ```
+产物：`~/release/tuneloop_<timestamp>_<git-hash>.zip`
 
 ### 部署
 ```bash
-cd /opt/flow && sudo ./deploy.sh YYYYMMDD-HHMMSS
+/opt/flow/deploy.sh tuneloop_<timestamp>_<hash>.zip
 ```
+`deploy.sh` 自动解析文件名中的 `tuneloop` → 更新 `/opt/tuneloop/`  symlink。
 
 ### 启动
 ```bash
-sudo systemctl start tuneloop-prerelease beaconiam-prerelease
+sudo systemctl restart tuneloop
 ```
 
 ### 访问地址
@@ -220,7 +222,7 @@ sudo systemctl start tuneloop-prerelease beaconiam-prerelease
 - https://iam.cadenzayueqi.com => NGINX => :5560 (IAM 服务)
 
 ### 配置
-在 `/opt/tuneloop/.env` 和 `/opt/beaconiam/.env` 中完成 IAM 相关配置
+在 `/opt/tuneloop/.env` 中完成 IAM 相关配置
 
 ---
 
