@@ -16,6 +16,7 @@ import MyLeases from './pages/MyLeases'
 import Messages from './pages/Messages'
 import StaffInstruments from './pages/StaffInstruments'
 import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
+import StaffInstrumentForm from './pages/StaffInstrumentForm'
 import StaffReceiveConfirm from './pages/StaffReceiveConfirm'
 import ShippingInterface from './pages/ShippingInterface'
 import ReceivingInterface from './pages/ReceivingInterface'
@@ -199,8 +200,9 @@ function App() {
         <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-        <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
-        <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
+<Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />
+<Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
+<Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
         <Route path="/staff/receiving/:orderId" element={<ProtectedRoute><StaffReceiveConfirm /></ProtectedRoute>} />
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />

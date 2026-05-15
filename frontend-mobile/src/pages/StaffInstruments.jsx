@@ -154,6 +154,15 @@ export default function StaffInstruments() {
           </button>
         )}
       </div>
+
+      <div className="fixed bottom-6 right-6">
+        <button
+          onClick={() => navigate('/staff/instrument/new')}
+          className="w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
+        >
+          +
+        </button>
+      </div>
     </div>
   )
 }

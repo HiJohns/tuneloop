@@ -276,6 +276,7 @@ export const instrumentsApi = {
   list: () => api.get('/instruments'),
   get: (id) => api.get(`/instruments/${id}`),
   getPricing: (id) => api.get(`/instruments/${id}/pricing`),
+  create: (data) => api.post('/instruments', data),
 }
 
 export const ordersApi = {
