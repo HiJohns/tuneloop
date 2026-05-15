@@ -194,21 +194,24 @@ make mobile-dev
 
 ## 🚀 预生产环境
 
+> 详细操作手册：**[docs/prerelease-guide.md](docs/prerelease-guide.md)**
+
 ### 工作目录
-`prerelease/`
+`/opt/tuneloop/` (symlink → `/opt/flow/YYYYMMDD-HHMMSS/`)
 
 ### 编译
 ```bash
-make prerelease
+make release    # 打包 tuneloop + beaconiam → /opt/flow/YYYYMMDD-HHMMSS.zip
+```
+
+### 部署
+```bash
+cd /opt/flow && sudo ./deploy.sh YYYYMMDD-HHMMSS
 ```
 
 ### 启动
 ```bash
-# 使用 systemd 服务
-sudo service tuneloop start
-
-# 或手动启动
-cd prerelease && ./service/tuneloop --env=.env
+sudo systemctl start tuneloop-prerelease beaconiam-prerelease
 ```
 
 ### 访问地址
@@ -217,7 +220,7 @@ cd prerelease && ./service/tuneloop --env=.env
 - https://iam.cadenzayueqi.com => NGINX => :5560 (IAM 服务)
 
 ### 配置
-在 `prerelease/.env` 中完成微信端、PC 端的 IAM 相关跳转配置
+在 `/opt/tuneloop/.env` 和 `/opt/beaconiam/.env` 中完成 IAM 相关配置
 
 ---
 
@@ -265,7 +268,8 @@ tuneloop/
     ├── features.md                  # 功能需求
     ├── api.md                       # API文档(v2.0)
     ├── ui.md                        # UI设计文档(v2.0)
-    └── iam.md                       # IAM集成说明
+    ├── iam.md                       # IAM集成说明
+    └── prerelease-guide.md          # 预发布操作手册
 ```
 
 ---
