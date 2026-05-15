@@ -53,6 +53,7 @@ const (
 	BusinessRoleMerchantAdmin = "merchant_admin"
 	BusinessRoleSiteAdmin     = "site_admin"
 	BusinessRoleSiteMember    = "site_member"
+	BusinessRoleCustomer      = "customer"
 )
 
 var validIssuers = []string{
@@ -262,7 +263,7 @@ func RequireOwner() gin.HandlerFunc {
 func RequireSiteManager() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole := GetRole(c.Request.Context())
-		if userRole != "OWNER" && userRole != "ADMIN" && userRole != "SITE_MANAGER" {
+		if userRole != "OWNER" && userRole != "ADMIN" && userRole != "SITE_MANAGER" && userRole != "STAFF" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"code":    40302,
 				"message": "site manager privileges required",
@@ -355,8 +356,9 @@ func GetBusinessRole(ctx context.Context) string {
 	orgID := GetOrgID(ctx)
 	isOwner := IsOwner(ctx)
 
-	if role == "" && orgID == "" {
-		return BusinessRoleSiteMember
+	// Empty role or USER role should return customer, not staff member
+	if role == "" || role == "USER" {
+		return BusinessRoleCustomer
 	}
 
 	if isOwner {

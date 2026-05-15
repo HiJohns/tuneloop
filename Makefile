@@ -60,36 +60,86 @@ init: install
 	cd backend && go run cmd/migrate/main.go
 
 # Prerelease targets
-.PHONY: prerelease clean-prerelease prebuild-pc prebuild-mobile prebuild-backend
+.PHONY: prerelease clean-prerelease prebuild-pc prebuild-mobile prebuild-backend release
+PRERELEASE_DIR := /home/coder/prerelease/tuneloop
+TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
+FLOW_DIR := /opt/flow
 
 clean-prerelease:
 	@echo "Cleaning prerelease directories..."
-clean-prerelease:
-	@echo "Cleaning prerelease directories..."
-	rm -rf prerelease/www prerelease/mobile prerelease/service
+	rm -rf $(PRERELEASE_DIR)/www $(PRERELEASE_DIR)/mobile $(PRERELEASE_DIR)/service
 
 prebuild-pc: clean-prerelease
 	@echo "Building PC frontend for prerelease..."
-	@mkdir -p prerelease/www
+	@mkdir -p $(PRERELEASE_DIR)/www
 	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
-	@cp -r frontend-pc/dist/* prerelease/www/
+	@cp -r frontend-pc/dist/* $(PRERELEASE_DIR)/www/
 
 prebuild-mobile:
 	@echo "Building Mobile frontend for prerelease..."
-	@mkdir -p prerelease/mobile
+	@mkdir -p $(PRERELEASE_DIR)/mobile
 	cd frontend-mobile && npm run build -- --mode prerelease
-	@cp -r frontend-mobile/dist/* prerelease/mobile/
+	@cp -r frontend-mobile/dist/* $(PRERELEASE_DIR)/mobile/
 
 prebuild-backend:
 	@echo "Building backend for prerelease..."
-	@mkdir -p prerelease/service prerelease/database
-	cd backend && go build -o ../prerelease/service/tuneloop .
+	@mkdir -p $(PRERELEASE_DIR)/service $(PRERELEASE_DIR)/database
+	cd backend && go build -o $(PRERELEASE_DIR)/service/tuneloop .
 	@echo "Copying database migrations..."
-	@cp -r backend/database/migrations prerelease/database/
+	@cp -r backend/database/migrations $(PRERELEASE_DIR)/database/
 
-prerelease: clean-prerelease prebuild-backend prebuild-pc prebuild-mobile
+prebuild-env:
+	@echo "Copying environment config..."
+	@cp .env.example $(PRERELEASE_DIR)/.env
+
+prerelease: clean-prerelease prebuild-backend prebuild-pc prebuild-mobile prebuild-env
 	@echo "=========================================="
-	@echo "预发布构建完成"
+	@echo "预发布构建完成($(PRERELEASE_DIR))"
 	@echo "PC:   web.cadenzayueqi.com"
 	@echo "WX:   wx.cadenzayueqi.com"
 	@echo "=========================================="
+
+# Flow release: build both tuneloop + beaconiam into a timestamped zip
+FLOW_BUILD := /tmp/flow_build_$(TIMESTAMP)
+
+release: clean-prerelease
+	@echo "=========================================="
+	@echo "Flow release: $(TIMESTAMP)"
+	@echo "=========================================="
+	rm -rf $(FLOW_BUILD)
+	mkdir -p $(FLOW_BUILD)/tuneloop/www $(FLOW_BUILD)/tuneloop/mobile \
+	         $(FLOW_BUILD)/tuneloop/service $(FLOW_BUILD)/tuneloop/database \
+	         $(FLOW_BUILD)/beaconiam/www $(FLOW_BUILD)/beaconiam/service
+	# tuneloop PC frontend
+	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
+	cp -r frontend-pc/dist/* $(FLOW_BUILD)/tuneloop/www/
+	# tuneloop Mobile frontend
+	cd frontend-mobile && npm run build -- --mode prerelease
+	cp -r frontend-mobile/dist/* $(FLOW_BUILD)/tuneloop/mobile/
+	# tuneloop backend
+	cd backend && go build -o $(FLOW_BUILD)/tuneloop/service/tuneloop .
+	cp -r backend/database/migrations $(FLOW_BUILD)/tuneloop/database/
+	# BeaconIAM backend
+	cd ../beaconiam && go build -o $(FLOW_BUILD)/beaconiam/service/beaconiam ./cmd/api
+	# BeaconIAM frontend
+	cd ../beaconiam/ui && npm run build
+	cp -r ../beaconiam/ui/dist/* $(FLOW_BUILD)/beaconiam/www/
+	# Package
+	mkdir -p $(FLOW_DIR)
+	cd $(FLOW_BUILD) && zip -r $(FLOW_DIR)/$(TIMESTAMP).zip .
+	rm -rf $(FLOW_BUILD)
+	@echo "=========================================="
+	@echo "Flow release package: $(FLOW_DIR)/$(TIMESTAMP).zip"
+	@echo "=========================================="
+
+# Debug build
+.PHONY: debug
+RELEASE_DIR := /home/coder/release/tuneloop
+debug:
+	@echo "Building debug server..."
+	@mkdir -p $(RELEASE_DIR)/service $(RELEASE_DIR)/database
+	cd backend && go build -gcflags="all=-N -l" -o $(RELEASE_DIR)/service/tuneloop .
+	@echo "Copying database migrations..."
+	@cp -r backend/database/migrations $(RELEASE_DIR)/database/
+	@cp .env.example $(RELEASE_DIR)/.env
+	@echo "Debug build complete: $(RELEASE_DIR)/service/tuneloop"

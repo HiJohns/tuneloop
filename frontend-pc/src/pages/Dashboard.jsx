@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Table, Tag, Space, Form, Select, Statistic, Row, Col, Drawer, Timeline, Button, Badge, Spin, Card } from 'antd'
-import { EyeOutlined, EditOutlined, DollarOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
+import { EyeOutlined, EditOutlined, ShoppingOutlined, ToolOutlined, BarChartOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { inventoryApi, sitesApi, ordersApi, maintenanceApi, leaseApi } from '../services/api'
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Legend, Tooltip } from 'recharts'
@@ -29,6 +29,8 @@ export default function Dashboard() {
   const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
   const [assets, setAssets] = useState([])
+  const [leasesData, setLeasesData] = useState([])
+  const [today, setToday] = useState('')
   const [totalAssets, setTotalAssets] = useState(0)
   const [activeRentals, setActiveRentals] = useState(0)
   const [todaysNewOrders, setTodaysNewOrders] = useState(0)
@@ -42,35 +44,33 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const todayStr = new Date().toISOString().split('T')[0]
+      setToday(todayStr)
       const [inventoryRes, sitesRes, leasesRes, ordersRes, maintenanceRes] = await Promise.all([
         inventoryApi.list(),
         sitesApi.list(),
         leaseApi.list(),
-        ordersApi.list? ordersApi.list({ start_date: today, end_date: today }) : Promise.resolve({ data: [] }),
+        ordersApi.list? ordersApi.list({ start_date: todayStr, end_date: todayStr }) : Promise.resolve({ data: [] }),
         maintenanceApi.listMerchant(),
       ])
       
       const inventoryData = inventoryRes?.data?.list || []
       const sitesData = sitesRes?.data?.list || []
-      const leasesData = leasesRes?.data?.list || []
+      const leasesList = leasesRes?.data?.list || []
       const ordersResponse = ordersRes?.data?.list || []
       const maintenanceData = maintenanceRes?.data?.list || []
       
       setAssets(inventoryData)
+      setLeasesData(leasesList) // Fix: add leases to state
+      setTotalAssets(inventoryData.length) // Fix 5: Total Assets 改为资产总数
       setSites(sitesData.map(s => ({
         value: s.id,
         label: s.name,
       })))
       
-      if (leasesData.length > 0) {
-        const activeLeases = leasesData.filter(l => l.status === 'active')
+      if (leasesList.length > 0) {
+        const activeLeases = leasesList.filter(l => l.status === 'active')
         setActiveRentals(activeLeases.length)
-        
-        const totalValue = activeLeases.reduce((sum, lease) => {
-          return sum + (lease.monthly_rent || 0) + (lease.deposit_amount || 0)
-        }, 0)
-        setTotalAssets(totalValue)
       }
       
       setTodaysNewOrders(ordersResponse.length)
@@ -106,8 +106,6 @@ export default function Dashboard() {
     }
   }
 
-  const today = new Date().toISOString().split('T')[0]
-
   const filteredAssets = selectedSite
     ? assets.filter(a => a.siteId === selectedSite)
     : assets
@@ -116,16 +114,18 @@ export default function Dashboard() {
     ? filteredAssets.filter(a => a.status === statusFilter)
     : filteredAssets
 
-  const totalValue = filteredAssets
-    .filter(a => a.status === "在租" || a.status === "rented")
-    .reduce((sum, a) => sum + (a.value || 0), 0)
-
-  const expiringToday = filteredAssets.filter(a => 
-    a.leaseEnd && a.leaseEnd <= today && (a.status === "在租" || a.status === "rented")
+  // Fix 1: 在租资产数量（替代在租资产总额）
+  const rentedAssetCount = filteredAssets.filter(a => 
+    a.status === "rented" || a.stock_status === "rented"
   ).length
 
-  const overdueAssets = filteredAssets.filter(a => 
-    a.leaseEnd && a.leaseEnd < today && (a.status === "在租" || a.status === "rented")
+  // Fix 2 & 3: 从 leaseApi 获取到期和逾期租约
+  const expiringToday = leasesData.filter(lease => 
+    lease.end_date === today && lease.status === 'active'
+  ).length
+
+  const overdueAssets = leasesData.filter(lease => 
+    lease.end_date < today && lease.status === 'active'
   ).length
 
   const handleRowClick = (record) => {
@@ -165,28 +165,21 @@ export default function Dashboard() {
     },
     {
       title: '类别',
-      dataIndex: 'category',
-      key: 'category',
+      dataIndex: 'category_name',
+      key: 'category_name',
     },
     {
       title: '级别',
-      dataIndex: 'level',
-      key: 'level',
+      dataIndex: 'level_name',
+      key: 'level_name',
       render: (level) => (
-        <Tag color={levelColors[level]}>{level}</Tag>
+        <Tag color={levelColors[level] || 'default'}>{level}</Tag>
       )
     },
     {
       title: '所属网点',
       dataIndex: 'site',
       key: 'site',
-    },
-    {
-      title: '估值',
-      dataIndex: 'value',
-      key: 'value',
-      align: 'right',
-      render: (value) => `¥${(value || 0).toLocaleString()}`
     },
     {
       title: '操作',
@@ -216,10 +209,9 @@ export default function Dashboard() {
         <Col span={8}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('在租')}>
             <Statistic
-              title="在租资产总额"
-              value={totalValue}
+              title="在租资产数量"
+              value={rentedAssetCount}
               precision={0}
-              suffix="元"
               valueStyle={{ color: '#3f8600' }}
             />
           </Card>
@@ -261,10 +253,9 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('total-assets')}>
             <Statistic
-              title="Total Assets"
+              title="资产总数"
               value={totalAssets}
               precision={0}
-              prefix={<DollarOutlined />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
@@ -272,7 +263,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('active-rentals')}>
             <Statistic
-              title="Active Rentals"
+              title="在租数"
               value={activeRentals}
               prefix={<ShoppingOutlined />}
               valueStyle={{ color: '#52c41a' }}
@@ -282,7 +273,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('new-orders')}>
             <Statistic
-              title="Today's New Orders"
+              title="今日新订单"
               value={todaysNewOrders}
               prefix={<BarChartOutlined />}
               valueStyle={{ color: '#722ed1' }}
@@ -292,7 +283,7 @@ export default function Dashboard() {
         <Col span={6}>
           <Card style={{ cursor: 'pointer' }} onClick={() => handleCardClick('maintenance')}>
             <Statistic
-              title="Maintenance Due"
+              title="待处理工单"
               value={maintenanceDue}
               prefix={<ToolOutlined />}
               valueStyle={{ color: '#faad14' }}
@@ -303,15 +294,15 @@ export default function Dashboard() {
 
       <Row gutter={16} className="mb-6">
         <Col span={12}>
-          <Card title="Revenue Trend" style={{ height: '300px' }}>
+          <Card title="收入趋势" style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={[
-                { month: 'Jan', revenue: 4000 },
-                { month: 'Feb', revenue: 3000 },
-                { month: 'Mar', revenue: 5000 },
-                { month: 'Apr', revenue: 4500 },
-                { month: 'May', revenue: 6000 },
-                { month: 'Jun', revenue: 5500 },
+                { month: '1月', revenue: 4000 },
+                { month: '2月', revenue: 3000 },
+                { month: '3月', revenue: 5000 },
+                { month: '4月', revenue: 4500 },
+                { month: '5月', revenue: 6000 },
+                { month: '6月', revenue: 5500 },
               ]}>
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -322,14 +313,14 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="Asset Status Distribution" style={{ height: '300px' }}>
+          <Card title="资产状态分布" style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Available', value: assets.filter(a => a.status === 'available' || a.status === '待租').length },
-                    { name: 'Rented', value: assets.filter(a => a.status === 'rented' || a.status === '在租').length },
-                    { name: 'Repairing', value: assets.filter(a => a.status === 'maintenance' || a.status === '维修中').length },
+                    { name: '可租', value: assets.filter(a => a.stock_status === 'available').length },
+                    { name: '在租', value: assets.filter(a => a.stock_status === 'rented').length },
+                    { name: '维修中', value: assets.filter(a => a.stock_status === 'maintenance').length },
                   ]}
                   cx="50%"
                   cy="50%"
@@ -352,34 +343,34 @@ export default function Dashboard() {
 
       <Row gutter={16} className="mb-6">
         <Col span={8}>
-          <Card title="Low Stock Alerts" variant="borderless" style={{ background: '#fff1f0' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#cf1322' }}>
-              {assets.filter(a => a.stock && a.stock < 10).length}
+          <Card title="可租资产" variant="borderless" style={{ background: '#fff1f0' }}>
+            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
+              {assets.filter(a => a.stock_status === 'available').length}
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
-              SKUs below threshold
+              可租
             </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="Overdue Returns" variant="borderless" style={{ background: '#fff7e6' }}>
+          <Card title="逾期未归还" variant="borderless" style={{ background: '#fff7e6' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#faad14' }}>
-              {filteredAssets.filter(a => 
-                a.leaseEnd && a.leaseEnd < today && (a.status === "在租" || a.status === "rented")
+              {leasesData.filter(lease => 
+                lease.end_date < today && lease.status === 'active'
               ).length}
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
-              Assets past return date
+              已逾期
             </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="Pending Maintenance Tasks" variant="borderless" style={{ background: '#f6ffed' }}>
+          <Card title="待处理维修" variant="borderless" style={{ background: '#f6ffed' }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#52c41a' }}>
               {maintenanceDue || 0}
             </div>
             <div style={{ marginTop: '8px', color: '#595959' }}>
-              Tasks requiring attention
+              需处理
             </div>
           </Card>
         </Col>
@@ -406,7 +397,7 @@ export default function Dashboard() {
         </Form.Item>
       </Form>
 
-      <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>Asset Details</h3>
+      <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>资产明细</h3>
       <Table 
         columns={columns} 
         dataSource={displayedAssets || []} 

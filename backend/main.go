@@ -206,6 +206,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 		// Instrument CRUD - site_manager and above can create
 		authRequired.POST("/instruments", middleware.RequireSiteManager(), handlers.CreateInstrument)
+		authRequired.DELETE("/instruments/:id", handlers.DeleteInstrument)
 		authRequired.PUT("/instruments/:id/status", handlers.UpdateInstrumentStatus)
 		authRequired.POST("/instruments/:id/photos/upload", handlers.UploadInstrumentPhotos)
 		authRequired.GET("/instruments/:id/photos/latest", handlers.GetLatestInstrumentPhotos)
@@ -473,6 +474,18 @@ func main() {
 	nsID := os.Getenv("IAM_NAMESPACE_ID")
 	if nsID == "" {
 		nsID = "5cf62b89-fbea-4fd8-b9fc-4821a4ce3ff9"
+	}
+
+	// Sync sys_perm from role_templates.go to IAM functional_role_templates
+	log.Printf("[Bootstrap] Syncing role template sys_perm to IAM...")
+	for code, template := range services.AllRoleTemplates {
+		if len(template.SysPermBits) > 0 {
+			if err := iamClient.SyncRoleTemplateSysPerm(nsID, code, template.SysPermBits); err != nil {
+				log.Printf("[Bootstrap] Warning: failed to sync sys_perm for role %s: %v", code, err)
+			} else {
+				log.Printf("[Bootstrap] Synced sys_perm for role %s: bits=%v", code, template.SysPermBits)
+			}
+		}
 	}
 	roleTemplates, err := iamClient.ListRoleTemplates(nsID)
 	if err != nil {

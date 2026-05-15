@@ -48,16 +48,16 @@ export default function Messages() {
         <button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-bold">Messages</h1>
+        <h1 className="text-lg font-bold">消息</h1>
       </div>
 
       <div className="p-4">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading...</div>
+          <div className="text-center py-8 text-gray-500">加载中...</div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-16">
             <Bell size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">No messages</p>
+            <p className="text-gray-500">暂无消息</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -86,23 +86,23 @@ export default function Messages() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        alert('Damage accepted. Refund process will begin.')
+                        alert('已同意定损，退款流程将开始。')
                       }}
                       className="flex-1 py-1.5 bg-green-500 text-white rounded text-sm"
                     >
-                      Accept
+                      同意
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        const reason = prompt('Reason for appeal:')
+                        const reason = prompt('申诉原因：')
                         if (reason) {
-                          alert('Appeal submitted.')
+                          alert('申诉已提交。')
                         }
                       }}
                       className="flex-1 py-1.5 bg-red-500 text-white rounded text-sm"
                     >
-                      Reject
+                      拒绝
                     </button>
                   </div>
                 )}

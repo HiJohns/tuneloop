@@ -137,7 +137,7 @@ export default function Profile() {
       const result = await resp.json()
       if (result.code === 20000) {
         const allOrders = result.data?.list || []
-        const active = allOrders.filter(o => ['in_lease', 'shipping', 'returning'].includes(o.status))
+        const active = allOrders.filter(o => ['reserved', 'pending', 'paid', 'in_lease', 'shipping', 'shipped', 'returning'].includes(o.status))
         const history = allOrders.filter(o => ['returned', 'completed'].includes(o.status))
         setActiveLeases(active)
         setLeaseHistory(history)
@@ -163,13 +163,14 @@ export default function Profile() {
     const iamUrl = window.APP_CONFIG?.wx?.iamExternalUrl ||
                    import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
     if (iamUrl) {
-      window.location.href = `${iamUrl}/auth/setup-password`
+      window.open(`${iamUrl}/auth/setup-password`, '_blank')
     }
   }
 
   const businessRole = user?.business_role || ''
 
   const statusLabel = {
+    reserved: '已预约',
     pending: '待付款',
     paid: '待发货',
     shipped: '已发货',
@@ -181,6 +182,7 @@ export default function Profile() {
   }
 
   const statusColor = {
+    reserved: 'bg-blue-100 text-blue-700',
     in_lease: 'bg-green-100 text-green-700',
     shipping: 'bg-blue-100 text-blue-700',
     returning: 'bg-yellow-100 text-yellow-700',
@@ -240,20 +242,20 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Set Password */}
+        {/* 设置密码 */}
         <div className="bg-white rounded-xl p-4">
           <button
             onClick={handlePasswordSetup}
             className="flex items-center gap-3 w-full py-2"
           >
             <Key size={18} className="text-gray-400" />
-            <span className="flex-1 text-left text-sm">Set Password</span>
+            <span className="flex-1 text-left text-sm">设置密码</span>
             <ChevronRight size={16} className="text-gray-300" />
           </button>
         </div>
 
         {/* Current Rentals */}
-        {activeLeases.length > 0 && (
+        {businessRole !== 'site_admin' && businessRole !== 'site_member' && activeLeases.length > 0 && (
           <div className="bg-white rounded-xl p-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <Package size={18} className="text-brand-primary" />
@@ -264,7 +266,10 @@ export default function Profile() {
                 <div
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => navigate(`/instrument/${order.instrument_id}`)}
+                  onClick={() => {
+                    const isStaff = businessRole === 'site_admin' || businessRole === 'site_member'
+                    navigate(isStaff ? `/staff/instrument/${order.instrument_id}` : `/instrument/${order.instrument_id}`)
+                  }}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-medium text-sm">Order #{order.id?.slice(0, 8)}</span>
@@ -295,7 +300,7 @@ export default function Profile() {
         )}
 
         {/* Rental History */}
-        {leaseHistory.length > 0 && (
+        {businessRole !== 'site_admin' && businessRole !== 'site_member' && leaseHistory.length > 0 && (
           <div className="bg-white rounded-xl p-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <History size={18} className="text-gray-400" />
@@ -308,7 +313,10 @@ export default function Profile() {
                 <div
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => navigate(`/instrument/${order.instrument_id}`)}
+                  onClick={() => {
+                    const isStaff = businessRole === 'site_admin' || businessRole === 'site_member'
+                    navigate(isStaff ? `/staff/instrument/${order.instrument_id}` : `/instrument/${order.instrument_id}`)
+                  }}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-sm font-medium">Order #{order.id?.slice(0, 8)}</span>
@@ -336,21 +344,21 @@ export default function Profile() {
                   className="flex flex-col items-center p-2"
                 >
                   <MapPin size={24} className="text-brand-primary" />
-                  <span className="text-xs mt-1 text-gray-600">Instruments</span>
+                  <span className="text-xs mt-1 text-gray-600">乐器管理</span>
                 </button>
                 <button
                   className="flex flex-col items-center p-2"
                   onClick={() => navigate('/staff/shipping')}
                 >
                   <Bell size={24} className="text-brand-primary" />
-                  <span className="text-xs mt-1 text-gray-600">Shipping</span>
+                  <span className="text-xs mt-1 text-gray-600">发货管理</span>
                 </button>
                 <button
                   className="flex flex-col items-center p-2"
                   onClick={() => navigate('/staff/receiving')}
                 >
-                  <span className="text-xl">📦</span>
-                  <span className="text-xs mt-1 text-gray-600">Receiving</span>
+                  <Package size={24} className="text-brand-primary" />
+                  <span className="text-xs mt-1 text-gray-600">收货管理</span>
                 </button>
               </div>
             </div>

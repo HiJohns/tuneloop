@@ -126,14 +126,14 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 |------|---------|-------------|----------|
 | 商户管理员 | owner | 16 (全部) | instrument:create, instrument:edit, instrument:delete, instrument:view, category:manage, property:manage, inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, finance:config, appeal:handle |
 | 网点管理员 | admin | 9 | inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, appeal:handle |
-| 网点员工 | staff | 3 | instrument:view, maintenance:view, maintenance:complete |
+| 网点员工 | staff | 4 | instrument:view, instrument:create, maintenance:view, maintenance:complete |
 | 维修工程师 | worker | 2 | maintenance:view, maintenance:complete |
 
 ### 4.2 完整角色-权限对照矩阵
 
 | 权限代码 | 命名空间管理员 | 商户管理员(owner) | 网点管理员(admin) | 网点员工(staff) | 维修工程师(worker) |
 |----------|:----------:|:----------:|:----------:|:----------:|:----------:|
-| instrument:create | ❌ | ✅ | ❌ | ❌ | ❌ |
+| instrument:create | ❌ | ✅ | ❌ | ✅ | ❌ |
 | instrument:edit | ❌ | ✅ | ❌ | ❌ | ❌ |
 | instrument:delete | ❌ | ✅ | ❌ | ❌ | ❌ |
 | instrument:view | ❌ | ✅ | ❌ | ✅ | ❌ |

@@ -65,6 +65,17 @@ func GetInstrumentByID(c *gin.Context) {
 		specsArray = []interface{}{}
 	}
 
+	// Get site_name and site_address from Site table
+	var siteName = "-"
+	var siteAddress = ""
+	if instrument.SiteID != nil {
+		var site models.Site
+		if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
+			siteName = site.Name
+			siteAddress = site.Address
+		}
+	}
+
 	instrumentMap := map[string]interface{}{
 		"id":             instrument.ID,
 		"tenant_id":      instrument.TenantID,
@@ -75,6 +86,8 @@ func GetInstrumentByID(c *gin.Context) {
 		"level_id":       instrument.LevelID,
 		"level_name":     instrument.LevelName,
 		"site_id":        instrument.SiteID,
+		"site_name":      siteName,
+		"site_address":   siteAddress,
 		"description":    instrument.Description,
 		"images":         json.RawMessage(instrument.Images),
 		"video":          instrument.Video,
@@ -97,6 +110,28 @@ func GetInstrumentByID(c *gin.Context) {
 		instrumentMap["properties"] = propsMap
 	} else {
 		instrumentMap["properties"] = map[string]interface{}{}
+	}
+
+	// Fetch booker info for reserved instruments (staff only)
+	if instrument.StockStatus == "reserved" {
+		var order models.Order
+		if err := db.Where("instrument_id = ? AND status NOT IN (?, ?) ORDER BY created_at DESC LIMIT 1",
+			instrumentID, "cancelled", "completed").First(&order).Error; err == nil {
+			// Get user info
+			var user models.User
+			if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {
+				instrumentMap["booker_name"] = user.Name
+				instrumentMap["booker_phone"] = user.Phone
+				instrumentMap["booker_email"] = user.Email
+			}
+			// Try to get delivery address from lease_sessions
+			var leaseSession struct {
+				DeliveryAddress string
+			}
+			if err := db.Table("lease_sessions").Select("delivery_address").Where("order_id = ?", order.ID).First(&leaseSession).Error; err == nil {
+				instrumentMap["delivery_address"] = leaseSession.DeliveryAddress
+			}
+		}
 	}
 
 	// Return instrument data with parsed JSON
@@ -124,12 +159,16 @@ func GetInstruments(c *gin.Context) {
 
 	query := db.Model(&models.Instrument{})
 	userID := middleware.GetUserID(ctx)
+	recursive := c.Query("recursive") == "true"
 
-	// Scope by user role: site_id → tenant_id
+	// Scope by user role: tenant_id (if admin with recursive) → site_id → tenant_id
 	if userID != "" {
 		var currentUser models.User
 		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil {
-			if currentUser.SiteID != nil {
+			role := middleware.GetRole(ctx)
+			if recursive && (role == "OWNER" || role == "ADMIN") && currentUser.TenantID != "" {
+				query = query.Where("tenant_id = ?", currentUser.TenantID)
+			} else if currentUser.SiteID != nil {
 				query = query.Where("site_id = ?", *currentUser.SiteID)
 			} else if currentUser.TenantID != "" {
 				query = query.Where("tenant_id = ?", currentUser.TenantID)
@@ -295,7 +334,7 @@ func GetCategories(c *gin.Context) {
 	}
 
 	categoryMap := make(map[string]map[string]interface{})
-	var result []map[string]interface{}
+	result := make([]map[string]interface{}, 0)
 
 	for _, cat := range categories {
 		categoryData := map[string]interface{}{

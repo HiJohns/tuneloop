@@ -107,6 +107,12 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		return
 	}
 
+	// 同步更新乐器状态为 shipping（对应 cases.md §0.3 状态机）
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusShipping).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument: " + err.Error()})
+		return
+	}
+
 	// Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
@@ -136,7 +142,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	})
 }
 
-// PUT /api/warehouse/orders/:id/delivered - Confirm delivery (record lease start)
+// PUT /api/warehouse/orders/:id/delivery - Confirm delivery (record lease start)
 func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	var req struct {
 		DeliveredAt time.Time `json:"delivered_at" binding:"required"`
@@ -149,12 +155,24 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 
 	orderID := c.Param("id")
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
-
 	db := database.GetDB().WithContext(ctx)
 
-	// Update order status and record delivery time as lease start
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(map[string]interface{}{
+	// 1. Look up the order to get its tenant_id (customer JWT has no tenant context)
+	var order models.Order
+	if err := db.First(&order, "id = ?", orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	// 2. Verify the user owns this order
+	userID := middleware.GetUserID(ctx)
+	if order.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "not your order"})
+		return
+	}
+
+	// 3. Update order status and record delivery time as lease start
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).Updates(map[string]interface{}{
 		"status":       "in_lease",
 		"delivered_at": req.DeliveredAt,
 	}).Error; err != nil {
@@ -162,11 +180,17 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		return
 	}
 
-	// Record status history
-	userID := middleware.GetUserID(ctx)
+	// 3.5 Update instrument status to rented
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusRented).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
+		return
+	}
+
+	// 4. Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
-		TenantID:   tenantID,
+		TenantID:   order.TenantID,
 		OrderID:    orderID,
 		StatusFrom: "shipped",
 		StatusTo:   "in_lease",
@@ -190,7 +214,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	})
 }
 
-// POST /api/warehouse/orders/:id/inspect - Return inspection
+// PUT /api/warehouse/orders/:id/return-inspect - Return inspection
 func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	var req struct {
 		InstrumentSN string    `json:"instrument_sn" binding:"required"`
@@ -224,17 +248,19 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 
 	// Create assessment record
 	userID := middleware.GetUserID(ctx)
+	assessmentStatus := "completed"
+	if req.Condition == "damaged" {
+		assessmentStatus = "damaged"
+	}
 	assessment := models.DamageAssessment{
-		ID:         uuid.New().String(),
-		TenantID:   tenantID,
-		OrderID:    orderID,
-		UserID:     order.UserID,
-		Condition:  req.Condition,
-		Notes:      req.Notes,
-		ScanTime:   &req.ScanTime,
-		AssessedBy: stringPtr(userID),
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		ID:          uuid.New().String(),
+		TenantID:    tenantID,
+		OrderID:     orderID,
+		InspectorID: stringPtr(userID),
+		Description: req.Notes,
+		Status:      assessmentStatus,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
@@ -248,6 +274,17 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", newStatus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
+		return
+	}
+
+	// Update instrument status
+	instStatus := models.StockStatusAvailable
+	if req.Condition == "damaged" {
+		instStatus = models.StockStatusMaintenance
+	}
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", instStatus).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}
 
@@ -267,6 +304,29 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
+	// Send notification to user
+	orgID := middleware.GetOrgID(ctx)
+	notificationTitle := "租赁完成"
+	notificationContent := "您的乐器租赁订单已完成，押金将退还至您的账户。"
+	if req.Condition == "damaged" {
+		notificationTitle = "归还验收有损坏"
+		notificationContent = fmt.Sprintf("您的乐器归还验收发现损坏，定损金额将根据评估结果从押金中扣除。定损理由：%s", req.Notes)
+	}
+	notification := models.Notification{
+		TenantID: tenantID,
+		OrgID:    orgID,
+		UserID:   order.UserID,
+		Type:     "order",
+		Title:    notificationTitle,
+		Content:  notificationContent,
+		RefID:    orderID,
+		RefType:  "order",
+		Status:   "unread",
+	}
+	if err := db.Create(&notification).Error; err != nil {
+		log.Printf("[InspectReturn] Failed to create notification: %v", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
@@ -279,7 +339,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	})
 }
 
-// POST /api/warehouse/orders/:id/assess-damage - Start damage assessment
+// PUT /api/warehouse/orders/:id/damage - Start damage assessment
 func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	var req struct {
 		DamageDescription string  `json:"damage_description" binding:"required"`
@@ -308,6 +368,13 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	// Update order status to inspecting
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", "inspecting").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
+		return
+	}
+
+	// Update instrument status to maintenance
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusMaintenance).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}
 

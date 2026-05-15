@@ -66,8 +66,8 @@ func DownloadOwnershipCertificate(c *gin.Context) {
 
 	certData := &service.CertificateData{
 		CertificateID:  cert.ID,
-		InstrumentName: instrument.Name,
-		InstrumentSN:   "SN-" + instrument.ID[:8],
+		InstrumentName: instrument.SN, // 乐器无名称，使用 SN
+		InstrumentSN:   instrument.SN,
 		OwnerName:      user.Name,
 		OwnerPhone:     user.Phone,
 		TransferDate:   cert.TransferDate,

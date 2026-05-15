@@ -126,6 +126,7 @@ export default function Detail() {
   }
 
   const isRentable = instrument?.stock_status === 'available'
+  const [activeOrder, setActiveOrder] = useState(null)
 
   useEffect(() => {
     const fetchInstrument = async () => {
@@ -139,6 +140,16 @@ export default function Detail() {
           const inst = result.data
           inst._parsedPricing = parsePricing(inst.pricing)
           setInstrument(inst)
+
+          if (inst.sn) {
+            try {
+              const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+              const orderResult = await orderResp.json()
+              if (orderResult.code === 20000 && orderResult.data) {
+                setActiveOrder(orderResult.data)
+              }
+            } catch {}
+          }
         }
         setLoading(false)
       } catch (error) {
@@ -185,7 +196,10 @@ export default function Detail() {
     } else {
       today.setMonth(today.getMonth() + termCount)
     }
-    return today.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+    const y = today.getFullYear()
+    const m = String(today.getMonth() + 1).padStart(2, '0')
+    const d = String(today.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   const handleCreateOrder = async () => {
@@ -406,14 +420,55 @@ export default function Detail() {
                 <ShoppingCart size={18} />
                 加入购物车
               </button>
-              <button 
-                onClick={handleCreateOrder}
-                className="py-3 rounded-lg font-medium bg-orange-500 text-white flex-1"
-              >
-                立即租赁
-              </button>
             </div>
           </>
+        ) : activeOrder ? (
+          activeOrder.order_status === 'in_lease' ? (
+            <div className="p-3 bg-green-50 rounded-lg space-y-2">
+              <p className="text-green-700 font-medium">租赁中</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
+              {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
+                <p className="text-red-600 font-bold">
+                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                </p>
+              )}
+              <button
+                onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
+                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
+              >
+                归还乐器
+              </button>
+            </div>
+          ) : activeOrder.order_status === 'returning' ? (
+            <div className="p-3 bg-orange-50 rounded-lg space-y-2">
+              <p className="text-orange-700 font-medium">归还中</p>
+              <p className="text-gray-500 text-sm">该乐器正在归还流程中</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
+            </div>
+          ) : ['pending', 'paid'].includes(activeOrder.order_status) ? (
+            <div className="p-3 bg-blue-50 rounded-lg space-y-2">
+              <p className="text-blue-700 font-medium">已预约</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
+            </div>
+          ) : (
+            <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+              <p className="text-cyan-700 font-medium">乐器物流中</p>
+              <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
+              <button
+                onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
+              >
+                <CheckCircle size={18} className="inline mr-1" />
+                确认收货
+              </button>
+            </div>
+          )
         ) : (
           <div className="p-3 bg-gray-100 rounded-lg text-center">
             <p className="text-gray-500 font-medium">该乐器目前不可租赁</p>

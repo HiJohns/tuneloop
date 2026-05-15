@@ -1,14 +1,44 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+// resolveTenantName resolves tenant name from local DB with IAM fallback
+func resolveTenantName(db *gorm.DB, tenantID string) string {
+	if tenantID == "" {
+		return ""
+	}
+	var tenant models.Tenant
+	if err := db.First(&tenant, "id = ?", tenantID).Error; err == nil {
+		return tenant.Name
+	}
+	// Fallback to IAM
+	iamClient := services.NewIAMClient()
+	org, err := iamClient.GetOrganization(tenantID)
+	if err != nil || org == nil {
+		return ""
+	}
+	// Async sync to local DB for future requests
+	go func() {
+		syncDB := database.GetDB()
+		if err := syncDB.Clauses(clause.OnConflict{DoNothing: true}).
+			Create(&models.Tenant{ID: tenantID, Name: org.Name}).Error; err != nil {
+			log.Printf("[resolveTenantName] Failed to sync tenant %s: %v", tenantID, err)
+		}
+	}()
+	return org.Name
+}
 
 func GetPublicInstruments(c *gin.Context) {
 	db := database.GetDB()
@@ -86,10 +116,7 @@ func GetPublicInstruments(c *gin.Context) {
 
 		responseInstruments = append(responseInstruments, map[string]interface{}{
 			"id":              instrument.ID,
-			"name":            instrument.Name,
 			"sn":              instrument.SN,
-			"brand":           instrument.Brand,
-			"model":           instrument.Model,
 			"category_id":    instrument.CategoryID,
 			"category_name":  instrument.CategoryName,
 			"level_name":     instrument.LevelName,
@@ -130,12 +157,16 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		return
 	}
 
-	// Get site info (name and address)
+	// Get site info (name and address) - fallback to CurrentSiteID if SiteID is nil
 	siteName := "-"
 	siteAddress := "-"
-	if instrument.SiteID != nil {
+	lookupSiteID := instrument.SiteID
+	if lookupSiteID == nil {
+		lookupSiteID = instrument.CurrentSiteID
+	}
+	if lookupSiteID != nil {
 		var site models.Site
-		if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
+		if err := db.First(&site, "id = ?", lookupSiteID).Error; err == nil {
 			siteName = site.Name
 			if site.Address != "" {
 				siteAddress = site.Address
@@ -143,38 +174,43 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		}
 	}
 
-	// Get tenant name (fallback to empty if not found)
-	tenantName := ""
-	if instrument.TenantID != "" {
-		var tenant models.Tenant
-		if err := db.First(&tenant, "id = ?", instrument.TenantID).Error; err == nil {
-			tenantName = tenant.Name
+	// Get tenant name with IAM fallback
+	tenantName := resolveTenantName(db, instrument.TenantID)
+
+	response := map[string]interface{}{
+		"id":              instrument.ID,
+		"sn":               instrument.SN,
+		"category_id":     instrument.CategoryID,
+		"category_name":   instrument.CategoryName,
+		"level_name":      instrument.LevelName,
+		"level_id":        instrument.LevelID,
+		"images":          instrument.Images,
+		"video":           instrument.Video,
+		"pricing":         instrument.Pricing,
+		"stock_status":    instrument.StockStatus,
+		"tenant_id":       instrument.TenantID,
+		"tenant_name":     tenantName,
+		"site_id":         instrument.SiteID,
+		"site_name":       siteName,
+		"site_address":    siteAddress,
+		"description":     instrument.Description,
+	}
+
+	// Fetch dynamic properties from instrument_properties table
+	var instrumentProps []models.InstrumentProperty
+	if err := db.Where("instrument_id = ?", id).Find(&instrumentProps).Error; err == nil {
+		propsMap := make(map[string][]string)
+		for _, prop := range instrumentProps {
+			propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
 		}
+		response["properties"] = propsMap
+	} else {
+		response["properties"] = map[string]interface{}{}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": map[string]interface{}{
-			"id":              instrument.ID,
-			"name":            instrument.Name,
-			"sn":               instrument.SN,
-			"brand":            instrument.Brand,
-			"model":            instrument.Model,
-			"category_id":     instrument.CategoryID,
-			"category_name":   instrument.CategoryName,
-			"level_name":      instrument.LevelName,
-			"level_id":        instrument.LevelID,
-			"images":          instrument.Images,
-			"video":           instrument.Video,
-			"pricing":         instrument.Pricing,
-			"stock_status":    instrument.StockStatus,
-			"tenant_id":       instrument.TenantID,
-			"tenant_name":     tenantName,
-			"site_id":         instrument.SiteID,
-			"site_name":       siteName,
-			"site_address":    siteAddress,
-			"description":     instrument.Description,
-		},
+		"data": response,
 	})
 }
 

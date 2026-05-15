@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, MapPin, Package, Truck, Box, Wrench, RotateCcw, CheckCircle } from 'lucide-react'
+import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -34,6 +34,7 @@ export default function StaffInstrumentDetail() {
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [activeOrder, setActiveOrder] = useState(null)
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -45,6 +46,16 @@ export default function StaffInstrumentDetail() {
         const result = await resp.json()
         if (result.code === 20000) {
           setInstrument(result.data)
+          const inst = result.data
+          if (inst.sn && (inst.stock_status === 'reserved' || inst.stock_status === 'returning')) {
+            try {
+              const orderResp = await fetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+              const orderResult = await orderResp.json()
+              if (orderResult.code === 20000 && orderResult.data) {
+                setActiveOrder(orderResult.data)
+              }
+            } catch {}
+          }
         }
       } catch (err) {
         console.error('Failed to fetch instrument:', err)
@@ -83,42 +94,15 @@ export default function StaffInstrumentDetail() {
   }
 
   const handleReceive = async () => {
-    if (instrument.stock_status !== 'shipping') {
-      alert('乐器不在物流中状态')
+    if (instrument.stock_status !== 'returning') {
+      alert('乐器不在归还中状态')
       return
     }
-    try {
-      setActionLoading(true)
-      const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(instrument.sn)}`)
-      const orderResult = await orderResp.json()
-      if (orderResult.code !== 20000 || !orderResult.data?.order_id) {
-        alert('未找到关联订单')
-        setActionLoading(false)
-        return
-      }
-      const deliverResp = await apiFetch(`${baseUrl}/warehouse/orders/${orderResult.data.order_id}/delivery`, {
-        method: 'PUT',
-        body: JSON.stringify({ delivered_at: new Date().toISOString() }),
-      })
-      const deliverResult = await deliverResp.json()
-      if (deliverResult.code === 20000) {
-        alert('确认收货成功')
-        navigate('/staff/instruments')
-      } else {
-        alert('确认收货失败: ' + deliverResult.message)
-      }
-    } catch (err) {
-      alert('操作失败: ' + err.message)
+    if (activeOrder) {
+      navigate(`/staff/receiving/${activeOrder.order_id}?instrument=${instrument.id}`)
+    } else {
+      alert('未找到关联订单')
     }
-    setActionLoading(false)
-  }
-
-  const handleReturn = async () => {
-    if (instrument.stock_status !== 'rented') {
-      alert('乐器不在租赁中状态')
-      return
-    }
-    navigate('/staff/receiving')
   }
 
   const handleCompleteMaintenance = async () => {
@@ -138,6 +122,26 @@ export default function StaffInstrumentDetail() {
         navigate('/staff/instruments')
       } else {
         alert('操作失败: ' + maintResult.message)
+      }
+    } catch (err) {
+      alert('操作失败: ' + err.message)
+    }
+    setActionLoading(false)
+  }
+
+  const handleArchive = async () => {
+    try {
+      setActionLoading(true)
+      const resp = await apiFetch(`${baseUrl}/instruments/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ stock_status: 'archived' }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        alert('已下架')
+        navigate('/staff/instruments')
+      } else {
+        alert('操作失败: ' + result.message)
       }
     } catch (err) {
       alert('操作失败: ' + err.message)
@@ -187,31 +191,61 @@ export default function StaffInstrumentDetail() {
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">品牌</span>
-              <span>{instrument.brand || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">型号</span>
-              <span>{instrument.model || '-'}</span>
+              <span className="text-gray-500">SN</span>
+              <span className="font-mono">{instrument.sn || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">分类</span>
               <span>{instrument.category_name || '-'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">SN</span>
-              <span className="font-mono">{instrument.sn || '-'}</span>
+              <span className="text-gray-500">分级</span>
+              <span>{instrument.level_name || instrument.level || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">网点</span>
               <span>{instrument.site_name || '-'}</span>
             </div>
+            {instrument.properties && Object.keys(instrument.properties).length > 0 && (
+              <div className="pt-2 border-t">
+                <span className="text-gray-500 text-xs block mb-1">动态属性</span>
+                {Object.entries(instrument.properties).map(([key, vals]) => (
+                  <div key={key} className="flex justify-between text-xs mt-1">
+                    <span className="text-gray-400">{key}</span>
+                    <span>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Lease Info - Only for reserved/returning */}
+        {activeOrder && (
+          <div className="bg-white rounded-xl p-4">
+            <h3 className="font-medium mb-3">租期信息</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">租期</span>
+                <span>{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">状态</span>
+                <span className="font-medium">{statusLabel[instrument.stock_status] || instrument.stock_status}</span>
+              </div>
+              {activeOrder.monthly_rent && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">月租金</span>
+                  <span>¥{activeOrder.monthly_rent}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Pricing Info */}
         <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">租金信息</h3>
+          <h3 className="font-medium mb-3">租赁设置</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">日租金</span>
@@ -225,13 +259,61 @@ export default function StaffInstrumentDetail() {
               <span className="text-gray-500">物流费</span>
               <span>¥{pricingInfo.shipping_fee || 0}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">逾期日费</span>
+              <span>¥{pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0}</span>
+            </div>
           </div>
         </div>
+
+        {/* Booker Info Card - Only show for reserved status */}
+        {instrument.stock_status === 'reserved' && (instrument.booker_name || instrument.booker_phone) && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <User size={18} className="text-yellow-600" />
+              <span className="font-medium text-yellow-800">预约人信息</span>
+            </div>
+            {instrument.booker_name && (
+              <div className="mb-2 text-sm">
+                <span className="text-gray-500">姓名：</span>
+                <span className="text-gray-800">{instrument.booker_name}</span>
+              </div>
+            )}
+            {instrument.booker_phone && (
+              <div className="mb-2 text-sm">
+                <span className="text-gray-500">电话：</span>
+                <span className="text-gray-800">{instrument.booker_phone}</span>
+              </div>
+            )}
+            {instrument.booker_email && (
+              <div className="mb-2 text-sm">
+                <span className="text-gray-500">邮箱：</span>
+                <span className="text-gray-800">{instrument.booker_email}</span>
+              </div>
+            )}
+            {instrument.delivery_address && (
+              <div className="text-sm">
+                <span className="text-gray-500">收货地址：</span>
+                <span className="text-gray-800">{instrument.delivery_address}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         <div className="grid grid-cols-3 gap-3">
+          {instrument.stock_status === 'available' && (
+            <button
+              onClick={handleArchive}
+              disabled={actionLoading}
+              className="py-3 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+            >
+              <Archive size={18} />
+              下架
+            </button>
+          )}
           {instrument.stock_status === 'reserved' && (
             <button
               onClick={handleShip}
@@ -241,24 +323,14 @@ export default function StaffInstrumentDetail() {
               发货
             </button>
           )}
-          {instrument.stock_status === 'shipping' && (
+          {instrument.stock_status === 'returning' && (
             <button
               onClick={handleReceive}
-              disabled={actionLoading}
-              className="py-3 bg-green-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <Box size={18} />
-              确认到达
-            </button>
-          )}
-          {instrument.stock_status === 'rented' && (
-            <button
-              onClick={handleReturn}
-              disabled={actionLoading}
-              className="py-3 bg-red-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+              disabled={actionLoading || !activeOrder}
+              className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
             >
               <RotateCcw size={18} />
-              归还
+              接收确认
             </button>
           )}
           {instrument.stock_status === 'maintenance' && (

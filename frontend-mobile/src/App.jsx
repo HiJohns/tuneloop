@@ -9,11 +9,15 @@ import Checkout from './pages/Checkout'
 import Success from './pages/Success'
 import Booking from './pages/Booking'
 import Profile from './pages/Profile'
+import ReceiveConfirm from './pages/ReceiveConfirm'
+import ReturnConfirm from './pages/ReturnConfirm'
 import MyService from './pages/MyService'
 import MyLeases from './pages/MyLeases'
 import Messages from './pages/Messages'
 import StaffInstruments from './pages/StaffInstruments'
 import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
+import StaffInstrumentForm from './pages/StaffInstrumentForm'
+import StaffReceiveConfirm from './pages/StaffReceiveConfirm'
 import ShippingInterface from './pages/ShippingInterface'
 import ReceivingInterface from './pages/ReceivingInterface'
 import Cart from './pages/Cart'
@@ -26,10 +30,11 @@ const getWXConfig = () => {
   }
 }
 
-function storeToken(token, expiresIn = 3600) {
+function storeToken(accessToken, expiresIn = 3600, refreshToken) {
   const expiry = new Date().getTime() + (expiresIn * 1000)
-  localStorage.setItem('token', token)
+  localStorage.setItem('token', accessToken)
   localStorage.setItem('token_expiry', expiry.toString())
+  if (refreshToken) localStorage.setItem('refresh_token', refreshToken)
 }
 
 function parseJWT(token) {
@@ -119,7 +124,7 @@ function OAuthCallback() {
         const tokenData = data.data || data
         
         if (tokenData.access_token) {
-          storeToken(tokenData.access_token, tokenData.expires_in || 3600)
+          storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
           
           if (tokenData.user_info) {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
@@ -190,11 +195,15 @@ function App() {
         <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/booking/:assetId" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/receive/:orderId" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />
+        <Route path="/return/:orderId" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-        <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
-        <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
+<Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />
+<Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
+<Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
+        <Route path="/staff/receiving/:orderId" element={<ProtectedRoute><StaffReceiveConfirm /></ProtectedRoute>} />
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />

@@ -7,7 +7,7 @@ import (
 
 type User struct {
 	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	IAMSub        string     `gorm:"type:varchar(255);uniqueIndex;not null" json:"iam_sub"`
+	IAMSub        string     `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
 	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID         string     `gorm:"type:uuid;index;not null" json:"org_id"`
 	Name          string     `gorm:"type:varchar(255)" json:"name"`
@@ -45,15 +45,15 @@ type Instrument struct {
 	OrgID           *string          `gorm:"type:uuid;index" json:"org_id"`
 	CategoryID      *string          `gorm:"type:uuid;index" json:"category_id"`
 	CategoryName    string           `gorm:"type:varchar(100)" json:"category_name"`
-	Name            string           `gorm:"type:varchar(255)" json:"name"`
-	Brand           string           `gorm:"type:varchar(100)" json:"brand"`
+	// Name 字段已删除 - 乐器无名称，完全靠 SN 识别
+	// Brand 字段已删除 - 遗留字段
 	Level           string           `gorm:"type:varchar(20)" json:"level"`      // deprecated, use LevelID instead
 	LevelName       string           `gorm:"type:varchar(50)" json:"level_name"` // deprecated
 	LevelID         *uuid.UUID       `gorm:"type:uuid;index" json:"level_id"`
 	InstrumentLevel *InstrumentLevel `gorm:"foreignKey:LevelID" json:"instrument_level,omitempty"`
-	Model           string           `gorm:"type:varchar(100)" json:"model"`
+	// Model 字段已删除 - 遗留字段
 	SN              string           `gorm:"type:varchar(100)" json:"sn"`
-	Site            string           `gorm:"type:varchar(255)" json:"site"`
+	Site            string           `gorm:"type:varchar(255)" json:"site"` // legacy, 建议用 SiteID
 	SiteID          *uuid.UUID       `gorm:"type:uuid;index" json:"site_id"`
 	CurrentSiteID   *uuid.UUID       `gorm:"type:uuid;index" json:"current_site_id"`
 	Description     string           `gorm:"type:text" json:"description"`
@@ -122,6 +122,7 @@ type Order struct {
 	TrackingNumber    *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
 	CourierCompany    *string    `gorm:"type:varchar(100)" json:"courier_company"`
 	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
+	DeliveredAt       *time.Time `gorm:"type:timestamp" json:"delivered_at"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
@@ -180,7 +181,7 @@ type MaintenanceTicket struct {
 type BrandConfig struct {
 	ID           uint      `gorm:"primaryKey" json:"id"`
 	TenantID     string    `gorm:"type:uuid;index" json:"tenant_id"`
-	ClientID     string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"client_id"`
+	ClientID     string    `gorm:"type:varchar(100)uniqueIndexnot null" json:"client_id"`
 	PrimaryColor string    `gorm:"type:varchar(20);default:'#6366F1'" json:"primary_color"`
 	LogoURL      string    `gorm:"type:varchar(500)" json:"logo_url"`
 	BrandName    string    `gorm:"type:varchar(100)" json:"brand_name"`
@@ -193,7 +194,7 @@ type OwnershipCertificate struct {
 	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID          string    `gorm:"type:uuid;index" json:"org_id"`
-	OrderID        string    `gorm:"type:uuid;uniqueIndex;not null" json:"order_id"`
+	OrderID        string    `gorm:"type:uuiduniqueIndexnot null" json:"order_id"`
 	UserID         string    `gorm:"type:uuid;index" json:"user_id"`
 	InstrumentID   string    `gorm:"type:uuid;index" json:"instrument_id"`
 	TransferDate   time.Time `json:"transfer_date"`
@@ -236,7 +237,7 @@ type InventoryTransfer struct {
 type Client struct {
 	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	ClientID     string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"client_id"`
+	ClientID     string    `gorm:"type:varchar(100)uniqueIndexnot null" json:"client_id"`
 	ClientSecret string    `gorm:"type:varchar(255)" json:"client_secret"`
 	Name         string    `gorm:"type:varchar(100)" json:"name"`
 	RedirectURIs string    `gorm:"type:text" json:"redirect_uris"`
@@ -296,8 +297,8 @@ type Tenant struct {
 // InstrumentLevel represents the skill level for instruments
 type InstrumentLevel struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Caption   string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"caption"`
-	Code      string    `gorm:"type:varchar(20);uniqueIndex;not null" json:"code"`
+	Caption   string    `gorm:"type:varchar(50)uniqueIndexnot null" json:"caption"`
+	Code      string    `gorm:"type:varchar(20)uniqueIndexnot null" json:"code"`
 	SortOrder int       `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -434,18 +435,15 @@ type DamageReport struct {
 
 // DamageAssessment 定损评估记录表
 type DamageAssessment struct {
-	ID           string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID     string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID        string     `gorm:"type:uuid;index" json:"org_id"`
-	OrderID      string     `gorm:"type:uuid;not null;index" json:"order_id"`
-	InstrumentID string     `gorm:"type:uuid;not null" json:"instrument_id"`
-	UserID       string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	AssessedBy   *string    `gorm:"type:uuid;index" json:"assessed_by"`
-	Condition    string     `gorm:"type:varchar(20);index" json:"condition"`
-	Notes        string     `gorm:"type:text" json:"notes"`
-	ScanTime     *time.Time `json:"scan_time"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrderID       string     `gorm:"type:uuid;not null;index" json:"order_id"`
+	InspectorID   *string    `gorm:"type:uuid;index" json:"inspector_id"`
+	Description   string     `gorm:"type:text" json:"description"`
+	EstimatedCost *float64   `gorm:"type:decimal(10,2)" json:"estimated_cost"`
+	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // Appeal 申诉记录表
@@ -482,13 +480,17 @@ type OrderStatusHistory struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+func (OrderStatusHistory) TableName() string {
+	return "order_status_history"
+}
+
 // Merchant represents a merchant/organization entity aligned with IAM Organization
 type Merchant struct {
 	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID        string    `gorm:"type:uuid;index;not null" json:"org_id"`
 	Name         string    `gorm:"type:varchar(255);not null" json:"name"`
-	Code         string    `gorm:"type:varchar(100);not null;uniqueIndex:idx_merchants_tenant_code" json:"code"`
+	Code         string    `gorm:"type:varchar(100);not null;index:idx_merchants_tenant_code" json:"code"`
 	ContactName  string    `gorm:"type:varchar(255)" json:"contact_name"`
 	ContactEmail string    `gorm:"type:varchar(255)" json:"contact_email"`
 	ContactPhone string    `gorm:"type:varchar(50)" json:"contact_phone"`
@@ -502,8 +504,8 @@ type Merchant struct {
 type SiteMember struct {
 	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	SiteID    string    `gorm:"type:uuid;not null;uniqueIndex:idx_site_members_unique" json:"site_id"`
-	UserID    string    `gorm:"type:uuid;not null;uniqueIndex:idx_site_members_unique" json:"user_id"`
+	SiteID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"site_id"`
+	UserID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"user_id"`
 	Role      string    `gorm:"type:varchar(20);default:'Staff'" json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

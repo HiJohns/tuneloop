@@ -23,8 +23,8 @@ type OwnershipInfo struct {
 
 type InstrumentInfo struct {
 	ID   string `json:"id"`
-	Name string `json:"name"`
 	SN   string `json:"sn"`
+	// Name 字段已删除 - 乐器无名称，完全靠 SN 识别
 }
 
 type OwnerInfo struct {
@@ -99,7 +99,7 @@ func (e *OwnershipEngine) GetOwnershipInfo(orderID string) (*OwnershipInfo, erro
 	return &OwnershipInfo{
 		CertificateID:  cert.ID,
 		OrderID:       cert.OrderID,
-		Instrument:    InstrumentInfo{ID: instrument.ID, Name: instrument.Name},
+		Instrument:    InstrumentInfo{ID: instrument.ID, SN: instrument.SN},
 		Owner:         OwnerInfo{UserID: user.ID, Name: user.Name, Phone: user.Phone},
 		TransferDate:  cert.TransferDate,
 		CertificateURL: cert.CertificateURL,

@@ -43,7 +43,11 @@ export default function InstrumentList() {
   const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
-      const response = await api.get(`/instruments?page=${page}&pageSize=${pageSize}`)
+      // Admin users (OWNER/ADMIN) see all sites' instruments via recursive query
+      const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+      const isAdmin = userInfo.role === 'OWNER' || userInfo.role === 'ADMIN' || userInfo.isOwner
+      const recursiveParam = isAdmin ? '&recursive=true' : ''
+      const response = await api.get(`/instruments?page=${page}&pageSize=${pageSize}${recursiveParam}`)
       console.log('[DEBUG] Instruments API response:', response)
       const list = response?.data?.list || []
       console.log('[DEBUG] Instruments list:', list)

@@ -24,9 +24,9 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	},
 	"merchant_admin": {
 		Name:        "商户管理员",
-		SysPermBits: []int{5, 6, 7, 8, 9},
+		SysPermBits: []int{5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19},
 		CusPermCodes: []string{
-			"instrument:create", "instrument:edit", "instrument:delete",
+			"instrument:create", "instrument:edit", "instrument:delete", "instrument:view",
 			"category:manage", "property:manage",
 			"inventory:view", "inventory:manage",
 			"rent:setting",

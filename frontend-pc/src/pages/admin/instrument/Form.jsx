@@ -8,6 +8,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
+import { checkRule, SysPermBits } from '../../../config/menuPermissions'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -119,7 +120,50 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const snCheckTimer = useRef(null)
   const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
-  
+
+  const handleDailyRentChange = (value) => {
+    const newDaily = parseFloat(value) || 0
+    const oldDaily = parseFloat(form.getFieldValue(['pricing', 'daily_rent'])) || 0
+    const oldWeekly = parseFloat(form.getFieldValue(['pricing', 'weekly_rent'])) || 0
+    const oldMonthly = parseFloat(form.getFieldValue(['pricing', 'monthly_rent'])) || 0
+    if (newDaily > 0) {
+      if (oldWeekly === 0 || oldWeekly === oldDaily * 6) {
+        form.setFieldValue(['pricing', 'weekly_rent'], newDaily * 6)
+      }
+      if (oldMonthly === 0 || oldMonthly === oldDaily * 25) {
+        form.setFieldValue(['pricing', 'monthly_rent'], newDaily * 25)
+      }
+    }
+  }
+
+  // 权限检查 - 用于条件渲染"管理"链接
+  const [canManageCategories, setCanManageCategories] = useState(false)
+  const [canManageSites, setCanManageSites] = useState(false)
+
+  useEffect(() => {
+    const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
+    const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+    const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+
+    // 分类管理权限检查
+    const canCat = checkRule(
+      { visibleWhen: { cusPermCodes: ['category:manage'] } },
+      sysPerm, cusPerm, cusPermMapping
+    )
+    setCanManageCategories(canCat)
+
+    // 网点管理权限检查（需要 sysPermBits + cusPermCodes，且 requireAllGroups）
+    const canSite = checkRule(
+      { visibleWhen: { 
+        sysPermBits: [SysPermBits.organization_view],
+        cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
+        requireAllGroups: true 
+      }},
+      sysPerm, cusPerm, cusPermMapping
+    )
+    setCanManageSites(canSite)
+  }, [])
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -442,6 +486,15 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
             status: 'done',
             url: instrumentData.video
           }])
+        }
+
+        // Parse pricing JSONB for edit mode
+        if (instrumentData.pricing && typeof instrumentData.pricing === 'string') {
+          try {
+            form.setFieldsValue({ pricing: JSON.parse(instrumentData.pricing) })
+          } catch (e) {
+            console.warn('[DEBUG] Failed to parse pricing:', e)
+          }
         }
 
         // Populate dynamic properties
@@ -863,6 +916,7 @@ const loadCategoryChildren = async (node) => {
         site_id: values.site_id,
         level_id: values.level_id,
         description: values.description,
+        pricing: values.pricing || { daily_rent: 0, monthly_rent: 0, deposit: 0 },
         images: images,
         video: videoUrl,
         status: initialData ? (values.status || 'active') : 'active',
@@ -973,9 +1027,11 @@ const loadCategoryChildren = async (node) => {
                 label={
                   <span>
                     乐器分类
-                    <a href="/instruments/categories" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 12 }}>
-                      <LinkOutlined /> 管理
-                    </a>
+                    {canManageCategories && (
+                      <a href="/instruments/categories" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 12 }}>
+                        <LinkOutlined /> 管理
+                      </a>
+                    )}
                   </span>
                 }
                 rules={[{ required: true, message: '请选择分类' }]}
@@ -1015,9 +1071,11 @@ const loadCategoryChildren = async (node) => {
               label={
                 <span>
                   归属网点
-                  <a href="/organization/sites" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 12 }}>
-                    <LinkOutlined /> 管理
-                  </a>
+                  {canManageSites && (
+                    <a href="/organization/sites" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 12 }}>
+                      <LinkOutlined /> 管理
+                    </a>
+                  )}
                 </span>
               }
               rules={[{ required: true, message: '请选择网点' }]}
@@ -1120,6 +1178,38 @@ const loadCategoryChildren = async (node) => {
         >
           <TextArea rows={3} placeholder="请输入乐器描述" />
         </Form.Item>
+
+        <Card title="定价设置" size="small" style={{ marginBottom: 16 }}>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="日租金(¥)" name={['pricing', 'daily_rent']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" onChange={handleDailyRentChange} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="月租金(¥)" name={['pricing', 'monthly_rent']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="押金(¥)" name={['pricing', 'deposit']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="周租金(¥)" name={['pricing', 'weekly_rent']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="逾期日租金(¥)" name={['pricing', 'overdue_daily']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
 
         <Divider orientation="left">图片和视频</Divider>
         
