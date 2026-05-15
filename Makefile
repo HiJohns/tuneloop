@@ -61,70 +61,41 @@ init: install
 
 # Prerelease targets
 .PHONY: prerelease clean-prerelease prebuild-pc prebuild-mobile prebuild-backend release
-PRERELEASE_DIR := /home/coder/prerelease/tuneloop
 TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
-FLOW_DIR := /opt/flow
+GIT_HASH := $(shell git rev-parse --short HEAD)
+RELEASE_DIR := $(HOME)/release
+PKG_NAME := tuneloop_$(TIMESTAMP)_$(GIT_HASH)
+RELEASE_BUILD := /tmp/release_build_$(TIMESTAMP)
 
 clean-prerelease:
-	@echo "Cleaning prerelease directories..."
-	rm -rf $(PRERELEASE_DIR)/www $(PRERELEASE_DIR)/mobile $(PRERELEASE_DIR)/service
-
-prebuild-pc: clean-prerelease
-	@echo "Building PC frontend for prerelease..."
-	@mkdir -p $(PRERELEASE_DIR)/www
-	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
-	@cp -r frontend-pc/dist/* $(PRERELEASE_DIR)/www/
-
-prebuild-mobile:
-	@echo "Building Mobile frontend for prerelease..."
-	@mkdir -p $(PRERELEASE_DIR)/mobile
-	cd frontend-mobile && npm run build -- --mode prerelease
-	@cp -r frontend-mobile/dist/* $(PRERELEASE_DIR)/mobile/
-
-prebuild-backend:
-	@echo "Building backend for prerelease..."
-	@mkdir -p $(PRERELEASE_DIR)/service $(PRERELEASE_DIR)/database
-	cd backend && go build -o $(PRERELEASE_DIR)/service/tuneloop .
-	@echo "Copying database migrations..."
-	@cp -r backend/database/migrations $(PRERELEASE_DIR)/database/
-
-prebuild-env:
-	@echo "Copying environment config..."
-	@cp .env.example $(PRERELEASE_DIR)/.env
-
-prerelease: clean-prerelease prebuild-backend prebuild-pc prebuild-mobile prebuild-env
-	@echo "=========================================="
-	@echo "预发布构建完成($(PRERELEASE_DIR))"
-	@echo "PC:   web.cadenzayueqi.com"
-	@echo "WX:   wx.cadenzayueqi.com"
-	@echo "=========================================="
-
-# Flow release: build tuneloop into a timestamped zip
-FLOW_BUILD := /tmp/flow_build_$(TIMESTAMP)
+	@echo "Cleaning build cache..."
+	rm -rf $(RELEASE_BUILD)
 
 release: clean-prerelease
 	@echo "=========================================="
-	@echo "Flow release: $(TIMESTAMP)"
+	@echo "Release: $(PKG_NAME)"
 	@echo "=========================================="
-	rm -rf $(FLOW_BUILD)
-	mkdir -p $(FLOW_BUILD)/tuneloop/www $(FLOW_BUILD)/tuneloop/mobile \
-	         $(FLOW_BUILD)/tuneloop/service $(FLOW_BUILD)/tuneloop/database
-	# tuneloop PC frontend
+	mkdir -p $(RELEASE_BUILD)/tuneloop/www $(RELEASE_BUILD)/tuneloop/mobile \
+	         $(RELEASE_BUILD)/tuneloop/service $(RELEASE_BUILD)/tuneloop/database
+	# PC frontend
 	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
-	cp -r frontend-pc/dist/* $(FLOW_BUILD)/tuneloop/www/
-	# tuneloop Mobile frontend
+	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop/www/
+	# Mobile frontend
 	cd frontend-mobile && npm run build -- --mode prerelease
-	cp -r frontend-mobile/dist/* $(FLOW_BUILD)/tuneloop/mobile/
-	# tuneloop backend
-	cd backend && go build -o $(FLOW_BUILD)/tuneloop/service/tuneloop .
-	cp -r backend/database/migrations $(FLOW_BUILD)/tuneloop/database/
+	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop/mobile/
+	# Backend
+	cd backend && go build -o $(RELEASE_BUILD)/tuneloop/service/tuneloop .
+	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop/database/
 	# Package
-	mkdir -p $(FLOW_DIR)
-	cd $(FLOW_BUILD) && zip -r $(FLOW_DIR)/$(TIMESTAMP).zip .
-	rm -rf $(FLOW_BUILD)
+	mkdir -p $(RELEASE_DIR)
+	cd $(RELEASE_BUILD) && zip -r $(RELEASE_DIR)/$(PKG_NAME).zip .
+	rm -rf $(RELEASE_BUILD)
 	@echo "=========================================="
-	@echo "Flow release package: $(FLOW_DIR)/$(TIMESTAMP).zip"
+	@echo "Package: $(RELEASE_DIR)/$(PKG_NAME).zip"
 	@echo "=========================================="
+
+# Backward-compatible alias
+prerelease: release
 
 # Debug build
 .PHONY: debug
