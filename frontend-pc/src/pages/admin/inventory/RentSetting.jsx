@@ -64,9 +64,19 @@ export default function InventoryRentSetting() {
     setEditedIds(prev => new Set(prev).add(id))
     
     // Update table data
-    setTableData(prev => prev.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ))
+    setTableData(prev => prev.map(item => {
+      if (item.id !== id) return item
+      const next = { ...item, [field]: value }
+      if (field === 'daily_rent') {
+        const newDaily = parseFloat(value) || 0
+        const oldDaily = parseFloat(item.daily_rent) || 0
+        const oldOverdue = parseFloat(item.overdue_daily_fee) || 0
+        if (newDaily > 0 && (oldOverdue === 0 || oldOverdue === oldDaily)) {
+          next.overdue_daily_fee = newDaily
+        }
+      }
+      return next
+    }))
   }
 
   const handleSave = async () => {

@@ -121,6 +121,21 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
+  const handleDailyRentChange = (value) => {
+    const newDaily = parseFloat(value) || 0
+    const oldDaily = parseFloat(form.getFieldValue(['pricing', 'daily_rent'])) || 0
+    const oldWeekly = parseFloat(form.getFieldValue(['pricing', 'weekly_rent'])) || 0
+    const oldMonthly = parseFloat(form.getFieldValue(['pricing', 'monthly_rent'])) || 0
+    if (newDaily > 0) {
+      if (oldWeekly === 0 || oldWeekly === oldDaily * 6) {
+        form.setFieldValue(['pricing', 'weekly_rent'], newDaily * 6)
+      }
+      if (oldMonthly === 0 || oldMonthly === oldDaily * 25) {
+        form.setFieldValue(['pricing', 'monthly_rent'], newDaily * 25)
+      }
+    }
+  }
+
   // 权限检查 - 用于条件渲染"管理"链接
   const [canManageCategories, setCanManageCategories] = useState(false)
   const [canManageSites, setCanManageSites] = useState(false)
@@ -1168,7 +1183,7 @@ const loadCategoryChildren = async (node) => {
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item label="日租金(¥)" name={['pricing', 'daily_rent']}>
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" onChange={handleDailyRentChange} />
               </Form.Item>
             </Col>
             <Col span={8}>
