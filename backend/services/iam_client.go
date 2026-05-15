@@ -859,3 +859,61 @@ func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
 	}
 	return result, nil
 }
+
+// NamespaceAppResponse represents a registered OAuth app returned by IAM.
+type NamespaceAppResponse struct {
+	AppID        string   `json:"app_id"`
+	AppType      string   `json:"app_type"`
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	RedirectURIs []string `json:"redirect_uris"`
+	IsActive     bool     `json:"is_active"`
+}
+
+// RegisterNamespaceApp creates or returns an existing OAuth app for a namespace.
+// Uses X-Namespace-Secret (from IAM_SECRET env) for authentication, not OAuth token.
+func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs string) (*NamespaceAppResponse, error) {
+	nsSecret := os.Getenv("IAM_SECRET")
+	if nsSecret == "" {
+		return nil, fmt.Errorf("RegisterNamespaceApp: IAM_SECRET not set")
+	}
+
+	path := fmt.Sprintf("/api/v1/namespaces/%s/apps", namespaceID)
+	reqBody := map[string]interface{}{
+		"app_type":       appType,
+		"redirect_uris": []string{redirectURIs},
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.baseURL, path), nil)
+	if err != nil {
+		return nil, fmt.Errorf("RegisterNamespaceApp: failed to create request: %w", err)
+	}
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("RegisterNamespaceApp: failed to marshal body: %w", err)
+	}
+	req.Body = io.NopCloser(bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Namespace-Secret", nsSecret)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("RegisterNamespaceApp request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("RegisterNamespaceApp: failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("RegisterNamespaceApp returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var appResp NamespaceAppResponse
+	if err := json.Unmarshal(respBody, &appResp); err != nil {
+		return nil, fmt.Errorf("RegisterNamespaceApp: failed to parse response: %w", err)
+	}
+	return &appResp, nil
+}
