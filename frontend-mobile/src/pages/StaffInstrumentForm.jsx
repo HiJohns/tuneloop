@@ -70,9 +70,13 @@ export default function StaffInstrumentForm() {
     const oldMonthly = parseFloat(form.monthly_rent) || 0
     setForm(prev => {
       const next = { ...prev, daily_rent: value }
-      if (oldDaily > 0) {
-        if (oldWeekly === oldDaily * 6) next.weekly_rent = String(newDaily * 6)
-        if (oldMonthly === oldDaily * 25) next.monthly_rent = String(newDaily * 25)
+      if (newDaily > 0) {
+        if (oldWeekly === 0 || oldWeekly === oldDaily * 6) {
+          next.weekly_rent = String(newDaily * 6)
+        }
+        if (oldMonthly === 0 || oldMonthly === oldDaily * 25) {
+          next.monthly_rent = String(newDaily * 25)
+        }
       }
       return next
     })
