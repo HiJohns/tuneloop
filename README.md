@@ -207,14 +207,9 @@ make release    # 一步完成 PC+Mobile+Backend 编译，输出 zip
 
 ### 部署
 ```bash
-/opt/flow/deploy.sh tuneloop_<timestamp>_<hash>.zip
+/opt/flow/deploy.sh ~/release/tuneloop_<timestamp>_<hash>.zip
 ```
-`deploy.sh` 自动解析文件名中的 `tuneloop` → 更新 `/opt/tuneloop/`  symlink。
-
-### 启动
-```bash
-sudo systemctl restart tuneloop
-```
+`deploy.sh` 从文件名解析 `tuneloop` → 解压 → 更新 `/opt/tuneloop/` symlink → 重启服务。
 
 ### 访问地址
 - https://web.cadenzayueqi.com => NGINX => :5558 (PC端)
