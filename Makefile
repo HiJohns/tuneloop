@@ -99,7 +99,7 @@ prerelease: clean-prerelease prebuild-backend prebuild-pc prebuild-mobile prebui
 	@echo "WX:   wx.cadenzayueqi.com"
 	@echo "=========================================="
 
-# Flow release: build both tuneloop + beaconiam into a timestamped zip
+# Flow release: build tuneloop into a timestamped zip
 FLOW_BUILD := /tmp/flow_build_$(TIMESTAMP)
 
 release: clean-prerelease
@@ -108,8 +108,7 @@ release: clean-prerelease
 	@echo "=========================================="
 	rm -rf $(FLOW_BUILD)
 	mkdir -p $(FLOW_BUILD)/tuneloop/www $(FLOW_BUILD)/tuneloop/mobile \
-	         $(FLOW_BUILD)/tuneloop/service $(FLOW_BUILD)/tuneloop/database \
-	         $(FLOW_BUILD)/beaconiam/www $(FLOW_BUILD)/beaconiam/service
+	         $(FLOW_BUILD)/tuneloop/service $(FLOW_BUILD)/tuneloop/database
 	# tuneloop PC frontend
 	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
 	cp -r frontend-pc/dist/* $(FLOW_BUILD)/tuneloop/www/
@@ -119,11 +118,6 @@ release: clean-prerelease
 	# tuneloop backend
 	cd backend && go build -o $(FLOW_BUILD)/tuneloop/service/tuneloop .
 	cp -r backend/database/migrations $(FLOW_BUILD)/tuneloop/database/
-	# BeaconIAM backend
-	cd ../beaconiam && go build -o $(FLOW_BUILD)/beaconiam/service/beaconiam ./cmd/api
-	# BeaconIAM frontend
-	cd ../beaconiam/ui && npm run build
-	cp -r ../beaconiam/ui/dist/* $(FLOW_BUILD)/beaconiam/www/
 	# Package
 	mkdir -p $(FLOW_DIR)
 	cd $(FLOW_BUILD) && zip -r $(FLOW_DIR)/$(TIMESTAMP).zip .
