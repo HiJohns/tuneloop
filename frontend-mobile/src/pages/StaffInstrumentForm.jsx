@@ -32,11 +32,12 @@ export default function StaffInstrumentForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [catRes, siteRes, levelRes, propRes] = await Promise.all([
+        const [catRes, siteRes, levelRes, propRes, userRes] = await Promise.all([
           apiFetch(`${BASE_URL}/categories`),
           apiFetch(`${BASE_URL}/common/sites`),
           apiFetch(`${BASE_URL}/instruments/levels`),
           apiFetch(`${BASE_URL}/properties`),
+          apiFetch(`${BASE_URL}/users/me`),
         ])
         const catData = await catRes.json()
         const siteData = await siteRes.json()
@@ -46,6 +47,11 @@ export default function StaffInstrumentForm() {
         setSites(siteData?.data?.list || [])
         setLevels(levelData?.data?.list || [])
         setProperties(propData?.data?.list || [])
+        const userData = await userRes.json()
+        const userSiteId = userData?.data?.site_id
+        if (userSiteId) {
+          setForm(prev => ({ ...prev, site_id: userSiteId }))
+        }
       } catch (err) {
         console.error('Failed to load form data:', err)
       }
@@ -55,6 +61,21 @@ export default function StaffInstrumentForm() {
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleDailyRentChange = (value) => {
+    const newDaily = parseFloat(value) || 0
+    const oldDaily = parseFloat(form.daily_rent) || 0
+    const oldWeekly = parseFloat(form.weekly_rent) || 0
+    const oldMonthly = parseFloat(form.monthly_rent) || 0
+    setForm(prev => {
+      const next = { ...prev, daily_rent: value }
+      if (oldDaily > 0) {
+        if (oldWeekly === oldDaily * 6) next.weekly_rent = String(newDaily * 6)
+        if (oldMonthly === oldDaily * 25) next.monthly_rent = String(newDaily * 25)
+      }
+      return next
+    })
   }
 
   const handleUpload = (e) => {
@@ -188,7 +209,7 @@ export default function StaffInstrumentForm() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>日租金(¥)</label>
-              <input className={inputClass} type="number" min="0" step="1" value={form.daily_rent} onChange={e => handleChange('daily_rent', e.target.value)} placeholder="0" />
+              <input className={inputClass} type="number" min="0" step="1" value={form.daily_rent} onChange={e => handleDailyRentChange(e.target.value)} placeholder="0" />
             </div>
             <div>
               <label className={labelClass}>周租金(¥)</label>
