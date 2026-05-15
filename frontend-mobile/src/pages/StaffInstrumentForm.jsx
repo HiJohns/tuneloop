@@ -45,8 +45,8 @@ export default function StaffInstrumentForm() {
         const propData = await propRes.json()
         setCategories(catData?.data?.list || [])
         setSites(siteData?.data?.list || [])
-        setLevels(levelData?.data?.list || [])
-        setProperties(propData?.data?.list || [])
+        setLevels(Array.isArray(levelData?.data) ? levelData.data : [])
+        setProperties(Array.isArray(propData?.data) ? propData.data : [])
         const userData = await userRes.json()
         const userSiteId = userData?.data?.site_id
         if (userSiteId) {
