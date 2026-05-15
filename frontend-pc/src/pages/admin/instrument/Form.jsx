@@ -473,6 +473,15 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           }])
         }
 
+        // Parse pricing JSONB for edit mode
+        if (instrumentData.pricing && typeof instrumentData.pricing === 'string') {
+          try {
+            form.setFieldsValue({ pricing: JSON.parse(instrumentData.pricing) })
+          } catch (e) {
+            console.warn('[DEBUG] Failed to parse pricing:', e)
+          }
+        }
+
         // Populate dynamic properties
         // API returns { "品牌": ["value1"], "型号": ["value2"] }
         // Form fields are named prop_{property_id}
@@ -892,6 +901,7 @@ const loadCategoryChildren = async (node) => {
         site_id: values.site_id,
         level_id: values.level_id,
         description: values.description,
+        pricing: values.pricing || { daily_rent: 0, monthly_rent: 0, deposit: 0 },
         images: images,
         video: videoUrl,
         status: initialData ? (values.status || 'active') : 'active',
@@ -1153,6 +1163,38 @@ const loadCategoryChildren = async (node) => {
         >
           <TextArea rows={3} placeholder="请输入乐器描述" />
         </Form.Item>
+
+        <Card title="定价设置" size="small" style={{ marginBottom: 16 }}>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="日租金(¥)" name={['pricing', 'daily_rent']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="月租金(¥)" name={['pricing', 'monthly_rent']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="押金(¥)" name={['pricing', 'deposit']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="周租金(¥)" name={['pricing', 'weekly_rent']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="逾期日租金(¥)" name={['pricing', 'overdue_daily']}>
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
 
         <Divider orientation="left">图片和视频</Divider>
         
