@@ -137,7 +137,7 @@ export default function Profile() {
       const result = await resp.json()
       if (result.code === 20000) {
         const allOrders = result.data?.list || []
-        const active = allOrders.filter(o => ['pending', 'paid', 'in_lease', 'shipping', 'shipped', 'returning'].includes(o.status))
+        const active = allOrders.filter(o => ['reserved', 'pending', 'paid', 'in_lease', 'shipping', 'shipped', 'returning'].includes(o.status))
         const history = allOrders.filter(o => ['returned', 'completed'].includes(o.status))
         setActiveLeases(active)
         setLeaseHistory(history)
@@ -170,6 +170,7 @@ export default function Profile() {
   const businessRole = user?.business_role || ''
 
   const statusLabel = {
+    reserved: '已预约',
     pending: '待付款',
     paid: '待发货',
     shipped: '已发货',
@@ -181,6 +182,7 @@ export default function Profile() {
   }
 
   const statusColor = {
+    reserved: 'bg-blue-100 text-blue-700',
     in_lease: 'bg-green-100 text-green-700',
     shipping: 'bg-blue-100 text-blue-700',
     returning: 'bg-yellow-100 text-yellow-700',
