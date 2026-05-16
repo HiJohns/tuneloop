@@ -880,7 +880,7 @@ func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs stri
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/apps", namespaceID)
 	body, err := json.Marshal(map[string]interface{}{
-		"app_type":       appType,
+		"type":           appType,
 		"redirect_uris": []string{redirectURIs},
 	})
 	if err != nil {
