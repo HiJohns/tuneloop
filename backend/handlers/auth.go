@@ -33,7 +33,14 @@ func NewAuthHandler(db *gorm.DB) *AuthHandler {
 
 func (h *AuthHandler) GetOIDCAuthorizationURL(c *gin.Context) {
 	externalURL := services.GetIAMExternalURL()
-	clientID := os.Getenv("IAM_PC_CLIENT_ID")
+	iamNs := os.Getenv("IAM_NAMESPACE")
+	clientID := ""
+	if iamNs != "" {
+		clientID = iamNs + "_web"
+	}
+	if clientID == "" {
+		clientID = os.Getenv("IAM_PC_CLIENT_ID")
+	}
 	if clientID == "" {
 		clientID = os.Getenv("IAM_CLIENT_ID")
 	}
