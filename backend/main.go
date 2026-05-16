@@ -96,8 +96,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			iamExternalURL = "http://localhost:5552"
 		}
 
-		// PC Web configuration
-		iamPCClientID := os.Getenv("IAM_PC_CLIENT_ID")
+		// PC Web configuration — derived from IAM_NAMESPACE + "_web"
+		iamNamespace := os.Getenv("IAM_NAMESPACE")
+		iamPCClientID := ""
+		if iamNamespace != "" {
+			iamPCClientID = iamNamespace + "_web"
+		}
+		if iamPCClientID == "" {
+			iamPCClientID = os.Getenv("IAM_PC_CLIENT_ID")
+		}
 		if iamPCClientID == "" {
 			iamPCClientID = "tuneloop-pc"
 		}
@@ -106,8 +113,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			iamPCRedirectURI = "http://localhost:5554/callback"
 		}
 
-		// WeChat Mini Program configuration
-		iamWXClientID := os.Getenv("IAM_WX_CLIENT_ID")
+		// WeChat Mini Program configuration — derived from IAM_NAMESPACE + "_wechat"
+		iamWXClientID := ""
+		if iamNamespace != "" {
+			iamWXClientID = iamNamespace + "_wechat"
+		}
+		if iamWXClientID == "" {
+			iamWXClientID = os.Getenv("IAM_WX_CLIENT_ID")
+		}
 		if iamWXClientID == "" {
 			iamWXClientID = "tuneloop-wx"
 		}
