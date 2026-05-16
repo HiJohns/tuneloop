@@ -919,11 +919,11 @@ func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs stri
 // CreateAdminUser creates an admin user for a namespace (cold start).
 // Uses X-Namespace-Secret (from IAM_SECRET env) for authentication, not OAuth token.
 // IAM generates a random password and sends it via email.
-// Idempotent: if the email already exists, returns nil.
-func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) error {
+// Idempotent: if the email already exists, returns the existing user ID.
+func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) (string, error) {
 	nsSecret := os.Getenv("IAM_SECRET")
 	if nsSecret == "" {
-		return fmt.Errorf("CreateAdminUser: IAM_SECRET not set")
+		return "", fmt.Errorf("CreateAdminUser: IAM_SECRET not set")
 	}
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/admin", namespaceID)
@@ -932,27 +932,37 @@ func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) error {
 		"name":  name,
 	})
 	if err != nil {
-		return fmt.Errorf("CreateAdminUser: failed to marshal body: %w", err)
+		return "", fmt.Errorf("CreateAdminUser: failed to marshal body: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.baseURL, path), bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("CreateAdminUser: failed to create request: %w", err)
+		return "", fmt.Errorf("CreateAdminUser: failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Namespace-Secret", nsSecret)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("CreateAdminUser request failed: %w", err)
+		return "", fmt.Errorf("CreateAdminUser request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("CreateAdminUser returned status %d: %s", resp.StatusCode, string(respBody))
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("CreateAdminUser: failed to read response: %w", err)
 	}
-	return nil
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("CreateAdminUser returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Try to extract user ID from response (beaconiam may not return it yet)
+	var result struct {
+		ID string `json:"id"`
+	}
+	json.Unmarshal(respBody, &result)
+	return result.ID, nil
 }
 
 // ExchangeCode exchanges an OAuth authorization code for a token using explicit app credentials.
@@ -998,4 +1008,71 @@ func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenRespo
 		return nil, fmt.Errorf("ExchangeCode: parse failed: %w", err)
 	}
 	return &tokenResp, nil
+}
+
+type AppRegistration struct {
+	AppType      string   `json:"app_type"`
+	RedirectURIs []string `json:"redirect_uris"`
+}
+
+type ActivateNamespaceResponse struct {
+	NamespaceID string                 `json:"namespace_id"`
+	Status      string                 `json:"status"`
+	OrgID       string                 `json:"org_id"`
+	Apps        []NamespaceAppResponse `json:"apps"`
+}
+
+// ActivateNamespace activates a namespace and creates OAuth apps + same-name org.
+// Uses X-Namespace-Secret auth. Requires beaconiam #169 + #177.
+func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration) (*ActivateNamespaceResponse, error) {
+	nsSecret := os.Getenv("IAM_SECRET")
+	if nsSecret == "" {
+		return nil, fmt.Errorf("ActivateNamespace: IAM_SECRET not set")
+	}
+
+	body, err := json.Marshal(map[string]interface{}{"apps": apps})
+	if err != nil {
+		return nil, fmt.Errorf("ActivateNamespace: marshal failed: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/v1/namespaces/%s/activate", c.baseURL, namespaceID), bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("ActivateNamespace: create request failed: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Namespace-Secret", nsSecret)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ActivateNamespace: request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ActivateNamespace: read failed: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("ActivateNamespace returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var actResp ActivateNamespaceResponse
+	if err := json.Unmarshal(respBody, &actResp); err != nil {
+		return nil, fmt.Errorf("ActivateNamespace: parse failed: %w", err)
+	}
+	return &actResp, nil
+}
+
+// BindUserToOrg binds a user to an organization using client credentials (not namespace secret).
+func (c *IAMClient) BindUserToOrg(orgID, userID string) error {
+	respBody, statusCode, err := c.doRequest("POST",
+		fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID),
+		map[string]string{"role": "OWNER"})
+	if err != nil {
+		return err
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return fmt.Errorf("BindUserToOrg returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
 }
