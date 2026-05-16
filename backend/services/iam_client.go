@@ -917,3 +917,42 @@ func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs stri
 	}
 	return &appResp, nil
 }
+
+// CreateAdminUser creates an admin user for a namespace (cold start).
+// Uses X-Namespace-Secret (from IAM_SECRET env) for authentication, not OAuth token.
+// IAM generates a random password and sends it via email.
+// Idempotent: if the email already exists, returns nil.
+func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) error {
+	nsSecret := os.Getenv("IAM_SECRET")
+	if nsSecret == "" {
+		return fmt.Errorf("CreateAdminUser: IAM_SECRET not set")
+	}
+
+	path := fmt.Sprintf("/api/v1/namespaces/%s/admin", namespaceID)
+	body, err := json.Marshal(map[string]string{
+		"email": email,
+		"name":  name,
+	})
+	if err != nil {
+		return fmt.Errorf("CreateAdminUser: failed to marshal body: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.baseURL, path), bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("CreateAdminUser: failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Namespace-Secret", nsSecret)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("CreateAdminUser request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("CreateAdminUser returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
