@@ -98,16 +98,22 @@ func GetIAMExternalURL() string {
 }
 
 func NewIAMService() *IAMService {
-	clientID := os.Getenv("IAM_PC_CLIENT_ID")
+	clientID := os.Getenv("IAM_NAMESPACE")
+	if clientID == "" {
+		clientID = os.Getenv("IAM_PC_CLIENT_ID")
+	}
 	if clientID == "" {
 		clientID = os.Getenv("IAM_CLIENT_ID")
 	}
-	clientSecret := os.Getenv("IAM_PC_CLIENT_SECRET")
+	clientSecret := os.Getenv("IAM_SECRET")
+	if clientSecret == "" {
+		clientSecret = os.Getenv("IAM_PC_CLIENT_SECRET")
+	}
 	if clientSecret == "" {
 		clientSecret = os.Getenv("IAM_CLIENT_SECRET")
 	}
 	if clientID == "" || clientSecret == "" {
-		log.Fatal("IAM client credentials not configured: IAM_PC_CLIENT_ID and IAM_PC_CLIENT_SECRET (or IAM_CLIENT_ID and IAM_CLIENT_SECRET) must be set")
+		log.Fatal("IAM client credentials not configured: set IAM_NAMESPACE + IAM_SECRET, or IAM_PC_CLIENT_ID + IAM_PC_CLIENT_SECRET")
 	}
 	return &IAMService{
 		baseURL:         GetIAMInternalURL(),
