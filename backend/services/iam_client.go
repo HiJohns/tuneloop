@@ -879,20 +879,18 @@ func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs stri
 	}
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/apps", namespaceID)
-	reqBody := map[string]interface{}{
+	body, err := json.Marshal(map[string]interface{}{
 		"app_type":       appType,
 		"redirect_uris": []string{redirectURIs},
-	}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.baseURL, path), nil)
-	if err != nil {
-		return nil, fmt.Errorf("RegisterNamespaceApp: failed to create request: %w", err)
-	}
-	body, err := json.Marshal(reqBody)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("RegisterNamespaceApp: failed to marshal body: %w", err)
 	}
-	req.Body = io.NopCloser(bytes.NewReader(body))
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", c.baseURL, path), bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("RegisterNamespaceApp: failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Namespace-Secret", nsSecret)
 
