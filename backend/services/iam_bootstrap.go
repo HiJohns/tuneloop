@@ -28,10 +28,12 @@ func BootstrapIAM(db *gorm.DB) error {
 	iamSecret := os.Getenv("IAM_SECRET")
 	if iamNs != "" && iamSecret != "" {
 		iamClient := NewIAMClient()
-		pcRedirect := "https://web.cadenzayueqi.com/callback"
-		wxRedirect := "https://wx.cadenzayueqi.com/callback"
-		if os.Getenv("APP_ENV") == "development" {
+		pcRedirect := os.Getenv("IAM_PC_REDIRECT_URI")
+		if pcRedirect == "" {
 			pcRedirect = "http://localhost:5554/callback"
+		}
+		wxRedirect := os.Getenv("IAM_WX_REDIRECT_URI")
+		if wxRedirect == "" {
 			wxRedirect = "http://localhost:5553/callback"
 		}
 
