@@ -40,6 +40,25 @@ func BootstrapIAM(db *gorm.DB) error {
 		}
 	}
 
+	// Cold start: create admin user if no local users exist.
+	// IAM generates a random password and sends it via email (requires beaconiam #169).
+	if iamNs != "" && iamSecret != "" {
+		var userCount int64
+		db.Model(&models.User{}).Count(&userCount)
+		if userCount == 0 {
+			adminEmail := os.Getenv("ADMIN_EMAIL")
+			if adminEmail == "" {
+				return fmt.Errorf("ADMIN_EMAIL not set — required for cold start. Add ADMIN_EMAIL to .env with the admin user's email address")
+			}
+			iamClient := NewIAMClient()
+			if err := iamClient.CreateAdminUser(iamNs, adminEmail, "Administrator"); err != nil {
+				log.Printf("[Bootstrap] Warning: cold start admin creation failed: %v", err)
+			} else {
+				log.Printf("[Bootstrap] Cold start: admin user created (%s)", adminEmail)
+			}
+		}
+	}
+
 	bootstrapClientID := os.Getenv("BOOTSTRAP_CLIENT_ID")
 	if bootstrapClientID == "" {
 		return nil
