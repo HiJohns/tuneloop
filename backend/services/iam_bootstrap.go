@@ -4,10 +4,22 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"tuneloop-backend/models"
 
 	"gorm.io/gorm"
 )
+
+var (
+	appCredentials     = make(map[string]string) // client_id -> client_secret
+	appCredentialsLock sync.RWMutex
+)
+
+func GetAppSecret(clientID string) string {
+	appCredentialsLock.RLock()
+	defer appCredentialsLock.RUnlock()
+	return appCredentials[clientID]
+}
 
 func BootstrapIAM(db *gorm.DB) error {
 	// Register OAuth apps (tuneloop_web / tuneloop_wechat) with IAM.
@@ -35,6 +47,9 @@ func BootstrapIAM(db *gorm.DB) error {
 			if err != nil {
 				log.Printf("[Bootstrap] Warning: failed to register IAM app %s_%s: %v", iamNs, app.appType, err)
 			} else {
+				appCredentialsLock.Lock()
+				appCredentials[resp.ClientID] = resp.ClientSecret
+				appCredentialsLock.Unlock()
 				log.Printf("[Bootstrap] Registered IAM app: client_id=%s", resp.ClientID)
 			}
 		}

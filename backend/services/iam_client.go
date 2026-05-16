@@ -954,3 +954,48 @@ func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) error {
 	}
 	return nil
 }
+
+// ExchangeCode exchanges an OAuth authorization code for a token using explicit app credentials.
+// Used by the callback handler instead of namespace credentials.
+func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenResponse, error) {
+	iamURL := GetIAMInternalURL()
+	payload := map[string]string{
+		"grant_type":    "authorization_code",
+		"code":          code,
+		"client_id":     clientID,
+		"client_secret": clientSecret,
+	}
+	if redirectURI != "" {
+		payload["redirect_uri"] = redirectURI
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("ExchangeCode: marshal failed: %w", err)
+	}
+
+	resp, err := http.Post(
+		fmt.Sprintf("%s/api/v1/auth/token", iamURL),
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ExchangeCode: request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("ExchangeCode: read failed: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ExchangeCode returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var tokenResp TokenResponse
+	if err := json.Unmarshal(respBody, &tokenResp); err != nil {
+		return nil, fmt.Errorf("ExchangeCode: parse failed: %w", err)
+	}
+	return &tokenResp, nil
+}
