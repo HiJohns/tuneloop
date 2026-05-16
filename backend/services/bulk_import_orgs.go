@@ -22,7 +22,7 @@ type OrgImportRecord struct {
 }
 
 // ImportOrganizationsCSV imports organizations from a CSV file.
-func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, dryRun bool) (*BulkImportResult, error) {
+func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, dryRun bool, allowMerchant bool) (*BulkImportResult, error) {
 	_, records, err := ParseCSV(r)
 	if err != nil {
 		return nil, err
@@ -38,6 +38,15 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			ParentCode:       strings.TrimSpace(rec.Fields["parent_code"]),
 			Type:             strings.TrimSpace(rec.Fields["type"]),
 		})
+	}
+
+	// Reject merchant type for non-namespace-admin users
+	if !allowMerchant {
+		for _, org := range orgRecords {
+			if org.Type == "merchant" {
+				return nil, fmt.Errorf("row %d: type 'merchant' is not allowed for your role (only namespace administrators can import merchants)", org.RowNum)
+			}
+		}
 	}
 
 	// Deduplicate by organization_code (keep last)
