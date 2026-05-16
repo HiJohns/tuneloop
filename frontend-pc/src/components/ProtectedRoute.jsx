@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { SysPermBits, checkRule } from '../config/menuPermissions'
 
 const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-const CLIENT_ID = import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
 
 function getToken() {
   const token = localStorage.getItem('token')
@@ -92,7 +92,7 @@ function clearTokens() {
 }
 
 function redirectToLogin() {
-  // First call backend to get authorization URL with state cookie set
+  const clientId = CLIENT_ID()
   fetch('/api/auth/oidc/authorization-url', {
     credentials: 'include'
   })
@@ -101,18 +101,16 @@ function redirectToLogin() {
       if (data.code === 20000 && data.data && data.data.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
-        // Fallback to direct OAuth URL
         console.error('[Auth] Failed to get authorization URL, using fallback');
         const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
-        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
+        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
         window.location.href = authUrl;
       }
     })
     .catch(error => {
       console.error('[Auth] Error getting authorization URL:', error);
-      // Fallback to direct OAuth URL
       const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
-      const authUrl = `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
+      const authUrl = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
       window.location.href = authUrl;
     });
 }
