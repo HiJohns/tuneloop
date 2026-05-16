@@ -76,8 +76,8 @@ function handleLogout() {
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   
   // Redirect to IAM OAuth page for proper logout
-  const iamUrl = window.APP_CONFIG?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-  const clientId = window.APP_CONFIG?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+  const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+  const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
   const redirectUri = encodeURIComponent(window.location.origin + '/callback')
   window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
 }
@@ -519,7 +519,7 @@ function App() {
     api.get('/config')
       .then(data => {
         if (data) {
-          window.APP_CONFIG = data
+          window.APP_CONFIG = data?.data || data
         }
       })
       .catch(err => console.error('Failed to load config:', err))
