@@ -17,8 +17,6 @@ CREATE TABLE IF NOT EXISTS maintenance_workers (
     
     CONSTRAINT fk_maintenance_workers_tenant 
         FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-    CONSTRAINT fk_maintenance_workers_org 
-        FOREIGN KEY (org_id) REFERENCES orgs(id),
     CONSTRAINT fk_maintenance_workers_site 
         FOREIGN KEY (site_id) REFERENCES sites(id)
 );
@@ -48,8 +46,6 @@ CREATE TABLE IF NOT EXISTS maintenance_sessions (
     
     CONSTRAINT fk_maintenance_sessions_tenant 
         FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-    CONSTRAINT fk_maintenance_sessions_org 
-        FOREIGN KEY (org_id) REFERENCES orgs(id),
     CONSTRAINT fk_maintenance_sessions_ticket 
         FOREIGN KEY (maintenance_ticket_id) REFERENCES maintenance_tickets(id),
     CONSTRAINT fk_maintenance_sessions_worker 
