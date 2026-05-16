@@ -98,16 +98,16 @@ func GetIAMExternalURL() string {
 }
 
 func NewIAMService() *IAMService {
-	clientID := os.Getenv("IAM_NAMESPACE")
+	clientID := os.Getenv("IAM_PC_CLIENT_ID")
 	if clientID == "" {
-		clientID = os.Getenv("IAM_PC_CLIENT_ID")
+		clientID = os.Getenv("IAM_NAMESPACE")
 	}
 	if clientID == "" {
 		clientID = os.Getenv("IAM_CLIENT_ID")
 	}
-	clientSecret := os.Getenv("IAM_SECRET")
+	clientSecret := os.Getenv("IAM_PC_CLIENT_SECRET")
 	if clientSecret == "" {
-		clientSecret = os.Getenv("IAM_PC_CLIENT_SECRET")
+		clientSecret = os.Getenv("IAM_SECRET")
 	}
 	if clientSecret == "" {
 		clientSecret = os.Getenv("IAM_CLIENT_SECRET")
