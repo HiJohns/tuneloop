@@ -47,7 +47,9 @@ func (h *BulkImportHandler) ImportOrganizations(c *gin.Context) {
 
 	dryRun := c.Query("dry_run") == "true"
 
-	result, err := services.ImportOrganizationsCSV(ctx, file, tenantID, h.iamClient, dryRun)
+	allowMerchant := middleware.GetCusPerm(ctx) == 0
+
+	result, err := services.ImportOrganizationsCSV(ctx, file, tenantID, h.iamClient, dryRun, allowMerchant)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "Import failed: " + err.Error()})
 		return
