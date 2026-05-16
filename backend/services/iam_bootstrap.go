@@ -37,22 +37,35 @@ func BootstrapIAM(db *gorm.DB) error {
 			wxRedirect = "http://localhost:5553/callback"
 		}
 
-		apps := []struct {
-			appType     string
-			redirectURI string
-		}{
-			{"web", pcRedirect},
-			{"wechat", wxRedirect},
+		apps := []AppRegistration{
+			{AppType: "web", RedirectURIs: []string{pcRedirect}},
+			{AppType: "wechat", RedirectURIs: []string{wxRedirect}},
 		}
-		for _, app := range apps {
-			resp, err := iamClient.RegisterNamespaceApp(iamNs, app.appType, app.redirectURI)
-			if err != nil {
-				log.Printf("[Bootstrap] Warning: failed to register IAM app %s_%s: %v", iamNs, app.appType, err)
-			} else {
-				appCredentialsLock.Lock()
-				appCredentials[resp.ClientID] = resp.ClientSecret
-				appCredentialsLock.Unlock()
-				log.Printf("[Bootstrap] Registered IAM app: client_id=%s", resp.ClientID)
+
+		// Try ActivateNamespace (beaconiam #177 — also creates org, returns org_id + apps)
+		activateResp, actErr := iamClient.ActivateNamespace(iamNs, apps)
+		if actErr == nil {
+			appCredentialsLock.Lock()
+			for _, app := range activateResp.Apps {
+				appCredentials[app.ClientID] = app.ClientSecret
+			}
+			if activateResp.OrgID != "" {
+				appCredentials["_org_id"] = activateResp.OrgID
+			}
+			appCredentialsLock.Unlock()
+			log.Printf("[Bootstrap] Namespace activated: org_id=%s, apps=%d", activateResp.OrgID, len(activateResp.Apps))
+		} else {
+			log.Printf("[Bootstrap] ActivateNamespace failed (may not be deployed yet), falling back to RegisterApp: %v", actErr)
+			for _, app := range apps {
+				resp, err := iamClient.RegisterNamespaceApp(iamNs, app.AppType, app.RedirectURIs[0])
+				if err != nil {
+					log.Printf("[Bootstrap] Warning: failed to register IAM app %s_%s: %v", iamNs, app.AppType, err)
+				} else {
+					appCredentialsLock.Lock()
+					appCredentials[resp.ClientID] = resp.ClientSecret
+					appCredentialsLock.Unlock()
+					log.Printf("[Bootstrap] Registered IAM app: client_id=%s", resp.ClientID)
+				}
 			}
 		}
 	}
@@ -68,10 +81,24 @@ func BootstrapIAM(db *gorm.DB) error {
 				return fmt.Errorf("ADMIN_EMAIL not set — required for cold start. Add ADMIN_EMAIL to .env with the admin user's email address")
 			}
 			iamClient := NewIAMClient()
-			if err := iamClient.CreateAdminUser(iamNs, adminEmail, "Administrator"); err != nil {
+			adminUserID, err := iamClient.CreateAdminUser(iamNs, adminEmail, "Administrator")
+			if err != nil {
 				log.Printf("[Bootstrap] Warning: cold start admin creation failed: %v", err)
 			} else {
 				log.Printf("[Bootstrap] Cold start: admin user created (%s)", adminEmail)
+				// Bind admin to org if org_id was returned by ActivateNamespace
+				if adminUserID != "" {
+					appCredentialsLock.RLock()
+					orgID := appCredentials["_org_id"]
+					appCredentialsLock.RUnlock()
+					if orgID != "" {
+						if bindErr := iamClient.BindUserToOrg(orgID, adminUserID); bindErr != nil {
+							log.Printf("[Bootstrap] Warning: failed to bind admin to org: %v", bindErr)
+						} else {
+							log.Printf("[Bootstrap] Admin bound to org %s", orgID)
+						}
+					}
+				}
 			}
 		}
 	}
