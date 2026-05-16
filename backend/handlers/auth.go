@@ -134,7 +134,20 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		}
 	}
 
+	// Use app-specific credentials (not namespace) for code exchange
+	iamNs := os.Getenv("IAM_NAMESPACE")
+	appClientID := iamNs + "_web"
+	appSecret := services.GetAppSecret(appClientID)
+	if clientType == "wx" || clientType == "wechat" || clientType == "mobile" {
+		appClientID = iamNs + "_wechat"
+		appSecret = services.GetAppSecret(appClientID)
+	}
+
+	// Fallback to IAMService if app credentials not cached (backward compat)
 	tokenResp, err := h.iamService.ExchangeCodeWithRedirect(code, redirectURI)
+	if appSecret != "" {
+		tokenResp, err = services.ExchangeCode(appClientID, appSecret, code, redirectURI)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
