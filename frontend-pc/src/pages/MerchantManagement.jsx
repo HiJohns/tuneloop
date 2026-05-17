@@ -196,16 +196,6 @@ const MerchantManagement = () => {
             <Input placeholder="输入地址" />
           </Form.Item>
 
-          <Form.Item label="选择管理员">
-            <InlineUserSelector
-              mode="multiple"
-              placeholder="搜索并选择管理员"
-              onChange={handleAdminChange}
-            />
-          </Form.Item>
-            <Input placeholder="13800000000" />
-          </Form.Item>
-
           <Form.Item
             name="admin_uid"
             label="管理员"
