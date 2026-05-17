@@ -1067,9 +1067,9 @@ func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration
 
 // BindUserToOrg binds a user to an organization using client credentials (not namespace secret).
 func (c *IAMClient) BindUserToOrg(orgID, userID string) error {
-	respBody, statusCode, err := c.doRequest("POST",
-		fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID),
-		map[string]string{"role": "OWNER"})
+	respBody, statusCode, err := c.doRequest("PUT",
+		fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind?action=bind&role=OWNER", orgID, userID),
+		nil)
 	if err != nil {
 		return err
 	}
