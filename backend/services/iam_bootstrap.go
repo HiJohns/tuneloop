@@ -88,10 +88,13 @@ func BootstrapIAM(db *gorm.DB) error {
 						}
 					}
 				}
-				// Save admin to local users table so cold start check skips on restart
-				if adminUserID != "" {
+				// Save admin to local users table so cold start check skips on restart.
+				// Check by email to avoid duplicates (adminUserID may be empty if IAM API
+				// does not return the user ID in the response).
+				var existingUser models.User
+				if err := db.Where("email = ?", adminEmail).First(&existingUser).Error; err != nil {
 					localUser := models.User{
-						IAMSub:   adminUserID,
+						IAMSub:   adminEmail,
 						Name:     "Administrator",
 						Email:    adminEmail,
 						TenantID: "00000000-0000-0000-0000-000000000000",
