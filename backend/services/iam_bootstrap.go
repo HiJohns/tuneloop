@@ -93,11 +93,19 @@ func BootstrapIAM(db *gorm.DB) error {
 				// does not return the user ID in the response).
 				var existingUser models.User
 				if err := db.Where("email = ?", adminEmail).First(&existingUser).Error; err != nil {
+					appCredentialsLock.RLock()
+					orgID := appCredentials["_org_id"]
+					appCredentialsLock.RUnlock()
+					tenantID := orgID
+					if tenantID == "" {
+						tenantID = "00000000-0000-0000-0000-000000000000"
+					}
 					localUser := models.User{
 						IAMSub:   adminEmail,
 						Name:     "Administrator",
 						Email:    adminEmail,
-						TenantID: "00000000-0000-0000-0000-000000000000",
+						TenantID: tenantID,
+						OrgID:    orgID,
 					}
 					if err := db.Create(&localUser).Error; err != nil {
 						log.Printf("[Bootstrap] Warning: failed to save admin to local DB: %v", err)
