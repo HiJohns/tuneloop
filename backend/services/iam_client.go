@@ -1011,7 +1011,7 @@ func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenRespo
 }
 
 type AppRegistration struct {
-	AppType      string   `json:"app_type"`
+	AppType      string   `json:"type"`
 	RedirectURIs []string `json:"redirect_uris"`
 }
 
