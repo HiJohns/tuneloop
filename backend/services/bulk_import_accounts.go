@@ -183,7 +183,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		iamUser, iamExists := iamUserByEmail[acc.Email]
 
 		if dryRun {
-			if exists {
+		if exists {
 				result.Summary.Updated++
 				result.Details = append(result.Details, BulkImportDetail{
 					Row:    acc.RowNum,
@@ -209,7 +209,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		tags := SplitTags(acc.Tags)
 		tagsStr := strings.Join(tags, "|")
 
-		if exists {
+		if exists || iamExists {
 			// Update existing user
 			updates := map[string]interface{}{
 				"name":      acc.Name,
