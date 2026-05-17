@@ -177,7 +177,7 @@ function isNamespaceAdmin(sysPerm, cusPerm) {
  * Get namespace admin visible menu keys.
  */
 function getNamespaceAdminMenuKeys() {
-  return ['/', '/merchants', '/system/clients']
+  return ['/', '/merchants', '/system/clients', '/system/tenants']
 }
 
 export {
