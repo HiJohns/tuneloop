@@ -14,7 +14,7 @@ import {
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
 import { api, initPermissionMapping } from './services/api'
-import { menuRules, checkRule, isNamespaceAdmin } from './config/menuPermissions'
+import { menuRules, checkRule, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
@@ -218,6 +218,7 @@ function onMenuClick(e) {
 
   // Filter menu: children by permission, parent visible if any child visible
   const isOwnerUser = userInfo?.isOwner || false
+  const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm)
   const filteredItems = menuConfig
     .map(item => ({
       ...item,
@@ -226,7 +227,7 @@ function onMenuClick(e) {
         if (!rule) return true
         if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
-      })
+      }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
     }))
     .filter(item => item.children && item.children.length > 0);
 
@@ -315,7 +316,7 @@ function onMenuClick(e) {
                     {userInfo.name || userInfo.email}
                   </span>
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                    {userInfo.role}
+                    {userInfo.businessRole === 'system_admin' ? '命名空间管理员' : userInfo.role}
                   </span>
                 </div>
               ) : (
