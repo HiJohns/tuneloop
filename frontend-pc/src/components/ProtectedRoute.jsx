@@ -96,22 +96,22 @@ function redirectToLogin() {
   fetch('/api/auth/oidc/authorization-url', {
     credentials: 'include'
   })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
+    .then(({ data }) => {
       if (data.code === 20000 && data.data && data.data.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
-        console.error('[Auth] Failed to get authorization URL, using fallback');
         const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
-        const authUrl = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
-        window.location.href = authUrl;
+        window.location.href = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
       }
     })
-    .catch(error => {
-      console.error('[Auth] Error getting authorization URL:', error);
-      const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
-      const authUrl = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
-      window.location.href = authUrl;
+    .catch(() => {
+      // Retry after brief delay for APP_CONFIG to load (race condition workaround)
+      setTimeout(() => {
+        const retryId = CLIENT_ID()
+        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
+        window.location.href = `${IAM_URL}/oauth/authorize?client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code`;
+      }, 500)
     });
 }
 
