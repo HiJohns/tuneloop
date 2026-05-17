@@ -43,31 +43,20 @@ func BootstrapIAM(db *gorm.DB) error {
 		}
 
 		// Try ActivateNamespace (beaconiam #177 — also creates org, returns org_id + apps)
+		// Fatal on failure — silent fallback hides configuration issues.
 		activateResp, actErr := iamClient.ActivateNamespace(iamNs, apps)
-		if actErr == nil {
-			appCredentialsLock.Lock()
-			for _, app := range activateResp.Apps {
-				appCredentials[app.ClientID] = app.ClientSecret
-			}
-			if activateResp.OrgID != "" {
-				appCredentials["_org_id"] = activateResp.OrgID
-			}
-			appCredentialsLock.Unlock()
-			log.Printf("[Bootstrap] Namespace activated: org_id=%s, apps=%d", activateResp.OrgID, len(activateResp.Apps))
-		} else {
-			log.Printf("[Bootstrap] ActivateNamespace failed (may not be deployed yet), falling back to RegisterApp: %v", actErr)
-			for _, app := range apps {
-				resp, err := iamClient.RegisterNamespaceApp(iamNs, app.AppType, app.RedirectURIs[0])
-				if err != nil {
-					log.Printf("[Bootstrap] Warning: failed to register IAM app %s_%s: %v", iamNs, app.AppType, err)
-				} else {
-					appCredentialsLock.Lock()
-					appCredentials[resp.ClientID] = resp.ClientSecret
-					appCredentialsLock.Unlock()
-					log.Printf("[Bootstrap] Registered IAM app: client_id=%s", resp.ClientID)
-				}
-			}
+		if actErr != nil {
+			return fmt.Errorf("namespace activation failed (check IAM server and namespace secret): %w", actErr)
 		}
+		appCredentialsLock.Lock()
+		for _, app := range activateResp.Apps {
+			appCredentials[app.ClientID] = app.ClientSecret
+		}
+		if activateResp.OrgID != "" {
+			appCredentials["_org_id"] = activateResp.OrgID
+		}
+		appCredentialsLock.Unlock()
+		log.Printf("[Bootstrap] Namespace activated: org_id=%s, apps=%d", activateResp.OrgID, len(activateResp.Apps))
 	}
 
 	// Cold start: create admin user if no local users exist.
