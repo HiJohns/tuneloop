@@ -957,12 +957,14 @@ func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) (string, er
 		return "", fmt.Errorf("CreateAdminUser returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	// Try to extract user ID from response (beaconiam may not return it yet)
+	// Extract user ID from nested response: {"user": {"id": "..."}, ...}
 	var result struct {
-		ID string `json:"id"`
+		User struct {
+			ID string `json:"id"`
+		} `json:"user"`
 	}
 	json.Unmarshal(respBody, &result)
-	return result.ID, nil
+	return result.User.ID, nil
 }
 
 // ExchangeCode exchanges an OAuth authorization code for a token using explicit app credentials.
