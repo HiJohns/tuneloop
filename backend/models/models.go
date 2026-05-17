@@ -490,10 +490,12 @@ type Merchant struct {
 	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID        string    `gorm:"type:uuid;index;not null" json:"org_id"`
 	Name         string    `gorm:"type:varchar(255);not null" json:"name"`
-	Code         string    `gorm:"type:varchar(100);not null;index:idx_merchants_tenant_code" json:"code"`
+	Code         string    `gorm:"type:varchar(100)" json:"code"`
 	ContactName  string    `gorm:"type:varchar(255)" json:"contact_name"`
 	ContactEmail string    `gorm:"type:varchar(255)" json:"contact_email"`
 	ContactPhone string    `gorm:"type:varchar(50)" json:"contact_phone"`
+	Phone        string    `gorm:"type:varchar(50)" json:"phone"`
+	Address      string    `gorm:"type:text" json:"address"`
 	AdminUID     string    `gorm:"type:uuid;index" json:"admin_uid"`
 	Status       string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	CreatedAt    time.Time `json:"created_at"`

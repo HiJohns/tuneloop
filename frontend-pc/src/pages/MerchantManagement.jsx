@@ -105,19 +105,14 @@ const MerchantManagement = () => {
       key: 'name',
     },
     {
-      title: '编码',
-      dataIndex: 'code',
-      key: 'code',
+      title: '联系电话',
+      dataIndex: 'phone',
+      key: 'phone',
     },
     {
-      title: '联系人',
-      dataIndex: 'contact_name',
-      key: 'contact_name',
-    },
-    {
-      title: '联系邮箱',
-      dataIndex: 'contact_email',
-      key: 'contact_email',
+      title: '地址',
+      dataIndex: 'address',
+      key: 'address',
     },
     {
       title: '状态',
@@ -141,16 +136,16 @@ const MerchantManagement = () => {
       render: (_, record) => (
         <Space>
           <Button type="link" onClick={() => handleEdit(record)}>
-            Edit
+            编辑
           </Button>
           <Popconfirm
             title="确定要删除此商户吗？"
             onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
+            okText="确定"
+            cancelText="取消"
           >
             <Button type="link" danger>
-              Delete
+              删除
             </Button>
           </Popconfirm>
         </Space>
@@ -164,7 +159,7 @@ const MerchantManagement = () => {
         title="商户管理"
         extra={
           <Button type="primary" onClick={handleCreate}>
-            Create Merchant
+            创建商户
           </Button>
         }
       >
@@ -178,7 +173,7 @@ const MerchantManagement = () => {
       </Card>
 
       <Modal
-        title={editingMerchant ? 'Edit Merchant' : 'Create Merchant'}
+        title={editingMerchant ? '编辑商户' : '创建商户'}
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => setModalOpen(false)}
@@ -187,36 +182,27 @@ const MerchantManagement = () => {
         <Form form={form} onFinish={handleSubmit} layout="vertical">
           <Form.Item
             name="name"
-            label="Merchant Name"
-            rules={[{ required: true, message: 'Please enter merchant name' }]}
+            label="商户名"
+            rules={[{ required: true, message: '请输入商户名' }]}
           >
             <Input placeholder="输入商户名称" />
           </Form.Item>
 
-          <Form.Item
-            name="code"
-            label="Merchant Code"
-            rules={[
-              { required: true, message: 'Please enter merchant code' },
-              { pattern: /^[a-z0-9-]+$/, message: 'Only lowercase letters, numbers, and hyphens allowed' },
-            ]}
-          >
-            <Input placeholder="enter-code-here" disabled={!!editingMerchant} />
+          <Form.Item name="phone" label="联系电话">
+            <Input placeholder="输入联系电话" />
           </Form.Item>
 
-          <Form.Item name="contact_name" label="联系人">
-            <Input placeholder="输入联系人姓名" />
+          <Form.Item name="address" label="地址">
+            <Input placeholder="输入地址" />
           </Form.Item>
 
-          <Form.Item
-            name="contact_email"
-            label="Contact Email"
-            rules={[{ type: 'email', message: 'Please enter valid email' }]}
-          >
-            <Input placeholder="contact@example.com" />
+          <Form.Item label="选择管理员">
+            <InlineUserSelector
+              mode="multiple"
+              placeholder="搜索并选择管理员"
+              onChange={handleAdminChange}
+            />
           </Form.Item>
-
-          <Form.Item name="contact_phone" label="Contact Phone">
             <Input placeholder="13800000000" />
           </Form.Item>
 

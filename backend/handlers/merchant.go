@@ -109,16 +109,14 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	var input struct {
-		Name         string                   `json:"name" binding:"required"`
-		Code         string                   `json:"code" binding:"required"`
-		ContactName  string                   `json:"contact_name"`
-		ContactEmail string                   `json:"contact_email"`
-		ContactPhone string                   `json:"contact_phone"`
-		AdminUID     string                   `json:"admin_uid"`
-		AdminName    string                   `json:"admin_name"`
-		AdminEmail   string                   `json:"admin_email"`
-		AdminPhone   string                   `json:"admin_phone"`
-		UserIDs      []map[string]interface{} `json:"user_ids"`
+		Name       string   `json:"name" binding:"required"`
+		Phone      string   `json:"phone"`
+		Address    string   `json:"address"`
+		AdminUID   string   `json:"admin_uid"`
+		AdminName  string   `json:"admin_name"`
+		AdminEmail string   `json:"admin_email"`
+		AdminPhone string   `json:"admin_phone"`
+		UserIDs    []map[string]interface{} `json:"user_ids"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -133,11 +131,11 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	var count int64
-	db.Model(&models.Merchant{}).Where("tenant_id = ? AND code = ?", tenantID, input.Code).Count(&count)
+	db.Model(&models.Merchant{}).Where("tenant_id = ? AND name = ?", tenantID, input.Name).Count(&count)
 	if count > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "Merchant code already exists",
+			"message": "商户名已存在",
 		})
 		return
 	}
@@ -183,7 +181,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, &services.CreateOrganizationRequest{
 		Name:        input.Name,
-		Address:     input.ContactName,
+		Address:     input.Address,
 		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
 		AdminInfo: &services.OrganizationAdmin{
 			Name:     adminName,
@@ -212,11 +210,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		TenantID:     tenantID,
 		OrgID:        iamOrgID,
 		Name:         input.Name,
-		Code:         input.Code,
-		ContactName:  input.ContactName,
-		ContactEmail: input.ContactEmail,
-		ContactPhone: input.ContactPhone,
-		AdminUID:     adminUserID,
+		Phone:         input.Phone,
+		Address:       input.Address,
+		AdminUID:      adminUserID,
 		Status:       "active",
 	}
 
@@ -268,10 +264,9 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Name         string `json:"name"`
-		ContactName  string `json:"contact_name"`
-		ContactEmail string `json:"contact_email"`
-		ContactPhone string `json:"contact_phone"`
+		Name    string `json:"name"`
+		Phone   string `json:"phone"`
+		Address string `json:"address"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -300,9 +295,12 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	if input.Name != "" {
 		merchant.Name = input.Name
 	}
-	merchant.ContactName = input.ContactName
-	merchant.ContactEmail = input.ContactEmail
-	merchant.ContactPhone = input.ContactPhone
+	if input.Phone != "" {
+		merchant.Phone = input.Phone
+	}
+	if input.Address != "" {
+		merchant.Address = input.Address
+	}
 
 	result = db.Save(&merchant)
 	if result.Error != nil {
