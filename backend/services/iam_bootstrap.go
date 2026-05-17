@@ -38,7 +38,7 @@ func BootstrapIAM(db *gorm.DB) error {
 		}
 
 		apps := []AppRegistration{
-			{AppType: "web", RedirectURIs: []string{pcRedirect}},
+			{AppType: "web", RedirectURIs: []string{pcRedirect}, IsDefault: true},
 			{AppType: "wechat", RedirectURIs: []string{wxRedirect}},
 		}
 
