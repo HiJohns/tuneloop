@@ -88,6 +88,20 @@ func BootstrapIAM(db *gorm.DB) error {
 						}
 					}
 				}
+				// Save admin to local users table so cold start check skips on restart
+				if adminUserID != "" {
+					localUser := models.User{
+						IAMSub:   adminUserID,
+						Name:     "Administrator",
+						Email:    adminEmail,
+						TenantID: "00000000-0000-0000-0000-000000000000",
+					}
+					if err := db.Create(&localUser).Error; err != nil {
+						log.Printf("[Bootstrap] Warning: failed to save admin to local DB: %v", err)
+					} else {
+						log.Printf("[Bootstrap] Admin saved to local users table")
+					}
+				}
 			}
 		}
 	}
