@@ -114,7 +114,7 @@ function MainLayout() {
         }
         
         // Override businessRole if namespace admin (has sys_perm but no cus_perm)
-        if (isNamespaceAdmin(sysPerm, cusPerm, isOwner)) {
+        if (isNamespaceAdmin(sysPerm, cusPerm)) {
           businessRole = 'system_admin'
         }
         
@@ -216,7 +216,7 @@ function onMenuClick(e) {
 
   // Filter menu: children by permission, parent visible if any child visible
   const isOwnerUser = userInfo?.isOwner || false
-  const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm, isOwnerUser)
+  const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm)
   const filteredItems = menuConfig
     .map(item => ({
       ...item,
@@ -225,6 +225,7 @@ function onMenuClick(e) {
         if (isNsAdmin && getNamespaceAdminMenuKeys().includes(childKey)) return true
         const rule = menuRules.find(r => r.path === childKey)
         if (!rule) return true
+        if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
     }))

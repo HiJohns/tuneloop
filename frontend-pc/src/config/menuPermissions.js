@@ -169,8 +169,7 @@ function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
  * Determine if user is a namespace admin (has sys_perm but no cus_perm).
  * Namespace admins can only see merchant + client management + dashboard.
  */
-function isNamespaceAdmin(sysPerm, cusPerm, isOwner) {
-  if (isOwner && cusPerm === 0) return true
+function isNamespaceAdmin(sysPerm, cusPerm) {
   return sysPerm > 0 && cusPerm === 0
 }
 
