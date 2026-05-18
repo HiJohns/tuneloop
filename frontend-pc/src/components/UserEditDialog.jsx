@@ -2,7 +2,7 @@ import { Form, Input, Select, Button, Space, Alert } from 'antd'
 
 const { Option } = Select
 
-export default function UserEditDialog({ form, onSubmit, onCancel, siteOptions, positionOptions, initialValues }) {
+export default function UserEditDialog({ form, onSubmit, onCancel, siteOptions, initialValues }) {
   return (
     <Form
       form={form}
@@ -65,28 +65,13 @@ export default function UserEditDialog({ form, onSubmit, onCancel, siteOptions, 
       </Form.Item>
 
       <Form.Item
-        name="position"
-        label="职位"
-        rules={[{ required: true, message: '请选择职位' }]}
-      >
-        <Select placeholder="请选择职位">
-          {positionOptions.map(pos => (
-            <Option key={pos} value={pos}>
-              {pos}
-            </Option>
-          ))}
-        </Select>
-      </Form.Item>
-
-      <Form.Item
         name="user_type"
         label="用户类型"
         rules={[{ required: true, message: '请选择用户类型' }]}
       >
         <Select placeholder="请选择用户类型">
-          <Option value="staff">员工</Option>
           <Option value="admin">管理员</Option>
-          <Option value="manager">网点经理</Option>
+          <Option value="member">成员</Option>
         </Select>
       </Form.Item>
 

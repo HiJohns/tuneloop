@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined } from '@ant-design/icons'
-import { staffApi, sitesApi, iamAdminApi, iamApi } from '../services/api'
+import { staffApi, sitesApi, iamApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 import UserCreateDialog from '../components/UserCreateDialog'
 import UserEditDialog from '../components/UserEditDialog'
@@ -20,7 +20,7 @@ export default function StaffManagement() {
   const [editingUser, setEditingUser] = useState(null)
   const [userForm] = Form.useForm()
   const [createUserForm] = Form.useForm()
-  const [positionOptions, setPositionOptions] = useState(['店长', '店员', '库管', '维修师'])
+
   const [conflictModalVisible, setConflictModalVisible] = useState(false)
   const [conflictUsers, setConflictUsers] = useState([])
   const [currentNewUser, setCurrentNewUser] = useState(null)
@@ -45,7 +45,6 @@ export default function StaffManagement() {
   useEffect(() => {
     fetchStaffList()
     fetchSiteTree()
-    fetchPositions()
   }, [location])
 
   useEffect(() => {
@@ -83,17 +82,6 @@ export default function StaffManagement() {
       }
     } catch (error) {
       console.error('加载网点数据失败:', error)
-    }
-  }
-
-  const fetchPositions = async () => {
-    try {
-      const result = await iamAdminApi.listPositions()
-      if (result.code === 20000 && result.data?.list) {
-        setPositionOptions(result.data.list.map(p => p.name))
-      }
-    } catch (error) {
-      console.error('加载职位数据失败:', error)
     }
   }
 
@@ -351,13 +339,6 @@ export default function StaffManagement() {
       render: (siteName) => siteName || '-'
     },
     {
-      title: '职位',
-      dataIndex: 'position',
-      key: 'position',
-      width: 100,
-      render: (position) => position || '-'
-    },
-    {
       title: '用户类型',
       dataIndex: 'user_type',
       key: 'user_type',
@@ -566,8 +547,7 @@ export default function StaffManagement() {
             setCreateModalVisible(false)
             createUserForm.resetFields()
           }}
-          siteOptions={siteOptions}
-          positionOptions={positionOptions}
+           siteOptions={siteOptions}
         />
       </Modal>
 
@@ -592,7 +572,6 @@ export default function StaffManagement() {
             userForm.resetFields()
           }}
           siteOptions={siteOptions}
-          positionOptions={positionOptions}
           initialValues={editingUser}
         />
       </Modal>
