@@ -18,7 +18,6 @@ export default function StaffBulkImport() {
   const steps = [
     { title: '上传 CSV' },
     { title: '数据校验' },
-    { title: '确认导入' },
     { title: '完成' },
   ]
 
@@ -33,6 +32,8 @@ export default function StaffBulkImport() {
       if (result.code === 20000) {
         setPreviewData(result.data)
         setCurrentStep(1)
+        // Auto execute import after validation
+        await handleExecuteImport()
       } else {
         message.error(result.message || '校验失败')
       }
@@ -67,7 +68,7 @@ export default function StaffBulkImport() {
       return
     }
     setExecuting(true)
-    setCurrentStep(3)
+    setCurrentStep(2)
     try {
       const result = await bulkImportApi.importAccounts(fileList[0].originFileObj)
       if (result.code === 20000) {
@@ -99,8 +100,8 @@ export default function StaffBulkImport() {
           <Card title="上传人员 CSV 文件">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Alert
-                message="CSV 格式要求：email, name, role_template, organization_code, phone, tags"
-                description="role_template 可选：namespace_admin, merchant_admin, site_admin, site_member, worker, customer。tags 多值用 | 分隔"
+                message="CSV 格式要求：username, name, email, phone, site, type, role"
+                description="type: admin/member。role：已创建的角色的 code，可为 -。"
                 type="info"
                 showIcon
               />
@@ -126,7 +127,11 @@ export default function StaffBulkImport() {
         )
       case 1:
         return (
-          <>
+          executing ? (
+            <Card title="正在导入...">
+              <Alert message="数据校验通过，正在执行导入，请稍候..." type="info" showIcon />
+            </Card>
+          ) : (
             <Card title="校验结果" style={{ marginBottom: 24 }}>
               <Space wrap>
                 <Text>总数: <strong>{previewData?.summary?.total || 0}</strong></Text>
@@ -135,50 +140,9 @@ export default function StaffBulkImport() {
                 <Text>错误: <span style={{ color: '#ff4d4f' }}>{previewData?.summary?.failed || 0}</span></Text>
               </Space>
             </Card>
-            {previewData?.details && (
-              <Table
-                dataSource={previewData.details}
-                columns={getColumns()}
-                rowKey="row"
-                pagination={{ pageSize: 10 }}
-                size="small"
-                rowClassName={(record) => record.action === 'failed' ? 'bg-red-50' : ''}
-              />
-            )}
-            <div style={{ marginTop: 16, textAlign: 'right' }}>
-              {previewData?.summary?.failed === 0 ? (
-                <Button type="primary" onClick={() => setCurrentStep(2)}>
-                  下一步：确认导入
-                </Button>
-              ) : (
-                <Button type="primary" onClick={() => setCurrentStep(2)}>
-                  下一步：确认导入（跳过错误）
-                </Button>
-              )}
-            </div>
-          </>
+          )
         )
       case 2:
-        return (
-          <Card title="确认导入">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Alert
-                message={`即将导入 ${previewData?.summary?.total || 0} 条记录：创建 ${previewData?.summary?.created || 0} 条，更新 ${previewData?.summary?.updated || 0} 条`}
-                type="info"
-                showIcon
-              />
-              {previewData?.summary?.failed > 0 && (
-                <Alert message={`警告：${previewData.summary.failed} 条记录存在错误，将被跳过`} type="warning" showIcon />
-              )}
-              <div style={{ marginTop: 16, textAlign: 'right' }}>
-                <Button type="primary" onClick={handleExecuteImport} loading={executing}>
-                  确认导入
-                </Button>
-              </div>
-            </Space>
-          </Card>
-        )
-      case 3:
         return (
           <Card title="导入结果">
             {executing && <Alert message="正在导入，请稍候..." type="info" />}
