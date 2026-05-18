@@ -3047,6 +3047,110 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
     ]
   }
 }
+
+### 12.3 商户管理
+
+#### 12.3.1 创建商户
+
+**接口**: `POST /api/merchants`
+
+**请求 Body**:
+```json
+{
+  "name": "cadenza",
+  "phone": "13800000000",
+  "address": "北京市海淀区",
+  "admin_name": "管理员姓名",
+  "admin_email": "admin@example.com",
+  "admin_phone": "13800000001"
+}
+```
+
+**字段说明**:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | ✅ | 商户名，命名空间下唯一 |
+| phone | string | | 联系电话 |
+| address | string | | 地址 |
+| admin_uid | string | | 已有用户 UUID（与 admin_name+admin_email 二选一） |
+| admin_name | string | | 新管理员姓名（与 admin_uid 二选一） |
+| admin_email | string | | 新管理员邮箱（与 admin_uid 二选一） |
+| admin_phone | string | | 新管理员手机号 |
+
+**响应**:
+```json
+{
+  "code": 20100,
+  "data": {
+    "id": "uuid",
+    "name": "cadenza",
+    "code": "cadenza",
+    "iam_org_id": "uuid",
+    "admin_uid": "uuid",
+    "directly_added": ["uuid"],
+    "callback_url": "https://example.com/api/iam/confirmation-callback",
+    "iam_admin_id": "uuid"
+  }
+}
+```
+
+**错误码**:
+- `40002`: 商户名已存在
+- `40001`: 请求参数错误
+- `40900`: IAM 组织名称冲突
+
+#### 12.3.2 商户列表
+
+**接口**: `GET /api/merchants`
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码 |
+| pageSize | int | 每页数量 |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "name": "cadenza",
+        "phone": "13800000000",
+        "address": "北京市海淀区",
+        "admin_uid": "uuid",
+        "status": "active",
+        "created_at": "2026-05-18T04:49:55Z"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+#### 12.3.3 更新商户
+
+**接口**: `PUT /api/merchants/:id`
+
+**请求 Body**:
+```json
+{
+  "name": "new-name",
+  "phone": "13900000000",
+  "address": "新地址"
+}
+```
+
+**响应**: 常规成功响应 `{ code: 20000, data: { ... } }`
+
+#### 12.3.4 删除商户
+
+**接口**: `DELETE /api/merchants/:id`
+
+**响应**: `{ "code": 20000, "message": "success" }`
 ```
 
 ---
