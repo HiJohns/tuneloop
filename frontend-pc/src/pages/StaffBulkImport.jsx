@@ -104,8 +104,8 @@ export default function StaffBulkImport() {
           <Card title="上传人员 CSV 文件">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Alert
-                message="CSV 格式要求：username, name, email, phone, site, type, role"
-                description="type: admin/member。role：已创建的角色的 code，可为 -。"
+              message="CSV 格式要求：username, name, email, phone, site"
+              description="所有导入人员统一归入网点作为成员。"
                 type="info"
                 showIcon
               />

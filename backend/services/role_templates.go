@@ -77,11 +77,11 @@ func GetRoleTemplate(code string) (RoleTemplate, bool) {
 // ValidateRoleTemplate checks if a role template code is valid.
 func ValidateRoleTemplate(code string) error {
 	if _, ok := AllRoleTemplates[code]; !ok {
-		validCodes := make([]string, 0, len(AllRoleTemplates))
-		for k := range AllRoleTemplates {
-			validCodes = append(validCodes, k)
+		validNames := make([]string, 0, len(AllRoleTemplates))
+		for _, v := range AllRoleTemplates {
+			validNames = append(validNames, v.Name)
 		}
-		return fmt.Errorf("invalid role_template '%s', valid values: %s", code, strings.Join(validCodes, ", "))
+		return fmt.Errorf("invalid role_template '%s', valid values: %s", code, strings.Join(validNames, ", "))
 	}
 	return nil
 }

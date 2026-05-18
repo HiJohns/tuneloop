@@ -114,10 +114,10 @@ func (h *BulkImportHandler) DownloadAccountTemplate(c *gin.Context) {
 	c.Header("Content-Type", "text/csv; charset=utf-8")
 	c.Header("Content-Disposition", "attachment; filename=\"bulk_accounts_template.csv\"")
 
-	headers := []string{"username", "name", "email", "phone", "site", "type", "role"}
+	headers := []string{"username", "name", "email", "phone", "site"}
 	sampleRows := [][]string{
-		{"admin_debug", "调试管理员", "admin_debug@tuneloop.com", "13800000001", "TUNELOOP", "admin", "merchant_admin"},
-		{"staff_zhang", "张工", "zhang@tuneloop.com", "13800000002", "TUNELOOP_HD", "member", "site_member"},
+		{"admin_debug", "调试管理员", "admin_debug@tuneloop.com", "13800000001", "TUNELOOP"},
+		{"staff_zhang", "张工", "zhang@tuneloop.com", "13800000002", "TUNELOOP_HD"},
 	}
 
 	if err := services.WriteCSVTemplate(c.Writer, headers, sampleRows); err != nil {

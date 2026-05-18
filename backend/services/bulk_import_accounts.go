@@ -18,10 +18,8 @@ type AccountImportRecord struct {
 	Email            string
 	Name             string
 	Username         string
-	RoleTemplate     string
 	OrganizationCode string
 	Phone            string
-	Type             string
 }
 
 // ImportAccountsCSV imports accounts from a CSV file.
@@ -39,10 +37,8 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Email:            strings.TrimSpace(rec.Fields["email"]),
 			Name:             strings.TrimSpace(rec.Fields["name"]),
 			Username:         strings.TrimSpace(rec.Fields["username"]),
-			RoleTemplate:     strings.TrimSpace(rec.Fields["role"]),
 			OrganizationCode: strings.TrimSpace(rec.Fields["site"]),
 			Phone:            strings.TrimSpace(rec.Fields["phone"]),
-			Type:             strings.TrimSpace(rec.Fields["type"]),
 		})
 	}
 
@@ -133,27 +129,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			})
 			continue
 		}
-		if acc.RoleTemplate == "" {
-			result.Summary.Failed++
-			result.Details = append(result.Details, BulkImportDetail{
-				Row:    acc.RowNum,
-				Key:    acc.Email,
-				Action: "failed",
-				Reason: "role_template is required",
-			})
-			continue
-		}
-		if err := ValidateRoleTemplate(acc.RoleTemplate); err != nil {
-			result.Summary.Failed++
-			result.Details = append(result.Details, BulkImportDetail{
-				Row:    acc.RowNum,
-				Key:    acc.Email,
-				Action: "failed",
-				Reason: err.Error(),
-			})
-			continue
-		}
-
 		// Resolve organization
 		var siteID *string
 		var orgIDForLocal string
@@ -217,7 +192,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		}
 
 		// Compute permissions
-		template := AllRoleTemplates[acc.RoleTemplate]
+		template := AllRoleTemplates["site_member"]
 
 		tagsStr := ""
 
@@ -230,7 +205,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Name:     acc.Name,
 			Email:    acc.Email,
 			Phone:    acc.Phone,
-			Role:     acc.RoleTemplate,
+			Role:     "site_member",
 			Status:   "active",
 			UserType: "员工",
 			IsShadow: false,
@@ -301,7 +276,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		}
 
 		if newUser.IAMSub != "" && orgIDForIAM != "" {
-			iamRole := GetBusinessRole(acc.RoleTemplate)
+			iamRole := GetBusinessRole("site_member")
 			if iamRole == "" {
 				iamRole = "member"
 			}
