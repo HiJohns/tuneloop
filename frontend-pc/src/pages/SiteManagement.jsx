@@ -391,10 +391,6 @@ filterTreeNode={(node) => {
                       <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{selectedSite.name}</h2>
                       {selectedSite.type && <Tag color="blue">{selectedSite.type}</Tag>}
                     </Space>
-                    <Descriptions style={{ marginTop: 8 }} column={2} size="small" colon={false}>
-                      <Descriptions.Item label={<><EnvironmentOutlined /> 地址</>}>{selectedSite.address || '-'}</Descriptions.Item>
-                      <Descriptions.Item label={<><UserOutlined /> 负责人</>}>{selectedSite.manager?.name || '-'}</Descriptions.Item>
-                    </Descriptions>
                   </div>
                   <Space wrap>
                     <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateSubSite}>创建下级网点</Button>
