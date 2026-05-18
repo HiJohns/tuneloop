@@ -261,3 +261,48 @@ Usage:
 
 ---
 
+## 🧪 调试效率经验 (Debugging Efficiency Lessons)
+
+> 来自 #569 — 商户创建流程调试（15 个 Bug，11 个回合）
+
+### Pre-Work: 追踪完整数据流
+
+在写任何代码前，画完整路径：
+```
+请求 → 中间件链 → 处理器 → 外部调用(IAM) → DB 写入 → 响应
+```
+逐层检查每一环的条件判断，尤其是角色/权限检查。
+
+### Ghost Code Audit（幽灵代码审计）
+
+搜索并审计所有运行时可能永假的判断：
+- `RequireRole("xxx")` — 角色名在 IAM 中真实存在吗？
+- `if GetBusinessRole(ctx) != BusinessRoleXxx` — `BusinessRoleXxx` 有代码路径能返回吗？
+- `if condition1; if condition2` — 两者是互斥还是顺序执行？
+
+### Cross-Repo Boundary（跨仓库边界）
+
+- **严禁**在未经确认的情况下修改 beaconiam 或其他外部仓库代码
+- 先在目标仓库建 Issue 描述问题，等待该侧分析
+- 跨仓库调试的 99% 时间消耗在"这是谁的问题"的判断上 — 先确认归属
+
+### Environment Parity（环境差异显式化）
+
+记录 DEV vs PRERELEASE 的关键差异：
+- `IAM_SECRET` 是否真实值？
+- OAuth App 是否已通过 `ActivateNamespace` 注册？
+- 数据库状态：冷启动是否已完成？tenant 表是否有记录？
+
+### Integration Test for Critical Paths（关键路径集成测试）
+
+商户创建、OAuth 登录等关键流程必须有端到端测试：
+- Go: `go test -run TestCreateMerchant_FullFlow`
+- 验证：请求 → 响应码 → DB 记录 → IAM 侧数据一致
+
+### "Check the Neighbors" Rule（邻居检查）
+
+发现一个 Bug 后，搜索同样模式在代码库中是否重复出现。
+例：发现 `project_admin` 是虚构角色 → 审计所有 `RequireRole` 调用。
+
+---
+
