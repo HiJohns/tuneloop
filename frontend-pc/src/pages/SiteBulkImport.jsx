@@ -99,8 +99,8 @@ export default function SiteBulkImport() {
           <Card title="上传网点 CSV 文件">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Alert
-                message="CSV 格式要求：organization_code, name, parent_code, type"
-                description="parent_code 为空表示顶级组织。type 可选：merchant / site"
+                message="CSV 格式要求：name, type, parent_name, address, phone"
+                description="parent_name 为 - 表示顶级网点。type 可选：直营店 / 加盟店 / 合作店"
                 type="info"
                 showIcon
               />

@@ -14,11 +14,12 @@ import (
 
 // OrgImportRecord represents a parsed organization import row.
 type OrgImportRecord struct {
-	RowNum            int
-	OrganizationCode  string
-	Name              string
-	ParentCode        string
-	Type              string
+	RowNum     int
+	Name       string
+	Type       string
+	ParentName string
+	Address    string
+	Phone      string
 }
 
 // ImportOrganizationsCSV imports organizations from a CSV file.
@@ -32,11 +33,12 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 	var orgRecords []OrgImportRecord
 	for _, rec := range records {
 		orgRecords = append(orgRecords, OrgImportRecord{
-			RowNum:           rec.RowNum,
-			OrganizationCode: strings.TrimSpace(rec.Fields["organization_code"]),
-			Name:             strings.TrimSpace(rec.Fields["name"]),
-			ParentCode:       strings.TrimSpace(rec.Fields["parent_code"]),
-			Type:             strings.TrimSpace(rec.Fields["type"]),
+			RowNum:     rec.RowNum,
+			Name:       strings.TrimSpace(rec.Fields["name"]),
+			Type:       strings.TrimSpace(rec.Fields["type"]),
+			ParentName: strings.TrimSpace(rec.Fields["parent_name"]),
+			Address:    strings.TrimSpace(rec.Fields["address"]),
+			Phone:      strings.TrimSpace(rec.Fields["phone"]),
 		})
 	}
 
@@ -49,90 +51,52 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 		}
 	}
 
-	// Deduplicate by organization_code (keep last)
+	// Deduplicate by name (keep last)
 	seen := make(map[string]int)
 	for i, o := range orgRecords {
-		if o.OrganizationCode != "" {
-			seen[o.OrganizationCode] = i
+		if o.Name != "" {
+			seen[o.Name] = i
 		}
 	}
 	var deduped []OrgImportRecord
 	for i, o := range orgRecords {
-		if o.OrganizationCode == "" || seen[o.OrganizationCode] == i {
+		if o.Name == "" || seen[o.Name] == i {
 			deduped = append(deduped, o)
 		}
 	}
 	orgRecords = deduped
 
-	// Build parent dependency graph and topological sort
-	sorted, err := topoSortOrgs(orgRecords)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sort organizations by dependency: %w", err)
-	}
-
 	db := database.GetDB().WithContext(ctx)
 	result := &BulkImportResult{}
-	result.Summary.Total = len(sorted)
+	result.Summary.Total = len(orgRecords)
 
-	// Preload existing sites by organization_code and name (exclude soft-deleted)
-	// OrganizationCode stores CSV code (e.g., TUNELOOP), OrgID is UUID from IAM
+	// Preload existing sites by name
 	var existingSites []models.Site
 	db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID).Find(&existingSites)
-	existingByCode := make(map[string]models.Site)
 	existingByName := make(map[string]models.Site)
 	for _, s := range existingSites {
-		if s.OrganizationCode != "" {
-			existingByCode[s.OrganizationCode] = s
-		}
 		if s.Name != "" {
 			existingByName[s.Name] = s
 		}
 	}
 
-	// Map to track organization_code -> local site_id (for parent resolution)
-	codeToSiteID := make(map[string]string)
-	codeToOrgID := make(map[string]string)
-	for _, s := range existingSites {
-		if s.OrganizationCode != "" {
-			codeToSiteID[s.OrganizationCode] = s.ID
-			codeToOrgID[s.OrganizationCode] = s.OrgID
-		}
-	}
-
-	for _, org := range sorted {
-		// Validate required fields
-		if org.OrganizationCode == "" {
-			result.Summary.Failed++
-			result.Details = append(result.Details, BulkImportDetail{
-				Row:    org.RowNum,
-				Key:    "",
-				Action: "failed",
-				Reason: "organization_code is required",
-			})
-			continue
-		}
+	for _, org := range orgRecords {
 		if org.Name == "" {
 			result.Summary.Failed++
 			result.Details = append(result.Details, BulkImportDetail{
 				Row:    org.RowNum,
-				Key:    org.OrganizationCode,
+				Key:    "",
 				Action: "failed",
 				Reason: "name is required",
 			})
 			continue
 		}
 
-		existingSite, exists := existingByCode[org.OrganizationCode]
+		_, exists := existingByName[org.Name]
 		if !exists {
-			existingSite, exists = existingByName[org.Name]
-		}
-		if !exists {
-			lowerCode := strings.ToLower(org.OrganizationCode)
-			lowerName := strings.ToLower(org.Name)
+			lower := strings.ToLower(org.Name)
 			for _, s := range existingSites {
-				if (s.OrganizationCode != "" && strings.ToLower(s.OrganizationCode) == lowerCode) ||
-					(s.Name != "" && strings.ToLower(s.Name) == lowerName) {
-					existingSite = s
+				if s.Name != "" && strings.ToLower(s.Name) == lower {
 					exists = true
 					break
 				}
@@ -141,18 +105,18 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 
 		if dryRun {
 			if exists {
-				result.Summary.Updated++
+				result.Summary.Skipped++
 				result.Details = append(result.Details, BulkImportDetail{
 					Row:    org.RowNum,
-					Key:    org.OrganizationCode,
-					Action: "updated",
-					Reason: "organization exists, will update",
+					Key:    org.Name,
+					Action: "skipped",
+					Reason: "name exists, skipped (create-only)",
 				})
 			} else {
 				result.Summary.Created++
 				result.Details = append(result.Details, BulkImportDetail{
 					Row:    org.RowNum,
-					Key:    org.OrganizationCode,
+					Key:    org.Name,
 					Action: "created",
 					Reason: "new organization",
 				})
@@ -160,166 +124,56 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			continue
 		}
 
-		// Resolve parent
-		var parentID *uuid.UUID
-		if org.ParentCode != "" {
-			parentSiteID, ok := codeToSiteID[org.ParentCode]
-			if !ok {
-// Try to find in DB by organization_code (exclude soft-deleted)
-			var parentSite models.Site
-			if err := db.Where("organization_code = ? AND tenant_id = ? AND deleted_at IS NULL", org.ParentCode, tenantID).First(&parentSite).Error; err == nil {
-					parentSiteID = parentSite.ID
-					codeToSiteID[org.ParentCode] = parentSiteID
-					codeToOrgID[org.ParentCode] = parentSite.OrgID
-				}
-			}
-			if parentSiteID != "" {
-				pid, err := uuid.Parse(parentSiteID)
-				if err == nil {
-					parentID = &pid
-				}
-			}
-		}
-
 		if exists {
-			// Update existing site
-			updates := map[string]interface{}{
-				"name":   org.Name,
-				"status": "active",
-			}
-			if org.Type != "" {
-				updates["type"] = org.Type
-			}
-			if parentID != nil {
-				updates["parent_id"] = parentID
-			}
-			if err := db.Model(&existingSite).Updates(updates).Error; err != nil {
-				LogImportError("organization", org.RowNum, org.OrganizationCode, err)
-				result.Summary.Failed++
-				result.Details = append(result.Details, BulkImportDetail{
-					Row:    org.RowNum,
-					Key:    org.OrganizationCode,
-					Action: "failed",
-					Reason: fmt.Sprintf("update failed: %v", err),
-				})
-				continue
-			}
-			// Update mapping for parent resolution by subsequent rows
-			codeToSiteID[org.OrganizationCode] = existingSite.ID
-			codeToOrgID[org.OrganizationCode] = existingSite.OrgID
-			// Also set organization_code if it was empty (e.g., manually created site)
-			if existingSite.OrganizationCode == "" {
-				db.Model(&existingSite).Update("organization_code", org.OrganizationCode)
-			}
-			result.Summary.Updated++
+			result.Summary.Skipped++
 			result.Details = append(result.Details, BulkImportDetail{
 				Row:    org.RowNum,
-				Key:    org.OrganizationCode,
-				Action: "updated",
+				Key:    org.Name,
+				Action: "skipped",
+				Reason: "name already exists, skipped (create-only)",
 			})
-		} else {
-			// Create new site and IAM organization
-			orgID := uuid.New().String()
-			newSite := models.Site{
-				ID:                uuid.New().String(),
-				TenantID:          tenantID,
-				OrgID:             orgID, // Valid UUID
-				OrganizationCode: org.OrganizationCode, // CSV code
-				Name:              org.Name,
-				Type:              org.Type,
-				Status:            "active",
-			}
-			if parentID != nil {
-				newSite.ParentID = parentID
-			}
-
-			if err := db.Create(&newSite).Error; err != nil {
-				LogImportError("organization", org.RowNum, org.OrganizationCode, err)
-				result.Summary.Failed++
-				result.Details = append(result.Details, BulkImportDetail{
-					Row:    org.RowNum,
-					Key:    org.OrganizationCode,
-					Action: "failed",
-					Reason: fmt.Sprintf("create failed: %v", err),
-				})
-				continue
-			}
-
-			// Also create in IAM (best effort)
-			iamReq := &CreateOrganizationRequest{
-				Name:        org.Name,
-				NamespaceID: iamClient.GetNamespace(),
-			}
-			if parentID != nil {
-				if parentOrgID, ok := codeToOrgID[org.ParentCode]; ok && parentOrgID != "" {
-					iamReq.ParentID = parentOrgID
-				}
-			}
-			if _, err := iamClient.CreateOrganization(iamReq); err != nil {
-				log.Printf("[BulkImport] IAM CreateOrganization warning for %s: %v", org.OrganizationCode, err)
-				// Non-fatal: local site is created, IAM sync can be retried
-			}
-
-			codeToSiteID[org.OrganizationCode] = newSite.ID
-			codeToOrgID[org.OrganizationCode] = newSite.OrgID
-
-			result.Summary.Created++
-			result.Details = append(result.Details, BulkImportDetail{
-				Row:    org.RowNum,
-				Key:    org.OrganizationCode,
-				Action: "created",
-			})
+			continue
 		}
+
+		orgID := uuid.New().String()
+		newSite := models.Site{
+			ID:       uuid.New().String(),
+			TenantID: tenantID,
+			OrgID:    orgID,
+			Name:     org.Name,
+			Type:     org.Type,
+			Address:  org.Address,
+			Phone:    org.Phone,
+			Status:   "active",
+		}
+
+		if err := db.Create(&newSite).Error; err != nil {
+			LogImportError("organization", org.RowNum, org.Name, err)
+			result.Summary.Failed++
+			result.Details = append(result.Details, BulkImportDetail{
+				Row:    org.RowNum,
+				Key:    org.Name,
+				Action: "failed",
+				Reason: fmt.Sprintf("create failed: %v", err),
+			})
+			continue
+		}
+
+		iamReq := &CreateOrganizationRequest{
+			Name:        org.Name,
+			NamespaceID: iamClient.GetNamespace(),
+		}
+		if _, err := iamClient.CreateOrganization(iamReq); err != nil {
+			log.Printf("[BulkImport] IAM CreateOrganization warning for %s: %v", org.Name, err)
+		}
+
+		result.Summary.Created++
+		result.Details = append(result.Details, BulkImportDetail{
+			Row:    org.RowNum,
+			Key:    org.Name,
+			Action: "created",
+		})
 	}
 
 	return result, nil
-}
-
-// topoSortOrgs sorts organizations so parents are created before children.
-func topoSortOrgs(orgs []OrgImportRecord) ([]OrgImportRecord, error) {
-	// Build maps
-	codeToOrg := make(map[string]OrgImportRecord)
-	children := make(map[string][]string) // parent_code -> []child_code
-	inDegree := make(map[string]int)
-
-	for _, o := range orgs {
-		codeToOrg[o.OrganizationCode] = o
-		inDegree[o.OrganizationCode] = 0
-	}
-
-	for _, o := range orgs {
-		if o.ParentCode != "" {
-			if _, ok := codeToOrg[o.ParentCode]; ok {
-				children[o.ParentCode] = append(children[o.ParentCode], o.OrganizationCode)
-				inDegree[o.OrganizationCode]++
-			}
-		}
-	}
-
-	// Kahn's algorithm
-	var queue []string
-	for code, deg := range inDegree {
-		if deg == 0 {
-			queue = append(queue, code)
-		}
-	}
-
-	var sorted []OrgImportRecord
-	for len(queue) > 0 {
-		code := queue[0]
-		queue = queue[1:]
-		sorted = append(sorted, codeToOrg[code])
-		for _, child := range children[code] {
-			inDegree[child]--
-			if inDegree[child] == 0 {
-				queue = append(queue, child)
-			}
-		}
-	}
-
-	if len(sorted) != len(orgs) {
-		return nil, fmt.Errorf("circular dependency detected in organization hierarchy")
-	}
-
-	return sorted, nil
 }

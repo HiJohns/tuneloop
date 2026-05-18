@@ -97,10 +97,10 @@ func (h *BulkImportHandler) DownloadOrganizationTemplate(c *gin.Context) {
 	c.Header("Content-Type", "text/csv; charset=utf-8")
 	c.Header("Content-Disposition", "attachment; filename=\"bulk_sites_template.csv\"")
 
-	headers := []string{"organization_code", "name", "parent_code", "type"}
+	headers := []string{"name", "type", "parent_name", "address", "phone"}
 	sampleRows := [][]string{
-		{"TUNELOOP", "Tuneloop 商户", "", "merchant"},
-		{"TUNELOOP_HD", "海淀网点", "TUNELOOP", "site"},
+		{"海淀网点", "直营店", "-", "北京市海淀区中关村大街1号", "010-12345678"},
+		{"海淀分店A", "加盟店", "海淀网点", "北京市海淀区学院路5号", "010-87654321"},
 	}
 
 	if err := services.WriteCSVTemplate(c.Writer, headers, sampleRows); err != nil {
