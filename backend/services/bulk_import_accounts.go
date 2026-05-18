@@ -183,7 +183,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		iamUser, iamExists := iamUserByEmail[acc.Email]
 
 		if dryRun {
-		if exists {
+			if exists || iamExists {
 				result.Summary.Updated++
 				result.Details = append(result.Details, BulkImportDetail{
 					Row:    acc.RowNum,
