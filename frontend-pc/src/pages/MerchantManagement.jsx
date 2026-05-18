@@ -12,7 +12,7 @@ const MerchantManagement = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(null);
-  const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '' });
+  const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '' });
 
   useEffect(() => {
     fetchMerchants();
@@ -34,7 +34,7 @@ const MerchantManagement = () => {
   const handleCreate = () => {
     setEditingMerchant(null);
     form.resetFields();
-    setAdminInfo({ name: '', id: null, email: '' });
+    setAdminInfo({ name: '', id: null, email: '', username: '' });
     setModalOpen(true);
   };
 
@@ -59,12 +59,15 @@ const MerchantManagement = () => {
       const isNewUser = adminInfo.isNew || false
       const submitData = { ...values }
       
-      // If new user, pass admin info instead of admin_uid
       if (isNewUser && adminInfo.name && adminInfo.email) {
+        // Scenario 2: new user — send admin_uid=null + admin fields
+        submitData.admin_uid = null
         submitData.admin_name = adminInfo.name
+        submitData.admin_username = adminInfo.username
         submitData.admin_email = adminInfo.email
         submitData.admin_phone = adminInfo.phone || ''
       } else {
+        // Scenario 1: existing user — send admin_uid
         submitData.admin_uid = adminInfo.id || values.admin_uid
       }
 
@@ -78,13 +81,30 @@ const MerchantManagement = () => {
       setModalOpen(false);
       fetchMerchants();
     } catch (error) {
+      const resp = error.response
+      // 409 with existing user data → auto-convert to scenario 1
+      if (resp?.status === 409 && resp?.data?.data?.id) {
+        const existingUser = resp.data.data
+        message.warning(`用户 ${existingUser.name} 已存在，已自动切换为选择模式`)
+        // Hide new user form, show search with selected user
+        setAdminInfo({
+          name: existingUser.name,
+          id: existingUser.id,
+          email: existingUser.email || '',
+          phone: existingUser.phone || '',
+          username: existingUser.username || '',
+          isNew: false,
+        })
+        form.setFieldsValue({ admin_uid: existingUser.id })
+        return
+      }
       message.error(error.response?.data?.message || '操作失败');
     }
   };
 
   const handleAdminChange = (users) => {
     if (!users || users.length === 0) {
-      setAdminInfo({ name: '', id: null, email: '' });
+      setAdminInfo({ name: '', id: null, email: '', username: '' });
       form.setFieldsValue({ admin_uid: null });
       return;
     }
@@ -93,6 +113,7 @@ const MerchantManagement = () => {
       name: user.name || user.user_name,
       id: user.user_id || user.id,
       email: user.email || '',
+      username: user.username || '',
       isNew: user.isNew || false,
     });
     form.setFieldsValue({ admin_uid: user.user_id || user.id });

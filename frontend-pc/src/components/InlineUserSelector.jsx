@@ -13,6 +13,7 @@ const InlineUserSelector = ({
   const [searchOptions, setSearchOptions] = useState([]);
   const [formErrors, setFormErrors] = useState({});
   const [createName, setCreateName] = useState('');
+  const [createUsername, setCreateUsername] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPhone, setCreatePhone] = useState('');
   const [activeTab, setActiveTab] = useState('search');
@@ -22,6 +23,7 @@ const InlineUserSelector = ({
 
   const resetCreateForm = () => {
     setCreateName('');
+    setCreateUsername('');
     setCreateEmail('');
     setCreatePhone('');
     setFormErrors({});
@@ -180,6 +182,7 @@ const InlineUserSelector = ({
       id: `new_${Date.now()}`,
       isNew: true,
       name: createName,
+      username: createUsername,
       email: createEmail,
       phone: createPhone,
       associated: false,
@@ -250,6 +253,15 @@ const InlineUserSelector = ({
               placeholder="请输入姓名"
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 4, color: 'rgba(0,0,0,0.85)' }}>用户名</div>
+            <Input
+              placeholder="请输入用户名"
+              value={createUsername}
+              onChange={(e) => setCreateUsername(e.target.value)}
             />
           </div>
 
