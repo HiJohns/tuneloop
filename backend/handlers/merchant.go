@@ -195,7 +195,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 		// Name-conflict recovery: adminUserID is still client temp ID, clear it
 		if _, parseErr := uuid.Parse(adminUserID); parseErr != nil {
-			adminUserID = ""
+			adminUserID = uuid.Nil.String()
 		}
 	} else {
 		iamOrgID = orgResp.OrgID
@@ -213,10 +213,8 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		Name:         input.Name,
 		Phone:         input.Phone,
 		Address:       input.Address,
+		AdminUID:      adminUserID,
 		Status:       "active",
-	}
-	if _, parseErr := uuid.Parse(adminUserID); parseErr == nil {
-		merchant.AdminUID = adminUserID
 	}
 
 	result := db.Create(&merchant)
@@ -235,18 +233,21 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 
+	responseData := gin.H{
+		"id":             merchant.ID,
+		"name":           merchant.Name,
+		"code":           merchant.Code,
+		"iam_org_id":     iamOrgID,
+		"admin_uid":      adminUserID,
+		"directly_added": directlyAdded,
+		"callback_url":   callbackURL,
+	}
+	if orgResp != nil {
+		responseData["iam_admin_id"] = orgResp.AdminID
+	}
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
-		"data": gin.H{
-			"id":             merchant.ID,
-			"name":           merchant.Name,
-			"code":           merchant.Code,
-			"iam_org_id":     iamOrgID,
-			"admin_uid":      adminUserID,
-			"directly_added": directlyAdded,
-			"iam_admin_id":   orgResp.AdminID,
-			"callback_url":   callbackURL,
-		},
+		"data": responseData,
 	})
 }
 
