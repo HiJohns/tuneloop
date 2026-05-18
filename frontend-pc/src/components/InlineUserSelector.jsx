@@ -39,7 +39,7 @@ const InlineUserSelector = ({
       }
 
       try {
-        const response = await api.get('/api/iam/users/search', {
+        const response = await api.get('/iam/users/search', {
           params: { q: query, limit: 10, merchant_id: merchantId },
         });
 
