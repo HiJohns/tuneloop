@@ -230,19 +230,22 @@ func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateO
 		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))
 	}
 
-	var result struct {
-		Data CreateOrganizationResponse `json:"data"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		var direct CreateOrganizationResponse
-		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
-			return &direct, nil
+	var parsed CreateOrganizationResponse
+	// Try flat format first (IAM returns {org_id, admin_id, ...})
+	if err := json.Unmarshal(respBody, &parsed); err != nil || parsed.OrgID == "" {
+		// Fallback to wrapped format {data: {org_id, admin_id, ...}}
+		var result struct {
+			Data CreateOrganizationResponse `json:"data"`
 		}
-		return nil, fmt.Errorf("failed to parse CreateOrganization response: %w", err)
+		if err2 := json.Unmarshal(respBody, &result); err2 == nil {
+			parsed = result.Data
+		}
 	}
-
-	log.Printf("[IAMClient] Created organization: org_id=%s, admin_id=%s", result.Data.OrgID, result.Data.AdminID)
-	return &result.Data, nil
+	if parsed.OrgID == "" {
+		return nil, fmt.Errorf("CreateOrganization response missing org_id")
+	}
+	log.Printf("[IAMClient] Created organization: org_id=%s, admin_id=%s", parsed.OrgID, parsed.AdminID)
+	return &parsed, nil
 }
 
 func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganizationRequest) (*CreateOrganizationResponse, error) {
@@ -266,19 +269,22 @@ func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganiz
 		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))
 	}
 
-	var result struct {
-		Data CreateOrganizationResponse `json:"data"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		var direct CreateOrganizationResponse
-		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
-			return &direct, nil
+	var parsed CreateOrganizationResponse
+	// Try flat format first (IAM returns {org_id, admin_id, ...})
+	if err := json.Unmarshal(respBody, &parsed); err != nil || parsed.OrgID == "" {
+		// Fallback to wrapped format {data: {org_id, admin_id, ...}}
+		var result struct {
+			Data CreateOrganizationResponse `json:"data"`
 		}
-		return nil, fmt.Errorf("failed to parse CreateOrganization response: %w", err)
+		if err2 := json.Unmarshal(respBody, &result); err2 == nil {
+			parsed = result.Data
+		}
 	}
-
-	log.Printf("[IAMClient] Created organization with user token: org_id=%s, admin_id=%s", result.Data.OrgID, result.Data.AdminID)
-	return &result.Data, nil
+	if parsed.OrgID == "" {
+		return nil, fmt.Errorf("CreateOrganization response missing org_id")
+	}
+	log.Printf("[IAMClient] Created organization with user token: org_id=%s, admin_id=%s", parsed.OrgID, parsed.AdminID)
+	return &parsed, nil
 }
 
 type Organization struct {
