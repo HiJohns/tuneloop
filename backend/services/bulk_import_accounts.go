@@ -137,7 +137,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			lowerCode := strings.ToLower(acc.OrganizationCode)
 			site, ok := siteByCode[lowerCode]
 			if !ok {
-				site, ok = siteByName[strings.ToLower(acc.Name)]
+				site, ok = siteByName[lowerCode]
 			}
 			if !ok {
 				result.Summary.Failed++
@@ -145,7 +145,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 					Row:    acc.RowNum,
 					Key:    acc.Email,
 					Action: "failed",
-					Reason: fmt.Sprintf("organization_code not found: %s", acc.OrganizationCode),
+					Reason: fmt.Sprintf("site not found: %s", acc.OrganizationCode),
 				})
 				continue
 			}
