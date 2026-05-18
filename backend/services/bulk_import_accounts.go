@@ -244,7 +244,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 		// Create IAM user first
 		createReq := &CreateUserRequest{
-			Username: acc.Email,
+			Username: acc.Username,
 			Name:     acc.Name,
 			Email:    acc.Email,
 			Phone:    acc.Phone,
