@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/rand"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -143,15 +144,26 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		appSecret = services.GetAppSecret(appClientID)
 	}
 
-	// Fallback to IAMService if app credentials not cached (backward compat)
-	tokenResp, err := h.iamService.ExchangeCodeWithRedirect(code, redirectURI)
+	var tokenResp *services.TokenResponse
+	var err error
 	if appSecret != "" {
 		tokenResp, err = services.ExchangeCode(appClientID, appSecret, code, redirectURI)
+	} else {
+		tokenResp, err = h.iamService.ExchangeCodeWithRedirect(code, redirectURI)
 	}
 	if err != nil {
+		log.Printf("[Auth] Token exchange failed: client=%s redirectURI=%s error=%v", appClientID, redirectURI, err)
+		if strings.Contains(err.Error(), "already used") {
+			c.JSON(http.StatusOK, gin.H{
+				"code":    20000,
+				"message": "code already used, please login again",
+				"data":    gin.H{"relogin": true},
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "failed to exchange code for token",
+			"message": "failed to exchange code for token: " + err.Error(),
 		})
 		return
 	}
