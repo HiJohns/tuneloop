@@ -196,11 +196,12 @@ export default function CategoryList() {
         await categoriesApi.update(editingCategory.id, formData)
         message.success('更新成功')
       } else {
-        message.success('创建成功')
-        
-        // Auto-select the newly created category
-        if (response.code === 20000 && response.data?.id) {
-          setSelectedParentId(response.data.id)
+        const response = await categoriesApi.create(formData)
+        if (response.code === 20000) {
+          message.success('创建成功')
+          if (response.data?.id) {
+            setSelectedParentId(response.data.id)
+          }
         }
       }
 
