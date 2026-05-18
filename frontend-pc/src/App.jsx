@@ -225,7 +225,9 @@ function onMenuClick(e) {
         if (isNsAdmin && getNamespaceAdminMenuKeys().includes(childKey)) return true
         const rule = menuRules.find(r => r.path === childKey)
         if (!rule) return true
-        if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
+        if (isOwnerUser && cusPerm === 0 && sysPerm === 0) {
+          if (item.key !== 'system') return true
+        }
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
     }))
