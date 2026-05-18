@@ -268,7 +268,10 @@ export const api = {
   get: (endpoint) => request(endpoint),
   post: (endpoint, data) => request(endpoint, { method: 'POST', body: JSON.stringify(data) }),
   put: (endpoint, data) => request(endpoint, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (endpoint) => request(endpoint, { method: 'DELETE' }),
+  delete: (endpoint, data) => request(endpoint, {
+    method: 'DELETE',
+    ...(data ? { body: JSON.stringify(data) } : {}),
+  }),
 }
 
 export const instrumentsApi = {
@@ -331,7 +334,7 @@ export const staffApi = {
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   updateIAMUser: (id, data) => api.put(`/iam/users/${id}`, data),
   checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
-  batchDelete: (ids) => api.delete('/users/batch', { data: { ids } }),
+  batchDelete: (ids) => api.delete('/users/batch', { ids }),
   resetPassword: (userIds, redirectUrl) => api.post('/users/reset-password', { user_ids: userIds, redirect_url: redirectUrl }),
 }
 
