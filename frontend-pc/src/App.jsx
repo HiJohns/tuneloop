@@ -114,7 +114,7 @@ function MainLayout() {
         }
         
         // Override businessRole if namespace admin (has sys_perm but no cus_perm)
-        if (isNamespaceAdmin(sysPerm, cusPerm)) {
+        if (isNamespaceAdmin(sysPerm, cusPerm, isOwner)) {
           businessRole = 'system_admin'
         }
         
@@ -221,7 +221,9 @@ function onMenuClick(e) {
     .map(item => ({
       ...item,
       children: item.children?.filter(child => {
-        const rule = menuRules.find(r => r.path === (child.key || ''))
+        const childKey = child.key || ''
+        if (isNsAdmin && getNamespaceAdminMenuKeys().includes(childKey)) return true
+        const rule = menuRules.find(r => r.path === childKey)
         if (!rule) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
