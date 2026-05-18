@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -140,7 +141,11 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
+	callbackHost := os.Getenv("TUNELOOP_EXTERNAL_URL")
+	if callbackHost == "" {
+		callbackHost = c.Request.Host
+	}
+	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", callbackHost)
 
 	var adminName, adminEmail, adminPhone string
 	var adminUser models.User
