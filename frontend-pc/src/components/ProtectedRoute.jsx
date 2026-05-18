@@ -101,7 +101,7 @@ function redirectToLogin() {
       if (data.code === 20000 && data.data && data.data.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
-        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
+        const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
         window.location.href = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
       }
     })
@@ -109,7 +109,7 @@ function redirectToLogin() {
       // Retry after brief delay for APP_CONFIG to load (race condition workaround)
       setTimeout(() => {
         const retryId = CLIENT_ID()
-        const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
+        const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
         window.location.href = `${IAM_URL}/oauth/authorize?client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code`;
       }, 500)
     });

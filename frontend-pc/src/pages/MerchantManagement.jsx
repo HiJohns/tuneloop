@@ -21,7 +21,7 @@ const MerchantManagement = () => {
   const fetchMerchants = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/merchants');
+      const response = await api.get('/merchants');
       setMerchants(response.data.list || []);
     } catch (error) {
       message.error('获取商户列表失败');
@@ -46,7 +46,7 @@ const MerchantManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-      await api.delete(`/api/merchants/${id}`);
+      await api.delete(`/merchants/${id}`);
       message.success('商户删除成功');
       fetchMerchants();
     } catch (error) {
@@ -69,10 +69,10 @@ const MerchantManagement = () => {
       }
 
       if (editingMerchant) {
-        await api.put(`/api/merchants/${editingMerchant.id}`, submitData);
+        await api.put(`/merchants/${editingMerchant.id}`, submitData);
         message.success('商户更新成功');
       } else {
-        await api.post('/api/merchants', submitData);
+        await api.post('/merchants', submitData);
         message.success('商户创建成功');
       }
       setModalOpen(false);

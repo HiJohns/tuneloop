@@ -78,7 +78,7 @@ function handleLogout() {
   // Redirect to IAM OAuth page for proper logout
   const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
   const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
-  const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+  const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || window.location.origin + '/callback')
   window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
 }
 
@@ -198,9 +198,7 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '系统管理',
     children: [
-      { key: '/merchants', label: '商户管理' },
-      { key: '/system/clients', label: '客户端管理' },
-      { key: '/system/tenants', label: '租户管理' }
+      { key: '/merchants', label: '商户管理' }
     ]
   }
 ]
@@ -238,7 +236,7 @@ function onMenuClick(e) {
   else if (['/inventory/transfer', '/inventory/rent-setting'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
   else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
   else if (['/merchants'].includes(location.pathname)) openKeys = ['system']
-  else if (['/system/clients', '/system/tenants'].includes(location.pathname)) openKeys = ['system']
+
 
   let pageTitle = '管理后台'
   
@@ -258,8 +256,7 @@ function onMenuClick(e) {
     '/merchants': { title: '商户管理', parent: '系统管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
-    '/system/clients': { title: '客户端管理', parent: '系统管理' },
-    '/system/tenants': { title: '租户管理', parent: '系统管理' },
+
   }
 
   if (routeMap[location.pathname]) {
@@ -399,6 +396,7 @@ function OAuthCallback() {
     }
     const redirectUri = encodeURIComponent(config.iamRedirectUri)
     return `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
+    return url
   }
 
   useEffect(() => {
@@ -448,6 +446,14 @@ function OAuthCallback() {
           body: JSON.stringify({ code }),
         })
 
+        // Clear code from URL to prevent re-submission on refresh
+        if (window.history && window.history.replaceState) {
+          const url = new URL(window.location)
+          url.searchParams.delete('code')
+          url.searchParams.delete('state')
+          window.history.replaceState({}, '', url)
+        }
+
         if (!response.ok) {
           const errorText = await response.text()
           throw new Error(`Token exchange failed: ${response.status} - ${errorText}`)
@@ -455,6 +461,12 @@ function OAuthCallback() {
 
         const responseData = await response.json()
         const tokenData = responseData.data || responseData
+
+        if (tokenData.relogin) {
+          console.log('[OAuth] Code already used, redirecting to IAM for new code')
+          window.location.href = getOAuthUrl()
+          return
+        }
         
         if (tokenData.access_token) {
           const expiresIn = Math.max(tokenData.expires_in || 3600, 60)
@@ -482,9 +494,7 @@ function OAuthCallback() {
         setErrorMsg(error.message || '认证失败')
         localStorage.removeItem('token')
         localStorage.removeItem('token_expiry')
-        setTimeout(() => {
-          window.location.href = getOAuthUrl()
-        }, 3000)
+        // Don't auto-redirect — let user see the error and manually retry
       }
     }
 
@@ -499,11 +509,15 @@ function OAuthCallback() {
         alignItems: 'center', 
         height: '100vh',
         background: '#f0f2f5',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        gap: '16px'
       }}>
         <h2 style={{ color: 'red' }}>Authentication Error</h2>
-        <p>{errorMsg}</p>
-        <p>Redirecting to login...</p>
+        <p style={{ maxWidth: '600px', wordBreak: 'break-all', textAlign: 'center' }}>{errorMsg}</p>
+        <p style={{ color: '#666' }}>Check browser console (F12) for debug details</p>
+        <button onClick={() => window.location.href = getOAuthUrl()} style={{ padding: '10px 24px', cursor: 'pointer' }}>
+          Retry Login
+        </button>
       </div>
     )
   }
