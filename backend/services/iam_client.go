@@ -424,19 +424,19 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 			}
 		}
 
-		checked := make(map[string]bool)
+		matchedFields := make(map[string][]string)
 		addConflict := func(u *User, field string) {
-			if checked[u.ID] {
-				return
+			if _, exists := matchedFields[u.ID]; !exists {
+				matchedFields[u.ID] = []string{field}
+				conflicts = append(conflicts, ExistingUserInfo{
+					ID:    u.ID,
+					Name:  u.Name,
+					Email: u.Email,
+					Phone: u.Phone,
+				})
+			} else {
+				matchedFields[u.ID] = append(matchedFields[u.ID], field)
 			}
-			checked[u.ID] = true
-			conflicts = append(conflicts, ExistingUserInfo{
-				ID:            u.ID,
-				Name:          u.Name,
-				Email:         u.Email,
-				Phone:         u.Phone,
-				MatchedFields: []string{field},
-			})
 		}
 
 		if req.Email != "" {
@@ -457,6 +457,10 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 					break
 				}
 			}
+		}
+
+		for i := range conflicts {
+			conflicts[i].MatchedFields = matchedFields[conflicts[i].ID]
 		}
 
 		if len(conflicts) > 0 {
