@@ -387,6 +387,60 @@ type CreateUserResponse struct {
 	Status string `json:"status"`
 }
 
+// ExistingUserInfo holds data returned when creating a user that already exists.
+type ExistingUserInfo struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
+}
+
+// CreateUserResult holds the outcome of a create-or-get user attempt.
+type CreateUserResult struct {
+	UserID       string           `json:"user_id,omitempty"`
+	Status       string           `json:"status,omitempty"`
+	Conflict     bool             `json:"conflict"`
+	ExistingUser *ExistingUserInfo `json:"existing_user,omitempty"`
+}
+
+// CreateOrGetUser creates a user or returns existing user info on conflict.
+func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*CreateUserResult, error) {
+	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users", token, req)
+	if err != nil {
+		return nil, fmt.Errorf("CreateUser request failed: %w", err)
+	}
+
+	if statusCode == http.StatusConflict {
+		var existing ExistingUserInfo
+		if err := json.Unmarshal(respBody, &existing); err == nil && existing.ID != "" {
+			return &CreateUserResult{
+				Conflict:     true,
+				ExistingUser: &existing,
+			}, nil
+		}
+		return nil, fmt.Errorf("user already exists: %s", string(respBody))
+	}
+
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return nil, fmt.Errorf("CreateUser returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result CreateUserResult
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		var wrapped struct {
+			Data CreateUserResult `json:"data"`
+		}
+		if err2 := json.Unmarshal(respBody, &wrapped); err2 == nil {
+			result = wrapped.Data
+		} else {
+			return nil, fmt.Errorf("failed to parse CreateUser response: %w", err)
+		}
+	}
+
+	log.Printf("[IAMClient] Created user via CreateOrGetUser: user_id=%s", result.UserID)
+	return &result, nil
+}
+
 // ListUsers gets all users from IAM
 func (c *IAMClient) ListUsers() ([]User, error) {
 	log.Printf("[IAMClient] ListUsers: baseURL=%s, namespace=%s, clientID=%s", c.baseURL, c.namespace, c.clientID)

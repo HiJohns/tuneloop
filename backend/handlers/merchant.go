@@ -88,14 +88,15 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 // CreateMerchant POST /api/merchants - Create a new merchant
 func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	var input struct {
-		Name       string   `json:"name" binding:"required"`
-		Phone      string   `json:"phone"`
-		Address    string   `json:"address"`
-		AdminUID   string   `json:"admin_uid"`
-		AdminName  string   `json:"admin_name"`
-		AdminEmail string   `json:"admin_email"`
-		AdminPhone string   `json:"admin_phone"`
-		UserIDs    []map[string]interface{} `json:"user_ids"`
+		Name          string   `json:"name" binding:"required"`
+		Phone         string   `json:"phone"`
+		Address       string   `json:"address"`
+		AdminUID      string   `json:"admin_uid"`
+		AdminName     string   `json:"admin_name"`
+		AdminUsername string   `json:"admin_username"`
+		AdminEmail    string   `json:"admin_email"`
+		AdminPhone    string   `json:"admin_phone"`
+		UserIDs       []map[string]interface{} `json:"user_ids"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -122,6 +123,12 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	iamClient := services.NewIAMClient()
 	userToken := services.ExtractUserToken(c)
 
+	callbackHost := os.Getenv("TUNELOOP_EXTERNAL_URL")
+	if callbackHost == "" {
+		callbackHost = c.Request.Host
+	}
+	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", callbackHost)
+
 	var adminUserID string
 	var userIDsToProcess []map[string]interface{}
 
@@ -129,7 +136,32 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		adminUserID = input.AdminUID
 		userIDsToProcess = []map[string]interface{}{{"user_id": input.AdminUID, "action_type": "merchant_admin"}}
 	} else if input.AdminName != "" && input.AdminEmail != "" && len(input.UserIDs) == 0 {
-		userIDsToProcess = []map[string]interface{}{{"action_type": "merchant_admin"}}
+		// Scenario 2: create IAM user first, then use the returned ID
+		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
+			Username:    input.AdminUsername,
+			Name:        input.AdminName,
+			Email:       input.AdminEmail,
+			Phone:       input.AdminPhone,
+			CallbackURL: callbackURL,
+			OperatorID:  middleware.GetUserID(c.Request.Context()),
+		})
+		if err != nil {
+			log.Printf("[CreateMerchant] CreateOrGetUser failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to create admin user: " + err.Error(),
+			})
+			return
+		}
+		if userResult.Conflict {
+			c.JSON(http.StatusConflict, gin.H{
+				"code": 40901,
+				"data": userResult.ExistingUser,
+			})
+			return
+		}
+		adminUserID = userResult.UserID
+		userIDsToProcess = []map[string]interface{}{{"user_id": userResult.UserID, "action_type": "merchant_admin"}}
 	} else if len(input.UserIDs) > 0 {
 		adminUserID = input.UserIDs[0]["user_id"].(string)
 		userIDsToProcess = input.UserIDs
@@ -140,12 +172,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		})
 		return
 	}
-
-	callbackHost := os.Getenv("TUNELOOP_EXTERNAL_URL")
-	if callbackHost == "" {
-		callbackHost = c.Request.Host
-	}
-	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", callbackHost)
 
 	var adminName, adminEmail, adminPhone string
 	var adminUser models.User
@@ -165,13 +191,17 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	var iamOrgID string
+	adminUserName := adminName
+	if input.AdminUsername != "" {
+		adminUserName = input.AdminUsername
+	}
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, &services.CreateOrganizationRequest{
 		Name:        input.Name,
 		Address:     input.Address,
 		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
 		AdminInfo: &services.OrganizationAdmin{
 			Name:     adminName,
-			Username: adminName,
+			Username: adminUserName,
 			Email:    adminEmail,
 			Phone:    adminPhone,
 		},
