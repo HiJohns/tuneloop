@@ -16,6 +16,7 @@ type BulkImportResult struct {
 		Total   int `json:"total"`
 		Created int `json:"created"`
 		Updated int `json:"updated"`
+		Skipped int `json:"skipped"`
 		Failed  int `json:"failed"`
 	} `json:"summary"`
 	Details []BulkImportDetail `json:"details"`
@@ -156,8 +157,8 @@ func SplitTags(tags string) []string {
 func GenerateImportReport(result *BulkImportResult) string {
 	var parts []string
 	parts = append(parts, fmt.Sprintf("Bulk Import Report — %s", time.Now().Format("2006-01-02 15:04:05")))
-	parts = append(parts, fmt.Sprintf("Total: %d | Created: %d | Updated: %d | Failed: %d",
-		result.Summary.Total, result.Summary.Created, result.Summary.Updated, result.Summary.Failed))
+	parts = append(parts, fmt.Sprintf("Total: %d | Created: %d | Updated: %d | Skipped: %d | Failed: %d",
+		result.Summary.Total, result.Summary.Created, result.Summary.Updated, result.Summary.Skipped, result.Summary.Failed))
 	if result.Summary.Failed > 0 {
 		parts = append(parts, "Failed rows:")
 		for _, d := range result.Details {

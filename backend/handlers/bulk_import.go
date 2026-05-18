@@ -114,15 +114,10 @@ func (h *BulkImportHandler) DownloadAccountTemplate(c *gin.Context) {
 	c.Header("Content-Type", "text/csv; charset=utf-8")
 	c.Header("Content-Disposition", "attachment; filename=\"bulk_accounts_template.csv\"")
 
-	headers := []string{"email", "name", "role_template", "organization_code", "phone", "tags"}
+	headers := []string{"username", "name", "email", "phone", "site", "type", "role"}
 	sampleRows := [][]string{
-		{"admin@tuneloop.com", "系统管理员", "namespace_admin", "", "", ""},
-		{"admin_debug@tuneloop.com", "调试管理员", "merchant_admin", "TUNELOOP", "", ""},
-		{"tech_zhang@tuneloop.com", "张工", "site_member", "TUNELOOP", "", "IT"},
-		{"haidian_admin@tuneloop.com", "海淀管理员", "site_admin", "TUNELOOP_HD", "", ""},
-		{"haidian_staff@tuneloop.com", "海淀员工", "site_member", "TUNELOOP_HD", "", ""},
-		{"haidian_engineer@tuneloop.com", "海淀维修师傅", "site_member", "TUNELOOP_HD", "", "engineer"},
-		{"customer_lee@tuneloop.com", "顾客小李", "customer", "", "", ""},
+		{"admin_debug", "调试管理员", "admin_debug@tuneloop.com", "13800000001", "TUNELOOP", "admin", "merchant_admin"},
+		{"staff_zhang", "张工", "zhang@tuneloop.com", "13800000002", "TUNELOOP_HD", "member", "site_member"},
 	}
 
 	if err := services.WriteCSVTemplate(c.Writer, headers, sampleRows); err != nil {

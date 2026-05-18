@@ -17,10 +17,11 @@ type AccountImportRecord struct {
 	RowNum           int
 	Email            string
 	Name             string
+	Username         string
 	RoleTemplate     string
 	OrganizationCode string
 	Phone            string
-	Tags             string
+	Type             string
 }
 
 // ImportAccountsCSV imports accounts from a CSV file.
@@ -37,10 +38,11 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			RowNum:           rec.RowNum,
 			Email:            strings.TrimSpace(rec.Fields["email"]),
 			Name:             strings.TrimSpace(rec.Fields["name"]),
+			Username:         strings.TrimSpace(rec.Fields["username"]),
 			RoleTemplate:     strings.TrimSpace(rec.Fields["role"]),
-			OrganizationCode: strings.TrimSpace(rec.Fields["organization_code"]),
+			OrganizationCode: strings.TrimSpace(rec.Fields["site"]),
 			Phone:            strings.TrimSpace(rec.Fields["phone"]),
-			Tags:             strings.TrimSpace(rec.Fields["tags"]),
+			Type:             strings.TrimSpace(rec.Fields["type"]),
 		})
 	}
 
@@ -179,17 +181,17 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			orgIDForLocal = tenantID
 		}
 
-		existingUser, exists := existingByEmail[acc.Email]
+		_, exists := existingByEmail[acc.Email]
 		iamUser, iamExists := iamUserByEmail[acc.Email]
 
 		if dryRun {
 			if exists || iamExists {
-				result.Summary.Updated++
+				result.Summary.Skipped++
 				result.Details = append(result.Details, BulkImportDetail{
 					Row:    acc.RowNum,
 					Key:    acc.Email,
-					Action: "updated",
-					Reason: "user exists, will update",
+					Action: "skipped",
+					Reason: "user already exists, skipped (create-only)",
 				})
 			} else {
 				result.Summary.Created++
@@ -203,184 +205,119 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			continue
 		}
 
+		if exists || iamExists {
+			result.Summary.Skipped++
+			result.Details = append(result.Details, BulkImportDetail{
+				Row:    acc.RowNum,
+				Key:    acc.Email,
+				Action: "skipped",
+				Reason: "user already exists, skipped (create-only)",
+			})
+			continue
+		}
+
 		// Compute permissions
 		template := AllRoleTemplates[acc.RoleTemplate]
 
-		tags := SplitTags(acc.Tags)
-		tagsStr := strings.Join(tags, "|")
+		tagsStr := ""
 
-		if exists || iamExists {
-			// Update existing user
-			updates := map[string]interface{}{
-				"name":      acc.Name,
-				"phone":     acc.Phone,
-				"role":      acc.RoleTemplate,
-				"user_type": "员工",
-			}
-			if siteID != nil {
-				updates["site_id"] = *siteID
-				updates["org_id"] = orgIDForLocal
-			} else {
-				updates["site_id"] = nil
-			}
-			if tagsStr != "" {
-				updates["position"] = tagsStr
-			}
+		// Create new user
+		newUserID := uuid.New().String()
+		newUser := models.User{
+			ID:       newUserID,
+			TenantID: tenantID,
+			OrgID:    orgIDForLocal,
+			Name:     acc.Name,
+			Email:    acc.Email,
+			Phone:    acc.Phone,
+			Role:     acc.RoleTemplate,
+			Status:   "active",
+			UserType: "员工",
+			IsShadow: false,
+		}
+		if siteID != nil {
+			newUser.SiteID = siteID
+		}
+		if tagsStr != "" {
+			newUser.Position = tagsStr
+		}
 
-			if err := db.Model(&existingUser).Updates(updates).Error; err != nil {
-				LogImportError("account", acc.RowNum, acc.Email, err)
-				result.Summary.Failed++
-				result.Details = append(result.Details, BulkImportDetail{
-					Row:    acc.RowNum,
-					Key:    acc.Email,
-					Action: "failed",
-					Reason: fmt.Sprintf("local update failed: %v", err),
-				})
-				continue
-			}
-
-			// Update IAM user if exists
-			if iamExists && iamUser.ID != "" {
-				updateReq := &UpdateUserRequest{
-					Name:  acc.Name,
-					Email: acc.Email,
-					Phone: acc.Phone,
-				}
-				if err := iamClient.UpdateUser(iamUser.ID, updateReq); err != nil {
-					log.Printf("[BulkImport] IAM UpdateUser warning for %s: %v", acc.Email, err)
-				}
-
-				// Update IAM permissions
-				if orgIDForIAM != "" {
-					if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, iamUser.ID, template.CusPermCodes); err != nil {
-						log.Printf("[BulkImport] IAM SetUserCustomerPermissions warning for %s: %v", acc.Email, err)
-					}
-				}
-
-				// Bind user to organization if applicable
-				if orgIDForIAM != "" {
-					iamRole := GetBusinessRole(acc.RoleTemplate)
-					if iamRole == "" {
-						iamRole = "member"
-					}
-					if err := iamClient.BindUserToOrganization(iamUser.ID, orgIDForIAM, iamRole, ""); err != nil {
-						log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
-					}
-				}
-			}
-
-			result.Summary.Updated++
-			result.Details = append(result.Details, BulkImportDetail{
-				Row:    acc.RowNum,
-				Key:    acc.Email,
-				Action: "updated",
-			})
-		} else {
-			// Create new user
-			newUserID := uuid.New().String()
-			newUser := models.User{
-				ID:       newUserID,
-				TenantID: tenantID,
-				OrgID:    orgIDForLocal,
-				Name:     acc.Name,
-				Email:    acc.Email,
-				Phone:    acc.Phone,
-				Role:     acc.RoleTemplate,
-				Status:   "active",
-				UserType: "员工",
-				IsShadow: false,
-			}
-			if siteID != nil {
-				newUser.SiteID = siteID
-			}
-			if tagsStr != "" {
-				newUser.Position = tagsStr
-			}
-
-			// Create IAM user first
-			createReq := &CreateUserRequest{
-				Username: acc.Email,
-				Name:     acc.Name,
-				Email:    acc.Email,
-				Phone:    acc.Phone,
-			}
-			iamResp, err := iamClient.CreateUser(createReq)
-			if err != nil {
-				if iamExists {
-					// User already exists in IAM — link by IAMSub
-					newUser.IAMSub = iamUser.ID
-				} else if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "conflict") {
-					// Try to re-fetch the user from IAM to get the ID
-					refreshedUsers, refreshErr := iamClient.ListUsers()
-					if refreshErr == nil {
-						for _, u := range refreshedUsers {
-							if strings.EqualFold(u.Email, acc.Email) {
-								newUser.IAMSub = u.ID
-								break
-							}
+		// Create IAM user first
+		createReq := &CreateUserRequest{
+			Username: acc.Email,
+			Name:     acc.Name,
+			Email:    acc.Email,
+			Phone:    acc.Phone,
+		}
+		iamResp, err := iamClient.CreateUser(createReq)
+		if err != nil {
+			if iamExists {
+				newUser.IAMSub = iamUser.ID
+			} else if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "conflict") {
+				refreshedUsers, refreshErr := iamClient.ListUsers()
+				if refreshErr == nil {
+					for _, u := range refreshedUsers {
+						if strings.EqualFold(u.Email, acc.Email) {
+							newUser.IAMSub = u.ID
+							break
 						}
 					}
-					if newUser.IAMSub == "" {
-						// Fallback: use email as IAMSub placeholder (should not normally happen)
-						log.Printf("[BulkImport] IAM user exists but could not resolve ID for %s", acc.Email)
-						newUser.IAMSub = acc.Email
-					}
-				} else {
-					LogImportError("account", acc.RowNum, acc.Email, err)
-					result.Summary.Failed++
-					result.Details = append(result.Details, BulkImportDetail{
-						Row:    acc.RowNum,
-						Key:    acc.Email,
-						Action: "failed",
-						Reason: fmt.Sprintf("IAM create failed: %v", err),
-					})
-					continue
+				}
+				if newUser.IAMSub == "" {
+					log.Printf("[BulkImport] IAM user exists but could not resolve ID for %s", acc.Email)
+					newUser.IAMSub = acc.Email
 				}
 			} else {
-				newUser.IAMSub = iamResp.UserID
-			}
-
-			// Create local user
-			if err := db.Create(&newUser).Error; err != nil {
 				LogImportError("account", acc.RowNum, acc.Email, err)
 				result.Summary.Failed++
 				result.Details = append(result.Details, BulkImportDetail{
 					Row:    acc.RowNum,
 					Key:    acc.Email,
 					Action: "failed",
-					Reason: fmt.Sprintf("local create failed: %v", err),
+					Reason: fmt.Sprintf("IAM create failed: %v", err),
 				})
 				continue
 			}
+		} else {
+			newUser.IAMSub = iamResp.UserID
+		}
 
-			// Set IAM permissions
-			if newUser.IAMSub != "" && orgIDForIAM != "" {
-				if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, newUser.IAMSub, template.CusPermCodes); err != nil {
-					log.Printf("[BulkImport] IAM SetUserCustomerPermissions warning for %s: %v", acc.Email, err)
-				}
-			}
-
-			// Also bind user to organization if applicable
-			if newUser.IAMSub != "" && orgIDForIAM != "" {
-				iamRole := GetBusinessRole(acc.RoleTemplate)
-				if iamRole == "" {
-					iamRole = "member"
-				}
-				if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, iamRole, ""); err != nil {
-					log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
-				}
-			}
-
-			// Update cache
-			existingByEmail[acc.Email] = newUser
-
-			result.Summary.Created++
+		if err := db.Create(&newUser).Error; err != nil {
+			LogImportError("account", acc.RowNum, acc.Email, err)
+			result.Summary.Failed++
 			result.Details = append(result.Details, BulkImportDetail{
 				Row:    acc.RowNum,
 				Key:    acc.Email,
-				Action: "created",
+				Action: "failed",
+				Reason: fmt.Sprintf("local create failed: %v", err),
 			})
+			continue
 		}
+
+		if newUser.IAMSub != "" && orgIDForIAM != "" {
+			if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, newUser.IAMSub, template.CusPermCodes); err != nil {
+				log.Printf("[BulkImport] IAM SetUserCustomerPermissions warning for %s: %v", acc.Email, err)
+			}
+		}
+
+		if newUser.IAMSub != "" && orgIDForIAM != "" {
+			iamRole := GetBusinessRole(acc.RoleTemplate)
+			if iamRole == "" {
+				iamRole = "member"
+			}
+			if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, iamRole, ""); err != nil {
+				log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
+			}
+		}
+
+		existingByEmail[acc.Email] = newUser
+
+		result.Summary.Created++
+		result.Details = append(result.Details, BulkImportDetail{
+			Row:    acc.RowNum,
+			Key:    acc.Email,
+			Action: "created",
+		})
 	}
 
 	return result, nil
