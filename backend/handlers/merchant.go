@@ -193,6 +193,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			})
 			return
 		}
+		// Name-conflict recovery: adminUserID is still client temp ID, clear it
+		if _, parseErr := uuid.Parse(adminUserID); parseErr != nil {
+			adminUserID = ""
+		}
 	} else {
 		iamOrgID = orgResp.OrgID
 		if _, parseErr := uuid.Parse(adminUserID); parseErr != nil && orgResp.AdminID != "" {
@@ -209,8 +213,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		Name:         input.Name,
 		Phone:         input.Phone,
 		Address:       input.Address,
-		AdminUID:      adminUserID,
 		Status:       "active",
+	}
+	if _, parseErr := uuid.Parse(adminUserID); parseErr == nil {
+		merchant.AdminUID = adminUserID
 	}
 
 	result := db.Create(&merchant)
