@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Steps, Button, Upload, message, Card, Table, Alert, Space, Typography, Tag } from 'antd'
 import { UploadOutlined, CheckCircleOutlined, CloseCircleOutlined, DownloadOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { bulkImportApi } from '../services/api'
+import { bulkImportApi, getToken } from '../services/api'
 
 const { Title, Text } = Typography
 
@@ -45,7 +45,11 @@ export default function SiteBulkImport() {
 
   const downloadTemplate = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = getToken()
+      if (!token) {
+        message.error('登录已过期，请刷新页面重新登录')
+        return
+      }
       const response = await fetch('/api/admin/bulk-import/template/organizations', {
         headers: { 'Authorization': `Bearer ${token}` }
       })

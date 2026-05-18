@@ -477,3 +477,5 @@ export async function initPermissionMapping() {
     console.warn('[Permissions] Failed to load permission mapping, using empty cache')
   }
 }
+
+export { getToken }
