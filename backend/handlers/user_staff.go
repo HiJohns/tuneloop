@@ -47,8 +47,14 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 	currentUserID := middleware.GetUserID(ctx)
 	var currentUser models.User
 	if err := db.Where("iam_sub = ?", currentUserID).First(&currentUser).Error; err == nil {
-		if (currentUser.Role == "site_admin" || currentUser.Role == "site_member") && currentUser.SiteID != nil {
-			query = query.Where("site_id = ?", *currentUser.SiteID)
+		if currentUser.Role == "site_admin" && currentUser.SiteID != nil {
+			siteID, err := uuid.Parse(*currentUser.SiteID)
+			if err == nil {
+				descendantIDs, err := getDescendantSiteIDs(db, tenantID, siteID)
+				if err == nil && len(descendantIDs) > 0 {
+					query = query.Where("site_id IN ?", descendantIDs)
+				}
+			}
 		}
 	}
 
@@ -726,4 +732,29 @@ func getResetPasswordRedirectURL(c *gin.Context) string {
 
 	// 4. Default (should not reach here in production)
 	return "http://localhost:5554"
+}
+
+// getDescendantSiteIDs returns the given site ID and all recursive descendant site IDs.
+func getDescendantSiteIDs(db *gorm.DB, tenantID string, siteID uuid.UUID) ([]uuid.UUID, error) {
+	var allSites []models.Site
+	if err := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID).Find(&allSites).Error; err != nil {
+		return nil, err
+	}
+	children := make(map[uuid.UUID][]uuid.UUID)
+	for _, s := range allSites {
+		if s.ParentID != nil {
+			children[*s.ParentID] = append(children[*s.ParentID], uuid.MustParse(s.ID))
+		}
+	}
+	ids := []uuid.UUID{siteID}
+	queue := []uuid.UUID{siteID}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		for _, childID := range children[current] {
+			ids = append(ids, childID)
+			queue = append(queue, childID)
+		}
+	}
+	return ids, nil
 }

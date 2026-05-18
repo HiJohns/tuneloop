@@ -264,7 +264,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			siteRequired.DELETE("/sites/:id/members/:uid", siteMemberHandler.RemoveMember)
 
 			// Staff/User management routes (Issue #333)
-			authRequired.GET("/staff", staffHandler.ListStaff)
+			authRequired.GET("/staff", middleware.RequireRole("ADMIN", "OWNER"), staffHandler.ListStaff)
 			authRequired.GET("/users/me", staffHandler.GetCurrentUser)
 			authRequired.PUT("/users/me", staffHandler.UpdateCurrentUser)
 			authRequired.POST("/users", middleware.RequireSysPerm(middleware.SysPermUserCreate), staffHandler.CreateUser)
