@@ -8,6 +8,7 @@ const InlineUserSelector = ({
   mode = 'multi',
   value,
   onChange,
+  preloadOptions,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchOptions, setSearchOptions] = useState([]);
@@ -70,6 +71,25 @@ const InlineUserSelector = ({
       }
     }, 300);
   }, [merchantId]);
+
+  useEffect(() => {
+    if (preloadOptions && preloadOptions.length > 0) {
+      const options = preloadOptions.map((u) => ({
+        label: (
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ fontWeight: 'bold' }}>{u.name}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              {u.email} — 匹配: {(u.matched_fields || []).join(', ')}
+            </div>
+          </div>
+        ),
+        value: u.id,
+        user: { ...u, associated: false, isNew: false },
+      }));
+      setSearchOptions(options);
+      setActiveTab('search');
+    }
+  }, [preloadOptions]);
 
   const handleSearch = (val) => {
     setSearchTerm(val);

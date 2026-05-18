@@ -13,6 +13,7 @@ const MerchantManagement = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(null);
   const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '' });
+  const [conflictOptions, setConflictOptions] = useState(null);
 
   useEffect(() => {
     fetchMerchants();
@@ -35,6 +36,7 @@ const MerchantManagement = () => {
     setEditingMerchant(null);
     form.resetFields();
     setAdminInfo({ name: '', id: null, email: '', username: '' });
+    setConflictOptions(null);
     setModalOpen(true);
   };
 
@@ -82,20 +84,11 @@ const MerchantManagement = () => {
       fetchMerchants();
     } catch (error) {
       const resp = error.response
-      // 409 with existing user data → auto-convert to scenario 1
-      if (resp?.status === 409 && resp?.data?.data?.id) {
-        const existingUser = resp.data.data
-        message.warning(`用户 ${existingUser.name} 已存在，已自动切换为选择模式`)
-        // Hide new user form, show search with selected user
-        setAdminInfo({
-          name: existingUser.name,
-          id: existingUser.id,
-          email: existingUser.email || '',
-          phone: existingUser.phone || '',
-          username: existingUser.username || '',
-          isNew: false,
-        })
-        form.setFieldsValue({ admin_uid: existingUser.id })
+      // 409 with conflict list → show all in search dropdown
+      if (resp?.status === 409 && resp?.data?.data?.conflicts?.length > 0) {
+        const conflicts = resp.data.data.conflicts
+        setConflictOptions(conflicts)
+        message.warning(`发现 ${conflicts.length} 个冲突账户，请在搜索中选择`)
         return
       }
       message.error(error.response?.data?.message || '操作失败');
@@ -244,7 +237,8 @@ const MerchantManagement = () => {
                 mode="single"
                 merchantId="current-merchant-id"
                 value={[]}
-                onChange={handleAdminChange}
+                onChange={(users) => { handleAdminChange(users); setConflictOptions(null); }}
+                preloadOptions={conflictOptions}
               />
             )}
           </Form.Item>

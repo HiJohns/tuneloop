@@ -156,7 +156,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		if userResult.Conflict {
 			c.JSON(http.StatusConflict, gin.H{
 				"code": 40901,
-				"data": userResult.ExistingUser,
+				"data": gin.H{
+					"conflicts": userResult.ExistingUsers,
+				},
 			})
 			return
 		}

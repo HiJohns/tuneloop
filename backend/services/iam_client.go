@@ -389,22 +389,85 @@ type CreateUserResponse struct {
 
 // ExistingUserInfo holds data returned when creating a user that already exists.
 type ExistingUserInfo struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Email         string   `json:"email"`
+	Phone         string   `json:"phone"`
+	MatchedFields []string `json:"matched_fields"`
 }
 
 // CreateUserResult holds the outcome of a create-or-get user attempt.
 type CreateUserResult struct {
-	UserID       string           `json:"user_id,omitempty"`
-	Status       string           `json:"status,omitempty"`
-	Conflict     bool             `json:"conflict"`
-	ExistingUser *ExistingUserInfo `json:"existing_user,omitempty"`
+	UserID        string             `json:"user_id,omitempty"`
+	Status        string             `json:"status,omitempty"`
+	Conflict      bool               `json:"conflict"`
+	ExistingUsers []ExistingUserInfo `json:"existing_users,omitempty"`
 }
 
 // CreateOrGetUser creates a user or returns existing user info on conflict.
 func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*CreateUserResult, error) {
+	// Check for conflicts before creating
+	allUsers, err := c.ListUsers()
+	if err != nil {
+		log.Printf("[IAMClient] CreateOrGetUser: ListUsers failed (proceeding with create): %v", err)
+	} else if len(allUsers) > 0 {
+		var conflicts []ExistingUserInfo
+		emailToUser := make(map[string]*User)
+		phoneToUser := make(map[string]*User)
+		for i := range allUsers {
+			u := &allUsers[i]
+			if u.Email != "" {
+				emailToUser[u.Email] = u
+			}
+			if u.Phone != "" {
+				phoneToUser[u.Phone] = u
+			}
+		}
+
+		checked := make(map[string]bool)
+		addConflict := func(u *User, field string) {
+			if checked[u.ID] {
+				return
+			}
+			checked[u.ID] = true
+			conflicts = append(conflicts, ExistingUserInfo{
+				ID:            u.ID,
+				Name:          u.Name,
+				Email:         u.Email,
+				Phone:         u.Phone,
+				MatchedFields: []string{field},
+			})
+		}
+
+		if req.Email != "" {
+			if u, ok := emailToUser[req.Email]; ok {
+				addConflict(u, "email")
+			}
+		}
+		if req.Phone != "" {
+			if u, ok := phoneToUser[req.Phone]; ok {
+				addConflict(u, "phone")
+			}
+		}
+		if req.Username != "" {
+			for i := range allUsers {
+				u := &allUsers[i]
+				if u.Username == req.Username {
+					addConflict(u, "username")
+					break
+				}
+			}
+		}
+
+		if len(conflicts) > 0 {
+			log.Printf("[IAMClient] CreateOrGetUser: conflicts found for %d fields", len(conflicts))
+			return &CreateUserResult{
+				Conflict:      true,
+				ExistingUsers: conflicts,
+			}, nil
+		}
+	}
+
 	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users", token, req)
 	if err != nil {
 		return nil, fmt.Errorf("CreateUser request failed: %w", err)
@@ -414,8 +477,8 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 		var existing ExistingUserInfo
 		if err := json.Unmarshal(respBody, &existing); err == nil && existing.ID != "" {
 			return &CreateUserResult{
-				Conflict:     true,
-				ExistingUser: &existing,
+				Conflict:      true,
+				ExistingUsers: []ExistingUserInfo{existing},
 			}, nil
 		}
 		return nil, fmt.Errorf("user already exists: %s", string(respBody))
