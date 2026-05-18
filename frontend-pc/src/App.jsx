@@ -306,7 +306,6 @@ function onMenuClick(e) {
         <Header className="bg-white px-6 shadow flex justify-between items-center h-16">
           <div>
             <Breadcrumb items={breadcrumbItems} className="text-sm text-gray-500" />
-            <h1 className="text-xl font-bold m-0" style={{ color: BRAND_COLOR }}>{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-4">
             <div>
