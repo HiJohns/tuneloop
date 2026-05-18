@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -21,15 +23,7 @@ func NewMerchantHandler() *MerchantHandler {
 
 // ListMerchants GET /api/merchants - List merchants (system_admin only)
 func (h *MerchantHandler) ListMerchants(c *gin.Context) {
-	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    40300,
-			"message": "Only system admin can access merchant management",
-		})
-		return
-	}
-
-	var merchants []models.Merchant
+	merchants := make([]models.Merchant, 0)
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
@@ -63,14 +57,6 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 
 // GetMerchant GET /api/merchants/:id - Get merchant detail
 func (h *MerchantHandler) GetMerchant(c *gin.Context) {
-	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    40300,
-			"message": "Only system admin can access merchant management",
-		})
-		return
-	}
-
 	id := c.Param("id")
 	var merchant models.Merchant
 	db := database.GetDB().WithContext(c.Request.Context())
@@ -100,14 +86,6 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 
 // CreateMerchant POST /api/merchants - Create a new merchant
 func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
-	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    40300,
-			"message": "Only system admin can create merchants",
-		})
-		return
-	}
-
 	var input struct {
 		Name       string   `json:"name" binding:"required"`
 		Phone      string   `json:"phone"`
@@ -167,10 +145,12 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	var adminName, adminEmail, adminPhone string
 	var adminUser models.User
 	if adminUserID != "" {
-		if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil {
-			adminName = adminUser.Name
-			adminEmail = adminUser.Email
-			adminPhone = adminUser.Phone
+		if _, err := uuid.Parse(adminUserID); err == nil {
+			if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil {
+				adminName = adminUser.Name
+				adminEmail = adminUser.Email
+				adminPhone = adminUser.Phone
+			}
 		}
 	}
 	if adminName == "" && input.AdminName != "" && input.AdminEmail != "" {
@@ -179,6 +159,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		adminPhone = input.AdminPhone
 	}
 
+	var iamOrgID string
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, &services.CreateOrganizationRequest{
 		Name:        input.Name,
 		Address:     input.Address,
@@ -193,15 +174,31 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		OperatorID:  middleware.GetUserID(c.Request.Context()),
 	})
 	if err != nil {
-		log.Printf("[CreateMerchant] IAM CreateOrganization failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to create organization in IAM: " + err.Error(),
-		})
-		return
+		if strings.Contains(err.Error(), "name conflict") {
+			orgs, listErr := iamClient.ListOrganizations()
+			if listErr == nil {
+				for _, org := range orgs {
+					if org.Name == input.Name {
+						iamOrgID = org.ID
+						break
+					}
+				}
+			}
+		}
+		if iamOrgID == "" {
+			log.Printf("[CreateMerchant] IAM CreateOrganization failed: %v", err)
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "Merchant name conflict: " + err.Error(),
+			})
+			return
+		}
+	} else {
+		iamOrgID = orgResp.OrgID
+		if _, parseErr := uuid.Parse(adminUserID); parseErr != nil && orgResp.AdminID != "" {
+			adminUserID = orgResp.AdminID
+		}
 	}
-
-	iamOrgID := orgResp.OrgID
 	if iamOrgID == "" {
 		iamOrgID = middleware.GetOrgID(c.Request.Context())
 	}
@@ -223,10 +220,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			"message": "Failed to create merchant: " + result.Error.Error(),
 		})
 		return
-	}
-
-	if adminUserID == "" && orgResp.AdminID != "" {
-		adminUserID = orgResp.AdminID
 	}
 
 	var directlyAdded []string
@@ -253,14 +246,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 // UpdateMerchant PUT /api/merchants/:id - Update merchant
 func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
-	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    40300,
-			"message": "Only system admin can update merchants",
-		})
-		return
-	}
-
 	id := c.Param("id")
 
 	var input struct {
@@ -319,14 +304,6 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 
 // DeleteMerchant DELETE /api/merchants/:id - Delete merchant
 func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
-	if middleware.GetBusinessRole(c.Request.Context()) != middleware.BusinessRoleSystemAdmin {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    40300,
-			"message": "Only system admin can delete merchants",
-		})
-		return
-	}
-
 	id := c.Param("id")
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())

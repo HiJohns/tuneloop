@@ -243,11 +243,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/orders/:id/cancel", handlers.CancelOrder)
 
 		// Merchant management routes (require tenant sys_perm + project_admin role)
-		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), middleware.RequireRole("project_admin"), merchantHandler.ListMerchants)
-		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), middleware.RequireRole("project_admin"), merchantHandler.GetMerchant)
-		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), middleware.RequireRole("project_admin"), merchantHandler.CreateMerchant)
-		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), middleware.RequireRole("project_admin"), merchantHandler.UpdateMerchant)
-		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), middleware.RequireRole("project_admin"), merchantHandler.DeleteMerchant)
+		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
+		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
+		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
+		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
+		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
 
 		siteRequired := authRequired.Group("")
 		{
