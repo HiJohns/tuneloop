@@ -210,7 +210,11 @@ type CreateOrganizationResponse struct {
 }
 
 func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateOrganizationResponse, error) {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", c.namespace)
+	nsID, err := c.getNamespaceID()
+	if err != nil {
+		return nil, fmt.Errorf("CreateOrganization: failed to resolve namespace: %w", err)
+	}
+	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", nsID)
 	respBody, statusCode, err := c.doRequest("POST", path, req)
 	if err != nil {
 		return nil, fmt.Errorf("CreateOrganization request failed: %w", err)
@@ -242,7 +246,11 @@ func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateO
 }
 
 func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganizationRequest) (*CreateOrganizationResponse, error) {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", c.namespace)
+	nsID, err := c.getNamespaceID()
+	if err != nil {
+		return nil, fmt.Errorf("CreateOrganizationWithToken: failed to resolve namespace: %w", err)
+	}
+	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations", nsID)
 	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, req)
 	if err != nil {
 		return nil, fmt.Errorf("CreateOrganization request failed: %w", err)
