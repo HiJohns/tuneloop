@@ -211,6 +211,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		TenantID:     tenantID,
 		OrgID:        iamOrgID,
 		Name:         input.Name,
+		Code:         input.Name,
 		Phone:         input.Phone,
 		Address:       input.Address,
 		AdminUID:      adminUserID,
