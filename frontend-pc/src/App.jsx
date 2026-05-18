@@ -216,14 +216,13 @@ function onMenuClick(e) {
 
   // Filter menu: children by permission, parent visible if any child visible
   const isOwnerUser = userInfo?.isOwner || false
-  const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm)
+  const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm, isOwnerUser)
   const filteredItems = menuConfig
     .map(item => ({
       ...item,
       children: item.children?.filter(child => {
         const rule = menuRules.find(r => r.path === (child.key || ''))
         if (!rule) return true
-        if (isOwnerUser && cusPerm === 0 && sysPerm === 0) return true
         return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
       }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
     }))
