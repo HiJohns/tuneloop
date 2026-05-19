@@ -481,4 +481,19 @@ export async function initPermissionMapping() {
   }
 }
 
+export const auditLogApi = {
+  list: (params) => api.get('/admin/audit-logs', { params }),
+  get: (id) => api.get(`/admin/audit-logs/${id}`),
+  export: async (data) => {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const resp = await fetch(`${API_BASE_URL}/admin/audit-logs/export`, {
+      method: 'POST', headers, body: JSON.stringify(data),
+    });
+    if (!resp.ok) throw new Error('导出失败');
+    return await resp.blob();
+  },
+}
+
 export { getToken }
