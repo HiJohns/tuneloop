@@ -46,6 +46,10 @@ const menuRules = [
     path: '/merchants',
     visibleWhen: { sysPermBits: [SysPermBits.tenant_view] }
   },
+  {
+    path: '/system/audit-logs',
+    visibleWhen: { sysPermBits: [SysPermBits.tenant_view] }
+  },
 
   // Client management — needs namespace_view sys_perm
   {
@@ -177,7 +181,7 @@ function isNamespaceAdmin(sysPerm, cusPerm) {
  * Get namespace admin visible menu keys.
  */
 function getNamespaceAdminMenuKeys() {
-  return ['/', '/merchants']
+  return ['/', '/merchants', '/system/audit-logs']
 }
 
 export {

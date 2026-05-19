@@ -1704,6 +1704,7 @@ components/
 - **权限**: 所有已登录用户
 - **子菜单**:
   - 商户管理 (`/merchants`)
+  - 操作日志 (`/system/audit-logs`)
   - 客户端管理 (`/system/clients`)
   - 租户管理 (`/system/tenants`)
 
@@ -1847,6 +1848,7 @@ cd frontend-pc && npm run build  # 应该成功
 | 订单支付 | `/orders/:id/payment` | 用户本人 |
 | 电子合同 | `/user/contracts/:id` | 用户本人 |
 | 归还流程 | `/user/rentals/:id/return` | 用户本人 |
+| 操作日志 | `/system/audit-logs` | tenant_view (sys_perm bit 5) |
 | 库管工作台 | `/warehouse` | MANAGER |
 | 申诉处理 | `/appeals` | MANAGER |
 | 用户申诉 | `/user/appeals` | 用户本人 |

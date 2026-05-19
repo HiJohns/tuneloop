@@ -492,6 +492,33 @@ photos:
 
 **说明**: 记录所有订单状态变更历史，用于追溯物流和租赁周期
 
+### 2.22 audit_logs - 审计日志表
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
+| org_id | UUID | INDEX | 组织 ID |
+| user_id | UUID | INDEX, NOT NULL | 操作人 ID |
+| actor_role | VARCHAR(50) | | 操作时的 IAM 角色 |
+| action | VARCHAR(50) | NOT NULL | 操作类型: CREATE/UPDATE/DELETE/PAY/PICKUP/RETURN/CANCEL/TRANSFER/SYNC/IMPORT/LOGIN |
+| resource_type | VARCHAR(50) | NOT NULL | 资源类型: user/merchant/site/order/instrument/lease/maintenance_ticket/... |
+| resource_id | VARCHAR(100) | | 操作资源 ID |
+| details | JSONB | | 变更详情（JSON） |
+| request_body | JSONB | | 请求体（CRITICAL 操作记录，截断至 10KB） |
+| ip_address | VARCHAR(45) | | 客户端 IP |
+| user_agent | VARCHAR(500) | | 客户端 UA |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 记录时间 |
+
+**索引**:
+- `idx_audit_logs_tenant_id` (tenant_id)
+- `idx_audit_logs_org_id` (org_id)
+- `idx_audit_logs_user_id` (user_id)
+- `idx_audit_logs_resource` (resource_type, resource_id)
+- `idx_audit_logs_created_at` (created_at)
+
+**说明**: 通过 Gin 中间件 + 异步写入器记录所有 CRITICAL/HIGH 操作。日志保留 1 年，每日定时清理。
+
 ---
 
 ## 附录 A: 关系图

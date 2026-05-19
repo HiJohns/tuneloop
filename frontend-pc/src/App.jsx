@@ -51,6 +51,7 @@ import StaffBulkImport from './pages/StaffBulkImport'
 import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
 import MerchantManagement from './pages/MerchantManagement'
+import AuditLogPage from './pages/System/AuditLogPage'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
 
@@ -198,7 +199,8 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '系统管理',
     children: [
-      { key: '/merchants', label: '商户管理' }
+      { key: '/merchants', label: '商户管理' },
+      { key: '/system/audit-logs', label: '操作日志' }
     ]
   }
 ]
@@ -239,7 +241,7 @@ function onMenuClick(e) {
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
   else if (['/inventory/transfer', '/inventory/rent-setting'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
   else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
-  else if (['/merchants'].includes(location.pathname)) openKeys = ['system']
+  else if (['/merchants', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
 
 
   let pageTitle = '管理后台'
@@ -258,6 +260,7 @@ function onMenuClick(e) {
     '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
+    '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
 
@@ -345,6 +348,7 @@ function onMenuClick(e) {
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
             <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />

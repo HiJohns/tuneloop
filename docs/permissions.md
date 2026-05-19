@@ -173,7 +173,13 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 |---------|------|-------------|----------|
 | 商户管理 | /merchants | tenant_view (bit 5) | 商户管理 |
 
-### 5.2 纯 cus_perm 控制菜单（业务角色可见）
+### 5.2 纯 sys_perm 控制菜单（管理角色可见）
+
+| 菜单路径 | 路由 | 所需 sys_perm |
+|---------|------|-------------|
+| 操作日志 | /system/audit-logs | tenant_view (bit 5) |
+
+### 5.3 纯 cus_perm 控制菜单（业务角色可见）
 
 | 菜单路径 | 路由 | 所需 cus_perm (OR) |
 |---------|------|-------------------|
@@ -186,7 +192,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 会话管理 | /maintenance/sessions | maintenance:view, maintenance:assign, maintenance:complete |
 | 申诉处理 | /appeals | appeal:handle |
 
-### 5.3 组合权限菜单（sys_perm AND cus_perm 同时满足）
+### 5.4 组合权限菜单（sys_perm AND cus_perm 同时满足）
 
 | 菜单路径 | 路由 | 所需 sys_perm | 所需 cus_perm (OR) | requireAllGroups |
 |---------|------|-------------|-------------------|:---:|
@@ -195,7 +201,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 人员批量导入 | /staff/bulk-import | user_create (bit 17) | instrument:create, inventory:view, maintenance:view | ✅ |
 | 网点批量导入 | /organization/sites/bulk-import | organization_create (bit 12) | instrument:create, inventory:view, maintenance:view | ✅ |
 
-### 5.4 Grace Period 规则
+### 5.5 Grace Period 规则
 
 > 来源: `menuPermissions.js:162-167`
 

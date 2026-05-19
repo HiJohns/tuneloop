@@ -3153,6 +3153,86 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 **响应**: `{ "code": 20000, "message": "success" }`
 ```
 
+### 12.4 审计日志
+
+#### 12.4.1 查询审计日志列表
+
+**接口**: `GET /api/admin/audit-logs`
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码，默认 1 |
+| pageSize | int | 每页数量，默认 20，最大 100 |
+| resource_type | string | 资源类型筛选 |
+| action | string | 操作类型筛选 |
+| user_id | string | 操作用户 ID |
+| date_from | string | 起始时间 (YYYY-MM-DD) |
+| date_to | string | 结束时间 (YYYY-MM-DD) |
+| keyword | string | 关键词搜索（resource_type/resource_id/action） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "tenant_id": "uuid",
+        "org_id": "uuid",
+        "user_id": "uuid",
+        "actor_role": "ADMIN",
+        "action": "CREATE",
+        "resource_type": "order",
+        "resource_id": "uuid",
+        "details": null,
+        "request_body": null,
+        "ip_address": "192.168.1.1",
+        "user_agent": "Mozilla/5.0",
+        "created_at": "2026-05-19T03:00:00Z"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+**RBAC 可见范围**:
+| 角色 | 可见范围 |
+|------|---------|
+| ADMIN/OWNER | 全租户（tenant_id 范围） |
+| site_admin | 本组织（org_id 范围） |
+| 其他用户 | 仅本人日志（user_id 范围） |
+
+#### 12.4.2 获取审计日志详情
+
+**接口**: `GET /api/admin/audit-logs/:id`
+
+**响应**: 单条审计日志对象，格式同列表中的元素
+
+#### 12.4.3 导出审计日志
+
+**接口**: `POST /api/admin/audit-logs/export`
+
+**请求 Body**（可选筛选参数，同列表接口）:
+```json
+{
+  "resource_type": "order",
+  "action": "CREATE",
+  "user_id": "uuid",
+  "date_from": "2026-01-01",
+  "date_to": "2026-12-31",
+  "keyword": ""
+}
+```
+
+**响应**: CSV 文件下载（Content-Type: text/csv, Content-Disposition: attachment; filename=audit_logs.csv）
+
+**CSV 列**: Time, UserID, ActorRole, Action, ResourceType, ResourceID, IPAddress
+
 ---
 
 ## 十三、标签与属性管理模块
