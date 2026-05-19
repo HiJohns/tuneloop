@@ -215,9 +215,10 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		BusinessHours string  `json:"business_hours"`
 		ParentID      *string `json:"parent_id"`
 		ManagerID     *string `json:"manager_id"`
-		AdminName     string  `json:"admin_name"`
-		AdminEmail    string  `json:"admin_email"`
-		AdminPhone    string  `json:"admin_phone"`
+		ManagerName   string  `json:"manager_name"`
+		ManagerUsername string  `json:"manager_username"`
+		ManagerEmail  string  `json:"manager_email"`
+		ManagerPhone  string  `json:"manager_phone"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -287,19 +288,50 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	operatorID := middleware.GetUserID(c.Request.Context())
 
 	if managerUUID != nil {
-		if req.AdminEmail != "" {
+		if req.ManagerEmail != "" {
 			createUserReq := &services.CreateUserRequest{
-				Username: req.AdminEmail,
-				Name:     req.AdminName,
-				Email:    req.AdminEmail,
-				Phone:    req.AdminPhone,
+				Username: req.ManagerEmail,
+				Name:     req.ManagerName,
+				Email:    req.ManagerEmail,
+				Phone:    req.ManagerPhone,
 			}
 			if _, createErr := iamClient.CreateUser(createUserReq); createErr != nil {
-				log.Printf("[CreateSite] IAM CreateUser for manager %s: %v — will attempt bind", req.AdminEmail, createErr)
+				log.Printf("[CreateSite] IAM CreateUser for manager %s: %v — will attempt bind", req.ManagerEmail, createErr)
 			}
 		}
 		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, managerUUID.String(), siteOrgID, "manager", operatorID); bindErr != nil {
 			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", managerUUID.String(), siteOrgID, bindErr)
+		}
+	} else if req.ManagerName != "" && req.ManagerEmail != "" {
+		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
+			Username:   req.ManagerUsername,
+			Name:       req.ManagerName,
+			Email:      req.ManagerEmail,
+			Phone:      req.ManagerPhone,
+			OperatorID: operatorID,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to create admin user: " + err.Error(),
+			})
+			return
+		}
+		if userResult.Conflict {
+			c.JSON(http.StatusConflict, gin.H{
+				"code": 40901,
+				"data": gin.H{"conflicts": userResult.ExistingUsers},
+			})
+			return
+		}
+		if userResult.UserID != "" {
+			uuidVal, parseErr := uuid.Parse(userResult.UserID)
+			if parseErr == nil {
+				managerUUID = &uuidVal
+				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, userResult.UserID, siteOrgID, "manager", operatorID); bindErr != nil {
+					log.Printf("[CreateSite] IAM BindUser failed for auto-created manager %s: %v", userResult.UserID, bindErr)
+				}
+			}
 		}
 	}
 
@@ -357,6 +389,10 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		Phone         string  `json:"phone"`
 		BusinessHours string  `json:"business_hours"`
 		ManagerID     *string `json:"manager_id"`
+		ManagerName   string  `json:"manager_name"`
+		ManagerUsername string  `json:"manager_username"`
+		ManagerEmail  string  `json:"manager_email"`
+		ManagerPhone  string  `json:"manager_phone"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -382,6 +418,32 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 				})
 				return
 			}
+			managerUUID = &uuidVal
+		}
+	}
+
+	// Auto-create manager user if admin fields provided and no explicit manager_id
+	if req.ManagerID == nil && req.ManagerName != "" && req.ManagerEmail != "" {
+		iamClient := services.NewIAMClient()
+		userToken := services.ExtractUserToken(c)
+		operatorID := middleware.GetUserID(c.Request.Context())
+		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
+			Username:   req.ManagerUsername,
+			Name:       req.ManagerName,
+			Email:      req.ManagerEmail,
+			Phone:      req.ManagerPhone,
+			OperatorID: operatorID,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "Failed to create admin user: " + err.Error()})
+			return
+		}
+		if userResult.Conflict {
+			c.JSON(http.StatusConflict, gin.H{"code": 40901, "data": gin.H{"conflicts": userResult.ExistingUsers}})
+			return
+		}
+		if userResult.UserID != "" {
+			uuidVal, _ := uuid.Parse(userResult.UserID)
 			managerUUID = &uuidVal
 		}
 	}

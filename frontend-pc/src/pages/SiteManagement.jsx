@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
-import InlineUserSelector from '../components/InlineUserSelector'
 
 const { Option } = Select
 
@@ -217,24 +216,16 @@ export default function SiteManagement() {
       
       Logger.state('SiteManagement', { action: 'handleSubmit', editingSite, values })
       
-      // Check if manager is a new user (created via InlineUserSelector)
-      const isNewUser = managerInfo.isNew || false
-      
       const siteData = {
         name: values.name,
         address: values.address || '',
         type: values.type || '',
         phone: values.phone || '',
         parent_id: editingSite?.parent_id,
-      }
-      
-      // If new user, pass admin info instead of manager_id
-      if (isNewUser && managerInfo.name && managerInfo.email) {
-        siteData.admin_name = managerInfo.name
-        siteData.admin_email = managerInfo.email
-        siteData.admin_phone = managerInfo.phone || ''
-      } else {
-        siteData.manager_id = managerInfo.id || null
+        manager_name: values.manager_name || '',
+        manager_username: values.manager_username || '',
+        manager_email: values.manager_email || '',
+        manager_phone: values.manager_phone || '',
       }
       
       Logger.log('SITE', 'siteData:', siteData)
@@ -253,21 +244,13 @@ export default function SiteManagement() {
         if (result.data?.id) {
           Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
           await refreshAndSelectTreeNode(result.data.id)
-          
-          const newSite = { 
-            id: result.data.id, 
-            ...siteData,
-            manager: managerInfo.id ? { id: managerInfo.id, name: managerInfo.name } : null
-          }
-          setSelectedSite(newSite)
+          setSelectedSite({ id: result.data.id, ...siteData })
           setViewMode('detail')
         } else {
           Logger.error('SITE', 'Create failed - result.data?.id is falsy:', result.data?.id)
         }
       }
       
-      setManagerInfo({ name: '', id: null, email: '', phone: '' })
-      setLookupError({ message: '', visible: false })
       form.resetFields()
       setEditingSite(null)
       
@@ -415,6 +398,7 @@ filterTreeNode={(node) => {
                       <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
                       <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
                       <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="联系电话">{selectedSite.phone || '-'}</Descriptions.Item>
                       <Descriptions.Item label="负责人">
                         {selectedSite.manager?.name || '-'}
                       </Descriptions.Item>
@@ -497,33 +481,31 @@ filterTreeNode={(node) => {
                 </Form.Item>
 
                 <Form.Item
-                  name="manager_id"
-                  label="负责人"
+                  name="manager_username"
+                  label="管理员用户名"
                 >
-                  {managerInfo.id ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <UserOutlined style={{ fontSize: 20, color: '#52c41a' }} />
-                      <span style={{ fontWeight: 500 }}>{managerInfo.name}</span>
-                      {managerInfo.email && <span style={{ color: '#999' }}>({managerInfo.email})</span>}
-                      <Button
-                        type="link"
-                        onClick={() => {
-                          setManagerInfo({ name: '', id: null, email: '', phone: '' })
-                          form.setFieldsValue({ manager_id: null })
-                        }}
-                        data-testid="site-form-change-manager"
-                      >
-                        更换
-                      </Button>
-                    </div>
-                  ) : (
-                    <InlineUserSelector
-                      mode="single"
-                      merchantId="current-merchant-id"
-                      value={[]}
-                      onChange={handleManagerChange}
-                    />
-                  )}
+                  <Input placeholder="创建新管理员时填写" />
+                </Form.Item>
+
+                <Form.Item
+                  name="manager_name"
+                  label="管理员姓名"
+                >
+                  <Input placeholder="创建新管理员时填写" />
+                </Form.Item>
+
+                <Form.Item
+                  name="manager_email"
+                  label="管理员邮箱"
+                >
+                  <Input placeholder="创建新管理员时填写" />
+                </Form.Item>
+
+                <Form.Item
+                  name="manager_phone"
+                  label="管理员电话"
+                >
+                  <Input placeholder="创建新管理员时填写" />
                 </Form.Item>
               </Form>
             </Card>
