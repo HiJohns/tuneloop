@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag, Alert } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
+import InlineUserSelector from '../components/InlineUserSelector'
 
 const { Option } = Select
 
@@ -28,6 +29,9 @@ export default function SiteManagement() {
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [searchText, setSearchText] = useState('')
+  const [managerMode, setManagerMode] = useState('search')
+  const [conflictUsers, setConflictUsers] = useState([])
+  const [conflictMessage, setConflictMessage] = useState('')
 
   useEffect(() => {
     // Load user role from localStorage
@@ -145,6 +149,9 @@ export default function SiteManagement() {
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
     setViewMode('form')
     setLookupError({ message: '', visible: false })
+    setConflictUsers([])
+    setConflictMessage('')
+    setManagerMode('search')
   }
 
   const handleCreateSubSite = () => {
@@ -159,6 +166,9 @@ export default function SiteManagement() {
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
     setViewMode('form')
     setLookupError({ message: '', visible: false })
+    setConflictUsers([])
+    setConflictMessage('')
+    setManagerMode('search')
   }
 
   const handleEdit = () => {
@@ -179,6 +189,9 @@ export default function SiteManagement() {
     }
     setViewMode('form')
     setLookupError({ message: '', visible: false })
+    setConflictUsers([])
+    setConflictMessage('')
+    setManagerMode('search')
   }
 
   const handleManagerChange = (users) => {
@@ -193,6 +206,7 @@ export default function SiteManagement() {
       id: user.user_id || user.id,
       email: user.email || user.user_email || '',
       phone: user.phone || '',
+      username: user.username || '',
       isNew: user.isNew || false,
     })
     form.setFieldsValue({ manager_id: user.user_id || user.id })
@@ -216,38 +230,53 @@ export default function SiteManagement() {
       
       Logger.state('SiteManagement', { action: 'handleSubmit', editingSite, values })
       
+      const isNewUser = managerInfo.isNew || false
+      
       const siteData = {
         name: values.name,
         address: values.address || '',
         type: values.type || '',
         phone: values.phone || '',
         parent_id: editingSite?.parent_id,
-        manager_name: values.manager_name || '',
-        manager_username: values.manager_username || '',
-        manager_email: values.manager_email || '',
-        manager_phone: values.manager_phone || '',
+      }
+      
+      if (isNewUser && managerInfo.name && managerInfo.email) {
+        siteData.manager_name = managerInfo.name
+        siteData.manager_username = managerInfo.username || ''
+        siteData.manager_email = managerInfo.email
+        siteData.manager_phone = managerInfo.phone || ''
+      } else {
+        siteData.manager_id = managerInfo.id || null
       }
       
       Logger.log('SITE', 'siteData:', siteData)
       
       setSaving(true)
+      setConflictMessage('')
+      setConflictUsers([])
       
       if (formMode === 'edit' && editingSite?.id) {
-        Logger.log('SITE', 'Edit mode - updating site')
         await sitesApi.update(editingSite.id, siteData)
         message.success('更新成功')
+        setManagerInfo({ name: '', id: null, email: '', phone: '' })
         setViewMode('detail')
       } else {
-        Logger.log('SITE', 'Create mode - creating site')
         const result = await sitesApi.create(siteData)
+        
+        if (result.code === 40901 && result.data?.conflicts) {
+          setConflictUsers(result.data.conflicts)
+          setManagerMode('search')
+          const names = result.data.conflicts.map(u => u.name || u.email).join('、')
+          setConflictMessage(`用户名、电话或电邮已存在，请从以下用户中选择：${names}`)
+          return
+        }
         
         if (result.data?.id) {
           Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
           await refreshAndSelectTreeNode(result.data.id)
-          setSelectedSite({ id: result.data.id, ...siteData })
+          setSelectedSite({ id: result.data.id, ...siteData, manager: managerInfo.id ? { id: managerInfo.id, name: managerInfo.name } : null })
+          setManagerInfo({ name: '', id: null, email: '', phone: '' })
           setViewMode('detail')
-        } else {
-          Logger.error('SITE', 'Create failed - result.data?.id is falsy:', result.data?.id)
         }
       }
       
@@ -260,7 +289,6 @@ export default function SiteManagement() {
       message.error('操作失败: ' + err.message)
     } finally {
       setSaving(false)
-      setLookupLoading(false)
     }
   }
 
@@ -431,6 +459,9 @@ filterTreeNode={(node) => {
                     form.resetFields()
                     setManagerInfo({ name: '', id: null, email: '', phone: '' })
                     setLookupError({ message: '', visible: false })
+                    setConflictUsers([])
+                    setConflictMessage('')
+                    setManagerMode('search')
                   }}>取消</Button>
                   <Button 
                     type="primary" 
@@ -480,32 +511,40 @@ filterTreeNode={(node) => {
                   <Input placeholder="请输入联系电话" />
                 </Form.Item>
 
-                <Form.Item
-                  name="manager_username"
-                  label="管理员用户名"
-                >
-                  <Input placeholder="创建新管理员时填写" />
-                </Form.Item>
-
-                <Form.Item
-                  name="manager_name"
-                  label="管理员姓名"
-                >
-                  <Input placeholder="创建新管理员时填写" />
-                </Form.Item>
-
-                <Form.Item
-                  name="manager_email"
-                  label="管理员邮箱"
-                >
-                  <Input placeholder="创建新管理员时填写" />
-                </Form.Item>
-
-                <Form.Item
-                  name="manager_phone"
-                  label="管理员电话"
-                >
-                  <Input placeholder="创建新管理员时填写" />
+                <Form.Item label="负责人">
+                  <Tabs activeKey={managerMode} onChange={setManagerMode} size="small">
+                    <Tabs.TabPane tab="搜索" key="search">
+                      {conflictMessage && (
+                        <Alert
+                          message={conflictMessage}
+                          type="warning"
+                          showIcon
+                          closable
+                          style={{ marginBottom: 12 }}
+                          onClose={() => setConflictMessage('')}
+                        />
+                      )}
+                      <InlineUserSelector
+                        mode="single"
+                        merchantId="current-merchant-id"
+                        value={managerInfo.id ? [managerInfo] : []}
+                        onChange={handleManagerChange}
+                        preloadOptions={conflictUsers}
+                      />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="创建" key="create">
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <Input placeholder="用户名" value={managerInfo.username || ''}
+                          onChange={(e) => setManagerInfo({ ...managerInfo, username: e.target.value, isNew: true })} />
+                        <Input placeholder="姓名" value={managerInfo.name || ''}
+                          onChange={(e) => setManagerInfo({ ...managerInfo, name: e.target.value, isNew: true })} />
+                        <Input placeholder="邮箱" value={managerInfo.email || ''}
+                          onChange={(e) => setManagerInfo({ ...managerInfo, email: e.target.value, isNew: true })} />
+                        <Input placeholder="电话" value={managerInfo.phone || ''}
+                          onChange={(e) => setManagerInfo({ ...managerInfo, phone: e.target.value, isNew: true })} />
+                      </Space>
+                    </Tabs.TabPane>
+                  </Tabs>
                 </Form.Item>
               </Form>
             </Card>
