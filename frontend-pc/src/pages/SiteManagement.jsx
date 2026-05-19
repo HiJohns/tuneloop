@@ -196,6 +196,18 @@ export default function SiteManagement() {
     setLookupError({ message: '', visible: false })
   }
 
+  const handleDelete = async () => {
+    if (!selectedSite) return
+    try {
+      await sitesApi.delete(selectedSite.id)
+      message.success('删除成功')
+      setSelectedSite(null)
+      fetchSiteTree()
+    } catch (err) {
+      message.error('删除失败: ' + err.message)
+    }
+  }
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
