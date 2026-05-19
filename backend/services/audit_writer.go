@@ -37,6 +37,10 @@ func NewAuditWriter() *AuditWriter {
 	return w
 }
 
+func (w *AuditWriter) WriteSync(rec *AuditRecord) error {
+	return w.save(rec)
+}
+
 func (w *AuditWriter) Write(rec *AuditRecord) {
 	select {
 	case w.records <- rec:
