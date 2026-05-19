@@ -328,6 +328,19 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			uuidVal, parseErr := uuid.Parse(userResult.UserID)
 			if parseErr == nil {
 				managerUUID = &uuidVal
+				localUser := models.User{
+					ID:       userResult.UserID,
+					TenantID: tenantID,
+					OrgID:    orgID,
+					Name:     req.ManagerName,
+					Email:    req.ManagerEmail,
+					Phone:    req.ManagerPhone,
+					Role:     "site_member",
+					Status:   "active",
+				}
+				if err := db.Create(&localUser).Error; err != nil {
+					log.Printf("[CreateSite] Failed to create local user for manager %s: %v", userResult.UserID, err)
+				}
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, userResult.UserID, siteOrgID, "manager", operatorID); bindErr != nil {
 					log.Printf("[CreateSite] IAM BindUser failed for auto-created manager %s: %v", userResult.UserID, bindErr)
 				}
@@ -445,6 +458,22 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		if userResult.UserID != "" {
 			uuidVal, _ := uuid.Parse(userResult.UserID)
 			managerUUID = &uuidVal
+			dbLocal := database.GetDB().WithContext(c.Request.Context())
+			tenantID := middleware.GetTenantID(c.Request.Context())
+			orgID := middleware.GetOrgID(c.Request.Context())
+			localUser := models.User{
+				ID:       userResult.UserID,
+				TenantID: tenantID,
+				OrgID:    orgID,
+				Name:     req.ManagerName,
+				Email:    req.ManagerEmail,
+				Phone:    req.ManagerPhone,
+				Role:     "site_member",
+				Status:   "active",
+			}
+			if err := dbLocal.Create(&localUser).Error; err != nil {
+				log.Printf("[UpdateSite] Failed to create local user for manager %s: %v", userResult.UserID, err)
+			}
 		}
 	}
 
