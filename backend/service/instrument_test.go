@@ -179,7 +179,7 @@ func TestResolveCategory(t *testing.T) {
 				mock.ExpectQuery(`SELECT \* FROM "categories"`).
 					WillReturnRows(rows)
 			},
-			instrument:   &models.Instrument{Name: "Test"},
+			instrument:   &models.Instrument{SN: "SN-TEST-001"},
 			wantCategory: "cat-123",
 			wantErr:      false,
 		},
@@ -191,7 +191,7 @@ func TestResolveCategory(t *testing.T) {
 				mock.ExpectQuery(`SELECT \* FROM "categories"`).
 					WillReturnRows(rows)
 			},
-			instrument:   &models.Instrument{Name: "Test"},
+			instrument:   &models.Instrument{SN: "SN-TEST-001"},
 			wantCategory: "cat-456",
 			wantErr:      false,
 		},
@@ -209,7 +209,7 @@ func TestResolveCategory(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("cat-new"))
 				mock.ExpectCommit()
 			},
-			instrument:   &models.Instrument{Name: "Test"},
+			instrument:   &models.Instrument{SN: "SN-TEST-001"},
 			wantCategory: "cat-new",
 			wantErr:      false,
 		},

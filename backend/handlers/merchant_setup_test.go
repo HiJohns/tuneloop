@@ -439,7 +439,7 @@ func TestSite_DeleteWithRentedInstruments(t *testing.T) {
 		ID:          instrumentID,
 		TenantID:    tenantID,
 		SiteID:      uuidPtrStr(siteID),
-		Name:        "Rented Instrument",
+		SN:          "SN-RENTED-001",
 		StockStatus: "rented",
 	}
 	db.Create(&instrument)

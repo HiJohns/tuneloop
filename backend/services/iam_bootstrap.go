@@ -8,6 +8,7 @@ import (
 	"tuneloop-backend/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -100,6 +101,13 @@ func BootstrapIAM(db *gorm.DB) error {
 						log.Printf("[Bootstrap] Warning: failed to save admin to local DB: %v", err)
 					} else {
 						log.Printf("[Bootstrap] Admin saved to local users table")
+						tenantRecord := models.Tenant{
+							ID:   orgID,
+							Name: iamNs,
+						}
+						if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tenantRecord).Error; err != nil {
+							log.Printf("[Bootstrap] Warning: failed to save tenant record: %v", err)
+						}
 					}
 				}
 			}

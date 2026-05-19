@@ -62,6 +62,7 @@ func extractPort(urlStr string) string {
 }
 
 func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry *services.PermissionRegistry) {
+	auditWriter := services.NewAuditWriter()
 	siteHandler := handlers.NewSiteHandler()
 	// New handlers for Issue #345 (Merchant Management + Setup)
 	merchantHandler := handlers.NewMerchantHandler()
@@ -179,6 +180,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())
+	authRequired.Use(middleware.AuditLogger(auditWriter))
 	{
 		// IAM Proxy routes
 		iamProxyHandler := handlers.NewIAMProxyHandler()
@@ -407,6 +409,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)
 			authRequired.GET("/admin/dashboard/near-transfers", dashboardHandler.GetNearTransfers)
 
+			// Audit Log routes (Issue #598)
+			authRequired.GET("/admin/audit-logs", handlers.ListAuditLogs)
+			authRequired.GET("/admin/audit-logs/:id", handlers.GetAuditLog)
+			authRequired.POST("/admin/audit-logs/export", handlers.ExportAuditLogs)
+
 			// Issue #423: Bulk Import Routes
 			authRequired.POST("/admin/bulk-import/organizations", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), bulkImportHandler.ImportOrganizations)
 			authRequired.POST("/admin/bulk-import/accounts", middleware.RequireSysPerm(middleware.SysPermUserCreate), bulkImportHandler.ImportAccounts)
@@ -620,6 +627,9 @@ func main() {
 
 	leaseAccumulator := tasks.NewLeaseAccumulator()
 	leaseAccumulator.Start()
+
+	auditLogCleaner := services.NewAuditLogCleaner()
+	auditLogCleaner.Start()
 
 	_ = wwwURL
 	_ = wxURL

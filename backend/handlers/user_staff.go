@@ -333,12 +333,12 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	}
 
 	var req struct {
-		Name     string    `json:"name"`
-		Phone    string    `json:"phone"`
-		Email    string    `json:"email"`
-		Position string    `json:"position"`
-		UserType string    `json:"user_type"`
-		SiteID   uuid.UUID `json:"site_id"`
+		Name     string     `json:"name"`
+		Phone    string     `json:"phone"`
+		Email    string     `json:"email"`
+		Position string     `json:"position"`
+		UserType string     `json:"user_type"`
+		SiteID   *uuid.UUID `json:"site_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -418,69 +418,97 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	if req.UserType != "" {
 		updates["user_type"] = req.UserType
 	}
-	if req.SiteID != uuid.Nil {
+	if req.SiteID != nil {
 		newSiteIDStr := req.SiteID.String()
-		updates["site_id"] = &newSiteIDStr
 
-		siteIDChanged := false
-		var oldSiteIDStr string
-		if existingUser.SiteID != nil && *existingUser.SiteID != newSiteIDStr {
-			siteIDChanged = true
-			oldSiteIDStr = *existingUser.SiteID
-		} else if existingUser.SiteID == nil {
-			siteIDChanged = true
-		}
-
-		if siteIDChanged {
-			iamClient := services.NewIAMClient()
-			var newOrgID, oldOrgID string
-
-			var newSite models.Site
-			if err := db.Where("id = ? AND tenant_id = ?", newSiteIDStr, tenantID).First(&newSite).Error; err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site not found"})
-				return
-			}
-			newOrgID = newSite.OrgID
-			if newOrgID == "" {
-				newOrgID = tenantID
-			}
-
-			if oldSiteIDStr != "" {
-				var oldSite models.Site
-				if err := db.Where("id = ? AND tenant_id = ?", oldSiteIDStr, tenantID).First(&oldSite).Error; err == nil {
-					oldOrgID = oldSite.OrgID
-				}
-			}
+		if *req.SiteID == uuid.Nil {
+			updates["site_id"] = nil
+			updates["org_id"] = nil
 
 			if existingUser.IAMSub != "" {
+				oldOrgID := existingUser.OrgID
 				if oldOrgID != "" {
+					iamClient := services.NewIAMClient()
 					if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from old organization: " + err.Error()})
+						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from organization: " + err.Error()})
 						return
 					}
 				}
+			}
+		} else {
+			updates["site_id"] = &newSiteIDStr
 
-				if newOrgID != "" {
-					iamRole := services.GetBusinessRole(existingUser.Role)
-					if iamRole == "" {
-						iamRole = "staff"
-					}
-					if err := iamClient.BindUserToOrganization(existingUser.IAMSub, newOrgID, iamRole, ""); err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind user to new organization: " + err.Error()})
-						return
-					}
+			siteIDChanged := false
+			var oldSiteIDStr string
+			if existingUser.SiteID != nil && *existingUser.SiteID != newSiteIDStr {
+				siteIDChanged = true
+				oldSiteIDStr = *existingUser.SiteID
+			} else if existingUser.SiteID == nil {
+				siteIDChanged = true
+			}
 
-					template, ok := services.AllRoleTemplates[existingUser.Role]
-					if ok && len(template.CusPermCodes) > 0 {
-						if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, template.CusPermCodes); err != nil {
-							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to set user permissions: " + err.Error()})
+			if siteIDChanged {
+				iamClient := services.NewIAMClient()
+				var newOrgID, oldOrgID string
+
+				var newSite models.Site
+				if err := db.Where("id = ? AND tenant_id = ?", newSiteIDStr, tenantID).First(&newSite).Error; err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "site not found"})
+					return
+				}
+				newOrgID = newSite.OrgID
+				if newOrgID == "" {
+					newOrgID = tenantID
+				}
+
+				if oldSiteIDStr != "" {
+					var oldSite models.Site
+					if err := db.Where("id = ? AND tenant_id = ?", oldSiteIDStr, tenantID).First(&oldSite).Error; err == nil {
+						oldOrgID = oldSite.OrgID
+					}
+				}
+
+				if existingUser.IAMSub != "" {
+					oldUnbound := false
+					if oldOrgID != "" {
+						if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from old organization: " + err.Error()})
 							return
+						}
+						oldUnbound = true
+					}
+
+					if newOrgID != "" {
+						iamRole := services.GetBusinessRole(existingUser.Role)
+						if iamRole == "" {
+							iamRole = "staff"
+						}
+						if err := iamClient.BindUserToOrganization(existingUser.IAMSub, newOrgID, iamRole, ""); err != nil {
+							if oldUnbound && oldOrgID != "" {
+								oldIamRole := services.GetBusinessRole(existingUser.Role)
+								if oldIamRole == "" {
+									oldIamRole = "staff"
+								}
+								if rebindErr := iamClient.BindUserToOrganization(existingUser.IAMSub, oldOrgID, oldIamRole, ""); rebindErr != nil {
+									log.Printf("[CRITICAL] Compensation rebind failed for user %s to org %s: %v", existingUser.IAMSub, oldOrgID, rebindErr)
+								}
+							}
+							c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind user to new organization: " + err.Error()})
+							return
+						}
+
+						template, ok := services.AllRoleTemplates[existingUser.Role]
+						if ok && len(template.CusPermCodes) > 0 {
+							if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, template.CusPermCodes); err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to set user permissions: " + err.Error()})
+								return
+							}
 						}
 					}
 				}
-			}
 
-			updates["org_id"] = newOrgID
+				updates["org_id"] = newOrgID
+			}
 		}
 	}
 
