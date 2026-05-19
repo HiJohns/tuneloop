@@ -46,6 +46,7 @@ const (
 	ContextKeyCusPerm         ContextKey = "cus_perm"
 	ContextKeyCusPermExt      ContextKey = "cus_perm_ext"
 	ContextKeyIAMClient       ContextKey = "iam_client"
+	ContextKeyName            ContextKey = "name"
 )
 
 const (
@@ -83,29 +84,21 @@ func isPublicRoute(path string) bool {
 func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
-		log.Printf("[IAM DEBUG] Request: %s %s", c.Request.Method, path)
 
 		if isPublicRoute(path) {
-			log.Printf("[IAM DEBUG] Public route, skipping auth")
 			c.Next()
 			return
 		}
 
 		authHeader := c.GetHeader("Authorization")
-		log.Printf("[IAM DEBUG] Authorization header: %s", authHeader)
 
-		// 如果 Authorization header 为空，尝试从 Cookie 读取
 		if authHeader == "" {
 			if token, err := c.Cookie("token"); err == nil && token != "" {
 				authHeader = "Bearer " + token
-				log.Printf("[IAM DEBUG] Using token from Cookie, length: %d", len(token))
-			} else {
-				log.Printf("[IAM DEBUG] No token in cookie, err: %v", err)
 			}
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			log.Printf("[IAM DEBUG] Missing or invalid Authorization header, returning 401")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40100,
 				"message": "missing or invalid authorization header",
@@ -114,11 +107,10 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		log.Printf("[IAM DEBUG] Token string length: %d, first 20 chars: %s...", len(tokenString), tokenString[:min(20, len(tokenString))])
 
 		claims, err := iamService.ValidateToken(tokenString)
 		if err != nil {
-			log.Printf("[IAM DEBUG] Token validation failed: %v", err)
+			log.Printf("[IAM] Token validation failed: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40101,
 				"message": "invalid token: " + err.Error(),
@@ -158,6 +150,16 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 			orgID = tenantID
 		}
 
+		if tenantID == "" {
+			log.Printf("[IAM] Token rejected: user %s has no organization binding (tid=%q, oid=%q, iss=%q)",
+				claims.Subject, claims.TenantID, claims.OrgID, claims.Issuer)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    40104,
+				"message": "no organization binding in token, please contact your system administrator",
+			})
+			return
+		}
+
 		// Resolve top-level tenant: if this org has a parent, trace up to root
 		if iamClient != nil {
 			org, err := iamClient.GetOrganization(tenantID)
@@ -190,6 +192,7 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 		ctx = context.WithValue(ctx, ContextKeyCusPerm, claims.CusPerm)
 		ctx = context.WithValue(ctx, ContextKeyCusPermExt, claims.CusPermExt)
 		ctx = context.WithValue(ctx, ContextKeyIAMClient, iamClient)
+		ctx = context.WithValue(ctx, ContextKeyName, claims.Name)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Sliding expiration: Check if token is about to expire
@@ -347,6 +350,13 @@ func GetCusPerm(ctx context.Context) int64 {
 func GetCusPermExt(ctx context.Context) string {
 	if ext, ok := ctx.Value(ContextKeyCusPermExt).(string); ok {
 		return ext
+	}
+	return ""
+}
+
+func GetName(ctx context.Context) string {
+	if name, ok := ctx.Value(ContextKeyName).(string); ok {
+		return name
 	}
 	return ""
 }

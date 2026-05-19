@@ -64,6 +64,7 @@ type JWTClaims struct {
 	Gid         string   `json:"gid"` // Group ID (current organization)
 	NamespaceID string   `json:"nid"`
 	Role        string   `json:"role"`
+	Name        string   `json:"name"`
 	IsOwner     bool     `json:"is_owner"`
 	Roles       []string `json:"roles"`    // Functional roles
 	SysPerm     int64    `json:"sys_perm"` // System permission bitmap
@@ -180,13 +181,7 @@ func (s *IAMService) IsRS256Enabled() bool {
 }
 
 func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
-	log.Printf("[ValidateToken] Starting validation, token length: %d", len(tokenString))
-
-	// Parse token to inspect the header and determine signing method
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		log.Printf("[ValidateToken] Token signing method: %v", token.Header["alg"])
-
-		// Handle RS256 (RSA with public key)
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
 			if err := s.loadPublicKey(); err != nil {
 				log.Printf("[ValidateToken] Failed to load public key for RS256: %v", err)
@@ -197,7 +192,6 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 
 		// Handle HS256 (HMAC with secret)
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-			log.Printf("[ValidateToken] Using HS256 with client secret")
 			return []byte(s.clientSecret), nil
 		}
 
@@ -238,11 +232,9 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	}
 
 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
-		log.Printf("[ValidateToken] Token valid, sub=%s, tid=%s, oid=%s, role=%s", claims.Subject, claims.TenantID, claims.OrgID, claims.Role)
 		return claims, nil
 	}
 
-	log.Printf("[ValidateToken] Token claims extraction failed")
 	return nil, fmt.Errorf("invalid token")
 }
 

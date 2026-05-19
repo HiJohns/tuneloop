@@ -615,7 +615,6 @@ func lookupOrSyncManager(ctx *gin.Context, db *gorm.DB, managerID string) (*mode
 	}
 
 	// User not found locally, query IAM
-	fmt.Printf("[DEBUG] Manager %s not found locally, querying IAM\n", managerID)
 
 	// Get IAM base URL
 	iamBaseURL := getEnv("BEACONIAM_INTERNAL_URL", "http://localhost:5551")
@@ -693,7 +692,7 @@ func lookupOrSyncManager(ctx *gin.Context, db *gorm.DB, managerID string) (*mode
 		return nil, fmt.Errorf("failed to create shadow user: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] Created shadow user for manager %s\n", managerID)
+	_ = managerID
 	return &user, nil
 }
 

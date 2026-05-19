@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"tuneloop-backend/models"
 
@@ -127,7 +128,7 @@ func LoadConfig() *Config {
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 
-	fmt.Printf("[DEBUG Config] Database configuration loaded: host=%s port=%s user=%s dbname=%s sslmode=%s\n",
+	log.Printf("[DB] Configuration loaded: host=%s port=%s user=%s dbname=%s sslmode=%s",
 		config.Host, config.Port, config.User, config.DBName, config.SSLMode)
 
 	return config
@@ -144,7 +145,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
 
-	fmt.Printf("[DEBUG Database] Connecting to database: host=%s port=%s user=%s dbname=%s\n",
+	log.Printf("[DB] Connecting: host=%s port=%s user=%s dbname=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.DBName)
 
 	db, err := gorm.Open(gormPostgres.Open(dsn), &gorm.Config{})
@@ -152,7 +153,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	fmt.Printf("[DEBUG Database] Successfully connected to database '%s'\n", cfg.DBName)
+	log.Printf("[DB] Connected to database '%s'", cfg.DBName)
 
 	registerTenantCallbacks(db)
 
@@ -235,6 +236,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.DamageAssessment{},
 		&models.Appeal{},
 		&models.OrderStatusHistory{},
+		&models.AuditLog{},
 		&models.InstrumentPhotoBatch{},
 		&models.InstrumentPhotoSpec{},
 	)
