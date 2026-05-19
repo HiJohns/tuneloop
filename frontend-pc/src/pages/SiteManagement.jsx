@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag, Alert } from 'antd'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag, Alert, AutoComplete } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
-import InlineUserSelector from '../components/InlineUserSelector'
 
 const { Option } = Select
 
@@ -29,7 +28,10 @@ export default function SiteManagement() {
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [searchText, setSearchText] = useState('')
-  const [conflictUsers, setConflictUsers] = useState([])
+  const [managerMode, setManagerMode] = useState('search')
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [searchResults, setSearchResults] = useState([])
+  const [createFields, setCreateFields] = useState({ username: '', name: '', email: '', phone: '' })
   const [conflictMessage, setConflictMessage] = useState('')
 
   useEffect(() => {
@@ -141,6 +143,14 @@ export default function SiteManagement() {
     setExpandedKeys(prev => [...new Set([...prev, siteId])])
   }
 
+  const resetManagerState = () => {
+    setSelectedUser(null)
+    setCreateFields({ username: '', name: '', email: '', phone: '' })
+    setSearchResults([])
+    setConflictMessage('')
+    setManagerMode('search')
+  }
+
   const handleCreateTopLevel = () => {
     setEditingSite({ parent_id: null })
     setFormMode('create')
@@ -148,8 +158,7 @@ export default function SiteManagement() {
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
     setViewMode('form')
     setLookupError({ message: '', visible: false })
-    setConflictUsers([])
-    setConflictMessage('')
+    resetManagerState()
   }
 
   const handleCreateSubSite = () => {
@@ -164,8 +173,7 @@ export default function SiteManagement() {
     setManagerInfo({ name: '', id: null, email: '', phone: '' })
     setViewMode('form')
     setLookupError({ message: '', visible: false })
-    setConflictUsers([])
-    setConflictMessage('')
+    resetManagerState()
   }
 
   const handleEdit = () => {
@@ -173,7 +181,7 @@ export default function SiteManagement() {
     setEditingSite({ ...selectedSite })
     setFormMode('edit')
     form.setFieldsValue(selectedSite)
-    // Set manager display info if exists
+    resetManagerState()
     if (selectedSite.manager?.id) {
       setManagerInfo({ 
         name: selectedSite.manager.name, 
@@ -186,96 +194,39 @@ export default function SiteManagement() {
     }
     setViewMode('form')
     setLookupError({ message: '', visible: false })
-    setConflictUsers([])
-    setConflictMessage('')
   }
 
-  const handleManagerChange = (users) => {
-    if (!users || users.length === 0) {
-      setManagerInfo({ name: '', id: null, email: '', phone: '' })
-      form.setFieldsValue({ manager_id: null })
+  const handleCreateSubSite = () => {
+    if (!selectedSite) {
+      message.warning('请先选择一个网点')
       return
     }
-    const user = users[0]
-    setManagerInfo({
-      name: user.name || user.user_name,
-      id: user.user_id || user.id,
-      email: user.email || user.user_email || '',
-      phone: user.phone || '',
-      username: user.username || '',
-      isNew: user.isNew || false,
-    })
-    form.setFieldsValue({ manager_id: user.user_id || user.id })
-  }
-
-  const handleDelete = async () => {
-    if (!selectedSite) return
-    try {
-      await sitesApi.delete(selectedSite.id)
-      message.success('删除成功')
-      setSelectedSite(null)
-      fetchSiteTree()
-    } catch (err) {
-      message.error('删除失败: ' + err.message)
-    }
-  }
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields()
-      
-      Logger.state('SiteManagement', { action: 'handleSubmit', editingSite, values })
-      
-      const isNewUser = managerInfo.isNew || false
-      
-      const siteData = {
-        name: values.name,
-        address: values.address || '',
-        type: values.type || '',
-        phone: values.phone || '',
-        parent_id: editingSite?.parent_id,
-      }
-      
-      if (isNewUser && managerInfo.name && managerInfo.email) {
-        siteData.manager_name = managerInfo.name
-        siteData.manager_username = managerInfo.username || ''
-        siteData.manager_email = managerInfo.email
-        siteData.manager_phone = managerInfo.phone || ''
-      } else {
-        siteData.manager_id = managerInfo.id || null
-      }
-      
-      Logger.log('SITE', 'siteData:', siteData)
-      
-      setSaving(true)
-      setConflictMessage('')
-      setConflictUsers([])
-      
-      if (formMode === 'edit' && editingSite?.id) {
-        await sitesApi.update(editingSite.id, siteData)
-        message.success('更新成功')
-        setManagerInfo({ name: '', id: null, email: '', phone: '' })
-        setViewMode('detail')
-      } else {
-        const result = await sitesApi.create(siteData)
-        
-        if (result.code === 40901 && result.data?.conflicts) {
-          setConflictUsers(result.data.conflicts)
-          const names = result.data.conflicts.map(u => u.name || u.email).join('、')
-          setConflictMessage(`用户名、电话或电邮已存在，请从以下用户中选择：${names}`)
+    Logger.state('SiteManagement', { action: 'handleCreateSubSite', parentId: selectedSite.id })
+    setEditingSite({ parent_id: selectedSite.id })
+    setFormMode('create')
+    form.resetFields()
+    setManagerInfo({ name: '', id: null, email: '', phone: '' })
+    setViewMode('form')
+    setLookupError({ message: '', visible: false })
+                    setConflictMessage('')
+                    setCreateFields({ username: '', name: '', email: '', phone: '' })
+                    setSelectedUser(null)
+                    setSearchResults([])
+                    setManagerMode('search')
           return
         }
         
         if (result.data?.id) {
           Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
           await refreshAndSelectTreeNode(result.data.id)
-          setSelectedSite({ id: result.data.id, ...siteData, manager: managerInfo.id ? { id: managerInfo.id, name: managerInfo.name } : null })
-          setManagerInfo({ name: '', id: null, email: '', phone: '' })
           setViewMode('detail')
         }
       }
       
       form.resetFields()
+      setCreateFields({ username: '', name: '', email: '', phone: '' })
+      setSelectedUser(null)
+      setSearchResults([])
       setEditingSite(null)
       
     } catch (err) {
@@ -516,13 +467,73 @@ filterTreeNode={(node) => {
                       onClose={() => setConflictMessage('')}
                     />
                   )}
-                  <InlineUserSelector
-                    mode="single"
-                    merchantId="current-merchant-id"
-                    value={managerInfo.id ? [managerInfo] : []}
-                    onChange={handleManagerChange}
-                    preloadOptions={conflictUsers}
-                  />
+                  {formMode === 'edit' && managerInfo.id && !selectedUser ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <UserOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                      <span style={{ fontWeight: 500 }}>{managerInfo.name}</span>
+                      {managerInfo.email && <span style={{ color: '#999' }}>({managerInfo.email})</span>}
+                      <Button type="link" danger onClick={() => { setSelectedUser(null); setCreateFields({ username: '', name: '', email: '', phone: '' }) }}>X</Button>
+                    </div>
+                  ) : selectedUser ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <UserOutlined style={{ fontSize: 18, color: '#52c41a' }} />
+                      <span style={{ fontWeight: 500 }}>{selectedUser.name}</span>
+                      {selectedUser.email && <span style={{ color: '#999' }}>({selectedUser.email})</span>}
+                      <Button type="link" onClick={() => setSelectedUser(null)}>更换</Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Tabs activeKey={managerMode} onChange={setManagerMode} size="small">
+                        <Tabs.TabPane tab="搜索" key="search">
+                          <AutoComplete
+                            style={{ width: '100%' }}
+                            placeholder="输入用户名、邮箱或手机号搜索"
+                            options={searchResults}
+                            onSearch={(value) => {
+                              if (!value || value.length < 2) { setSearchResults([]); return }
+                              const token = localStorage.getItem('token')
+                              fetch(`/api/iam/users/search?q=${encodeURIComponent(value)}&limit=10`, {
+                                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                              })
+                                .then(r => r.json())
+                                .then(resp => {
+                                  if (resp.code === 20000) {
+                                    const users = resp.data?.users || []
+                                    setSearchResults(users.map(u => ({
+                                      value: u.id,
+                                      label: (
+                                        <div style={{ padding: '4px 0' }}>
+                                          <div style={{ fontWeight: 'bold' }}>{u.name}</div>
+                                          <div style={{ fontSize: 12, color: '#666' }}>{u.username} {u.email} {u.phone}</div>
+                                        </div>
+                                      ),
+                                      user: u,
+                                    })))
+                                  }
+                                })
+                                .catch(() => {})
+                            }}
+                            onSelect={(value, option) => {
+                              setSelectedUser(option.user || searchResults.find(r => r.value === value)?.user)
+                              setSearchResults([])
+                            }}
+                          />
+                        </Tabs.TabPane>
+                        <Tabs.TabPane tab="创建" key="create">
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            <Input placeholder="姓名" value={createFields.name}
+                              onChange={(e) => setCreateFields({ ...createFields, name: e.target.value })} />
+                            <Input placeholder="用户名" value={createFields.username}
+                              onChange={(e) => setCreateFields({ ...createFields, username: e.target.value })} />
+                            <Input placeholder="邮箱" value={createFields.email}
+                              onChange={(e) => setCreateFields({ ...createFields, email: e.target.value })} />
+                            <Input placeholder="电话" value={createFields.phone}
+                              onChange={(e) => setCreateFields({ ...createFields, phone: e.target.value })} />
+                          </Space>
+                        </Tabs.TabPane>
+                      </Tabs>
+                    </>
+                  )}
                 </Form.Item>
               </Form>
             </Card>
