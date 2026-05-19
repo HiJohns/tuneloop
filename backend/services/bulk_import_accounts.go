@@ -254,11 +254,60 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 				continue
 			}
 		} else {
+			if iamResp.UserID == "" {
+				LogImportError("account", acc.RowNum, acc.Email, fmt.Errorf("IAM CreateUser returned empty user_id"))
+				result.Summary.Failed++
+				result.Details = append(result.Details, BulkImportDetail{
+					Row:    acc.RowNum,
+					Key:    acc.Email,
+					Action: "failed",
+					Reason: "IAM CreateUser returned empty user_id",
+				})
+				continue
+			}
 			newUser.IAMSub = iamResp.UserID
+		}
+
+		// IAM operations before local create
+		if newUser.IAMSub != "" && orgIDForIAM != "" {
+			iamRole := GetBusinessRole("site_member")
+			if iamRole == "" {
+				iamRole = "staff"
+			}
+			if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, iamRole, ""); err != nil {
+				LogImportError("account", acc.RowNum, acc.Email, err)
+				iamClient.DeleteUser(newUser.IAMSub)
+				result.Summary.Failed++
+				result.Details = append(result.Details, BulkImportDetail{
+					Row:    acc.RowNum,
+					Key:    acc.Email,
+					Action: "failed",
+					Reason: fmt.Sprintf("IAM bind failed: %v", err),
+				})
+				continue
+			}
+
+			if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, newUser.IAMSub, template.CusPermCodes); err != nil {
+				LogImportError("account", acc.RowNum, acc.Email, err)
+				iamClient.UnbindUserFromOrganization(newUser.IAMSub, orgIDForIAM, "")
+				iamClient.DeleteUser(newUser.IAMSub)
+				result.Summary.Failed++
+				result.Details = append(result.Details, BulkImportDetail{
+					Row:    acc.RowNum,
+					Key:    acc.Email,
+					Action: "failed",
+					Reason: fmt.Sprintf("IAM set permissions failed: %v", err),
+				})
+				continue
+			}
 		}
 
 		if err := db.Create(&newUser).Error; err != nil {
 			LogImportError("account", acc.RowNum, acc.Email, err)
+			if newUser.IAMSub != "" && orgIDForIAM != "" {
+				iamClient.UnbindUserFromOrganization(newUser.IAMSub, orgIDForIAM, "")
+				iamClient.DeleteUser(newUser.IAMSub)
+			}
 			result.Summary.Failed++
 			result.Details = append(result.Details, BulkImportDetail{
 				Row:    acc.RowNum,
@@ -267,22 +316,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 				Reason: fmt.Sprintf("local create failed: %v", err),
 			})
 			continue
-		}
-
-		if newUser.IAMSub != "" && orgIDForIAM != "" {
-			if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, newUser.IAMSub, template.CusPermCodes); err != nil {
-				log.Printf("[BulkImport] IAM SetUserCustomerPermissions warning for %s: %v", acc.Email, err)
-			}
-		}
-
-		if newUser.IAMSub != "" && orgIDForIAM != "" {
-			iamRole := GetBusinessRole("site_member")
-			if iamRole == "" {
-				iamRole = "member"
-			}
-			if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, iamRole, ""); err != nil {
-				log.Printf("[BulkImport] IAM BindUser warning for %s: %v", acc.Email, err)
-			}
 		}
 
 		existingByEmail[acc.Email] = newUser
