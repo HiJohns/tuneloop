@@ -196,23 +196,52 @@ export default function SiteManagement() {
     setLookupError({ message: '', visible: false })
   }
 
-  const handleCreateSubSite = () => {
-    if (!selectedSite) {
-      message.warning('请先选择一个网点')
-      return
-    }
-    Logger.state('SiteManagement', { action: 'handleCreateSubSite', parentId: selectedSite.id })
-    setEditingSite({ parent_id: selectedSite.id })
-    setFormMode('create')
-    form.resetFields()
-    setManagerInfo({ name: '', id: null, email: '', phone: '' })
-    setViewMode('form')
-    setLookupError({ message: '', visible: false })
-                    setConflictMessage('')
-                    setCreateFields({ username: '', name: '', email: '', phone: '' })
-                    setSelectedUser(null)
-                    setSearchResults([])
-                    setManagerMode('search')
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields()
+      
+      Logger.state('SiteManagement', { action: 'handleSubmit', editingSite, values })
+      
+      const siteData = {
+        name: values.name,
+        address: values.address || '',
+        type: values.type || '',
+        phone: values.phone || '',
+        parent_id: editingSite?.parent_id,
+      }
+      
+      if (selectedUser) {
+        siteData.manager_id = selectedUser.id
+      } else if (createFields.name && createFields.email) {
+        siteData.manager_name = createFields.name
+        siteData.manager_username = createFields.username
+        siteData.manager_email = createFields.email
+        siteData.manager_phone = createFields.phone
+      } else if (managerInfo.id && formMode === 'edit') {
+        siteData.manager_id = managerInfo.id
+      }
+      
+      Logger.log('SITE', 'siteData:', siteData)
+      
+      setSaving(true)
+      setConflictMessage('')
+      
+      if (formMode === 'edit' && editingSite?.id) {
+        await sitesApi.update(editingSite.id, siteData)
+        message.success('更新成功')
+        setViewMode('detail')
+      } else {
+        const result = await sitesApi.create(siteData)
+        
+        if (result.code === 40901 && result.data?.conflicts) {
+          const options = result.data.conflicts.map(u => ({
+            value: u.id,
+            label: `${u.name || ''} (${u.email || ''}) - ${(u.matched_fields || []).join(', ')}`,
+            user: u,
+          }))
+          setSearchResults(options)
+          setConflictMessage('以下用户已存在，请选择：')
+          setManagerMode('search')
           return
         }
         
