@@ -704,6 +704,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 		ID          string                  `json:"id"`
 		Name        string                  `json:"name"`
 		Address     string                  `json:"address"`
+		Phone       string                  `json:"phone"`
 		Type        string                  `json:"type"`
 		ParentID    *string                 `json:"parent_id"`
 		Manager     *map[string]interface{} `json:"manager"`
@@ -740,6 +741,7 @@ func (h *SiteHandler) GetSiteTree(c *gin.Context) {
 			ID:          site.ID,
 			Name:        site.Name,
 			Address:     site.Address,
+			Phone:       site.Phone,
 			Type:        site.Type,
 			ParentID:    parentID,
 			Manager:     manager,
