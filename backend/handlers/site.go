@@ -330,6 +330,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				managerUUID = &uuidVal
 				localUser := models.User{
 					ID:       userResult.UserID,
+					IAMSub:   userResult.UserID,
 					TenantID: tenantID,
 					OrgID:    orgID,
 					Name:     req.ManagerName,
@@ -463,6 +464,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			orgID := middleware.GetOrgID(c.Request.Context())
 			localUser := models.User{
 				ID:       userResult.UserID,
+				IAMSub:   userResult.UserID,
 				TenantID: tenantID,
 				OrgID:    orgID,
 				Name:     req.ManagerName,
