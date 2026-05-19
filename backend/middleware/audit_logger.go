@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bytes"
+	"io"
 	"log"
 	"net/http"
 
@@ -120,17 +122,22 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 			resourceID = c.Param("user_id")
 		}
 
-		bodyBytes := make([]byte, 0)
-		if info.Priority == "CRITICAL" && c.Request.Body != nil {
-			bodyBytes, _ = c.GetRawData()
-			if len(bodyBytes) > maxRequestBodySize {
-				bodyBytes = bodyBytes[:maxRequestBodySize]
+		var bodyStr string
+		if info.Priority == "CRITICAL" && c.Request.Body != nil && c.Request.ContentLength > 0 {
+			bodyBytes, err := io.ReadAll(c.Request.Body)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"code": 40001, "message": "cannot read request body",
+				})
+				return
 			}
-		}
-
-		bodyStr := ""
-		if len(bodyBytes) > 0 {
-			bodyStr = string(bodyBytes)
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			if len(bodyBytes) > 0 {
+				if len(bodyBytes) > maxRequestBodySize {
+					bodyBytes = bodyBytes[:maxRequestBodySize]
+				}
+				bodyStr = string(bodyBytes)
+			}
 		}
 
 		rec := &services.AuditRecord{
