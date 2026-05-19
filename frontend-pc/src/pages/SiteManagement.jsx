@@ -29,7 +29,6 @@ export default function SiteManagement() {
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [searchText, setSearchText] = useState('')
-  const [managerMode, setManagerMode] = useState('search')
   const [conflictUsers, setConflictUsers] = useState([])
   const [conflictMessage, setConflictMessage] = useState('')
 
@@ -151,7 +150,6 @@ export default function SiteManagement() {
     setLookupError({ message: '', visible: false })
     setConflictUsers([])
     setConflictMessage('')
-    setManagerMode('search')
   }
 
   const handleCreateSubSite = () => {
@@ -168,7 +166,6 @@ export default function SiteManagement() {
     setLookupError({ message: '', visible: false })
     setConflictUsers([])
     setConflictMessage('')
-    setManagerMode('search')
   }
 
   const handleEdit = () => {
@@ -191,7 +188,6 @@ export default function SiteManagement() {
     setLookupError({ message: '', visible: false })
     setConflictUsers([])
     setConflictMessage('')
-    setManagerMode('search')
   }
 
   const handleManagerChange = (users) => {
@@ -265,7 +261,6 @@ export default function SiteManagement() {
         
         if (result.code === 40901 && result.data?.conflicts) {
           setConflictUsers(result.data.conflicts)
-          setManagerMode('search')
           const names = result.data.conflicts.map(u => u.name || u.email).join('、')
           setConflictMessage(`用户名、电话或电邮已存在，请从以下用户中选择：${names}`)
           return
@@ -461,7 +456,6 @@ filterTreeNode={(node) => {
                     setLookupError({ message: '', visible: false })
                     setConflictUsers([])
                     setConflictMessage('')
-                    setManagerMode('search')
                   }}>取消</Button>
                   <Button 
                     type="primary" 
@@ -512,39 +506,23 @@ filterTreeNode={(node) => {
                 </Form.Item>
 
                 <Form.Item label="负责人">
-                  <Tabs activeKey={managerMode} onChange={setManagerMode} size="small">
-                    <Tabs.TabPane tab="搜索" key="search">
-                      {conflictMessage && (
-                        <Alert
-                          message={conflictMessage}
-                          type="warning"
-                          showIcon
-                          closable
-                          style={{ marginBottom: 12 }}
-                          onClose={() => setConflictMessage('')}
-                        />
-                      )}
-                      <InlineUserSelector
-                        mode="single"
-                        merchantId="current-merchant-id"
-                        value={managerInfo.id ? [managerInfo] : []}
-                        onChange={handleManagerChange}
-                        preloadOptions={conflictUsers}
-                      />
-                    </Tabs.TabPane>
-                    <Tabs.TabPane tab="创建" key="create">
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <Input placeholder="用户名" value={managerInfo.username || ''}
-                          onChange={(e) => setManagerInfo({ ...managerInfo, username: e.target.value, isNew: true })} />
-                        <Input placeholder="姓名" value={managerInfo.name || ''}
-                          onChange={(e) => setManagerInfo({ ...managerInfo, name: e.target.value, isNew: true })} />
-                        <Input placeholder="邮箱" value={managerInfo.email || ''}
-                          onChange={(e) => setManagerInfo({ ...managerInfo, email: e.target.value, isNew: true })} />
-                        <Input placeholder="电话" value={managerInfo.phone || ''}
-                          onChange={(e) => setManagerInfo({ ...managerInfo, phone: e.target.value, isNew: true })} />
-                      </Space>
-                    </Tabs.TabPane>
-                  </Tabs>
+                  {conflictMessage && (
+                    <Alert
+                      message={conflictMessage}
+                      type="warning"
+                      showIcon
+                      closable
+                      style={{ marginBottom: 12 }}
+                      onClose={() => setConflictMessage('')}
+                    />
+                  )}
+                  <InlineUserSelector
+                    mode="single"
+                    merchantId="current-merchant-id"
+                    value={managerInfo.id ? [managerInfo] : []}
+                    onChange={handleManagerChange}
+                    preloadOptions={conflictUsers}
+                  />
                 </Form.Item>
               </Form>
             </Card>
