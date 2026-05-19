@@ -18,9 +18,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/api/sites/${siteId}/members`);
-      if (response.data.code === 20000) {
-        setMembers(response.data.data.list || []);
+      const response = await api.get(`/sites/${siteId}/members`);
+      if (response && response.code === 20000) {
+        setMembers(response.data?.list || []);
       }
     } catch (error) {
       message.error('获取成员列表失败');
