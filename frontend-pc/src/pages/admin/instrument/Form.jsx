@@ -8,7 +8,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
-import { checkRule, SysPermBits } from '../../../config/menuPermissions'
+import { checkPermission, SysPermBits } from '../../../config/menuPermissions'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -146,19 +146,15 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
 
     // 分类管理权限检查
-    const canCat = checkRule(
-      { visibleWhen: { cusPermCodes: ['category:manage'] } },
+    const canCat = checkPermission(
+      { cusPermCodes: ['category:manage'] },
       sysPerm, cusPerm, cusPermMapping
     )
     setCanManageCategories(canCat)
 
     // 网点管理权限检查（需要 sysPermBits + cusPermCodes，且 requireAllGroups）
-    const canSite = checkRule(
-      { visibleWhen: { 
-        sysPermBits: [SysPermBits.organization_view],
-        cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
-        requireAllGroups: true 
-      }},
+    const canSite = checkPermission(
+      { sysPermBits: [SysPermBits.organization_view], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true },
       sysPerm, cusPerm, cusPermMapping
     )
     setCanManageSites(canSite)
