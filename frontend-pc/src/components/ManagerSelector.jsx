@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AutoComplete, Button, Input, Space, Tabs, Alert } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
-import { getToken } from '../services/api'
+import api from '../services/api'
 
 export default function ManagerSelector({ value, onChange, conflictOptions, conflictMessage }) {
   const [mode, setMode] = useState('search')
@@ -12,13 +12,13 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
 
   const hasExisting = !!(selected?.id)
 
+  useEffect(() => {
+    setSelected(value?.id ? value : null)
+  }, [value])
+
   const handleSearch = (val) => {
     if (!val || val.length < 2) { setSearchResults([]); return }
-    const token = getToken()
-    fetch(`/api/iam/users/search?q=${encodeURIComponent(val)}&limit=10`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.json())
+    api.get(`/iam/users/search?q=${encodeURIComponent(val)}&limit=10`)
       .then(resp => {
         if (resp.code === 20000) {
           const users = resp.data?.users || []
@@ -34,7 +34,7 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
           })))
         }
       })
-      .catch(() => {})
+      .catch(err => console.error('ManagerSelector search failed:', err))
   }
 
   const handleSelect = (value, option) => {

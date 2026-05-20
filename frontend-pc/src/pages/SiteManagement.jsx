@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag, Alert } from 'antd'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
@@ -244,9 +244,9 @@ export default function SiteManagement() {
           label: `${u.name || ''} (${u.email || ''}) - ${(u.matched_fields || []).join(', ')}`,
           user: u,
         }))
-          setSearchResults(options)
-          setConflictMessage('以下用户已存在，请选择：')
-          return
+        setSearchResults(options)
+        setConflictMessage('以下用户已存在，请选择：')
+        return
       }
       
       if (result.code === 40900) {
@@ -444,7 +444,6 @@ filterTreeNode={(node) => {
                     form.resetFields()
                     setManagerInfo({ name: '', id: null, email: '', phone: '' })
                     setLookupError({ message: '', visible: false })
-                    setConflictUsers([])
                     setConflictMessage('')
                   }}>取消</Button>
                   <Button 
