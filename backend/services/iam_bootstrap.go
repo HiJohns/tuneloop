@@ -253,6 +253,10 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 		if u.ID == "" {
 			continue
 		}
+		orgID := u.OrgID
+		if orgID == "" {
+			orgID = namespaceOrgID
+		}
 		var existingUser models.User
 		if err := db.Where("iam_sub = ?", u.ID).First(&existingUser).Error; err != nil {
 			localUser := models.User{
@@ -262,7 +266,7 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 				Email:    u.Email,
 				Phone:    u.Phone,
 				TenantID: namespaceOrgID,
-				OrgID:    u.OrgID,
+				OrgID:    orgID,
 				Status:   "active",
 			}
 			if u.Status != "" {
