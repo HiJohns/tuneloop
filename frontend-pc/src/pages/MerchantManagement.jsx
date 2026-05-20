@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Modal, Form, Input, message, Card, Space, Popconfirm } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
 import api from '../services/api';
-import InlineUserSelector from '../components/InlineUserSelector';
+import ManagerSelector from '../components/ManagerSelector';
 
 const MerchantManagement = () => {
   const navigate = useNavigate();
@@ -59,6 +58,10 @@ const MerchantManagement = () => {
   const handleSubmit = async (values) => {
     try {
       const isNewUser = adminInfo.isNew || false
+      if (!editingMerchant && !adminInfo.id && !isNewUser) {
+        message.warning('请选择管理员或填写管理员信息')
+        return
+      }
       const submitData = { ...values }
       
       if (isNewUser && adminInfo.name && adminInfo.email) {
@@ -93,23 +96,6 @@ const MerchantManagement = () => {
       }
       message.error(error.response?.data?.message || '操作失败');
     }
-  };
-
-  const handleAdminChange = (users) => {
-    if (!users || users.length === 0) {
-      setAdminInfo({ name: '', id: null, email: '', username: '' });
-      form.setFieldsValue({ admin_uid: null });
-      return;
-    }
-    const user = users[0];
-    setAdminInfo({
-      name: user.name || user.user_name,
-      id: user.user_id || user.id,
-      email: user.email || '',
-      username: user.username || '',
-      isNew: user.isNew || false,
-    });
-    form.setFieldsValue({ admin_uid: user.user_id || user.id });
   };
 
   const columns = [
@@ -210,37 +196,22 @@ const MerchantManagement = () => {
             <Input placeholder="输入地址" />
           </Form.Item>
 
-          <Form.Item
-            name="admin_uid"
-            label="管理员"
-            rules={[{ required: !editingMerchant, message: '请选择管理员' }]}
-          >
-            {adminInfo.id ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <UserOutlined style={{ fontSize: 18, color: '#52c41a' }} />
-                <span style={{ fontWeight: 500 }}>{adminInfo.name}</span>
-                {adminInfo.email && <span style={{ color: '#999' }}>({adminInfo.email})</span>}
-                {!editingMerchant && (
-                  <Button
-                    type="link"
-                    onClick={() => {
-                      setAdminInfo({ name: '', id: null, email: '' });
-                      form.setFieldsValue({ admin_uid: null });
-                    }}
-                  >
-                    更换
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <InlineUserSelector
-                mode="single"
-                merchantId="current-merchant-id"
-                value={[]}
-                onChange={(users) => { handleAdminChange(users); setConflictOptions(null); }}
-                preloadOptions={conflictOptions}
-              />
-            )}
+          <Form.Item label="管理员">
+            <ManagerSelector
+              value={adminInfo}
+              onChange={(info) => {
+                if (info.id || info.isNew) {
+                  setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', isNew: info.isNew || false })
+                  form.setFieldsValue({ admin_uid: info.id || undefined })
+                } else {
+                  setAdminInfo({ name: '', id: null, email: '', username: '' })
+                  form.setFieldsValue({ admin_uid: null })
+                }
+                setConflictOptions(null)
+              }}
+              conflictOptions={conflictOptions}
+              conflictMessage={conflictOptions ? `发现 ${conflictOptions.length} 个冲突账户，请在搜索中选择` : ''}
+            />
           </Form.Item>
         </Form>
       </Modal>

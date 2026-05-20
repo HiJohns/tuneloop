@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag, Alert, AutoComplete } from 'antd'
+import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag, Alert } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
+import ManagerSelector from '../components/ManagerSelector'
 
 const { Option } = Select
 
@@ -28,10 +29,7 @@ export default function SiteManagement() {
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [searchText, setSearchText] = useState('')
-  const [managerMode, setManagerMode] = useState('search')
-  const [selectedUser, setSelectedUser] = useState(null)
   const [searchResults, setSearchResults] = useState([])
-  const [createFields, setCreateFields] = useState({ username: '', name: '', email: '', phone: '' })
   const [conflictMessage, setConflictMessage] = useState('')
 
   useEffect(() => {
@@ -144,11 +142,8 @@ export default function SiteManagement() {
   }
 
   const resetManagerState = () => {
-    setSelectedUser(null)
-    setCreateFields({ username: '', name: '', email: '', phone: '' })
     setSearchResults([])
     setConflictMessage('')
-    setManagerMode('search')
   }
 
   const handleCreateTopLevel = () => {
@@ -222,14 +217,12 @@ export default function SiteManagement() {
         parent_id: editingSite?.parent_id,
       }
       
-      if (selectedUser) {
-        siteData.manager_id = selectedUser.id
-      } else if (createFields.name && createFields.email) {
-        siteData.manager_name = createFields.name
-        siteData.manager_username = createFields.username
-        siteData.manager_email = createFields.email
-        siteData.manager_phone = createFields.phone
-      } else if (managerInfo.id && formMode === 'edit') {
+      if (managerInfo.isNew && managerInfo.name && managerInfo.email) {
+        siteData.manager_name = managerInfo.name
+        siteData.manager_username = managerInfo.username || ''
+        siteData.manager_email = managerInfo.email
+        siteData.manager_phone = managerInfo.phone || ''
+      } else if (managerInfo.id) {
         siteData.manager_id = managerInfo.id
       }
       
@@ -251,10 +244,9 @@ export default function SiteManagement() {
           label: `${u.name || ''} (${u.email || ''}) - ${(u.matched_fields || []).join(', ')}`,
           user: u,
         }))
-        setSearchResults(options)
-        setConflictMessage('以下用户已存在，请选择：')
-        setManagerMode('search')
-        return
+          setSearchResults(options)
+          setConflictMessage('以下用户已存在，请选择：')
+          return
       }
       
       if (result.code === 40900) {
@@ -274,9 +266,6 @@ export default function SiteManagement() {
       }
       
       form.resetFields()
-      setCreateFields({ username: '', name: '', email: '', phone: '' })
-      setSelectedUser(null)
-      setSearchResults([])
       setEditingSite(null)
       
     } catch (err) {
@@ -507,83 +496,20 @@ filterTreeNode={(node) => {
                 </Form.Item>
 
                 <Form.Item label="负责人">
-                  {conflictMessage && (
-                    <Alert
-                      message={conflictMessage}
-                      type="warning"
-                      showIcon
-                      closable
-                      style={{ marginBottom: 12 }}
-                      onClose={() => setConflictMessage('')}
-                    />
-                  )}
-                  {formMode === 'edit' && managerInfo.id && !selectedUser ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <UserOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                      <span style={{ fontWeight: 500 }}>{managerInfo.name}</span>
-                      {managerInfo.email && <span style={{ color: '#999' }}>({managerInfo.email})</span>}
-                      <Button type="link" danger onClick={() => { setSelectedUser(null); setCreateFields({ username: '', name: '', email: '', phone: '' }) }}>X</Button>
-                    </div>
-                  ) : selectedUser ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <UserOutlined style={{ fontSize: 18, color: '#52c41a' }} />
-                      <span style={{ fontWeight: 500 }}>{selectedUser.name}</span>
-                      {selectedUser.email && <span style={{ color: '#999' }}>({selectedUser.email})</span>}
-                      <Button type="link" onClick={() => setSelectedUser(null)}>更换</Button>
-                    </div>
-                  ) : (
-                    <>
-                      <Tabs activeKey={managerMode} onChange={setManagerMode} size="small">
-                        <Tabs.TabPane tab="搜索" key="search">
-                          <AutoComplete
-                            style={{ width: '100%' }}
-                            placeholder="输入用户名、邮箱或手机号搜索"
-                            options={searchResults}
-                            onSearch={(value) => {
-                              if (!value || value.length < 2) { setSearchResults([]); return }
-                              const token = localStorage.getItem('token')
-                              fetch(`/api/iam/users/search?q=${encodeURIComponent(value)}&limit=10`, {
-                                headers: token ? { Authorization: `Bearer ${token}` } : {},
-                              })
-                                .then(r => r.json())
-                                .then(resp => {
-                                  if (resp.code === 20000) {
-                                    const users = resp.data?.users || []
-                                    setSearchResults(users.map(u => ({
-                                      value: u.id,
-                                      label: (
-                                        <div style={{ padding: '4px 0' }}>
-                                          <div style={{ fontWeight: 'bold' }}>{u.name}</div>
-                                          <div style={{ fontSize: 12, color: '#666' }}>{u.username} {u.email} {u.phone}</div>
-                                        </div>
-                                      ),
-                                      user: u,
-                                    })))
-                                  }
-                                })
-                                .catch(() => {})
-                            }}
-                            onSelect={(value, option) => {
-                              setSelectedUser(option.user || searchResults.find(r => r.value === value)?.user)
-                              setSearchResults([])
-                            }}
-                          />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab="创建" key="create">
-                          <Space direction="vertical" style={{ width: '100%' }}>
-                            <Input placeholder="姓名" value={createFields.name}
-                              onChange={(e) => setCreateFields({ ...createFields, name: e.target.value })} />
-                            <Input placeholder="用户名" value={createFields.username}
-                              onChange={(e) => setCreateFields({ ...createFields, username: e.target.value })} />
-                            <Input placeholder="邮箱" value={createFields.email}
-                              onChange={(e) => setCreateFields({ ...createFields, email: e.target.value })} />
-                            <Input placeholder="电话" value={createFields.phone}
-                              onChange={(e) => setCreateFields({ ...createFields, phone: e.target.value })} />
-                          </Space>
-                        </Tabs.TabPane>
-                      </Tabs>
-                    </>
-                  )}
+                  <ManagerSelector
+                    value={managerInfo}
+                    onChange={(info) => {
+                      if (info.isNew) {
+                        setManagerInfo({ ...info, isNew: true })
+                      } else if (info.id) {
+                        setManagerInfo({ name: info.name, id: info.id, email: info.email || '', phone: info.phone || '', username: info.username || '', isNew: false })
+                      } else {
+                        setManagerInfo({ name: '', id: null, email: '', phone: '', username: '', isNew: false })
+                      }
+                    }}
+                    conflictMessage={conflictMessage}
+                    conflictOptions={searchResults}
+                  />
                 </Form.Item>
               </Form>
             </Card>
