@@ -303,47 +303,35 @@ export default function StaffInstrumentDetail() {
 
       {/* Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <div className="grid grid-cols-3 gap-3">
-          {instrument.stock_status === 'available' && (
-            <button
-              onClick={handleArchive}
-              disabled={actionLoading}
-              className="py-3 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <Archive size={18} />
-              下架
-            </button>
-          )}
-          {instrument.stock_status === 'reserved' && (
-            <button
-              onClick={handleShip}
-              className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <Truck size={18} />
-              发货
-            </button>
-          )}
-          {instrument.stock_status === 'returning' && (
-            <button
-              onClick={handleReceive}
-              disabled={actionLoading || !activeOrder}
-              className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <RotateCcw size={18} />
-              接收确认
-            </button>
-          )}
-          {instrument.stock_status === 'maintenance' && (
-            <button
-              onClick={handleCompleteMaintenance}
-              disabled={actionLoading}
-              className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <CheckCircle size={18} />
-              维修完成
-            </button>
-          )}
-        </div>
+        {(() => {
+          const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+          const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+          const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
+          return (
+            <div className="grid grid-cols-3 gap-3">
+              {instrument.stock_status === 'available' && has('instrument:edit') && (
+                <button onClick={handleArchive} disabled={actionLoading} className="py-3 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                  <Archive size={18} />下架
+                </button>
+              )}
+              {instrument.stock_status === 'reserved' && has('order:manage') && (
+                <button onClick={handleShip} className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                  <Truck size={18} />发货
+                </button>
+              )}
+              {instrument.stock_status === 'returning' && has('inventory:manage') && (
+                <button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                  <RotateCcw size={18} />接收确认
+                </button>
+              )}
+              {instrument.stock_status === 'maintenance' && has('maintenance:complete') && (
+                <button onClick={handleCompleteMaintenance} disabled={actionLoading} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                  <CheckCircle size={18} />维修完成
+                </button>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

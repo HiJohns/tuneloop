@@ -156,12 +156,20 @@ export default function StaffInstruments() {
       </div>
 
       <div className="fixed bottom-6 right-6">
-        <button
-          onClick={() => navigate('/staff/instrument/new')}
-          className="w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
-        >
-          +
-        </button>
+        {(() => {
+          const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+          const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+          const bit = mapping['instrument:create']
+          const ok = bit !== undefined && (cusPerm & (1 << bit)) !== 0
+          return ok ? (
+            <button
+              onClick={() => navigate('/staff/instrument/new')}
+              className="w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
+            >
+              +
+            </button>
+          ) : null
+        })()}
       </div>
     </div>
   )

@@ -334,36 +334,43 @@ export default function Profile() {
         )}
 
         {/* My Account (customer) or Staff Functions */}
-        {(businessRole === 'site_admin' || businessRole === 'site_member') ? (
+        {(businessRole === 'site_admin' || businessRole === 'site_member') && (
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium mb-3">员工功能</h3>
               <div className="grid grid-cols-3 gap-4">
-                <button
-                  onClick={() => navigate('/staff/instruments')}
-                  className="flex flex-col items-center p-2"
-                >
-                  <MapPin size={24} className="text-brand-primary" />
-                  <span className="text-xs mt-1 text-gray-600">乐器管理</span>
-                </button>
-                <button
-                  className="flex flex-col items-center p-2"
-                  onClick={() => navigate('/staff/shipping')}
-                >
-                  <Bell size={24} className="text-brand-primary" />
-                  <span className="text-xs mt-1 text-gray-600">发货管理</span>
-                </button>
-                <button
-                  className="flex flex-col items-center p-2"
-                  onClick={() => navigate('/staff/receiving')}
-                >
-                  <Package size={24} className="text-brand-primary" />
-                  <span className="text-xs mt-1 text-gray-600">收货管理</span>
-                </button>
+                {(() => {
+                  const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+                  const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+                  const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
+                  return (
+                    <>
+                      {has('instrument:view') && (
+                        <button onClick={() => navigate('/staff/instruments')} className="flex flex-col items-center p-2">
+                          <MapPin size={24} className="text-brand-primary" />
+                          <span className="text-xs mt-1 text-gray-600">乐器管理</span>
+                        </button>
+                      )}
+                      {has('order:manage') && (
+                        <button onClick={() => navigate('/staff/shipping')} className="flex flex-col items-center p-2">
+                          <Bell size={24} className="text-brand-primary" />
+                          <span className="text-xs mt-1 text-gray-600">发货管理</span>
+                        </button>
+                      )}
+                      {has('inventory:manage') && (
+                        <button onClick={() => navigate('/staff/receiving')} className="flex flex-col items-center p-2">
+                          <Package size={24} className="text-brand-primary" />
+                          <span className="text-xs mt-1 text-gray-600">收货管理</span>
+                        </button>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             </div>
           </div>
-        ) : (
+        )}
+        {!(businessRole === 'site_admin' || businessRole === 'site_member') && (
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium mb-3">My Account</h3>
