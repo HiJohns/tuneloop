@@ -19,7 +19,7 @@ const InlineUserSelector = ({
   const [createPhone, setCreatePhone] = useState('');
   const [activeTab, setActiveTab] = useState('search');
 
-  const selectedUsers = value || [];
+  const selectedUsers = Array.isArray(value) ? value : [];
   const debounceRef = useRef(null);
 
   const resetCreateForm = () => {
