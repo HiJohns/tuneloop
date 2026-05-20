@@ -32,7 +32,7 @@ const SysPermBits = {
 
 function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {
   if (!perm) return true
-  const { sysPermBits, cusPermCodes, requireAll } = perm
+  const { sysPermBits, cusPermCodes, requireAll, requireAllGroups } = perm
   if ((!sysPermBits || sysPermBits.length === 0) && (!cusPermCodes || cusPermCodes.length === 0)) return true
 
   let sysMatch = false
@@ -50,7 +50,7 @@ function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {
     })
   }
 
-  if (requireAll) return sysMatch && cusMatch
+  if (requireAll || requireAllGroups) return sysMatch && cusMatch
   if (sysPermBits?.length && cusPermCodes?.length) return sysMatch || cusMatch
   if (sysPermBits?.length) return sysMatch
   return cusMatch

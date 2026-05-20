@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
-import { SysPermBits, checkRule } from '../config/menuPermissions'
+import { SysPermBits, checkPermission } from '../config/menuPermissions'
 
 const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
@@ -173,8 +173,8 @@ export function ProtectedRoute({ children, requiredRoles = [], requiredPermissio
     
     // Backward compatibility: skip bitmap check if both are zero (legacy JWT)
     if (sysPerm !== 0 || cusPerm !== 0) {
-      const hasPermission = checkRule(
-        { visibleWhen: requiredPermission },
+      const hasPermission = checkPermission(
+        requiredPermission,
         sysPerm,
         cusPerm,
         cusPermMapping
