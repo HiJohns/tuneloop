@@ -132,14 +132,14 @@ export default function SiteManagement() {
   const refreshAndSelectTreeNode = async (siteId) => {
     Logger.state('SiteManagement', { action: 'refreshAndSelectTreeNode', siteId })
     
-    // 刷新 Tree 数据
-    await fetchSiteTree()
-    
-    // 设置选中的 keys
+    const result = await sitesApi.getTree()
+    const sites = result.data?.list || []
+    setTreeData(sites.map(site => convertToTreeNode(site)))
     setSelectedKeys([siteId])
     
-    // 尝试展开父节点（简化处理：只展开到一级）
-    // 实际需要根据 tree 结构计算需要展开的节点
+    const freshSite = sites.find(s => s.id === siteId)
+    if (freshSite) setSelectedSite(freshSite)
+    
     setExpandedKeys(prev => [...new Set([...prev, siteId])])
   }
 

@@ -372,6 +372,18 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
+	if managerUUID != nil {
+		siteMember := models.SiteMember{
+			SiteID:   site.ID,
+			UserID:   managerUUID.String(),
+			TenantID: tenantID,
+			Role:     "manager",
+		}
+		if err := db.Create(&siteMember).Error; err != nil {
+			log.Printf("[CreateSite] Failed to add manager as site member: %v", err)
+		}
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20000,
 		"data": gin.H{
@@ -499,6 +511,22 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			"message": "failed to update site: " + result.Error.Error(),
 		})
 		return
+	}
+
+	if managerUUID != nil {
+		var count int64
+		db.Model(&models.SiteMember{}).Where("site_id = ? AND user_id = ?", siteID, managerUUID.String()).Count(&count)
+		if count == 0 {
+			siteMember := models.SiteMember{
+				SiteID:   siteID,
+				UserID:   managerUUID.String(),
+				TenantID: middleware.GetTenantID(c.Request.Context()),
+				Role:     "manager",
+			}
+			if err := db.Create(&siteMember).Error; err != nil {
+				log.Printf("[UpdateSite] Failed to add manager as site member: %v", err)
+			}
+		}
 	}
 
 	if result.RowsAffected == 0 {
