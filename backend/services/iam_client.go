@@ -287,6 +287,23 @@ func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganiz
 	return &parsed, nil
 }
 
+func (c *IAMClient) DeleteOrganization(orgID string) error {
+	nsID, err := c.getNamespaceID()
+	if err != nil {
+		return fmt.Errorf("DeleteOrganization: failed to resolve namespace: %w", err)
+	}
+	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations/%s", nsID, orgID)
+	_, statusCode, err := c.doRequest("DELETE", path, nil)
+	if err != nil {
+		return fmt.Errorf("DeleteOrganization request failed: %w", err)
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusNoContent {
+		return fmt.Errorf("DeleteOrganization returned status %d", statusCode)
+	}
+	log.Printf("[IAMClient] Deleted organization: org_id=%s", orgID)
+	return nil
+}
+
 type Organization struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`

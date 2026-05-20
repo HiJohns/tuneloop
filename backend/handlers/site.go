@@ -634,6 +634,14 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 		return
 	}
 
+	var site models.Site
+	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
+		iamClient := services.NewIAMClient()
+		if delErr := iamClient.DeleteOrganization(site.OrgID); delErr != nil {
+			log.Printf("[DeleteSite] IAM DeleteOrganization failed for org %s: %v", site.OrgID, delErr)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{"deleted": true},
