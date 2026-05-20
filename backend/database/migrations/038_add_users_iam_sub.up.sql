@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255);
+CREATE UNIQUE INDEX IF NOT EXISTS users_iam_sub_key ON users(iam_sub);
