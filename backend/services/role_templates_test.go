@@ -98,9 +98,9 @@ func TestGetBusinessRole(t *testing.T) {
 		roleTemplate string
 		wantRole    string
 	}{
-		{"site_admin", "admin"},
-		{"merchant_admin", "owner"},
-		{"site_member", "staff"},
+		{"site_admin", "organization_admin"},
+		{"merchant_admin", "tenant_admin"},
+		{"site_member", "user"},
 		{"worker", "worker"},
 		{"namespace_admin", ""},
 		{"customer", ""},

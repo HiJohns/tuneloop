@@ -87,9 +87,9 @@ func ValidateRoleTemplate(code string) error {
 }
 
 var BusinessRoleMapping = map[string]string{
-	"merchant_admin": "owner",
-	"site_admin":     "admin",
-	"site_member":    "staff",
+	"merchant_admin": "tenant_admin",
+	"site_admin":     "organization_admin",
+	"site_member":    "user",
 	"worker":         "worker",
 }
 
