@@ -268,6 +268,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		Email    string `json:"email"`
 		Phone    string `json:"phone"`
 		Name     string `json:"name" binding:"required"`
+		Username string `json:"username"`
 		Password string `json:"password"`
 		Role     string `json:"role"`
 	}
@@ -304,18 +305,21 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	// Check uniqueness: name, email, or phone
 	db := database.GetDB().WithContext(ctx)
 	var conflicts []gin.H
+	seen := make(map[string]*models.User)     // userID -> user
+	matchedFields := make(map[string][]string) // userID -> matched_fields
+
+	addConflict := func(user *models.User, field string) {
+		if _, exists := seen[user.ID]; !exists {
+			seen[user.ID] = user
+		}
+		matchedFields[user.ID] = append(matchedFields[user.ID], field)
+	}
 
 	// Check name uniqueness
 	if req.Name != "" {
 		var existingUser models.User
 		if err := db.Where("tenant_id = ? AND name = ? AND deleted_at IS NULL", tenantID, req.Name).First(&existingUser).Error; err == nil {
-			conflicts = append(conflicts, gin.H{
-				"id":            existingUser.ID,
-				"name":          existingUser.Name,
-				"email":         existingUser.Email,
-				"phone":         existingUser.Phone,
-				"matched_field": "name",
-			})
+			addConflict(&existingUser, "name")
 		}
 	}
 
@@ -323,13 +327,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	if req.Email != "" {
 		var existingUser models.User
 		if err := db.Where("tenant_id = ? AND email = ? AND deleted_at IS NULL", tenantID, req.Email).First(&existingUser).Error; err == nil {
-			conflicts = append(conflicts, gin.H{
-				"id":            existingUser.ID,
-				"name":          existingUser.Name,
-				"email":         existingUser.Email,
-				"phone":         existingUser.Phone,
-				"matched_field": "email",
-			})
+			addConflict(&existingUser, "email")
 		}
 	}
 
@@ -337,14 +335,18 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	if req.Phone != "" {
 		var existingUser models.User
 		if err := db.Where("tenant_id = ? AND phone = ? AND deleted_at IS NULL", tenantID, req.Phone).First(&existingUser).Error; err == nil {
-			conflicts = append(conflicts, gin.H{
-				"id":            existingUser.ID,
-				"name":          existingUser.Name,
-				"email":         existingUser.Email,
-				"phone":         existingUser.Phone,
-				"matched_field": "phone",
-			})
+			addConflict(&existingUser, "phone")
 		}
+	}
+
+	for userID, user := range seen {
+		conflicts = append(conflicts, gin.H{
+			"id":             userID,
+			"name":           user.Name,
+			"email":          user.Email,
+			"phone":          user.Phone,
+			"matched_fields": matchedFields[userID],
+		})
 	}
 
 	// Return conflicts if any
@@ -365,6 +367,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		"email":        req.Email,
 		"phone":        req.Phone,
 		"name":         req.Name,
+		"username":     req.Username,
 		"tid":          tenantID,
 		"org_id":       orgID,
 		"password":     req.Password,
@@ -479,6 +482,7 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
 	Name     string `json:"name" binding:"required"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
 }) (string, error) {

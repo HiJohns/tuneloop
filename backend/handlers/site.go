@@ -296,19 +296,13 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	operatorID := middleware.GetUserID(c.Request.Context())
 
 	if managerUUID != nil {
-		if req.ManagerEmail != "" {
-			createUserReq := &services.CreateUserRequest{
-				Username: req.ManagerEmail,
-				Name:     req.ManagerName,
-				Email:    req.ManagerEmail,
-				Phone:    req.ManagerPhone,
-			}
-			if _, createErr := iamClient.CreateUser(createUserReq); createErr != nil {
-				log.Printf("[CreateSite] IAM CreateUser for manager %s: %v — will attempt bind", req.ManagerEmail, createErr)
-			}
+		iamManagerID := managerUUID.String()
+		var managerUser models.User
+		if err := db.Where("id = ?", managerUUID.String()).First(&managerUser).Error; err == nil && managerUser.IAMSub != "" {
+			iamManagerID = managerUser.IAMSub
 		}
-		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, managerUUID.String(), siteOrgID, "manager", operatorID); bindErr != nil {
-			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", managerUUID.String(), siteOrgID, bindErr)
+		if bindErr := iamClient.BindUserToOrganization(iamManagerID, siteOrgID, "manager", operatorID); bindErr != nil {
+			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", iamManagerID, siteOrgID, bindErr)
 		}
 	} else if req.ManagerName != "" && req.ManagerEmail != "" {
 		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{

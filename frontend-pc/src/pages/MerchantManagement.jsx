@@ -11,7 +11,7 @@ const MerchantManagement = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(null);
-  const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '' });
+  const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '', phone: '' });
   const [conflictOptions, setConflictOptions] = useState(null);
 
   useEffect(() => {
@@ -42,6 +42,14 @@ const MerchantManagement = () => {
   const handleEdit = (record) => {
     setEditingMerchant(record);
     form.setFieldsValue(record);
+    if (record.admin_uid && record.admin_name) {
+      setAdminInfo({ name: record.admin_name, id: record.admin_uid, email: record.admin_email || '', username: record.admin_username || '', phone: record.admin_phone || '' })
+      form.setFieldsValue({ admin_uid: record.admin_uid })
+    } else {
+      setAdminInfo({ name: '', id: null, email: '', username: '', phone: '' })
+      form.setFieldsValue({ admin_uid: null })
+    }
+    setConflictOptions(null);
     setModalOpen(true);
   };
 
@@ -57,24 +65,11 @@ const MerchantManagement = () => {
 
   const handleSubmit = async (values) => {
     try {
-      const isNewUser = adminInfo.isNew || false
-      if (!editingMerchant && !adminInfo.id && !isNewUser) {
-        message.warning('请选择管理员或填写管理员信息')
+      if (!editingMerchant && !adminInfo.id) {
+        message.warning('请选择管理员')
         return
       }
-      const submitData = { ...values }
-      
-      if (isNewUser && adminInfo.name && adminInfo.email) {
-        // Scenario 2: new user — send admin_uid=null + admin fields
-        submitData.admin_uid = null
-        submitData.admin_name = adminInfo.name
-        submitData.admin_username = adminInfo.username
-        submitData.admin_email = adminInfo.email
-        submitData.admin_phone = adminInfo.phone || ''
-      } else {
-        // Scenario 1: existing user — send admin_uid
-        submitData.admin_uid = adminInfo.id || values.admin_uid
-      }
+      const submitData = { ...values, admin_uid: adminInfo.id || null }
 
       if (editingMerchant) {
         await api.put(`/merchants/${editingMerchant.id}`, submitData);
@@ -87,7 +82,6 @@ const MerchantManagement = () => {
       fetchMerchants();
     } catch (error) {
       const resp = error.response
-      // 409 with conflict list → show all in search dropdown
       if (resp?.status === 409 && resp?.data?.data?.conflicts?.length > 0) {
         const conflicts = resp.data.data.conflicts
         setConflictOptions(conflicts)
@@ -200,11 +194,11 @@ const MerchantManagement = () => {
             <ManagerSelector
               value={adminInfo}
               onChange={(info) => {
-                if (info.id || info.isNew) {
-                  setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', isNew: info.isNew || false })
-                  form.setFieldsValue({ admin_uid: info.id || undefined })
+                if (info.id) {
+                  setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', phone: info.phone || '' })
+                  form.setFieldsValue({ admin_uid: info.id })
                 } else {
-                  setAdminInfo({ name: '', id: null, email: '', username: '' })
+                  setAdminInfo({ name: '', id: null, email: '', username: '', phone: '' })
                   form.setFieldsValue({ admin_uid: null })
                 }
                 setConflictOptions(null)

@@ -217,12 +217,7 @@ export default function SiteManagement() {
         parent_id: editingSite?.parent_id,
       }
       
-      if (managerInfo.isNew && managerInfo.name && managerInfo.email) {
-        siteData.manager_name = managerInfo.name
-        siteData.manager_username = managerInfo.username || ''
-        siteData.manager_email = managerInfo.email
-        siteData.manager_phone = managerInfo.phone || ''
-      } else if (managerInfo.id) {
+      if (managerInfo.id) {
         siteData.manager_id = managerInfo.id
       }
       
@@ -498,12 +493,10 @@ filterTreeNode={(node) => {
                   <ManagerSelector
                     value={managerInfo}
                     onChange={(info) => {
-                      if (info.isNew) {
-                        setManagerInfo({ ...info, isNew: true })
-                      } else if (info.id) {
-                        setManagerInfo({ name: info.name, id: info.id, email: info.email || '', phone: info.phone || '', username: info.username || '', isNew: false })
+                      if (info.id) {
+                        setManagerInfo({ name: info.name, id: info.id, email: info.email || '', phone: info.phone || '', username: info.username || '' })
                       } else {
-                        setManagerInfo({ name: '', id: null, email: '', phone: '', username: '', isNew: false })
+                        setManagerInfo({ name: '', id: null, email: '', phone: '', username: '' })
                       }
                     }}
                     conflictMessage={conflictMessage}

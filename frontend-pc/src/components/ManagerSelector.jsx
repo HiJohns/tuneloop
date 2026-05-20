@@ -9,6 +9,7 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
   const [selected, setSelected] = useState(value?.id ? value : null)
   const [fields, setFields] = useState({ username: '', name: '', email: '', phone: '' })
   const [msg, setMsg] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const hasExisting = !!(selected?.id)
 
@@ -40,7 +41,7 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
   const handleSelect = (value, option) => {
     const user = option.user || searchResults.find(r => r.value === value)?.user
     if (user) {
-      const s = { id: user.id, name: user.name, email: user.email || '', phone: user.phone || '', username: user.username || '', isNew: false }
+      const s = { id: user.id, name: user.name, email: user.email || '', phone: user.phone || '', username: user.username || '' }
       setSelected(s)
       onChange?.(s)
       setSearchResults([])
@@ -48,18 +49,53 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
     }
   }
 
-  const handleCreateSubmit = () => {
-    if (fields.name && fields.email) {
-      const s = { id: null, ...fields, isNew: true }
-      setSelected(s)
-      onChange?.(s)
+  const handleCreateSubmit = async () => {
+    if (!fields.name || !fields.email) return
+    setSubmitting(true)
+    setMsg('')
+    try {
+      const resp = await api.post('/iam/users', {
+        name: fields.name,
+        email: fields.email,
+        phone: fields.phone,
+        username: fields.username,
+      })
+      if (resp.code === 20000 && resp.data?.id) {
+        const s = {
+          id: resp.data.id,
+          name: fields.name,
+          email: fields.email,
+          phone: fields.phone,
+          username: fields.username,
+        }
+        setSelected(s)
+        onChange?.(s)
+        setSearchResults([])
+      } else if (resp.code === 40900) {
+        const conflicts = resp.data?.conflicts || []
+        const options = conflicts.map(u => ({
+          value: u.id,
+          label: `${u.name || ''} (${u.email || ''})${u.phone ? ' ' + u.phone : ''}`,
+          user: u,
+        }))
+        setSearchResults(options)
+        setMode('search')
+        setMsg('用户已存在，请在搜索中选择')
+      } else {
+        setMsg(resp.message || '创建失败')
+      }
+    } catch (err) {
+      console.error('ManagerSelector create failed:', err)
+      setMsg('创建失败: ' + (err.message || '网络错误'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleClear = () => {
     setSelected(null)
     setFields({ username: '', name: '', email: '', phone: '' })
-    onChange?.({ id: null, name: '', email: '', phone: '', username: '', isNew: false })
+    onChange?.({ id: null, name: '', email: '', phone: '', username: '' })
     setMsg('')
   }
 
@@ -97,7 +133,7 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
             <Input placeholder="用户名" value={fields.username} onChange={e => setFields({ ...fields, username: e.target.value })} />
             <Input placeholder="邮箱" value={fields.email} onChange={e => setFields({ ...fields, email: e.target.value })} />
             <Input placeholder="电话" value={fields.phone} onChange={e => setFields({ ...fields, phone: e.target.value })} />
-            <Button type="primary" block onClick={handleCreateSubmit} disabled={!fields.name || !fields.email}>添加</Button>
+            <Button type="primary" block onClick={handleCreateSubmit} disabled={!fields.name || !fields.email} loading={submitting}>提交</Button>
           </Space>
         </Tabs.TabPane>
       </Tabs>

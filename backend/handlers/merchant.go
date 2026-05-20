@@ -45,10 +45,53 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 
 	query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&merchants)
 
+	// Batch load admin user info
+	adminMap := make(map[string]models.User)
+	var adminUIDs []string
+	for _, m := range merchants {
+		if m.AdminUID != "" {
+			adminUIDs = append(adminUIDs, m.AdminUID)
+		}
+	}
+	if len(adminUIDs) > 0 {
+		var adminUsers []models.User
+		db.Where("id IN ? AND deleted_at IS NULL", adminUIDs).Find(&adminUsers)
+		for _, u := range adminUsers {
+			adminMap[u.ID] = u
+		}
+	}
+
+	// Build list with admin info
+	var list []gin.H
+	for _, m := range merchants {
+		item := gin.H{
+			"id":            m.ID,
+			"tenant_id":     m.TenantID,
+			"org_id":        m.OrgID,
+			"name":          m.Name,
+			"code":          m.Code,
+			"contact_name":  m.ContactName,
+			"contact_email": m.ContactEmail,
+			"contact_phone": m.ContactPhone,
+			"phone":         m.Phone,
+			"address":       m.Address,
+			"admin_uid":     m.AdminUID,
+			"status":        m.Status,
+			"created_at":    m.CreatedAt,
+			"updated_at":    m.UpdatedAt,
+		}
+		if u, ok := adminMap[m.AdminUID]; ok {
+			item["admin_name"] = u.Name
+			item["admin_email"] = u.Email
+			item["admin_phone"] = u.Phone
+		}
+		list = append(list, item)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"list":     merchants,
+			"list":     list,
 			"total":    total,
 			"page":     page,
 			"pageSize": pageSize,
@@ -262,6 +305,22 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			"message": "Failed to create merchant: " + result.Error.Error(),
 		})
 		return
+	}
+
+	if adminUserID != "" && iamOrgID != "" {
+		iamUserID := adminUserID
+		if orgResp != nil && orgResp.AdminID != "" {
+			iamUserID = orgResp.AdminID
+		} else {
+			var adminUser models.User
+			if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil && adminUser.IAMSub != "" {
+				iamUserID = adminUser.IAMSub
+			}
+		}
+		operatorID := middleware.GetUserID(c.Request.Context())
+		if bindErr := iamClient.BindUserToOrganization(iamUserID, iamOrgID, "OWNER", operatorID); bindErr != nil {
+			log.Printf("[CreateMerchant] BindUserToOrganization failed for admin %s to org %s: %v", iamUserID, iamOrgID, bindErr)
+		}
 	}
 
 	var directlyAdded []string
