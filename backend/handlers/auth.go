@@ -45,14 +45,11 @@ func (h *AuthHandler) GetOIDCAuthorizationURL(c *gin.Context) {
 	if clientID == "" {
 		clientID = os.Getenv("IAM_CLIENT_ID")
 	}
-	redirectURI := os.Getenv("IAM_PC_REDIRECT_URI")
+	redirectURI := os.Getenv("EXTERNAL_WEB_URL")
 	if redirectURI == "" {
-		redirectURI = os.Getenv("IAM_REDIRECT_URI")
+		redirectURI = "http://localhost:5554"
 	}
-
-	if redirectURI == "" {
-		redirectURI = externalURL + "/oauth/authorize?client_id=" + clientID + "&redirect_uri=" + clientID
-	}
+	redirectURI += "/callback"
 
 	authURL := externalURL + "/oauth/authorize?client_id=" + clientID + "&redirect_uri=" + redirectURI + "&response_type=code"
 
@@ -115,22 +112,26 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 
 	c.SetCookie("oauth_state", "", -1, "/", "", false, false)
 
-	redirectURI := os.Getenv("IAM_PC_REDIRECT_URI")
+	redirectURI := os.Getenv("EXTERNAL_WEB_URL")
+	if redirectURI == "" {
+		redirectURI = "http://localhost:5554"
+	}
+	redirectURI += "/callback"
 
 	clientType := c.Query("client_type")
 	if clientType == "" {
 		clientType = postBody.ClientType
 	}
 	if clientType == "wx" || clientType == "wechat" || clientType == "mobile" {
-		if wxURI := os.Getenv("IAM_WX_REDIRECT_URI"); wxURI != "" {
-			redirectURI = wxURI
+		if wxURI := os.Getenv("EXTERNAL_MOBILE_URL"); wxURI != "" {
+			redirectURI = wxURI + "/callback"
 		}
 	}
 
-	if referer := c.GetHeader("Referer"); redirectURI == os.Getenv("IAM_PC_REDIRECT_URI") && referer != "" {
+	if referer := c.GetHeader("Referer"); os.Getenv("EXTERNAL_WEB_URL") != "" && referer != "" {
 		if strings.Contains(referer, "wx.") || strings.Contains(referer, "wx-") {
-			if wxURI := os.Getenv("IAM_WX_REDIRECT_URI"); wxURI != "" {
-				redirectURI = wxURI
+			if wxURI := os.Getenv("EXTERNAL_MOBILE_URL"); wxURI != "" {
+				redirectURI = wxURI + "/callback"
 			}
 		}
 	}

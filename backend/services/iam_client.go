@@ -396,6 +396,7 @@ type CreateUserRequest struct {
 	Email       string `json:"email"`
 	Phone       string `json:"phone"`
 	CallbackURL string `json:"callback_url,omitempty"`
+	Reason      string `json:"reason,omitempty"`
 	OperatorID  string `json:"operator_id,omitempty"`
 }
 

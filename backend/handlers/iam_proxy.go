@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -362,7 +363,11 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	}
 
 	// Prepare request payload
-	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
+	callbackURL := os.Getenv("EXTERNAL_WEB_URL")
+	if callbackURL == "" {
+		callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
+	}
+	reason := "您已被设为管理员"
 	payload := map[string]interface{}{
 		"email":        req.Email,
 		"phone":        req.Phone,
@@ -372,6 +377,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		"org_id":       orgID,
 		"password":     req.Password,
 		"callback_url": callbackURL,
+		"reason":       reason,
 		"status":       "pending",
 	}
 
@@ -546,7 +552,10 @@ func (h *IAMProxyHandler) UpdateIAMUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 
-	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
+	callbackURL := os.Getenv("EXTERNAL_WEB_URL")
+	if callbackURL == "" {
+		callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
+	}
 
 	iamClient := services.NewIAMClient()
 	iamReq := &services.UpdateUserRequest{

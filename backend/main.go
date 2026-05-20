@@ -109,10 +109,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		if iamPCClientID == "" {
 			iamPCClientID = "tuneloop-pc"
 		}
-		iamPCRedirectURI := os.Getenv("IAM_PC_REDIRECT_URI")
+		iamPCRedirectURI := os.Getenv("EXTERNAL_WEB_URL")
 		if iamPCRedirectURI == "" {
-			iamPCRedirectURI = "http://localhost:5554/callback"
+			iamPCRedirectURI = "http://localhost:5554"
 		}
+		iamPCRedirectURI += "/callback"
 
 		// WeChat Mini Program configuration — derived from IAM_NAMESPACE + "_wechat"
 		iamWXClientID := ""
@@ -125,10 +126,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		if iamWXClientID == "" {
 			iamWXClientID = "tuneloop-wx"
 		}
-		iamWXRedirectURI := os.Getenv("IAM_WX_REDIRECT_URI")
+		iamWXRedirectURI := os.Getenv("EXTERNAL_MOBILE_URL")
 		if iamWXRedirectURI == "" {
-			iamWXRedirectURI = "http://localhost:5556/callback"
+			iamWXRedirectURI = "http://localhost:5553"
 		}
+		iamWXRedirectURI += "/callback"
 
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
@@ -551,8 +553,8 @@ func main() {
 	log.Printf("[INFO] IAM External URL: %s", os.Getenv("BEACONIAM_EXTERNAL_URL"))
 	log.Printf("[INFO] IAM PC Client ID: %s", os.Getenv("IAM_PC_CLIENT_ID"))
 	log.Printf("[INFO] IAM WX Client ID: %s", os.Getenv("IAM_WX_CLIENT_ID"))
-	log.Printf("[INFO] IAM PC Redirect URI: %s", os.Getenv("IAM_PC_REDIRECT_URI"))
-	log.Printf("[INFO] IAM WX Redirect URI: %s", os.Getenv("IAM_WX_REDIRECT_URI"))
+	log.Printf("[INFO] EXTERNAL_WEB_URL: %s", os.Getenv("EXTERNAL_WEB_URL"))
+	log.Printf("[INFO] EXTERNAL_MOBILE_URL: %s", os.Getenv("EXTERNAL_MOBILE_URL"))
 	log.Printf("[INFO] Working Directory: %s", func() string { dir, _ := os.Getwd(); return dir }())
 
 	iamService := services.NewIAMService()

@@ -268,6 +268,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		ParentID:    orgID,
 		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
 		Address:     req.Address,
+		CallbackURL: os.Getenv("EXTERNAL_WEB_URL"),
 		OperatorID:  middleware.GetUserID(c.Request.Context()),
 	}
 

@@ -166,11 +166,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	iamClient := services.NewIAMClient()
 	userToken := services.ExtractUserToken(c)
 
-	callbackHost := os.Getenv("TUNELOOP_EXTERNAL_URL")
-	if callbackHost == "" {
-		callbackHost = c.Request.Host
+	callbackURL := os.Getenv("EXTERNAL_WEB_URL")
+	if callbackURL == "" {
+		callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
 	}
-	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", callbackHost)
 
 	var adminUserID string
 	var userIDsToProcess []map[string]interface{}
@@ -186,6 +185,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			Email:       input.AdminEmail,
 			Phone:       input.AdminPhone,
 			CallbackURL: callbackURL,
+			Reason:      "商户管理员 - " + input.Name,
 			OperatorID:  middleware.GetUserID(c.Request.Context()),
 		})
 		if err != nil {

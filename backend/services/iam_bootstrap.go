@@ -29,14 +29,16 @@ func BootstrapIAM(db *gorm.DB) error {
 	iamSecret := os.Getenv("IAM_SECRET")
 	if iamNs != "" && iamSecret != "" {
 		iamClient := NewIAMClient()
-		pcRedirect := os.Getenv("IAM_PC_REDIRECT_URI")
+		pcRedirect := os.Getenv("EXTERNAL_WEB_URL")
 		if pcRedirect == "" {
-			pcRedirect = "http://localhost:5554/callback"
+			pcRedirect = "http://localhost:5554"
 		}
-		wxRedirect := os.Getenv("IAM_WX_REDIRECT_URI")
+		pcRedirect += "/callback"
+		wxRedirect := os.Getenv("EXTERNAL_MOBILE_URL")
 		if wxRedirect == "" {
-			wxRedirect = "http://localhost:5553/callback"
+			wxRedirect = "http://localhost:5553"
 		}
+		wxRedirect += "/callback"
 
 		apps := []AppRegistration{
 			{AppType: "web", RedirectURIs: []string{pcRedirect}, IsDefault: true},

@@ -3,7 +3,7 @@ import { AutoComplete, Button, Input, Space, Tabs, Alert } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
 import api from '../services/api'
 
-export default function ManagerSelector({ value, onChange, conflictOptions, conflictMessage }) {
+export default function ManagerSelector({ value, onChange, conflictOptions, conflictMessage, createReason }) {
   const [mode, setMode] = useState('search')
   const [searchResults, setSearchResults] = useState([])
   const [selected, setSelected] = useState(value?.id ? value : null)
@@ -59,6 +59,7 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
         email: fields.email,
         phone: fields.phone,
         username: fields.username,
+        reason: createReason || '管理员创建',
       })
       if (resp.code === 20000 && resp.data?.id) {
         const s = {

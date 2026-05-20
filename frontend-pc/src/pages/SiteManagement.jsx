@@ -492,6 +492,7 @@ filterTreeNode={(node) => {
                 <Form.Item label="负责人">
                   <ManagerSelector
                     value={managerInfo}
+                    createReason="网点负责人"
                     onChange={(info) => {
                       if (info.id) {
                         setManagerInfo({ name: info.name, id: info.id, email: info.email || '', phone: info.phone || '', username: info.username || '' })

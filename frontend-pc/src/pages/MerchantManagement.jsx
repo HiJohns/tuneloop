@@ -193,6 +193,7 @@ const MerchantManagement = () => {
           <Form.Item label="管理员">
             <ManagerSelector
               value={adminInfo}
+              createReason="商户管理员"
               onChange={(info) => {
                 if (info.id) {
                   setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', phone: info.phone || '' })

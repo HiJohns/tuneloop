@@ -824,22 +824,16 @@ func getResetPasswordRedirectURL(c *gin.Context) string {
 	isWechat := strings.Contains(referer, ":5553") || strings.Contains(referer, ":5556") || strings.Contains(ua, "MicroMessenger")
 
 	if isWechat {
-		// WeChat end: use IAM_WX_REDIRECT_URI
-		if redirectURI := os.Getenv("IAM_WX_REDIRECT_URI"); redirectURI != "" {
+		// WeChat end: use EXTERNAL_MOBILE_URL directly
+		if redirectURI := os.Getenv("EXTERNAL_MOBILE_URL"); redirectURI != "" {
 			if u, err := url.Parse(redirectURI); err == nil {
-				u.Path = ""
-				u.RawQuery = ""
-				u.Fragment = ""
 				return u.String()
 			}
 		}
 	} else {
-		// PC Web end: use IAM_PC_REDIRECT_URI
-		if redirectURI := os.Getenv("IAM_PC_REDIRECT_URI"); redirectURI != "" {
+		// PC Web end: use EXTERNAL_WEB_URL directly
+		if redirectURI := os.Getenv("EXTERNAL_WEB_URL"); redirectURI != "" {
 			if u, err := url.Parse(redirectURI); err == nil {
-				u.Path = ""
-				u.RawQuery = ""
-				u.Fragment = ""
 				return u.String()
 			}
 		}
