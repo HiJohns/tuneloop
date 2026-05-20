@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -273,6 +274,13 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)
 	if err != nil {
 		log.Printf("[CreateSite] IAM CreateOrganization failed: %v", err)
+		if strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "organization name already exists: " + err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to create sub-organization in IAM: " + err.Error(),
