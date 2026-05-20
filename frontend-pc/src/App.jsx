@@ -14,7 +14,7 @@ import {
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
 import { api, initPermissionMapping } from './services/api'
-import { menuRules, checkRule, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
+import { checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
@@ -161,9 +161,9 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '乐器管理',
     children: [
-      { key: '/instruments/list', label: '乐器列表' },
-      { key: '/instruments/categories', label: '分类设置' },
-      { key: '/instruments/properties', label: '属性管理' }
+      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:edit', 'instrument:delete', 'inventory:view', 'instrument:view'] } },
+      { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
+      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['property:manage'] } }
     ]
   },
   {
@@ -171,8 +171,8 @@ function MainLayout() {
     icon: <ToolOutlined />,
     label: '维修管理',
     children: [
-      { key: '/maintenance/workers', label: '师傅管理' },
-      { key: '/maintenance/sessions', label: '会话管理' }
+      { key: '/maintenance/workers', label: '师傅管理', permission: { cusPermCodes: ['maintenance:assign'] } },
+      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['maintenance:view', 'maintenance:assign', 'maintenance:complete'] } }
     ]
   },
   {
@@ -180,8 +180,8 @@ function MainLayout() {
     icon: <AppstoreOutlined />,
     label: '库存监控',
     children: [
-      { key: '/inventory/rent-setting', label: '租金设定' },
-      { key: '/warehouse', label: '库管工作台' }
+      { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['rent:setting'] } },
+      { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['inventory:view', 'inventory:manage'] } }
     ]
   },
   {
@@ -189,9 +189,9 @@ function MainLayout() {
     icon: <TeamOutlined />,
     label: '组织管理',
     children: [
-      { key: '/organization/sites', label: '网点管理' },
-      { key: '/staff', label: '人员管理' },
-      { key: '/appeals', label: '申诉处理' }
+      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAll: true } },
+      { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAll: true } },
+      { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:handle'] } }
     ]
   },
   {
@@ -199,8 +199,8 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '系统管理',
     children: [
-      { key: '/merchants', label: '商户管理' },
-      { key: '/system/audit-logs', label: '操作日志' }
+      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
+      { key: '/system/audit-logs', label: '操作日志', permission: { sysPermBits: [5] } }
     ]
   }
 ]
@@ -225,12 +225,10 @@ function onMenuClick(e) {
       children: item.children?.filter(child => {
         const childKey = child.key || ''
         if (isNsAdmin && getNamespaceAdminMenuKeys().includes(childKey)) return true
-        const rule = menuRules.find(r => r.path === childKey)
-        if (!rule) return true
         if (isOwnerUser && cusPerm === 0 && sysPerm === 0) {
           if (item.key !== 'system') return true
         }
-        return checkRule(rule, sysPerm, cusPerm, cusPermMapping)
+        return checkPermission(child.permission, sysPerm, cusPerm, cusPermMapping)
       }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
     }))
     .filter(item => item.children && item.children.length > 0);

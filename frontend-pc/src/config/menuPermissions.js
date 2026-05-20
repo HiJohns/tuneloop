@@ -30,120 +30,9 @@ const SysPermBits = {
   role_delete: 24,
 }
 
-/**
- * Menu visibility rules:
- * - sysPermBits: required sys_perm bits (OR within group)
- * - cusPermCodes: required cus_perm codes (OR within group)
- * - requireAllGroups: if true, BOTH sys_perm AND cus_perm groups must match
- *   (default false = either group matching is sufficient)
- */
-const menuRules = [
-  // Dashboard — always visible for logged-in users
-  { path: '/', visibleWhen: {} },
-
-  // Merchant management — now under system management menu (namespace admin, merchant admin)
-  {
-    path: '/merchants',
-    visibleWhen: { sysPermBits: [SysPermBits.tenant_view] }
-  },
-  {
-    path: '/system/audit-logs',
-    visibleWhen: { sysPermBits: [SysPermBits.tenant_view] }
-  },
-
-  // Client management — needs namespace_view sys_perm
-  {
-    path: '/system/clients',
-    visibleWhen: { sysPermBits: [SysPermBits.namespace_view] }
-  },
-
-  // Instrument management — needs any business cus_perm OR instrument:view
-  {
-    path: '/instruments/list',
-    visibleWhen: { cusPermCodes: ['instrument:create', 'instrument:edit', 'instrument:delete', 'inventory:view', 'instrument:view'] }
-  },
-  {
-    path: '/instruments/categories',
-    visibleWhen: { cusPermCodes: ['category:manage'] }
-  },
-  {
-    path: '/instruments/properties',
-    visibleWhen: { cusPermCodes: ['property:manage'] }
-  },
-
-  // Inventory — needs inventory cus_perm
-  {
-    path: '/inventory/rent-setting',
-    visibleWhen: { cusPermCodes: ['rent:setting'] }
-  },
-  {
-    path: '/warehouse',
-    visibleWhen: { cusPermCodes: ['inventory:view', 'inventory:manage'] }
-  },
-
-  // Maintenance — needs maintenance cus_perm
-  {
-    path: '/maintenance/workers',
-    visibleWhen: { cusPermCodes: ['maintenance:assign'] }
-  },
-  {
-    path: '/maintenance/sessions',
-    visibleWhen: { cusPermCodes: ['maintenance:view', 'maintenance:assign', 'maintenance:complete'] }
-  },
-
-  // Organization — needs BOTH sys_perm AND cus_perm
-  {
-    path: '/organization/sites',
-    visibleWhen: {
-      sysPermBits: [SysPermBits.organization_view],
-      cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
-      requireAllGroups: true
-    }
-  },
-  {
-    path: '/staff',
-    visibleWhen: {
-      sysPermBits: [SysPermBits.user_view],
-      cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
-      requireAllGroups: true
-    }
-  },
-  {
-    path: '/staff/bulk-import',
-    visibleWhen: {
-      sysPermBits: [SysPermBits.user_create],
-      cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
-      requireAllGroups: true
-    }
-  },
-  {
-    path: '/organization/sites/bulk-import',
-    visibleWhen: {
-      sysPermBits: [SysPermBits.organization_create],
-      cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'],
-      requireAllGroups: true
-    }
-  },
-
-  // System management — needs sys_perm
-  {
-    path: '/system/tenants',
-    visibleWhen: { sysPermBits: [SysPermBits.tenant_list] }
-  },
-  {
-    path: '/appeals',
-    visibleWhen: { cusPermCodes: ['appeal:handle'] }
-  },
-]
-
-/**
- * Check if a menu rule is satisfied by current user permissions.
- */
-function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
-  const { sysPermBits, cusPermCodes, requireAllGroups } = rule.visibleWhen
-
-  // If no conditions, always visible
-  if (!sysPermBits && !cusPermCodes) return true
+function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {
+  if (!perm) return true
+  const { sysPermBits, cusPermCodes, requireAll } = perm
   if ((!sysPermBits || sysPermBits.length === 0) && (!cusPermCodes || cusPermCodes.length === 0)) return true
 
   let sysMatch = false
@@ -156,38 +45,28 @@ function checkRule(rule, sysPerm, cusPerm, cusPermMapping) {
   if (cusPermCodes && cusPermCodes.length > 0) {
     cusMatch = cusPermCodes.some(code => {
       const bit = cusPermMapping[code]
-      if (bit === undefined || bit < 0) return false // code not registered yet
-      // For bits >= 64, check cus_perm_ext (not yet implemented)
-      if (bit >= 64) return false
+      if (bit === undefined || bit < 0) return false
       return (cusPerm & (1 << bit)) !== 0
     })
   }
 
-  if (requireAllGroups) {
-    return sysMatch && cusMatch
-  }
-  return sysMatch || cusMatch
+  if (requireAll) return sysMatch && cusMatch
+  if (sysPermBits?.length && cusPermCodes?.length) return sysMatch || cusMatch
+  if (sysPermBits?.length) return sysMatch
+  return cusMatch
 }
 
-/**
- * Determine if user is a namespace admin (has sys_perm but no cus_perm).
- * Namespace admins can only see merchant + client management + dashboard.
- */
 function isNamespaceAdmin(sysPerm, cusPerm) {
   return sysPerm > 0 && cusPerm === 0
 }
 
-/**
- * Get namespace admin visible menu keys.
- */
 function getNamespaceAdminMenuKeys() {
   return ['/', '/merchants', '/system/audit-logs']
 }
 
 export {
   SysPermBits,
-  menuRules,
-  checkRule,
+  checkPermission,
   isNamespaceAdmin,
   getNamespaceAdminMenuKeys,
 }
