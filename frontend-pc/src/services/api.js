@@ -208,7 +208,6 @@ async function request(endpoint, options = {}, retryCount = 0) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }))
     
-    // 对于 404，返回错误对象而不是抛出异常，让业务层处理
     if (response.status === 404) {
       return {
         code: 40400,
@@ -217,8 +216,16 @@ async function request(endpoint, options = {}, retryCount = 0) {
         status: 404
       }
     }
+
+    if (response.status === 409) {
+      return {
+        code: error.code || 40900,
+        message: error.message || 'Conflict',
+        data: error.data,
+        status: 409
+      }
+    }
     
-    // 其他错误仍然抛出异常
     throw new Error(error.message || error.code || 'Request failed')
   }
 

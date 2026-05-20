@@ -238,30 +238,39 @@ export default function SiteManagement() {
       setSaving(true)
       setConflictMessage('')
       
+      let result;
       if (formMode === 'edit' && editingSite?.id) {
-        await sitesApi.update(editingSite.id, siteData)
-        message.success('更新成功')
-        setViewMode('detail')
+        result = await sitesApi.update(editingSite.id, siteData);
       } else {
-        const result = await sitesApi.create(siteData)
-        
-        if (result.code === 40901 && result.data?.conflicts) {
-          const options = result.data.conflicts.map(u => ({
-            value: u.id,
-            label: `${u.name || ''} (${u.email || ''}) - ${(u.matched_fields || []).join(', ')}`,
-            user: u,
-          }))
-          setSearchResults(options)
-          setConflictMessage('以下用户已存在，请选择：')
-          setManagerMode('search')
-          return
-        }
-        
-        if (result.data?.id) {
-          Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
-          await refreshAndSelectTreeNode(result.data.id)
+        result = await sitesApi.create(siteData);
+      }
+
+      if (result.code === 40901 && result.data?.conflicts) {
+        const options = result.data.conflicts.map(u => ({
+          value: u.id,
+          label: `${u.name || ''} (${u.email || ''}) - ${(u.matched_fields || []).join(', ')}`,
+          user: u,
+        }))
+        setSearchResults(options)
+        setConflictMessage('以下用户已存在，请选择：')
+        setManagerMode('search')
+        return
+      }
+      
+      if (result.code === 40900) {
+        message.error(result.message || '网点名称已存在')
+        return
+      }
+      
+      if (formMode === 'edit') {
+        if (result.data?.updated) {
+          message.success('更新成功')
           setViewMode('detail')
         }
+      } else if (result.data?.id) {
+        Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
+        await refreshAndSelectTreeNode(result.data.id)
+        setViewMode('detail')
       }
       
       form.resetFields()
