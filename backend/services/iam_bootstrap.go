@@ -192,6 +192,9 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 	appCredentialsLock.RLock()
 	namespaceOrgID := appCredentials["_org_id"]
 	appCredentialsLock.RUnlock()
+	if namespaceOrgID == "" {
+		namespaceOrgID = "00000000-0000-0000-0000-000000000000"
+	}
 
 	for _, org := range orgs {
 		if org.Name == iamNs {
@@ -215,6 +218,7 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 				OrgID:    org.ID,
 				Name:     org.Name,
 				Code:     org.Name,
+				AdminUID: "00000000-0000-0000-0000-000000000000",
 				Status:   "active",
 			}
 			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&merchant).Error; err != nil {
