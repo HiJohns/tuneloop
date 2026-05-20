@@ -68,6 +68,15 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	},
 }
 
+var CustomRoleTemplates = map[string]RoleTemplate{
+	"worker": {
+		Name:         "维修工程师",
+		SysPermBits:  []int{},
+		CusPermCodes: []string{"maintenance:view", "maintenance:complete"},
+		Description:  "维修权限",
+	},
+}
+
 // GetRoleTemplate returns a role template by code.
 func GetRoleTemplate(code string) (RoleTemplate, bool) {
 	t, ok := AllRoleTemplates[code]
@@ -142,10 +151,13 @@ func GetRoleTemplateCusPerm(roleCode string, registry *PermissionRegistry) int64
 	return ComputeCusPermBitmap(t.CusPermCodes, registry)
 }
 
-// GetAllValidRoleTemplateCodes returns all valid role template codes.
+// GetAllValidRoleTemplateCodes returns all valid role template codes (standard + custom).
 func GetAllValidRoleTemplateCodes() []string {
-	codes := make([]string, 0, len(AllRoleTemplates))
+	codes := make([]string, 0, len(AllRoleTemplates)+len(CustomRoleTemplates))
 	for k := range AllRoleTemplates {
+		codes = append(codes, k)
+	}
+	for k := range CustomRoleTemplates {
 		codes = append(codes, k)
 	}
 	return codes

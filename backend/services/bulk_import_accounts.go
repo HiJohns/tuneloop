@@ -20,6 +20,7 @@ type AccountImportRecord struct {
 	Username         string
 	OrganizationCode string
 	Phone            string
+	Role             string
 }
 
 // ImportAccountsCSV imports accounts from a CSV file.
@@ -32,6 +33,10 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 	// Parse records
 	var accRecords []AccountImportRecord
 	for _, rec := range records {
+		role := strings.TrimSpace(rec.Fields["role"])
+		if role == "" {
+			role = "site_member"
+		}
 		accRecords = append(accRecords, AccountImportRecord{
 			RowNum:           rec.RowNum,
 			Email:            strings.TrimSpace(rec.Fields["email"]),
@@ -39,6 +44,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Username:         strings.TrimSpace(rec.Fields["username"]),
 			OrganizationCode: strings.TrimSpace(rec.Fields["site"]),
 			Phone:            strings.TrimSpace(rec.Fields["phone"]),
+			Role:             role,
 		})
 	}
 
@@ -192,7 +198,13 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 		}
 
 		// Compute permissions
-		template := AllRoleTemplates["site_member"]
+		template, templateOk := AllRoleTemplates[acc.Role]
+		if !templateOk {
+			template, templateOk = CustomRoleTemplates[acc.Role]
+		}
+		if !templateOk {
+			template = AllRoleTemplates["site_member"]
+		}
 
 		tagsStr := ""
 
@@ -205,7 +217,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Name:     acc.Name,
 			Email:    acc.Email,
 			Phone:    acc.Phone,
-			Role:     "site_member",
+			Role:     acc.Role,
 			Status:   "active",
 			UserType: "员工",
 			IsShadow: false,
@@ -270,7 +282,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 		// IAM operations before local create
 		if newUser.IAMSub != "" && orgIDForIAM != "" {
-			iamRole := GetBusinessRole("site_member")
+			iamRole := GetBusinessRole(acc.Role)
 			if iamRole == "" {
 				iamRole = "staff"
 			}
