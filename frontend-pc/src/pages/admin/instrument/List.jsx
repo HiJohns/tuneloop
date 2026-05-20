@@ -5,6 +5,7 @@ import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, DownloadOutlined, ExportOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 import InstrumentForm from './Form'
+import PermissionGate from '../../../components/PermissionGate'
 
 const { Option } = Select
 
@@ -162,23 +163,27 @@ export default function InstrumentList() {
       width: 120,
       render: (_, record) => (
         <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/instruments/${record.id}/edit`)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除这个乐器吗？"
-            onConfirm={() => deleteInstrument(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
+          <PermissionGate code="instrument:edit">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/instruments/${record.id}/edit`)}
+            >
+              编辑
             </Button>
-          </Popconfirm>
+          </PermissionGate>
+          <PermissionGate code="instrument:delete">
+            <Popconfirm
+              title="确定要删除这个乐器吗？"
+              onConfirm={() => deleteInstrument(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          </PermissionGate>
         </Space>
       )
     }
@@ -484,13 +489,15 @@ export default function InstrumentList() {
           >
             导入
           </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={addInstrument}
-          >
-            新增乐器
-          </Button>
+          <PermissionGate code="instrument:create">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={addInstrument}
+            >
+              新增乐器
+            </Button>
+          </PermissionGate>
         </Space>
       </div>
 
