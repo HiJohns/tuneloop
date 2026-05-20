@@ -7,6 +7,7 @@ import (
 	"sync"
 	"tuneloop-backend/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -88,10 +89,10 @@ func BootstrapIAM(db *gorm.DB) error {
 					appCredentialsLock.RLock()
 					orgID := appCredentials["_org_id"]
 					appCredentialsLock.RUnlock()
-					tenantID := orgID
-					if tenantID == "" {
-						tenantID = "00000000-0000-0000-0000-000000000000"
+					if orgID == "" {
+						orgID = "00000000-0000-0000-0000-000000000000"
 					}
+					tenantID := orgID
 					localUser := models.User{
 						IAMSub:   adminEmail,
 						Name:     "Administrator",
@@ -115,6 +116,11 @@ func BootstrapIAM(db *gorm.DB) error {
 			}
 		}
 	}
+
+	// Sync IAM organizations and users to local tables on startup.
+	// This ensures data persists across server restarts and recovers
+	// organizations created directly in IAM.
+	syncIAMOrganizations(db, iamNs)
 
 	bootstrapClientID := os.Getenv("BOOTSTRAP_CLIENT_ID")
 	if bootstrapClientID == "" {
@@ -159,4 +165,107 @@ func BootstrapIAM(db *gorm.DB) error {
 
 	fmt.Printf("Bootstrap: Created IAM Client '%s'\n", bootstrapClientID)
 	return nil
+}
+
+// syncIAMOrganizations synchronizes IAM organizations and users into local tables.
+// Merchants = top-level orgs (no parent, name != namespace).
+// Sites = child orgs (have parent).
+// Users are mapped by iam_sub to avoid duplicates.
+func syncIAMOrganizations(db *gorm.DB, iamNs string) {
+	if iamNs == "" {
+		return
+	}
+	iamSecret := os.Getenv("IAM_SECRET")
+	if iamSecret == "" {
+		return
+	}
+
+	client := NewIAMClient()
+
+	// Fetch all organizations from IAM
+	orgs, err := client.ListOrganizations()
+	if err != nil {
+		log.Printf("[Bootstrap] Warning: failed to list IAM organizations: %v", err)
+		return
+	}
+
+	appCredentialsLock.RLock()
+	namespaceOrgID := appCredentials["_org_id"]
+	appCredentialsLock.RUnlock()
+
+	for _, org := range orgs {
+		if org.Name == iamNs {
+			continue
+		}
+
+		// Check if this org already exists as a merchant or site
+		var merchantCount int64
+		db.Model(&models.Merchant{}).Where("org_id = ?", org.ID).Count(&merchantCount)
+		var siteCount int64
+		db.Model(&models.Site{}).Where("org_id = ?", org.ID).Count(&siteCount)
+
+		if merchantCount > 0 || siteCount > 0 {
+			continue
+		}
+
+		if org.ParentID == nil || *org.ParentID == "" {
+			merchant := models.Merchant{
+				ID:       uuid.New().String(),
+				TenantID: namespaceOrgID,
+				OrgID:    org.ID,
+				Name:     org.Name,
+				Code:     org.Name,
+				Status:   "active",
+			}
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&merchant).Error; err != nil {
+				log.Printf("[Bootstrap] Warning: failed to create merchant from IAM org %s: %v", org.Name, err)
+			} else {
+				log.Printf("[Bootstrap] Synced IAM org %s -> merchant", org.Name)
+			}
+		} else {
+			site := models.Site{
+				ID:       uuid.New().String(),
+				TenantID: namespaceOrgID,
+				OrgID:    org.ID,
+				Name:     org.Name,
+				Status:   "active",
+			}
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&site).Error; err != nil {
+				log.Printf("[Bootstrap] Warning: failed to create site from IAM org %s: %v", org.Name, err)
+			} else {
+				log.Printf("[Bootstrap] Synced IAM org %s -> site", org.Name)
+			}
+		}
+	}
+
+	// Sync IAM users to local users table
+	users, err := client.ListUsers()
+	if err != nil {
+		log.Printf("[Bootstrap] Warning: failed to list IAM users: %v", err)
+		return
+	}
+
+	for _, u := range users {
+		var existingUser models.User
+		if err := db.Where("iam_sub = ?", u.ID).First(&existingUser).Error; err != nil {
+			localUser := models.User{
+				ID:       uuid.New().String(),
+				IAMSub:   u.ID,
+				Name:     u.Name,
+				Email:    u.Email,
+				Phone:    u.Phone,
+				TenantID: namespaceOrgID,
+				OrgID:    u.OrgID,
+				Status:   "active",
+			}
+			if u.Status != "" {
+				localUser.Status = u.Status
+			}
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&localUser).Error; err != nil {
+				log.Printf("[Bootstrap] Warning: failed to sync IAM user %s: %v", u.Email, err)
+			} else {
+				log.Printf("[Bootstrap] Synced IAM user %s -> local users", u.Email)
+			}
+		}
+	}
 }
