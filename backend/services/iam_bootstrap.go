@@ -250,11 +250,12 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 	}
 
 	for _, u := range users {
+		if u.Email == "" {
+			continue
+		}
 		var existingUser models.User
-		if err := db.Where("iam_sub = ?", u.ID).First(&existingUser).Error; err != nil {
+		if err := db.Where("email = ?", u.Email).First(&existingUser).Error; err != nil {
 			localUser := models.User{
-				ID:       uuid.New().String(),
-				IAMSub:   u.ID,
 				Name:     u.Name,
 				Email:    u.Email,
 				Phone:    u.Phone,
