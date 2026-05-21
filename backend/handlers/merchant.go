@@ -307,22 +307,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	if adminUserID != "" && iamOrgID != "" {
-		iamUserID := adminUserID
-		if orgResp != nil && orgResp.AdminID != "" {
-			iamUserID = orgResp.AdminID
-		} else {
-			var adminUser models.User
-			if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil && adminUser.IAMSub != "" {
-				iamUserID = adminUser.IAMSub
-			}
-		}
-		operatorID := middleware.GetUserID(c.Request.Context())
-		if bindErr := iamClient.BindUserToOrganization(iamUserID, iamOrgID, "OWNER", operatorID); bindErr != nil {
-			log.Printf("[CreateMerchant] BindUserToOrganization failed for admin %s to org %s: %v", iamUserID, iamOrgID, bindErr)
-		}
-	}
-
 	var directlyAdded []string
 	for _, userEntry := range userIDsToProcess {
 		if userID, ok := userEntry["user_id"].(string); ok && userID != "" {
@@ -408,22 +392,22 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		iamClient := services.NewIAMClient()
 		operatorID := middleware.GetUserID(c.Request.Context())
 
+		// Bind new admin if provided (bind first per #618 best practice)
+		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
+			var newUser models.User
+			if err := db.Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
+				if bindErr := iamClient.BindUserToOrganization(newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
+					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
+				}
+			}
+		}
+
 		// Demote old admin if there was one
 		if oldAdmin != "" && merchant.OrgID != "" {
 			var oldUser models.User
 			if err := db.Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
 				if demoteErr := iamClient.UpdateUserRoleInOrg(merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
 					log.Printf("[UpdateMerchant] Failed to demote old admin %s: %v", oldUser.IAMSub, demoteErr)
-				}
-			}
-		}
-
-		// Bind new admin if provided
-		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
-			var newUser models.User
-			if err := db.Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
-				if bindErr := iamClient.BindUserToOrganization(newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
-					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
 				}
 			}
 		}
