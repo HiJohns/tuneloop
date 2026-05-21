@@ -353,9 +353,10 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Name    string `json:"name"`
-		Phone   string `json:"phone"`
-		Address string `json:"address"`
+		Name     string `json:"name"`
+		Phone    string `json:"phone"`
+		Address  string `json:"address"`
+		AdminUID string `json:"admin_uid"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -389,6 +390,50 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	}
 	if input.Address != "" {
 		merchant.Address = input.Address
+	}
+
+	// Handle admin_uid change
+	nilUUID := "00000000-0000-0000-0000-000000000000"
+	newAdmin := input.AdminUID
+	oldAdmin := merchant.AdminUID
+
+	if newAdmin == "" || newAdmin == nilUUID {
+		newAdmin = ""
+	}
+	if oldAdmin == "" || oldAdmin == nilUUID {
+		oldAdmin = ""
+	}
+
+	if newAdmin != oldAdmin {
+		iamClient := services.NewIAMClient()
+		operatorID := middleware.GetUserID(c.Request.Context())
+
+		// Demote old admin if there was one
+		if oldAdmin != "" && merchant.OrgID != "" {
+			var oldUser models.User
+			if err := db.Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
+				if demoteErr := iamClient.UpdateUserRoleInOrg(merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
+					log.Printf("[UpdateMerchant] Failed to demote old admin %s: %v", oldUser.IAMSub, demoteErr)
+				}
+			}
+		}
+
+		// Bind new admin if provided
+		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
+			var newUser models.User
+			if err := db.Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
+				if bindErr := iamClient.BindUserToOrganization(newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
+					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
+				}
+			}
+		}
+
+		// Update local record
+		if input.AdminUID == "" || input.AdminUID == nilUUID {
+			merchant.AdminUID = nilUUID
+		} else {
+			merchant.AdminUID = input.AdminUID
+		}
 	}
 
 	result = db.Save(&merchant)

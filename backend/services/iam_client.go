@@ -749,6 +749,31 @@ func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string)
 	return nil
 }
 
+func (c *IAMClient) UpdateUserRoleInOrg(orgID, userID, role string) error {
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role", orgID, userID)
+	respBody, statusCode, err := c.doRequest("PUT", path, map[string]string{"role": role})
+	if err != nil {
+		return fmt.Errorf("UpdateUserRole request failed: %w", err)
+	}
+
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user or organization not found: user=%s org=%s", userID, orgID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("UpdateUserRole returned status %d: %s", statusCode, string(respBody))
+	}
+
+	log.Printf("[IAMClient] Updated user %s role to %s in org %s", userID, role, orgID)
+
+	// Increment perm_version to notify clients of permission change
+	c.IncrementPermVersion()
+
+	return nil
+}
+
 func (c *IAMClient) DeleteUser(iamUserID string) error {
 	path := fmt.Sprintf("/api/v1/users/%s", iamUserID)
 	respBody, statusCode, err := c.doRequest("DELETE", path, nil)
