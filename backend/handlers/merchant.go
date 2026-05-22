@@ -55,7 +55,7 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 	}
 	if len(adminUIDs) > 0 {
 		var adminUsers []models.User
-		db.Where("id IN ? AND deleted_at IS NULL", adminUIDs).Find(&adminUsers)
+		database.GetDB().Where("id IN ? AND deleted_at IS NULL", adminUIDs).Find(&adminUsers)
 		for _, u := range adminUsers {
 			adminMap[u.ID] = u
 		}
@@ -395,7 +395,7 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		// Bind new admin if provided (bind first per #618 best practice)
 		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
 			var newUser models.User
-			if err := db.Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
+			if err := database.GetDB().Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
 				if bindErr := iamClient.BindUserToOrganization(newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
 					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
 				}
@@ -405,7 +405,7 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		// Demote old admin if there was one
 		if oldAdmin != "" && merchant.OrgID != "" {
 			var oldUser models.User
-			if err := db.Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
+			if err := database.GetDB().Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
 				if demoteErr := iamClient.UpdateUserRoleInOrg(merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
 					log.Printf("[UpdateMerchant] Failed to demote old admin %s: %v", oldUser.IAMSub, demoteErr)
 				}
