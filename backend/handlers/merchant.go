@@ -61,6 +61,22 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 		}
 	}
 
+	// Lazy confirm: check IAM for pending admins
+	iamClient := services.NewIAMClient()
+	nilUUID := "00000000-0000-0000-0000-000000000000"
+	for i := range merchants {
+		m := &merchants[i]
+		if !m.AdminPending || m.AdminUID == "" || m.AdminUID == nilUUID || m.OrgID == "" {
+			continue
+		}
+		if u, ok := adminMap[m.AdminUID]; ok && u.IAMSub != "" {
+			if isBound, err := iamClient.CheckMembership(u.IAMSub, m.OrgID); err == nil && isBound {
+				m.AdminPending = false
+				database.GetDB().Model(m).Update("admin_pending", false)
+			}
+		}
+	}
+
 	// Build list with admin info
 	var list []gin.H
 	for _, m := range merchants {

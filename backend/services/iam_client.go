@@ -687,6 +687,33 @@ func (c *IAMClient) BindUserToOrganization(userID, orgID, role, operatorID strin
 	return nil
 }
 
+// CheckMembership calls BindUser and returns whether the user is already bound to the org.
+// Returns (isBound, error). When isBound=true, the user is already an active member.
+// When false, a new bind task was queued (user not yet in org).
+func (c *IAMClient) CheckMembership(userID, orgID string) (bool, error) {
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID)
+	req := &BindUserRequest{
+		Action: "bind",
+		Role:   "OWNER",
+	}
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return false, fmt.Errorf("CheckMembership request failed: %w", err)
+	}
+
+	if statusCode != http.StatusOK {
+		return false, fmt.Errorf("CheckMembership returned status %d: %s", statusCode, string(respBody))
+	}
+
+	if strings.Contains(string(respBody), "already bound") {
+		log.Printf("[IAMClient] User %s is already bound to org %s", userID, orgID)
+		return true, nil
+	}
+
+	log.Printf("[IAMClient] User %s not yet bound to org %s (task queued)", userID, orgID)
+	return false, nil
+}
+
 func (c *IAMClient) BindUserToOrganizationWithToken(token, userID, orgID, role, operatorID string) error {
 	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID)
 	req := &BindUserRequest{
