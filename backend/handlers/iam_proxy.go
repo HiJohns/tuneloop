@@ -291,10 +291,9 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Get tenant ID and org ID from context
+	// Get tenant ID from context (used for uniqueness check scope only)
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
-	orgID := middleware.GetOrgID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    40100,
@@ -373,8 +372,6 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		"phone":        req.Phone,
 		"name":         req.Name,
 		"username":     req.Username,
-		"tid":          tenantID,
-		"org_id":       orgID,
 		"password":     req.Password,
 		"callback_url": callbackURL,
 		"reason":       reason,
@@ -492,30 +489,26 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 	Password string `json:"password"`
 	Role     string `json:"role"`
 }) (string, error) {
-	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
-	orgID := middleware.GetOrgID(ctx)
-
-	// Generate local UUID
+	nilUUID := "00000000-0000-0000-0000-000000000000"
 	localUserID := uuid.New().String()
 
-	// Prepare user data
+	// Prepare user data — use nil UUID, user hasn't been assigned to any tenant/org yet
 	user := models.User{
-		ID:          localUserID, // Set local UUID
-		IAMSub:      iamUserID,   // Store IAM UUID
-		TenantID:    tenantID,
-		OrgID:       orgID,
+		ID:          localUserID,
+		IAMSub:      iamUserID,
+		TenantID:    nilUUID,
+		OrgID:       nilUUID,
 		Name:        req.Name,
 		Phone:       req.Phone,
 		Email:       req.Email,
 		CreditScore: 600,
 		DepositMode: "standard",
 		IsShadow:    true,
-		Status:      "pending", // New users created through JIT are pending
+		Status:      "pending",
 	}
 
 	// Save to database
-	db := database.GetDB().WithContext(ctx)
+	db := database.GetDB().WithContext(c.Request.Context())
 	if err := db.Create(&user).Error; err != nil {
 		return "", fmt.Errorf("failed to create local user: %w", err)
 	}
