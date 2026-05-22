@@ -63,7 +63,7 @@ init: install
 .PHONY: prerelease clean-prerelease prebuild-pc prebuild-mobile prebuild-backend release
 TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
 GIT_HASH := $(shell git rev-parse --short HEAD)
-RELEASE_DIR := $(HOME)/release
+RELEASE_DIR := /opt/flow
 PKG_NAME := tuneloop_$(TIMESTAMP)_$(GIT_HASH)
 RELEASE_BUILD := /tmp/release_build_$(TIMESTAMP)
 
