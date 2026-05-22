@@ -19,6 +19,70 @@ const actionColorMap = {
   IMPORT: 'magenta',
 };
 
+const actionDisplayMap = {
+  CREATE: '创建',
+  UPDATE: '更新',
+  DELETE: '删除',
+  PAY: '支付',
+  PICKUP: '取件',
+  RETURN: '归还',
+  CANCEL: '取消',
+  TRANSFER: '转移',
+  LOGIN: '登录',
+  SYNC: '同步',
+  IMPORT: '导入',
+  INVITE: '邀请',
+  BATCH_UPDATE: '批量更新',
+  UPDATE_STATUS: '更新状态',
+  MERGE: '合并',
+  ASSIGN: '分配',
+  QUOTE: '报价',
+  START: '开始',
+  SUBMIT: '提交',
+  CONFIRM: '确认',
+  BATCH_IMPORT: '批量导入',
+  TRANSFER_OWNERSHIP: '转移所有权',
+  TERMINATE: '终止',
+  DELIVERY: '发货',
+  RETURN_INSPECT: '归还检查',
+  DAMAGE: '损坏',
+  SHIPPING: '运输',
+  RESOLVE: '解决',
+  INIT: '初始化',
+};
+
+const resourceDisplayMap = {
+  user: '用户',
+  iam_user: 'IAM用户',
+  merchant: '商户',
+  site: '网点',
+  site_member: '网点成员',
+  role: '角色',
+  role_permission: '角色权限',
+  order: '订单',
+  lease: '租约',
+  deposit: '押金',
+  instrument: '乐器',
+  maintenance_ticket: '维修工单',
+  maintenance_worker: '维修师傅',
+  appeal: '申诉',
+  inventory: '库存',
+  rent_setting: '租金设定',
+  property: '属性',
+  label: '标签',
+  organization: '组织',
+  account: '账户',
+  confirmation: '确认',
+  user_order: '用户订单',
+  user_rental: '用户租约',
+  outbound: '出库',
+  assessment: '评估',
+  system: '系统',
+};
+
+const filterActions = Object.keys(actionDisplayMap)
+const filterResources = Object.keys(resourceDisplayMap)
+
 export default function AuditLogPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -84,8 +148,8 @@ export default function AuditLogPage() {
     { title: '时间', dataIndex: 'created_at', key: 'created_at', render: (v) => v ? new Date(v).toLocaleString() : '-', width: 180 },
     { title: '操作用户', dataIndex: 'user_id', key: 'user_id', render: (v) => v ? v.substring(0, 8) + '...' : '-', width: 120 },
     { title: '角色', dataIndex: 'actor_role', key: 'actor_role', width: 100 },
-    { title: '操作', dataIndex: 'action', key: 'action', render: (v) => <Tag color={actionColorMap[v] || 'default'}>{v}</Tag>, width: 160 },
-    { title: '资源类型', dataIndex: 'resource_type', key: 'resource_type', width: 140 },
+    { title: '操作', dataIndex: 'action', key: 'action', render: (v) => <Tag color={actionColorMap[v] || 'default'}>{actionDisplayMap[v] || v}</Tag>, width: 160 },
+    { title: '资源类型', dataIndex: 'resource_type', key: 'resource_type', render: (v) => resourceDisplayMap[v] || v, width: 140 },
     { title: '资源ID', dataIndex: 'resource_id', key: 'resource_id', render: (v) => v ? v.substring(0, 12) + '...' : '-', width: 140 },
     { title: 'IP', dataIndex: 'ip_address', key: 'ip_address', width: 130 },
     {
@@ -102,16 +166,16 @@ export default function AuditLogPage() {
           placeholder="操作类型" allowClear style={{ width: 140 }}
           value={filters.action} onChange={(v) => setFilters(f => ({ ...f, action: v || '' }))}
         >
-          {['CREATE', 'UPDATE', 'DELETE', 'PAY', 'PICKUP', 'RETURN', 'CANCEL', 'TRANSFER', 'LOGIN', 'SYNC', 'IMPORT'].map(a =>
-            <Select.Option key={a} value={a}>{a}</Select.Option>
+          {filterActions.map(a =>
+            <Select.Option key={a} value={a}>{actionDisplayMap[a] || a}</Select.Option>
           )}
         </Select>
         <Select
           placeholder="资源类型" allowClear style={{ width: 140 }}
           value={filters.resource_type} onChange={(v) => setFilters(f => ({ ...f, resource_type: v || '' }))}
         >
-          {['user', 'merchant', 'site', 'site_member', 'role', 'order', 'lease', 'deposit', 'instrument', 'maintenance_ticket', 'appeal', 'inventory'].map(t =>
-            <Select.Option key={t} value={t}>{t}</Select.Option>
+          {filterResources.map(t =>
+            <Select.Option key={t} value={t}>{resourceDisplayMap[t] || t}</Select.Option>
           )}
         </Select>
         <Input
@@ -160,8 +224,8 @@ export default function AuditLogPage() {
             <Descriptions.Item label="时间" span={2}>{new Date(detailLog.created_at).toLocaleString()}</Descriptions.Item>
             <Descriptions.Item label="操作用户">{detailLog.user_id}</Descriptions.Item>
             <Descriptions.Item label="角色">{detailLog.actor_role}</Descriptions.Item>
-            <Descriptions.Item label="操作"><Tag color={actionColorMap[detailLog.action] || 'default'}>{detailLog.action}</Tag></Descriptions.Item>
-            <Descriptions.Item label="资源类型">{detailLog.resource_type}</Descriptions.Item>
+            <Descriptions.Item label="操作"><Tag color={actionColorMap[detailLog.action] || 'default'}>{actionDisplayMap[detailLog.action] || detailLog.action}</Tag></Descriptions.Item>
+            <Descriptions.Item label="资源类型">{resourceDisplayMap[detailLog.resource_type] || detailLog.resource_type}</Descriptions.Item>
             <Descriptions.Item label="资源ID">{detailLog.resource_id || '-'}</Descriptions.Item>
             <Descriptions.Item label="IP地址">{detailLog.ip_address || '-'}</Descriptions.Item>
             <Descriptions.Item label="User-Agent" span={2}>{detailLog.user_agent || '-'}</Descriptions.Item>
