@@ -142,6 +142,7 @@ type Site struct {
 	Phone         string     `gorm:"type:varchar(50)" json:"phone"`
 	BusinessHours string     `gorm:"type:varchar(100)" json:"business_hours"`
 	Status        string     `gorm:"type:varchar(20);default:'active'" json:"status"`
+	ManagerPending bool     `gorm:"default:false" json:"manager_pending"`
 	DeletedAt     *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
@@ -497,6 +498,7 @@ type Merchant struct {
 	Phone        string    `gorm:"type:varchar(50)" json:"phone"`
 	Address      string    `gorm:"type:text" json:"address"`
 	AdminUID     string    `gorm:"type:uuid;index" json:"admin_uid"`
+	AdminPending bool      `gorm:"default:false" json:"admin_pending"`
 	Status       string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
@@ -509,6 +511,8 @@ type SiteMember struct {
 	SiteID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"site_id"`
 	UserID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"user_id"`
 	Role      string    `gorm:"type:varchar(20);default:'Staff'" json:"role"`
+	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	IamTaskID string    `gorm:"type:varchar(255)" json:"iam_task_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

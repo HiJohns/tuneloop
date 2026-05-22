@@ -76,6 +76,7 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 			"phone":         m.Phone,
 			"address":       m.Address,
 			"admin_uid":     m.AdminUID,
+			"admin_pending": m.AdminPending,
 			"status":        m.Status,
 			"created_at":    m.CreatedAt,
 			"updated_at":    m.UpdatedAt,
@@ -295,6 +296,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		Phone:         input.Phone,
 		Address:       input.Address,
 		AdminUID:      adminUserID,
+		AdminPending:  adminUserID != "" && adminUserID != "00000000-0000-0000-0000-000000000000",
 		Status:       "active",
 	}
 
@@ -399,6 +401,7 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 				if bindErr := iamClient.BindUserToOrganization(newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
 					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
 				}
+				merchant.AdminPending = true
 			}
 		}
 
@@ -415,6 +418,7 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		// Update local record
 		if input.AdminUID == "" || input.AdminUID == nilUUID {
 			merchant.AdminUID = nilUUID
+			merchant.AdminPending = false
 		} else {
 			merchant.AdminUID = input.AdminUID
 		}

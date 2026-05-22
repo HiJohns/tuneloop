@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Form, Input, message, Card, Space, Popconfirm } from 'antd';
+import { Table, Button, Modal, Form, Input, message, Card, Space, Popconfirm, Tag } from 'antd';
 import api from '../services/api';
 import ManagerSelector from '../components/ManagerSelector';
 
@@ -112,10 +112,13 @@ const MerchantManagement = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <span style={{ color: status === 'active' ? 'green' : 'red' }}>
-          {status === 'active' ? '启用' : '停用'}
-        </span>
+      render: (status, record) => (
+        <Space size={4}>
+          <span style={{ color: status === 'active' ? 'green' : 'red' }}>
+            {status === 'active' ? '启用' : '停用'}
+          </span>
+          {record.admin_pending && <Tag color="orange">管理员待确认</Tag>}
+        </Space>
       ),
     },
     {
