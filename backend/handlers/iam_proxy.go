@@ -151,12 +151,12 @@ func (h *IAMProxyHandler) SearchUsers(c *gin.Context) {
 
 	merchantID := c.Query("merchant_id")
 
-	// Perform fuzzy search in local users table
-	db := database.GetDB().WithContext(ctx)
+	// Perform fuzzy search in local users table (across all tenants)
+	db := database.GetDB()
 	var users []models.User
 
 	// Build fuzzy search query
-	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
+	query := db.Where("deleted_at IS NULL")
 
 	// Search in name, email, and phone fields
 	searchPattern := "%" + q + "%"
