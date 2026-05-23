@@ -111,9 +111,9 @@ async function handleAuthError(token, retryCount, endpoint, options) {
     }
   }
   
-  Logger.warn('AUTH', 'Auth failed, clearing tokens and redirecting to IAM')
+  Logger.warn('AUTH', 'Auth failed, clearing tokens and redirecting to login')
   clearTokens()
-  redirectToIAM()
+  window.location.href = '/login?reason=session_expired'
   
   // 返回特殊标记表示认证失败
   return { __authFailed: true }
@@ -186,7 +186,7 @@ async function request(endpoint, options = {}, retryCount = 0) {
     if (serverVersion > 0 && storedVersion > 0 && serverVersion !== storedVersion) {
       console.warn('[AUTH] perm_version changed:', storedVersion, '->', serverVersion, ', forcing re-login')
       clearTokens()
-      redirectToIAM()
+      window.location.href = '/login?reason=session_expired'
       throw new Error('Permission version changed, please re-login')
     }
   }
