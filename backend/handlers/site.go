@@ -304,6 +304,11 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		}
 		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamManagerID, siteOrgID, "manager", operatorID); bindErr != nil {
 			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", iamManagerID, siteOrgID, bindErr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to bind manager to site: " + bindErr.Error(),
+			})
+			return
 		}
 	} else if req.ManagerName != "" && req.ManagerEmail != "" {
 		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
@@ -347,6 +352,11 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				}
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, userResult.UserID, siteOrgID, "manager", operatorID); bindErr != nil {
 					log.Printf("[CreateSite] IAM BindUser failed for auto-created manager %s: %v", userResult.UserID, bindErr)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"code":    50000,
+						"message": "Failed to bind manager to site: " + bindErr.Error(),
+					})
+					return
 				}
 			}
 		}
