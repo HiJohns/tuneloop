@@ -692,7 +692,18 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 	orgToSite := make(map[string]string)
 
 	// Pass 1: Upsert each organization into sites table (without parent_id)
+	userOrgID := middleware.GetOrgID(ctx)
 	for _, org := range orgs {
+		// Skip the merchant org itself (it's not a site)
+		if org.ID == userOrgID {
+			skipped++
+			continue
+		}
+		// Only sync orgs under the current user's merchant org
+		if org.ParentID == nil || *org.ParentID != userOrgID {
+			skipped++
+			continue
+		}
 		// Check if site already exists by org_id
 		var existingSite models.Site
 		err := db.Where("org_id = ?", org.ID).First(&existingSite).Error
