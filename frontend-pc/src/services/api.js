@@ -126,7 +126,9 @@ async function handleAuthError(token, retryCount, endpoint, options) {
   Logger.warn('AUTH', 'Auth failed, redirecting to IAM login')
   clearTokens()
   const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-  window.location.href = (iamUrl || '') + '/login?reason=session_expired'
+  const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+  const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+  window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri
   
   // 返回特殊标记表示认证失败
   return { __authFailed: true }
@@ -200,7 +202,9 @@ async function request(endpoint, options = {}, retryCount = 0) {
       console.warn('[AUTH] perm_version changed:', storedVersion, '->', serverVersion, ', forcing re-login')
       clearTokens()
       const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-      window.location.href = (iamUrl || '') + '/login?reason=session_expired'
+      const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+      const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+      window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri
       throw new Error('Permission version changed, please re-login')
     }
   }
