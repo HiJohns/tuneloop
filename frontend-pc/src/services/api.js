@@ -42,9 +42,21 @@ function getToken() {
 }
 
 function storeTokens(accessToken, refreshToken) {
-  localStorage.setItem('token', accessToken)
-  localStorage.setItem('refresh_token', refreshToken)
-  document.cookie = `token=${accessToken}; path=/; max-age=604800`
+  const token = typeof accessToken === 'string' ? accessToken : accessToken?.access_token
+  const refresh = typeof refreshToken === 'string' ? refreshToken : accessToken?.refresh_token
+  if (token) {
+    localStorage.setItem('token', token)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      const expTime = payload.exp ? new Date(payload.exp * 1000) : null
+      if (expTime) {
+        console.error(`%c🔑 Token 过期时间: ${expTime.toLocaleTimeString()}`, 'color: red; font-weight: bold')
+      }
+    } catch (e) {}
+  }
+  if (refresh) {
+    localStorage.setItem('refresh_token', refresh)
+  }
 }
 
 function storePermVersion(permVersion) {

@@ -24,7 +24,21 @@ const LoginPage: React.FC = () => {
   if (redirecting) {
     return (
       <div className="login-container">
-        <Spin size="large" tip="正在跳转至安全身份验证中心..." />
+        <Spin size="large" tip={reason === 'session_expired' ? '正在跳转至登录...' : '正在跳转至安全身份验证中心...'} />
+      </div>
+    );
+  }
+
+  if (reason === 'session_expired') {
+    return (
+      <div className="login-container">
+        <Card className="login-card" style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: 24, marginBottom: 16 }}>会话已结束</h1>
+          <p style={{ color: '#888', marginBottom: 24 }}>为了保证您的数据安全，本次登录会话已超时</p>
+          <Button type="primary" size="large" onClick={handleLogin}>
+            点击这里重新登录
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -41,14 +55,6 @@ const LoginPage: React.FC = () => {
           className="brand-logo"
         />
         <h1 className="brand-name">{config?.brand_name || 'TuneLoop'}</h1>
-        {reason === 'session_expired' && (
-          <Alert
-            message="会话已过期，请重新登录"
-            type="warning"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-        )}
         {reason === 'access_denied' && (
           <Alert
             message="登录失败，请重试"

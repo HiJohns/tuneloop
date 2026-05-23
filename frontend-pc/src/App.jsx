@@ -88,6 +88,34 @@ function MainLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [userInfo, setUserInfo] = useState(null)
+  const [showExpiryWarning, setShowExpiryWarning] = useState(false)
+
+  // Session expiry warning — check every 30s
+  useEffect(() => {
+    const checkExpiry = () => {
+      const token = getToken()
+      if (!token) return
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const timeLeft = payload.exp * 1000 - Date.now()
+        if (timeLeft < 60000 && timeLeft > 0) {
+          setShowExpiryWarning(true)
+        }
+      } catch (e) {}
+    }
+    checkExpiry()
+    const timer = setInterval(checkExpiry, 30000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const handleExtendSession = async () => {
+    setShowExpiryWarning(false)
+    try {
+      await api.get('/config')
+    } catch (e) {
+      window.location.href = '/login?reason=session_expired'
+    }
+  }
 
   useEffect(() => {
     const token = getToken()
@@ -396,6 +424,25 @@ function onMenuClick(e) {
         </Content>
       </Layout>
     </Layout>
+    {showExpiryWarning && (
+      <div
+        onClick={handleExtendSession}
+        style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{
+          background: '#fff', padding: '32px 48px', borderRadius: 12,
+          textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        }}>
+          <h2 style={{ marginBottom: 12, fontSize: 20 }}>会话即将结束</h2>
+          <p style={{ color: '#888', marginBottom: 8 }}>点击任意位置即可继续操作</p>
+        </div>
+      </div>
+    )}
   )
 }
 
