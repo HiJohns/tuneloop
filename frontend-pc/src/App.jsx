@@ -108,6 +108,16 @@ function MainLayout() {
     return () => clearInterval(timer)
   }, [])
 
+  // 60s countdown — force redirect when warning is shown
+  useEffect(() => {
+    if (showExpiryWarning) {
+      const redirectTimer = setTimeout(() => {
+        window.location.href = '/login?reason=session_expired'
+      }, 60000)
+      return () => clearTimeout(redirectTimer)
+    }
+  }, [showExpiryWarning])
+
   const handleExtendSession = async () => {
     setShowExpiryWarning(false)
     try {
