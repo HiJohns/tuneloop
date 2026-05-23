@@ -9,6 +9,15 @@ const LoginPage: React.FC = () => {
   const params = new URLSearchParams(window.location.search);
   const reason = params.get('reason');
 
+  const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '';
+  const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc';
+  const redirectUri = encodeURIComponent(window.location.origin + '/callback');
+
+  // If session expired, redirect directly to IAM login
+  if (reason === 'session_expired') {
+    window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri;
+  }
+
   const handleLogin = () => {
     const originalUrl = window.location.href;
     sessionStorage.setItem('original_request_url', originalUrl);
