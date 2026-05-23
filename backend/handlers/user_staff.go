@@ -552,6 +552,7 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		})
 		return
 	}
+	}
 
 	result := gin.H{
 		"id":            user.ID,

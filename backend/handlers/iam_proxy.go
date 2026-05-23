@@ -637,7 +637,7 @@ func (h *IAMProxyHandler) ListOrganizations(c *gin.Context) {
 		return
 	}
 
-	orgs, err := client.ListOrganizations()
+	orgs, err := client.ListOrganizationsWithToken(userToken)
 	if err != nil {
 		log.Printf("[IAMProxy] ListOrganizations failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -792,6 +792,7 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 	client := services.NewIAMClient()
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
+	userToken := services.ExtractUserToken(c)
 
 	log.Printf("[IAMProxy] SyncUsers: tenantID=%s", tenantID)
 
