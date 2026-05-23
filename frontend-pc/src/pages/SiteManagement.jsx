@@ -17,6 +17,7 @@ export default function SiteManagement() {
   const [loading, setLoading] = useState(true)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
+  const [creatingManager, setCreatingManager] = useState(false)
   const [managerInfo, setManagerInfo] = useState({ name: '', id: null, email: '', phone: '' })
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
   const [createUserForm] = Form.useForm()
@@ -444,7 +445,8 @@ filterTreeNode={(node) => {
                   <Button 
                     type="primary" 
                     onClick={handleSubmit}
-                    loading={lookupLoading || saving}
+                    loading={lookupLoading || saving || creatingManager}
+                    disabled={lookupLoading || saving || creatingManager}
                   >
                     提交
                   </Button>
@@ -493,6 +495,7 @@ filterTreeNode={(node) => {
                   <ManagerSelector
                     value={managerInfo}
                     createReason="网点负责人"
+                    onCreatingChange={setCreatingManager}
                     onChange={(info) => {
                       if (info.id) {
                         setManagerInfo({ name: info.name, id: info.id, email: info.email || '', phone: info.phone || '', username: info.username || '' })

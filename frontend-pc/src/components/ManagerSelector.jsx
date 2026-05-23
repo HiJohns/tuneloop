@@ -3,13 +3,17 @@ import { AutoComplete, Button, Input, Space, Tabs, Alert } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
 import api from '../services/api'
 
-export default function ManagerSelector({ value, onChange, conflictOptions, conflictMessage, createReason }) {
+export default function ManagerSelector({ value, onChange, conflictOptions, conflictMessage, createReason, onCreatingChange }) {
   const [mode, setMode] = useState('search')
   const [searchResults, setSearchResults] = useState([])
   const [selected, setSelected] = useState(value?.id ? value : null)
   const [fields, setFields] = useState({ username: '', name: '', email: '', phone: '' })
   const [msg, setMsg] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    onCreatingChange?.(submitting)
+  }, [submitting])
 
   const hasExisting = !!(selected?.id)
 

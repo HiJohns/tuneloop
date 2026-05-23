@@ -13,6 +13,7 @@ const MerchantManagement = () => {
   const [editingMerchant, setEditingMerchant] = useState(null);
   const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '', phone: '' });
   const [conflictOptions, setConflictOptions] = useState(null);
+  const [creatingManager, setCreatingManager] = useState(false);
 
   useEffect(() => {
     fetchMerchants();
@@ -175,6 +176,7 @@ const MerchantManagement = () => {
         onOk={() => form.submit()}
         onCancel={() => setModalOpen(false)}
         width={600}
+        okButtonProps={{ disabled: creatingManager }}
       >
         <Form form={form} onFinish={handleSubmit} layout="vertical">
           <Form.Item
@@ -197,6 +199,7 @@ const MerchantManagement = () => {
             <ManagerSelector
               value={adminInfo}
               createReason="商户管理员"
+              onCreatingChange={setCreatingManager}
               onChange={(info) => {
                 if (info.id) {
                   setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', phone: info.phone || '' })
