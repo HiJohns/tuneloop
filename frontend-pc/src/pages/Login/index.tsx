@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
   const redirectUri = encodeURIComponent(window.location.origin + '/callback');
 
   // If session expired, redirect directly to IAM login
-  if (reason === 'session_expired') {
+  if (reason === 'session_expired' && iamUrl) {
     window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri;
   }
 
