@@ -100,6 +100,7 @@ function MainLayout() {
         const email = payload.email || payload.mail || ''
 
         const userName = name || email || payload.sub?.substring(0, 8) || '用户'
+        const userId = payload.sub || ''
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
         const roles = Array.isArray(payload.roles) ? payload.roles : [] // Functional roles from IAM #113
         
@@ -142,6 +143,15 @@ function MainLayout() {
         // Store perm_version from JWT payload
         const permVersion = payload.perm_version || payload.permVersion || 0
         localStorage.setItem('perm_version', String(permVersion))
+
+        // If user name is missing, fetch from API
+        if (!name && !email && userId) {
+          api.get('/users/me').then(resp => {
+            if (resp.code === 20000 && resp.data?.name) {
+              setUserInfo(prev => ({ ...prev, name: resp.data.name }))
+            }
+          }).catch(() => {})
+        }
       } catch (e) {
         // ignore parse errors
       }
