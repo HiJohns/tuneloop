@@ -534,6 +534,8 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 
 	var user models.User
 	if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&user).Error; err != nil {
+		// Fallback: try querying by local id (for users whose iam_sub doesn't match JWT sub)
+		if err2 := db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error; err2 != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    20000,
 			"message": "success",
