@@ -302,7 +302,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		if err := db.Where("id = ?", managerUUID.String()).First(&managerUser).Error; err == nil && managerUser.IAMSub != "" {
 			iamManagerID = managerUser.IAMSub
 		}
-		if bindErr := iamClient.BindUserToOrganization(iamManagerID, siteOrgID, "manager", operatorID); bindErr != nil {
+		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamManagerID, siteOrgID, "manager", operatorID); bindErr != nil {
 			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", iamManagerID, siteOrgID, bindErr)
 		}
 	} else if req.ManagerName != "" && req.ManagerEmail != "" {
@@ -632,7 +632,8 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
 		iamClient := services.NewIAMClient()
-		if delErr := iamClient.DeleteOrganization(site.OrgID); delErr != nil {
+		siteToken := services.ExtractUserToken(c)
+		if delErr := iamClient.DeleteOrganizationWithToken(siteToken, site.OrgID); delErr != nil {
 			log.Printf("[DeleteSite] IAM DeleteOrganization failed for org %s: %v", site.OrgID, delErr)
 		}
 	}

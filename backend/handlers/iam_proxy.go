@@ -660,6 +660,7 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	operatorID := middleware.GetUserID(ctx)
+	userToken := services.ExtractUserToken(c)
 
 	// Check permissions: only ADMIN or OWNER can sync
 	role := middleware.GetRole(ctx)
@@ -675,7 +676,7 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 	log.Printf("[IAMProxy] SyncOrganizations triggered by operator: %s, tenant: %s", operatorID, tenantID)
 
 	// Fetch organizations from IAM
-	orgs, err := client.ListOrganizations()
+	orgs, err := client.ListOrganizationsWithToken(userToken)
 	if err != nil {
 		log.Printf("[IAMProxy] SyncOrganizations: failed to list from IAM: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -803,7 +804,7 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 		return
 	}
 
-	users, err := client.ListUsers()
+	users, err := client.ListUsersWithToken(userToken)
 	if err != nil {
 		log.Printf("[IAMProxy] SyncUsers: failed to list from IAM: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

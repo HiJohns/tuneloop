@@ -373,6 +373,32 @@ func (c *IAMClient) ListOrganizations() ([]Organization, error) {
 	return result.Organizations, nil
 }
 
+func (c *IAMClient) ListOrganizationsWithToken(token string) ([]Organization, error) {
+	nsID, err := c.getNamespaceID()
+	if err != nil {
+		return nil, fmt.Errorf("ListOrganizationsWithToken: failed to resolve namespace: %w", err)
+	}
+
+	path := fmt.Sprintf("/api/v1/organizations?namespace_id=%s&page_size=1000", nsID)
+	respBody, statusCode, err := c.doRequestWithToken("GET", path, token, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListOrganizationsWithToken request failed: %w", err)
+	}
+
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("ListOrganizationsWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Organizations []Organization `json:"organizations"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse ListOrganizationsWithToken response: %w", err)
+	}
+
+	return result.Organizations, nil
+}
+
 // GetOrganization fetches a single organization by ID from IAM.
 func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 	path := fmt.Sprintf("/api/v1/organizations/%s", orgID)
@@ -559,6 +585,33 @@ func (c *IAMClient) ListUsers() ([]User, error) {
 		return result.Users, nil
 	}
 	log.Printf("[IAMClient] ListUsers: returning %d users from 'data' field", len(result.Data))
+	return result.Data, nil
+}
+
+func (c *IAMClient) ListUsersWithToken(token string) ([]User, error) {
+	respBody, statusCode, err := c.doRequestWithToken("GET", "/api/v1/users", token, nil)
+	if err != nil {
+		log.Printf("[IAMClient] ListUsersWithToken: doRequest error: %v", err)
+		return nil, fmt.Errorf("ListUsersWithToken request failed: %w", err)
+	}
+
+	if statusCode != http.StatusOK {
+		log.Printf("[IAMClient] ListUsersWithToken: non-200 response: %s", string(respBody))
+		return nil, fmt.Errorf("ListUsersWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		Users []User `json:"users"`
+		Data  []User `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		log.Printf("[IAMClient] ListUsersWithToken: unmarshal error: %v, response: %s", err, string(respBody))
+		return nil, fmt.Errorf("failed to parse ListUsersWithToken response: %w", err)
+	}
+
+	if len(result.Users) > 0 {
+		return result.Users, nil
+	}
 	return result.Data, nil
 }
 
@@ -856,6 +909,107 @@ func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, r
 	}
 
 	return &result.Data, nil
+}
+
+// --- WithToken variants (for user identity scoping) ---
+
+func (c *IAMClient) DeleteOrganizationWithToken(token, orgID string) error {
+	nsID, err := c.getNamespaceID()
+	if err != nil {
+		return fmt.Errorf("DeleteOrganizationWithToken: failed to resolve namespace: %w", err)
+	}
+	path := fmt.Sprintf("/api/v1/namespaces/%s/organizations/%s", nsID, orgID)
+	_, statusCode, err := c.doRequestWithToken("DELETE", path, token, nil)
+	if err != nil {
+		return fmt.Errorf("DeleteOrganizationWithToken request failed: %w", err)
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusNoContent {
+		return fmt.Errorf("DeleteOrganizationWithToken returned status %d", statusCode)
+	}
+	log.Printf("[IAMClient] Deleted organization with user token: org_id=%s", orgID)
+	return nil
+}
+
+func (c *IAMClient) UpdateUserWithToken(token, userID string, req *UpdateUserRequest) error {
+	path := fmt.Sprintf("/api/v1/users/%s", userID)
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
+	if err != nil {
+		return fmt.Errorf("UpdateUserWithToken request failed: %w", err)
+	}
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user not found: %s", userID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("UpdateUserWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Updated user with user token: user_id=%s", userID)
+	return nil
+}
+
+func (c *IAMClient) UnbindUserFromOrganizationWithToken(token, userID, orgID, operatorID string) error {
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/bind", orgID, userID)
+	req := &BindUserRequest{
+		Action:     "unbind",
+		OperatorID: operatorID,
+	}
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
+	if err != nil {
+		return fmt.Errorf("UnbindUserWithToken request failed: %w", err)
+	}
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user or organization not found: user=%s org=%s", userID, orgID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("UnbindUserWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Unbound user with user token: user=%s org=%s", userID, orgID)
+	c.IncrementPermVersion()
+	return nil
+}
+
+func (c *IAMClient) UpdateUserRoleInOrgWithToken(token, orgID, userID, role string) error {
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role", orgID, userID)
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, map[string]string{"role": role})
+	if err != nil {
+		return fmt.Errorf("UpdateUserRoleWithToken request failed: %w", err)
+	}
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user or organization not found: user=%s org=%s", userID, orgID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("UpdateUserRoleWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Updated user role with user token: user=%s role=%s org=%s", userID, role, orgID)
+	c.IncrementPermVersion()
+	return nil
+}
+
+func (c *IAMClient) DeleteUserWithToken(token, iamUserID string) error {
+	path := fmt.Sprintf("/api/v1/users/%s", iamUserID)
+	respBody, statusCode, err := c.doRequestWithToken("DELETE", path, token, nil)
+	if err != nil {
+		return fmt.Errorf("DeleteUserWithToken request failed: %w", err)
+	}
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode == http.StatusNotFound {
+		return fmt.Errorf("user not found: %s", iamUserID)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("DeleteUserWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Deleted user with user token: user_id=%s", iamUserID)
+	return nil
 }
 
 func ExtractUserToken(c *gin.Context) string {

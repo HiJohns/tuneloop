@@ -289,7 +289,8 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
 		iamClient := services.NewIAMClient()
 		operatorID := middleware.GetUserID(c.Request.Context())
-		if err := iamClient.UnbindUserFromOrganization(userID, site.OrgID, operatorID); err != nil {
+		memberToken := services.ExtractUserToken(c)
+		if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, userID, site.OrgID, operatorID); err != nil {
 			log.Printf("[RemoveMember] IAM UnbindUser failed for user %s from org %s: %v", userID, site.OrgID, err)
 		}
 	}

@@ -272,7 +272,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "name conflict") {
-			orgs, listErr := iamClient.ListOrganizations()
+			orgs, listErr := iamClient.ListOrganizationsWithToken(userToken)
 			if listErr == nil {
 				for _, org := range orgs {
 					if org.Name == input.Name {
@@ -409,12 +409,13 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	if newAdmin != oldAdmin {
 		iamClient := services.NewIAMClient()
 		operatorID := middleware.GetUserID(c.Request.Context())
+		userToken := services.ExtractUserToken(c)
 
 		// Bind new admin if provided (bind first per #618 best practice)
 		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
 			var newUser models.User
 			if err := database.GetDB().Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
-				if bindErr := iamClient.BindUserToOrganization(newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
+				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
 					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
 				}
 				merchant.AdminPending = true
@@ -425,7 +426,7 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		if oldAdmin != "" && merchant.OrgID != "" {
 			var oldUser models.User
 			if err := database.GetDB().Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
-				if demoteErr := iamClient.UpdateUserRoleInOrg(merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
+				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
 					log.Printf("[UpdateMerchant] Failed to demote old admin %s: %v", oldUser.IAMSub, demoteErr)
 				}
 			}
