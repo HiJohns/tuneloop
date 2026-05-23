@@ -658,8 +658,8 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 func lookupOrSyncManager(ctx *gin.Context, db *gorm.DB, managerID string) (*models.User, error) {
 	var user models.User
 
-	// First, try to find user in local database
-	if err := db.First(&user, "id = ?", managerID).Error; err == nil {
+	// First, try to find user in local database (bypass tenant scope)
+	if err := database.GetDB().First(&user, "id = ?", managerID).Error; err == nil {
 		// User found locally
 		return &user, nil
 	}
