@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
@@ -11,6 +11,33 @@ const { Option } = Select
 
 export default function SiteManagement() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const location = useLocation()
+
+  // Sync URL → state
+  useEffect(() => {
+    if (location.pathname === '/organization/sites/new') {
+      setViewMode('form')
+      setFormMode('create')
+      setEditingSite({ parent_id: null })
+      form.resetFields()
+      setManagerInfo({ name: '', id: null, email: '', phone: '' })
+      resetManagerState()
+    } else if (location.pathname.includes('/edit')) {
+      setViewMode('form')
+      setFormMode('edit')
+    } else if (location.pathname.includes('/new')) {
+      setViewMode('form')
+      setFormMode('create')
+      if (id && selectedSite) {
+        setEditingSite({ parent_id: id })
+      }
+    } else if (id) {
+      setViewMode('detail')
+    } else {
+      setViewMode('detail')
+    }
+  }, [location.pathname, id])
   const [treeData, setTreeData] = useState([])
   const [selectedSite, setSelectedSite] = useState(null)
   const [editingSite, setEditingSite] = useState(null)
@@ -111,6 +138,7 @@ export default function SiteManagement() {
   const onSelect = (selectedKeys) => {
     setSelectedKeys(selectedKeys)
     if (selectedKeys.length > 0) {
+      navigate('/organization/sites/' + selectedKeys[0])
       const findSite = (nodes, id) => {
         for (const node of nodes) {
           if (node.key === id) return node.data
@@ -148,6 +176,7 @@ export default function SiteManagement() {
   }
 
   const handleCreateTopLevel = () => {
+    navigate('/organization/sites/new')
     setEditingSite({ parent_id: null })
     setFormMode('create')
     form.resetFields()
@@ -162,6 +191,7 @@ export default function SiteManagement() {
       message.warning('请先选择一个网点')
       return
     }
+    navigate('/organization/sites/' + selectedSite.id + '/new')
     Logger.state('SiteManagement', { action: 'handleCreateSubSite', parentId: selectedSite.id })
     setEditingSite({ parent_id: selectedSite.id })
     setFormMode('create')
@@ -174,6 +204,7 @@ export default function SiteManagement() {
 
   const handleEdit = () => {
     if (!selectedSite) return
+    navigate('/organization/sites/' + selectedSite.id + '/edit')
     setEditingSite({ ...selectedSite })
     setFormMode('edit')
     form.setFieldsValue(selectedSite)
@@ -436,7 +467,7 @@ filterTreeNode={(node) => {
               extra={
                 <Space>
                   <Button onClick={() => {
-                    setViewMode('detail')
+                    navigate('/organization/sites')
                     form.resetFields()
                     setManagerInfo({ name: '', id: null, email: '', phone: '' })
                     setLookupError({ message: '', visible: false })

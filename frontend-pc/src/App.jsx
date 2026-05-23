@@ -307,6 +307,7 @@ function onMenuClick(e) {
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
     '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
+    '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
@@ -401,6 +402,10 @@ function onMenuClick(e) {
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
             <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
