@@ -321,6 +321,7 @@ function onMenuClick(e) {
   }
 
   return (
+    <>
     <Layout style={{ minHeight: '100vh' }}>
       <Sider 
         width={220} 
@@ -443,6 +444,7 @@ function onMenuClick(e) {
         </div>
       </div>
     )}
+  </>
   )
 }
 
