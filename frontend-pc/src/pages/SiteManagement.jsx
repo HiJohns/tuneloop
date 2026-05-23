@@ -293,7 +293,7 @@ export default function SiteManagement() {
 
   return (
     <div>
-      <div className="flex gap-4">
+      <div className="flex gap-4" style={{ minHeight: 'calc(100vh - 160px)' }}>
         <Card 
           title="网点结构" 
           className="w-1/3"
