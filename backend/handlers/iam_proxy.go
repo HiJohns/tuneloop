@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -784,23 +783,13 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 			iamOrgIDs = append(iamOrgIDs, org.ID)
 		}
 	}
-	if len(iamOrgIDs) > 0 {
-		staleResult := db.Model(&models.Site{}).
-			Where("tenant_id = ? AND org_id NOT IN ? AND deleted_at IS NULL AND status = 'active'",
-				tenantID, iamOrgIDs).
-			Update("deleted_at", time.Now())
-		if staleResult.RowsAffected > 0 {
-			log.Printf("[IAMProxy] SyncOrganizations: marked %d stale sites as deleted", staleResult.RowsAffected)
-		}
+	staleResult := db.Model(&models.Site{}).
+		Where("tenant_id = ? AND org_id NOT IN ? AND status = 'active'",
+			tenantID, iamOrgIDs).
+		Update("status", "inactive")
+	if staleResult.RowsAffected > 0 {
+		log.Printf("[IAMProxy] SyncOrganizations: marked %d stale sites as inactive", staleResult.RowsAffected)
 	}
-
-	db.Exec(`
-		DELETE FROM sites WHERE id IN (
-			SELECT id FROM (
-				SELECT id, ROW_NUMBER() OVER (PARTITION BY org_id ORDER BY updated_at DESC) AS rn
-				FROM sites WHERE tenant_id = ? AND deleted_at IS NULL
-			) sub WHERE rn > 1
-		)`, tenantID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
