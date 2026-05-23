@@ -783,10 +783,11 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 			iamOrgIDs = append(iamOrgIDs, org.ID)
 		}
 	}
-	staleResult := db.Model(&models.Site{}).
-		Where("tenant_id = ? AND org_id NOT IN ? AND status = 'active'",
-			tenantID, iamOrgIDs).
-		Update("status", "inactive")
+	query := db.Model(&models.Site{}).Where("tenant_id = ? AND status = 'active'", tenantID)
+	if len(iamOrgIDs) > 0 {
+		query = query.Where("org_id NOT IN ?", iamOrgIDs)
+	}
+	staleResult := query.Update("status", "inactive")
 	if staleResult.RowsAffected > 0 {
 		log.Printf("[IAMProxy] SyncOrganizations: marked %d stale sites as inactive", staleResult.RowsAffected)
 	}
