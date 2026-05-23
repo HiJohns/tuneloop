@@ -320,6 +320,11 @@ function onMenuClick(e) {
     breadcrumbItems.push({ title: '基础数据' }, { title: '乐器库存' }, { title: '资产详情' })
   }
 
+  if (!getToken()) {
+    window.location.href = '/login?reason=session_expired'
+    return null
+  }
+
   return (
     <>
     <Layout style={{ minHeight: '100vh' }}>
