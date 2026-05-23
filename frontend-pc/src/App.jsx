@@ -90,11 +90,19 @@ function MainLayout() {
   const [userInfo, setUserInfo] = useState(null)
   const [showExpiryWarning, setShowExpiryWarning] = useState(false)
 
+  const redirectToIAMLogin = () => {
+    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+    window.location.href = (iamUrl || '') + '/login?reason=session_expired'
+  }
+
   // Session expiry warning — check every 30s
   useEffect(() => {
     const checkExpiry = () => {
       const token = getToken()
-      if (!token) return
+      if (!token) {
+        redirectToIAMLogin()
+        return
+      }
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
         const timeLeft = payload.exp * 1000 - Date.now()
@@ -112,7 +120,7 @@ function MainLayout() {
   useEffect(() => {
     if (showExpiryWarning) {
       const redirectTimer = setTimeout(() => {
-        window.location.href = '/login?reason=session_expired'
+        redirectToIAMLogin()
       }, 60000)
       return () => clearTimeout(redirectTimer)
     }
@@ -123,7 +131,7 @@ function MainLayout() {
     try {
       await api.get('/config')
     } catch (e) {
-      window.location.href = '/login?reason=session_expired'
+      redirectToIAMLogin()
     }
   }
 
@@ -332,7 +340,7 @@ function onMenuClick(e) {
   }
 
   if (!getToken()) {
-    window.location.href = '/login?reason=session_expired'
+    redirectToIAMLogin()
     return null
   }
 
