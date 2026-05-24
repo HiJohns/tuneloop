@@ -47,16 +47,17 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       
       selectedUsers.forEach(user => {
         if (user.isNew) {
+          const defaultRole = members.length === 0 ? 'Manager' : 'Staff'
           newUsers.push({
             name: user.name,
             email: user.email,
             phone: user.phone,
-            role: 'Staff'
+            role: defaultRole
           })
         } else {
           existingUsers.push({
             user_id: user.id || user.user_id,
-            role: 'Staff'
+            role: defaultRole
           })
         }
       })

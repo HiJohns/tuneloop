@@ -5,8 +5,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { sitesApi, iamApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
-import ManagerSelector from '../components/ManagerSelector'
-
+ 
 const { Option } = Select
 
 export default function SiteManagement() {
@@ -44,7 +43,6 @@ export default function SiteManagement() {
   const [loading, setLoading] = useState(true)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
-  const [creatingManager, setCreatingManager] = useState(false)
   const [managerInfo, setManagerInfo] = useState({ name: '', id: null, email: '', phone: '' })
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
   const [createUserForm] = Form.useForm()
@@ -247,10 +245,6 @@ export default function SiteManagement() {
         type: values.type || '',
         phone: values.phone || '',
         parent_id: editingSite?.parent_id,
-      }
-      
-      if (managerInfo.id) {
-        siteData.manager_id = managerInfo.id
       }
       
       Logger.log('SITE', 'siteData:', siteData)
@@ -476,8 +470,8 @@ filterTreeNode={(node) => {
                   <Button 
                     type="primary" 
                     onClick={handleSubmit}
-                    loading={lookupLoading || saving || creatingManager}
-                    disabled={lookupLoading || saving || creatingManager}
+                    loading={lookupLoading || saving}
+                    disabled={lookupLoading || saving}
                   >
                     提交
                   </Button>
@@ -519,26 +513,9 @@ filterTreeNode={(node) => {
                   label="联系电话"
                   data-testid="site-form-phone"
                 >
-                  <Input placeholder="请输入联系电话" />
-                </Form.Item>
-
-                <Form.Item label="负责人">
-                  <ManagerSelector
-                    value={managerInfo}
-                    createReason="网点负责人"
-                    onCreatingChange={setCreatingManager}
-                    onChange={(info) => {
-                      if (info.id) {
-                        setManagerInfo({ name: info.name, id: info.id, email: info.email || '', phone: info.phone || '', username: info.username || '' })
-                      } else {
-                        setManagerInfo({ name: '', id: null, email: '', phone: '', username: '' })
-                      }
-                    }}
-                    conflictMessage={conflictMessage}
-                    conflictOptions={searchResults}
-                  />
-                </Form.Item>
-              </Form>
+                   <Input placeholder="请输入联系电话" />
+                 </Form.Item>
+               </Form>
             </Card>
           )}
         </div>

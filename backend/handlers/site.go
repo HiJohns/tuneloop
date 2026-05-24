@@ -427,11 +427,6 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
 		BusinessHours string  `json:"business_hours"`
-		ManagerID     *string `json:"manager_id"`
-		ManagerName   string  `json:"manager_name"`
-		ManagerUsername string  `json:"manager_username"`
-		ManagerEmail  string  `json:"manager_email"`
-		ManagerPhone  string  `json:"manager_phone"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -440,68 +435,6 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			"message": "invalid parameters: " + err.Error(),
 		})
 		return
-	}
-
-	// Convert manager_id string to uuid if provided
-	var managerUUID *uuid.UUID
-	if req.ManagerID != nil {
-		if *req.ManagerID == "" {
-			// Empty string means clear manager
-			managerUUID = nil
-		} else {
-			uuidVal, err := uuid.Parse(*req.ManagerID)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"code":    40002,
-					"message": "invalid manager_id format: " + err.Error(),
-				})
-				return
-			}
-			managerUUID = &uuidVal
-		}
-	}
-
-	// Auto-create manager user if admin fields provided and no explicit manager_id
-	if req.ManagerID == nil && req.ManagerName != "" && req.ManagerEmail != "" {
-		iamClient := services.NewIAMClient()
-		userToken := services.ExtractUserToken(c)
-		operatorID := middleware.GetUserID(c.Request.Context())
-		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
-			Username:   req.ManagerUsername,
-			Name:       req.ManagerName,
-			Email:      req.ManagerEmail,
-			Phone:      req.ManagerPhone,
-			OperatorID: operatorID,
-		})
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "Failed to create admin user: " + err.Error()})
-			return
-		}
-		if userResult.Conflict {
-			c.JSON(http.StatusConflict, gin.H{"code": 40901, "data": gin.H{"conflicts": userResult.ExistingUsers}})
-			return
-		}
-		if userResult.UserID != "" {
-			uuidVal, _ := uuid.Parse(userResult.UserID)
-			managerUUID = &uuidVal
-			dbLocal := database.GetDB().WithContext(c.Request.Context())
-			tenantID := middleware.GetTenantID(c.Request.Context())
-			orgID := middleware.GetOrgID(c.Request.Context())
-			localUser := models.User{
-				ID:       userResult.UserID,
-				IAMSub:   userResult.UserID,
-				TenantID: tenantID,
-				OrgID:    orgID,
-				Name:     req.ManagerName,
-				Email:    req.ManagerEmail,
-				Phone:    req.ManagerPhone,
-				Role:     "site_member",
-				Status:   "active",
-			}
-			if err := dbLocal.Create(&localUser).Error; err != nil {
-				log.Printf("[UpdateSite] Failed to create local user for manager %s: %v", userResult.UserID, err)
-			}
-		}
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
@@ -514,7 +447,6 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		"longitude":      req.Longitude,
 		"phone":          req.Phone,
 		"business_hours": req.BusinessHours,
-		"manager_id":     managerUUID,
 		"updated_at":     gorm.Expr("NOW()"),
 	})
 
@@ -524,22 +456,6 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			"message": "failed to update site: " + result.Error.Error(),
 		})
 		return
-	}
-
-	if managerUUID != nil {
-		var count int64
-		db.Model(&models.SiteMember{}).Where("site_id = ? AND user_id = ?", siteID, managerUUID.String()).Count(&count)
-		if count == 0 {
-			siteMember := models.SiteMember{
-				SiteID:   siteID,
-				UserID:   managerUUID.String(),
-				TenantID: middleware.GetTenantID(c.Request.Context()),
-				Role:     "manager",
-			}
-			if err := db.Create(&siteMember).Error; err != nil {
-				log.Printf("[UpdateSite] Failed to add manager as site member: %v", err)
-			}
-		}
 	}
 
 	if result.RowsAffected == 0 {
