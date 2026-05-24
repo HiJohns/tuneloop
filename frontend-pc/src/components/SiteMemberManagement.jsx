@@ -66,7 +66,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         new_users: newUsers
       });
 
-      if (response.data.code === 20100) {
+      if (response.code === 20100) {
         const data = response.data.data;
         const directCount = data.directly_added?.length || 0;
         const pendingCount = data.confirmation_sessions?.length || 0;
@@ -97,7 +97,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         role: newRole
       });
 
-      if (response.data.code === 20000) {
+      if (response.code === 20000) {
         message.success('角色更新成功');
         fetchMembers();
         onRefresh && onRefresh();
@@ -111,7 +111,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     try {
       const response = await api.delete(`/sites/${siteId}/members/${userId}`);
 
-      if (response.data.code === 20000) {
+      if (response.code === 20000) {
         message.success('成员移除成功');
         fetchMembers();
         onRefresh && onRefresh();
