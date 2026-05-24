@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm } from 'antd';
-import { SwapOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input } from 'antd';
+import { PlusOutlined, SwapOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import InlineUserSelector from './InlineUserSelector';
 
@@ -8,6 +8,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     if (siteId) {
@@ -29,12 +32,8 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       setLoading(false);
     }
   };
-
-  const handleSelectedUsersChange = (users) => {
-    setSelectedUsers(users);
-  };
-
   const handleConfirmAddMembers = async () => {
+    setAdding(true);
     if (!selectedUsers || selectedUsers.length === 0) {
       message.warning('请至少选择一个用户');
       return;
@@ -79,11 +78,14 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         
         message.success(messageText);
         setSelectedUsers([]);
+        setModalVisible(false);
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
       message.error(error.response?.data?.message || '添加成员失败');
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -119,11 +121,12 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     }
   };
 
-  const isLastManager = (userId, role) => {
-    if (role !== 'Manager') return false;
-    const managerCount = members.filter(m => m.role === 'Manager').length;
-    return managerCount === 1;
-  };
+  const filteredMembers = searchKeyword
+    ? members.filter(m =>
+        (m.user_name || '').toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        (m.user_email || '').toLowerCase().includes(searchKeyword.toLowerCase())
+      )
+    : members;
 
   const columns = [
     {
@@ -161,16 +164,14 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
             type="link"
             icon={<SwapOutlined />}
             onClick={() => handleSwitchRole(record.user_id, record.role)}
-            disabled={isLastManager(record.user_id, record.role)}
           >
             切换角色
           </Button>
           <Popconfirm
             title="确认移除此成员？"
             onConfirm={() => handleRemoveMember(record.user_id)}
-            disabled={isLastManager(record.user_id, record.role)}
           >
-            <Button type="link" danger icon={<DeleteOutlined />} disabled={isLastManager(record.user_id, record.role)}>
+            <Button type="link" danger icon={<DeleteOutlined />}>
               移除
             </Button>
           </Popconfirm>
@@ -181,27 +182,54 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="搜索姓名或邮箱"
+          allowClear
+          style={{ width: 260 }}
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+        />
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+          setSelectedUsers([]);
+          setModalVisible(true);
+        }}>
+          添加成员
+        </Button>
+      </div>
+
+      <Modal
+        title="添加成员"
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={null}
+        width={600}
+      >
         <InlineUserSelector
           mode="multi"
           merchantId="current-merchant-id"
           value={selectedUsers}
-          onChange={handleSelectedUsersChange}
+          onChange={setSelectedUsers}
         />
-        {selectedUsers.length > 0 && (
+        <div style={{ textAlign: 'right', marginTop: 16 }}>
+          <Button onClick={() => setModalVisible(false)} style={{ marginRight: 8 }}>
+            取消
+          </Button>
           <Button
             type="primary"
             onClick={handleConfirmAddMembers}
-            style={{ marginTop: 8 }}
+            loading={adding}
+            disabled={!selectedUsers || selectedUsers.length === 0}
           >
             确认添加 ({selectedUsers.length})
           </Button>
-        )}
-      </div>
+        </div>
+      </Modal>
 
       <Table
         columns={columns}
-        dataSource={members}
+        dataSource={filteredMembers}
         loading={loading}
         rowKey="user_id"
         pagination={{ pageSize: 10 }}
