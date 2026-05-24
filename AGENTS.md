@@ -306,3 +306,40 @@ Usage:
 
 ---
 
+## 🛡️ 审核经验积累 (Audit Lessons Learned)
+
+### 2026-05-23: 用户账户操作必须以 IAM 为准，本地库仅是缓存
+
+**问题现象：**
+网点管理中添加/切换/移除成员后，本地 `site_members` 表正确更新，但 IAM 侧的 `user_org_relations` 始终为空。用户登录后 JWT 的 `oid`/`tid` 为空字符串，无法访问任何资源。
+
+同时影响 `CreateSite`、`UpdateSite`、`UpdateMemberRole`、`RemoveMember` 四个 handler——它们都只更新了本地数据库，未调用 IAM 的 BindUser/UnbindUser/UpdateUserRole。
+
+**根因：**
+Tuneloop 将本地数据库当作真实数据源。但用户账户和权限相关的操作必须以 **IAM 为准**。本地 `users`、`site_members` 等表只是 IAM 数据的本地缓存快照，不应作为操作目标。
+
+**原则：**
+```
+用户账户相关操作：
+  1. 首先调用 IAM API 完成绑定/解绑/角色变更
+  2. IAM 成功后，同步更新本地缓存
+  3. 本地缓存仅用于前端展示加速，不用于权限判断
+```
+
+**以后审核新增 Handler 时必须检查：**
+1. [ ] 是否涉及用户账户/权限/绑定操作？
+2. [ ] 如果是，是否调用了对应的 IAM API（BindUserToOrganization / UnbindUser / UpdateUserRoleInOrg）？
+3. [ ] IAM 调用是否在本地 DB 更新**之前**执行？
+4. [ ] 是否把本地 DB 当作唯一数据源（应该以 IAM 为准）？
+
+**检查方法：**
+```bash
+# 查找所有直接更新 site_members / users 表但未调 IAM 的地方
+grep -n 'db.Model\|db.Create\|db.Update' handlers/site_member.go | while read line; do
+  echo "Check if IAM call precedes this line: $line"
+done
+```
+
+---
+*Last updated: 2026-05-23*
+

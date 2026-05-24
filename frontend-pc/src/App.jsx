@@ -102,8 +102,7 @@ function MainLayout() {
     const checkExpiry = () => {
       const token = getToken()
       if (!token) {
-        // DEBUG: temporarily disabled
-        // redirectToIAMLogin()
+        redirectToIAMLogin()
         return
       }
       try {
@@ -123,8 +122,7 @@ function MainLayout() {
   useEffect(() => {
     if (showExpiryWarning) {
       const redirectTimer = setTimeout(() => {
-        // DEBUG: temporarily disabled
-        // redirectToIAMLogin()
+        redirectToIAMLogin()
       }, 60000)
       return () => clearTimeout(redirectTimer)
     }
@@ -345,9 +343,8 @@ function onMenuClick(e) {
   }
 
   if (!getToken()) {
-    // DEBUG: temporarily disabled for haidian_admin login debug
-    // redirectToIAMLogin()
-    // return null
+    redirectToIAMLogin()
+    return null
   }
 
   return (

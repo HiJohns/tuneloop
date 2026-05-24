@@ -225,6 +225,25 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	} else if input.Role == "Staff" {
 	}
 
+	// Update IAM binding to match new role
+	var site models.Site
+	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
+		iamClient := services.NewIAMClient()
+		userToken := services.ExtractUserToken(c)
+		var iamUser models.User
+		if err := database.GetDB().Where("id = ?", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
+			if input.Role == "Manager" {
+				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, "manager", middleware.GetUserID(c.Request.Context())); bindErr != nil {
+					log.Printf("[UpdateMemberRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
+				}
+			} else {
+				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, iamUser.IAMSub, "USER"); demoteErr != nil {
+					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
+				}
+			}
+		}
+	}
+
 	// Update member role
 	result := db.Model(&models.SiteMember{}).
 		Where("tenant_id = ? AND site_id = ? AND user_id = ?", tenantID, siteID, userID).
