@@ -46,7 +46,7 @@ export default function InstrumentList() {
     try {
       // Admin users (OWNER/ADMIN) see all sites' instruments via recursive query
       const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
-      const isAdmin = userInfo.role === 'OWNER' || userInfo.role === 'ADMIN' || userInfo.isOwner
+      const isAdmin = userInfo.tid && userInfo.tid === userInfo.oid
       const recursiveParam = isAdmin ? '&recursive=true' : ''
       const response = await api.get(`/instruments?page=${page}&pageSize=${pageSize}${recursiveParam}`)
       console.log('[DEBUG] Instruments API response:', response)

@@ -26,6 +26,7 @@ export default function StaffManagement() {
   const [currentNewUser, setCurrentNewUser] = useState(null)
   const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
+  const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchLoading, setBatchLoading] = useState(false)
   const location = useLocation()
@@ -36,6 +37,7 @@ export default function StaffManagement() {
       try {
         const info = JSON.parse(userInfo)
         setUserRole(info.role || '')
+        setIsMerchantAdmin(info.tid && info.tid === info.oid)
       } catch (e) {
         setUserRole('')
       }
@@ -427,7 +429,7 @@ export default function StaffManagement() {
         title="人员管理" 
         extra={
           <Space>
-            {(userRole === 'ADMIN' || userRole === 'OWNER' || userRole === 'admin' || userRole === 'owner') && (
+            {isMerchantAdmin && (
               <Button 
                 onClick={handleSyncUsersFromIAM}
                 loading={syncLoading}

@@ -363,24 +363,22 @@ func GetName(ctx context.Context) string {
 
 func GetBusinessRole(ctx context.Context) string {
 	role := GetRole(ctx)
-	orgID := GetOrgID(ctx)
-	isOwner := IsOwner(ctx)
+	tid := GetTenantID(ctx)
+	oid := GetOrgID(ctx)
 
 	// Empty role or USER role should return customer, not staff member
 	if role == "" || role == "USER" {
 		return BusinessRoleCustomer
 	}
 
-	if isOwner {
-		// Use IAM API to check if org has parent (top-level vs sub-level)
-		iamClient, _ := ctx.Value(ContextKeyIAMClient).(*services.IAMClient)
-		if iamClient != nil {
-			org, err := iamClient.GetOrganization(orgID)
-			if err == nil && org.ParentID == nil {
-				return BusinessRoleMerchantAdmin
-			}
-		}
-		return BusinessRoleSiteAdmin
+	// Namespace admin or platform-level user (no tenant)
+	if role == "NAMESPACE_ADMIN" || tid == "" {
+		return BusinessRoleSystemAdmin
+	}
+
+	// Merchant admin: logged into the merchant root org
+	if tid == oid {
+		return BusinessRoleMerchantAdmin
 	}
 
 	if role == "ADMIN" {

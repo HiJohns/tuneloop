@@ -662,9 +662,10 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 	operatorID := middleware.GetUserID(ctx)
 	userToken := services.ExtractUserToken(c)
 
-	// Check permissions: only ADMIN or OWNER can sync
-	role := middleware.GetRole(ctx)
-	if role != "ADMIN" && role != "OWNER" {
+	// Check permissions: merchant admin (tid == oid) can sync
+	tid := middleware.GetTenantID(ctx)
+	oid := middleware.GetOrgID(ctx)
+	if tid != oid || tid == "" {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
 			"message": "insufficient permissions",

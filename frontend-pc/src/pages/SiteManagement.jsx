@@ -57,6 +57,7 @@ export default function SiteManagement() {
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [conflictMessage, setConflictMessage] = useState('')
+  const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
 
   useEffect(() => {
     // Load user role from localStorage
@@ -65,6 +66,7 @@ export default function SiteManagement() {
       try {
         const info = JSON.parse(userInfo)
         setUserRole(info.role || '')
+        setIsMerchantAdmin(info.tid && info.tid === info.oid)
       } catch (e) {
         setUserRole('')
       }
@@ -339,7 +341,7 @@ export default function SiteManagement() {
               >
                 批量导入
               </Button>
-              {(userRole === 'ADMIN' || userRole === 'OWNER' || userRole === 'admin' || userRole === 'owner') && (
+              {isMerchantAdmin && (
                 <Button 
                   type="default" 
                   size="small" 

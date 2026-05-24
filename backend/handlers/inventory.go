@@ -41,11 +41,11 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 
 	if siteID == "" {
 		ctx := c.Request.Context()
-		tenantID := middleware.GetTenantID(ctx)
-		userRole := middleware.GetRole(ctx)
+		tid := middleware.GetTenantID(ctx)
+		oid := middleware.GetOrgID(ctx)
 
-		// Check if user is Owner or Admin - allow querying all inventory
-		if userRole == "OWNER" || userRole == "ADMIN" {
+		// Merchant admin (tid == oid) can query all inventory for the tenant
+		if tid == oid && tid != "" {
 			var instruments []models.Instrument
 			db := database.GetDB().WithContext(ctx)
 
@@ -83,7 +83,7 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 		// For non-owner roles, require site_id
 		var sites []models.Site
 		db := database.GetDB().WithContext(ctx)
-		if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&sites).Error; err != nil {
+		if err := db.Where("tenant_id = ? AND status = ?", tid, "active").Find(&sites).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40002,
 				"message": "site_id is required",

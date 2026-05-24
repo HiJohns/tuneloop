@@ -156,17 +156,16 @@ function MainLayout() {
         const sysPerm = parseInt(payload.sys_perm || payload.sysPerm) || 0
         const cusPerm = parseInt(payload.cus_perm || payload.cusPerm) || 0
         const cusPermExt = payload.cus_perm_ext || payload.cusPermExt || ''
+        const tid = payload.tid || ''
+        const oid = payload.oid || ''
         const isOwner = !!(payload.is_owner || payload.isOwner)
         let businessRole = 'site_member'
-        if (role === 'owner' || role === 'OWNER') {
-          businessRole = isOwner ? 'merchant_admin' : 'site_admin'
-        } else if (role === 'admin' || role === 'ADMIN') {
-          businessRole = 'site_admin'
-        }
-        
-        // Override businessRole if namespace admin (has sys_perm but no cus_perm)
-        if (isNamespaceAdmin(sysPerm, cusPerm)) {
+        if (!tid || !oid) {
           businessRole = 'system_admin'
+        } else if (tid === oid) {
+          businessRole = 'merchant_admin'
+        } else {
+          businessRole = 'site_admin'
         }
         
         const { role: _payloadRole, roles: _payloadRoles, ...payloadWithoutRole } = payload
@@ -180,14 +179,14 @@ function MainLayout() {
           cusPerm,
           cusPermExt,
           isOwner,
+          tid,
+          oid,
           ...payloadWithoutRole
         })
-        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole, sysPerm, cusPerm, cusPermExt, isOwner }))
+        localStorage.setItem('user_info', JSON.stringify({ ...payloadWithoutRole, name, email, role, roles, businessRole, sysPerm, cusPerm, cusPermExt, isOwner, tid, oid }))
         localStorage.setItem('user_sys_perm', sysPerm.toString())
         localStorage.setItem('user_cus_perm', cusPerm.toString())
         localStorage.setItem('user_cus_perm_ext', cusPermExt || '')
-        localStorage.setItem('user_is_owner', isOwner ? '1' : '0')
-        // Store perm_version from JWT payload
         const permVersion = payload.perm_version || payload.permVersion || 0
         localStorage.setItem('perm_version', String(permVersion))
 
@@ -276,7 +275,7 @@ function onMenuClick(e) {
   const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
 
   // Filter menu: children by permission, parent visible if any child visible
-  const isOwnerUser = userInfo?.isOwner || false
+  const ownerAtMerchant = userInfo?.tid && userInfo?.tid === userInfo?.oid
   const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm)
   const filteredItems = menuConfig
     .map(item => ({
@@ -284,7 +283,7 @@ function onMenuClick(e) {
       children: item.children?.filter(child => {
         const childKey = child.key || ''
         if (isNsAdmin && getNamespaceAdminMenuKeys().includes(childKey)) return true
-        if (isOwnerUser && cusPerm === 0 && sysPerm === 0) {
+        if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0) {
           if (item.key !== 'system') return true
         }
         return checkPermission(child.permission, sysPerm, cusPerm, cusPermMapping)
@@ -383,7 +382,9 @@ function onMenuClick(e) {
                     {userInfo.name || userInfo.email}
                   </span>
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                    {userInfo.businessRole === 'system_admin' ? '命名空间管理员' : userInfo.role}
+                    {userInfo.businessRole === 'system_admin' ? '命名空间管理员' :
+                     userInfo.businessRole === 'merchant_admin' ? '管理员' :
+                     userInfo.businessRole === 'site_admin' ? '管理员' : '员工'}
                   </span>
                 </div>
               ) : (
