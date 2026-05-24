@@ -223,14 +223,6 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		// Check protection rule - users can be promoted to Manager
 		// Only Staff -> Manager is allowed
 	} else if input.Role == "Staff" {
-		// Check if this would leave no Managers
-		if isLastManager(db, tenantID, siteID, userID) {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    40002,
-				"message": "Cannot demote the last Manager",
-			})
-			return
-		}
 	}
 
 	// Update member role
@@ -277,13 +269,7 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 	}
 
 	// Protection: Cannot remove the last Manager
-	if isLastManager(db, tenantID, siteID, userID) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "Cannot remove the last Manager",
-		})
-		return
-	}
+	// Removed per #633 — sites can have 0 admins
 
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {

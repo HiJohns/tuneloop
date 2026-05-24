@@ -432,11 +432,8 @@ filterTreeNode={(node) => {
                       <Descriptions.Item label="网点名称">{selectedSite.name}</Descriptions.Item>
                       <Descriptions.Item label="网点类型">{selectedSite.type || '-'}</Descriptions.Item>
                       <Descriptions.Item label="地址" span={2}>{selectedSite.address || '-'}</Descriptions.Item>
-                      <Descriptions.Item label="联系电话">{selectedSite.phone || '-'}</Descriptions.Item>
-                      <Descriptions.Item label="负责人">
-                        {selectedSite.manager?.name || '-'}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="父级网点">
+                       <Descriptions.Item label="联系电话">{selectedSite.phone || '-'}</Descriptions.Item>
+                       <Descriptions.Item label="父级网点">
                         {selectedSite.parent_id ? '有' : '顶级网点'}
                       </Descriptions.Item>
                     </Descriptions>
