@@ -80,7 +80,7 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 			return
 		}
 
-		// For non-owner roles, require site_id
+		// For non-manager roles, require site_id
 		var sites []models.Site
 		db := database.GetDB().WithContext(ctx)
 		if err := db.Where("tenant_id = ? AND status = ?", tid, "active").Find(&sites).Error; err != nil {
@@ -91,19 +91,38 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 			return
 		}
 
-		siteList := make([]gin.H, len(sites))
-		for i, site := range sites {
-			siteList[i] = gin.H{
-				"id":   site.ID,
-				"name": site.Name,
+		// Auto-select if exactly 1 site available
+		if len(sites) == 1 {
+			siteID = sites[0].ID
+		} else if len(sites) > 1 {
+			siteList := make([]gin.H, len(sites))
+			for i, site := range sites {
+				siteList[i] = gin.H{
+					"id":   site.ID,
+					"name": site.Name,
+				}
 			}
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":            40002,
+				"message":         "site_id is required",
+				"available_sites": siteList,
+			})
+			return
+		} else {
+			// No sites at all
+			if err := database.GetDB().WithContext(ctx).Where("tenant_id = ? AND status = 'active'", tid).Find(&sites).Error; err == nil && len(sites) == 0 {
+				c.JSON(http.StatusOK, gin.H{
+					"code":    20000,
+					"data":    gin.H{"list": []interface{}{}, "total": 0},
+				})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "site_id is required",
+			})
+			return
 		}
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":            40002,
-			"message":         "site_id is required",
-			"available_sites": siteList,
-		})
 		return
 	}
 
