@@ -61,7 +61,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         }
       })
 
-      const response = await api.post(`/api/sites/${siteId}/members`, {
+      const response = await api.post(`/sites/${siteId}/members`, {
         user_ids: existingUsers,
         new_users: newUsers
       });
@@ -90,7 +90,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     const newRole = currentRole === 'Manager' ? 'Staff' : 'Manager';
 
     try {
-      const response = await api.put(`/api/sites/${siteId}/members/${userId}`, {
+      const response = await api.put(`/sites/${siteId}/members/${userId}`, {
         role: newRole
       });
 
@@ -106,7 +106,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
 
   const handleRemoveMember = async (userId) => {
     try {
-      const response = await api.delete(`/api/sites/${siteId}/members/${userId}`);
+      const response = await api.delete(`/sites/${siteId}/members/${userId}`);
 
       if (response.data.code === 20000) {
         message.success('成员移除成功');
