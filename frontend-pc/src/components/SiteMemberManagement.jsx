@@ -67,7 +67,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       });
 
       if (response.code === 20100) {
-        const data = response.data.data;
+        const data = response.data;
         const directCount = data.directly_added?.length || 0;
         const pendingCount = data.confirmation_sessions?.length || 0;
         
