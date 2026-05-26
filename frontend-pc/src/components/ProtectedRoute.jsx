@@ -3,7 +3,7 @@ import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
 import { SysPermBits, checkPermission } from '../config/menuPermissions'
 
-const IAM_URL = import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+const getIAMUrl = () => window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
 
 function getToken() {
@@ -28,7 +28,7 @@ function getToken() {
       if (name === 'token') return decodeURIComponent(value)
     }
   }
-  
+
   return sessionStorage.getItem('token') || null
 }
 
@@ -102,7 +102,7 @@ function redirectToLogin() {
         window.location.href = data.data.authorization_url;
       } else {
         const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
-        window.location.href = `${IAM_URL}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
+        window.location.href = `${getIAMUrl()}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
       }
     })
     .catch(() => {
@@ -110,7 +110,7 @@ function redirectToLogin() {
       setTimeout(() => {
         const retryId = CLIENT_ID()
         const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
-        window.location.href = `${IAM_URL}/oauth/authorize?client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code`;
+        window.location.href = `${getIAMUrl()}/oauth/authorize?client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code`;
       }, 500)
     });
 }
