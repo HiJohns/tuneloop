@@ -173,6 +173,7 @@ const MerchantManagement = () => {
       <Modal
         title={editingMerchant ? '编辑商户' : '创建商户'}
         open={modalOpen}
+        destroyOnClose
         onOk={() => form.submit()}
         onCancel={() => setModalOpen(false)}
         width={600}
