@@ -25,8 +25,8 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 网点员工 | STAFF | staff (site_member) | 有限操作权限 |
 | 维修工程师 | WORKER | worker | 维修相关操作 |
 
-**命名空间管理员规则**（`menuPermissions.js:179-187`）：
-> `sys_perm > 0 && cus_perm === 0` → 仅仪表盘 + 商户管理 + 客户端管理可见。
+**命名空间管理员规则**（`menuPermissions.js:59-60`）：
+> `roles 包含 "namespace_admin"` → 仅仪表盘 + 商户管理 + 客户端管理可见。
 
 ---
 
