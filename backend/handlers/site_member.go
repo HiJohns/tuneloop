@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -67,9 +68,15 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 
 	// Support both old and new request format
 	var input struct {
-		UserID  string                   `json:"user_id"` // Old format (backward compatibility)
-		Role    string                   `json:"role" default:"Staff"`
-		UserIDs []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
+		UserID   string                   `json:"user_id"` // Old format (backward compatibility)
+		Role     string                   `json:"role" default:"Staff"`
+		UserIDs  []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
+		NewUsers []struct {
+			Name  string `json:"name"`
+			Email string `json:"email"`
+			Phone string `json:"phone"`
+			Role  string `json:"role"`
+		} `json:"new_users"` // Create new users first, then add as members
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -91,10 +98,10 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	} else if len(input.UserIDs) > 0 {
 		// New format: use user_ids array
 		usersToProcess = input.UserIDs
-	} else {
+	} else if len(input.NewUsers) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Either user_id (old format) or user_ids (new format) must be provided",
+			"message": "Either user_id (old format), user_ids (new format), or new_users must be provided",
 		})
 		return
 	}
@@ -114,6 +121,62 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	iamClient := services.NewIAMClient()
 	userToken := services.ExtractUserToken(c)
 	operatorID := middleware.GetUserID(c.Request.Context())
+
+	// Process new_users: create or get users first, then add to processing list
+	if len(input.NewUsers) > 0 {
+		for _, nu := range input.NewUsers {
+			callbackURL := os.Getenv("EXTERNAL_WEB_URL")
+			if callbackURL == "" {
+				callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
+			}
+			userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
+				Username:    nu.Name,
+				Name:        nu.Name,
+				Email:       nu.Email,
+				Phone:       nu.Phone,
+				CallbackURL: callbackURL,
+				Reason:      "网点成员 - " + site.Name,
+				OperatorID:  operatorID,
+			})
+			if err != nil {
+				log.Printf("[AddMember] Failed to create user %s: %v", nu.Email, err)
+				bindErrors = append(bindErrors, gin.H{
+					"email": nu.Email,
+					"error": err.Error(),
+				})
+				continue
+			}
+			if userResult.Conflict {
+				c.JSON(http.StatusConflict, gin.H{
+					"code": 40901,
+					"data": gin.H{"conflicts": userResult.ExistingUsers},
+				})
+				return
+			}
+			localUser := models.User{
+				ID:       userResult.UserID,
+				IAMSub:   userResult.UserID,
+				TenantID: tenantID,
+				OrgID:    site.OrgID,
+				Name:     nu.Name,
+				Email:    nu.Email,
+				Phone:    nu.Phone,
+				Role:     "site_member",
+				Status:   "active",
+			}
+			if err := db.Create(&localUser).Error; err != nil {
+				log.Printf("[AddMember] Failed to create local user %s: %v", userResult.UserID, err)
+			}
+			role := nu.Role
+			if role == "" {
+				role = "Staff"
+			}
+			usersToProcess = append(usersToProcess, map[string]interface{}{
+				"user_id": userResult.UserID,
+				"role":    role,
+			})
+		}
+	}
 
 	for _, userEntry := range usersToProcess {
 		userID, ok := userEntry["user_id"].(string)
