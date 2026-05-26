@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
@@ -47,7 +48,7 @@ func (h *BulkImportHandler) ImportOrganizations(c *gin.Context) {
 
 	dryRun := c.Query("dry_run") == "true"
 
-	allowMerchant := middleware.GetCusPerm(ctx) == 0
+	allowMerchant := slices.Contains(middleware.GetFunctionalRoles(ctx), "namespace_admin")
 
 	result, err := services.ImportOrganizationsCSV(ctx, file, tenantID, h.iamClient, dryRun, allowMerchant)
 	if err != nil {

@@ -280,7 +280,7 @@ function onMenuClick(e) {
 
   // Filter menu: children by permission, parent visible if any child visible
   const ownerAtMerchant = userInfo?.tid && userInfo?.tid === userInfo?.oid
-  const isNsAdmin = isNamespaceAdmin(sysPerm, cusPerm)
+  const isNsAdmin = isNamespaceAdmin(userInfo?.roles || [])
   const filteredItems = menuConfig
     .map(item => ({
       ...item,

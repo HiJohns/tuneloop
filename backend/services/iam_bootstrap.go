@@ -74,13 +74,30 @@ func BootstrapIAM(db *gorm.DB) error {
 				return fmt.Errorf("ADMIN_EMAIL not set — required for cold start. Add ADMIN_EMAIL to .env with the admin user's email address")
 			}
 			iamClient := NewIAMClient()
-			_, err := iamClient.CreateAdminUser(iamNs, adminEmail, "Administrator")
+			adminUserID, err := iamClient.CreateAdminUser(iamNs, adminEmail, "Administrator")
 			if err != nil {
 				log.Printf("[Bootstrap] Warning: cold start admin creation failed: %v", err)
 			} else {
 				log.Printf("[Bootstrap] Cold start: admin user created (%s)", adminEmail)
 				// beaconiam #202: RegisterAdmin now creates org + binds admin in one step.
 				// No separate BindUserToOrg call needed.
+
+				// Clear namespace admin's cus_perm to 0.
+				// RegisterAdmin sets CusPerm=(1<<25)-1, but namespace admin should have
+				// cus_perm=0 per docs/permissions.md (sys_perm > 0 && cus_perm === 0).
+				if adminUserID != "" {
+					appCredentialsLock.RLock()
+					orgID := appCredentials["_org_id"]
+					appCredentialsLock.RUnlock()
+					if orgID != "" {
+						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, []string{}); err != nil {
+							log.Printf("[Bootstrap] Warning: failed to clear admin cus_perm: %v", err)
+						} else {
+							log.Printf("[Bootstrap] Cleared admin cus_perm to 0 for namespace-admin semantics")
+						}
+					}
+				}
+
 				// Save admin to local users table so cold start check skips on restart.
 				// Check by email to avoid duplicates (adminUserID may be empty if IAM API
 				// does not return the user ID in the response).
