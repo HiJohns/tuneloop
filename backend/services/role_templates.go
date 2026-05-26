@@ -14,7 +14,7 @@ type RoleTemplate struct {
 }
 
 // AllRoleTemplates maps role template code to its definition.
-// These must be kept in sync with backend/services/permission_bootstrap.go.
+// Local role→permission mapping. The canonical source for cus_perm assignments.
 var AllRoleTemplates = map[string]RoleTemplate{
 	"namespace_admin": {
 		Name:        "命名空间管理员",
@@ -51,7 +51,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"site_member": {
 		Name:         "网点员工",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{"instrument:view", "maintenance:view", "maintenance:complete"},
+		CusPermCodes: []string{"instrument:view", "instrument:create", "maintenance:view", "maintenance:complete"},
 		Description:  "网点员工基础权限",
 	},
 	"worker": {
@@ -131,6 +131,26 @@ func ComputeCusPermBitmap(codes []string, registry *PermissionRegistry) int64 {
 		}
 	}
 	return result
+}
+
+// ComputeCusPermBitmapExt calculates both cus_perm (bits 0-63) and cus_perm_ext (bits 64+).
+func ComputeCusPermBitmapExt(codes []string, getBit func(string) int) (int64, []byte) {
+	var cusPerm int64
+	var cusPermExt []byte
+	for _, code := range codes {
+		bit := getBit(code)
+		if bit >= 0 && bit < 64 {
+			cusPerm |= 1 << bit
+		} else if bit >= 64 {
+			extIndex := (bit - 64) / 8
+			extOffset := (bit - 64) % 8
+			for len(cusPermExt) <= extIndex {
+				cusPermExt = append(cusPermExt, 0)
+			}
+			cusPermExt[extIndex] |= (1 << extOffset)
+		}
+	}
+	return cusPerm, cusPermExt
 }
 
 // GetRoleTemplateSysPerm returns the sys_perm bitmap for a role template.

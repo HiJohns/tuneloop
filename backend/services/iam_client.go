@@ -1027,92 +1027,33 @@ func ExtractUserToken(c *gin.Context) string {
 	return ""
 }
 
-// PermissionDef represents a customer permission to register with IAM.
+// PermissionDef represents a customer permission.
 type PermissionDef struct {
 	Code        string `json:"code"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	BitCode     int    `json:"-"`
 }
 
 // PermissionMapping represents a registered customer permission with bit code.
 type PermissionMapping struct {
-	Code    string `json:"code"`
-	BitCode int    `json:"bit_code"`
-	Name    string `json:"name"`
-	IsActive bool  `json:"is_active"`
-}
-
-type registerCustomerPermissionsReq struct {
-	Permissions []PermissionDef `json:"permissions"`
-}
-
-type listCustomerPermissionsResp struct {
-	NamespaceID string              `json:"namespace_id"`
-	Permissions []PermissionMapping `json:"permissions"`
+	Code     string `json:"code"`
+	BitCode  int    `json:"bit_code"`
+	Name     string `json:"name"`
+	IsActive bool   `json:"is_active"`
 }
 
 type setPermissionCodesReq struct {
-	PermissionCodes []string `json:"permission_codes"`
+	PermissionCodes []string `json:"permission_codes,omitempty"`
+	RawBits         bool     `json:"raw_bits,omitempty"`
+	CusPerm         int64    `json:"cus_perm,omitempty"`
+	CusPermExt      []byte   `json:"cus_perm_ext,omitempty"`
 }
 
-// RegisterCustomerPermissions registers custom permission definitions with IAM.
-// Idempotent: submitting the same code multiple times returns the existing bit code.
-func (c *IAMClient) RegisterCustomerPermissions(namespaceID string, perms []PermissionDef) ([]PermissionMapping, error) {
-	req := registerCustomerPermissionsReq{Permissions: perms}
-	path := fmt.Sprintf("/api/v1/namespaces/%s/customer-permissions", namespaceID)
-
-	respBody, statusCode, err := c.doRequest("PUT", path, req)
-	if err != nil {
-		return nil, fmt.Errorf("RegisterCustomerPermissions request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("RegisterCustomerPermissions returned status %d: %s", statusCode, string(respBody))
-	}
-
-	var resp listCustomerPermissionsResp
-	if err := json.Unmarshal(respBody, &resp); err != nil {
-		return nil, fmt.Errorf("failed to parse RegisterCustomerPermissions response: %w", err)
-	}
-	return resp.Permissions, nil
-}
-
-// GetCustomerPermissions fetches all registered customer permissions from IAM.
-func (c *IAMClient) GetCustomerPermissions(namespaceID string) ([]PermissionMapping, error) {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/customer-permissions", namespaceID)
-
-	respBody, statusCode, err := c.doRequest("GET", path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("GetCustomerPermissions request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("GetCustomerPermissions returned status %d: %s", statusCode, string(respBody))
-	}
-
-	var resp listCustomerPermissionsResp
-	if err := json.Unmarshal(respBody, &resp); err != nil {
-		return nil, fmt.Errorf("failed to parse GetCustomerPermissions response: %w", err)
-	}
-	return resp.Permissions, nil
-}
-
-// SetRoleCustomerPermissions sets the cus_perm bit codes for a role template.
-func (c *IAMClient) SetRoleCustomerPermissions(namespaceID, roleID string, permCodes []string) error {
-	req := setPermissionCodesReq{PermissionCodes: permCodes}
-	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates/%s/customer-permissions", namespaceID, roleID)
-
-	respBody, statusCode, err := c.doRequest("PUT", path, req)
-	if err != nil {
-		return fmt.Errorf("SetRoleCustomerPermissions request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return fmt.Errorf("SetRoleCustomerPermissions returned status %d: %s", statusCode, string(respBody))
-	}
-	return nil
-}
-
-// SetUserCustomerPermissions sets the direct cus_perm bit codes for a user in an organization.
-func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, permCodes []string) error {
-	req := setPermissionCodesReq{PermissionCodes: permCodes}
+// SetUserCustomerPermissions sets the cus_perm bitmap for a user in an organization.
+// Sends raw bit values — no code→bit mapping needed (beaconiam #293 Phase 1).
+func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, cusPerm int64, cusPermExt []byte) error {
+	req := setPermissionCodesReq{RawBits: true, CusPerm: cusPerm, CusPermExt: cusPermExt}
 	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
 
 	respBody, statusCode, err := c.doRequest("PUT", path, req)
@@ -1126,6 +1067,24 @@ func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, permCodes [
 	// Increment perm_version to notify clients of permission change
 	c.IncrementPermVersion()
 
+	return nil
+}
+
+// SetUserCustomerPermissionsCodes sets the cus_perm via permission codes (backward compatibility).
+// Used before beaconiam #293 Phase 1 raw_bits support is deployed.
+func (c *IAMClient) SetUserCustomerPermissionsCodes(orgID, userID string, permCodes []string) error {
+	req := setPermissionCodesReq{PermissionCodes: permCodes}
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
+
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return fmt.Errorf("SetUserCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("SetUserCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+
+	c.IncrementPermVersion()
 	return nil
 }
 
@@ -1148,80 +1107,6 @@ func (c *IAMClient) IncrementPermVersion() error {
 	return nil
 }
 
-// SyncRoleTemplateSysPerm syncs the sys_perm for a role template in IAM.
-func (c *IAMClient) SyncRoleTemplateSysPerm(namespaceID, roleCode string, sysPermBits []int) error {
-	roleTemplates, err := c.ListRoleTemplates(namespaceID)
-	if err != nil {
-		return fmt.Errorf("SyncRoleTemplateSysPerm: failed to list role templates: %w", err)
-	}
-
-	var targetID string
-	for _, rt := range roleTemplates {
-		if rt.Code == roleCode {
-			targetID = rt.ID
-			break
-		}
-	}
-	if targetID == "" {
-		return fmt.Errorf("SyncRoleTemplateSysPerm: role template not found for code %s", roleCode)
-	}
-
-	sysPerm := int64(0)
-	for _, b := range sysPermBits {
-		if b >= 0 && b < 64 {
-			sysPerm |= 1 << b
-		}
-	}
-
-	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates/%s", namespaceID, targetID)
-	req := map[string]interface{}{
-		"sys_perm": sysPerm,
-	}
-	respBody, statusCode, err := c.doRequest("PUT", path, req)
-	if err != nil {
-		return fmt.Errorf("SyncRoleTemplateSysPerm request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return fmt.Errorf("SyncRoleTemplateSysPerm returned status %d: %s", statusCode, string(respBody))
-	}
-
-	log.Printf("[IAMClient] Synced sys_perm for role %s: bits=%v → %d", roleCode, sysPermBits, sysPerm)
-	return nil
-}
-
-// ListRoleTemplates returns the role templates for a namespace.
-func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
-	ID   string `json:"id"`
-	Code string `json:"code"`
-}, error) {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates", namespaceID)
-	respBody, statusCode, err := c.doRequest("GET", path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("ListRoleTemplates request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("ListRoleTemplates returned status %d: %s", statusCode, string(respBody))
-	}
-
-	var result []struct {
-		ID   string `json:"id"`
-		Code string `json:"code"`
-	}
-	// Try wrapped format first, then plain array
-	var wrapped struct {
-		Templates []struct {
-			ID   string `json:"id"`
-			Code string `json:"code"`
-		} `json:"role_templates"`
-	}
-	if err := json.Unmarshal(respBody, &wrapped); err == nil && len(wrapped.Templates) > 0 {
-		return wrapped.Templates, nil
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse ListRoleTemplates response: %w", err)
-	}
-	return result, nil
-}
 
 // NamespaceAppResponse represents a registered OAuth app returned by IAM.
 type NamespaceAppResponse struct {

@@ -90,7 +90,7 @@ func BootstrapIAM(db *gorm.DB) error {
 					orgID := appCredentials["_org_id"]
 					appCredentialsLock.RUnlock()
 					if orgID != "" {
-						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, []string{}); err != nil {
+						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, 0, nil); err != nil {
 							log.Printf("[Bootstrap] Warning: failed to clear admin cus_perm: %v", err)
 						} else {
 							log.Printf("[Bootstrap] Cleared admin cus_perm to 0 for namespace-admin semantics")

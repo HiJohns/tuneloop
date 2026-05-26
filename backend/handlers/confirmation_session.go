@@ -360,6 +360,12 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 				if err := iamClient.BindUserToOrganization(session.UserID, merchant.OrgID, "admin", ""); err != nil {
 					return fmt.Errorf("IAM bind failed: %w", err)
 				}
+				if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+					if err := iamClient.SetUserCustomerPermissions(merchant.OrgID, session.UserID, cusPerm, cusPermExt); err != nil {
+						log.Printf("[Confirm] SetUserCustomerPermissions failed: %v", err)
+					}
+				}
 			}
 		}
 		return nil

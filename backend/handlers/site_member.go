@@ -211,6 +211,17 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				})
 				continue
 			}
+			// Set cus_perm for the new member based on role
+			templateCode := "site_member"
+			if role == "Manager" {
+				templateCode = "site_admin"
+			}
+			if t, ok := services.AllRoleTemplates[templateCode]; ok && len(t.CusPermCodes) > 0 {
+				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+				if err := iamClient.SetUserCustomerPermissions(site.OrgID, userID, cusPerm, cusPermExt); err != nil {
+					log.Printf("[AddMember] SetUserCustomerPermissions failed: %v", err)
+				}
+			}
 		}
 
 		member := models.SiteMember{
@@ -298,10 +309,20 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 			if input.Role == "Manager" {
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, "manager", middleware.GetUserID(c.Request.Context())); bindErr != nil {
 					log.Printf("[UpdateMemberRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
+				} else if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+					if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
+						log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
+					}
 				}
 			} else {
 				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, iamUser.IAMSub, "USER"); demoteErr != nil {
 					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
+				} else if t, ok := services.AllRoleTemplates["site_member"]; ok && len(t.CusPermCodes) > 0 {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+					if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
+						log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
+					}
 				}
 			}
 		}

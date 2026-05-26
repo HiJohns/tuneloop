@@ -273,7 +273,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 
 		template := services.AllRoleTemplates["site_member"]
 		if len(template.CusPermCodes) > 0 {
-			if err := iamClient.SetUserCustomerPermissions(orgID, user.IAMSub, template.CusPermCodes); err != nil {
+		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+			if err := iamClient.SetUserCustomerPermissions(orgID, user.IAMSub, cusPerm, cusPermExt); err != nil {
 				iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
 				iamClient.DeleteUser(user.IAMSub)
 				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
@@ -499,7 +500,8 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 
 						template, ok := services.AllRoleTemplates[existingUser.Role]
 						if ok && len(template.CusPermCodes) > 0 {
-							if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, template.CusPermCodes); err != nil {
+							cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+							if err := iamClient.SetUserCustomerPermissions(newOrgID, existingUser.IAMSub, cusPerm, cusPermExt); err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to set user permissions: " + err.Error()})
 								return
 							}

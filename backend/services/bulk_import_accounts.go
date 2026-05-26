@@ -299,7 +299,8 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 				continue
 			}
 
-			if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, newUser.IAMSub, template.CusPermCodes); err != nil {
+			cusPerm, cusPermExt := ComputeCusPermBitmapExt(template.CusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
+			if err := iamClient.SetUserCustomerPermissions(orgIDForIAM, newUser.IAMSub, cusPerm, cusPermExt); err != nil {
 				LogImportError("account", acc.RowNum, acc.Email, err)
 				iamClient.UnbindUserFromOrganization(newUser.IAMSub, orgIDForIAM, "")
 				iamClient.DeleteUser(newUser.IAMSub)

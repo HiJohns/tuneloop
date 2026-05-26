@@ -1,87 +1,35 @@
 package services
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 )
 
 // PermissionRegistry manages customer permission definitions and bit code mappings.
-// It replaces the mock registry at startup by fetching real mappings from IAM.
+// Uses hardcoded bit assignments — no IAM registration/sync needed.
 type PermissionRegistry struct {
-	mu             sync.RWMutex
-	iamClient      *IAMClient
-	cusPermMap     map[string]int          // code -> bit_code
-	cusPermDetails map[string]PermissionMapping // code -> full details
-	lastSync       time.Time
-	cacheFile      string
+	mu         sync.RWMutex
+	cusPermMap map[string]int
+	lastSync   time.Time
 }
 
-// NewPermissionRegistry creates a permission registry backed by IAM.
-func NewPermissionRegistry(iamClient *IAMClient) *PermissionRegistry {
-	return &PermissionRegistry{
-		iamClient:      iamClient,
-		cusPermMap:     make(map[string]int),
-		cusPermDetails: make(map[string]PermissionMapping),
-		cacheFile:      "tmp/.permission_cache.json",
+// NewPermissionRegistry creates a permission registry with hardcoded bit mappings.
+func NewPermissionRegistry() *PermissionRegistry {
+	r := &PermissionRegistry{
+		cusPermMap: make(map[string]int),
 	}
+	for _, p := range getTuneLoopPermissions() {
+		r.cusPermMap[p.Code] = p.BitCode
+	}
+	return r
 }
 
-// RegisterAndSync registers TuneLoop's cus_perm definitions with IAM and caches the mapping.
-// On failure, it falls back to the local cache file if available.
+// RegisterAndSync initializes the registry from hardcoded mappings.
+// No IAM calls — bit codes are fixed at compile time.
 func (r *PermissionRegistry) RegisterAndSync(namespaceID string) error {
-	// Try to load from cache first
-	if err := r.loadFromCache(); err == nil && len(r.cusPermMap) > 0 {
-		log.Printf("[PermissionRegistry] Loaded %d permissions from cache", len(r.cusPermMap))
-	}
-
-	// Resolve namespace name to UUID if needed
-	nsID, err := r.iamClient.getNamespaceID()
-	if err != nil {
-		log.Printf("[PermissionRegistry] Failed to resolve namespace ID: %v", err)
-		nsID = namespaceID // fallback to passed value
-	}
-
-	// Register permissions with IAM
-	perms := r.getTuneLoopPermissions()
-	registered, err := r.iamClient.RegisterCustomerPermissions(nsID, perms)
-	if err != nil {
-		log.Printf("[PermissionRegistry] Failed to register permissions with IAM: %v", err)
-		if len(r.cusPermMap) > 0 {
-			log.Printf("[PermissionRegistry] Using cached permissions (%d entries)", len(r.cusPermMap))
-			return nil
-		}
-		env := os.Getenv("APP_ENV")
-		if env == "production" {
-			return fmt.Errorf("permission registration failed in production and no cache available: %w", err)
-		}
-		log.Printf("[PermissionRegistry] Development mode: continuing with empty permissions")
-		return nil
-	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for _, p := range registered {
-		if p.IsActive {
-			r.cusPermMap[p.Code] = p.BitCode
-			r.cusPermDetails[p.Code] = p
-		}
-	}
+	log.Printf("[PermissionRegistry] Initialized %d hardcoded permissions", len(r.cusPermMap))
 	r.lastSync = time.Now()
-	log.Printf("[PermissionRegistry] Registered %d permissions with IAM", len(registered))
-
-	snapshot := make(map[string]int, len(r.cusPermMap))
-	for k, v := range r.cusPermMap {
-		snapshot[k] = v
-	}
-	r.saveToCache(snapshot)
-
-	// Start background sync
-	go r.backgroundSync(nsID)
 	return nil
 }
 
@@ -97,8 +45,6 @@ func (r *PermissionRegistry) GetCusPermBit(code string) int {
 
 // GetSysPermBit returns the bit position for a system permission name.
 func (r *PermissionRegistry) GetSysPermBit(name string) (int, bool) {
-	// Sys_perm bits are fixed (0-24) from BeaconIAM, cached from config
-	// These are the same as the MockPermissionRegistry
 	bit, ok := middlewareSysPermMap[name]
 	return bit, ok
 }
@@ -114,7 +60,9 @@ func (r *PermissionRegistry) GetCusPermMapping() map[string]int {
 	return result
 }
 
-// middlewareSysPermMap is a copy of the sys_perm constants for registry access.
+// GlobalPermissionRegistry is the global permission registry instance.
+// Set during startup by main.go. Used by service code to compute bitmaps.
+var GlobalPermissionRegistry *PermissionRegistry
 var middlewareSysPermMap = map[string]int{
 	"namespace_view":       0,
 	"namespace_list":       1,
@@ -143,189 +91,83 @@ var middlewareSysPermMap = map[string]int{
 	"role_delete":          24,
 }
 
-// getTuneLoopPermissions returns the cus_perm definitions for TuneLoop.
-// Existing codes (first 16) keep their IAM bit positions. New codes added after.
-func (r *PermissionRegistry) getTuneLoopPermissions() []PermissionDef {
+// getTuneLoopPermissions returns the cus_perm definitions with hardcoded bit codes.
+// Bit codes are frozen from IAM allocations (0-69, continuous, no gaps).
+func getTuneLoopPermissions() []PermissionDef {
 	return []PermissionDef{
-		// Existing codes (16) — DO NOT REORDER
-		{Code: "instrument:create", Name: "创建乐器"},
-		{Code: "instrument:edit", Name: "编辑乐器"},
-		{Code: "instrument:delete", Name: "删除乐器"},
-		{Code: "instrument:view", Name: "查看乐器"},
-		{Code: "category:manage", Name: "分类管理"},
-		{Code: "property:manage", Name: "属性管理"},
-		{Code: "inventory:view", Name: "库存查看"},
-		{Code: "inventory:manage", Name: "库存管理/调拨"},
-		{Code: "rent:setting", Name: "租金设定"},
-		{Code: "order:view", Name: "订单/租约查看"},
-		{Code: "order:manage", Name: "订单管理"},
-		{Code: "maintenance:view", Name: "维修查看"},
-		{Code: "maintenance:assign", Name: "维修派单"},
-		{Code: "maintenance:complete", Name: "维修完成"},
-		{Code: "finance:config", Name: "财务配置"},
-		{Code: "appeal:handle", Name: "申诉处理"},
-		// New codes — granular operation-level permissions
-		{Code: "instrument:list", Name: "乐器列表"},
-		{Code: "category:list", Name: "分类列表"},
-		{Code: "category:create", Name: "新建分类"},
-		{Code: "category:edit", Name: "编辑分类"},
-		{Code: "category:delete", Name: "删除分类"},
-		{Code: "property:list", Name: "属性列表"},
-		{Code: "property:create", Name: "新建属性"},
-		{Code: "property:edit", Name: "编辑属性"},
-		{Code: "property:delete", Name: "删除属性"},
-		{Code: "property:merge", Name: "合并属性"},
-		{Code: "inventory:list", Name: "库存列表"},
-		{Code: "inventory:transfer", Name: "库存调拨"},
-		{Code: "rent:view", Name: "租金查看"},
-		{Code: "rent:edit", Name: "租金编辑"},
-		{Code: "order:list", Name: "订单列表"},
-		{Code: "order:create", Name: "新建订单"},
-		{Code: "order:pay", Name: "订单支付"},
-		{Code: "order:pickup", Name: "订单取件"},
-		{Code: "order:return", Name: "订单归还"},
-		{Code: "order:cancel", Name: "取消订单"},
-		{Code: "order:transfer", Name: "转移归属"},
-		{Code: "order:terminate", Name: "终止订单"},
-		{Code: "maintenance:list", Name: "维修列表"},
-		{Code: "maintenance:create", Name: "提交维修"},
-		{Code: "maintenance:accept", Name: "接受维修"},
-		{Code: "maintenance:quote", Name: "维修报价"},
-		{Code: "maintenance:start", Name: "开始维修"},
-		{Code: "maintenance:inspect", Name: "检验维修"},
-		{Code: "maintenance:cancel", Name: "取消维修"},
-		{Code: "lease:list", Name: "租赁列表"},
-		{Code: "lease:view", Name: "租赁查看"},
-		{Code: "lease:create", Name: "新建租赁"},
-		{Code: "lease:edit", Name: "编辑租赁"},
-		{Code: "lease:terminate", Name: "终止租赁"},
-		{Code: "deposit:list", Name: "押金列表"},
-		{Code: "deposit:view", Name: "押金查看"},
-		{Code: "deposit:create", Name: "新建押金"},
-		{Code: "deposit:edit", Name: "编辑押金"},
-		{Code: "appeal:list", Name: "申诉列表"},
-		{Code: "appeal:view", Name: "申诉查看"},
-		{Code: "appeal:create", Name: "提交申诉"},
-		{Code: "appeal:resolve", Name: "裁定申诉"},
-		{Code: "label:list", Name: "标签列表"},
-		{Code: "label:create", Name: "新建标签"},
-		{Code: "label:approve", Name: "批准标签"},
-		{Code: "label:reject", Name: "拒绝标签"},
-		{Code: "label:merge", Name: "合并标签"},
-		{Code: "worker:list", Name: "师傅列表"},
-		{Code: "worker:create", Name: "新建师傅"},
-		{Code: "worker:delete", Name: "删除师傅"},
-		{Code: "audit_log:view", Name: "审计日志查看"},
-		{Code: "audit_log:export", Name: "审计日志导出"},
-		{Code: "organization:import", Name: "批量导入组织"},
-		{Code: "account:import", Name: "批量导入账号"},
+		{Code: "instrument:create", Name: "创建乐器", BitCode: 0},
+		{Code: "instrument:edit", Name: "编辑乐器", BitCode: 1},
+		{Code: "instrument:delete", Name: "删除乐器", BitCode: 2},
+		{Code: "instrument:view", Name: "查看乐器", BitCode: 3},
+		{Code: "category:manage", Name: "分类管理", BitCode: 4},
+		{Code: "property:manage", Name: "属性管理", BitCode: 5},
+		{Code: "inventory:view", Name: "库存查看", BitCode: 6},
+		{Code: "inventory:manage", Name: "库存管理/调拨", BitCode: 7},
+		{Code: "rent:setting", Name: "租金设定", BitCode: 8},
+		{Code: "order:view", Name: "订单/租约查看", BitCode: 9},
+		{Code: "order:manage", Name: "订单管理", BitCode: 10},
+		{Code: "maintenance:view", Name: "维修查看", BitCode: 11},
+		{Code: "maintenance:assign", Name: "维修派单", BitCode: 12},
+		{Code: "maintenance:complete", Name: "维修完成", BitCode: 13},
+		{Code: "finance:config", Name: "财务配置", BitCode: 14},
+		{Code: "appeal:handle", Name: "申诉处理", BitCode: 15},
+		{Code: "instrument:list", Name: "乐器列表", BitCode: 16},
+		{Code: "category:list", Name: "分类列表", BitCode: 17},
+		{Code: "category:create", Name: "新建分类", BitCode: 18},
+		{Code: "category:edit", Name: "编辑分类", BitCode: 19},
+		{Code: "category:delete", Name: "删除分类", BitCode: 20},
+		{Code: "property:list", Name: "属性列表", BitCode: 21},
+		{Code: "property:create", Name: "新建属性", BitCode: 22},
+		{Code: "property:edit", Name: "编辑属性", BitCode: 23},
+		{Code: "property:delete", Name: "删除属性", BitCode: 24},
+		{Code: "property:merge", Name: "合并属性", BitCode: 25},
+		{Code: "inventory:list", Name: "库存列表", BitCode: 26},
+		{Code: "inventory:transfer", Name: "库存调拨", BitCode: 27},
+		{Code: "rent:view", Name: "租金查看", BitCode: 28},
+		{Code: "rent:edit", Name: "租金编辑", BitCode: 29},
+		{Code: "order:list", Name: "订单列表", BitCode: 30},
+		{Code: "order:create", Name: "新建订单", BitCode: 31},
+		{Code: "order:pay", Name: "订单支付", BitCode: 32},
+		{Code: "order:pickup", Name: "订单取件", BitCode: 33},
+		{Code: "order:return", Name: "订单归还", BitCode: 34},
+		{Code: "order:cancel", Name: "取消订单", BitCode: 35},
+		{Code: "order:transfer", Name: "转移归属", BitCode: 36},
+		{Code: "order:terminate", Name: "终止订单", BitCode: 37},
+		{Code: "maintenance:list", Name: "维修列表", BitCode: 38},
+		{Code: "maintenance:create", Name: "提交维修", BitCode: 39},
+		{Code: "maintenance:accept", Name: "接受维修", BitCode: 40},
+		{Code: "maintenance:quote", Name: "维修报价", BitCode: 41},
+		{Code: "maintenance:start", Name: "开始维修", BitCode: 42},
+		{Code: "maintenance:inspect", Name: "检验维修", BitCode: 43},
+		{Code: "maintenance:cancel", Name: "取消维修", BitCode: 44},
+		{Code: "lease:list", Name: "租赁列表", BitCode: 45},
+		{Code: "lease:view", Name: "租赁查看", BitCode: 46},
+		{Code: "lease:create", Name: "新建租赁", BitCode: 47},
+		{Code: "lease:edit", Name: "编辑租赁", BitCode: 48},
+		{Code: "lease:terminate", Name: "终止租赁", BitCode: 49},
+		{Code: "deposit:list", Name: "押金列表", BitCode: 50},
+		{Code: "deposit:view", Name: "押金查看", BitCode: 51},
+		{Code: "deposit:create", Name: "新建押金", BitCode: 52},
+		{Code: "deposit:edit", Name: "编辑押金", BitCode: 53},
+		{Code: "appeal:list", Name: "申诉列表", BitCode: 54},
+		{Code: "appeal:view", Name: "申诉查看", BitCode: 55},
+		{Code: "appeal:create", Name: "提交申诉", BitCode: 56},
+		{Code: "appeal:resolve", Name: "裁定申诉", BitCode: 57},
+		{Code: "label:list", Name: "标签列表", BitCode: 58},
+		{Code: "label:create", Name: "新建标签", BitCode: 59},
+		{Code: "label:approve", Name: "批准标签", BitCode: 60},
+		{Code: "label:reject", Name: "拒绝标签", BitCode: 61},
+		{Code: "label:merge", Name: "合并标签", BitCode: 62},
+		{Code: "worker:list", Name: "师傅列表", BitCode: 63},
+		{Code: "worker:create", Name: "新建师傅", BitCode: 64},
+		{Code: "worker:delete", Name: "删除师傅", BitCode: 65},
+		{Code: "audit_log:view", Name: "审计日志查看", BitCode: 66},
+		{Code: "audit_log:export", Name: "审计日志导出", BitCode: 67},
+		{Code: "organization:import", Name: "批量导入组织", BitCode: 68},
+		{Code: "account:import", Name: "批量导入账号", BitCode: 69},
 	}
 }
 
-type cacheEntry struct {
-	CusPermMap map[string]int `json:"cus_perm_map"`
-	LastSync   string         `json:"last_sync"`
-}
-
-func (r *PermissionRegistry) loadFromCache() error {
-	data, err := os.ReadFile(r.cacheFile)
-	if err != nil {
-		return err
-	}
-	var entry cacheEntry
-	if err := json.Unmarshal(data, &entry); err != nil {
-		return err
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.cusPermMap = entry.CusPermMap
-	if t, err := time.Parse(time.RFC3339, entry.LastSync); err == nil {
-		r.lastSync = t
-	}
-	return nil
-}
-
-func (r *PermissionRegistry) saveToCache(snapshot map[string]int) {
-	entry := cacheEntry{
-		CusPermMap: snapshot,
-		LastSync:   r.lastSync.Format(time.RFC3339),
-	}
-	data, err := json.Marshal(entry)
-	if err != nil {
-		log.Printf("[PermissionRegistry] Failed to marshal cache: %v", err)
-		return
-	}
-	if err := os.MkdirAll("tmp", 0755); err != nil {
-		log.Printf("[PermissionRegistry] Failed to create tmp dir: %v", err)
-		return
-	}
-	if err := os.WriteFile(r.cacheFile, data, 0644); err != nil {
-		log.Printf("[PermissionRegistry] Failed to write cache: %v", err)
-	}
-}
-
-func (r *PermissionRegistry) backgroundSync(namespaceID string) {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		nsID := namespaceID
-		if !isUUID(nsID) {
-			resolved, err := r.iamClient.getNamespaceID()
-			if err != nil {
-				log.Printf("[PermissionRegistry] Background sync skipped: cannot resolve namespace UUID: %v", err)
-				continue
-			}
-			nsID = resolved
-		}
-		mappings, err := r.iamClient.GetCustomerPermissions(nsID)
-		if err != nil {
-			log.Printf("[PermissionRegistry] Background sync failed: %v", err)
-			continue
-		}
-		r.mu.Lock()
-		for _, p := range mappings {
-			if p.IsActive {
-				r.cusPermMap[p.Code] = p.BitCode
-			} else {
-				delete(r.cusPermMap, p.Code)
-			}
-		}
-		r.lastSync = time.Now()
-		snapshot := make(map[string]int, len(r.cusPermMap))
-		for k, v := range r.cusPermMap {
-			snapshot[k] = v
-		}
-		r.mu.Unlock()
-		r.saveToCache(snapshot)
-		log.Printf("[PermissionRegistry] Background sync: %d permissions", len(mappings))
-	}
-}
-
-// UpdateGlobalRegistry replaces the global middleware PermissionRegistry with this real one.
+// UpdateGlobalRegistry is kept for API compatibility.
 func (r *PermissionRegistry) UpdateGlobalRegistry() {
-	// This will be replaced in a future refactor when middleware.PermissionRegistry
-	// accepts a PermissionRegistryInterface.
-	// For now, the middleware uses the mock registry; we upgrade it here.
-	_ = r // suppression for unused
-}
-
-func isUUID(s string) bool {
-	if len(s) != 36 {
-		return false
-	}
-	n := 0
-	for i, c := range s {
-		switch i {
-		case 8, 13, 18, 23:
-			if c != '-' {
-				return false
-			}
-		default:
-			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-				return false
-			}
-			n++
-		}
-	}
-	return n == 32
 }

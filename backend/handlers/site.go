@@ -310,6 +310,12 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			})
 			return
 		}
+		if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
+			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+			if err := iamClient.SetUserCustomerPermissions(siteOrgID, iamManagerID, cusPerm, cusPermExt); err != nil {
+				log.Printf("[CreateSite] SetUserCustomerPermissions failed: %v", err)
+			}
+		}
 	} else if req.ManagerName != "" && req.ManagerEmail != "" {
 		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
 			Username:   req.ManagerUsername,
@@ -357,6 +363,12 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 						"message": "Failed to bind manager to site: " + bindErr.Error(),
 					})
 					return
+				}
+				if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+					if err := iamClient.SetUserCustomerPermissions(siteOrgID, userResult.UserID, cusPerm, cusPermExt); err != nil {
+						log.Printf("[CreateSite] SetUserCustomerPermissions failed: %v", err)
+					}
 				}
 			}
 		}
