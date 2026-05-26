@@ -327,6 +327,10 @@ type User struct {
 	Role     string `json:"role"`
 }
 
+func (c *IAMClient) GetNamespaceID() (string, error) {
+	return c.getNamespaceID()
+}
+
 // getNamespaceID resolves namespace ID from name/client_id
 func (c *IAMClient) getNamespaceID() (string, error) {
 	path := fmt.Sprintf("/api/v1/namespaces/%s", c.namespace)
