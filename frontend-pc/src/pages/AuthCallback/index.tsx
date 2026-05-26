@@ -40,15 +40,10 @@ const AuthCallback: React.FC = () => {
     })
       .then(response => response.json())
       .then(data => {
-        console.log('[AUTH_CALLBACK] Response:', data)
         if (data.code === 20000 && data.data && data.data.access_token) {
           // Store the token with the correct key that getToken() expects
-          const token = data.data.access_token;
-          const expiresIn = data.data.expires_in || 3600;
-          localStorage.setItem('token', token);
-          localStorage.setItem('token_expiry', (Date.now() + expiresIn * 1000).toString());
-          sessionStorage.setItem('debug_auth', JSON.stringify({ ok: true, code: data.code, expiresIn, tokenLen: token.length }))
-          console.log('[AUTH_CALLBACK] Token stored, expires_in:', expiresIn, 'token_len:', token.length);
+          localStorage.setItem('token', data.data.access_token);
+          localStorage.setItem('token_expiry', (Date.now() + (data.data.expires_in || 3600) * 1000).toString());
           if (data.data.refresh_token) {
             localStorage.setItem('refresh_token', data.data.refresh_token);
           }
@@ -61,7 +56,6 @@ const AuthCallback: React.FC = () => {
             window.location.href = '/dashboard';
           }
         } else {
-          sessionStorage.setItem('debug_auth', JSON.stringify({ ok: false, code: data.code, error: data.message || 'unknown' }))
           message.error('认证失败：无法获取访问令牌');
           setTimeout(() => {
             window.location.href = getOAuthUrl();
@@ -69,7 +63,6 @@ const AuthCallback: React.FC = () => {
         }
       })
       .catch(error => {
-        sessionStorage.setItem('debug_auth', JSON.stringify({ ok: false, error: 'network: ' + (error?.message || 'unknown') }))
         console.error('Callback error:', error);
         message.error('认证失败：网络错误');
         setTimeout(() => {

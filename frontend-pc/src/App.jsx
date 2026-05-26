@@ -95,8 +95,6 @@ function MainLayout() {
     const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     const targetUrl = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code'
-    const prev = localStorage.getItem('debug_events')
-    localStorage.setItem('debug_events', (prev ? prev + '\n' : '') + JSON.stringify({ event: 'redirectToIAMLogin', url: targetUrl, appcfg: !!window.APP_CONFIG?.pc?.iamExternalUrl, when: new Date().toISOString() }))
     window.location.href = targetUrl
   }
 
@@ -170,10 +168,8 @@ function MainLayout() {
           businessRole = 'system_admin'
         } else if (tid === oid) {
           businessRole = 'merchant_admin'
-        } else if (role === 'admin' || role === 'owner' || role === 'manager') {
-          businessRole = 'site_admin'
         } else {
-          businessRole = 'site_member'
+          businessRole = 'site_admin'
         }
         
         const { role: _payloadRole, roles: _payloadRoles, ...payloadWithoutRole } = payload
@@ -348,9 +344,6 @@ function onMenuClick(e) {
   }
 
   if (!getToken() && location.pathname !== '/callback') {
-    const debug = { event: 'null-token-guard', lcl_token: localStorage.getItem('token') ? 'present' : 'absent', lyc_expiry: localStorage.getItem('token_expiry'), when: new Date().toISOString() }
-    const prev = localStorage.getItem('debug_events')
-    localStorage.setItem('debug_events', (prev ? prev + '\n' : '') + JSON.stringify(debug))
     redirectToIAMLogin()
     return null
   }
@@ -510,9 +503,6 @@ function OAuthCallback() {
     if (exchangedRef.current) return
     exchangedRef.current = true
 
-    const prev = localStorage.getItem('debug_events')
-    localStorage.setItem('debug_events', (prev ? prev + '\n' : '') + JSON.stringify({ event: 'OAuthCallback-started', url: window.location.href, when: new Date().toISOString() }))
-
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const error = params.get('error')
@@ -573,7 +563,6 @@ function OAuthCallback() {
         const tokenData = responseData.data || responseData
 
         if (tokenData.relogin) {
-          sessionStorage.setItem('debug_auth', JSON.stringify({ ok: false, error: 'code already used, relogin' }))
           console.log('[OAuth] Code already used, redirecting to IAM for new code')
           window.location.href = getOAuthUrl()
           return
@@ -582,11 +571,7 @@ function OAuthCallback() {
         if (tokenData.access_token) {
           const expiresIn = Math.max(tokenData.expires_in || 3600, 60)
           storeToken(tokenData.access_token, expiresIn)
-          const prev2 = localStorage.getItem('debug_events')
-          localStorage.setItem('debug_events', (prev2 ? prev2 + '\n' : '') + JSON.stringify({ event: 'OAuthCallback-token-stored', expiresIn, when: new Date().toISOString() }))
-          localStorage.setItem('debug_auth', JSON.stringify({ ok: true, expiresIn, tokenLen: tokenData.access_token.length, timestamp: Date.now() }))
-          console.log('[OAuth] Token stored, expires_in:', expiresIn, 'redirecting to /')
-          
+
           if (tokenData.refresh_token) {
             localStorage.setItem('refresh_token', tokenData.refresh_token)
           }
@@ -605,8 +590,6 @@ function OAuthCallback() {
           throw new Error('No access token received')
         }
       } catch (error) {
-        const prev3 = localStorage.getItem('debug_events')
-        localStorage.setItem('debug_events', (prev3 ? prev3 + '\n' : '') + JSON.stringify({ event: 'OAuthCallback-failed', error: error.message || 'unknown', when: new Date().toISOString() }))
         setLoading(false)
         setErrorMsg(error.message || '认证失败')
         localStorage.removeItem('token')
