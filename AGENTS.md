@@ -16,6 +16,21 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/iam.md` - IAM 集成说明
 - `docs/permissions.md` - 权限-人员矩阵
 
+## Environment Guide
+
+See `prompts/instructions.md` for full port mapping. Key rule:
+
+**默认上下文是开发环境 (Dev)，不是预生产 (Prerelease)。**
+
+| 环境 | beaconiam | tuneloop PC | tuneloop Backend |
+|------|-----------|-------------|------------------|
+| Dev | 5552 (Vite) / 5561 (API) | 5554 (Vite) / 5557 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5561` |
+| Prerelease | 5560 (NGINX) | 5558 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5560` |
+
+- 除非用户明确指明"预生产"，否则所有讨论、调试、Issue 都指 Dev 环境
+- 两套环境有独立的 beaconiam 实例、独立的 RSA 密钥对、独立的数据库
+- Never mix: 预生产的 token 在开发环境验证必报 `crypto/rsa: verification error`
+
 ---
 
 ## Project Structure
