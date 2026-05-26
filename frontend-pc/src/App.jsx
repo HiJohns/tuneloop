@@ -76,9 +76,11 @@ function handleLogout() {
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   
-   // Redirect to IAM login for proper logout
+   // Redirect to IAM login for proper logout with redirect back
    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-   window.location.href = iamUrl + '/login'
+   const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+   const redirectUri = encodeURIComponent(window.location.origin)
+   window.location.href = iamUrl + '/login?redirect=' + redirectUri + '&client_id=' + clientId
 }
 
 function MainLayout() {
@@ -92,7 +94,10 @@ function MainLayout() {
     const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
     const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri
+    const targetUrl = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri
+    console.log('[SESSION_EXPIRY] Redirecting to:', targetUrl)
+    console.log('[SESSION_EXPIRY] clientId source:', window.APP_CONFIG?.pc?.iamClientId ? 'APP_CONFIG' : import.meta.env.VITE_IAM_PC_CLIENT_ID ? 'VITE_ENV' : 'HARDCODED')
+    window.location.href = targetUrl
   }
 
   // Session expiry warning — check every 30s
@@ -149,7 +154,6 @@ function MainLayout() {
         const userName = name || email || payload.sub?.substring(0, 8) || '用户'
         const userId = payload.sub || ''
         const role = (payload.role || payload.roles || payload.authorities || '').toString().toLowerCase()
-        const roles = Array.isArray(payload.roles) ? payload.roles : [] // Functional roles from IAM #113
         
         // Permission bitmaps from JWT (#414)
         // IAM may emit camelCase (sysPerm) or snake_case (sys_perm), read both
@@ -159,8 +163,9 @@ function MainLayout() {
         const tid = payload.tid || ''
         const oid = payload.oid || ''
         const isOwner = !!(payload.is_owner || payload.isOwner)
+        const roles = Array.isArray(payload.roles) ? payload.roles : []
         let businessRole = 'site_member'
-        if (!tid || !oid) {
+        if (!tid || !oid || roles.includes('namespace_admin')) {
           businessRole = 'system_admin'
         } else if (tid === oid) {
           businessRole = 'merchant_admin'
