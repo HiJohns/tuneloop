@@ -80,7 +80,7 @@ function handleLogout() {
    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
    const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
    const redirectUri = encodeURIComponent(window.location.origin)
-   window.location.href = iamUrl + '/login?redirect_uri=' + redirectUri + '&client_id=' + clientId
+   window.location.href = iamUrl + '/login?redirect=' + redirectUri + '&client_id=' + clientId
 }
 
 function MainLayout() {

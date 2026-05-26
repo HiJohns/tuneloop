@@ -178,20 +178,6 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 			}
 		}
 
-		// Resolve local tenant UUID from IAM org ID
-		// The JWT tid/oid are IAM-side UUIDs, but the local tenants table uses different IDs.
-		// Look up the merchants table to map IAM org ID → local tenant_id.
-		{
-			db := database.GetDB()
-			var localTID string
-			if err := db.Table("merchants").Where("org_id = ?", tenantID).Select("tenant_id::text").Limit(1).Scan(&localTID).Error; err == nil && localTID != "" {
-				log.Printf("[IAM] Resolved tenant: IAM org %s → local tenant %s", tenantID, localTID)
-				tenantID = localTID
-			} else if err != nil {
-				log.Printf("[IAM] Failed to resolve local tenant for org %s: %v", tenantID, err)
-			}
-		}
-
 		ctx := database.SetTenantID(c.Request.Context(), tenantID)
 		ctx = context.WithValue(ctx, ContextKeyTenantID, tenantID)
 		ctx = context.WithValue(ctx, ContextKeyOrgID, orgID)
