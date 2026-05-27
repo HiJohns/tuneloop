@@ -309,7 +309,8 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 			if input.Role == "Manager" {
 				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, "manager", middleware.GetUserID(c.Request.Context())); bindErr != nil {
 					log.Printf("[UpdateMemberRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
-				} else if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
+				}
+				if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
 					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 					if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
 						log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
@@ -318,7 +319,8 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 			} else {
 				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, iamUser.IAMSub, "USER"); demoteErr != nil {
 					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
-				} else if t, ok := services.AllRoleTemplates["site_member"]; ok && len(t.CusPermCodes) > 0 {
+				}
+				if t, ok := services.AllRoleTemplates["site_member"]; ok && len(t.CusPermCodes) > 0 {
 					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 					if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
 						log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
