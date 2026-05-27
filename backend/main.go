@@ -489,6 +489,28 @@ func main() {
 		middleware.PermissionRegistry = permRegistry
 	}
 
+	// Sync sys_perm to IAM role templates for each business role.
+	// This is independent of cus_perm template management (beaconiam #293
+	// only removes customer-permissions APIs, not sys_perm or role-templates).
+	{
+		iamClient := services.NewIAMClient()
+		nsID, nsErr := iamClient.GetNamespaceID()
+		if nsErr == nil && nsID != "" {
+			log.Printf("[Bootstrap] Syncing role template sys_perm to IAM...")
+			for code, template := range services.AllRoleTemplates {
+				if len(template.SysPermBits) > 0 {
+					if err := iamClient.SyncRoleTemplateSysPerm(nsID, code, template.SysPermBits); err != nil {
+						log.Printf("[Bootstrap] Warning: failed to sync sys_perm for role %s: %v", code, err)
+					} else {
+						log.Printf("[Bootstrap] Synced sys_perm for role %s: bits=%v", code, template.SysPermBits)
+					}
+				}
+			}
+		} else {
+			log.Printf("[Bootstrap] Skipping sys_perm sync: namespace not resolvable (nsErr=%v)", nsErr)
+		}
+	}
+
 	// Log current configuration
 	log.Printf("[INFO] IAM External URL: %s", os.Getenv("BEACONIAM_EXTERNAL_URL"))
 	log.Printf("[INFO] IAM PC Client ID: %s", os.Getenv("IAM_PC_CLIENT_ID"))

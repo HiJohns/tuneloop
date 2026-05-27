@@ -1108,6 +1108,81 @@ func (c *IAMClient) IncrementPermVersion() error {
 }
 
 
+// SyncRoleTemplateSysPerm syncs the sys_perm for a role template in IAM.
+func (c *IAMClient) SyncRoleTemplateSysPerm(namespaceID, roleCode string, sysPermBits []int) error {
+	roleTemplates, err := c.ListRoleTemplates(namespaceID)
+	if err != nil {
+		return fmt.Errorf("SyncRoleTemplateSysPerm: failed to list role templates: %w", err)
+	}
+
+	var targetID string
+	for _, rt := range roleTemplates {
+		if rt.Code == roleCode {
+			targetID = rt.ID
+			break
+		}
+	}
+	if targetID == "" {
+		return fmt.Errorf("SyncRoleTemplateSysPerm: role template not found for code %s", roleCode)
+	}
+
+	sysPerm := int64(0)
+	for _, b := range sysPermBits {
+		if b >= 0 && b < 64 {
+			sysPerm |= 1 << b
+		}
+	}
+
+	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates/%s", namespaceID, targetID)
+	req := map[string]interface{}{
+		"sys_perm": sysPerm,
+	}
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return fmt.Errorf("SyncRoleTemplateSysPerm request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("SyncRoleTemplateSysPerm returned status %d: %s", statusCode, string(respBody))
+	}
+
+	log.Printf("[IAMClient] Synced sys_perm for role %s: bits=%v → %d", roleCode, sysPermBits, sysPerm)
+	return nil
+}
+
+// ListRoleTemplates returns the role templates for a namespace.
+func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
+	ID   string `json:"id"`
+	Code string `json:"code"`
+}, error) {
+	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates", namespaceID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListRoleTemplates request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("ListRoleTemplates returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result []struct {
+		ID   string `json:"id"`
+		Code string `json:"code"`
+	}
+	// Try wrapped format first, then plain array
+	var wrapped struct {
+		Templates []struct {
+			ID   string `json:"id"`
+			Code string `json:"code"`
+		} `json:"role_templates"`
+	}
+	if err := json.Unmarshal(respBody, &wrapped); err == nil && len(wrapped.Templates) > 0 {
+		return wrapped.Templates, nil
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse ListRoleTemplates response: %w", err)
+	}
+	return result, nil
+}
+
 // NamespaceAppResponse represents a registered OAuth app returned by IAM.
 type NamespaceAppResponse struct {
 	AppID        string   `json:"app_id"`

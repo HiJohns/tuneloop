@@ -640,7 +640,7 @@ function App() {
         }
       })
       .catch(err => console.error('Failed to load config:', err))
-    initPermissionMapping()
+      .then(() => initPermissionMapping())
   }, [])
   
   return (
