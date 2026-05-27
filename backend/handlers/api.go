@@ -566,18 +566,19 @@ func UpdateCategory(c *gin.Context) {
 
 	// Build update map
 	updates := map[string]interface{}{
-		"name":      req.Name,
-		"icon":      req.Icon,
-		"visible":   req.Visible,
-		"parent_id": req.ParentID,
+		"name":    req.Name,
+		"icon":    req.Icon,
+		"visible": req.Visible,
 	}
 
-	// Calculate level based on parent_id
-	if req.ParentID != nil && *req.ParentID != "" {
-		updates["level"] = 2
-	} else {
-		updates["level"] = 1
-		updates["parent_id"] = nil
+	// Only update parent_id/level when explicitly provided in request
+	if req.ParentID != nil {
+		updates["parent_id"] = req.ParentID
+		if *req.ParentID != "" {
+			updates["level"] = 2
+		} else {
+			updates["level"] = 1
+		}
 	}
 
 	if req.Sort > 0 {
