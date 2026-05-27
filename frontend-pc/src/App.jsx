@@ -80,7 +80,7 @@ function handleLogout() {
    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
    const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
    const redirectUri = encodeURIComponent(window.location.origin)
-   window.location.href = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code'
+   window.location.href = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code'
 }
 
 function MainLayout() {
@@ -94,7 +94,7 @@ function MainLayout() {
     const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
     const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    const targetUrl = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code'
+    const targetUrl = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code'
     window.location.href = targetUrl
   }
 
@@ -497,7 +497,7 @@ function OAuthCallback() {
       iamRedirectUri: import.meta.env.VITE_IAM_PC_REDIRECT_URI || ''
     }
     const redirectUri = encodeURIComponent(config.iamRedirectUri)
-    return `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
+    return `${config.iamExternalUrl}/oauth/authorize?prompt=login&client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
     return url
   }
 

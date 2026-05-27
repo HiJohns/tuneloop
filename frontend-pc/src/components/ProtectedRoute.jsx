@@ -102,7 +102,7 @@ function redirectToLogin() {
         window.location.href = data.data.authorization_url;
       } else {
         const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
-        window.location.href = `${getIAMUrl()}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
+        window.location.href = `${getIAMUrl()}/oauth/authorize?prompt=login&client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
       }
     })
     .catch(() => {
@@ -110,7 +110,7 @@ function redirectToLogin() {
       setTimeout(() => {
         const retryId = CLIENT_ID()
         const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
-        window.location.href = `${getIAMUrl()}/oauth/authorize?client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code`;
+        window.location.href = `${getIAMUrl()}/oauth/authorize?prompt=login&client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code`;
       }, 500)
     });
 }
