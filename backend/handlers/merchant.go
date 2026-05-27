@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type MerchantHandler struct{}
@@ -314,6 +315,16 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		AdminUID:      adminUserID,
 		AdminPending:  adminUserID != "" && adminUserID != "00000000-0000-0000-0000-000000000000",
 		Status:       "active",
+	}
+
+	// Create tenants record using IAM org ID as primary key
+	tenantRecord := models.Tenant{
+		ID:     iamOrgID,
+		Name:   input.Name,
+		Status: "active",
+	}
+	if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tenantRecord).Error; err != nil {
+		log.Printf("[CreateMerchant] Warning: failed to create tenant record: %v", err)
 	}
 
 	result := db.Create(&merchant)
