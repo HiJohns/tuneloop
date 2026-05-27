@@ -152,9 +152,9 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     )
     setCanManageCategories(canCat)
 
-    // 网点管理权限检查（需要 sysPermBits + cusPermCodes，且 requireAllGroups）
+    // 权限检查：仅需 cus_perm 含 instrument:create
     const canSite = checkPermission(
-      { sysPermBits: [SysPermBits.organization_view], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true },
+      { cusPermCodes: ['instrument:create'] },
       sysPerm, cusPerm, cusPermMapping
     )
     setCanManageSites(canSite)
