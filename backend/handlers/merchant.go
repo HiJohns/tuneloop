@@ -356,11 +356,12 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 
 	// Assign merchant_admin role template to admin user in IAM
 	if adminUserID != "" && iamOrgID != "" {
-		templates, err := iamClient.ListRoleTemplates(middleware.GetNamespaceID(c.Request.Context()))
+		nsID := middleware.GetNamespaceID(c.Request.Context())
+		templates, err := iamClient.ListRoleTemplates(nsID)
 		if err == nil {
 			for _, t := range templates {
 				if t.Code == "merchant_admin" {
-					if err := iamClient.AssignRoleTemplateToUser(adminUserID, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminUserID, t.ID); err != nil {
 						log.Printf("[CreateMerchant] Warning: failed to assign merchant_admin role: %v", err)
 					} else {
 						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminUserID)
@@ -368,6 +369,8 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 					break
 				}
 			}
+		} else {
+			log.Printf("[CreateMerchant] Warning: failed to list role templates: %v", err)
 		}
 	}
 
@@ -571,6 +574,7 @@ func parseInt(s string, defaultValue int) int {
 // initSystemRoles creates the 4 system roles in the local DB for a new tenant.
 // Uses services.AllRoleTemplates for role definitions.
 func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID string) {
+	log.Printf("[initSystemRoles] Starting role init for tenant=%s ns=%s", tenantID, nsID)
 	systemRoles := map[string][]string{
 		"owner":  {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
 		"admin":  {"instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
@@ -580,6 +584,7 @@ func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID 
 	for code, codes := range systemRoles {
 		var count int64
 		db.Model(&models.Role{}).Where("tenant_id = ? AND code = ?", tenantID, code).Count(&count)
+		log.Printf("[initSystemRoles] role=%s count=%d", code, count)
 		if count == 0 {
 			role := models.Role{
 				TenantID:     tenantID,

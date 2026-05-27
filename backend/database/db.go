@@ -239,6 +239,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.AuditLog{},
 		&models.InstrumentPhotoBatch{},
 		&models.InstrumentPhotoSpec{},
+		&models.Role{},
 	)
 }
 

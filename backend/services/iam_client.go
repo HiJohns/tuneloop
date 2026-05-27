@@ -1264,6 +1264,21 @@ func (c *IAMClient) AssignRoleTemplateToUser(userID, templateID string) error {
 	return nil
 }
 
+// AssignRoleTemplateToUserWithToken assigns a functional role template using the caller's token.
+func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, templateID string) error {
+	path := fmt.Sprintf("/api/v1/users/%s/roles", userID)
+	req := map[string]string{"role_template_id": templateID}
+	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, req)
+	if err != nil {
+		return fmt.Errorf("AssignRoleTemplateToUserWithToken request failed: %w", err)
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return fmt.Errorf("AssignRoleTemplateToUserWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Assigned role template %s to user %s (via user token)", templateID, userID)
+	return nil
+}
+
 // NamespaceAppResponse represents a registered OAuth app returned by IAM.
 type NamespaceAppResponse struct {
 	AppID        string   `json:"app_id"`
