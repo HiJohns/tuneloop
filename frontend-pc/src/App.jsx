@@ -168,8 +168,10 @@ function MainLayout() {
           businessRole = 'system_admin'
         } else if (tid === oid) {
           businessRole = 'merchant_admin'
-        } else {
+        } else if (role === 'admin' || role === 'owner' || role === 'manager') {
           businessRole = 'site_admin'
+        } else {
+          businessRole = 'site_member'
         }
         
         const { role: _payloadRole, roles: _payloadRoles, ...payloadWithoutRole } = payload
