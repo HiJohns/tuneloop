@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"time"
 )
 
@@ -556,7 +557,7 @@ type Role struct {
 	IAMTemplateID string    `gorm:"type:varchar(100)" json:"iam_template_id"`
 	Name          string    `gorm:"type:varchar(100);not null" json:"name"`
 	Code          string    `gorm:"type:varchar(50);not null" json:"code"`
-	CusPermCodes  []string  `gorm:"type:text[];default:'{}'" json:"cus_perm_codes"`
+	CusPermCodes  pq.StringArray `gorm:"type:text[];default:'{}'" json:"cus_perm_codes"`
 	IsSystem      bool      `gorm:"default:false" json:"is_system"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`

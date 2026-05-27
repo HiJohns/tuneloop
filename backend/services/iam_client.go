@@ -1267,7 +1267,7 @@ func (c *IAMClient) AssignRoleTemplateToUser(userID, templateID string) error {
 // AssignRoleTemplateToUserWithToken assigns a functional role template using the caller's token.
 func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, templateID string) error {
 	path := fmt.Sprintf("/api/v1/users/%s/roles", userID)
-	req := map[string]string{"role_template_id": templateID}
+	req := map[string]interface{}{"role_ids": []string{templateID}}
 	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, req)
 	if err != nil {
 		return fmt.Errorf("AssignRoleTemplateToUserWithToken request failed: %w", err)
