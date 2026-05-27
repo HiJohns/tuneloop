@@ -336,6 +336,18 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
+	// Set cus_perm for merchant admin using merchant_admin template
+	if adminUserID != "" && iamOrgID != "" {
+		if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
+			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+			if err := iamClient.SetUserCustomerPermissions(iamOrgID, adminUserID, cusPerm, cusPermExt); err != nil {
+				log.Printf("[CreateMerchant] Warning: failed to set admin cus_perm: %v", err)
+			} else {
+				log.Printf("[CreateMerchant] Set merchant_admin cus_perm for %s", adminUserID)
+			}
+		}
+	}
+
 	var directlyAdded []string
 	for _, userEntry := range userIDsToProcess {
 		if userID, ok := userEntry["user_id"].(string); ok && userID != "" {
