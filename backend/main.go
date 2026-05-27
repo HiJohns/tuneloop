@@ -314,13 +314,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		}
 
 		maintHandler := handlers.NewMaintenanceHandler()
-		authRequired.POST("/maintenance", maintHandler.SubmitRepair)
-		authRequired.POST("/maintenance/report", maintHandler.ReportRepair)
-		authRequired.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
-		authRequired.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
-		authRequired.PUT("/maintenance/tickets/:id/status", maintHandler.UpdateTicketStatus)
+		maintRequired := authRequired.Group("")
+		maintRequired.Use(middleware.RequireCusPerm("instrument:maintain"))
+		{
+			maintRequired.POST("/maintenance", maintHandler.SubmitRepair)
+			maintRequired.POST("/maintenance/report", maintHandler.ReportRepair)
+			maintRequired.GET("/maintenance/:id", maintHandler.GetMaintenanceDetail)
+			maintRequired.PUT("/maintenance/:id/cancel", maintHandler.CancelMaintenance)
+			maintRequired.PUT("/maintenance/tickets/:id/status", maintHandler.UpdateTicketStatus)
+		}
 
 		merchantMaint := authRequired.Group("")
+		merchantMaint.Use(middleware.RequireCusPerm("instrument:maintain"))
 		{
 			merchantMaint.GET("/merchant/maintenance", maintHandler.ListMerchantMaintenance)
 			merchantMaint.PUT("/merchant/maintenance/:id/accept", maintHandler.AcceptMaintenance)
@@ -354,18 +359,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			}
 
 		// Issue #303: Maintenance Worker Management Routes
-			authRequired.GET("/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
-			authRequired.POST("/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
-			authRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
-			authRequired.DELETE("/maintenance/workers/:id", maintenanceWorkerHandler.DeleteWorker)
+			maintRequired.GET("/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
+			maintRequired.POST("/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
+			maintRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
+			maintRequired.DELETE("/maintenance/workers/:id", maintenanceWorkerHandler.DeleteWorker)
 
 			// Issue #304: Maintenance Session Routes
-			authRequired.GET("/maintenance/sessions", maintenanceSessionHandler.ListSessions)
-			authRequired.GET("/maintenance/sessions/:id", maintenanceSessionHandler.GetSession)
-			authRequired.POST("/maintenance/:id/start", maintenanceSessionHandler.StartWork)
-			authRequired.PUT("/maintenance/:id/status", maintenanceSessionHandler.UpdateStatus)
-			authRequired.POST("/maintenance/:id/record", maintenanceSessionHandler.SubmitRecord)
-			authRequired.POST("/maintenance/:id/inspect", maintenanceSessionHandler.Inspect)
+			maintRequired.GET("/maintenance/sessions", maintenanceSessionHandler.ListSessions)
+			maintRequired.GET("/maintenance/sessions/:id", maintenanceSessionHandler.GetSession)
+			maintRequired.POST("/maintenance/:id/start", maintenanceSessionHandler.StartWork)
+			maintRequired.PUT("/maintenance/:id/status", maintenanceSessionHandler.UpdateStatus)
+			maintRequired.POST("/maintenance/:id/record", maintenanceSessionHandler.SubmitRecord)
+			maintRequired.POST("/maintenance/:id/inspect", maintenanceSessionHandler.Inspect)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)

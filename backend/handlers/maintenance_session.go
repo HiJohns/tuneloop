@@ -73,6 +73,11 @@ func (h *MaintenanceSessionHandler) UpdateStatus(c *gin.Context) {
 	}
 	if req.Status == "completed" {
 		session.CompletionNotes = req.Comment
+		// Auto-update instrument stock_status to available
+		var ticket struct{ InstrumentID string }
+		if err := db.Table("maintenance_tickets").Select("instrument_id").Where("id = ?", session.MaintenanceTicketID).First(&ticket).Error; err == nil && ticket.InstrumentID != "" {
+			db.Table("instruments").Where("id = ?", ticket.InstrumentID).Update("stock_status", "available")
+		}
 	}
 	session.UpdatedAt = time.Now()
 
