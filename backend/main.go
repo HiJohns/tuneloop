@@ -498,6 +498,24 @@ func main() {
 		if nsErr == nil && nsID != "" {
 			log.Printf("[Bootstrap] Syncing role template sys_perm and cus_perm to IAM...")
 			for code, template := range services.AllRoleTemplates {
+				// Ensure role template exists in IAM before syncing
+				templates, _ := iamClient.ListRoleTemplates(nsID)
+				exists := false
+				for _, t := range templates {
+					if t.Code == code {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, permRegistry.GetCusPermBit)
+					_, err := iamClient.CreateRoleTemplate(nsID, code, template.Name, cusPerm, cusPermExt)
+					if err != nil {
+						log.Printf("[Bootstrap] Warning: failed to create role template %s: %v", code, err)
+						continue
+					}
+					log.Printf("[Bootstrap] Created role template %s", code)
+				}
 				if len(template.SysPermBits) > 0 {
 					if err := iamClient.SyncRoleTemplateSysPerm(nsID, code, template.SysPermBits); err != nil {
 						log.Printf("[Bootstrap] Warning: failed to sync sys_perm for role %s: %v", code, err)

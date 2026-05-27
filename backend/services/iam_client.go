@@ -1249,6 +1249,21 @@ func (c *IAMClient) CreateRoleTemplate(namespaceID, code, name string, cusPerm i
 	return result.ID, nil
 }
 
+// AssignRoleTemplateToUser assigns a functional role template to a user in IAM.
+func (c *IAMClient) AssignRoleTemplateToUser(userID, templateID string) error {
+	path := fmt.Sprintf("/api/v1/users/%s/roles", userID)
+	req := map[string]string{"role_template_id": templateID}
+	respBody, statusCode, err := c.doRequest("POST", path, req)
+	if err != nil {
+		return fmt.Errorf("AssignRoleTemplateToUser request failed: %w", err)
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return fmt.Errorf("AssignRoleTemplateToUser returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Assigned role template %s to user %s", templateID, userID)
+	return nil
+}
+
 // NamespaceAppResponse represents a registered OAuth app returned by IAM.
 type NamespaceAppResponse struct {
 	AppID        string   `json:"app_id"`

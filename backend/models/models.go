@@ -548,3 +548,16 @@ type InstrumentPhotoBatch struct {
 	OperatorID   string    `gorm:"type:uuid;index" json:"operator_id"`
 	CreatedAt    time.Time `json:"created_at"`
 }
+
+// Role defines a role template with cus_perm codes (IAM cache)
+type Role struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string    `gorm:"type:uuid;not null" json:"tenant_id"`
+	IAMTemplateID string    `gorm:"type:varchar(100)" json:"iam_template_id"`
+	Name          string    `gorm:"type:varchar(100);not null" json:"name"`
+	Code          string    `gorm:"type:varchar(50);not null" json:"code"`
+	CusPermCodes  []string  `gorm:"type:text[];default:'{}'" json:"cus_perm_codes"`
+	IsSystem      bool      `gorm:"default:false" json:"is_system"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
