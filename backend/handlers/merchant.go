@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -236,14 +237,19 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	var adminName, adminEmail, adminPhone string
+	var adminName, adminEmail, adminPhone, adminIAMSub string
 	var adminUser models.User
 	if adminUserID != "" {
 		if _, err := uuid.Parse(adminUserID); err == nil {
-			if err := db.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil {
+			// Use a DB without tenant scope to find users created via IAM proxy
+			rawDB := database.GetDB().WithContext(context.Background())
+			if err := rawDB.Where("id = ?", adminUserID).First(&adminUser).Error; err == nil {
 				adminName = adminUser.Name
 				adminEmail = adminUser.Email
 				adminPhone = adminUser.Phone
+				adminIAMSub = adminUser.IAMSub
+			} else {
+				log.Printf("[CreateMerchant] Warning: admin user %s not found in local DB: %v", adminUserID, err)
 			}
 		}
 	}
@@ -336,14 +342,23 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
+	// Explicitly bind admin user to the new organization in IAM
+	if adminIAMSub != "" && iamOrgID != "" {
+		if err := iamClient.BindUserToOrganizationWithToken(userToken, adminIAMSub, iamOrgID, "OWNER", middleware.GetUserID(c.Request.Context())); err != nil {
+			log.Printf("[CreateMerchant] Warning: failed to bind admin to org: %v", err)
+		} else {
+			log.Printf("[CreateMerchant] Bound admin %s to org %s", adminIAMSub, iamOrgID)
+		}
+	}
+
 	// Set cus_perm for merchant admin using merchant_admin template
-	if adminUserID != "" && iamOrgID != "" {
+	if adminIAMSub != "" && iamOrgID != "" {
 		if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
 			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-			if err := iamClient.SetUserCustomerPermissions(iamOrgID, adminUserID, cusPerm, cusPermExt); err != nil {
+			if err := iamClient.SetUserCustomerPermissions(iamOrgID, adminIAMSub, cusPerm, cusPermExt); err != nil {
 				log.Printf("[CreateMerchant] Warning: failed to set admin cus_perm: %v", err)
 			} else {
-				log.Printf("[CreateMerchant] Set merchant_admin cus_perm for %s", adminUserID)
+				log.Printf("[CreateMerchant] Set merchant_admin cus_perm for %s", adminIAMSub)
 			}
 		}
 	}
@@ -355,16 +370,16 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	// Assign merchant_admin role template to admin user in IAM
-	if adminUserID != "" && iamOrgID != "" {
+	if adminIAMSub != "" && iamOrgID != "" {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		templates, err := iamClient.ListRoleTemplates(nsID)
 		if err == nil {
 			for _, t := range templates {
 				if t.Code == "merchant_admin" {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminUserID, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, t.ID); err != nil {
 						log.Printf("[CreateMerchant] Warning: failed to assign merchant_admin role: %v", err)
 					} else {
-						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminUserID)
+						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminIAMSub)
 					}
 					break
 				}
