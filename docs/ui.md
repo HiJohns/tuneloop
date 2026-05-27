@@ -1,7 +1,7 @@
 # TuneLoop UI 设计文档
 
-> 版本: v2.1 (整合权限控制体系: sys_perm + cus_perm 驱动的菜单可见性)
-> 最后更新: 2026-05-03
+> 版本: v2.2 (权限管理系统重构: 10 cus_perm + sys_perm 25-26 + 权限管理页面)
+> 最后更新: 2026-05-27
 > 覆盖度: 100% features.md
 
 ---
@@ -750,8 +750,8 @@ const adminMenu = [
       },
       {
         key: '/admin/permissions',
-        label: 'RBAC权限配置',
-        route: '/admin/permissions',
+        label: '权限管理',
+        route: '/system/permissions',
       },
     ],
   },
@@ -1697,18 +1697,76 @@ components/
 - **子菜单**:
   - 网点管理 (`/organization/sites`)
   - 人员管理 (`/staff`)
-  - 申诉处理 (`/appeals`)
 
 **5. 系统管理**
 - **路由**: 一级菜单
-- **权限**: 所有已登录用户
+- **权限**: 商户管理员（含 sys_perm bit 26 可看权限管理）
 - **子菜单**:
-  - 商户管理 (`/merchants`)
-  - 操作日志 (`/system/audit-logs`)
-  - 客户端管理 (`/system/clients`)
-  - 租户管理 (`/system/tenants`)
+  - 商户管理 (`/merchants`) — sys_perm bit 5
+  - 操作日志 (`/system/audit-logs`) — sys_perm bit 5
+  - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
+  - 客户端管理 (`/system/clients`) — sys_perm bit 0
+  - 租户管理 (`/system/tenants`) — sys_perm bit 6
 
-### 权限控制汇总 (v2.1 — sys_perm + cus_perm 位图驱动)
+### 权限管理页面设计（#660）
+
+**路由**: `/system/permissions`  
+**权限**: sys_perm bit 26 (`permission:manage`)，商户管理员可见  
+**组件**: `frontend-pc/src/pages/admin/PermissionManage/index.jsx`
+
+#### 页面结构
+
+双 Tab 布局：
+
+```
+┌──────────────────────────────────────────────────────┐
+│  权限管理                                             │
+│  ┌──────────────┐ ┌──────────────┐                   │
+│  │ 成员权限     │ │ 角色管理     │                   │
+│  └──────────────┘ └──────────────┘                   │
+│                                                      │
+│  [Tab 内容区]                                         │
+└──────────────────────────────────────────────────────┘
+```
+
+#### Tab 1 — 成员权限
+
+**表格列**: 姓名 | 所属网点 | 角色标签 | 权限摘要 | 操作
+
+**编辑权限 Modal**：
+- 角色下拉：从 `GET /admin/roles` 获取角色列表
+- 个人权限 Checkbox：按「乐器」和「订单」两个域分组显示
+  - 乐器: 创建/查看/编辑/删除/定价/维修管理
+  - 订单: 创建/查看/编辑/取消
+- 管理员未持有的权限码置灰 + Tooltip 提示
+- 保存后提示「权限已更新，该用户下次登录后生效」
+
+#### Tab 2 — 角色管理（商户管理员可见）
+
+**表格列**: 角色名称 | 代码 | 权限数 | 权限详情 | 操作
+
+- 系统角色（owner/admin/staff/worker）：不可删除
+- 自定义角色：可编辑/删除
+- 删除前检查是否有成员使用，若有则需先重新分配
+
+**新建/编辑角色 Modal**：
+- 角色名称 + 代码（新建时填写，编辑时只读）
+- 权限 Checkbox：按域分组
+- 权限列表自动过滤为当前管理员持有的权限子集
+
+#### 网点管理员角色分配
+
+**组件**: `frontend-pc/src/components/SiteMemberManagement.jsx`
+
+网点管理员在人员管理页面通过行内 `Select` 下拉为成员分配角色。下拉选项实时从 `GET /admin/roles` 获取：
+- 3 个标准角色（网点管理员/网点员工/维修工程师）
+- 商户管理员创建的自定义角色（全商户可见）
+
+选择角色后调用 `PUT /admin/users/:id/roles` 实时更新。
+
+---
+
+### 权限控制汇总 (v2.2 — 10 cus_perm + sys_perm 25-26)
 
 > 完整权限-人员矩阵和菜单-权限映射参见 [`docs/permissions.md`](./permissions.md)。
 > 以下为本 UI 文档特化的菜单可见性规则概览。
@@ -1743,14 +1801,16 @@ components/
 - **面包屑**: lines 146-169 (breadcrumbItems)
 - **用户显示**: lines 175-183 (Header)
 
-### 权限判断逻辑 (v2.1 — 位图驱动)
+### 权限判断逻辑 (v2.2 — 10码位图驱动)
 
 > 参见 [`docs/permissions.md` §七](./permissions.md#七权限检查流程)
 
 **核心文件**:
-- `frontend-pc/src/config/menuPermissions.js` — 菜单权限规则定义
-- `frontend-pc/src/components/ProtectedRoute.jsx` — requiredPermission 路由守卫
-- `frontend-pc/src/services/api.js` — permissionConfigApi + initPermissionMapping
+- `frontend-pc/src/config/menuPermissions.js` — 菜单权限规则定义 (含 bits 25-26)
+- `frontend-pc/src/App.jsx` — 菜单结构 + 权限过滤
+- `frontend-pc/src/hooks/usePermission.js` — hasCusPerm / hasSysPerm 钩子
+- `frontend-pc/src/services/api.js` — permissionConfigApi + adminApi
+- `backend/services/permission_registry.go` — 10 cus_perm 码定义
 
 ### 最后更新记录
 

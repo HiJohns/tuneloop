@@ -25,13 +25,12 @@ import SupplierDB from './pages/SupplierDB'
 import InstrumentStock from './pages/InstrumentStock'
 import SiteManagement from './pages/SiteManagement'
 import StaffManagement from './pages/StaffManagement'
-import RolePermission from './pages/RolePermission'
+import PermissionManage from './pages/admin/PermissionManage'
 import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
 import MaintenanceWorkerManagement from './pages/MaintenanceWorkerManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
-import AppealManagement from './pages/AppealManagement'
 import WarehouseManagement from './pages/WarehouseManagement'
 import UserRental from './pages/UserRental'
 import InstrumentListUser from './pages/InstrumentListUser'
@@ -225,9 +224,9 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '乐器管理',
     children: [
-      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:edit', 'instrument:delete', 'inventory:view', 'instrument:view'] } },
-      { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
-      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['property:manage'] } }
+      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
+      { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['instrument:update'] } },
+      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['instrument:update'] } }
     ]
   },
   {
@@ -235,8 +234,8 @@ function MainLayout() {
     icon: <ToolOutlined />,
     label: '维修管理',
     children: [
-      { key: '/maintenance/workers', label: '师傅管理', permission: { cusPermCodes: ['maintenance:assign'] } },
-      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['maintenance:view', 'maintenance:assign', 'maintenance:complete'] } }
+      { key: '/maintenance/workers', label: '师傅管理', permission: { cusPermCodes: ['instrument:maintain'] } },
+      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } }
     ]
   },
   {
@@ -244,8 +243,8 @@ function MainLayout() {
     icon: <AppstoreOutlined />,
     label: '库存监控',
     children: [
-      { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['rent:setting'] } },
-      { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['inventory:view', 'inventory:manage'] } }
+      { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
+      { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } }
     ]
   },
   {
@@ -253,9 +252,8 @@ function MainLayout() {
     icon: <TeamOutlined />,
     label: '组织管理',
     children: [
-      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAll: true } },
-      { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAll: true } },
-      { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:handle'] } }
+      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
     ]
   },
   {
@@ -264,7 +262,8 @@ function MainLayout() {
     label: '系统管理',
     children: [
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
-      { key: '/system/audit-logs', label: '操作日志', permission: { sysPermBits: [5] } }
+      { key: '/system/audit-logs', label: '操作日志', permission: { sysPermBits: [5] } },
+      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [26] } }
     ]
   }
 ]
@@ -417,26 +416,23 @@ function onMenuClick(e) {
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
-            <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><AuditLogPage /></ProtectedRoute>} />
-            <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'inventory:view', 'maintenance:view'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
+            <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
-            <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['maintenance:view', 'maintenance:assign', 'maintenance:complete'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
-            <Route path="/maintenance/workers" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['maintenance:assign'] }}><MaintenanceWorkerManagement /></ProtectedRoute>} />
-            <Route path="/settings/roles" element={<ProtectedRoute requiredPermission={{ sysPermBits: [20] }}><RolePermission /></ProtectedRoute>} />
+            <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:maintain'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
+            <Route path="/maintenance/workers" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:maintain'] }}><MaintenanceWorkerManagement /></ProtectedRoute>} />
+            <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [26] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
-            <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:handle'] }}><AppealManagement /></ProtectedRoute>} />
-            <Route path="/user/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:handle'] }}><AppealManagement /></ProtectedRoute>} />
-            <Route path="/inventory/transfer" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
-            <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rent:setting'] }}><RentSetting /></ProtectedRoute>} />
-            <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['inventory:view', 'inventory:manage'] }}><WarehouseManagement /></ProtectedRoute>} />
+            <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
+            <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
             <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
@@ -444,7 +440,7 @@ function onMenuClick(e) {
             <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
             <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           
-            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:update'] }}><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id/edit" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/new" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />

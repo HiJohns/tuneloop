@@ -78,11 +78,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	maintenanceWorkerHandler := handlers.NewMaintenanceWorkerHandler()
 	maintenanceSessionHandler := handlers.NewMaintenanceSessionHandler()
 	appealHandler := handlers.NewAppealHandler()
+	iamClient := services.NewIAMClient()
+	permManageHandler := handlers.NewPermissionManageHandler(database.GetDB(), iamClient, permRegistry)
+	roleManageHandler := handlers.NewRoleManageHandler(database.GetDB(), iamClient, permRegistry)
 	warehouseHandler := handlers.NewWarehouseHandler()
 	userRentalHandler := handlers.NewUserRentalHandler()
 
 	// Bulk import handler (Issue #423)
-	iamClient := services.NewIAMClient()
 	bulkImportHandler := handlers.NewBulkImportHandler(iamClient, permRegistry)
 
 	api := r.Group("/api")
@@ -214,17 +216,17 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.DELETE("/categories/:id", handlers.DeleteCategory)
 		authRequired.GET("/categories/:id/children", handlers.GetCategoryChildren)
 		authRequired.PUT("/categories/sort", handlers.UpdateCategorySort)
-		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:list"), handlers.GetInstruments)
+		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
 		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
 		authRequired.GET("/instruments/check", handlers.CheckInstrumentSN)
-		authRequired.GET("/instruments/:id", middleware.RequireCusPerm("instrument:view"), handlers.GetInstrumentByID)
-		authRequired.PUT("/instruments/:id", middleware.RequireCusPerm("instrument:edit"), handlers.UpdateInstrument)
+		authRequired.GET("/instruments/:id", middleware.RequireCusPerm("instrument:read"), handlers.GetInstrumentByID)
+		authRequired.PUT("/instruments/:id", middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)
 		authRequired.DELETE("/instruments/:id", middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
-		authRequired.PUT("/instruments/:id/status", middleware.RequireCusPerm("instrument:edit"), handlers.UpdateInstrumentStatus)
+		authRequired.PUT("/instruments/:id/status", middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
 		authRequired.POST("/instruments/:id/photos/upload", handlers.UploadInstrumentPhotos)
 		authRequired.GET("/instruments/:id/photos/latest", handlers.GetLatestInstrumentPhotos)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
@@ -238,18 +240,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
 		authRequired.POST("/orders/preview", handlers.PreviewOrder)
 		authRequired.POST("/orders", middleware.RequireCusPerm("order:create"), handlers.CreateOrder)
-		authRequired.GET("/orders", middleware.RequireCusPerm("order:list"), handlers.GetOrders)
-		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:list"), handlers.GetOrderByInstrumentSN)
-		authRequired.GET("/orders/:id", middleware.RequireCusPerm("order:view"), handlers.GetOrder)
-		authRequired.POST("/orders/:id/pay", middleware.RequireCusPerm("order:pay"), handlers.PayOrder)
-		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:pickup"), handlers.PickupOrder)
-		authRequired.POST("/orders/:id/return", middleware.RequireCusPerm("order:return"), handlers.ReturnOrder)
+		authRequired.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
+		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
+		authRequired.GET("/orders/:id", middleware.RequireCusPerm("order:read"), handlers.GetOrder)
+		authRequired.POST("/orders/:id/pay", middleware.RequireCusPerm("order:update"), handlers.PayOrder)
+		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
+		authRequired.POST("/orders/:id/return", middleware.RequireCusPerm("order:update"), handlers.ReturnOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
 
 		// Merchant management routes (require tenant sys_perm + project_admin role)
 		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
 		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
-		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
+		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreateEx), merchantHandler.CreateMerchant)
 		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
 		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
 
@@ -351,9 +353,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				techMaint.POST("/technician/tickets/:id/complete", maintHandler.CompleteTicket)
 			}
 
-			permHandler := handlers.NewPermissionHandler(database.GetDB())
-
-			// Issue #303: Maintenance Worker Management Routes
+		// Issue #303: Maintenance Worker Management Routes
 			authRequired.GET("/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
 			authRequired.POST("/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
 			authRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
@@ -390,17 +390,17 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
 			authRequired.GET("/user/contracts/:id", userRentalHandler.GetContract)
 
-			// Admin/Owner 专属路由组
-			adminRequired := authRequired.Group("")
-			adminRequired.Use(middleware.RequireRole("ADMIN", "OWNER"))
-			adminRequired.Use(middleware.RequireSysPerm(middleware.SysPermRoleView))
+			// Permission Management (merchant admin only, sys_perm bit 26)
+			permRequired := authRequired.Group("")
+			permRequired.Use(middleware.RequireSysPerm(middleware.SysPermPermissionManage))
 			{
-				adminRequired.GET("/admin/permissions", permHandler.GetPermissions)
-				adminRequired.GET("/admin/roles", permHandler.GetRoles)
-				adminRequired.GET("/admin/roles/:id/permissions", permHandler.GetRolePermissions)
-				adminRequired.PUT("/admin/roles/:id/permissions", permHandler.UpdateRolePermissions)
-				adminRequired.POST("/admin/roles", permHandler.CreateRole)
-				adminRequired.DELETE("/admin/roles/:id", permHandler.DeleteRole)
+				permRequired.GET("/admin/users", permManageHandler.ListUsers)
+				permRequired.PUT("/admin/users/:id/permissions", permManageHandler.SetUserPermissions)
+				permRequired.PUT("/admin/users/:id/roles", permManageHandler.SetUserRole)
+				permRequired.GET("/admin/roles", roleManageHandler.ListRoles)
+				permRequired.POST("/admin/roles", roleManageHandler.CreateRole)
+				permRequired.PUT("/admin/roles/:id", roleManageHandler.UpdateRole)
+				permRequired.DELETE("/admin/roles/:id", roleManageHandler.DeleteRole)
 			}
 
 			systemHandler := handlers.NewSystemHandler()
@@ -496,13 +496,21 @@ func main() {
 		iamClient := services.NewIAMClient()
 		nsID, nsErr := iamClient.GetNamespaceID()
 		if nsErr == nil && nsID != "" {
-			log.Printf("[Bootstrap] Syncing role template sys_perm to IAM...")
+			log.Printf("[Bootstrap] Syncing role template sys_perm and cus_perm to IAM...")
 			for code, template := range services.AllRoleTemplates {
 				if len(template.SysPermBits) > 0 {
 					if err := iamClient.SyncRoleTemplateSysPerm(nsID, code, template.SysPermBits); err != nil {
 						log.Printf("[Bootstrap] Warning: failed to sync sys_perm for role %s: %v", code, err)
 					} else {
 						log.Printf("[Bootstrap] Synced sys_perm for role %s: bits=%v", code, template.SysPermBits)
+					}
+				}
+				if len(template.CusPermCodes) > 0 {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, permRegistry.GetCusPermBit)
+					if err := iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt); err != nil {
+						log.Printf("[Bootstrap] Warning: failed to sync cus_perm for role %s: %v", code, err)
+					} else {
+						log.Printf("[Bootstrap] Synced cus_perm for role %s: codes=%v", code, template.CusPermCodes)
 					}
 				}
 			}

@@ -163,7 +163,7 @@ export default function InstrumentList() {
       width: 120,
       render: (_, record) => (
         <Space>
-          <PermissionGate code="instrument:edit">
+          <PermissionGate code="instrument:update">
             <Button
               type="link"
               icon={<EditOutlined />}

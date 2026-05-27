@@ -1,8 +1,9 @@
 # TuneLoop 权限-人员矩阵
 
-> 版本: v1.0
-> 最后更新: 2026-05-06
-> 来源: 本文档汇总了 `backend/middleware/permissions.go`、`backend/services/permission_bootstrap.go`、`frontend-pc/src/config/menuPermissions.js`、`docs/iam.md` 和 `docs/ui.md` 中的权限定义
+> 版本: v2.0  
+> 最后更新: 2026-05-27  
+> 来源: 本文档汇总了 `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js` 和 `docs/iam.md` 中的权限定义  
+> 重大变更: cus_perm 从 70 码精简为 10 码（#660）
 
 ---
 
@@ -12,202 +13,168 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 层级 | 来源 | 存储 | 用途 |
 |------|------|------|------|
-| sys_perm | IAM 内置位码 (0-24) | IAM JWT | 控制结构操作：商户管理、网点管理、人员管理、角色配置、客户端管理、IAM 同步 |
-| cus_perm | TuneLoop 注册 (启动时 PUT 至 IAM) | IAM JWT (OR 运算) | 控制业务操作：乐器 CRUD、库存、订单、维修、财务、申诉 |
+| sys_perm | IAM 内置位码 (0-26) | IAM JWT | 控制结构操作：商户管理、网点管理、人员管理、角色配置、客户端管理、权限管理 |
+| cus_perm | TuneLoop 注册 (10 码) | IAM JWT (OR 运算) | 控制业务操作：乐器 CRUD + 定价 + 维修 + 订单 CRUD |
 
-> **ID 策略（#651）**：所有 TenantID / OrgID 字段直接使用 IAM org ID。`tenants` 表主键 = IAM org ID，`merchants` / `sites` / `site_members` / `users` 的 `tenant_id` 字段均来自 JWT `tid`（IAM org ID）。不维护独立的本地 UUID。
+> **cus_perm OR 逻辑**（IAM 侧计算）：  
+> `token.cus_perm = relation.CusPerm | role.CusPerm`  
+> Tuneloop 不参与 OR 计算，由 IAM JWT 签发时自动完成。
 
-**角色层级结构**（IAM 定义，`docs/iam.md:46-55`）：
+**权限管理页面**（`/system/permissions`）：
+- 守卫：sys_perm bit 26 (`permission:manage`)
+- 商户管理员可访问，含「成员权限」和「角色管理」两个 Tab
+- 网点管理员无此权限，通过人员管理页面（`/staff`）分配角色
+
+**角色层级结构**（IAM 定义）：
 
 | 角色 | IAM 代码 | TuneLoop 名称 | 角色说明 |
 |------|----------|-------------|---------|
-| 命名空间管理员 | — | system_admin | `sys_perm > 0 && cus_perm === 0`，仅见仪表盘+商户+客户端 |
-| 商户管理员 | OWNER | owner (merchant_admin) | 全部菜单和权限 |
-| 网点管理员 | ADMIN | admin (site_admin) | 本网点业务管理 |
-| 网点员工 | STAFF | staff (site_member) | 有限操作权限 |
-| 维修工程师 | WORKER | worker | 维修相关操作 |
+| 命名空间管理员 | — | system_admin | 全部 sys_perm (bit 0-25)，无 cus_perm |
+| 商户管理员 | OWNER | owner (merchant_admin) | 全部 sys_perm (bit 5-19,26) + 全部 cus_perm (10) |
+| 网点管理员 | ADMIN | admin (site_admin) | user_* sys_perm + cus_perm (7) |
+| 网点员工 | STAFF | staff (site_member) | 无 sys_perm + cus_perm (5) |
+| 维修工程师 | WORKER | worker | 无 sys_perm + cus_perm (2) |
 
-**命名空间管理员规则**（`menuPermissions.js:59-60`）：
-> `roles 包含 "namespace_admin"` → 仅仪表盘 + 商户管理 + 客户端管理可见。
+**命名空间管理员规则**：
+> `roles 包含 "namespace_admin"` → 仅仪表盘 + 商户管理 + 客户端管理 + 操作日志。
 
 ---
 
 ## 二、sys_perm 系统权限位码表
 
-> 来源: `backend/middleware/permissions.go:10-37`，与 IAM `docs/database.md` 定义一致
+> 来源: `backend/middleware/permissions.go`
 
-| 位码 | 常量名 | 代码 | 权限域 | 说明 |
-|------|--------|------|--------|------|
-| 0 | SysPermNamespaceView | namespace_view | 命名空间 | 查看客户端 |
-| 1 | SysPermNamespaceList | namespace_list | 命名空间 | 列出客户端 |
-| 2 | SysPermNamespaceCreate | namespace_create | 命名空间 | 创建客户端 |
-| 3 | SysPermNamespaceUpdate | namespace_update | 命名空间 | 编辑客户端 |
-| 4 | SysPermNamespaceDelete | namespace_delete | 命名空间 | 删除客户端 |
-| 5 | SysPermTenantView | tenant_view | 租户 | 查看商户 |
-| 6 | SysPermTenantList | tenant_list | 租户 | 列出商户 |
-| 7 | SysPermTenantCreate | tenant_create | 租户 | 创建商户 |
-| 8 | SysPermTenantUpdate | tenant_update | 租户 | 编辑商户 |
-| 9 | SysPermTenantDelete | tenant_delete | 租户 | 删除商户 |
-| 10 | SysPermOrganizationView | organization_view | 组织 | 查看网点 |
-| 11 | SysPermOrganizationList | organization_list | 组织 | 列出网点 |
-| 12 | SysPermOrganizationCreate | organization_create | 组织 | 创建网点 |
-| 13 | SysPermOrganizationUpdate | organization_update | 组织 | 编辑网点 |
-| 14 | SysPermOrganizationDelete | organization_delete | 组织 | 删除网点 |
-| 15 | SysPermUserView | user_view | 用户 | 查看人员 |
-| 16 | SysPermUserList | user_list | 用户 | 列出人员 |
-| 17 | SysPermUserCreate | user_create | 用户 | 创建人员 |
-| 18 | SysPermUserUpdate | user_update | 用户 | 编辑人员 |
-| 19 | SysPermUserDelete | user_delete | 用户 | 删除人员 |
-| 20 | SysPermRoleView | role_view | 角色 | 查看角色 |
-| 21 | SysPermRoleList | role_list | 角色 | 列出角色 |
-| 22 | SysPermRoleCreate | role_create | 角色 | 创建角色 |
-| 23 | SysPermRoleUpdate | role_update | 角色 | 编辑角色 |
-| 24 | SysPermRoleDelete | role_delete | 角色 | 删除角色 |
+| 位码 | 常量名 | 代码 | 权限域 | 说明 | 持有者 |
+|------|--------|------|--------|------|--------|
+| 0 | SysPermNamespaceView | namespace_view | 命名空间 | 查看客户端 | namespace_admin |
+| 1 | SysPermNamespaceList | namespace_list | 命名空间 | 列出客户端 | namespace_admin |
+| 2 | SysPermNamespaceCreate | namespace_create | 命名空间 | 创建客户端 | namespace_admin |
+| 3 | SysPermNamespaceUpdate | namespace_update | 命名空间 | 编辑客户端 | namespace_admin |
+| 4 | SysPermNamespaceDelete | namespace_delete | 命名空间 | 删除客户端 | namespace_admin |
+| 5 | SysPermTenantView | tenant_view | 租户 | 查看商户 | namespace_admin, merchant_admin |
+| 6 | SysPermTenantList | tenant_list | 租户 | 列出商户 | namespace_admin, merchant_admin |
+| 7 | SysPermTenantCreate | tenant_create | 租户 | 管理商户 | namespace_admin, merchant_admin |
+| 8 | SysPermTenantUpdate | tenant_update | 租户 | 编辑商户 | namespace_admin, merchant_admin |
+| 9 | SysPermTenantDelete | tenant_delete | 租户 | 删除商户 | namespace_admin, merchant_admin |
+| 10 | SysPermOrganizationView | organization_view | 组织 | 查看网点 | namespace_admin, merchant_admin |
+| 11 | SysPermOrganizationList | organization_list | 组织 | 列出网点 | namespace_admin, merchant_admin |
+| 12 | SysPermOrganizationCreate | organization_create | 组织 | 创建网点 | namespace_admin, merchant_admin |
+| 13 | SysPermOrganizationUpdate | organization_update | 组织 | 编辑网点 | namespace_admin, merchant_admin |
+| 14 | SysPermOrganizationDelete | organization_delete | 组织 | 删除网点 | namespace_admin, merchant_admin |
+| 15 | SysPermUserView | user_view | 用户 | 查看人员 | namespace_admin, merchant_admin, site_admin |
+| 16 | SysPermUserList | user_list | 用户 | 列出人员 | namespace_admin, merchant_admin, site_admin |
+| 17 | SysPermUserCreate | user_create | 用户 | 创建人员 | namespace_admin, merchant_admin, site_admin |
+| 18 | SysPermUserUpdate | user_update | 用户 | 编辑人员 | namespace_admin, merchant_admin |
+| 19 | SysPermUserDelete | user_delete | 用户 | 删除人员 | namespace_admin, merchant_admin |
+| 20 | SysPermRoleView | role_view | 角色 | 查看角色 | namespace_admin |
+| 21 | SysPermRoleList | role_list | 角色 | 列出角色 | namespace_admin |
+| 22 | SysPermRoleCreate | role_create | 角色 | 创建角色 | namespace_admin |
+| 23 | SysPermRoleUpdate | role_update | 角色 | 编辑角色 | namespace_admin |
+| 24 | SysPermRoleDelete | role_delete | 角色 | 删除角色 | namespace_admin |
+| **25** | **SysPermTenantCreateEx** | **tenant:create** | **租户** | **创建租户（仅命名空间管理员）** | **namespace_admin** |
+| **26** | **SysPermPermissionManage** | **permission:manage** | **权限** | **管理权限（商户管理员）** | **merchant_admin** |
 
-**权限域与菜单/API 对应关系：**
-
-| 位码范围 | 权限域 | 对应的 IAM 位码 | TuneLoop 菜单 | 对应 API 端点 |
-|---------|--------|---------------|--------------|-------------|
-| 0-4 | 命名空间 | namespace_* | 系统管理→客户端管理 | `GET/POST/PUT/DELETE /system/clients` |
-| 5-9 | 租户 | tenant_* | 系统管理→商户管理 | `GET/POST/PUT/DELETE /merchants` |
-| 10-14 | 组织 | organization_* | 组织管理→网点管理 | `GET/POST/PUT/DELETE /sites`, `POST /iam/organizations/sync` |
-| 15-19 | 用户 | user_* | 组织管理→人员管理 | `GET/POST/PUT/DELETE /users`, `POST /iam/users/sync` |
-| 20-24 | 角色 | role_* | 系统管理→角色管理 | `GET/PUT /admin/roles/:id/permissions` |
+> **Bits 25-26** 为 #660 新增，IAM v2 扩展，从 bit 25 追加。
 
 ---
 
-## 三、cus_perm 业务权限表
+## 三、cus_perm 业务权限表（#660 重新设计）
 
-> 来源: `backend/services/permission_bootstrap.go:34-68`，15 个业务权限
+> 来源: `backend/services/permission_registry.go`，10 个业务权限
 
-| 序号 | 权限代码 | 权限域 | 说明 | 控制菜单 |
-|------|---------|--------|------|---------|
-| 1 | instrument:create | 乐器 | 创建乐器 | 乐器列表 |
-| 2 | instrument:edit | 乐器 | 编辑乐器 | 乐器列表 |
-| 3 | instrument:delete | 乐器 | 删除乐器 | 乐器列表 |
-| 4 | instrument:view | 乐器 | 查看乐器 | 乐器列表 |
-| 5 | category:manage | 乐器 | 管理分类 | 分类设置 |
-| 6 | property:manage | 乐器 | 管理属性 | 属性管理 |
-| 7 | inventory:view | 库存 | 查看库存 | 库管工作台 |
-| 8 | inventory:manage | 库存 | 管理库存 | 库管工作台 |
-| 9 | rent:setting | 库存 | 租金设定 | 租金设定 |
-| 10 | order:view | 订单 | 查看订单 | 订单管理 |
-| 11 | order:manage | 订单 | 管理订单 | 订单管理 |
-| 12 | maintenance:view | 维修 | 查看维修 | 会话管理 |
-| 13 | maintenance:assign | 维修 | 分派维修 | 师傅管理 / 会话管理 |
-| 14 | maintenance:complete | 维修 | 完成维修 | 会话管理 |
-| 15 | finance:config | 财务 | 财务配置 | 财务配置 |
-| 16 | appeal:handle | 申诉 | 处理申诉 | 申诉处理 |
+### 3.1 权限码定义
 
-**权限域分组总结：**
+| Bit | 代码 | Name | 域 | 说明 |
+|-----|------|------|-----|------|
+| 0 | `instrument:create` | 创建乐器 | 乐器 | 含分类/属性/标签创建 |
+| 1 | `instrument:read` | 查看乐器 | 乐器 | 含列表/详情/分类/属性/标签/库存/维修记录 |
+| 2 | `instrument:update` | 编辑乐器 | 乐器 | 含分类/属性/标签/库存/调拨、标记维修中 |
+| 3 | `instrument:delete` | 删除乐器 | 乐器 | 含分类/属性/标签删除 |
+| 4 | `instrument:price` | 乐器定价 | 乐器 | 租金设定，独立于编辑 |
+| 5 | `instrument:maintain` | 维修管理 | 乐器 | 进入维修乐器列表，执行维修（开始/完成） |
+| 6 | `order:create` | 创建订单 | 订单 | 含租赁/押金创建 |
+| 7 | `order:read` | 查看订单 | 订单 | 含订单/租赁/押金查看 |
+| 8 | `order:update` | 编辑订单 | 订单 | 含租赁/押金/定损/支付/取件/归还 |
+| 9 | `order:cancel` | 取消订单 | 订单 | 含终止 |
+
+### 3.2 旧码→新码迁移映射
+
+| 旧码 | 新码 | 说明 |
+|------|------|------|
+| `instrument:list` / `instrument:view` | `instrument:read` | 合并 |
+| `instrument:edit` | `instrument:update` | 重命名 |
+| `instrument:create` / `instrument:delete` | 不变 | |
+| `category:manage` / `property:manage` | `instrument:update` | 归入乐器编辑 |
+| `inventory:view` | `instrument:read` | 归入乐器查看 |
+| `inventory:manage` | `instrument:update` | 归入乐器编辑 |
+| `rent:setting` / `finance:config` | `instrument:price` | 归入定价 |
+| `maintenance:view` | `instrument:read` | 查看维修记录=查看乐器 |
+| `maintenance:assign` / `maintenance:complete` | `instrument:maintain` | 维修管理 |
+| `order:list` / `order:view` | `order:read` | 合并 |
+| `order:manage` | `order:update` + `order:cancel` | 拆为两个 |
+| `order:pay` / `order:pickup` / `order:return` | `order:update` | 归入订单编辑 |
+
+### 3.3 权限域分组
 
 | 权限域 | cus_perm 数量 | 权限代码 |
 |--------|-------------|---------|
-| 乐器 | 6 | instrument:create, instrument:edit, instrument:delete, instrument:view, category:manage, property:manage |
-| 库存 | 3 | inventory:view, inventory:manage, rent:setting |
-| 订单 | 2 | order:view, order:manage |
-| 维修 | 3 | maintenance:view, maintenance:assign, maintenance:complete |
-| 财务 | 1 | finance:config |
-| 申诉 | 1 | appeal:handle |
-
-**权限注册流程**（`docs/iam.md:590-597`）：
-1. TuneLoop 启动时使用 `client_id/secret` 获取 IAM service token
-2. `PUT /api/v1/namespaces/:ns/customer-permissions` 注册全部 15 个业务权限
-3. `GET /api/v1/namespaces/:ns/customer-permissions` 获取 IAM 分配的位码映射
-4. 缓存到 `tmp/.permission_cache.json`，每 5 分钟后台同步
+| 乐器 | 6 | instrument:create, instrument:read, instrument:update, instrument:delete, instrument:price, instrument:maintain |
+| 订单 | 4 | order:create, order:read, order:update, order:cancel |
 
 ---
 
 ## 四、角色-权限分配矩阵
 
-### 4.1 默认 role → cus_perm 映射
+### 4.1 角色 cus_perm 分配
 
-> 来源: `backend/services/permission_bootstrap.go:34-68` + `docs/iam.md:599-606`
+| 角色 | 代码 | cus_perm 数量 | 分配的权限 |
+|------|------|-------------|----------|
+| 商户管理员 | owner | 10 (全部) | 全部业务权限 |
+| 网点管理员 | admin | 7 | instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel |
+| 网点员工 | staff | 5 | instrument:create, instrument:read, instrument:update, order:create, order:read |
+| 维修工程师 | worker | 2 | instrument:read, instrument:maintain |
 
-| 角色 | 角色代码 | cus_perm 数量 | 分配的权限 |
-|------|---------|-------------|----------|
-| 商户管理员 | owner | 16 (全部) | instrument:create, instrument:edit, instrument:delete, instrument:view, category:manage, property:manage, inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, finance:config, appeal:handle |
-| 网点管理员 | admin | 9 | inventory:view, inventory:manage, rent:setting, order:view, order:manage, maintenance:view, maintenance:assign, maintenance:complete, appeal:handle |
-| 网点员工 | staff | 4 | instrument:view, instrument:create, maintenance:view, maintenance:complete |
-| 维修工程师 | worker | 2 | maintenance:view, maintenance:complete |
+### 4.2 完整对照矩阵
 
-### 4.2 完整角色-权限对照矩阵
-
-| 权限代码 | 命名空间管理员 | 商户管理员(owner) | 网点管理员(admin) | 网点员工(staff) | 维修工程师(worker) |
-|----------|:----------:|:----------:|:----------:|:----------:|:----------:|
-| instrument:create | ❌ | ✅ | ❌ | ✅ | ❌ |
-| instrument:edit | ❌ | ✅ | ❌ | ❌ | ❌ |
-| instrument:delete | ❌ | ✅ | ❌ | ❌ | ❌ |
-| instrument:view | ❌ | ✅ | ❌ | ✅ | ❌ |
-| category:manage | ❌ | ✅ | ❌ | ❌ | ❌ |
-| property:manage | ❌ | ✅ | ❌ | ❌ | ❌ |
-| inventory:view | ❌ | ✅ | ✅ | ❌ | ❌ |
-| inventory:manage | ❌ | ✅ | ✅ | ❌ | ❌ |
-| rent:setting | ❌ | ✅ | ✅ | ❌ | ❌ |
-| order:view | ❌ | ✅ | ✅ | ❌ | ❌ |
-| order:manage | ❌ | ✅ | ✅ | ❌ | ❌ |
-| maintenance:view | ❌ | ✅ | ✅ | ✅ | ✅ |
-| maintenance:assign | ❌ | ✅ | ✅ | ❌ | ❌ |
-| maintenance:complete | ❌ | ✅ | ✅ | ✅ | ✅ |
-| finance:config | ❌ | ✅ | ❌ | ❌ | ❌ |
-| appeal:handle | ❌ | ✅ | ✅ | ❌ | ❌ |
-
-> **批量导入组织类型限制**：命名空间管理员可导入 merchant（商户）和 site（网点）两种类型；租户管理员/商户管理员仅可导入 site 类型。
-
-### 4.3 角色可见菜单
-
-| 角色 | 可见菜单组 | 可见子菜单 |
-|------|----------|----------|
-| 命名空间管理员 (system_admin) | 仪表盘、系统管理 | 仪表盘、商户管理 |
-| 商户管理员 (owner) | 全部 | 全部业务菜单（不含系统管理） |
-| 网点管理员 (admin) | 乐器、库存、维修、组织 | 乐器列表、分类设置、属性管理、库管工作台、租金设定、师傅管理、会话管理、人员管理、申诉处理 |
-| 网点员工 (staff) | 乐器、维修 | 乐器列表、会话管理 |
+| 权限代码 | 命名空间管理员 | 商户管理员 | 网点管理员 | 网点员工 | 维修工程师 |
+|----------|:---------:|:------:|:------:|:------:|:------:|
+| instrument:create | — | ✅ | ❌ | ✅ | ❌ |
+| instrument:read | — | ✅ | ✅ | ✅ | ✅ |
+| instrument:update | — | ✅ | ✅ | ✅ | ❌ |
+| instrument:delete | — | ✅ | ❌ | ❌ | ❌ |
+| instrument:price | — | ✅ | ✅ | ❌ | ❌ |
+| instrument:maintain | — | ✅ | ✅ | ❌ | ✅ |
+| order:create | — | ✅ | ❌ | ✅ | ❌ |
+| order:read | — | ✅ | ✅ | ✅ | ❌ |
+| order:update | — | ✅ | ✅ | ❌ | ❌ |
+| order:cancel | — | ✅ | ✅ | ❌ | ❌ |
 
 ---
 
 ## 五、菜单-权限映射
 
-> 来源: `frontend-pc/src/config/menuPermissions.js:40-132` + `App.jsx:155-220`
+### 5.1 菜单结构（#660 更新后）
 
-### 5.1 纯 sys_perm 控制菜单（命名空间管理员可见）
+> 来源: `frontend-pc/src/App.jsx`
 
-| 菜单路径 | 路由 | 所需 sys_perm | 所属菜单组 |
-|---------|------|-------------|----------|
-| 商户管理 | /merchants | tenant_view (bit 5) | 商户管理 |
+| 菜单组 | 菜单项 | 路由 | 权限 |
+|--------|--------|------|------|
+| 乐器管理 | 乐器列表 | /instruments/list | cusPerm: instrument:create/read/update/delete |
+| 乐器管理 | 分类设置 | /instruments/categories | cusPerm: instrument:update |
+| 乐器管理 | 属性管理 | /instruments/properties | cusPerm: instrument:update |
+| 维修管理 | 师傅管理 | /maintenance/workers | cusPerm: instrument:maintain |
+| 维修管理 | 会话管理 | /maintenance/sessions | cusPerm: instrument:read, instrument:maintain |
+| 库存监控 | 租金设定 | /inventory/rent-setting | cusPerm: instrument:price |
+| 库存监控 | 库管工作台 | /warehouse | cusPerm: instrument:read, instrument:update |
+| 组织管理 | 网点管理 | /organization/sites | sysPerm: [10] AND cusPerm: [instrument:create, instrument:read] |
+| 组织管理 | 人员管理 | /staff | sysPerm: [15] AND cusPerm: [instrument:create, instrument:read] |
+| 系统管理 | 商户管理 | /merchants | sysPerm: [5] |
+| 系统管理 | 操作日志 | /system/audit-logs | sysPerm: [5] |
+| 系统管理 | 权限管理 | /system/permissions | sysPerm: [26] |
 
-### 5.2 纯 sys_perm 控制菜单（管理角色可见）
+### 5.2 Grace Period 规则
 
-| 菜单路径 | 路由 | 所需 sys_perm |
-|---------|------|-------------|
-| 操作日志 | /system/audit-logs | tenant_view (bit 5) |
-
-### 5.3 纯 cus_perm 控制菜单（业务角色可见）
-
-| 菜单路径 | 路由 | 所需 cus_perm (OR) |
-|---------|------|-------------------|
-| 乐器列表 | /instruments/list | instrument:create, instrument:edit, instrument:delete, inventory:view, instrument:view |
-| 分类设置 | /instruments/categories | category:manage |
-| 属性管理 | /instruments/properties | property:manage |
-| 租金设定 | /inventory/rent-setting | rent:setting |
-| 库管工作台 | /warehouse | inventory:view, inventory:manage |
-| 师傅管理 | /maintenance/workers | maintenance:assign |
-| 会话管理 | /maintenance/sessions | maintenance:view, maintenance:assign, maintenance:complete |
-| 申诉处理 | /appeals | appeal:handle |
-
-### 5.4 组合权限菜单（sys_perm AND cus_perm 同时满足）
-
-| 菜单路径 | 路由 | 所需 sys_perm | 所需 cus_perm (OR) | requireAllGroups |
-|---------|------|-------------|-------------------|:---:|
-| 网点管理 | /organization/sites | organization_view (bit 10) | instrument:create, inventory:view, maintenance:view | ✅ |
-| 人员管理 | /staff | user_view (bit 15) | instrument:create, inventory:view, maintenance:view | ✅ |
-| 人员批量导入 | /staff/bulk-import | user_create (bit 17) | instrument:create, inventory:view, maintenance:view | ✅ |
-| 网点批量导入 | /organization/sites/bulk-import | organization_create (bit 12) | instrument:create, inventory:view, maintenance:view | ✅ |
-
-### 5.5 Grace Period 规则
-
-> 来源: `menuPermissions.js:162-167`
-
-当 `cus_perm === 0 && sys_perm > 0`（即管理员未初始化业务权限）时，所有包含 cus_perm 条件的菜单规则自动通过。这确保管理员在首次登录时能看到全部菜单以完成权限配置引导。
+当 `cus_perm === 0 && sys_perm > 0` 时，所有包含 cus_perm 条件的菜单规则自动通过。
 
 ---
 
@@ -215,34 +182,25 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 ### 6.1 后端（Go）
 
-| 文件 | 内容 | 关键行号 |
-|------|------|---------|
-| `backend/middleware/permissions.go` | sys_perm 位码常量定义 | 10-37 |
-| `backend/middleware/permissions.go` | RequireSysPerm / RequireCusPerm 中间件 | 101-158 |
-| `backend/services/permission_bootstrap.go` | 15 cus_perm 定义 + 默认角色权限 | 34-68 |
-| `backend/services/permission_registry.go` | IAM 注册/同步/缓存 | — |
-| `backend/services/iam_client.go` | IAM API 封装 (RegisterCustomerPermissions) | — |
-| `backend/main.go` | GET /config/permissions 位码映射端点 + 启动注册 | — |
+| 文件 | 内容 |
+|------|------|
+| `backend/middleware/permissions.go` | sys_perm 位码常量定义 (0-26) + RequireSysPerm / RequireCusPerm 中间件 |
+| `backend/services/permission_registry.go` | 10 cus_perm 定义 + GetCusPermBit / GetCusPermMapping |
+| `backend/services/role_templates.go` | AllRoleTemplates 角色-权限模板 |
+| `backend/services/iam_client.go` | SetUserCustomerPermissions / SyncRoleTemplateCusPerm / CreateRoleTemplate |
+| `backend/handlers/permission_manage.go` | 成员权限列表 / 设置个人权限 / 分配角色 |
+| `backend/handlers/role_manage.go` | 角色 CRUD（调 IAM API + 本地缓存） |
+| `backend/main.go` | 路由注册 / 守卫配置 / startup 同步 |
 
 ### 6.2 前端（JavaScript）
 
-| 文件 | 内容 | 关键行号 |
-|------|------|---------|
-| `frontend-pc/src/config/menuPermissions.js` | sys_perm 位码常量 | 5-31 |
-| `frontend-pc/src/config/menuPermissions.js` | 菜单权限规则定义 (menuRules) | 40-132 |
-| `frontend-pc/src/config/menuPermissions.js` | checkRule / isNamespaceAdmin 函数 | 138-187 |
-| `frontend-pc/src/App.jsx` | 菜单结构定义 (menuConfig) | 155-220 |
-| `frontend-pc/src/App.jsx` | 角色过滤 + 位权限过滤 (filteredItems) | 222-270 |
-| `frontend-pc/src/App.jsx` | 面包屑路由映射 | 288-300 |
-
-### 6.3 文档
-
-| 文件 | 内容 | 关键行号 |
-|------|------|---------|
-| `docs/iam.md` | TuneLoop 权限消费机制 | 566-615 |
-| `docs/iam.md` | IAM 角色定义 + sys_perm 位码说明 | 46-55, 577-588 |
-| `docs/iam.md` | cus_perm 注册缓存 + 默认角色权限 | 590-606 |
-| `docs/ui.md` | PC 端侧边栏菜单结构与权限控制表 | 1610-1666 |
+| 文件 | 内容 |
+|------|------|
+| `frontend-pc/src/config/menuPermissions.js` | SysPermBits 常量 + checkPermission 函数 |
+| `frontend-pc/src/App.jsx` | 菜单结构定义 + 路由注册 |
+| `frontend-pc/src/pages/admin/PermissionManage/index.jsx` | 权限管理页（成员权限 + 角色管理） |
+| `frontend-pc/src/components/SiteMemberManagement.jsx` | 网点成员角色下拉 |
+| `frontend-pc/src/services/api.js` | adminApi (权限管理 API 封装) |
 
 ---
 
@@ -258,17 +216,17 @@ HTTP Request
   → 放行或 403
 ```
 
-### 7.2 前端菜单过滤链路
+### 7.2 cus_perm 同步流程（#660 修正）
 
 ```
-加载用户 JWT
-  → 解析 sys_perm / cus_perm
-  → filterMenuByRole (structuralRoles + functionalRoles)
-  → checkRule (menuRules 位权限过滤)
-  → Grace Period 检查
-  → 渲染过滤后的菜单
+Tuneloop 创建角色 → POST /namespaces/:ns/role-templates (sys_perm=0)
+Tuneloop 角色权限 → PUT /role-templates/:id/customer-permissions (cus_perm bitmap)
+Tuneloop 分配角色 → POST /users/:id/roles
+Tuneloop 个人授权 → PUT /orgs/:id/users/:uid/customer-permissions (raw_bits=true)
+
+IAM JWT 签发时：token.cus_perm = relation.CusPerm | role.CusPerm
 ```
 
 ---
 
-*数据来源汇总于 `backend/middleware/permissions.go`、`backend/services/permission_bootstrap.go`、`frontend-pc/src/config/menuPermissions.js`、`docs/iam.md`、`docs/ui.md`*
+*数据来源: `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js`、`docs/iam.md`*

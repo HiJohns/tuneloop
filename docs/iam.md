@@ -672,3 +672,111 @@ X-Namespace-Secret: <ns_secret>
 
 ---
 
+## 八、 TuneLoop 权限集成（#660）
+
+### 8.1 cus_perm 权限体系
+
+TuneLoop 的业务权限（cus_perm）由 IAM 存储和签发，Tuneloop 本地定义权限码语义（10 码），IAM 不参与权限位的含义定义。完整权限矩阵见 `docs/permissions.md`。
+
+### 8.2 SetUserCustomerPermissions（个人 cus_perm）
+
+设置用户在组织中的个人业务权限（raw bits 模式，beaconiam #293 Phase 1）：
+
+```
+PUT /api/v1/organizations/{org_id}/users/{uid}/customer-permissions
+```
+
+**请求 Body**（raw_bits 模式）：
+```json
+{
+  "raw_bits": true,
+  "cus_perm": 3,
+  "cus_perm_ext": null
+}
+```
+
+- `cus_perm`: bits 0-63 的位图（int64）
+- `cus_perm_ext`: bits 64+ 的扩展位图（base64 编码，当前 Tuneloop 10 码无需扩展）
+- Tuneloop 本地计算 bitmap 后直接传 raw bits
+
+### 8.3 角色模板 cus_perm API
+
+创建自定义角色（#293 Phase 2 保留）：
+```
+POST /api/v1/namespaces/{ns_id}/role-templates
+{ "code": "custom", "name": "自定义角色", "sys_perm": 0, "cus_perm": 7 }
+```
+
+设置角色 cus_perm 位图：
+```
+PUT /api/v1/namespaces/{ns_id}/role-templates/{template_id}
+{ "cus_perm": 15, "cus_perm_ext": null }
+```
+
+TuneLoop 创建的角色默认 `sys_perm = 0`（不持有系统权限）。
+
+### 8.4 角色分配 API
+
+给用户分配功能角色：
+```
+POST /api/v1/users/{user_id}/roles
+{ "role_template_id": "template-uuid" }
+```
+
+给用户在组织中更新角色：
+```
+PUT /api/v1/organizations/{org_id}/users/{uid}/role
+{ "role": "site_admin" }
+```
+
+### 8.5 JWT cus_perm OR 计算
+
+IAM 在签发 JWT 时计算最终 cus_perm（待 IAM 恢复 `role.CusPerm` OR 分支）：
+
+```
+token.cus_perm     = relation.CusPerm | role.CusPerm
+token.cus_perm_ext = relation.CusPermExt | role.CusPermExt
+```
+
+- `relation.CusPerm`: 个人直接授权（SetUserCustomerPermissions 写入）
+- `role.CusPerm`: 角色权限（SetRoleCustomerPermissions 写入）
+- Tuneloop 不参与 OR 计算，全由 IAM JWT 签发时完成
+
+### 8.6 启动同步
+
+Tuneloop 启动时同步所有角色模板的 sys_perm + cus_perm 到 IAM：
+
+```go
+for code, template := range services.AllRoleTemplates {
+    iamClient.SyncRoleTemplateSysPerm(nsID, code, template.SysPermBits)
+    cusPerm, cusPermExt := ComputeCusPermBitmapExt(template.CusPermCodes, registry.GetCusPermBit)
+    iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt)
+}
+```
+
+### 8.7 新增 sys_perm 位（bits 25-26）
+
+现有 bits 0-24 不变。追加：
+
+| Bit | 常量名 | 含义 | 持有者 |
+|-----|--------|------|--------|
+| 25 | `tenant:create` | 创建租户 | 命名空间管理员（仅） |
+| 26 | `permission:manage` | 管理权限 | 租户管理员（商户管理员） |
+
+Tuneloop 必须通过 IAM API 间接操作 sys_perm，禁止直接写入。
+
+### 8.8 perm_version 增量
+
+权限变更后调用 `POST /api/v1/perm-version/increment`，通知客户端刷新权限映射：
+
+```go
+func (c *IAMClient) IncrementPermVersion() error {
+    // POST /api/v1/perm-version/increment
+}
+```
+
+Tuneloop 的 `SetUserCustomerPermissions` 和 `UpdateUserRoleInOrg` 均已内置调用 `IncrementPermVersion`。
+
+---
+
+

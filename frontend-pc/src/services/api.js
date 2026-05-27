@@ -389,12 +389,16 @@ export const ownershipApi = {
 
 export default api
 
-export const permissionApi = {
-  getPermissions: () => api.get('/admin/permissions'),
-  getRoles: () => api.get('/admin/roles'),
-  getRolePermissions: (id) => api.get(`/admin/roles/${id}/permissions`),
-  updateRolePermissions: (id, permissions) => api.put(`/admin/roles/${id}/permissions`, { permissions }),
+export const adminApi = {
+  listUsers: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return api.get(`/admin/users${query ? '?' + query : ''}`)
+  },
+  setUserPermissions: (userId, cusPermCodes) => api.put(`/admin/users/${userId}/permissions`, { cus_perm_codes: cusPermCodes }),
+  setUserRole: (userId, roleCode) => api.put(`/admin/users/${userId}/roles`, { role_code: roleCode }),
+  listRoles: () => api.get('/admin/roles'),
   createRole: (data) => api.post('/admin/roles', data),
+  updateRole: (id, data) => api.put(`/admin/roles/${id}`, data),
   deleteRole: (id) => api.delete(`/admin/roles/${id}`),
 }
 

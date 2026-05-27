@@ -28,6 +28,8 @@ const SysPermBits = {
   role_create: 22,
   role_update: 23,
   role_delete: 24,
+  'tenant:create': 25,
+  'permission:manage': 26,
 }
 
 function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {

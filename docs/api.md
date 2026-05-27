@@ -1,7 +1,7 @@
 # TuneLoop API 文档
 
-> 版本: v2.1 (引入权限控制体系: sys_perm + cus_perm)
-> 最后更新: 2026-05-03
+> 版本: v2.2 (权限管理重构: 10 cus_perm + sys_perm 25-26)
+> 最后更新: 2026-05-27
 > 覆盖度: 100% features.md
 
 ---
@@ -54,24 +54,24 @@
 |---------|---------|---------|
 | 认证（登录/回调/刷新） | 无 | — |
 | 乐器查看/分类查看 | 已登录 | — |
-| 乐器创建/编辑/删除 | cus_perm | instrument:create/edit/delete |
-| 分类配置 | cus_perm | category:manage |
-| 属性管理 | cus_perm | property:manage |
-| 库存查看 | cus_perm | inventory:view |
-| 库存调拨 | cus_perm | inventory:manage |
-| 租金设定 | cus_perm | rent:setting |
+| 乐器创建/编辑/删除 | cus_perm | instrument:create/update/delete |
+| 分类配置 | cus_perm | instrument:update |
+| 属性管理 | cus_perm | instrument:update |
+| 库存查看 | cus_perm | instrument:read |
+| 库存调拨 | cus_perm | instrument:update |
+| 租金设定 | cus_perm | instrument:price |
 | 订单创建 | 已登录 | — |
-| 订单/租约管理 | cus_perm | order:view/manage |
+| 订单/租约管理 | cus_perm | order:create/read/update/cancel |
 | 维修提交 | 已登录 | — |
-| 维修管理/派单 | cus_perm | maintenance:view/assign/complete |
-| 商户管理 | sys_perm | tenant_* (位码 5-9) |
-| 网点管理 | sys_perm | organization_* (位码 10-14) |
-| 人员管理 | sys_perm | user_* (位码 15-19) |
+| 维修管理 | cus_perm | instrument:maintain |
+| 商户管理 | sys_perm | tenant_* (bits 5-9) |
+| 商户创建 | sys_perm | tenant:create (bit 25, 命名空间管理员仅) |
+| 网点管理 | sys_perm | organization_* (bits 10-14) |
+| 人员管理 | sys_perm | user_* (bits 15-19) |
 | IAM 同步 | sys_perm | organization_create / user_create |
-| 角色权限配置 | sys_perm | role_* (位码 20-24) |
-| 客户端管理 | sys_perm | namespace_* (位码 0-4) |
-| 财务配置 | cus_perm | finance:config |
-| 申诉处理 | cus_perm | appeal:handle |
+| 权限管理 | sys_perm | permission:manage (bit 26) |
+| 客户端管理 | sys_perm | namespace_* (bits 0-4) |
+| 定价管理 | cus_perm | instrument:price |
 
 ---
 
@@ -2596,58 +2596,141 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 
 ---
 
-### 10.4 RBAC 权限配置
+### 10.4 权限管理 — 成员列表
 
-**接口**: `GET /api/admin/permissions`
+**接口**: `GET /api/admin/users`
+
+**守卫**: `RequireSysPerm(26)` (permission:manage)
 
 **响应**:
 ```json
 {
   "code": 20000,
-  "data": {
-    "roles": [
-      {
-        "role_id": "role-001",
-        "role_name": "网点管理员",
-        "permissions": [
-          "asset:read",
-          "asset:write",
-          "lease:read",
-          "maintenance:write"
-        ]
-      }
-    ]
-  }
-}
-```
-
----
-
-### 10.5 更新权限配置
-
-**接口**: `PUT /api/admin/permissions`
-
-**请求 Body**:
-```json
-{
-  "role_id": "role-001",
-  "permissions": [
-    "asset:read",
-    "asset:write",
-    "lease:read"
+  "data": [
+    {
+      "user_id": "uuid",
+      "name": "张三",
+      "site_id": "site-uuid",
+      "site_name": "朝阳店",
+      "role_code": "admin",
+      "role_name": "网点管理员",
+      "cus_perm_codes": ["instrument:read", "instrument:update"]
+    }
   ]
 }
 ```
 
+### 10.5 权限管理 — 设置个人权限
+
+**接口**: `PUT /api/admin/users/:id/permissions`
+
+**守卫**: `RequireSysPerm(26)`
+
+**请求 Body**:
+```json
+{
+  "cus_perm_codes": ["instrument:read", "instrument:maintain"]
+}
+```
+
+**验证规则**: 每个 code 必须 ⊆ 当前管理员的 cus_perm，不可授予自己没有的权限。
+
 **响应**:
 ```json
 {
   "code": 20000,
-  "data": {
-    "updated": true
-  }
+  "message": "permissions updated, will take effect on next login"
 }
 ```
+
+### 10.5.1 权限管理 — 设置成员角色
+
+**接口**: `PUT /api/admin/users/:id/roles`
+
+**守卫**: `RequireSysPerm(26)`
+
+**请求 Body**:
+```json
+{
+  "role_code": "worker"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "role updated, will take effect on next login"
+}
+```
+
+### 10.5.2 权限管理 — 角色列表
+
+**接口**: `GET /api/admin/roles`
+
+**守卫**: `RequireSysPerm(26)`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    {
+      "id": "uuid",
+      "name": "商户管理员",
+      "code": "owner",
+      "cus_perm_codes": ["instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"],
+      "is_system": true,
+      "permission_count": 10
+    }
+  ]
+}
+```
+
+### 10.5.3 权限管理 — 创建角色
+
+**接口**: `POST /api/admin/roles`
+
+**守卫**: `RequireSysPerm(26)` + 商户管理员
+
+**请求 Body**:
+```json
+{
+  "name": "库管员",
+  "code": "warehouse_keeper",
+  "cus_perm_codes": ["instrument:read", "instrument:update"]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "role created",
+  "data": { "id": "uuid" }
+}
+```
+
+### 10.5.4 权限管理 — 更新角色
+
+**接口**: `PUT /api/admin/roles/:id`
+
+**守卫**: `RequireSysPerm(26)` + 商户管理员
+
+**请求 Body**:
+```json
+{
+  "cus_perm_codes": ["instrument:read", "instrument:price", "order:read"]
+}
+```
+
+### 10.5.5 权限管理 — 删除角色
+
+**接口**: `DELETE /api/admin/roles/:id`
+
+**守卫**: `RequireSysPerm(26)` + 商户管理员
+
+**约束**: 系统角色不可删除；有成员使用的角色不可删除（需先重新分配）
 
 ---
 

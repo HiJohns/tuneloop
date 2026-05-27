@@ -1183,6 +1183,72 @@ func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
 	return result, nil
 }
 
+// SyncRoleTemplateCusPerm syncs the cus_perm bitmap for a role template in IAM.
+func (c *IAMClient) SyncRoleTemplateCusPerm(namespaceID, roleCode string, cusPerm int64, cusPermExt []byte) error {
+	roleTemplates, err := c.ListRoleTemplates(namespaceID)
+	if err != nil {
+		return fmt.Errorf("SyncRoleTemplateCusPerm: failed to list role templates: %w", err)
+	}
+
+	var targetID string
+	for _, rt := range roleTemplates {
+		if rt.Code == roleCode {
+			targetID = rt.ID
+			break
+		}
+	}
+	if targetID == "" {
+		return fmt.Errorf("SyncRoleTemplateCusPerm: role template not found for code %s", roleCode)
+	}
+
+	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates/%s", namespaceID, targetID)
+	req := map[string]interface{}{
+		"cus_perm":     cusPerm,
+		"cus_perm_ext": cusPermExt,
+	}
+	respBody, statusCode, err := c.doRequest("PUT", path, req)
+	if err != nil {
+		return fmt.Errorf("SyncRoleTemplateCusPerm request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("SyncRoleTemplateCusPerm returned status %d: %s", statusCode, string(respBody))
+	}
+
+	log.Printf("[IAMClient] Synced cus_perm for role %s", roleCode)
+	return nil
+}
+
+// CreateRoleTemplate creates a new custom role template in IAM.
+// IAM defaults sys_perm=0 for custom roles created via this endpoint.
+// Returns the created template ID.
+func (c *IAMClient) CreateRoleTemplate(namespaceID, code, name string, cusPerm int64, cusPermExt []byte) (string, error) {
+	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates", namespaceID)
+	req := map[string]interface{}{
+		"code":         code,
+		"name":         name,
+		"sys_perm":     0,
+		"cus_perm":     cusPerm,
+		"cus_perm_ext": cusPermExt,
+	}
+	respBody, statusCode, err := c.doRequest("POST", path, req)
+	if err != nil {
+		return "", fmt.Errorf("CreateRoleTemplate request failed: %w", err)
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return "", fmt.Errorf("CreateRoleTemplate returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("CreateRoleTemplate: failed to parse response: %w", err)
+	}
+
+	log.Printf("[IAMClient] Created role template: code=%s id=%s", code, result.ID)
+	return result.ID, nil
+}
+
 // NamespaceAppResponse represents a registered OAuth app returned by IAM.
 type NamespaceAppResponse struct {
 	AppID        string   `json:"app_id"`

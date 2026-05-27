@@ -1,8 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input } from 'antd';
-import { PlusOutlined, SwapOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select } from 'antd';
+import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import { adminApi } from '../services/api';
 import InlineUserSelector from './InlineUserSelector';
+
+const ROLE_COLORS = {
+  owner: 'red', merchant_admin: 'red',
+  admin: 'blue', site_admin: 'blue',
+  staff: 'green', site_member: 'green',
+  worker: 'orange',
+};
+const ROLE_NAMES = {
+  admin: '网点管理员',
+  site_admin: '网点管理员',
+  staff: '网点员工',
+  site_member: '网点员工',
+  worker: '维修工程师',
+};
 
 const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [members, setMembers] = useState([]);
@@ -11,12 +26,21 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState([]);
 
   useEffect(() => {
     if (siteId) {
       fetchMembers();
+      fetchRoles();
     }
   }, [siteId]);
+
+  const fetchRoles = async () => {
+    try {
+      const resp = await adminApi.listRoles();
+      if (resp.code === 20000) setAvailableRoles(resp.data || []);
+    } catch { /* non-critical */ }
+  };
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -27,98 +51,69 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       }
     } catch (error) {
       message.error('获取成员列表失败');
-      console.error('Fetch error:', error);
     } finally {
       setLoading(false);
     }
   };
-  const handleConfirmAddMembers = async () => {
-    setAdding(true);
-    if (!selectedUsers || selectedUsers.length === 0) {
-      message.warning('请至少选择一个用户');
-      return;
-    }
 
+  const handleUpdateRole = async (userId, newRole) => {
     try {
-      // Separate existing users and new users
-      const existingUsers = []
-      const newUsers = []
-      
-      selectedUsers.forEach(user => {
-        if (user.isNew) {
-          const defaultRole = members.length === 0 ? 'Manager' : 'Staff'
-          newUsers.push({
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: defaultRole
-          })
-        } else {
-          existingUsers.push({
-            user_id: user.id || user.user_id,
-            role: defaultRole
-          })
-        }
-      })
-
-      const response = await api.post(`/sites/${siteId}/members`, {
-        user_ids: existingUsers,
-        new_users: newUsers
-      });
-
-      if (response.code === 20100) {
-        const data = response.data;
-        const directCount = data.directly_added?.length || 0;
-        const pendingCount = data.confirmation_sessions?.length || 0;
-        
-        let messageText = `成功添加 ${directCount} 个用户`;
-        if (pendingCount > 0) {
-          messageText += `，${pendingCount} 个用户需等待邮件/短信确认`;
-        }
-        
-        message.success(messageText);
-        setSelectedUsers([]);
-        setModalVisible(false);
+      const resp = await adminApi.setUserRole(userId, newRole);
+      if (resp.code === 20000) {
+        message.success('角色已更新');
         fetchMembers();
         onRefresh && onRefresh();
       }
-    } catch (error) {
-      message.error(error.response?.data?.message || '添加成员失败');
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  const handleSwitchRole = async (userId, currentRole) => {
-    const newRole = currentRole === 'Manager' ? 'Staff' : 'Manager';
-
-    try {
-      const response = await api.put(`/sites/${siteId}/members/${userId}`, {
-        role: newRole
-      });
-
-      if (response.code === 20000) {
-        message.success('角色更新成功');
-        fetchMembers();
-        onRefresh && onRefresh();
-      }
-    } catch (error) {
-      message.error(error.response?.data?.message || '更新角色失败');
-    }
+    } catch { message.error('更新角色失败') }
   };
 
   const handleRemoveMember = async (userId) => {
     try {
       const response = await api.delete(`/sites/${siteId}/members/${userId}`);
-
       if (response.code === 20000) {
         message.success('成员移除成功');
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
-      message.error(error.response?.data?.message || '移除成员失败');
+      message.error('移除成员失败');
     }
+  };
+
+  const handleConfirmAddMembers = async () => {
+    setAdding(true);
+    if (!selectedUsers || selectedUsers.length === 0) {
+      message.warning('请至少选择一个用户');
+      return;
+    }
+    try {
+      const existingUsers = [];
+      const newUsers = [];
+      selectedUsers.forEach(user => {
+        if (user.isNew) {
+          newUsers.push({ name: user.name, email: user.email, phone: user.phone, role: 'Staff' });
+        } else {
+          existingUsers.push({ user_id: user.id || user.user_id, role: 'Staff' });
+        }
+      });
+      const response = await api.post(`/sites/${siteId}/members`, {
+        user_ids: existingUsers,
+        new_users: newUsers,
+      });
+      if (response.code === 20100) {
+        const data = response.data;
+        const directCount = data.directly_added?.length || 0;
+        const pendingCount = data.confirmation_sessions?.length || 0;
+        let msg = `成功添加 ${directCount} 个用户`;
+        if (pendingCount > 0) msg += `，${pendingCount} 个用户需等待确认`;
+        message.success(msg);
+        setSelectedUsers([]);
+        setModalVisible(false);
+        fetchMembers();
+        onRefresh && onRefresh();
+      }
+    } catch { message.error('添加成员失败') }
+    setAdding(false);
   };
 
   const filteredMembers = searchKeyword
@@ -141,12 +136,20 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     },
     {
       title: '角色',
-      dataIndex: 'role',
       key: 'role',
-      render: (role) => (
-        <Tag color={role === 'Manager' ? 'blue' : 'default'}>
-          {role === 'Manager' ? '管理员' : '员工'}
-        </Tag>
+      render: (_, record) => (
+        <Select
+          value={record.role || 'site_member'}
+          onChange={(val) => handleUpdateRole(record.user_id, val)}
+          size="small"
+          style={{ width: 140 }}
+        >
+          {availableRoles.map(r => (
+            <Select.Option key={r.code} value={r.code}>
+              {r.name}
+            </Select.Option>
+          ))}
+        </Select>
       ),
     },
     {
@@ -160,20 +163,11 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button
-            type="link"
-            icon={<SwapOutlined />}
-            onClick={() => handleSwitchRole(record.user_id, record.role)}
-          >
-            切换角色
-          </Button>
           <Popconfirm
             title="确认移除此成员？"
             onConfirm={() => handleRemoveMember(record.user_id)}
           >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              移除
-            </Button>
+            <Button type="link" danger icon={<DeleteOutlined />}>移除</Button>
           </Popconfirm>
         </Space>
       ),
