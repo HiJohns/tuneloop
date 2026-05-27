@@ -15,6 +15,8 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | sys_perm | IAM 内置位码 (0-24) | IAM JWT | 控制结构操作：商户管理、网点管理、人员管理、角色配置、客户端管理、IAM 同步 |
 | cus_perm | TuneLoop 注册 (启动时 PUT 至 IAM) | IAM JWT (OR 运算) | 控制业务操作：乐器 CRUD、库存、订单、维修、财务、申诉 |
 
+> **ID 策略（#651）**：所有 TenantID / OrgID 字段直接使用 IAM org ID。`tenants` 表主键 = IAM org ID，`merchants` / `sites` / `site_members` / `users` 的 `tenant_id` 字段均来自 JWT `tid`（IAM org ID）。不维护独立的本地 UUID。
+
 **角色层级结构**（IAM 定义，`docs/iam.md:46-55`）：
 
 | 角色 | IAM 代码 | TuneLoop 名称 | 角色说明 |

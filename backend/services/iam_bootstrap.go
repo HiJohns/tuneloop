@@ -229,6 +229,11 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 		}
 
 		if org.ParentID == nil || *org.ParentID == "" {
+			// Create tenants record with IAM org ID
+			tenantRecord := models.Tenant{ID: org.ID, Name: org.Name, Status: "active"}
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tenantRecord).Error; err != nil {
+				log.Printf("[Bootstrap] Warning: failed to create tenant record for org %s: %v", org.Name, err)
+			}
 			merchant := models.Merchant{
 				ID:       uuid.New().String(),
 				TenantID: namespaceOrgID,

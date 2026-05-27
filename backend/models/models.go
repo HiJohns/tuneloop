@@ -287,7 +287,7 @@ type Label struct {
 }
 
 type Tenant struct {
-	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ID          string    `gorm:"type:uuid;primaryKey" json:"id"`
 	Name        string    `gorm:"type:varchar(100);not null" json:"name"`
 	Status      string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	Description string    `gorm:"type:text" json:"description"`
