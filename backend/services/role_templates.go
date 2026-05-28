@@ -33,7 +33,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		Name:         "网点管理员",
 		SysPermBits:  []int{15, 16, 17},
 		CusPermCodes: []string{
-			"instrument:read", "instrument:update", "instrument:price", "instrument:maintain",
+			"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain",
 			"order:read", "order:update", "order:cancel",
 		},
 		Description: "网点管理权限",
@@ -41,7 +41,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"site_member": {
 		Name:         "网点员工",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "order:create", "order:read"},
+		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
 		Description:  "网点员工基础权限",
 	},
 	"worker": {
@@ -53,8 +53,8 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"customer": {
 		Name:         "顾客",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{},
-		Description:  "无管理权限",
+		CusPermCodes: []string{"order:create", "order:read", "order:cancel"},
+		Description:  "顾客基础权限（下单/查看/取消）",
 	},
 }
 

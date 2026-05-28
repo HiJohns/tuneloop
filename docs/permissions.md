@@ -130,24 +130,25 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 角色 | 代码 | cus_perm 数量 | 分配的权限 |
 |------|------|-------------|----------|
 | 商户管理员 | owner | 10 (全部) | 全部业务权限 |
-| 网点管理员 | admin | 7 | instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel |
-| 网点员工 | staff | 5 | instrument:create, instrument:read, instrument:update, order:create, order:read |
+| 网点管理员 | admin | 8 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel |
+| 网点员工 | staff | 7 | instrument:create, instrument:read, instrument:update, instrument:maintain, order:create, order:read, order:update |
 | 维修工程师 | worker | 2 | instrument:read, instrument:maintain |
+| 顾客 | customer | 3 | order:create, order:read, order:cancel |
 
 ### 4.2 完整对照矩阵
 
-| 权限代码 | 命名空间管理员 | 商户管理员 | 网点管理员 | 网点员工 | 维修工程师 |
-|----------|:---------:|:------:|:------:|:------:|:------:|
-| instrument:create | — | ✅ | ❌ | ✅ | ❌ |
-| instrument:read | — | ✅ | ✅ | ✅ | ✅ |
-| instrument:update | — | ✅ | ✅ | ✅ | ❌ |
-| instrument:delete | — | ✅ | ❌ | ❌ | ❌ |
-| instrument:price | — | ✅ | ✅ | ❌ | ❌ |
-| instrument:maintain | — | ✅ | ✅ | ❌ | ✅ |
-| order:create | — | ✅ | ❌ | ✅ | ❌ |
-| order:read | — | ✅ | ✅ | ✅ | ❌ |
-| order:update | — | ✅ | ✅ | ❌ | ❌ |
-| order:cancel | — | ✅ | ✅ | ❌ | ❌ |
+| 权限代码 | 商户管理员 | 网点管理员 | 网点员工 | 维修工程师 | 顾客 |
+|----------|:------:|:------:|:------:|:------:|:------:|
+| instrument:create | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:read | ✅ | ✅ | ✅ | ✅ | ❌ |
+| instrument:update | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:delete | ✅ | ❌ | ❌ | ❌ | ❌ |
+| instrument:price | ✅ | ✅ | ❌ | ❌ | ❌ |
+| instrument:maintain | ✅ | ✅ | ✅ | ✅ | ❌ |
+| order:create | ✅ | ❌ | ✅ | ❌ | ✅ |
+| order:read | ✅ | ✅ | ✅ | ❌ | ✅ |
+| order:update | ✅ | ✅ | ✅ | ❌ | ❌ |
+| order:cancel | ✅ | ✅ | ❌ | ❌ | ✅ |
 
 ---
 
