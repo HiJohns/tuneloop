@@ -132,6 +132,13 @@ type setUserRoleReq struct {
 func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 	userID := c.Param("id")
 	orgID := middleware.GetOrgID(c.Request.Context())
+	// Override orgID with the site's actual org from site_members
+	var memberOrg struct{ OrgID string }
+	if err := h.db.Table("site_members").Select("s.org_id").
+		Joins("JOIN sites s ON s.id = site_members.site_id").
+		Where("site_members.user_id = ?", userID).First(&memberOrg).Error; err == nil && memberOrg.OrgID != "" {
+		orgID = memberOrg.OrgID
+	}
 
 	var req setUserRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
