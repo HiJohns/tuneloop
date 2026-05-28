@@ -605,7 +605,6 @@ func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID 
 	for code, codes := range systemRoles {
 		var count int64
 		db.Model(&models.Role{}).Where("tenant_id = ? AND code = ?", tenantID, code).Count(&count)
-		log.Printf("[initSystemRoles] role=%s count=%d", code, count)
 		if count == 0 {
 			role := models.Role{
 				TenantID:     tenantID,
