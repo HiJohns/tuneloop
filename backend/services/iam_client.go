@@ -762,7 +762,7 @@ func (c *IAMClient) CheckMembership(userID, orgID string) (bool, error) {
 		return false, fmt.Errorf("CheckMembership returned status %d: %s", statusCode, string(respBody))
 	}
 
-	if strings.Contains(string(respBody), "already bound") {
+	if strings.Contains(string(respBody), "bound") {
 		log.Printf("[IAMClient] User %s is already bound to org %s", userID, orgID)
 		return true, nil
 	}
