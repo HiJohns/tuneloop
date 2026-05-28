@@ -19,6 +19,14 @@ const ROLE_NAMES = {
   worker: '维修工程师',
 };
 
+const SITE_ROLES = ['site_admin', 'site_member', 'worker'];
+
+const roleToCode = (role) => {
+  if (!role) return 'site_member'
+  const map = { Staff: 'site_member', Manager: 'site_admin' }
+  return map[role] || role
+}
+
 const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +46,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const fetchRoles = async () => {
     try {
       const resp = await adminApi.listRoles();
-      if (resp.code === 20000) setAvailableRoles(resp.data || []);
+      if (resp.code === 20000) setAvailableRoles((resp.data || []).filter(r => SITE_ROLES.includes(r.code)));
     } catch { /* non-critical */ }
   };
 
@@ -91,9 +99,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       const newUsers = [];
       selectedUsers.forEach(user => {
         if (user.isNew) {
-          newUsers.push({ name: user.name, email: user.email, phone: user.phone, role: 'Staff' });
+          newUsers.push({ name: user.name, email: user.email, phone: user.phone, role: 'site_member' });
         } else {
-          existingUsers.push({ user_id: user.id || user.user_id, role: 'Staff' });
+          existingUsers.push({ user_id: user.id || user.user_id, role: 'site_member' });
         }
       });
       const response = await api.post(`/sites/${siteId}/members`, {
@@ -139,7 +147,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       key: 'role',
       render: (_, record) => (
         <Select
-          value={record.role || 'site_member'}
+          value={roleToCode(record.role)}
           onChange={(val) => handleUpdateRole(record.user_id, val)}
           size="small"
           style={{ width: 140 }}
