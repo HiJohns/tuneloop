@@ -139,7 +139,7 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 		return
 	}
 
-	if err := h.iamClient.UpdateUserRoleInOrg(orgID, userID, req.RoleCode); err != nil {
+	if err := h.iamClient.UpdateUserRoleInOrg(orgID, userID, toIAMRole(req.RoleCode)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update role: " + err.Error()})
 		return
 	}
@@ -163,4 +163,19 @@ func parsePQArray(s string) []string {
 		parts[i] = strings.TrimSpace(parts[i])
 	}
 	return parts
+}
+
+func toIAMRole(tuneloopCode string) string {
+	switch tuneloopCode {
+	case "merchant_admin":
+		return "OWNER"
+	case "site_admin":
+		return "ADMIN"
+	case "site_member":
+		return "STAFF"
+	case "worker":
+		return "WORKER"
+	default:
+		return tuneloopCode
+	}
 }
