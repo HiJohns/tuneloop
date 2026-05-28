@@ -80,6 +80,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 10 | `appeal:create` | 提交申诉 | 申诉 | 顾客对定损提出申诉 |
 | 11 | `appeal:read` | 查看申诉 | 申诉 | 查看申诉列表/详情 |
 | 12 | `appeal:handle` | 处理申诉 | 申诉 | 答复/关闭申诉 |
+| 13 | `audit_log:read` | 查看日志 | 日志 | 查看操作日志 |
 
 ### 3.2 旧码→新码迁移映射
 
@@ -105,6 +106,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 乐器 | 6 | instrument:create, instrument:read, instrument:update, instrument:delete, instrument:price, instrument:maintain |
 | 订单 | 4 | order:create, order:read, order:update, order:cancel |
 | 申诉 | 3 | appeal:create, appeal:read, appeal:handle |
+| 日志 | 1 | audit_log:read |
 
 ---
 
@@ -114,9 +116,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 角色 | 代码 | cus_perm 数量 | 分配的权限 |
 |------|------|-------------|----------|
-| 商户管理员 | owner | 13 (全部) | 全部业务权限 |
-| 网点管理员 | admin | 10 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel, appeal:read, appeal:handle |
-| 网点员工 | staff | 7 | instrument:create, instrument:read, instrument:update, instrument:maintain, order:create, order:read, order:update |
+| 商户管理员 | owner | 14 (全部) | 全部业务权限 |
+| 网点管理员 | admin | 11 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel, appeal:read, appeal:handle, audit_log:read |
+| 网点员工 | staff | 8 | instrument:create, instrument:read, instrument:update, instrument:maintain, order:create, order:read, order:update, audit_log:read |
 | 维修工程师 | worker | 2 | instrument:read, instrument:maintain |
 | 顾客 | customer | 4 | order:create, order:read, order:cancel, appeal:create |
 
@@ -137,6 +139,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | appeal:create | ✅ | ❌ | ❌ | ❌ | ✅ |
 | appeal:read | ✅ | ✅ | ❌ | ❌ | ❌ |
 | appeal:handle | ✅ | ✅ | ❌ | ❌ | ❌ |
+| audit_log:read | ✅ | ✅ | ✅ | ❌ | ❌ |
 
 ---
 

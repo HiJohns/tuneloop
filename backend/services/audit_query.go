@@ -157,24 +157,34 @@ func ExportAuditLogs(q *AuditLogQuery) (string, error) {
 }
 
 func applyAuditRBAC(query *gorm.DB, q *AuditLogQuery) *gorm.DB {
-	role := q.Role
-	userID := q.ActorID
-	tenantID := q.TenantID
-	orgID := q.OrgID
-
-	switch role {
-	case "ADMIN", "OWNER":
-		if tenantID != "" {
-			return query.Where("tenant_id = ?", tenantID)
+	switch q.Role {
+	case "OWNER":
+		if q.TenantID != "" {
+			return query.Where("tenant_id = ?", q.TenantID)
 		}
-	case "site_admin":
-		if orgID != "" {
-			return query.Where("org_id = ?", orgID)
-		}
-		return query.Where("user_id = ?", userID)
+	case "ADMIN":
+		childIDs := getChildOrgIDs(q.OrgID)
+		ids := append(childIDs, q.OrgID)
+		return query.Where("org_id IN ?", ids)
 	default:
-		return query.Where("user_id = ?", userID)
+		if q.OrgID != "" {
+			return query.Where("org_id = ?", q.OrgID)
+		}
+		return query.Where("user_id = ?", q.ActorID)
 	}
-
 	return query
+}
+
+// getChildOrgIDs recursively finds all child site org_ids for a given parent.
+func getChildOrgIDs(parentID string) []string {
+	if parentID == "" {
+		return nil
+	}
+	var ids []string
+	database.GetDB().Table("sites").Select("org_id").Where("parent_id = ?", parentID).Find(&ids)
+	for _, id := range ids {
+		childIDs := getChildOrgIDs(id)
+		ids = append(ids, childIDs...)
+	}
+	return ids
 }
