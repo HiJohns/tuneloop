@@ -52,7 +52,7 @@ func (h *PermissionManageHandler) ListUsers(c *gin.Context) {
 	err := h.db.Raw(`
 		SELECT sm.user_id, u.name, sm.site_id, s.name as site_name, sm.role, sm.cus_perm_codes
 		FROM site_members sm
-		JOIN users u ON u.iam_sub = sm.user_id
+		JOIN users u ON u.iam_sub = sm.user_id::text
 		JOIN sites s ON s.id = sm.site_id
 		WHERE s.tenant_id = ?
 		ORDER BY s.name, u.name

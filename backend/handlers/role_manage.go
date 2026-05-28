@@ -49,7 +49,7 @@ func (h *RoleManageHandler) ListRoles(c *gin.Context) {
 	}
 
 	var localRoles []LocalRole
-	if err := h.db.Where("tenant_id = ?", tenantID).Find(&localRoles).Error; err != nil {
+	if err := h.db.Table("roles").Where("tenant_id = ?", tenantID).Find(&localRoles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list roles: " + err.Error()})
 		return
 	}
