@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams } from 'react-router-dom'
-import { Modal, Form, Input, Select, TreeSelect, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress } from 'antd'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Modal, Form, Input, Select, TreeSelect, Upload, Switch, message, Button, InputNumber, Row, Col, Divider, Space, Card, Progress, AutoComplete } from 'antd'
 import { UploadOutlined, PlusOutlined, DeleteOutlined, DragOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, LinkOutlined } from '@ant-design/icons'
 import { arrayMove } from '@dnd-kit/sortable';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -267,6 +267,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
   // Load instrument data when editing (page mode with ID in URL)
   const params = useParams()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (isPageMode && !initialData) {
@@ -917,7 +918,7 @@ const loadCategoryChildren = async (node) => {
         pricing: values.pricing || { daily_rent: 0, monthly_rent: 0, deposit: 0 },
         images: images,
         video: videoUrl,
-        status: initialData ? (values.status || 'active') : 'active',
+        status: initialData ? (values.status || loadedData?.status || 'available') : 'available',
       }
       
       // Add dynamic properties
@@ -960,7 +961,7 @@ const loadCategoryChildren = async (node) => {
         // Check page mode first - in page mode, redirect regardless of onSubmit
         if (isPageMode) {
           console.log('[DEBUG] Page mode, redirecting to /instruments/list')
-          window.location.href = '/instruments/list'
+          navigate('/instruments/list')
         } else if (typeof onSubmit === 'function') {
           console.log('[DEBUG] Calling onSubmit callback, will refresh list')
           onSubmit(result.data)
@@ -1113,7 +1114,7 @@ const loadCategoryChildren = async (node) => {
                     }
                     required={prop.is_required}
                   >
-                    <Select 
+                    <AutoComplete 
                       placeholder={`请选择或输入${prop.name}`}
                       allowClear
                       showSearch
@@ -1135,16 +1136,12 @@ const loadCategoryChildren = async (node) => {
                           console.warn('Property search failed:', err)
                         }
                       }}
-                      onChange={(value) => {
-                        console.log(`Value for ${prop.name}:`, value)
-                      }}
+                      options={(prop._searchOptions || prop.options || []).map(opt => ({
+                        value: typeof opt === 'string' ? opt : opt.value,
+                        label: typeof opt === 'string' ? opt : (opt.frequency > 0 ? `${opt.value} (${opt.frequency})` : opt.value)
+                      }))}
                     >
-                      {(prop._searchOptions || prop.options || []).map(opt => {
-                        const optValue = typeof opt === 'string' ? opt : opt.value
-                        const optLabel = typeof opt === 'string' ? opt : (opt.frequency > 0 ? `${opt.value} (${opt.frequency})` : opt.value)
-                        return <Option key={optValue} value={optValue}>{optLabel}</Option>
-                      })}
-                    </Select>
+                    </AutoComplete>
                   </Form.Item>
                 </Col>
               ))}
