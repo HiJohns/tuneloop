@@ -389,7 +389,8 @@ function onMenuClick(e) {
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                     {userInfo.businessRole === 'system_admin' ? '命名空间管理员' :
                      userInfo.businessRole === 'merchant_admin' ? '管理员' :
-                     userInfo.businessRole === 'site_admin' ? '管理员' : '员工'}
+                     userInfo.businessRole === 'site_admin' ? '管理员' :
+                     userInfo.businessRole === 'worker' ? '维修工程师' : '员工'}
                   </span>
                 </div>
               ) : (
