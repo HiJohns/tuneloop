@@ -241,6 +241,15 @@ func CreateInstrument(c *gin.Context) {
 		}
 	}
 
+	// Check SN uniqueness within tenant
+	if req.SN != "" {
+		var snCount int64
+		if err := db.Model(&models.Instrument{}).Where("sn = ? AND tenant_id = ?", req.SN, tenantID).Count(&snCount).Error; err == nil && snCount > 0 {
+			c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "识别码已存在"})
+			return
+		}
+	}
+
 	instrument := models.Instrument{
 		TenantID:     tenantID,
 		SN:           req.SN,

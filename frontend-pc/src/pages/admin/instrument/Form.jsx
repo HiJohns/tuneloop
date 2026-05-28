@@ -99,7 +99,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const isPageMode = !onCancel
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [fileList, setFileList] = useState([])
+  const [loadedData, setLoadedData] = useState(null)
+  const [fileList, setFileList] = useState([])    
   const [uploadStatus, setUploadStatus] = useState({
     isUploading: false,
     progress: {},
@@ -460,9 +461,10 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       }
       
       const result = await response.json()
-      if (result.code === 20000) {
-        const instrumentData = result.data
-        console.log('[DEBUG] Instrument data loaded:', instrumentData)
+        if (result.code === 20000) {
+          const instrumentData = result.data
+          console.log('[DEBUG] Instrument data loaded:', instrumentData)
+          setLoadedData(instrumentData)
         
         // Populate form with existing data
         form.setFieldsValue({
@@ -935,8 +937,9 @@ const loadCategoryChildren = async (node) => {
       console.log('[DEBUG] ==== LAUNCHING REQUEST ====')
       
       // Submit to API
-      const url = initialData ? `${API_BASE_URL}/instruments/${initialData.id}` : `${API_BASE_URL}/instruments`
-      const method = initialData ? 'PUT' : 'POST'
+      const editData = initialData || loadedData
+      const url = editData ? `${API_BASE_URL}/instruments/${editData.id}` : `${API_BASE_URL}/instruments`
+      const method = editData ? 'PUT' : 'POST'
       
       const response = await fetch(url, {
         method,
