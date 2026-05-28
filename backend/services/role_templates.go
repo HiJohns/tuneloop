@@ -35,7 +35,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		Name:         "网点管理员",
 		SysPermBits:  []int{15, 16, 17},
 		CusPermCodes: []string{
-			"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain",
+			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain",
 			"order:read", "order:update", "order:cancel",
 			"appeal:read", "appeal:handle",
 			"audit_log:read",
