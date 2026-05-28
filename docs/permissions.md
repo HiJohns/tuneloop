@@ -96,6 +96,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 7 | `order:read` | 查看订单 | 订单 | 含订单/租赁/押金查看 |
 | 8 | `order:update` | 编辑订单 | 订单 | 含租赁/押金/定损/支付/取件/归还 |
 | 9 | `order:cancel` | 取消订单 | 订单 | 含终止 |
+| 10 | `appeal:create` | 提交申诉 | 申诉 | 顾客对定损提出申诉 |
+| 11 | `appeal:read` | 查看申诉 | 申诉 | 查看申诉列表/详情 |
+| 12 | `appeal:handle` | 处理申诉 | 申诉 | 答复/关闭申诉 |
 
 ### 3.2 旧码→新码迁移映射
 
@@ -120,6 +123,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 |--------|-------------|---------|
 | 乐器 | 6 | instrument:create, instrument:read, instrument:update, instrument:delete, instrument:price, instrument:maintain |
 | 订单 | 4 | order:create, order:read, order:update, order:cancel |
+| 申诉 | 3 | appeal:create, appeal:read, appeal:handle |
 
 ---
 
@@ -129,11 +133,11 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 角色 | 代码 | cus_perm 数量 | 分配的权限 |
 |------|------|-------------|----------|
-| 商户管理员 | owner | 10 (全部) | 全部业务权限 |
-| 网点管理员 | admin | 8 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel |
+| 商户管理员 | owner | 13 (全部) | 全部业务权限 |
+| 网点管理员 | admin | 10 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel, appeal:read, appeal:handle |
 | 网点员工 | staff | 7 | instrument:create, instrument:read, instrument:update, instrument:maintain, order:create, order:read, order:update |
 | 维修工程师 | worker | 2 | instrument:read, instrument:maintain |
-| 顾客 | customer | 3 | order:create, order:read, order:cancel |
+| 顾客 | customer | 4 | order:create, order:read, order:cancel, appeal:create |
 
 ### 4.2 完整对照矩阵
 
@@ -149,6 +153,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | order:read | ✅ | ✅ | ✅ | ❌ | ✅ |
 | order:update | ✅ | ✅ | ✅ | ❌ | ❌ |
 | order:cancel | ✅ | ✅ | ❌ | ❌ | ✅ |
+| appeal:create | ✅ | ❌ | ❌ | ❌ | ✅ |
+| appeal:read | ✅ | ✅ | ❌ | ❌ | ❌ |
+| appeal:handle | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
