@@ -1117,7 +1117,6 @@ const loadCategoryChildren = async (node) => {
                       placeholder={`请选择或输入${prop.name}`}
                       allowClear
                       showSearch
-                      mode="tags"
                       filterOption={false}
                       onSearch={async (value) => {
                         if (!value || value.length < 1) return
