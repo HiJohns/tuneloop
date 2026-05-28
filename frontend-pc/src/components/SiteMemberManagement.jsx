@@ -35,6 +35,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [selectedRole, setSelectedRole] = useState('site_member');
 
   useEffect(() => {
     if (siteId) {
@@ -99,9 +100,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       const newUsers = [];
       selectedUsers.forEach(user => {
         if (user.isNew) {
-          newUsers.push({ name: user.name, email: user.email, phone: user.phone, role: 'site_member' });
+          newUsers.push({ name: user.name, email: user.email, phone: user.phone, role: selectedRole });
         } else {
-          existingUsers.push({ user_id: user.id || user.user_id, role: 'site_member' });
+          existingUsers.push({ user_id: user.id || user.user_id, role: selectedRole });
         }
       });
       const response = await api.post(`/sites/${siteId}/members`, {
@@ -195,6 +196,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={() => {
           setSelectedUsers([]);
+          setSelectedRole('site_member');
           setModalVisible(true);
         }}>
           添加成员
@@ -214,6 +216,14 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
           value={selectedUsers}
           onChange={setSelectedUsers}
         />
+        <div style={{ marginTop: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, color: '#666' }}>初始角色</label>
+          <Select value={selectedRole} onChange={setSelectedRole} style={{ width: '100%' }}>
+            {availableRoles.map(r => (
+              <Select.Option key={r.code} value={r.code}>{r.name}</Select.Option>
+            ))}
+          </Select>
+        </div>
         <div style={{ textAlign: 'right', marginTop: 16 }}>
           <Button onClick={() => setModalVisible(false)} style={{ marginRight: 8 }}>
             取消
