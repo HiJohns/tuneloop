@@ -21,15 +21,19 @@ func NewRoleManageHandler(db *gorm.DB, iamClient *services.IAMClient, permRegist
 }
 
 type LocalRole struct {
-	ID            string   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID      string   `gorm:"type:uuid;not null" json:"tenant_id"`
-	IAMTemplateID string   `gorm:"type:varchar(100)" json:"iam_template_id"`
-	Name          string   `gorm:"type:varchar(100);not null" json:"name"`
-	Code          string   `gorm:"type:varchar(50);not null" json:"code"`
+	ID            string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string         `gorm:"type:uuid;not null" json:"tenant_id"`
+	IAMTemplateID string         `gorm:"type:varchar(100)" json:"iam_template_id"`
+	Name          string         `gorm:"type:varchar(100);not null" json:"name"`
+	Code          string         `gorm:"type:varchar(50);not null" json:"code"`
 	CusPermCodes  pq.StringArray `gorm:"type:text[];default:'{}'" json:"cus_perm_codes"`
-	IsSystem      bool     `gorm:"default:false" json:"is_system"`
-	CreatedAt     string   `json:"created_at"`
-	UpdatedAt     string   `json:"updated_at"`
+	IsSystem      bool           `gorm:"default:false" json:"is_system"`
+	CreatedAt     string         `json:"created_at"`
+	UpdatedAt     string         `json:"updated_at"`
+}
+
+func (LocalRole) TableName() string {
+	return "roles"
 }
 
 type RoleResp struct {

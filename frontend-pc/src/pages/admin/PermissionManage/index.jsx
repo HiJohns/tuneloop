@@ -125,8 +125,12 @@ function MemberPermissions() {
           onSave={async (roleCode, cusPermCodes) => {
             setSaving(true)
             try {
-              if (roleCode) await adminApi.setUserRole(editModal.user_id, roleCode)
-              await adminApi.setUserPermissions(editModal.user_id, cusPermCodes)
+              if (roleCode) {
+                const roleResp = await adminApi.setUserRole(editModal.user_id, roleCode)
+                if (roleResp.code !== 20000) { message.error(roleResp.message || '更新失败'); setSaving(false); return }
+              }
+              const permResp = await adminApi.setUserPermissions(editModal.user_id, cusPermCodes)
+              if (permResp.code !== 20000) { message.error(permResp.message || '更新失败'); setSaving(false); return }
               message.success('权限已更新，该用户下次登录后生效')
               setEditModal(null)
               fetchMembers()
@@ -274,11 +278,13 @@ function RoleManagement() {
         onSave={async (data) => {
           setSaving(true)
           try {
+            let resp
             if (editModal) {
-              await adminApi.updateRole(editModal.id, data)
+              resp = await adminApi.updateRole(editModal.id, data)
             } else {
-              await adminApi.createRole(data)
+              resp = await adminApi.createRole(data)
             }
+            if (resp.code !== 20000) { message.error(resp.message || '保存失败'); setSaving(false); return }
             message.success(editModal ? '角色已更新' : '角色已创建')
             setEditModal(null); setCreating(false)
             fetchRoles()
