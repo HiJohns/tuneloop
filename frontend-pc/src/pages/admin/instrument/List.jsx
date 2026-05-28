@@ -404,27 +404,29 @@ export default function InstrumentList() {
           <div className="flex items-center">
             <span className="mr-4">已选择 <span className="font-bold">{selectedRowKeys.length}</span> 项</span>
             <Space>
-              <Button
-                size="small"
-                icon={<ArrowUpOutlined />}
-                onClick={() => batchChangeStatus('active')}
-              >
-                批量上架
-              </Button>
-              <Button
-                size="small"
-                icon={<ArrowDownOutlined />}
-                onClick={() => batchChangeStatus('inactive')}
-              >
-                批量下架
-              </Button>
-              <Button
-                size="small"
-                icon={<DollarOutlined />}
-                onClick={showBatchPriceModal}
-              >
-                批量改价
-              </Button>
+              {false && <>
+               <Button
+                 size="small"
+                 icon={<ArrowUpOutlined />}
+                 onClick={() => batchChangeStatus('active')}
+               >
+                 批量上架
+               </Button>
+               <Button
+                 size="small"
+                 icon={<ArrowDownOutlined />}
+                 onClick={() => batchChangeStatus('inactive')}
+               >
+                 批量下架
+               </Button>
+               <Button
+                 size="small"
+                 icon={<DollarOutlined />}
+                 onClick={showBatchPriceModal}
+               >
+                 批量改价
+               </Button>
+              </>}
               <Button
                 size="small"
                 danger
