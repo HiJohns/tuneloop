@@ -254,6 +254,7 @@ function MainLayout() {
     children: [
       { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:read'] } },
     ]
   },
   {
@@ -424,6 +425,7 @@ function onMenuClick(e) {
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
+            <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:maintain'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />

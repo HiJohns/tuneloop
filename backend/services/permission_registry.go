@@ -94,6 +94,9 @@ func getTuneLoopPermissions() []PermissionDef {
 		{Code: "order:read", Name: "查看订单", BitCode: 7},
 		{Code: "order:update", Name: "编辑订单", BitCode: 8},
 		{Code: "order:cancel", Name: "取消订单", BitCode: 9},
+		{Code: "appeal:create", Name: "提交申诉", BitCode: 10},
+		{Code: "appeal:read", Name: "查看申诉", BitCode: 11},
+		{Code: "appeal:handle", Name: "处理申诉", BitCode: 12},
 	}
 }
 
