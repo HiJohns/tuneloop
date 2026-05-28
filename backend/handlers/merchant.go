@@ -590,29 +590,23 @@ func parseInt(s string, defaultValue int) int {
 // Uses services.AllRoleTemplates for role definitions.
 func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID string) {
 	log.Printf("[initSystemRoles] Starting role init for tenant=%s ns=%s", tenantID, nsID)
-	roleNameMap := map[string]string{
-		"owner":  "merchant_admin",
-		"admin":  "site_admin",
-		"staff":  "site_member",
-		"worker": "worker",
-	}
 	systemRoles := map[string][]string{
-		"owner":  {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
-		"admin":  {"instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
-		"staff":  {"instrument:create", "instrument:read", "instrument:update", "order:create", "order:read"},
-		"worker": {"instrument:read", "instrument:maintain"},
+		"merchant_admin": {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
+		"site_admin":     {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
+		"site_member":    {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
+		"worker":         {"instrument:read", "instrument:maintain"},
 	}
 	for code, codes := range systemRoles {
 		var count int64
 		db.Model(&models.Role{}).Where("tenant_id = ? AND code = ?", tenantID, code).Count(&count)
 		if count == 0 {
 			role := models.Role{
-				TenantID:     tenantID,
+				TenantID:      tenantID,
 				IAMTemplateID: "",
-				Name:         services.AllRoleTemplates[roleNameMap[code]].Name,
-				Code:         code,
-				CusPermCodes: codes,
-				IsSystem:     true,
+				Name:          services.AllRoleTemplates[code].Name,
+				Code:          code,
+				CusPermCodes:  codes,
+				IsSystem:      true,
 			}
 			if err := db.Create(&role).Error; err != nil {
 				log.Printf("[initSystemRoles] Warning: failed to create role %s: %v", code, err)
@@ -623,19 +617,18 @@ func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID 
 	}
 	// Also sync role templates to IAM for the namespace (idempotent)
 	for code := range systemRoles {
-		templateCode := roleNameMap[code]
-		if t, ok := services.AllRoleTemplates[templateCode]; ok {
+		if t, ok := services.AllRoleTemplates[code]; ok {
 			if len(t.SysPermBits) > 0 {
-				if err := iamClient.SyncRoleTemplateSysPerm(nsID, templateCode, t.SysPermBits); err != nil {
-					log.Printf("[initSystemRoles] Warning: failed to sync sys_perm for %s: %v", templateCode, err)
+				if err := iamClient.SyncRoleTemplateSysPerm(nsID, code, t.SysPermBits); err != nil {
+					log.Printf("[initSystemRoles] Warning: failed to sync sys_perm for %s: %v", code, err)
 				}
 			}
 			if len(t.CusPermCodes) > 0 {
 				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, func(code string) int {
 					return middleware.PermissionRegistry.GetCusPermBit(code)
 				})
-				if err := iamClient.SyncRoleTemplateCusPerm(nsID, templateCode, cusPerm, cusPermExt); err != nil {
-					log.Printf("[initSystemRoles] Warning: failed to sync cus_perm for %s: %v", templateCode, err)
+				if err := iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt); err != nil {
+					log.Printf("[initSystemRoles] Warning: failed to sync cus_perm for %s: %v", code, err)
 				}
 			}
 		}
