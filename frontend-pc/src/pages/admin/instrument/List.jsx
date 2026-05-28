@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, DownloadOutlined, ExportOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
@@ -443,18 +443,6 @@ export default function InstrumentList() {
       {/* Toolbar */}
       <div className="mb-4 flex justify-between items-center">
         <Space>
-          <Button
-            icon={<ImportOutlined />}
-            onClick={() => navigate('/instruments/batch-import')}
-          >
-            导入
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={downloadTemplate}
-          >
-            模板下载
-          </Button>
           <Input
             placeholder="搜索识别码..."
             prefix={<SearchOutlined className="text-gray-400" />}
