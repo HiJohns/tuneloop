@@ -29,7 +29,6 @@ import PermissionManage from './pages/admin/PermissionManage'
 import AssetDetail from './pages/AssetDetail'
 import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
-import MaintenanceWorkerManagement from './pages/MaintenanceWorkerManagement'
 import AppealManagement from './pages/AppealManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import WarehouseManagement from './pages/WarehouseManagement'
@@ -235,7 +234,6 @@ function MainLayout() {
     icon: <ToolOutlined />,
     label: '维修管理',
     children: [
-      { key: '/maintenance/workers', label: '师傅管理', permission: { cusPermCodes: ['instrument:maintain'] } },
       { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } }
     ]
   },
@@ -428,9 +426,8 @@ function onMenuClick(e) {
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
-            <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:maintain'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
-            <Route path="/maintenance/workers" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:maintain'] }}><MaintenanceWorkerManagement /></ProtectedRoute>} />
+            <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [26] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
