@@ -251,7 +251,7 @@ function MainLayout() {
     icon: <TeamOutlined />,
     label: '组织管理',
     children: [
-      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [5, 10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:read'] } },
     ]
@@ -263,7 +263,7 @@ function MainLayout() {
     children: [
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
       { key: '/system/audit-logs', label: '操作日志', permission: { sysPermBits: [5] } },
-      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [26] } }
+      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } }
     ]
   }
 ]
@@ -416,11 +416,11 @@ function onMenuClick(e) {
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
             <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
-            <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5, 10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5, 10] }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5, 10] }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5, 10] }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5, 10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
@@ -428,7 +428,7 @@ function onMenuClick(e) {
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:maintain'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
-            <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [26] }}><PermissionManage /></ProtectedRoute>} />
+            <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />

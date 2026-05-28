@@ -251,7 +251,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// Merchant management routes (require tenant sys_perm + project_admin role)
 		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
 		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
-		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreateEx), merchantHandler.CreateMerchant)
+		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
 		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
 		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
 
@@ -397,7 +397,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
 			permRequired := authRequired.Group("")
-			permRequired.Use(middleware.RequireSysPerm(middleware.SysPermPermissionManage))
+			permRequired.Use(middleware.RequireSysPerm(middleware.SysPermPermissionCreate))
 			{
 				permRequired.GET("/admin/users", permManageHandler.ListUsers)
 				permRequired.PUT("/admin/users/:id/permissions", permManageHandler.SetUserPermissions)

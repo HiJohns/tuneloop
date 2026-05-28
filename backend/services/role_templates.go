@@ -15,13 +15,13 @@ type RoleTemplate struct {
 var AllRoleTemplates = map[string]RoleTemplate{
 	"namespace_admin": {
 		Name:         "命名空间管理员",
-		SysPermBits:  []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24},
+		SysPermBits:  []int{5, 6, 7, 8, 9, 15, 16, 17, 18, 19},
 		CusPermCodes: []string{},
-		Description:  "全部系统权限，无业务权限",
+		Description:  "命名空间管理员，管理商户和人员",
 	},
 	"merchant_admin": {
 		Name:         "商户管理员",
-		SysPermBits:  []int{5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 26},
+		SysPermBits:  []int{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29},
 		CusPermCodes: []string{
 			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price",
 			"instrument:maintain",

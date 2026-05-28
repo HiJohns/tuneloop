@@ -78,8 +78,11 @@ var middlewareSysPermMap = map[string]int{
 	"role_create":          22,
 	"role_update":          23,
 	"role_delete":          24,
-	"tenant:create":        25,
-	"permission:manage":    26,
+	"permission:view":      25,
+	"permission:list":      26,
+	"permission:create":    27,
+	"permission:update":    28,
+	"permission:delete":    29,
 }
 
 func getTuneLoopPermissions() []PermissionDef {

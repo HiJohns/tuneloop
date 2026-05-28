@@ -7,8 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SysPerm bit codes (0-26, defined by BeaconIAM)
-// Bits 0-24: original IAM sys_perm; Bits 25-26: IAM v2 additions
+// SysPerm bit codes (0-29, 6 groups × 5 bits CRUDL, defined by BeaconIAM v1.0)
 const (
 	SysPermNamespaceView       = 0
 	SysPermNamespaceList       = 1
@@ -35,8 +34,11 @@ const (
 	SysPermRoleCreate          = 22
 	SysPermRoleUpdate          = 23
 	SysPermRoleDelete          = 24
-	SysPermTenantCreateEx      = 25
-	SysPermPermissionManage    = 26
+	SysPermPermissionView      = 25
+	SysPermPermissionList      = 26
+	SysPermPermissionCreate    = 27
+	SysPermPermissionUpdate    = 28
+	SysPermPermissionDelete    = 29
 )
 
 // SysPermBitNames maps bit position to permission code name
@@ -66,8 +68,11 @@ var SysPermBitNames = map[int]string{
 	SysPermRoleCreate:          "role_create",
 	SysPermRoleUpdate:          "role_update",
 	SysPermRoleDelete:          "role_delete",
-	SysPermTenantCreateEx:      "tenant:create",
-	SysPermPermissionManage:    "permission:manage",
+	SysPermPermissionView:      "permission:view",
+	SysPermPermissionList:      "permission:list",
+	SysPermPermissionCreate:    "permission:create",
+	SysPermPermissionUpdate:    "permission:update",
+	SysPermPermissionDelete:    "permission:delete",
 }
 
 // PermissionRegistry is the global permission registry (mock by default, real in Sub-task C).

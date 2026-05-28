@@ -13,7 +13,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 层级 | 来源 | 存储 | 用途 |
 |------|------|------|------|
-| sys_perm | IAM 内置位码 (0-26) | IAM JWT | 控制结构操作：商户管理、网点管理、人员管理、角色配置、客户端管理、权限管理 |
+| sys_perm | IAM 内置位码 (0-29, 6组×5位 CRUDL) | IAM JWT | 控制结构操作：商户管理、网点管理、人员管理、角色配置、客户端管理、权限管理 |
 | cus_perm | TuneLoop 注册 (10 码) | IAM JWT (OR 运算) | 控制业务操作：乐器 CRUD + 定价 + 维修 + 订单 CRUD |
 
 > **cus_perm OR 逻辑**（IAM 侧计算）：  
@@ -40,41 +40,22 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 ---
 
-## 二、sys_perm 系统权限位码表
+## 二、sys_perm 系统权限
 
-> 来源: `backend/middleware/permissions.go`
+> 位定义和角色映射由 [BeaconIAM docs/permissions.md](https://github.com/HiJohns/beaconiam/blob/main/docs/permissions.md) v1.0 管理。
+> Tuneloop 只消费以下位映射：
 
-| 位码 | 常量名 | 代码 | 权限域 | 说明 | 持有者 |
-|------|--------|------|--------|------|--------|
-| 0 | SysPermNamespaceView | namespace_view | 命名空间 | 查看客户端 | namespace_admin |
-| 1 | SysPermNamespaceList | namespace_list | 命名空间 | 列出客户端 | namespace_admin |
-| 2 | SysPermNamespaceCreate | namespace_create | 命名空间 | 创建客户端 | namespace_admin |
-| 3 | SysPermNamespaceUpdate | namespace_update | 命名空间 | 编辑客户端 | namespace_admin |
-| 4 | SysPermNamespaceDelete | namespace_delete | 命名空间 | 删除客户端 | namespace_admin |
-| 5 | SysPermTenantView | tenant_view | 租户 | 查看商户 | namespace_admin, merchant_admin |
-| 6 | SysPermTenantList | tenant_list | 租户 | 列出商户 | namespace_admin, merchant_admin |
-| 7 | SysPermTenantCreate | tenant_create | 租户 | 管理商户 | namespace_admin, merchant_admin |
-| 8 | SysPermTenantUpdate | tenant_update | 租户 | 编辑商户 | namespace_admin, merchant_admin |
-| 9 | SysPermTenantDelete | tenant_delete | 租户 | 删除商户 | namespace_admin, merchant_admin |
-| 10 | SysPermOrganizationView | organization_view | 组织 | 查看网点 | namespace_admin, merchant_admin |
-| 11 | SysPermOrganizationList | organization_list | 组织 | 列出网点 | namespace_admin, merchant_admin |
-| 12 | SysPermOrganizationCreate | organization_create | 组织 | 创建网点 | namespace_admin, merchant_admin |
-| 13 | SysPermOrganizationUpdate | organization_update | 组织 | 编辑网点 | namespace_admin, merchant_admin |
-| 14 | SysPermOrganizationDelete | organization_delete | 组织 | 删除网点 | namespace_admin, merchant_admin |
-| 15 | SysPermUserView | user_view | 用户 | 查看人员 | namespace_admin, merchant_admin, site_admin |
-| 16 | SysPermUserList | user_list | 用户 | 列出人员 | namespace_admin, merchant_admin, site_admin |
-| 17 | SysPermUserCreate | user_create | 用户 | 创建人员 | namespace_admin, merchant_admin, site_admin |
-| 18 | SysPermUserUpdate | user_update | 用户 | 编辑人员 | namespace_admin, merchant_admin |
-| 19 | SysPermUserDelete | user_delete | 用户 | 删除人员 | namespace_admin, merchant_admin |
-| 20 | SysPermRoleView | role_view | 角色 | 查看角色 | namespace_admin |
-| 21 | SysPermRoleList | role_list | 角色 | 列出角色 | namespace_admin |
-| 22 | SysPermRoleCreate | role_create | 角色 | 创建角色 | namespace_admin |
-| 23 | SysPermRoleUpdate | role_update | 角色 | 编辑角色 | namespace_admin |
-| 24 | SysPermRoleDelete | role_delete | 角色 | 删除角色 | namespace_admin |
-| **25** | **SysPermTenantCreateEx** | **tenant:create** | **租户** | **创建租户（仅命名空间管理员）** | **namespace_admin** |
-| **26** | **SysPermPermissionManage** | **permission:manage** | **权限** | **管理权限（商户管理员）** | **merchant_admin** |
-
-> **Bits 25-26** 为 #660 新增，IAM v2 扩展，从 bit 25 追加。
+| Bit | 代码 | Tuneloop 用途 |
+|-----|------|-------------|
+| 0 | namespace:view | 客户端管理菜单/路由 |
+| 5 | tenant:view | 商户管理菜单/路由 |
+| 6 | tenant:list | GET /api/merchants |
+| 7 | tenant:create | POST /api/merchants（创建商户） |
+| 10 | organization:view | 网点管理菜单/路由 |
+| 12 | organization:create | 网点批量导入 |
+| 15 | user:view | 人员管理菜单/路由 |
+| 17 | user:create | 人员批量导入 |
+| 27 | permission:create | 权限管理菜单/路由及全部 API |
 
 ---
 
@@ -192,7 +173,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 文件 | 内容 |
 |------|------|
-| `backend/middleware/permissions.go` | sys_perm 位码常量定义 (0-26) + RequireSysPerm / RequireCusPerm 中间件 |
+| `backend/middleware/permissions.go` | sys_perm 位码常量定义 (0-29) + RequireSysPerm / RequireCusPerm 中间件 |
 | `backend/services/permission_registry.go` | 10 cus_perm 定义 + GetCusPermBit / GetCusPermMapping |
 | `backend/services/role_templates.go` | AllRoleTemplates 角色-权限模板 |
 | `backend/services/iam_client.go` | SetUserCustomerPermissions / SyncRoleTemplateCusPerm / CreateRoleTemplate |
