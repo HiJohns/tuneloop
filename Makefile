@@ -25,8 +25,9 @@ run-backend: kill-port
 	@echo "Starting backend services..."
 	@echo "Backend API (Mobile): http://localhost:5556"
 	@echo "Backend API (PC):     http://localhost:5557"
+	@echo "Log file:             backend/backend.log"
 	@echo "=========================================="
-	cd backend && go run main.go &
+	cd backend && go run main.go 2>&1 | tee backend.log &
 
 web-dev:
 	@echo "Starting PC frontend development server..."
@@ -45,6 +46,7 @@ run-prod: build-frontend run-backend
 stop:
 	@echo "Stopping all services..."
 	@pkill -f "go run main.go" || true
+	@pkill -f "tee backend.log" || true
 	@pkill -f "npm run dev" || true
 
 install:

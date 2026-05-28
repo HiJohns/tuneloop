@@ -36,3 +36,4 @@ prerelease/mobile/
 Thumbs.db
 tmp/
 tmp/.permission_cache.json
+backend/backend.log
