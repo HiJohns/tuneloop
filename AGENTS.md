@@ -356,5 +356,15 @@ done
 ```
 
 ---
-*Last updated: 2026-05-23*
+
+### 动态属性设计原则
+
+> 动态属性输入框允许手动输入新值。新值自动写入 `property_options` 表（`status='pending'`）。网点经理在属性管理页可看到各属性下的新增值，可以：
+> - **接受**：将 pending 值改为 active
+> - **归并**：设为已有值的别名（如 "YAMAHA" → "雅马哈"）
+> - **修正**：直接修改 pending 值（修正 typo）
+
+---
+
+*Last updated: 2026-05-28*
 
