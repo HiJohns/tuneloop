@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -232,7 +233,7 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 	// For now, return a simple authorization code
 	// In production, this would validate credentials and generate a proper code
-	authCode := "auth-code-" + req.Username + "-" + c.GetString("tenant_id")
+	authCode := "auth-code-" + req.Username + "-" + middleware.GetTenantID(c.Request.Context())
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

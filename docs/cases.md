@@ -185,12 +185,25 @@
 
 **修改 API**:
 - `POST /api/merchants` —— 调用 IAM Create Organization（传入 admin 信息 + callback_url）
-- `POST /api/sites` —— 新增调用 IAM Create Organization (parent_id=商户org_id)
-- `POST /api/sites/:id/members` —— 调用 IAM Bind API（下级组织仅通知，无需确认）
+- `POST /api/sites` —— 新增调用 IAM Create Organization (parent_id=商户org_id) + IAM 三步绑定管理员
+- `POST /api/sites/:id/members` —— 调用 IAM Bind API + SetUserCustomerPermissions + AssignRoleTemplate（三步绑定）
+- `PUT /api/sites/:id/members/:uid` —— 调用 IAM UpdateUserRoleInOrg/Bind + AssignRoleTemplate 同步角色变更
 
 **数据模型**:
 - `sites.org_id` 语义变更：网点自身的 IAM 组织 ID（非商户的组织 ID）
 - `confirmation_sessions` 新增 `iam_session_id`、`callback_url` 字段
+
+### 通用 IAM 绑定三步骤
+
+所有人-组织-角色绑定操作统一遵循以下顺序：
+
+1. **BindUser** — PUT /organizations/:oid/users/:uid/bind (action=bind)，建立 user-org 关系，设置 org role（OWNER|ADMIN|STAFF|WORKER）
+2. **SetUserCustomerPermissions** — PUT /organizations/:oid/users/:uid/customer-permissions (raw_bits=true)，按角色模板写个人 cus_perm 位图
+3. **AssignRoleTemplateToUserWithToken** — POST /users/:uid/roles (role_ids=[template_id])，分配功能角色模板决定 JWT roles/sys_perm
+
+角色名映射：site_admin→ADMIN, site_member→STAFF, worker→WORKER（兼容旧格式 Manager/Staff）
+
+本地 DB 缓存（site_members/users）在所有 IAM 调用成功后同步写入。
 
 ---
 
@@ -578,12 +591,15 @@ URL切换到/sites/new
 填写网点名称、类型（加盟/直营/合作店）、地址、联系电话
 **指定网点管理员**: 表单内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），单选模式
 - 选中后显示管理员姓名和邮箱，可点击「更换」重新选择
-- 初始角色默认为 `Manager`
+- 初始角色默认为 `site_admin`
 提交前检查网点名是否重复
 **后端动作**:
 1. 调用 IAM `POST /api/v1/namespaces/:id/organizations` 创建下级组织（parent_id = 所属商户的 org_id）
 2. 存储返回的 org_id 到 site 记录（网点自身的 IAM 组织 ID）
-3. 调用 IAM `PUT /api/v1/users/:uid/organizations/:oid/bind` 绑定管理员（下级组织仅通知，无需确认）
+3. 执行 IAM 三步绑定（管理员角色 = site_admin）：
+   a. PUT /organizations/:oid/users/:uid/bind (action=bind, role=ADMIN)
+   b. PUT /organizations/:oid/users/:uid/customer-permissions (raw_bits=true, cus_perm=site_admin 模板值)
+   c. POST /users/:uid/roles (role_ids=[site_admin_template_id]) — 分配角色模板
 4. 本地 `site_members` 表同步创建成员记录
 提交成功后左侧网点树自动更新并选中新建网点
 
@@ -615,16 +631,23 @@ URL切换到/sites/:id/edit
 #### 4.1.5.2 角色切换逻辑
 
 - **规则保护**: 若该用户是当前网点**最后一名管理员**，禁止将其切换为成员或删除
-- 操作成功后在 `site_members` 表更新角色字段
+- IAM 侧同步（升级/降级均需）：
+  a. PUT /organizations/:oid/users/:uid/role — 更新 org role（ADMIN↔STAFF）
+  b. POST /users/:uid/roles — 重新分配角色模板（site_admin↔site_member）
+- 本地 `site_members` 表同步更新角色字段
 
 #### 4.1.5.3 增加成员
 
 - 成员列表上方内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），多选模式
 - 选中用户后显示在已选列表中，可继续搜索添加
-- 点击「确认添加」后，调用 IAM `PUT /users/:uid/organizations/:oid/bind` 绑定到网点对应的下级组织
+- 点击「确认添加」后，执行 IAM 三步绑定：
+  1. PUT /organizations/:oid/users/:uid/bind — 绑定用户到网点，设置 org role（ADMIN|STAFF|WORKER）
+  2. PUT /organizations/:oid/users/:uid/customer-permissions (raw_bits=true) — 按角色模板写个人 cus_perm 位图
+  3. POST /users/:uid/roles — 分配功能角色模板（决定 JWT roles / sys_perm / cus_perm）
+- 角色名映射规则：site_admin→ADMIN, site_member→STAFF, worker→WORKER（兼容旧格式 Manager/Staff）
 - 下级组织绑定仅需邮件通知，**无需用户确认**，即时生效
 - 本地 `site_members` 表同步创建记录
-- 初始角色默认为 `Staff`
+- 初始角色默认为 `site_member`
 
 #### 4.1.5.4 移除成员
 
@@ -668,7 +691,7 @@ URL为/staff
 
 点击『创建用户』按钮
 弹出用户创建对话框
-填写姓名、邮箱、电话、归属网点、职位、用户类型
+填写用户名、姓名、邮箱、电话、归属网点、职位、用户类型
 归属网点下拉框采用树状展示
 点击提交
 - 系统���查邮箱/电话唯一性

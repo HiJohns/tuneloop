@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -37,10 +39,11 @@ func (h *MaintenanceHandler) SubmitRepair(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 
-	tenantID := c.GetString("tenant_id")
-	orgID := c.GetString("org_id")
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
 
 	ticket := models.MaintenanceTicket{
 		TenantID:           tenantID,
@@ -87,9 +90,10 @@ func (h *MaintenanceHandler) ReportRepair(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 
-	userID := c.GetString("user_id")
+	userID := middleware.GetUserID(ctx)
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    40101,
@@ -103,8 +107,8 @@ func (h *MaintenanceHandler) ReportRepair(c *gin.Context) {
 		imagesJSON = fmt.Sprintf(`["%s"]`, strings.Join(req.Images, `","`))
 	}
 
-	tenantID := c.GetString("tenant_id")
-	orgID := c.GetString("org_id")
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
 
 	ticket := models.MaintenanceTicket{
 		TenantID:           tenantID,
@@ -362,7 +366,7 @@ func (h *MaintenanceHandler) UpdateTicketStatus(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetString("user_id")
+	userID := middleware.GetUserID(c.Request.Context())
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "user not authenticated"})
 		return
@@ -398,7 +402,9 @@ func (h *MaintenanceHandler) UpdateTicketStatus(c *gin.Context) {
 		now := time.Now()
 		updates["completed_at"] = now
 
-		if err := db.Model(&models.Instrument{}).Where("id = ?", ticket.InstrumentID).Update("stock_status", "available").Error; err != nil {
+		tenantID := middleware.GetTenantID(c.Request.Context())
+		if err := db.Model(&models.Instrument{}).Where("id = ? AND tenant_id = ?", ticket.InstrumentID, tenantID).Update("stock_status", "available").Error; err != nil {
+			log.Printf("[UpdateTicketStatus] Failed to update instrument status: %v", err)
 		}
 	}
 

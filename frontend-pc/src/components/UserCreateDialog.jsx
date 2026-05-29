@@ -18,6 +18,17 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
       </Form.Item>
 
       <Form.Item
+        name="username"
+        label="用户名"
+        rules={[
+          { pattern: /^[a-zA-Z0-9_]+$/, message: '用户名只能包含英文、数字和下划线' },
+          { required: true, message: '请输入用户名' }
+        ]}
+      >
+        <Input placeholder="请输入用户名（英文数字下划线）" />
+      </Form.Item>
+
+      <Form.Item
         name="email"
         label="邮箱"
         rules={[

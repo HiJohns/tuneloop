@@ -44,18 +44,8 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 	// Build query
 	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
 
-	currentUserID := middleware.GetUserID(ctx)
-	var currentUser models.User
-	if err := db.Where("iam_sub = ?", currentUserID).First(&currentUser).Error; err == nil {
-		if currentUser.Role == "site_admin" && currentUser.SiteID != nil {
-			siteID, err := uuid.Parse(*currentUser.SiteID)
-			if err == nil {
-				descendantIDs, err := getDescendantSiteIDs(db, tenantID, siteID)
-				if err == nil && len(descendantIDs) > 0 {
-					query = query.Where("site_id IN ?", descendantIDs)
-				}
-			}
-		}
+	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
+		query = scopedDB
 	}
 
 	// Optional filters
@@ -150,6 +140,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
+		Username string    `json:"username"`
 		Name     string    `json:"name" binding:"required"`
 		Phone    string    `json:"phone" binding:"required"`
 		Email    string    `json:"email"`
@@ -247,8 +238,12 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
+	username := req.Username
+	if username == "" {
+		username = req.Email
+	}
 	createReq := &services.CreateUserRequest{
-		Username: req.Email,
+		Username: username,
 		Name:     req.Name,
 		Email:    req.Email,
 		Phone:    req.Phone,

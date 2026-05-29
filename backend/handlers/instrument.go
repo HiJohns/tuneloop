@@ -147,8 +147,8 @@ func GetInstrumentPricing(c *gin.Context) {
 }
 
 func CreateInstrument(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
 	userID := middleware.GetUserID(ctx)
@@ -359,8 +359,8 @@ func CreateInstrument(c *gin.Context) {
 
 // PUT /api/instruments/:id - Update instrument
 func UpdateInstrument(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 
 	instrumentID := c.Param("id")
@@ -660,10 +660,11 @@ func UpdateInstrumentStatus(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Update the instrument
 	result := db.Model(&models.Instrument{}).
-		Where("id = ?", instrumentID).
+		Where("id = ? AND tenant_id = ?", instrumentID, tenantID).
 		Update("stock_status", req.StockStatus)
 
 	if result.Error != nil {
@@ -757,7 +758,8 @@ func CheckInstrumentSN(c *gin.Context) {
 
 // GET /api/instruments/levels - Get instrument levels list
 func GetInstrumentLevels(c *gin.Context) {
-	db := database.GetDB()
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 
 	var levels []models.InstrumentLevel
 	if err := db.Order("sort_order").Find(&levels).Error; err != nil {
@@ -802,8 +804,8 @@ func GetInstrumentLevels(c *gin.Context) {
 
 // DeleteInstrument handles DELETE /api/instruments/:id
 func DeleteInstrument(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	instrumentID := c.Param("id")
 

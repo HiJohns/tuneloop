@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 )
@@ -184,7 +185,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		"instrument_id": instrumentID,
 		"instrument_sn": instrumentSN,
 		"batch_type":    batchType,
-		"operator_id":   c.GetString("user_id"),
+		"operator_id":   middleware.GetUserID(c.Request.Context()),
 		"tenant_id":     tenantID,
 		"created_at":    time.Now().Format(time.RFC3339),
 		"photos":        photos,
@@ -287,7 +288,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		InstrumentID: instrumentID,
 		BatchType:    batchType,
 		StoragePath:  zipPath,
-		OperatorID:   c.GetString("user_id"),
+		OperatorID:   middleware.GetUserID(c.Request.Context()),
 		CreatedAt:    time.Now(),
 	}
 

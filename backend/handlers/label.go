@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"tuneloop-backend/middleware"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -20,6 +22,8 @@ func NewLabelHandler(db *gorm.DB) *LabelHandler {
 
 // GetLabels returns all labels for a tenant with optional filtering
 func (h *LabelHandler) GetLabels(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	status := c.DefaultQuery("status", "")
 
 	var labels []struct {
@@ -30,7 +34,7 @@ func (h *LabelHandler) GetLabels(c *gin.Context) {
 		CreatedAt   time.Time `json:"created_at"`
 	}
 
-	query := h.db.Table("labels").Where("tenant_id = ?", c.GetString("tenant_id"))
+	query := h.db.WithContext(ctx).Table("labels").Where("tenant_id = ?", tenantID)
 	if status != "" {
 		query = query.Where("audit_status = ?", status)
 	}
@@ -51,6 +55,9 @@ func (h *LabelHandler) GetLabels(c *gin.Context) {
 
 // CreateLabel creates a new label
 func (h *LabelHandler) CreateLabel(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
 	var req struct {
 		Name  string   `json:"name" binding:"required"`
 		Alias []string `json:"alias"`
@@ -65,14 +72,14 @@ func (h *LabelHandler) CreateLabel(c *gin.Context) {
 	}
 
 	label := map[string]interface{}{
-		"tenant_id":    c.GetString("tenant_id"),
+		"tenant_id":    tenantID,
 		"name":         req.Name,
 		"alias":        toJSONString(req.Alias),
 		"audit_status": "pending",
 		"created_at":   time.Now(),
 	}
 
-	if err := h.db.Table("labels").Create(&label).Error; err != nil {
+	if err := h.db.WithContext(ctx).Table("labels").Create(&label).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to create label",
@@ -89,9 +96,11 @@ func (h *LabelHandler) CreateLabel(c *gin.Context) {
 
 // ApproveLabel approves a pending label
 func (h *LabelHandler) ApproveLabel(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	labelID := c.Param("id")
 
-	if err := h.db.Table("labels").Where("id = ? AND tenant_id = ?", labelID, c.GetString("tenant_id")).Update("audit_status", "approved").Error; err != nil {
+	if err := h.db.WithContext(ctx).Table("labels").Where("id = ? AND tenant_id = ?", labelID, tenantID).Update("audit_status", "approved").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to approve label",
@@ -107,9 +116,11 @@ func (h *LabelHandler) ApproveLabel(c *gin.Context) {
 
 // RejectLabel rejects a pending label
 func (h *LabelHandler) RejectLabel(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	labelID := c.Param("id")
 
-	if err := h.db.Table("labels").Where("id = ? AND tenant_id = ?", labelID, c.GetString("tenant_id")).Update("audit_status", "rejected").Error; err != nil {
+	if err := h.db.WithContext(ctx).Table("labels").Where("id = ? AND tenant_id = ?", labelID, tenantID).Update("audit_status", "rejected").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to reject label",
@@ -125,6 +136,9 @@ func (h *LabelHandler) RejectLabel(c *gin.Context) {
 
 // MergeLabels merges multiple labels into a target label
 func (h *LabelHandler) MergeLabels(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+
 	var req struct {
 		SourceLabelIDs []string `json:"source_label_ids" binding:"required"`
 		TargetLabelID  string   `json:"target_label_id" binding:"required"`
@@ -138,10 +152,8 @@ func (h *LabelHandler) MergeLabels(c *gin.Context) {
 		return
 	}
 
-	tenantID := c.GetString("tenant_id")
-
 	// 1. Update source labels to point to target
-	if err := h.db.Table("labels").Where("id IN ? AND tenant_id = ?", req.SourceLabelIDs, tenantID).Updates(map[string]interface{}{
+	if err := h.db.WithContext(ctx).Table("labels").Where("id IN ? AND tenant_id = ?", req.SourceLabelIDs, tenantID).Updates(map[string]interface{}{
 		"normalized_to_id": req.TargetLabelID,
 		"audit_status":     "merged",
 		"updated_at":       time.Now(),
@@ -158,7 +170,7 @@ func (h *LabelHandler) MergeLabels(c *gin.Context) {
 		Name string `json:"name"`
 	}
 
-	if err := h.db.Table("labels").Where("id IN ? AND tenant_id = ?", req.SourceLabelIDs, tenantID).Select("name").Find(&sourceLabels).Error; err != nil {
+	if err := h.db.WithContext(ctx).Table("labels").Where("id IN ? AND tenant_id = ?", req.SourceLabelIDs, tenantID).Select("name").Find(&sourceLabels).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch source label names",
@@ -171,7 +183,7 @@ func (h *LabelHandler) MergeLabels(c *gin.Context) {
 		Name string `json:"name"`
 	}
 
-	if err := h.db.Table("labels").Where("id = ? AND tenant_id = ?", req.TargetLabelID, tenantID).Select("name").First(&targetLabel).Error; err != nil {
+	if err := h.db.WithContext(ctx).Table("labels").Where("id = ? AND tenant_id = ?", req.TargetLabelID, tenantID).Select("name").First(&targetLabel).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch target label name",

@@ -72,10 +72,11 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		Role     string                   `json:"role" default:"Staff"`
 		UserIDs  []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
 		NewUsers []struct {
-			Name  string `json:"name"`
-			Email string `json:"email"`
-			Phone string `json:"phone"`
-			Role  string `json:"role"`
+			Username string `json:"username"`
+			Name     string `json:"name"`
+			Email    string `json:"email"`
+			Phone    string `json:"phone"`
+			Role     string `json:"role"`
 		} `json:"new_users"` // Create new users first, then add as members
 	}
 
@@ -129,8 +130,12 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if callbackURL == "" {
 				callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
 			}
+			nuUsername := nu.Username
+			if nuUsername == "" {
+				nuUsername = nu.Email
+			}
 			userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
-				Username:    nu.Name,
+				Username:    nuUsername,
 				Name:        nu.Name,
 				Email:       nu.Email,
 				Phone:       nu.Phone,
@@ -169,7 +174,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			}
 			role := nu.Role
 			if role == "" {
-				role = "Staff"
+				role = "site_member"
 			}
 			usersToProcess = append(usersToProcess, map[string]interface{}{
 				"user_id": userResult.UserID,
@@ -197,10 +202,9 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			continue
 		}
 
-		iamRole := "staff"
-		if role == "Manager" {
-			iamRole = "manager"
-		}
+		normalizedRole := normalizeRole(role)
+		iamRole := toIAMRole(normalizedRole)
+		templateCode := normalizedRole
 
 		if site.OrgID != "" {
 			if err := iamClient.BindUserToOrganizationWithToken(userToken, userID, site.OrgID, iamRole, operatorID); err != nil {
@@ -211,16 +215,26 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				})
 				continue
 			}
-			// Set cus_perm for the new member based on role
-			templateCode := "site_member"
-			if role == "Manager" {
-				templateCode = "site_admin"
-			}
+			// Set cus_perm for the new member based on role template
 			if t, ok := services.AllRoleTemplates[templateCode]; ok && len(t.CusPermCodes) > 0 {
 				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 				if err := iamClient.SetUserCustomerPermissions(site.OrgID, userID, cusPerm, cusPermExt); err != nil {
 					log.Printf("[AddMember] SetUserCustomerPermissions failed: %v", err)
 				}
+			}
+			// Assign role template to user (determines JWT roles, sys_perm, cus_perm)
+			nsID := middleware.GetNamespaceID(c.Request.Context())
+			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+				for _, t := range templates {
+					if t.Code == templateCode {
+						if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, t.ID); err != nil {
+							log.Printf("[AddMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
+						}
+						break
+					}
+				}
+			} else {
+				log.Printf("[AddMember] ListRoleTemplates failed: %v", err)
 			}
 		}
 
@@ -292,13 +306,6 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
-	// Check if trying to update to Manager
-	if input.Role == "Manager" {
-		// Check protection rule - users can be promoted to Manager
-		// Only Staff -> Manager is allowed
-	} else if input.Role == "Staff" {
-	}
-
 	// Update IAM binding to match new role
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err == nil && site.OrgID != "" {
@@ -306,26 +313,40 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 		userToken := services.ExtractUserToken(c)
 		var iamUser models.User
 		if err := database.GetDB().Where("id = ?", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
-			if input.Role == "Manager" {
-				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, "manager", middleware.GetUserID(c.Request.Context())); bindErr != nil {
+			normalizedRole := normalizeRole(input.Role)
+			iamRole := toIAMRole(normalizedRole)
+			templateCode := normalizedRole
+
+			// Update org role in IAM
+			if normalizedRole == "site_admin" {
+				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, site.OrgID, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
 					log.Printf("[UpdateMemberRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
 				}
-				if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
-					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-					if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
-						log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
+			} else {
+				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, iamUser.IAMSub, iamRole); demoteErr != nil {
+					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
+				}
+			}
+			// Set cus_perm based on role template
+			if t, ok := services.AllRoleTemplates[templateCode]; ok && len(t.CusPermCodes) > 0 {
+				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+				if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
+					log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
+				}
+			}
+			// Reassign role template
+			nsID := middleware.GetNamespaceID(c.Request.Context())
+			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+				for _, t := range templates {
+					if t.Code == templateCode {
+						if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, t.ID); err != nil {
+							log.Printf("[UpdateMemberRole] AssignRoleTemplate failed: %v", err)
+						}
+						break
 					}
 				}
 			} else {
-				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, iamUser.IAMSub, "USER"); demoteErr != nil {
-					log.Printf("[UpdateMemberRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
-				}
-				if t, ok := services.AllRoleTemplates["site_member"]; ok && len(t.CusPermCodes) > 0 {
-					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-					if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
-						log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
-					}
-				}
+				log.Printf("[UpdateMemberRole] ListRoleTemplates failed: %v", err)
 			}
 		}
 	}
@@ -449,4 +470,16 @@ func isLastManager(db *gorm.DB, tenantID, siteID, userID string) bool {
 		Scan(&userRole)
 
 	return userRole == "Manager" && managerCount == 1
+}
+
+// normalizeRole converts old role format ("Manager"/"Staff") to new format ("site_admin"/"site_member")
+func normalizeRole(role string) string {
+	switch role {
+	case "Manager":
+		return "site_admin"
+	case "Staff":
+		return "site_member"
+	default:
+		return role
+	}
 }

@@ -23,8 +23,8 @@ func getAbsPath(relativePath string) string {
 }
 
 func GetInstrumentByID(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 
 	instrumentID := c.Param("id")
 	if instrumentID == "" {
@@ -142,8 +142,8 @@ func GetInstrumentByID(c *gin.Context) {
 }
 
 func GetInstruments(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
@@ -158,22 +158,14 @@ func GetInstruments(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := db.Model(&models.Instrument{})
-	userID := middleware.GetUserID(ctx)
-	recursive := c.Query("recursive") == "true"
 
-	// Scope by user role: tenant_id (if admin with recursive) → site_id → tenant_id
-	if userID != "" {
-		var currentUser models.User
-		if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&currentUser).Error; err == nil {
-			role := middleware.GetRole(ctx)
-			if recursive && (role == "OWNER" || role == "ADMIN") && currentUser.TenantID != "" {
-				query = query.Where("tenant_id = ?", currentUser.TenantID)
-			} else if currentUser.SiteID != nil {
-				query = query.Where("site_id = ?", *currentUser.SiteID)
-			} else if currentUser.TenantID != "" {
-				query = query.Where("tenant_id = ?", currentUser.TenantID)
-			}
-		}
+	tenantID := middleware.GetTenantID(ctx)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+
+	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
+		query = scopedDB
 	}
 
 	var total int64
@@ -316,8 +308,8 @@ func GetInstruments(c *gin.Context) {
 }
 
 func GetCategories(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 
 	var categories []models.Category
@@ -379,8 +371,8 @@ func GetCategories(c *gin.Context) {
 
 // GetCategoryChildren retrieves direct children of a category for TreeSelect
 func GetCategoryChildren(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	parentID := c.Param("id")
 
@@ -431,8 +423,8 @@ func GetCategoryChildren(c *gin.Context) {
 
 // GetCategoryByID gets a single category by ID
 func GetCategoryByID(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	categoryID := c.Param("id")
 
@@ -460,8 +452,8 @@ func GetCategoryByID(c *gin.Context) {
 
 // CreateCategory creates a new category
 func CreateCategory(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
@@ -532,8 +524,8 @@ func CreateCategory(c *gin.Context) {
 
 // UpdateCategory updates an existing category
 func UpdateCategory(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	categoryID := c.Param("id")
 
@@ -612,8 +604,8 @@ func UpdateCategory(c *gin.Context) {
 
 // DeleteCategory deletes a category
 func DeleteCategory(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 	categoryID := c.Param("id")
 
@@ -656,8 +648,8 @@ func DeleteCategory(c *gin.Context) {
 
 // UpdateCategorySort batch updates category sort order
 func UpdateCategorySort(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {

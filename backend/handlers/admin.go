@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -18,11 +19,14 @@ func NewDashboardHandler(db *gorm.DB) *DashboardHandler {
 }
 
 func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return
 	}
+
+	db := h.db.WithContext(ctx)
 
 	type StatsResult struct {
 		TotalAssets  int     `json:"total_assets"`
@@ -35,7 +39,7 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 
 	// Count total assets for the tenant
 	var totalAssets int64
-	if err := h.db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID).Count(&totalAssets).Error; err != nil {
+	if err := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID).Count(&totalAssets).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch total assets: " + err.Error(),
@@ -46,7 +50,7 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 
 	// Calculate rental rate (percentage of assets that are rented)
 	var rentedAssets int64
-	h.db.Model(&models.Instrument{}).Where("tenant_id = ? AND stock_status = ?", tenantID, "rented").Count(&rentedAssets)
+	db.Model(&models.Instrument{}).Where("tenant_id = ? AND stock_status = ?", tenantID, "rented").Count(&rentedAssets)
 
 	if stats.TotalAssets > 0 {
 		stats.RentalRate = (float64(rentedAssets) / float64(stats.TotalAssets)) * 100
@@ -59,7 +63,7 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 
 	// Placeholder for total revenue (to be calculated from orders)
 	var totalRevenue float64
-	h.db.Model(&models.Order{}).Where("tenant_id = ? AND status = ?", tenantID, "completed").Select("SUM(monthly_rent)").Scan(&totalRevenue)
+	db.Model(&models.Order{}).Where("tenant_id = ? AND status = ?", tenantID, "completed").Select("SUM(monthly_rent)").Scan(&totalRevenue)
 	stats.TotalRevenue = totalRevenue
 
 	c.JSON(http.StatusOK, gin.H{
@@ -69,7 +73,7 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 }
 
 func (h *DashboardHandler) GetNearTransfers(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	tenantID := middleware.GetTenantID(c.Request.Context())
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return

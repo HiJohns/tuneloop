@@ -20,7 +20,8 @@ func NewLeaseHandler(db *gorm.DB) *LeaseHandler {
 }
 
 func (h *LeaseHandler) ListLeases(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c.Request.Context())
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return
@@ -42,7 +43,7 @@ func (h *LeaseHandler) ListLeases(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	query := h.db.Model(&models.Lease{}).Where("tenant_id = ?", tenantID)
+	query := h.db.WithContext(ctx).Model(&models.Lease{}).Where("tenant_id = ?", tenantID)
 
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -81,11 +82,12 @@ func (h *LeaseHandler) ListLeases(c *gin.Context) {
 }
 
 func (h *LeaseHandler) GetLease(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	leaseID := c.Param("id")
 
 	var lease models.Lease
-	if err := h.db.Where("id = ? AND tenant_id = ?", leaseID, tenantID).First(&lease).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("id = ? AND tenant_id = ?", leaseID, tenantID).First(&lease).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Lease not found"})
 			return
@@ -113,7 +115,8 @@ type CreateLeaseRequest struct {
 }
 
 func (h *LeaseHandler) CreateLease(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return
@@ -138,7 +141,7 @@ func (h *LeaseHandler) CreateLease(c *gin.Context) {
 		UpdatedAt:     time.Now(),
 	}
 
-	if err := h.db.Create(&lease).Error; err != nil {
+	if err := h.db.WithContext(ctx).Create(&lease).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to create lease: " + err.Error(),
@@ -161,11 +164,12 @@ type UpdateLeaseRequest struct {
 }
 
 func (h *LeaseHandler) UpdateLease(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	leaseID := c.Param("id")
 
 	var lease models.Lease
-	if err := h.db.Where("id = ? AND tenant_id = ?", leaseID, tenantID).First(&lease).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("id = ? AND tenant_id = ?", leaseID, tenantID).First(&lease).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Lease not found"})
 			return
@@ -201,7 +205,7 @@ func (h *LeaseHandler) UpdateLease(c *gin.Context) {
 	}
 	updates["updated_at"] = time.Now()
 
-	if err := h.db.Model(&lease).Updates(updates).Error; err != nil {
+	if err := h.db.WithContext(ctx).Model(&lease).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to update lease: " + err.Error(),
@@ -216,11 +220,12 @@ func (h *LeaseHandler) UpdateLease(c *gin.Context) {
 }
 
 func (h *LeaseHandler) TerminateLease(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	leaseID := c.Param("id")
 
 	var lease models.Lease
-	if err := h.db.Where("id = ? AND tenant_id = ?", leaseID, tenantID).First(&lease).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("id = ? AND tenant_id = ?", leaseID, tenantID).First(&lease).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Lease not found"})
 			return
@@ -232,7 +237,7 @@ func (h *LeaseHandler) TerminateLease(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.Model(&lease).Updates(map[string]interface{}{
+	if err := h.db.WithContext(ctx).Model(&lease).Updates(map[string]interface{}{
 		"status":     "terminated",
 		"updated_at": time.Now(),
 	}).Error; err != nil {
@@ -258,7 +263,8 @@ func NewDepositHandler(db *gorm.DB) *DepositHandler {
 }
 
 func (h *DepositHandler) ListDeposits(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return
@@ -279,7 +285,7 @@ func (h *DepositHandler) ListDeposits(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	query := h.db.Model(&models.Deposit{}).Where("tenant_id = ?", tenantID)
+	query := h.db.WithContext(ctx).Model(&models.Deposit{}).Where("tenant_id = ?", tenantID)
 
 	if depositType != "" {
 		query = query.Where("type = ?", depositType)
@@ -324,7 +330,8 @@ type CreateDepositRequest struct {
 }
 
 func (h *DepositHandler) CreateDeposit(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "tenant_id not found"})
 		return
@@ -349,7 +356,7 @@ func (h *DepositHandler) CreateDeposit(c *gin.Context) {
 		UpdatedAt:       time.Now(),
 	}
 
-	if err := h.db.Create(&deposit).Error; err != nil {
+	if err := h.db.WithContext(ctx).Create(&deposit).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to create deposit: " + err.Error(),
@@ -369,11 +376,12 @@ type UpdateDepositRequest struct {
 }
 
 func (h *DepositHandler) UpdateDeposit(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 	depositID := c.Param("id")
 
 	var deposit models.Deposit
-	if err := h.db.Where("id = ? AND tenant_id = ?", depositID, tenantID).First(&deposit).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("id = ? AND tenant_id = ?", depositID, tenantID).First(&deposit).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Deposit not found"})
 			return
@@ -400,7 +408,7 @@ func (h *DepositHandler) UpdateDeposit(c *gin.Context) {
 	}
 	updates["updated_at"] = time.Now()
 
-	if err := h.db.Model(&deposit).Updates(updates).Error; err != nil {
+	if err := h.db.WithContext(ctx).Model(&deposit).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to update deposit: " + err.Error(),

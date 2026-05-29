@@ -17,8 +17,8 @@ func NewSystemHandler() *SystemHandler {
 
 // GET /system/clients - List all clients
 func (h *SystemHandler) GetClients(c *gin.Context) {
-	db := database.GetDB()
 	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
 
 	var clients []models.Client

@@ -65,7 +65,7 @@ func PreviewOrder(c *gin.Context) {
 	} else {
 		// fallback to pricing service
 		creditScore := 600
-		if uID := c.GetString("user_id"); uID != "" {
+		if uID := middleware.GetUserID(c.Request.Context()); uID != "" {
 			var user models.User
 			if err := db.First(&user, "id = ?", uID).Error; err == nil {
 				creditScore = user.CreditScore

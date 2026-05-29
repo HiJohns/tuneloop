@@ -302,7 +302,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		if err := db.Where("id = ?", managerUUID.String()).First(&managerUser).Error; err == nil && managerUser.IAMSub != "" {
 			iamManagerID = managerUser.IAMSub
 		}
-		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamManagerID, siteOrgID, "manager", operatorID); bindErr != nil {
+		if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamManagerID, siteOrgID, toIAMRole("site_admin"), operatorID); bindErr != nil {
 			log.Printf("[CreateSite] IAM BindUser failed for manager %s to org %s: %v", iamManagerID, siteOrgID, bindErr)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
@@ -314,6 +314,36 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 			if err := iamClient.SetUserCustomerPermissions(siteOrgID, iamManagerID, cusPerm, cusPermExt); err != nil {
 				log.Printf("[CreateSite] SetUserCustomerPermissions failed: %v", err)
+			}
+		}
+		// Assign role template
+		nsID := middleware.GetNamespaceID(c.Request.Context())
+		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+			for _, t := range templates {
+				if t.Code == "site_admin" {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamManagerID, t.ID); err != nil {
+						log.Printf("[CreateSite] AssignRoleTemplate failed for manager %s: %v", iamManagerID, err)
+					}
+					break
+				}
+			}
+		} else {
+			log.Printf("[CreateSite] ListRoleTemplates failed: %v", err)
+		}
+		// Ensure local users record exists for FK constraint
+		var existingUser models.User
+		if err := db.Where("id = ?", managerUUID.String()).First(&existingUser).Error; err != nil {
+			localUser := models.User{
+				ID:       managerUUID.String(),
+				IAMSub:   iamManagerID,
+				TenantID: tenantID,
+				OrgID:    siteOrgID,
+				Name:     req.ManagerName,
+				Role:     "site_admin",
+				Status:   "active",
+			}
+			if err := db.Create(&localUser).Error; err != nil {
+				log.Printf("[CreateSite] Failed to create local user record for manager %s: %v", managerUUID.String(), err)
 			}
 		}
 	} else if req.ManagerName != "" && req.ManagerEmail != "" {
@@ -356,7 +386,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				if err := db.Create(&localUser).Error; err != nil {
 					log.Printf("[CreateSite] Failed to create local user for manager %s: %v", userResult.UserID, err)
 				}
-				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, userResult.UserID, siteOrgID, "manager", operatorID); bindErr != nil {
+				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, userResult.UserID, siteOrgID, toIAMRole("site_admin"), operatorID); bindErr != nil {
 					log.Printf("[CreateSite] IAM BindUser failed for auto-created manager %s: %v", userResult.UserID, bindErr)
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"code":    50000,
@@ -369,6 +399,20 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 					if err := iamClient.SetUserCustomerPermissions(siteOrgID, userResult.UserID, cusPerm, cusPermExt); err != nil {
 						log.Printf("[CreateSite] SetUserCustomerPermissions failed: %v", err)
 					}
+				}
+				// Assign role template for auto-created manager
+				nsID := middleware.GetNamespaceID(c.Request.Context())
+				if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+					for _, t := range templates {
+						if t.Code == "site_admin" {
+							if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userResult.UserID, t.ID); err != nil {
+								log.Printf("[CreateSite] AssignRoleTemplate failed for auto-created manager %s: %v", userResult.UserID, err)
+							}
+							break
+						}
+					}
+				} else {
+					log.Printf("[CreateSite] ListRoleTemplates failed: %v", err)
 				}
 			}
 		}

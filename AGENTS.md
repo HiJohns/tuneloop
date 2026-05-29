@@ -319,10 +319,6 @@ Usage:
 发现一个 Bug 后，搜索同样模式在代码库中是否重复出现。
 例：发现 `project_admin` 是虚构角色 → 审计所有 `RequireRole` 调用。
 
----
-
-## 🛡️ 审核经验积累 (Audit Lessons Learned)
-
 ### 2026-05-23: 用户账户操作必须以 IAM 为准，本地库仅是缓存
 
 **问题现象：**
@@ -355,10 +351,6 @@ grep -n 'db.Model\|db.Create\|db.Update' handlers/site_member.go | while read li
 done
 ```
 
----
-
-### 🛡️ 审核经验积累 (Audit Lessons Learned)
-
 #### 2026-05-28: 本地仅缓存，真实数据源是 IAM（#685）
 
 **原则**：所有用户账户、权限、角色绑定相关操作必须以 IAM 为准，本地 DB（`users`、`site_members`、`roles` 等）仅为缓存加速。
@@ -385,6 +377,43 @@ done
 
 ---
 
+#### 2026-05-29: 数据隔离系统性漏洞 — 全系统 137 Handler 审计发现 44 处隔离缺失（#688）
+
+**问题**：site_admin 可跨网点访问其他网点的乐器和人员数据。
+
+**根因分类**：
+
+| 根因 | 影响 | 典型位置 |
+|------|:--:|------|
+| `c.GetString("tenant_id")` 始终返回空字符串 | 17 处 | `lease.go`, `maintenance.go`, `label.go`, `admin.go` |
+| GORM Update 未注册自动 scoping 回调 | 15+ 处 | `instrument.go`, `warehouse.go`, `maintenance.go` |
+| 完全无 tenant/org 过滤 | 10 处 | `outbound.go`, `assessment.go`, `inventory.go` |
+| 依赖本地 `users` 缓存做 scoping 决策 | 2 处 | `api.go:GetInstruments`, `user_staff.go:ListStaff` |
+
+**隔离规则（强制）**：
+
+| 角色 | 可见范围 | 实现方式 |
+|------|---------|---------|
+| namespace_admin | namespace 内所有租户 | `GetVisibleOrgIDs` + `ApplyOrgScope` |
+| merchant_admin | 本商户全部网点 | JWT `tid` 过滤 |
+| site_admin | 本网点 + 下级网点 | JWT `oid` 过滤 |
+| site_member | 本网点 | JWT `oid` 过滤 |
+| worker | 本网点 | JWT `oid` 过滤 |
+
+**审查新增 Handler 时必须检查**：
+
+1. [ ] DB 实例是否调用 `.WithContext(ctx)`？（否则自动 scoping 被绕过）
+2. [ ] C(R)UD 操作是否包含 `tenant_id` / `org_id` / `site_id` WHERE 子句？
+3. [ ] 是否使用了 `c.GetString("tenant_id")`？（**禁止** — 必须用 `middleware.GetTenantID(ctx)`）
+4. [ ] 是否使用了 `GetVisibleOrgIDs()` 或 `ApplyOrgScope()` 进行 org 级隔离？
+5. [ ] Update 操作是否显式加了 `WHERE tenant_id = ?`？（GORM Update 回调未注册自动 scoping）
+6. [ ] 是否依赖本地 `users` 表的 `SiteID`/`Role` 做 scoping 决策？（**禁止** — 必须用 JWT claims）
+7. [ ] 如果处理 instrument，operate 后是否保持了 `tenant_id`/`org_id` 不变？
+
+**公共路由豁免**：`/api/public/*` 路由有意跨租户暴露数据——如需限制，需在 Issue 中独立提出。
+
+---
+
 ### 动态属性设计原则
 
 > 动态属性输入框允许手动输入新值。新值自动写入 `property_options` 表（`status='pending'`）。网点经理在属性管理页可看到各属性下的新增值，可以：
@@ -394,5 +423,5 @@ done
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-05-29*
 

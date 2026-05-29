@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -441,20 +440,20 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	db := database.GetDB()
+	db := database.GetDB().WithContext(ctx)
 	updatedCount := 0
 
 	// Look up current user's site_id for scoping
 	userID := middleware.GetUserID(ctx)
 	var currentUser models.User
-	db.Session(&gorm.Session{Context: context.Background()}).
+	db.Session(&gorm.Session{Context: ctx}).
 		Where("iam_sub = ? AND deleted_at IS NULL", userID).
 		First(&currentUser)
 
 	for _, item := range req.Items {
 		// Lookup instrument by id, scoped to user's site
 		// (instrument may have no org_id, but always has site_id)
-		query := db.Session(&gorm.Session{Context: context.Background()}).
+		query := db.Session(&gorm.Session{Context: ctx}).
 			Where("id = ?", item.ID)
 		if currentUser.SiteID != nil {
 			query = query.Where("site_id = ?", *currentUser.SiteID)
@@ -498,7 +497,7 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		}
 
 		// Update database — same session, scoped to user's site
-		updateQuery := db.Session(&gorm.Session{Context: context.Background()}).
+		updateQuery := db.Session(&gorm.Session{Context: ctx}).
 			Where("id = ?", item.ID)
 		if currentUser.SiteID != nil {
 			updateQuery = updateQuery.Where("site_id = ?", *currentUser.SiteID)
