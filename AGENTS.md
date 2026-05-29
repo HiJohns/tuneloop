@@ -357,6 +357,34 @@ done
 
 ---
 
+### 🛡️ 审核经验积累 (Audit Lessons Learned)
+
+#### 2026-05-28: 本地仅缓存，真实数据源是 IAM（#685）
+
+**原则**：所有用户账户、权限、角色绑定相关操作必须以 IAM 为准，本地 DB（`users`、`site_members`、`roles` 等）仅为缓存加速。
+
+**操作顺序**：
+```
+1. 先调 IAM API 完成绑定/解绑/授权/角色变更
+2. IAM 成功后，同步更新本地缓存
+3. 本地缓存仅用于前端展示加速，不用于权限判断
+```
+
+**检查清单**（审核新增 Handler 时必查）：
+- [ ] 是否涉及用户账户/权限/绑定操作？
+- [ ] 如果涉及，是否调用了对应的 IAM API（`BindUserToOrganization` / `AssignRoleTemplateToUserWithToken` / `SetUserCustomerPermissions`）？
+- [ ] IAM 调用是否在本地 DB 更新**之前**执行？
+- [ ] 是否把本地 DB 当作唯一数据源（禁止，应以 IAM 为准）？
+
+**涉及的操作**：
+- `CreateMerchant` — 创建商户后必须初始化角色（#663 已修）
+- `CreateSite` — 创建网点后必须绑定管理员
+- `AddMember` — 添加成员后必须绑定 + 分配角色模板（#685）
+- `UpdateMemberRole` — 变更角色后必须在 IAM 侧同步
+- `RemoveMember` — 移除成员后必须在 IAM 侧解绑
+
+---
+
 ### 动态属性设计原则
 
 > 动态属性输入框允许手动输入新值。新值自动写入 `property_options` 表（`status='pending'`）。网点经理在属性管理页可看到各属性下的新增值，可以：
