@@ -41,48 +41,14 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 	if siteID == "" {
 		ctx := c.Request.Context()
 		tid := middleware.GetTenantID(ctx)
-		oid := middleware.GetOrgID(ctx)
 
-		// Merchant admin (tid == oid) can query all inventory for the tenant
-		if tid == oid && tid != "" {
-			var instruments []models.Instrument
-			db := database.GetDB().WithContext(ctx)
-
-			query := db.Model(&models.Instrument{})
-			orgID := middleware.GetOrgID(ctx)
-			if orgID != "" {
-				query = query.Where("org_id = ?", orgID)
-			}
-
-			if category != "" {
-				query = query.Where("category_id = ?", category)
-			}
-			if status != "" {
-				query = query.Where("stock_status = ?", status)
-			}
-
-			if err := query.Find(&instruments).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"code":    50000,
-					"message": "failed to query inventory: " + err.Error(),
-				})
-				return
-			}
-
-			c.JSON(http.StatusOK, gin.H{
-				"code": 20000,
-				"data": gin.H{
-					"list":  instruments,
-					"total": len(instruments),
-				},
-			})
-			return
-		}
-
-		// For non-manager roles, require site_id
 		var sites []models.Site
 		db := database.GetDB().WithContext(ctx)
-		if err := db.Where("tenant_id = ? AND status = ?", tid, "active").Find(&sites).Error; err != nil {
+		siteQuery := db.Model(&models.Site{}).Where("tenant_id = ? AND status = ?", tid, "active")
+		if scopedDB, err := middleware.ApplyOrgScope(siteQuery, ctx); err == nil {
+			siteQuery = scopedDB
+		}
+		if err := siteQuery.Find(&sites).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40002,
 				"message": "site_id is required",
@@ -287,7 +253,6 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
-	userID := middleware.GetUserID(ctx)
 	db := database.GetDB().WithContext(ctx)
 
 	query := db.Model(&models.Instrument{}).
@@ -296,14 +261,8 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	query = query.Where("instruments.tenant_id = ?", tenantID)
 
-	// Site-level filtering: restrict to user's site
-	if userID != "" {
-		var currentUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil {
-			if currentUser.SiteID != nil && *currentUser.SiteID != "" {
-				query = query.Where("instruments.site_id = ?", *currentUser.SiteID)
-			}
-		}
+	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
+		query = scopedDB
 	}
 
 	// URL param takes precedence over user context
@@ -443,20 +402,11 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	updatedCount := 0
 
-	// Look up current user's site_id for scoping
-	userID := middleware.GetUserID(ctx)
-	var currentUser models.User
-	db.Session(&gorm.Session{Context: ctx}).
-		Where("iam_sub = ? AND deleted_at IS NULL", userID).
-		First(&currentUser)
-
 	for _, item := range req.Items {
-		// Lookup instrument by id, scoped to user's site
-		// (instrument may have no org_id, but always has site_id)
-		query := db.Session(&gorm.Session{Context: ctx}).
+		query := db.WithContext(ctx).Model(&models.Instrument{}).
 			Where("id = ?", item.ID)
-		if currentUser.SiteID != nil {
-			query = query.Where("site_id = ?", *currentUser.SiteID)
+		if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
+			query = scopedDB
 		}
 		var instrument models.Instrument
 		if err := query.First(&instrument).Error; err != nil {
@@ -496,13 +446,13 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			continue
 		}
 
-		// Update database — same session, scoped to user's site
-		updateQuery := db.Session(&gorm.Session{Context: ctx}).
+		// Update database, scoped to user's org
+		updateQuery := db.WithContext(ctx).Model(&models.Instrument{}).
 			Where("id = ?", item.ID)
-		if currentUser.SiteID != nil {
-			updateQuery = updateQuery.Where("site_id = ?", *currentUser.SiteID)
+		if scopedDB, err := middleware.ApplyOrgScope(updateQuery, ctx); err == nil {
+			updateQuery = scopedDB
 		}
-		if err := updateQuery.Model(&models.Instrument{}).Update("pricing", string(updatedPricing)).Error; err != nil {
+		if err := updateQuery.Update("pricing", string(updatedPricing)).Error; err != nil {
 			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)
 			continue
 		}
