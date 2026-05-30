@@ -834,8 +834,8 @@ func (c *IAMClient) UnbindUserFromOrganization(userID, orgID, operatorID string)
 }
 
 func (c *IAMClient) UpdateUserRoleInOrg(orgID, userID, role string) error {
-	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role", orgID, userID)
-	respBody, statusCode, err := c.doRequest("PUT", path, map[string]string{"role": role})
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role?role=%s", orgID, userID, role)
+	respBody, statusCode, err := c.doRequest("PUT", path, nil)
 	if err != nil {
 		return fmt.Errorf("UpdateUserRole request failed: %w", err)
 	}
@@ -978,8 +978,8 @@ func (c *IAMClient) UnbindUserFromOrganizationWithToken(token, userID, orgID, op
 }
 
 func (c *IAMClient) UpdateUserRoleInOrgWithToken(token, orgID, userID, role string) error {
-	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role", orgID, userID)
-	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, map[string]string{"role": role})
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/role?role=%s", orgID, userID, role)
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, nil)
 	if err != nil {
 		return fmt.Errorf("UpdateUserRoleWithToken request failed: %w", err)
 	}
