@@ -13,7 +13,8 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/features.md` - 功能需求文档
 - `docs/api.md` - API 接口文档
 - `docs/ui.md` - UI 设计文档
-- `docs/iam.md` - IAM 集成说明
+- `docs/iam.md` - IAM 集成说明（**symlink → `../../beaconiam/README.md`，禁止本地修改，I AM 权威文档以 beaconiam 仓库为准**）
+- `docs/iam-notes.md` - tuneloop 侧对 IAM 的补充说明和过渡期记录
 - `docs/permissions.md` - 权限-人员矩阵
 
 ## Environment Guide
