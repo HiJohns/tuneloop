@@ -591,6 +591,8 @@ PUT /api/v1/organizations/{org_id}/users/{uid}/bind
 
 #### 7.6.2 降级管理员为普通成员
 
+> ⚠️ beaconiam 当前实现使用 query param，[beaconiam#313](https://github.com/HiJohns/beaconiam/issues/313) 计划改为 JSON body。接入方当前应发送 query param（或同时发送两者过渡）。
+
 ```
 PUT /api/v1/organizations/{org_id}/users/{uid}/role
 role=USER
@@ -723,9 +725,10 @@ POST /api/v1/users/{user_id}/roles
 { "role_template_id": "template-uuid" }
 ```
 
-给用户在组织中更新角色（role 为 query parameter，非 JSON body）：
+给用户在组织中更新角色（契约预期 JSON body，当前实现暂用 query param，见 beaconiam#313）：
 ```
-PUT /api/v1/organizations/{org_id}/users/{uid}/role?role=site_admin
+PUT /api/v1/organizations/{org_id}/users/{uid}/role
+{ "role": "site_admin" }
 ```
 
 ### 8.5 JWT cus_perm OR 计算
