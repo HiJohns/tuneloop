@@ -308,7 +308,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// Pricing system routes (Issue #689)
 		authRequired.GET("/pricing/templates", handlers.ListPricingTemplates)
 		authRequired.GET("/pricing/merchant-config", handlers.GetMerchantPricingConfig)
-		authRequired.PUT("/pricing/merchant-config", middleware.RequireRole("OWNER"), handlers.UpdateMerchantPricingConfig)
+		authRequired.PUT("/pricing/merchant-config", middleware.RequireRole("OWNER"), middleware.RequireCusPerm("instrument:price_config"), handlers.UpdateMerchantPricingConfig)
 		authRequired.GET("/instruments/:id/pricing-v2", handlers.GetInstrumentPricingV2)
 		authRequired.PUT("/instruments/batch-pricing", middleware.RequireRole("ADMIN", "OWNER"), handlers.BatchSetInstrumentPricing)
 

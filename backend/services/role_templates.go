@@ -19,12 +19,12 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		CusPermCodes: []string{},
 		Description:  "命名空间管理员，管理商户和人员",
 	},
-	"merchant_admin": {
-		Name:         "商户管理员",
-		SysPermBits:  []int{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29},
-		CusPermCodes: []string{
-			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price",
-			"instrument:maintain",
+		"merchant_admin": {
+			Name:         "商户管理员",
+			SysPermBits:  []int{10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29},
+			CusPermCodes: []string{
+				"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config",
+				"instrument:maintain",
 			"order:create", "order:read", "order:update", "order:cancel",
 			"appeal:create", "appeal:read", "appeal:handle",
 			"audit_log:read",

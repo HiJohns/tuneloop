@@ -364,11 +364,17 @@ export const staffApi = {
 }
 
 export const inventoryApi = {
-  list: () => api.get('/merchant/inventory'),
-  transfer: (data) => api.post('/merchant/inventory/transfer', data),
-  listTransfers: () => api.get('/merchant/inventory/transfers'),
+  getTransferList: (params) => api.get('/merchant/inventory/transfers', { params }),
   getRentSetting: (params) => api.get('/inventory/rent-setting', { params }),
   batchUpdateRent: (data) => api.put('/inventory/rent-setting/batch', data),
+}
+
+export const pricingApi = {
+  getTemplates: () => api.get('/pricing/templates'),
+  getMerchantConfig: () => api.get('/pricing/merchant-config'),
+  updateMerchantConfig: (data) => api.put('/pricing/merchant-config', data),
+  batchSetPricing: (data) => api.put('/instruments/batch-pricing', data),
+  getInstrumentPricingV2: (id) => api.get(`/instruments/${id}/pricing-v2`),
 }
 
 export const maintenanceApi = {

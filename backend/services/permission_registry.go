@@ -101,6 +101,7 @@ func getTuneLoopPermissions() []PermissionDef {
 		{Code: "appeal:read", Name: "查看申诉", BitCode: 11},
 		{Code: "appeal:handle", Name: "处理申诉", BitCode: 12},
 		{Code: "audit_log:read", Name: "查看日志", BitCode: 13},
+		{Code: "instrument:price_config", Name: "定价策略配置", BitCode: 14},
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 )
 
 type TierConfig struct {
+	Name            string  `json:"name"`
 	DaysMax         int     `json:"days_max"`
 	DiscountPercent int     `json:"discount_percent"`
 }

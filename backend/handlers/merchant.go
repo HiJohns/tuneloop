@@ -591,7 +591,7 @@ func parseInt(s string, defaultValue int) int {
 func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID string) {
 	log.Printf("[initSystemRoles] Starting role init for tenant=%s ns=%s", tenantID, nsID)
 	systemRoles := map[string][]string{
-		"merchant_admin": {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
+		"merchant_admin": {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
 		"site_admin":     {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
 		"site_member":    {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
 		"worker":         {"instrument:read", "instrument:maintain"},

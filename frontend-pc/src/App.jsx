@@ -53,6 +53,7 @@ import MerchantManagement from './pages/MerchantManagement'
 import AuditLogPage from './pages/System/AuditLogPage'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
+import MerchantPricingConfig from './pages/admin/pricing/MerchantPricingConfig'
 
 const { Header, Content, Sider } = Layout
 
@@ -243,6 +244,7 @@ function MainLayout() {
     label: '库存监控',
     children: [
       { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
+      { key: '/pricing/config', label: '定价策略', permission: { cusPermCodes: ['instrument:price_config'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } }
     ]
   },
@@ -300,7 +302,7 @@ function onMenuClick(e) {
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
-  else if (['/inventory/transfer', '/inventory/rent-setting'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
+  else if (['/inventory/transfer', '/inventory/rent-setting', '/pricing/config'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
   else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
   else if (['/merchants', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
 
@@ -319,6 +321,7 @@ function onMenuClick(e) {
     '/instruments/properties': { title: '属性管理', parent: '乐器管理' },
     '/site/stock': { title: '库存监控', parent: '乐器管理' },
     '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
+    '/pricing/config': { title: '定价策略', parent: '库存监控' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
@@ -433,6 +436,7 @@ function onMenuClick(e) {
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
+            <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
