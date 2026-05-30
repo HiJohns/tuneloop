@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 )
 
@@ -146,7 +148,17 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 		return
 	}
 
-	if err := h.iamClient.UpdateUserRoleInOrg(orgID, userID, toIAMRole(req.RoleCode)); err != nil {
+	// Look up IAMSub from local users table (IAM expects the IAM user ID, not local UUID)
+	iamUserID := userID
+	var iamUser models.User
+	if err := h.db.Where("id = ? AND deleted_at IS NULL", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
+		iamUserID = iamUser.IAMSub
+	}
+
+	userToken := services.ExtractUserToken(c)
+	iamRole := toIAMRole(req.RoleCode)
+	if err := h.iamClient.UpdateUserRoleInOrgWithToken(userToken, orgID, iamUserID, iamRole); err != nil {
+		log.Printf("[SetUserRole] UpdateUserRoleInOrgWithToken failed: userID=%s iamUserID=%s orgID=%s role=%s err=%v", userID, iamUserID, orgID, iamRole, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update role: " + err.Error()})
 		return
 	}
