@@ -134,6 +134,8 @@ type setUserRoleReq struct {
 func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 	userID := c.Param("id")
 	orgID := middleware.GetOrgID(c.Request.Context())
+	log.Printf("[SetUserRole] Request: userID=%s orgID=%s", userID, orgID)
+
 	// Override orgID with the site's actual org from site_members
 	var memberOrg struct{ OrgID string }
 	if err := h.db.Table("site_members").Select("s.org_id").
@@ -141,6 +143,7 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 		Where("site_members.user_id = ?", userID).
 		Order("s.id ASC").First(&memberOrg).Error; err == nil && memberOrg.OrgID != "" {
 		orgID = memberOrg.OrgID
+		log.Printf("[SetUserRole] orgID overridden by site_members: %s", orgID)
 	}
 
 	var req setUserRoleReq
@@ -148,17 +151,20 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "invalid request: " + err.Error()})
 		return
 	}
+	log.Printf("[SetUserRole] request body: role_code=%s", req.RoleCode)
 
 	// Look up IAMSub from local users table (IAM expects the IAM user ID, not local UUID)
 	iamUserID := userID
 	var iamUser models.User
 	if err := h.db.Where("id = ? AND deleted_at IS NULL", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
 		iamUserID = iamUser.IAMSub
+		log.Printf("[SetUserRole] IAMSub found by users.id: iamUserID=%s", iamUserID)
 	} else {
 		// Fallback: the URL param "id" might be the IAMSub itself, try searching by iam_sub
 		var userBySub models.User
 		if err := h.db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&userBySub).Error; err == nil {
 			iamUserID = userBySub.IAMSub
+			log.Printf("[SetUserRole] IAMSub found by users.iam_sub: iamUserID=%s", iamUserID)
 		} else {
 			// Fallback: look up via site_members → users join
 			type userIDResult struct{ UserID string }
@@ -169,12 +175,23 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 				Where("site_members.user_id = ? AND users.iam_sub IS NOT NULL AND users.iam_sub != ''", userID).
 				First(&uidResult).Error; err == nil && uidResult.UserID != "" {
 				iamUserID = uidResult.UserID
+				log.Printf("[SetUserRole] IAMSub found via site_members join: iamUserID=%s", iamUserID)
+			} else {
+				log.Printf("[SetUserRole] WARNING: IAMSub not found for userID=%s, using local UUID", userID)
 			}
 		}
 	}
 
 	userToken := services.ExtractUserToken(c)
+	log.Printf("[SetUserRole] Calling IAM: token_len=%d org=%s user=%s role=%s", len(userToken), orgID, iamUserID, toIAMRole(req.RoleCode))
+
 	iamRole := toIAMRole(req.RoleCode)
+	if len(userToken) == 0 {
+		log.Printf("[SetUserRole] ERROR: empty user token")
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50002, "message": "user token not found"})
+		return
+	}
+
 	if err := h.iamClient.UpdateUserRoleInOrgWithToken(userToken, orgID, iamUserID, iamRole); err != nil {
 		log.Printf("[SetUserRole] UpdateUserRoleInOrgWithToken failed: userID=%s iamUserID=%s orgID=%s role=%s err=%v", userID, iamUserID, orgID, iamRole, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update role: " + err.Error()})

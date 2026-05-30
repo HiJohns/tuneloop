@@ -117,6 +117,13 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			if name, ok := siteNames[*user.SiteID]; ok {
 				item["site_name"] = name
 			}
+		} else if user.OrgID != "" {
+			// Fallback: resolve site name by org_id when SiteID is nil
+			var site models.Site
+			if err := db.Where("org_id = ? AND status = ?", user.OrgID, "active").First(&site).Error; err == nil {
+				item["site_id"] = site.ID
+				item["site_name"] = site.Name
+			}
 		}
 		result = append(result, item)
 	}
