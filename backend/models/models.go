@@ -62,6 +62,8 @@ type Instrument struct {
 	Video           string           `gorm:"type:varchar(500)" json:"video"`
 	Specifications  string           `gorm:"type:jsonb;default:'{}'" json:"specifications"`
 	Pricing         string           `gorm:"type:jsonb;default:'{}'" json:"pricing"`
+	BaseDailyRate   *float64         `gorm:"type:decimal(10,2)" json:"base_daily_rate"`
+	PricingOverrides string          `gorm:"type:jsonb;default:'{}'" json:"pricing_overrides"`
 	StockStatus     string           `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
 	Properties      string           `gorm:"type:jsonb;default:'{}'" json:"properties"`
 	CreatedAt      time.Time  `json:"created_at"`
@@ -561,4 +563,23 @@ type Role struct {
 	IsSystem      bool      `gorm:"default:false" json:"is_system"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type PricingTemplate struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code         string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"code"`
+	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
+	Description  string    `gorm:"type:text" json:"description"`
+	ConfigSchema string    `gorm:"type:jsonb;not null;default:'{}'" json:"config_schema"`
+	IsActive     bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type MerchantPricingConfig struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;uniqueIndex;not null" json:"tenant_id"`
+	TemplateID string    `gorm:"type:uuid;not null" json:"template_id"`
+	Config     string    `gorm:"type:jsonb;not null;default:'{}'" json:"config"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	UpdatedBy  string    `gorm:"type:varchar(255)" json:"updated_by"`
 }

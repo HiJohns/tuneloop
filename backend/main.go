@@ -305,6 +305,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			inventoryRequired.PUT("/inventory/rent-setting/batch", inventoryHandler.BatchUpdateRent)
 		}
 
+		// Pricing system routes (Issue #689)
+		authRequired.GET("/pricing/templates", handlers.ListPricingTemplates)
+		authRequired.GET("/pricing/merchant-config", handlers.GetMerchantPricingConfig)
+		authRequired.PUT("/pricing/merchant-config", middleware.RequireRole("OWNER"), handlers.UpdateMerchantPricingConfig)
+		authRequired.GET("/instruments/:id/pricing-v2", handlers.GetInstrumentPricingV2)
+		authRequired.PUT("/instruments/batch-pricing", middleware.RequireRole("ADMIN", "OWNER"), handlers.BatchSetInstrumentPricing)
+
 		userRequired := authRequired.Group("")
 		{
 			userRequired.GET("/user/ownership/:id", handlers.GetOwnershipInfo)
