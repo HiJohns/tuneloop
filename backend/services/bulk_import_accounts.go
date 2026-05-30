@@ -136,7 +136,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			continue
 		}
 		// Resolve organization
-		var siteID *string
 		var orgIDForLocal string
 		var orgIDForIAM string
 		if acc.OrganizationCode != "" {
@@ -155,7 +154,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 				})
 				continue
 			}
-			siteID = &site.ID
 			orgIDForLocal = site.OrgID
 			orgIDForIAM = site.OrgID
 		} else {
@@ -221,9 +219,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Status:   "active",
 			UserType: "员工",
 			IsShadow: false,
-		}
-		if siteID != nil {
-			newUser.SiteID = siteID
 		}
 		if tagsStr != "" {
 			newUser.Position = tagsStr

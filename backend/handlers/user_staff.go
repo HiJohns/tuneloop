@@ -80,19 +80,28 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		return
 	}
 
-	// Batch load site names
-	siteNames := make(map[string]string)
-	var siteIDs []string
-	for _, user := range users {
-		if user.SiteID != nil && *user.SiteID != "" {
-			siteIDs = append(siteIDs, *user.SiteID)
-		}
+	// Load site info from site_members (canonical user-site relationship)
+	type userSiteInfo struct {
+		UserID   string
+		SiteID   string
+		SiteName string
 	}
-	if len(siteIDs) > 0 {
-		var sites []models.Site
-		db.Where("id IN ?", siteIDs).Find(&sites)
-		for _, s := range sites {
-			siteNames[s.ID] = s.Name
+	userSiteMap := make(map[string]userSiteInfo)
+	if len(users) > 0 {
+		var userIDs []string
+		for _, u := range users {
+			userIDs = append(userIDs, u.ID)
+		}
+		var memberSites []userSiteInfo
+		db.Table("site_members").
+			Select("site_members.user_id, site_members.site_id, sites.name as site_name").
+			Joins("JOIN sites ON sites.id = site_members.site_id").
+			Where("site_members.user_id IN ?", userIDs).
+			Find(&memberSites)
+		for _, ms := range memberSites {
+			if _, exists := userSiteMap[ms.UserID]; !exists {
+				userSiteMap[ms.UserID] = ms
+			}
 		}
 	}
 
@@ -112,18 +121,9 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
 		}
-		if user.SiteID != nil {
-			item["site_id"] = *user.SiteID
-			if name, ok := siteNames[*user.SiteID]; ok {
-				item["site_name"] = name
-			}
-		} else if user.OrgID != "" {
-			// Fallback: resolve site name by org_id when SiteID is nil
-			var site models.Site
-			if err := db.Where("org_id = ? AND status = ?", user.OrgID, "active").First(&site).Error; err == nil {
-				item["site_id"] = site.ID
-				item["site_name"] = site.Name
-			}
+		if usi, ok := userSiteMap[user.ID]; ok {
+			item["site_id"] = usi.SiteID
+			item["site_name"] = usi.SiteName
 		}
 		result = append(result, item)
 	}
@@ -230,7 +230,6 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	var orgID string
 	if req.SiteID != uuid.Nil {
 		siteIDStr := req.SiteID.String()
-		user.SiteID = &siteIDStr
 
 		var site models.Site
 		if err := db.Where("id = ? AND tenant_id = ?", siteIDStr, tenantID).First(&site).Error; err != nil {
@@ -425,7 +424,6 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		newSiteIDStr := req.SiteID.String()
 
 		if *req.SiteID == uuid.Nil {
-			updates["site_id"] = nil
 			updates["org_id"] = nil
 
 			if existingUser.IAMSub != "" {
@@ -439,16 +437,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 				}
 			}
 		} else {
-			updates["site_id"] = &newSiteIDStr
-
-			siteIDChanged := false
-			var oldSiteIDStr string
-			if existingUser.SiteID != nil && *existingUser.SiteID != newSiteIDStr {
-				siteIDChanged = true
-				oldSiteIDStr = *existingUser.SiteID
-			} else if existingUser.SiteID == nil {
-				siteIDChanged = true
-			}
+			siteIDChanged := true
 
 			if siteIDChanged {
 				iamClient := services.NewIAMClient()
@@ -464,12 +453,9 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 					newOrgID = tenantID
 				}
 
-				if oldSiteIDStr != "" {
-					var oldSite models.Site
-					if err := db.Where("id = ? AND tenant_id = ?", oldSiteIDStr, tenantID).First(&oldSite).Error; err == nil {
-						oldOrgID = oldSite.OrgID
-					}
-				}
+			if existingUser.OrgID != "" {
+				oldOrgID = existingUser.OrgID
+			}
 
 				if existingUser.IAMSub != "" {
 					oldUnbound := false
@@ -581,19 +567,16 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"cus_perm_ext":  middleware.GetCusPermExt(ctx),
 		"site_id":       nil,
 	}
-	if user.SiteID != nil {
-		result["site_id"] = *user.SiteID
-	}
 
-	// Fallback: use JWT oid to look up site when local users table has no SiteID
-	if result["site_id"] == nil {
-		if orgID := middleware.GetOrgID(ctx); orgID != "" {
-			var site models.Site
-			if err := db.Where("org_id = ? AND status = ?", orgID, "active").First(&site).Error; err == nil {
-				result["site_id"] = site.ID
-				result["site_name"] = site.Name
-			}
-		}
+	// Load user's primary site from site_members
+	var memberSite struct{ SiteID string; SiteName string }
+	if err := db.Table("site_members").
+		Select("site_members.site_id, sites.name as site_name").
+		Joins("JOIN sites ON sites.id = site_members.site_id").
+		Where("site_members.user_id = ?", user.ID).
+		First(&memberSite).Error; err == nil && memberSite.SiteID != "" {
+		result["site_id"] = memberSite.SiteID
+		result["site_name"] = memberSite.SiteName
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -22,7 +22,6 @@ type User struct {
 	Position      string     `gorm:"type:varchar(100)" json:"position"`
 	UserType      string     `gorm:"type:varchar(20);default:'员工'" json:"user_type"`
 	Role          string     `gorm:"type:varchar(50)" json:"role"`
-	SiteID        *string    `gorm:"type:uuid;index" json:"site_id"`
 	DeletedAt     *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`

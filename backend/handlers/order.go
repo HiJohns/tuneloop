@@ -300,11 +300,17 @@ func GetOrders(c *gin.Context) {
 	userID := middleware.GetUserID(c.Request.Context())
 	query := db.Model(&models.Order{})
 	if tenantID != "" {
-		// 员工：按所属网点过滤（JOIN instruments 获取 site_id）
+		// 员工：按所属网点过滤（从 site_members 获取用户关联的所有网点）
 		var currentUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.SiteID != nil {
-			query = query.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
-				Where("instruments.site_id = ?", *currentUser.SiteID)
+		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.ID != "" {
+			var memberSiteIDs []string
+			db.Table("site_members").
+				Where("user_id = ?", currentUser.ID).
+				Pluck("site_id", &memberSiteIDs)
+			if len(memberSiteIDs) > 0 {
+				query = query.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
+					Where("instruments.site_id IN ?", memberSiteIDs)
+			}
 		}
 	} else {
 		// 顾客无租户：只看自己的订单
