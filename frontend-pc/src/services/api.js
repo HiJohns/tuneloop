@@ -290,7 +290,15 @@ async function request(endpoint, options = {}, retryCount = 0) {
 }
 
 export const api = {
-  get: (endpoint) => request(endpoint),
+  get: (endpoint, options = {}) => {
+    if (options.params) {
+      const qs = new URLSearchParams(
+        Object.entries(options.params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      ).toString()
+      return request(`${endpoint}${qs ? '?' + qs : ''}`)
+    }
+    return request(endpoint)
+  },
   post: (endpoint, data) => request(endpoint, { method: 'POST', body: JSON.stringify(data) }),
   put: (endpoint, data) => request(endpoint, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (endpoint, data) => request(endpoint, {
@@ -358,7 +366,13 @@ export const staffApi = {
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   updateIAMUser: (id, data) => api.put(`/iam/users/${id}`, data),
-  checkUserExists: (identifier) => api.get('/users/check', { params: { identifier } }),
+  checkUserExists: (phone, email) => {
+    const params = new URLSearchParams()
+    if (phone) params.append('phone', phone)
+    if (email) params.append('email', email)
+    const qs = params.toString()
+    return api.get(`/users/check${qs ? '?' + qs : ''}`)
+  },
   batchDelete: (ids) => api.delete('/users/batch', { ids }),
   resetPassword: (userIds, redirectUrl) => api.post('/users/reset-password', { user_ids: userIds, redirect_url: redirectUrl }),
 }

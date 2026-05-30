@@ -43,8 +43,8 @@ const InlineUserSelector = ({
           params: { q: query, limit: 10, merchant_id: merchantId },
         });
 
-        if (response.data.code === 20000) {
-          const users = response.data.data.users || [];
+        if (response.code === 20000) {
+          const users = response.data?.users || [];
           const options = users.map((user) => ({
             label: (
               <div style={{ padding: '4px 0' }}>
@@ -134,8 +134,8 @@ const InlineUserSelector = ({
 				params: field === 'email' ? { email: val } : field === 'phone' ? { phone: val } : {},
 			});
 
-      if (response.data.code === 20000 && response.data.data.exists) {
-        const user = response.data.data.user;
+      if (response.code === 20000 && response.data?.exists) {
+        const user = response.data?.user;
         setFormErrors((prev) => ({ ...prev, [field]: { conflict: true, user } }));
         return { user, conflict: true };
       }
