@@ -19,7 +19,7 @@ export default function UserRental() {
     setLoading(true);
     try {
       const data = await api.get('/user/rentals');
-      setRentals(data?.list || []);
+      setRentals(data?.data?.list || []);
     } catch (error) {
       console.error('Failed to fetch rentals:', error);
       message.error('获取租赁列表失败');
@@ -31,7 +31,7 @@ export default function UserRental() {
   const handleViewContract = async (rentalId) => {
     try {
       const data = await api.get(`/user/contracts/${rentalId}`);
-      setSelectedRental(data);
+      setSelectedRental(data?.data);
       setDetailModalVisible(true);
     } catch (error) {
       console.error('Failed to fetch contract:', error);

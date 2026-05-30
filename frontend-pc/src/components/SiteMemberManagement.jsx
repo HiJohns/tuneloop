@@ -67,7 +67,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
 
   const handleUpdateRole = async (userId, newRole) => {
     try {
-      const resp = await adminApi.setUserRole(userId, newRole);
+      const resp = await api.put(`/sites/${siteId}/members/${userId}`, { role: newRole });
       if (resp.code === 20000) {
         message.success('角色已更新');
         fetchMembers();
@@ -109,7 +109,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         user_ids: existingUsers,
         new_users: newUsers,
       });
-      if (response.code === 20100) {
+      if (response.code === 20000) {
         const data = response.data;
         const directCount = data.directly_added?.length || 0;
         const pendingCount = data.confirmation_sessions?.length || 0;

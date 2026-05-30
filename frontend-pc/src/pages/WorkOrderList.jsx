@@ -15,7 +15,7 @@ export default function WorkOrderList() {
       try {
         setLoading(true)
         const data = await api.get('/merchant/work-orders')
-        setWorkOrders(data || [])
+        setWorkOrders(data?.data || [])
         setLoading(false)
       } catch (error) {
         console.error('Failed to fetch work orders:', error)

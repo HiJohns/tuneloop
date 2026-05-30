@@ -27,7 +27,7 @@ export default function AppealManagement() {
         params.status = statusFilter;
       }
       const data = await api.get(endpoint, { params });
-      setAppeals(data?.list || []);
+      setAppeals(data?.data?.list || []);
     } catch (error) {
       console.error('Failed to fetch appeals:', error);
       message.error('获取申诉列表失败');
@@ -63,7 +63,7 @@ export default function AppealManagement() {
   const handleViewDetails = async (appeal) => {
     try {
       const data = await api.get(`/appeals/${appeal.id}`);
-      setSelectedAppeal(data);
+      setSelectedAppeal(data?.data);
       setDetailModalVisible(true);
     } catch (error) {
       console.error('Failed to fetch appeal details:', error);
@@ -380,7 +380,7 @@ export default function AppealManagement() {
                 appeal={selectedAppeal}
                 onSubmit={async (id, data) => {
                   try {
-                    await api.post('/appeals', { ...data, order_id: id });
+                    await api.post('/appeals', { damage_report_id: id, appeal_reason: data.reason });
                     message.success('申诉已提交');
                     setDetailModalVisible(false);
                     fetchAppeals();

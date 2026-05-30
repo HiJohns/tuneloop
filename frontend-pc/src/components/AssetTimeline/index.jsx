@@ -24,7 +24,7 @@ export default function AssetTimeline({ assetId }) {
   const fetchTimeline = async () => {
     try {
       const data = await api.get(`/common/assets/${assetId}/timeline`)
-      setTimelineData(data?.timeline || [])
+      setTimelineData(data?.data?.timeline || [])
     } catch (error) {
       console.error('Failed to fetch timeline:', error)
     } finally {

@@ -25,7 +25,7 @@ export default function MaintenanceSessionManagement() {
         params.status = statusFilter;
       }
       const data = await api.get('/maintenance/sessions', { params });
-      setSessions(data?.list || []);
+      setSessions(data?.data?.list || []);
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
       message.error('获取维修会话列表失败');
@@ -35,8 +35,13 @@ export default function MaintenanceSessionManagement() {
   };
 
   const handleStartWork = async (sessionId) => {
+    const instrumentSn = prompt('请输入乐器序列号:');
+    if (!instrumentSn) return;
     try {
-      await api.post(`/maintenance/${sessionId}/start`);
+      await api.post(`/maintenance/${sessionId}/start`, {
+        instrument_sn: instrumentSn,
+        scan_time: new Date().toISOString(),
+      });
       message.success('开始工作成功');
       fetchSessions();
     } catch (error) {
@@ -46,7 +51,7 @@ export default function MaintenanceSessionManagement() {
 
   const handleComplete = async (sessionId, passed) => {
     try {
-      await api.post(`/maintenance/${sessionId}/inspect`, { status: passed ? 'passed' : 'failed' });
+      await api.post(`/maintenance/${sessionId}/inspect`, { result: passed ? 'passed' : 'failed' });
       message.success(passed ? '验收通过' : '验收失败');
       fetchSessions();
     } catch (error) {
@@ -57,7 +62,7 @@ export default function MaintenanceSessionManagement() {
   const handleViewDetails = async (session) => {
     try {
       const data = await api.get(`/maintenance/sessions/${session.id}`);
-      setSelectedSession(data);
+      setSelectedSession(data?.data);
       setDetailModalVisible(true);
     } catch (error) {
       console.error('Failed to fetch session details:', error);

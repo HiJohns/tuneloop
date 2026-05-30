@@ -25,7 +25,7 @@ export default function WarehouseManagement() {
         params.status = statusFilter;
       }
       const data = await api.get('/warehouse/orders', { params });
-      setOrders(data?.list || []);
+      setOrders(data?.data?.list || []);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       message.error('获取订单列表失败');
@@ -98,7 +98,7 @@ export default function WarehouseManagement() {
 
   const [photos, setPhotos] = useState([]);
   const [damageModalVisible, setDamageModalVisible] = useState(false);
-  const [damageAssessment, setDamageAssessment] = useState({ amount: 0, notes: "" });
+  const [damageAssessment, setDamageAssessment] = useState({ damage_amount: 0, damage_description: '', notes: "" });
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
 
@@ -112,9 +112,13 @@ export default function WarehouseManagement() {
     }
   };
 
-  const handleConfirmDelivery = async (orderId) => {
+  const handleConfirmDelivery = async (orderId, instrumentSn) => {
     try {
-      await api.put(`/warehouse/orders/${orderId}/delivery`);
+      await api.put(`/warehouse/orders/${orderId}/delivery`, {
+        delivered_at: new Date().toISOString(),
+        instrument_sn: instrumentSn,
+        scan_time: new Date().toISOString(),
+      });
       message.success('收货确认成功');
       fetchOrders();
     } catch (error) {
@@ -123,8 +127,14 @@ export default function WarehouseManagement() {
   };
 
   const handleInspectReturn = async (orderId, passed) => {
+    const instrumentSn = prompt('请输入乐器序列号:');
+    if (!instrumentSn) return;
     try {
-      await api.put(`/warehouse/orders/${orderId}/return-inspect`, { passed });
+      await api.put(`/warehouse/orders/${orderId}/return-inspect`, {
+        instrument_sn: instrumentSn,
+        scan_time: new Date().toISOString(),
+        condition: passed ? 'good' : 'damaged',
+      });
       message.success(passed ? '验收通过' : '验收失败');
       fetchOrders();
     } catch (error) {
@@ -135,7 +145,7 @@ export default function WarehouseManagement() {
   const handleViewDetails = async (order) => {
     try {
       const data = await api.get(`/warehouse/orders/${order.id}`);
-      setSelectedOrder(data);
+      setSelectedOrder(data?.data);
       setDetailModalVisible(true);
     } catch (error) {
       console.error('Failed to fetch order details:', error);
@@ -223,7 +233,7 @@ export default function WarehouseManagement() {
                 const tracking = prompt('请输入物流单号:');
                 const company = prompt('请输入快递公司:');
                 if (tracking && company) {
-                  handleUpdateShipping(record.id, { tracking_number: tracking, company });
+                  handleUpdateShipping(record.id, { tracking_number: tracking, company, shipped_at: new Date().toISOString() });
                 }
               }}
             >
@@ -231,13 +241,18 @@ export default function WarehouseManagement() {
             </Button>
           )}
           {record.status === 'shipped' && (
-            <Button 
-              size="small" 
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleConfirmDelivery(record.id)}
-            >
-              确认收货
-            </Button>
+              <Button 
+                size="small"
+                icon={<CheckCircleOutlined />}
+                onClick={() => {
+                  const instrumentSn = prompt('请输入乐器序列号:');
+                  if (instrumentSn) {
+                    handleConfirmDelivery(record.id, instrumentSn);
+                  }
+                }}
+              >
+                确认收货
+              </Button>
           )}
           {record.status === 'return_requested' && (
             <>
@@ -439,18 +454,27 @@ export default function WarehouseManagement() {
             <Input 
               type="number" 
               prefix="¥"
-              value={damageAssessment.amount}
-              onChange={(e) => setDamageAssessment({...damageAssessment, amount: parseFloat(e.target.value)})}
+              value={damageAssessment.damage_amount}
+              onChange={(e) => setDamageAssessment({...damageAssessment, damage_amount: parseFloat(e.target.value)})}
               placeholder="请输入定损金额"
             />
           </div>
           <div>
-            <div className="text-sm font-semibold mb-2">定损说明:</div>
+            <div className="text-sm font-semibold mb-2">损坏描述:</div>
             <Input.TextArea
-              rows={3}
+              rows={2}
+              value={damageAssessment.damage_description}
+              onChange={(e) => setDamageAssessment({...damageAssessment, damage_description: e.target.value})}
+              placeholder="请描述损坏情况..."
+            />
+          </div>
+          <div>
+            <div className="text-sm font-semibold mb-2">备注:</div>
+            <Input.TextArea
+              rows={2}
               value={damageAssessment.notes}
               onChange={(e) => setDamageAssessment({...damageAssessment, notes: e.target.value})}
-              placeholder="请描述损坏情况..."
+              placeholder="其他备注..."
             />
           </div>
         </div>

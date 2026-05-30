@@ -21,7 +21,7 @@ export default function OrderPayment() {
     setLoading(true)
     try {
       const data = await api.get(`/user/orders/${id}`)
-      setOrder(data)
+      setOrder(data?.data)
     } catch (error) {
       console.error('Failed to fetch order:', error)
       message.error('加载订单失败')

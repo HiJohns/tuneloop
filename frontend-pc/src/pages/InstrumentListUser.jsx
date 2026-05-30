@@ -41,7 +41,7 @@ export default function InstrumentListUser() {
       if (searchText) params.search = searchText
       
       const data = await api.get('/user/instruments', { params })
-      setInstruments(data?.list || [])
+      setInstruments(data?.data?.list || [])
     } catch (error) {
       console.error('Failed to fetch instruments:', error)
       message.error('加载乐器失败')
@@ -54,15 +54,15 @@ export default function InstrumentListUser() {
     try {
       // Fetch categories
       const catData = await api.get('/categories')
-      setCategories(catData?.list || [])
+      setCategories(catData?.data?.list || [])
       
       // Fetch sites
       const siteData = await api.get('/common/sites')
-      setSites(siteData?.list || [])
+      setSites(siteData?.data?.list || [])
       
       // Fetch levels
       const levelData = await api.get('/instruments/levels')
-      setLevels(levelData?.list || [])
+      setLevels(levelData?.data?.list || [])
     } catch (error) {
       console.error('Failed to fetch filters:', error)
     }

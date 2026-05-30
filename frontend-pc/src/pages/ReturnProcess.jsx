@@ -21,7 +21,7 @@ export default function ReturnProcess() {
     setLoading(true)
     try {
       const data = await api.get(`/user/rentals/${id}`)
-      setRental(data)
+      setRental(data?.data)
     } catch (error) {
       console.error('Failed to fetch rental:', error)
       message.error('加载租赁信息失败')
