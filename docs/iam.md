@@ -723,10 +723,9 @@ POST /api/v1/users/{user_id}/roles
 { "role_template_id": "template-uuid" }
 ```
 
-给用户在组织中更新角色：
+给用户在组织中更新角色（role 为 query parameter，非 JSON body）：
 ```
-PUT /api/v1/organizations/{org_id}/users/{uid}/role
-{ "role": "site_admin" }
+PUT /api/v1/organizations/{org_id}/users/{uid}/role?role=site_admin
 ```
 
 ### 8.5 JWT cus_perm OR 计算
