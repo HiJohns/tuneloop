@@ -25,6 +25,7 @@ type CreateInstrumentRequest struct {
 	SiteID         string                   `json:"site_id"`
 	Status         string                   `json:"status"`
 	Pricing        map[string]interface{}   `json:"pricing"`
+	BaseDailyRate  *float64                 `json:"base_daily_rate"`
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
@@ -326,6 +327,10 @@ func CreateInstrument(c *gin.Context) {
 		instrument.Pricing = "{}"
 	}
 
+	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
+		instrument.BaseDailyRate = req.BaseDailyRate
+	}
+
 	log.Printf("[DEBUG CreateInstrument] Before DB Create: tenantID=%s", instrument.TenantID)
 
 	if err := db.Create(&instrument).Error; err != nil {
@@ -563,6 +568,9 @@ func UpdateInstrument(c *gin.Context) {
 	if req.Pricing != nil {
 		pricingJSON, _ := json.Marshal(req.Pricing)
 		updates["pricing"] = string(pricingJSON)
+	}
+	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
+		updates["base_daily_rate"] = *req.BaseDailyRate
 	}
 
 	// Step 3: 确保 tenant_id 不为空

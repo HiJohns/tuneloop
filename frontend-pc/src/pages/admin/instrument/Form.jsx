@@ -118,24 +118,12 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [siteLocked, setSiteLocked] = useState(false)
   const [videoFileList, setVideoFileList] = useState([])
   const [videoUploading, setVideoUploading] = useState(false)
+  const [hasPricePerm, setHasPricePerm] = useState(false)
+  const [merchantPricingConfig, setMerchantPricingConfig] = useState(null)
+  const [baseDailyRate, setBaseDailyRate] = useState(null)
   const snCheckTimer = useRef(null)
   const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
-
-  const handleDailyRentChange = (value) => {
-    const newDaily = parseFloat(value) || 0
-    const oldDaily = parseFloat(form.getFieldValue(['pricing', 'daily_rent'])) || 0
-    const oldWeekly = parseFloat(form.getFieldValue(['pricing', 'weekly_rent'])) || 0
-    const oldMonthly = parseFloat(form.getFieldValue(['pricing', 'monthly_rent'])) || 0
-    if (newDaily > 0) {
-      if (oldWeekly === 0 || oldWeekly === oldDaily * 6) {
-        form.setFieldValue(['pricing', 'weekly_rent'], newDaily * 6)
-      }
-      if (oldMonthly === 0 || oldMonthly === oldDaily * 25) {
-        form.setFieldValue(['pricing', 'monthly_rent'], newDaily * 25)
-      }
-    }
-  }
 
   // 权限检查 - 用于条件渲染"管理"链接
   const [canManageCategories, setCanManageCategories] = useState(false)
@@ -159,7 +147,21 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       sysPerm, cusPerm, cusPermMapping
     )
     setCanManageSites(canSite)
+
+    // Pricing permission: instrument:price has BitCode 4
+    const priceBit = 4
+    setHasPricePerm((cusPerm & (1 << priceBit)) !== 0)
   }, [])
+
+  // Load merchant pricing config for tiered pricing preview
+  useEffect(() => {
+    if (!hasPricePerm) return
+    api.get('/pricing/merchant-config').then(res => {
+      if (res.code === 20000 && res.data.configured) {
+        setMerchantPricingConfig(res.data.config)
+      }
+    }).catch(() => {})
+  }, [hasPricePerm])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -915,7 +917,7 @@ const loadCategoryChildren = async (node) => {
         site_id: values.site_id,
         level_id: values.level_id,
         description: values.description,
-        pricing: values.pricing || { daily_rent: 0, monthly_rent: 0, deposit: 0 },
+        base_daily_rate: values.base_daily_rate || 0,
         images: images,
         video: videoUrl,
         status: initialData ? (values.status || loadedData?.status || 'available') : 'available',
@@ -1174,37 +1176,40 @@ const loadCategoryChildren = async (node) => {
           <TextArea rows={3} placeholder="请输入乐器描述" />
         </Form.Item>
 
-        <Card title="定价设置" size="small" style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="日租金(¥)" name={['pricing', 'daily_rent']}>
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" onChange={handleDailyRentChange} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="月租金(¥)" name={['pricing', 'monthly_rent']}>
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="押金(¥)" name={['pricing', 'deposit']}>
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="周租金(¥)" name={['pricing', 'weekly_rent']}>
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="逾期日租金(¥)" name={['pricing', 'overdue_daily']}>
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="0" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Card>
+        {hasPricePerm && (
+          <Card title="定价设置" size="small" style={{ marginBottom: 16 }}>
+            <Form.Item label="第一阶梯日均价(¥)" name="base_daily_rate">
+              <InputNumber min={0} precision={2} style={{ width: 200 }} placeholder="输入后预览阶梯价格" onChange={(val) => setBaseDailyRate(val)} />
+            </Form.Item>
+
+            {baseDailyRate > 0 && merchantPricingConfig && merchantPricingConfig.tiers && (
+              <div className="pricing-preview" style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
+                <p style={{ fontWeight: 500, marginBottom: 8 }}>阶梯价格预览（基于商户定价策略）：</p>
+                {merchantPricingConfig.tiers.map((tier, i) => {
+                  const prevDays = i > 0 ? merchantPricingConfig.tiers[i - 1].days_max : 0
+                  const daysDisplay = tier.days_max === -1 ? `${prevDays + 1}天以上` : `1-${tier.days_max}天`
+                  const rate = tier.discount_percent > 0
+                    ? parseFloat(baseDailyRate) * (1 - tier.discount_percent / 100)
+                    : parseFloat(baseDailyRate)
+                  return (
+                    <div key={i} style={{ fontSize: 14, lineHeight: '28px' }}>
+                      <span style={{ fontWeight: 500 }}>{tier.name}</span>
+                      <span style={{ color: '#999', marginLeft: 8 }}>({daysDisplay})</span>
+                      <span style={{ marginLeft: 12 }}>¥{rate.toFixed(0)}/天</span>
+                      {tier.discount_percent > 0 && <Tag color="green" style={{ marginLeft: 8 }}>{tier.discount_percent}%折扣</Tag>}
+                    </div>
+                  )
+                })}
+                <div style={{ borderTop: '1px solid #e8e8e8', marginTop: 8, paddingTop: 8, fontSize: 14 }}>
+                  押金: ¥{merchantPricingConfig.deposit_mode === 'ratio'
+                    ? (parseFloat(baseDailyRate) * (merchantPricingConfig.deposit_ratio || 2)).toFixed(0)
+                    : (merchantPricingConfig.deposit_fixed || 0)}
+                </div>
+              </div>
+            )}
+            {!merchantPricingConfig && <span style={{ color: '#999' }}>商户尚未配置定价策略</span>}
+          </Card>
+        )}
 
         <Divider orientation="left">图片和视频</Divider>
         

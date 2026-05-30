@@ -138,7 +138,8 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 	var memberOrg struct{ OrgID string }
 	if err := h.db.Table("site_members").Select("s.org_id").
 		Joins("JOIN sites s ON s.id = site_members.site_id").
-		Where("site_members.user_id = ?", userID).First(&memberOrg).Error; err == nil && memberOrg.OrgID != "" {
+		Where("site_members.user_id = ?", userID).
+		Order("s.id ASC").First(&memberOrg).Error; err == nil && memberOrg.OrgID != "" {
 		orgID = memberOrg.OrgID
 	}
 
@@ -153,6 +154,23 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 	var iamUser models.User
 	if err := h.db.Where("id = ? AND deleted_at IS NULL", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
 		iamUserID = iamUser.IAMSub
+	} else {
+		// Fallback: the URL param "id" might be the IAMSub itself, try searching by iam_sub
+		var userBySub models.User
+		if err := h.db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&userBySub).Error; err == nil {
+			iamUserID = userBySub.IAMSub
+		} else {
+			// Fallback: look up via site_members → users join
+			type userIDResult struct{ UserID string }
+			var uidResult userIDResult
+			if err := h.db.Table("site_members").
+				Select("users.iam_sub").
+				Joins("JOIN users ON users.id = site_members.user_id").
+				Where("site_members.user_id = ? AND users.iam_sub IS NOT NULL AND users.iam_sub != ''", userID).
+				First(&uidResult).Error; err == nil && uidResult.UserID != "" {
+				iamUserID = uidResult.UserID
+			}
+		}
 	}
 
 	userToken := services.ExtractUserToken(c)

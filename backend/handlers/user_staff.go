@@ -533,19 +533,27 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&user).Error; err != nil {
 		// Fallback: try querying by local id (for users whose iam_sub doesn't match JWT sub)
 		if err2 := db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error; err2 != nil {
+		result := gin.H{
+			"id":            userID,
+			"role":          middleware.GetRole(ctx),
+			"business_role": middleware.GetBusinessRole(ctx),
+			"gid":           middleware.GetGid(ctx),
+			"sys_perm":      middleware.GetSysPerm(ctx),
+			"cus_perm":      middleware.GetCusPerm(ctx),
+			"cus_perm_ext":  middleware.GetCusPermExt(ctx),
+			"site_id":       nil,
+		}
+		if orgID := middleware.GetOrgID(ctx); orgID != "" {
+			var site models.Site
+			if err := db.Where("org_id = ? AND status = ?", orgID, "active").First(&site).Error; err == nil {
+				result["site_id"] = site.ID
+				result["site_name"] = site.Name
+			}
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"code":    20000,
 			"message": "success",
-			"data": gin.H{
-				"id":            userID,
-				"role":          middleware.GetRole(ctx),
-				"business_role": middleware.GetBusinessRole(ctx),
-				"gid":           middleware.GetGid(ctx),
-				"sys_perm":      middleware.GetSysPerm(ctx),
-				"cus_perm":      middleware.GetCusPerm(ctx),
-				"cus_perm_ext":  middleware.GetCusPermExt(ctx),
-				"site_id":       nil,
-			},
+			"data":    result,
 		})
 		return
 	}
@@ -568,6 +576,17 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	}
 	if user.SiteID != nil {
 		result["site_id"] = *user.SiteID
+	}
+
+	// Fallback: use JWT oid to look up site when local users table has no SiteID
+	if result["site_id"] == nil {
+		if orgID := middleware.GetOrgID(ctx); orgID != "" {
+			var site models.Site
+			if err := db.Where("org_id = ? AND status = ?", orgID, "active").First(&site).Error; err == nil {
+				result["site_id"] = site.ID
+				result["site_name"] = site.Name
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
