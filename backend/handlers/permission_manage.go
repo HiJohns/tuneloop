@@ -136,14 +136,11 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 	orgID := middleware.GetOrgID(c.Request.Context())
 	log.Printf("[SetUserRole] Request: userID=%s orgID=%s", userID, orgID)
 
-	// Override orgID with the site's actual org from site_members
-	var memberOrg struct{ OrgID string }
-	if err := h.db.Table("site_members").Select("s.org_id").
-		Joins("JOIN sites s ON s.id = site_members.site_id").
-		Where("site_members.user_id = ?", userID).
-		Order("s.id ASC").First(&memberOrg).Error; err == nil && memberOrg.OrgID != "" {
-		orgID = memberOrg.OrgID
-		log.Printf("[SetUserRole] orgID overridden by site_members: %s", orgID)
+	// Override orgID with the target user's actual org from users table
+	var targetUser models.User
+	if err := h.db.Where("id = ? AND deleted_at IS NULL", userID).First(&targetUser).Error; err == nil && targetUser.OrgID != "" {
+		orgID = targetUser.OrgID
+		log.Printf("[SetUserRole] orgID overridden by users.OrgID: %s", orgID)
 	}
 
 	var req setUserRoleReq
