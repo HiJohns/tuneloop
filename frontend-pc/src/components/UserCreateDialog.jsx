@@ -1,8 +1,23 @@
+import { useEffect } from 'react'
 import { Form, Input, Select, Button, Space } from 'antd'
+import { staffApi } from '../services/api'
 
 const { Option } = Select
 
 export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions }) {
+  useEffect(() => {
+    staffApi.getMe().then(res => {
+      if (res.code === 20000 && res.data && res.data.site_id) {
+        const role = (res.data.role || '').toLowerCase()
+        const businessRole = (res.data.business_role || '').toLowerCase()
+        if (businessRole === 'site_admin' || businessRole === 'site_member' ||
+            role === 'site_admin' || role === 'site_member') {
+          form.setFieldsValue({ site_id: res.data.site_id })
+        }
+      }
+    }).catch(() => {})
+  }, [form])
+
   return (
     <Form
       form={form}
@@ -68,12 +83,12 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
       <Form.Item
         name="user_type"
         label="用户类型"
-        initialValue="staff"
+        initialValue="员工"
         rules={[{ required: true, message: '请选择用户类型' }]}
       >
         <Select placeholder="请选择用户类型">
-          <Option value="admin">管理员</Option>
-          <Option value="member">成员</Option>
+          <Option value="员工">员工</Option>
+          <Option value="维修技师">维修技师</Option>
         </Select>
       </Form.Item>
 

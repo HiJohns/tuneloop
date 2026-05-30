@@ -80,11 +80,12 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		return
 	}
 
-	// Load site info from site_members (canonical user-site relationship)
+	// Load site info + role from site_members (canonical user-site relationship)
 	type userSiteInfo struct {
 		UserID   string
 		SiteID   string
 		SiteName string
+		Role     string
 	}
 	userSiteMap := make(map[string]userSiteInfo)
 	if len(users) > 0 {
@@ -94,7 +95,7 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		}
 		var memberSites []userSiteInfo
 		db.Table("site_members").
-			Select("site_members.user_id, site_members.site_id, sites.name as site_name").
+			Select("site_members.user_id, site_members.site_id, sites.name as site_name, site_members.role").
 			Joins("JOIN sites ON sites.id = site_members.site_id").
 			Where("site_members.user_id IN ?", userIDs).
 			Find(&memberSites)
@@ -114,7 +115,7 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			"email":      user.Email,
 			"position":   user.Position,
 			"user_type":  user.UserType,
-			"role":       user.Role,
+			"role":       user.Role, // fallback if no site_member record
 			"status":     user.Status,
 			"iam_sub":    user.IAMSub,
 			"org_id":     user.OrgID,
@@ -124,6 +125,7 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 		if usi, ok := userSiteMap[user.ID]; ok {
 			item["site_id"] = usi.SiteID
 			item["site_name"] = usi.SiteName
+			item["role"] = usi.Role
 		}
 		result = append(result, item)
 	}
