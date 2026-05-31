@@ -635,7 +635,7 @@ func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, err
 	var result struct {
 		Data CreateUserResponse `json:"data"`
 	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.Unmarshal(respBody, &result); err != nil || result.Data.UserID == "" {
 		var direct CreateUserResponse
 		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
 			return &direct, nil
@@ -663,7 +663,7 @@ func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*
 	var result struct {
 		Data CreateUserResponse `json:"data"`
 	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
+	if err := json.Unmarshal(respBody, &result); err != nil || result.Data.UserID == "" {
 		var direct CreateUserResponse
 		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
 			return &direct, nil
