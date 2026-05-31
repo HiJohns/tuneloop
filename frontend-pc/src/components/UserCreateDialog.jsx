@@ -27,7 +27,8 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
       const response = await staffApi.checkUserExists(
         field === 'phone' ? value : '',
         field === 'email' ? value : '',
-        field === 'username' ? value : ''
+        field === 'username' ? value : '',
+        field === 'name' ? value : ''
       )
       if (response.code === 20000 && response.data?.exists) {
         setFieldErrors(prev => ({ ...prev, [field]: { conflict: true, users: response.data.users || [] } }))
@@ -59,8 +60,19 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
         label="姓名"
         rules={[{ required: true, message: '请输入姓名' }]}
       >
-        <Input placeholder="请输入姓名" />
+        <Input
+          placeholder="请输入姓名"
+          onChange={(e) => handleFieldChange('name', e.target.value)}
+        />
       </Form.Item>
+      {fieldErrors.name?.conflict && (
+        <Alert
+          type="warning"
+          message={`姓名已被 ${fieldErrors.name.users.map(u => u.name).join('、')} 使用`}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       <Form.Item
         name="username"

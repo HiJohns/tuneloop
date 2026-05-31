@@ -670,7 +670,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	})
 }
 
-// CheckUserExists checks if a user exists by phone/email/username
+// CheckUserExists checks if a user exists by phone/email/username/name
 // GET /api/users/check
 func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -679,9 +679,10 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	phone := c.Query("phone")
 	email := c.Query("email")
 	username := c.Query("username")
+	name := c.Query("name")
 
-	if phone == "" && email == "" && username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "phone, email, or username is required"})
+	if phone == "" && email == "" && username == "" && name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "phone, email, username, or name is required"})
 		return
 	}
 
@@ -701,6 +702,10 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	if username != "" {
 		orClauses = append(orClauses, "username = ?")
 		args = append(args, username)
+	}
+	if name != "" {
+		orClauses = append(orClauses, "name = ?")
+		args = append(args, name)
 	}
 
 	query := scope + " AND (" + strings.Join(orClauses, " OR ") + ")"

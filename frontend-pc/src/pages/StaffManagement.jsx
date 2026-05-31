@@ -138,7 +138,7 @@ export default function StaffManagement() {
 
   const handleCreateUser = async (values) => {
     try {
-      const checkResult = await staffApi.checkUserExists(values.phone, values.email, values.username)
+      const checkResult = await staffApi.checkUserExists(values.phone, values.email, values.username, values.name)
       if (checkResult.code === 20000 && checkResult.data?.exists) {
         setConflictUsers(checkResult.data.users || [])
         setCurrentNewUser(values)

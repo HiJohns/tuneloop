@@ -125,9 +125,6 @@ const InlineUserSelector = ({
 
 	const checkFieldUniqueness = async (field, val) => {
 		if (!val) return;
-		if (field === 'name') {
-			return { conflict: false };
-		}
 		try {
 			const response = await api.get('/users/check', {
 				params: field === 'email'
@@ -136,7 +133,9 @@ const InlineUserSelector = ({
 						? { phone: val }
 						: field === 'username'
 							? { username: val }
-							: {},
+							: field === 'name'
+								? { name: val }
+								: {},
 			});
 
       if (response.code === 20000 && response.data?.exists) {
@@ -278,7 +277,27 @@ const InlineUserSelector = ({
               placeholder="请输入姓名"
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
+              onBlur={() => checkFieldUniqueness('name', createName)}
             />
+            {formErrors.name?.conflict && (
+              <Alert
+                message={
+                  <div>
+                    姓名已被用户 {formErrors.name.user.name} 占用
+                    <Button
+                      size="small"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleUseExistingUser('name')}
+                    >
+                      使用该用户
+                    </Button>
+                  </div>
+                }
+                type="error"
+                showIcon
+                style={{ marginTop: 4 }}
+              />
+            )}
           </div>
 
           <div style={{ marginBottom: 16 }}>

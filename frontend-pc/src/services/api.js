@@ -366,11 +366,12 @@ export const staffApi = {
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   updateIAMUser: (id, data) => api.put(`/iam/users/${id}`, data),
-  checkUserExists: (phone, email, username) => {
+  checkUserExists: (phone, email, username, name) => {
     const params = new URLSearchParams()
     if (phone) params.append('phone', phone)
     if (email) params.append('email', email)
     if (username) params.append('username', username)
+    if (name) params.append('name', name)
     const qs = params.toString()
     return api.get(`/users/check${qs ? '?' + qs : ''}`)
   },
