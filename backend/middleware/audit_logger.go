@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -86,6 +87,16 @@ var auditRouteMap = map[string]auditRouteInfo{
 
 const maxRequestBodySize = 10 * 1024
 
+type responseBodyWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (w *responseBodyWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
 func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
@@ -140,6 +151,28 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 			}
 		}
 
+		// wrap response writer to capture body
+		resBody := &responseBodyWriter{ResponseWriter: c.Writer, body: &bytes.Buffer{}}
+		c.Writer = resBody
+
+		c.Next()
+
+		statusCode := c.Writer.Status()
+		status := "success"
+		if statusCode >= 400 {
+			status = "failure"
+		}
+
+		var errMsg string
+		if resBody.body.Len() > 0 {
+			var respBody struct {
+				Message string `json:"message"`
+			}
+			if err := json.Unmarshal(resBody.body.Bytes(), &respBody); err == nil && respBody.Message != "" {
+				errMsg = respBody.Message
+			}
+		}
+
 		rec := &services.AuditRecord{
 			TenantID:     tenantID,
 			OrgID:        orgIDPtr,
@@ -148,6 +181,9 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 			Action:       info.Action,
 			ResourceType: info.ResourceType,
 			ResourceID:   resourceID,
+			StatusCode:   statusCode,
+			Status:       status,
+			ErrorMessage: errMsg,
 			Details:      "",
 			RequestBody:  bodyStr,
 			IPAddress:    c.ClientIP(),
@@ -155,14 +191,7 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 		}
 
 		if err := writer.WriteSync(rec); err != nil {
-			log.Printf("[CRITICAL] Audit log save failed, rejecting request: %v", err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "internal error",
-			})
-			return
+			log.Printf("[CRITICAL] Audit log save failed: %v", err)
 		}
-
-		c.Next()
 	}
 }

@@ -15,6 +15,9 @@ type AuditRecord struct {
 	Action       string
 	ResourceType string
 	ResourceID   string
+	StatusCode   int
+	Status       string
+	ErrorMessage string
 	Details      string
 	RequestBody  string
 	IPAddress    string
@@ -91,8 +94,13 @@ func (w *AuditWriter) save(rec *AuditRecord) error {
 		Action:       rec.Action,
 		ResourceType: rec.ResourceType,
 		ResourceID:   rec.ResourceID,
+		StatusCode:   rec.StatusCode,
+		Status:       rec.Status,
 		IPAddress:    rec.IPAddress,
 		UserAgent:    rec.UserAgent,
+	}
+	if rec.ErrorMessage != "" {
+		entry.ErrorMessage = &rec.ErrorMessage
 	}
 	if rec.Details != "" {
 		entry.Details = &rec.Details

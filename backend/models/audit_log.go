@@ -11,6 +11,9 @@ type AuditLog struct {
 	Action       string    `gorm:"type:varchar(50);not null" json:"action"`
 	ResourceType string    `gorm:"type:varchar(50);not null" json:"resource_type"`
 	ResourceID   string    `gorm:"type:varchar(100)" json:"resource_id"`
+	StatusCode   int       `gorm:"type:int" json:"status_code"`
+	Status       string    `gorm:"type:varchar(20)" json:"status"`
+	ErrorMessage *string   `gorm:"type:text" json:"error_message"`
 	Details      *string   `gorm:"type:jsonb" json:"details"`
 	RequestBody  *string   `gorm:"type:jsonb" json:"request_body"`
 	IPAddress    string    `gorm:"type:varchar(45)" json:"ip_address"`
