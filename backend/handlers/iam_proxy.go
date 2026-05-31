@@ -858,7 +858,7 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				OrgID:    orgID,
 				Role:     user.Role,
 				IsShadow: true,
-				Status:   "active",
+				Status:   user.Status,
 			}
 			if err := db.Create(&newUser).Error; err != nil {
 				log.Printf("[IAMProxy] SyncUsers: failed to create user %s: %v", user.Name, err)
@@ -885,6 +885,10 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 			}
 			if existingUser.Role != user.Role {
 				updates["role"] = user.Role
+				needsUpdate = true
+			}
+			if existingUser.Status != user.Status {
+				updates["status"] = user.Status
 				needsUpdate = true
 			}
 			if user.OrgID != "" && existingUser.OrgID != user.OrgID {

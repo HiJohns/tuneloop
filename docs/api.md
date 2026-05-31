@@ -274,7 +274,7 @@
 
 **接口**: `POST /api/iam/users/sync`
 
-**说明**: 手动触发从 IAM 同步用户列表到本地 users 表
+**说明**: 手动触发从 IAM 同步用户列表到本地 users 表，包括 name、email、phone、role、org_id、status
 
 **权限**: ADMIN, OWNER
 

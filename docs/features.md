@@ -76,6 +76,7 @@
 * **用户创建**：创建用户时校验邮箱/手机号唯一性，冲突时弹出选择对话框。支持指定角色（site_member / site_admin / worker），未指定时首成员默认 site_admin，后续默认 site_member。
 * **用户编辑**：编辑用户信息，归属网点下拉框采用树状展示。
 * **冲突处理**：唯一性冲突时提供选择对话框，支持"继续创建"或"选择已有用户"。
+* **状态同步**：用户页面"从 IAM 同步"按钮同步 name、email、phone、role、status 到本地；新建用户默认 status=pending 与 IAM 一致。
 
 ---
 

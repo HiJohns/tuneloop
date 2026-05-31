@@ -452,9 +452,13 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		}
 	}
 
+	status := iamResp.Status
+	if status == "" {
+		status = "active"
+	}
 	if err := db.Model(&user).Updates(map[string]interface{}{
 		"iam_sub": iamResp.UserID,
-		"status":  "active",
+		"status":  status,
 	}).Error; err != nil {
 		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
 		iamClient.DeleteUser(iamResp.UserID)

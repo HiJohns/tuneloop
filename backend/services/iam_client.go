@@ -619,6 +619,32 @@ func (c *IAMClient) ListUsersWithToken(token string) ([]User, error) {
 	return result.Data, nil
 }
 
+// GetUser retrieves a single user from IAM by ID using service auth
+func (c *IAMClient) GetUser(userID string) (*User, error) {
+	path := fmt.Sprintf("/api/v1/users/%s", userID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetUser request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("GetUser returned status %d: %s", statusCode, string(respBody))
+	}
+	var result struct {
+		User *User `json:"user"`
+		Data *User `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse GetUser response: %w", err)
+	}
+	if result.User != nil && result.User.ID != "" {
+		return result.User, nil
+	}
+	if result.Data != nil && result.Data.ID != "" {
+		return result.Data, nil
+	}
+	return nil, fmt.Errorf("GetUser: user %s not found in response", userID)
+}
+
 func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
 	respBody, statusCode, err := c.doRequest("POST", "/api/v1/users", req)
 	if err != nil {

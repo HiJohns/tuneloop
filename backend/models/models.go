@@ -292,7 +292,7 @@ type Label struct {
 type Tenant struct {
 	ID          string    `gorm:"type:uuid;primaryKey" json:"id"`
 	Name        string    `gorm:"type:varchar(100);not null" json:"name"`
-	Status      string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	Description string    `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
