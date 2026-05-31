@@ -376,6 +376,7 @@ export const staffApi = {
   },
   batchDelete: (ids) => api.delete('/users/batch', { ids }),
   resetPassword: (userIds, redirectUrl) => api.post('/users/reset-password', { user_ids: userIds, redirect_url: redirectUrl }),
+  activateUser: (id) => api.post(`/users/${id}/activate`),
 }
 
 export const inventoryApi = {

@@ -278,6 +278,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.DELETE("/users/batch", middleware.RequireSysPerm(middleware.SysPermUserDelete), staffHandler.BatchDeleteUsers)
 			authRequired.POST("/users/reset-password", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.ResetPassword)
 			authRequired.GET("/users/check", staffHandler.CheckUserExists)
+			authRequired.POST("/users/:id/activate", staffHandler.ActivateUser)
 
 			// Notification routes
 			authRequired.GET("/notifications", handlers.GetNotifications)

@@ -264,6 +264,12 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 	user.IAMSub = iamResp.UserID
+	if user.IAMSub == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code": 50000, "message": "IAM user creation failed: empty user_id returned",
+		})
+		return
+	}
 
 	if orgID != "" && user.IAMSub != "" {
 		iamRole := services.GetBusinessRole("site_member")
@@ -311,6 +317,93 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			"created_at": user.CreatedAt,
 			"updated_at": user.UpdatedAt,
 		},
+	})
+}
+
+// ActivateUser creates IAM user for an existing local user that has no iam_sub
+// POST /api/users/:id/activate
+func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	userID := c.Param("id")
+
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "user ID is required"})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+	var user models.User
+	if err := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
+		}
+		return
+	}
+
+	if user.IAMSub != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "user already activated"})
+		return
+	}
+
+	iamClient := services.NewIAMClient()
+	username := user.Email
+	createReq := &services.CreateUserRequest{
+		Username: username,
+		Name:     user.Name,
+		Email:    user.Email,
+		Phone:    user.Phone,
+	}
+	iamResp, err := iamClient.CreateUser(createReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: " + err.Error()})
+		return
+	}
+
+	if iamResp.UserID == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: empty user_id returned"})
+		return
+	}
+
+	orgID := user.OrgID
+	if orgID == "" {
+		orgID = tenantID
+	}
+
+	iamRole := services.GetBusinessRole("site_member")
+	if iamRole == "" {
+		iamRole = "staff"
+	}
+	if err := iamClient.BindUserToOrganization(iamResp.UserID, orgID, iamRole, ""); err != nil {
+		iamClient.DeleteUser(iamResp.UserID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
+		return
+	}
+
+	template := services.AllRoleTemplates["site_member"]
+	if len(template.CusPermCodes) > 0 {
+		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+		if err := iamClient.SetUserCustomerPermissions(orgID, iamResp.UserID, cusPerm, cusPermExt); err != nil {
+			iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
+			iamClient.DeleteUser(iamResp.UserID)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
+			return
+		}
+	}
+
+	if err := db.Model(&user).Update("iam_sub", iamResp.UserID).Error; err != nil {
+		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
+		iamClient.DeleteUser(iamResp.UserID)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data":    gin.H{"iam_sub": iamResp.UserID},
 	})
 }
 

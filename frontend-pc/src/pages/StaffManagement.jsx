@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
 import { staffApi, sitesApi, iamApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 import UserCreateDialog from '../components/UserCreateDialog'
@@ -275,6 +275,20 @@ export default function StaffManagement() {
     }
   }
 
+  const handleActivateUser = async (user) => {
+    try {
+      const result = await staffApi.activateUser(user.id)
+      if (result.code === 20000) {
+        message.success(`用户「${user.name}」激活成功`)
+        handleSearch()
+      } else {
+        throw new Error(result.message || '激活失败')
+      }
+    } catch (error) {
+      message.error('激活失败: ' + error.message)
+    }
+  }
+
   const handleBatchDelete = () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请先选择要删除的用户')
@@ -377,9 +391,18 @@ export default function StaffManagement() {
       }
     },
     {
+      title: '激活状态',
+      key: 'activation',
+      width: 100,
+      render: (_, record) => {
+        if (record.iam_sub) return <Tag color="green">已激活</Tag>
+        return <Tag color="red">未激活</Tag>
+      }
+    },
+    {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 280,
       fixed: 'right',
       render: (_, record) => (
         <Space>
@@ -391,6 +414,16 @@ export default function StaffManagement() {
           >
             编辑
           </Button>
+          {!record.iam_sub && (
+            <Button
+              type="link"
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => handleActivateUser(record)}
+            >
+              激活
+            </Button>
+          )}
           <Button
             type="link"
             size="small"
@@ -525,11 +558,13 @@ export default function StaffManagement() {
           />
         )}
 
+        <style>{`.ant-table-row-inactive { background-color: #fff1f0 !important; } .ant-table-row-inactive:hover > td { background-color: #ffccc7 !important; }`}</style>
         <Table
           columns={columns}
           dataSource={staffList}
           rowKey="id"
           loading={loading}
+          rowClassName={(record) => record.iam_sub ? '' : 'ant-table-row-inactive'}
           rowSelection={handleRowSelection}
           pagination={{
             ...pagination,
