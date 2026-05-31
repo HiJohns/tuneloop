@@ -669,26 +669,43 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
-	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
+	scope := "tenant_id = ? AND deleted_at IS NULL"
+	args := []interface{}{tenantID}
 
+	var orClauses []string
 	if phone != "" {
-		query = query.Where("phone = ?", phone)
-	} else if email != "" {
-		query = query.Where("email = ?", email)
+		orClauses = append(orClauses, "phone = ?")
+		args = append(args, phone)
+	}
+	if email != "" {
+		orClauses = append(orClauses, "email = ?")
+		args = append(args, email)
 	}
 
-	var user models.User
-	if err := query.First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    20000,
-				"message": "user not found",
-				"data":    gin.H{"exists": false},
-			})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	query := scope + " AND (" + strings.Join(orClauses, " OR ") + ")"
+	var users []models.User
+	if err := db.Where(query, args...).Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
 		return
+	}
+
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"message": "user not found",
+			"data":    gin.H{"exists": false},
+		})
+		return
+	}
+
+	var conflictList []gin.H
+	for _, u := range users {
+		conflictList = append(conflictList, gin.H{
+			"id":    u.ID,
+			"name":  u.Name,
+			"phone": u.Phone,
+			"email": u.Email,
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -696,12 +713,7 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 		"message": "success",
 		"data": gin.H{
 			"exists": true,
-			"user": gin.H{
-				"id":    user.ID,
-				"name":  user.Name,
-				"phone": user.Phone,
-				"email": user.Email,
-			},
+			"users":  conflictList,
 		},
 	})
 }

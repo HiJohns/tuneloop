@@ -153,6 +153,10 @@ export default function StaffManagement() {
         setCreateModalVisible(false)
         createUserForm.resetFields()
         fetchStaffList()
+      } else if (result.code === 40900) {
+        const users = result.data || []
+        const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
+        message.error(`创建用户失败：姓名、手机号或邮箱与以下用户冲突: ${names}`)
       }
     } catch (error) {
       message.error('创建用户失败: ' + error.message)
@@ -167,6 +171,12 @@ export default function StaffManagement() {
         setConflictModalVisible(false)
         createUserForm.resetFields()
         fetchStaffList()
+      } else if (result.code === 40900) {
+        const users = result.data || []
+        const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
+        message.error(`创建用户失败：姓名、手机号或邮箱与以下用户冲突: ${names}`)
+        setCurrentNewUser(null)
+        return
       }
     } catch (error) {
       message.error('创建用户失败: ' + error.message)
