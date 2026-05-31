@@ -306,6 +306,24 @@ Usage:
 
 ## 🧪 调试效率经验 (Debugging Efficiency Lessons)
 
+### ⚠️ 强制规则：排查任何 Issue 必须先检查后端日志
+
+接收到任何排查请求时（无论表面是前端问题、API 错误、还是数据异常），**第一步永远是检查后端日志**：
+
+```bash
+tail -100 backend/backend.log
+```
+
+**理由**：
+- Go 后端错误（SQLSTATE、panic、nil dereference 等）只在日志中可见，前端只能看到 HTTP 状态码和通用错误信息
+- 本次 #699 事故：前端问题描述看似纯前端（40900 未提示 + 输入时去重缺 username），实际根因是后端 `column "username" does not exist` 导致 500 错误，而前端没有收到预期响应
+- 如果第一时间看了 `backend.log`，SQLSTATE 42703 错误一目了然，不会浪费时间去追溯前端代码
+
+> 日志文件路径：`backend/backend.log`（`make run` 通过 `tee backend.log` 写入）。
+> 如果日志文件不存在（例如用其他方式启动），检查 `make run` 启动的终端输出，或用 `docker logs` 查看容器日志。
+
+---
+
 > 来自 #569 — 商户创建流程调试（15 个 Bug，11 个回合）
 
 ### Pre-Work: 追踪完整数据流
