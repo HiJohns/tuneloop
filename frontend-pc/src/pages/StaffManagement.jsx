@@ -63,11 +63,19 @@ export default function StaffManagement() {
       }
       const result = await staffApi.list(params)
       if (result.code === 20000) {
-        setStaffList(result.data?.list || [])
+        const list = result.data?.list || []
+        setStaffList(list)
         setPagination({
           ...pagination,
           total: result.data?.total || 0
         })
+
+        // Auto-sync IAM status when any user is still pending
+        if (list.some(u => u.status === 'pending')) {
+          iamApi.syncUsers().then(r => {
+            if (r.code === 20000) fetchStaffList()
+          }).catch(() => {})
+        }
       }
     } catch (error) {
       message.error('加载人员列表失败: ' + error.message)
