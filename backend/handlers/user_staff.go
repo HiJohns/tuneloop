@@ -303,6 +303,19 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// Create site_member record if site_id was provided
+	if req.SiteID != uuid.Nil {
+		siteMember := models.SiteMember{
+			TenantID: tenantID,
+			SiteID:   req.SiteID.String(),
+			UserID:   user.ID,
+			Role:     "site_member",
+		}
+		if err := db.Create(&siteMember).Error; err != nil {
+			log.Printf("[WARN] Failed to create site_member for user %s: %v", user.ID, err)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
