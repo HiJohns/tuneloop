@@ -339,7 +339,7 @@ export default function StaffManagement() {
     onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys)
   }
 
-  const columns = [
+  const allColumns = [
     {
       title: '姓名',
       dataIndex: 'name',
@@ -349,7 +349,9 @@ export default function StaffManagement() {
     {
       title: '邮箱',
       dataIndex: 'email',
-      key: 'email'
+      key: 'email',
+      width: 220,
+      ellipsis: true
     },
     {
       title: '手机号',
@@ -443,6 +445,13 @@ export default function StaffManagement() {
       )
     }
   ]
+
+  // Hide site column for site-level roles (they only see their own site)
+  const businessRole = localStorage.getItem('user_role') || ''
+  const isSiteLevel = businessRole === 'site_admin' || businessRole === 'site_member'
+  const columns = isSiteLevel
+    ? allColumns.filter(col => col.key !== 'site_name')
+    : allColumns
 
   const findSiteById = (sites, id) => {
     for (const site of sites) {
