@@ -163,7 +163,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Check uniqueness constraints (name OR phone OR email OR username)
+	// Check uniqueness constraints (phone OR email OR username)
 	db := database.GetDB().WithContext(ctx)
 	var conflicts []gin.H
 
@@ -177,19 +177,6 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 				"phone":    existingUser.Phone,
 				"email":    existingUser.Email,
 				"username": existingUser.Username,
-			})
-		}
-	}
-
-	// Check name
-	if req.Name != "" {
-		var existingUser models.User
-		if err := db.Where("tenant_id = ? AND name = ? AND deleted_at IS NULL", tenantID, req.Name).First(&existingUser).Error; err == nil {
-			conflicts = append(conflicts, gin.H{
-				"id":    existingUser.ID,
-				"name":  existingUser.Name,
-				"phone": existingUser.Phone,
-				"email": existingUser.Email,
 			})
 		}
 	}
@@ -224,7 +211,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if len(conflicts) > 0 {
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
-			"message": "user with same name, phone, or email already exists",
+			"message": "user with same phone, email, or username already exists",
 			"data":    conflicts,
 		})
 		return
@@ -369,19 +356,6 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	// Check uniqueness constraints for updated fields
 	var conflicts []gin.H
 
-	// Check name
-	if req.Name != "" && req.Name != existingUser.Name {
-		var existingUserTemp models.User
-		if err := db.Where("tenant_id = ? AND name = ? AND deleted_at IS NULL AND id != ?", tenantID, req.Name, userID).First(&existingUserTemp).Error; err == nil {
-			conflicts = append(conflicts, gin.H{
-				"id":    existingUserTemp.ID,
-				"name":  existingUserTemp.Name,
-				"phone": existingUserTemp.Phone,
-				"email": existingUserTemp.Email,
-			})
-		}
-	}
-
 	// Check phone
 	if req.Phone != "" && req.Phone != existingUser.Phone {
 		var existingUserTemp models.User
@@ -412,7 +386,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	if len(conflicts) > 0 {
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
-			"message": "user with same name, phone, or email already exists",
+			"message": "user with same phone, email, or username already exists",
 			"data":    conflicts,
 		})
 		return
@@ -670,7 +644,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	})
 }
 
-// CheckUserExists checks if a user exists by phone/email/username/name
+// CheckUserExists checks if a user exists by phone/email/username
 // GET /api/users/check
 func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -679,10 +653,9 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	phone := c.Query("phone")
 	email := c.Query("email")
 	username := c.Query("username")
-	name := c.Query("name")
 
-	if phone == "" && email == "" && username == "" && name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "phone, email, username, or name is required"})
+	if phone == "" && email == "" && username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "phone, email, or username is required"})
 		return
 	}
 
@@ -702,10 +675,6 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	if username != "" {
 		orClauses = append(orClauses, "username = ?")
 		args = append(args, username)
-	}
-	if name != "" {
-		orClauses = append(orClauses, "name = ?")
-		args = append(args, name)
 	}
 
 	query := scope + " AND (" + strings.Join(orClauses, " OR ") + ")"
