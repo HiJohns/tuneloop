@@ -163,9 +163,23 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Check uniqueness constraints (name OR phone OR email)
+	// Check uniqueness constraints (name OR phone OR email OR username)
 	db := database.GetDB().WithContext(ctx)
 	var conflicts []gin.H
+
+	// Check username
+	if req.Username != "" {
+		var existingUser models.User
+		if err := db.Where("tenant_id = ? AND username = ? AND deleted_at IS NULL", tenantID, req.Username).First(&existingUser).Error; err == nil {
+			conflicts = append(conflicts, gin.H{
+				"id":       existingUser.ID,
+				"name":     existingUser.Name,
+				"phone":    existingUser.Phone,
+				"email":    existingUser.Email,
+				"username": existingUser.Username,
+			})
+		}
+	}
 
 	// Check name
 	if req.Name != "" {
@@ -220,6 +234,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	user := models.User{
 		ID:        uuid.New().String(),
 		TenantID:  tenantID,
+		Username:  req.Username,
 		Name:      req.Name,
 		Phone:     req.Phone,
 		Email:     req.Email,
@@ -300,6 +315,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		"message": "success",
 		"data": gin.H{
 			"id":         user.ID,
+			"username":   user.Username,
 			"name":       user.Name,
 			"phone":      user.Phone,
 			"email":      user.Email,
@@ -654,7 +670,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	})
 }
 
-// CheckUserExists checks if a user exists by phone/email
+// CheckUserExists checks if a user exists by phone/email/username
 // GET /api/users/check
 func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -662,9 +678,10 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 
 	phone := c.Query("phone")
 	email := c.Query("email")
+	username := c.Query("username")
 
-	if phone == "" && email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "phone or email is required"})
+	if phone == "" && email == "" && username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "phone, email, or username is required"})
 		return
 	}
 
@@ -680,6 +697,10 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	if email != "" {
 		orClauses = append(orClauses, "email = ?")
 		args = append(args, email)
+	}
+	if username != "" {
+		orClauses = append(orClauses, "username = ?")
+		args = append(args, username)
 	}
 
 	query := scope + " AND (" + strings.Join(orClauses, " OR ") + ")"
@@ -701,10 +722,11 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 	var conflictList []gin.H
 	for _, u := range users {
 		conflictList = append(conflictList, gin.H{
-			"id":    u.ID,
-			"name":  u.Name,
-			"phone": u.Phone,
-			"email": u.Email,
+			"id":       u.ID,
+			"name":     u.Name,
+			"phone":    u.Phone,
+			"email":    u.Email,
+			"username": u.Username,
 		})
 	}
 
@@ -713,6 +735,7 @@ func (h *UserStaffHandler) CheckUserExists(c *gin.Context) {
 		"message": "success",
 		"data": gin.H{
 			"exists": true,
+			"user":   conflictList[0],
 			"users":  conflictList,
 		},
 	})

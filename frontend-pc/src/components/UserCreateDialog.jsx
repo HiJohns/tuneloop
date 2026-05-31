@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Form, Input, Select, Button, Space, Alert } from 'antd'
 import { staffApi } from '../services/api'
 
@@ -6,6 +6,7 @@ const { Option } = Select
 
 export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions }) {
   const [fieldErrors, setFieldErrors] = useState({})
+  const debounceRef = useRef({})
 
   useEffect(() => {
     staffApi.getMe().then(res => {
@@ -20,12 +21,13 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
     }).catch(() => {})
   }, [form])
 
-  const checkFieldUnique = async (field, value) => {
-    if (!value) return
+  const doCheckField = useCallback(async (field, value) => {
+    if (!value || value.length < 2) return
     try {
       const response = await staffApi.checkUserExists(
         field === 'phone' ? value : '',
-        field === 'email' ? value : ''
+        field === 'email' ? value : '',
+        field === 'username' ? value : ''
       )
       if (response.code === 20000 && response.data?.exists) {
         setFieldErrors(prev => ({ ...prev, [field]: { conflict: true, users: response.data.users || [] } }))
@@ -39,7 +41,12 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
     } catch (error) {
       console.error('Uniqueness check failed:', error)
     }
-  }
+  }, [])
+
+  const handleFieldChange = useCallback((field, value) => {
+    if (debounceRef.current[field]) clearTimeout(debounceRef.current[field])
+    debounceRef.current[field] = setTimeout(() => doCheckField(field, value), 500)
+  }, [doCheckField])
 
   return (
     <Form
@@ -63,8 +70,19 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
           { required: true, message: '请输入用户名' }
         ]}
       >
-        <Input placeholder="请输入用户名（英文数字下划线）" />
+        <Input
+          placeholder="请输入用户名（英文数字下划线）"
+          onChange={(e) => handleFieldChange('username', e.target.value)}
+        />
       </Form.Item>
+      {fieldErrors.username?.conflict && (
+        <Alert
+          type="warning"
+          message={`用户名已被 ${fieldErrors.username.users.map(u => u.name).join('、')} 使用`}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       <Form.Item
         name="email"
@@ -76,7 +94,7 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
       >
         <Input
           placeholder="请输入邮箱"
-          onBlur={(e) => checkFieldUnique('email', e.target.value)}
+          onChange={(e) => handleFieldChange('email', e.target.value)}
         />
       </Form.Item>
       {fieldErrors.email?.conflict && (
@@ -95,7 +113,7 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
       >
         <Input
           placeholder="请输入手机号"
-          onBlur={(e) => checkFieldUnique('phone', e.target.value)}
+          onChange={(e) => handleFieldChange('phone', e.target.value)}
         />
       </Form.Item>
       {fieldErrors.phone?.conflict && (

@@ -125,17 +125,22 @@ const InlineUserSelector = ({
 
 	const checkFieldUniqueness = async (field, val) => {
 		if (!val) return;
-		// Bug 3 fix: Skip API call for name field (backend only supports email/phone)
 		if (field === 'name') {
 			return { conflict: false };
 		}
 		try {
 			const response = await api.get('/users/check', {
-				params: field === 'email' ? { email: val } : field === 'phone' ? { phone: val } : {},
+				params: field === 'email'
+					? { email: val }
+					: field === 'phone'
+						? { phone: val }
+						: field === 'username'
+							? { username: val }
+							: {},
 			});
 
       if (response.code === 20000 && response.data?.exists) {
-        const user = response.data?.user;
+        const user = response.data?.user || response.data?.users?.[0];
         setFormErrors((prev) => ({ ...prev, [field]: { conflict: true, user } }));
         return { user, conflict: true };
       }
@@ -282,7 +287,27 @@ const InlineUserSelector = ({
               placeholder="请输入用户名"
               value={createUsername}
               onChange={(e) => setCreateUsername(e.target.value)}
+              onBlur={() => checkFieldUniqueness('username', createUsername)}
             />
+            {formErrors.username?.conflict && (
+              <Alert
+                message={
+                  <div>
+                    用户名已被用户 {formErrors.username.user.name} 占用
+                    <Button
+                      size="small"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleUseExistingUser('username')}
+                    >
+                      使用该用户
+                    </Button>
+                  </div>
+                }
+                type="error"
+                showIcon
+                style={{ marginTop: 4 }}
+              />
+            )}
           </div>
 
           <div style={{ marginBottom: 16 }}>

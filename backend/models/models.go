@@ -11,6 +11,7 @@ type User struct {
 	IAMSub        string     `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
 	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID         string     `gorm:"type:uuid;index;not null" json:"org_id"`
+	Username      string     `gorm:"type:varchar(255)" json:"username"`
 	Name          string     `gorm:"type:varchar(255)" json:"name"`
 	Phone         string     `gorm:"type:varchar(50)" json:"phone"`
 	Email         string     `gorm:"type:varchar(255)" json:"email"`
