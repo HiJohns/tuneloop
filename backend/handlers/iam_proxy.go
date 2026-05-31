@@ -449,7 +449,15 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	if status, hasStatus := iamResponse["status"]; hasStatus {
 		if status == "pending" || status == "success" {
 			if userID, hasUserID := iamResponse["user_id"]; hasUserID {
-				iamUserID := userID.(string)
+				iamUserID, ok := userID.(string)
+				if !ok || iamUserID == "" {
+					log.Printf("[IAM] IAM response has invalid or empty user_id field")
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"code":    50000,
+						"message": "IAM returned invalid user_id",
+					})
+					return
+				}
 
 				// Create local user record after IAM user creation
 				localUserID, err := createLocalUser(c, iamUserID, &req)

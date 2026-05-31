@@ -125,6 +125,10 @@ func (c *IAMClient) GetClientToken() (string, error) {
 		return "", fmt.Errorf("failed to parse token response: %w", err)
 	}
 
+	if tokenResp.AccessToken == "" {
+		return "", fmt.Errorf("GetClientToken: IAM response missing access_token")
+	}
+
 	expiresIn := tokenResp.ExpiresIn
 	if expiresIn <= 0 {
 		expiresIn = 3600
@@ -347,6 +351,9 @@ func (c *IAMClient) getNamespaceID() (string, error) {
 	if err := json.Unmarshal(respBody, &ns); err != nil {
 		return "", fmt.Errorf("failed to parse namespace response: %w", err)
 	}
+	if ns.ID == "" {
+		return "", fmt.Errorf("getNamespaceID: IAM response missing namespace id")
+	}
 	return ns.ID, nil
 }
 
@@ -416,6 +423,9 @@ func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 	var org Organization
 	if err := json.Unmarshal(respBody, &org); err != nil {
 		return nil, fmt.Errorf("failed to parse GetOrganization response: %w", err)
+	}
+	if org.ID == "" {
+		return nil, fmt.Errorf("GetOrganization: IAM response missing org id")
 	}
 	return &org, nil
 }
@@ -553,6 +563,9 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 	}
 
 	log.Printf("[IAMClient] Created user via CreateOrGetUser: user_id=%s", result.UserID)
+	if result.UserID == "" {
+		return nil, fmt.Errorf("CreateOrGetUser: IAM response missing user_id")
+	}
 	return &result, nil
 }
 
@@ -664,7 +677,9 @@ func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, err
 	if err := json.Unmarshal(respBody, &result); err != nil || result.Data.UserID == "" {
 		var direct CreateUserResponse
 		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
-			return &direct, nil
+			if direct.UserID != "" {
+				return &direct, nil
+			}
 		}
 		return nil, fmt.Errorf("failed to parse CreateUser response: %w", err)
 	}
@@ -692,7 +707,9 @@ func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*
 	if err := json.Unmarshal(respBody, &result); err != nil || result.Data.UserID == "" {
 		var direct CreateUserResponse
 		if err2 := json.Unmarshal(respBody, &direct); err2 == nil {
-			return &direct, nil
+			if direct.UserID != "" {
+				return &direct, nil
+			}
 		}
 		return nil, fmt.Errorf("failed to parse CreateUser response: %w", err)
 	}
@@ -1270,6 +1287,9 @@ func (c *IAMClient) CreateRoleTemplate(namespaceID, code, name string, cusPerm i
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return "", fmt.Errorf("CreateRoleTemplate: failed to parse response: %w", err)
 	}
+	if result.ID == "" {
+		return "", fmt.Errorf("CreateRoleTemplate: IAM response missing template id")
+	}
 
 	log.Printf("[IAMClient] Created role template: code=%s id=%s", code, result.ID)
 	return result.ID, nil
@@ -1358,6 +1378,9 @@ func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs stri
 	if err := json.Unmarshal(respBody, &appResp); err != nil {
 		return nil, fmt.Errorf("RegisterNamespaceApp: failed to parse response: %w", err)
 	}
+	if appResp.AppID == "" {
+		return nil, fmt.Errorf("RegisterNamespaceApp: IAM response missing app_id")
+	}
 	return &appResp, nil
 }
 
@@ -1408,7 +1431,12 @@ func (c *IAMClient) CreateAdminUser(namespaceID, email, name string) (string, er
 			ID string `json:"id"`
 		} `json:"user"`
 	}
-	json.Unmarshal(respBody, &result)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("CreateAdminUser: failed to parse response: %w", err)
+	}
+	if result.User.ID == "" {
+		return "", fmt.Errorf("CreateAdminUser: IAM response missing user id")
+	}
 	return result.User.ID, nil
 }
 
@@ -1453,6 +1481,9 @@ func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenRespo
 	var tokenResp TokenResponse
 	if err := json.Unmarshal(respBody, &tokenResp); err != nil {
 		return nil, fmt.Errorf("ExchangeCode: parse failed: %w", err)
+	}
+	if tokenResp.AccessToken == "" {
+		return nil, fmt.Errorf("ExchangeCode: IAM response missing access_token")
 	}
 	return &tokenResp, nil
 }
@@ -1507,6 +1538,9 @@ func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration
 	var actResp ActivateNamespaceResponse
 	if err := json.Unmarshal(respBody, &actResp); err != nil {
 		return nil, fmt.Errorf("ActivateNamespace: parse failed: %w", err)
+	}
+	if actResp.NamespaceID == "" {
+		return nil, fmt.Errorf("ActivateNamespace: IAM response missing namespace_id")
 	}
 	return &actResp, nil
 }
