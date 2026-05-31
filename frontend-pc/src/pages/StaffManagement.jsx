@@ -447,7 +447,7 @@ export default function StaffManagement() {
   ]
 
   // Hide site column for site-level roles (they only see their own site)
-  const businessRole = localStorage.getItem('user_role') || ''
+  const businessRole = localStorage.getItem('user_business_role') || ''
   const isSiteLevel = businessRole === 'site_admin' || businessRole === 'site_member'
   const columns = isSiteLevel
     ? allColumns.filter(col => col.key !== 'site_name')

@@ -193,6 +193,7 @@ function MainLayout() {
         localStorage.setItem('user_sys_perm', sysPerm.toString())
         localStorage.setItem('user_cus_perm', cusPerm.toString())
         localStorage.setItem('user_cus_perm_ext', cusPermExt || '')
+        localStorage.setItem('user_business_role', businessRole)
         const permVersion = payload.perm_version || payload.permVersion || 0
         localStorage.setItem('perm_version', String(permVersion))
 
