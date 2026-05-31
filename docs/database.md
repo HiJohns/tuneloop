@@ -34,13 +34,13 @@
 | deposit_mode | VARCHAR(20) | DEFAULT 'standard' | 押金模式 |
 | is_shadow | BOOLEAN | DEFAULT true | 是否为影子用户 |
 | is_system_admin | BOOLEAN | DEFAULT false | 是否为系统管理员 |
-| status | VARCHAR(20) | DEFAULT 'active' | 用户状态: active/pending |
+| status | VARCHAR(20) | DEFAULT 'pending' | 用户状态: active/pending |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
 **状态说明**:
-- `active`: 正常活跃用户
-- `pending`: 新创建用户，待确认（通过指定用户流程创建）
+- `pending`: 新创建用户，待 IAM 确认。创建后由 IAM 激活，登录时校验
+- `active`: 已激活用户。IAM 侧确认后本地同步为 active
 
 ### 2.2 merchants - 商户表
 

@@ -265,10 +265,12 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 	user.IAMSub = iamResp.UserID
 	if user.IAMSub == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": 50000, "message": "IAM user creation failed: empty user_id returned",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: empty user_id returned"})
 		return
+	}
+	user.Status = iamResp.Status
+	if user.Status == "" {
+		user.Status = "pending"
 	}
 
 	if orgID != "" && user.IAMSub != "" {
@@ -406,7 +408,10 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		}
 	}
 
-	if err := db.Model(&user).Update("iam_sub", iamResp.UserID).Error; err != nil {
+	if err := db.Model(&user).Updates(map[string]interface{}{
+		"iam_sub": iamResp.UserID,
+		"status":  "active",
+	}).Error; err != nil {
 		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
 		iamClient.DeleteUser(iamResp.UserID)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + err.Error()})

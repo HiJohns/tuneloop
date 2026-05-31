@@ -128,6 +128,8 @@
 - 系统同时创建确认会话（详见下文）
 - 创建成功后 associated 标志总为 false
 
+> **StaffPage 创建流程** (`POST /api/users`) 同样遵循此规则：用户初始状态为 `pending`（同步 IAM 返回值），与内联创建流程一致。
+
 ### 0.2.4 确认会话 (Confirmation Session)
 
 **架构决策**: 确认流程委托 IAM 管理，Tuneloop 仅接收回调。
