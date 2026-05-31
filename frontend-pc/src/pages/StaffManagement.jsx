@@ -381,22 +381,13 @@ export default function StaffManagement() {
     },
     {
       title: '状态',
-      dataIndex: 'status',
       key: 'status',
       width: 80,
-      render: (status) => {
-        if (status === 'active') return <Tag color="green">正常</Tag>
-        if (status === 'pending') return <Tag color="orange">待确认</Tag>
-        return <Tag color="red">禁用</Tag>
-      }
-    },
-    {
-      title: '激活状态',
-      key: 'activation',
-      width: 100,
       render: (_, record) => {
-        if (record.iam_sub) return <Tag color="green">已激活</Tag>
-        return <Tag color="red">未激活</Tag>
+        if (!record.iam_sub) return <Tag color="red">未激活</Tag>
+        if (record.status === 'pending') return <Tag color="orange">待确认</Tag>
+        if (record.status === 'active') return <Tag color="green">正常</Tag>
+        return <Tag color="red">禁用</Tag>
       }
     },
     {
