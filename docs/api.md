@@ -3039,6 +3039,73 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 
 ---
 
+### 10.17 人员管理
+
+#### 10.17.1 创建用户
+
+**接口**: `POST /api/users`
+
+**权限**: `sys_perm bit 17 (user:create)`
+
+**请求 Body**:
+```json
+{
+  "name": "张三",
+  "phone": "13800000000",
+  "email": "zhangsan@example.com",
+  "username": "zhangsan",
+  "position": "销售",
+  "user_type": "员工",
+  "site_id": "uuid-here",
+  "role": "site_member"
+}
+```
+
+**参数说明**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 姓名 |
+| phone | string | 是 | 手机号 |
+| email | string | 否 | 邮箱 |
+| username | string | 否 | 用户名（不传时自动使用 email 前缀） |
+| position | string | 否 | 职位 |
+| user_type | string | 否 | 用户类型（员工/维修技师） |
+| site_id | string | 否 | 归属网点 ID |
+| role | string | 否 | 角色：site_member / site_admin / worker |
+
+**角色默认值逻辑**：
+- 未传 `role` 时，若指定了 `site_id`，查询该网点已有成员数：
+  - **第一个成员** → `site_admin`（网点管理员）
+  - **后续成员** → `site_member`（网点员工）
+- 未传 `role` 且未指定 `site_id` → `site_member`
+
+**约束**：
+- `phone`、`email`、`username` 在租户内唯一，冲突返回 `40900`
+- 只有 `site_admin`/`merchant_admin` 可以创建 `site_admin` 角色
+- 创建用户后自动在 IAM 侧绑定组织、设置权限位图、分配角色模板
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "id": "uuid",
+    "username": "zhangsan",
+    "name": "张三",
+    "phone": "13800000000",
+    "email": "zhangsan@example.com",
+    "position": "销售",
+    "user_type": "员工",
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  }
+}
+```
+
+---
+
 ## 十一、通用模块
 
 ### 11.1 文件上传

@@ -156,6 +156,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		Position string    `json:"position"`
 		UserType string    `json:"user_type"`
 		SiteID   uuid.UUID `json:"site_id"`
+		Role     string    `json:"role"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -247,6 +248,36 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		user.OrgID = orgID
 	}
 
+	// Resolve role with first-user default
+	resolvedRole := req.Role
+	if resolvedRole == "" {
+		if req.SiteID != uuid.Nil {
+			var memberCount int64
+			db.Model(&models.SiteMember{}).Where("site_id = ? AND tenant_id = ?", req.SiteID.String(), tenantID).Count(&memberCount)
+			if memberCount == 0 {
+				resolvedRole = "site_admin"
+			} else {
+				resolvedRole = "site_member"
+			}
+		} else {
+			resolvedRole = "site_member"
+		}
+	}
+
+	validRoles := map[string]bool{"site_member": true, "site_admin": true, "worker": true}
+	if !validRoles[resolvedRole] {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid role, must be one of: site_member, site_admin, worker"})
+		return
+	}
+
+	if resolvedRole == "site_admin" {
+		callerRole := middleware.GetBusinessRole(c.Request.Context())
+		if callerRole != middleware.BusinessRoleMerchantAdmin && callerRole != middleware.BusinessRoleSiteAdmin && callerRole != middleware.BusinessRoleSystemAdmin {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40301, "message": "only merchant_admin or site_admin can create site_admin users"})
+			return
+		}
+	}
+
 	iamClient := services.NewIAMClient()
 	username := req.Username
 	if username == "" {
@@ -274,25 +305,38 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 
 	if orgID != "" && user.IAMSub != "" {
-		iamRole := services.GetBusinessRole("site_member")
-		if iamRole == "" {
-			iamRole = "staff"
-		}
-		if err := iamClient.BindUserToOrganization(user.IAMSub, orgID, iamRole, ""); err != nil {
+		userToken := services.ExtractUserToken(c)
+		operatorID := middleware.GetUserID(c.Request.Context())
+		iamRole := toIAMRole(resolvedRole)
+		if err := iamClient.BindUserToOrganizationWithToken(userToken, user.IAMSub, orgID, iamRole, operatorID); err != nil {
 			iamClient.DeleteUser(user.IAMSub)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM bind user to organization failed: " + err.Error()})
 			return
 		}
 
-		template := services.AllRoleTemplates["site_member"]
+		template := services.AllRoleTemplates[resolvedRole]
 		if len(template.CusPermCodes) > 0 {
-		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 			if err := iamClient.SetUserCustomerPermissions(orgID, user.IAMSub, cusPerm, cusPermExt); err != nil {
 				iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
 				iamClient.DeleteUser(user.IAMSub)
 				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
 				return
 			}
+		}
+
+		nsID := middleware.GetNamespaceID(c.Request.Context())
+		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+			for _, t := range templates {
+				if t.Code == resolvedRole {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, user.IAMSub, t.ID); err != nil {
+						log.Printf("[CreateUser] AssignRoleTemplateToUserWithToken failed for user %s code %s: %v", user.IAMSub, resolvedRole, err)
+					}
+					break
+				}
+			}
+		} else {
+			log.Printf("[CreateUser] ListRoleTemplates failed: %v", err)
 		}
 	}
 
@@ -311,7 +355,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			TenantID: tenantID,
 			SiteID:   req.SiteID.String(),
 			UserID:   user.ID,
-			Role:     "site_member",
+			Role:     resolvedRole,
 		}
 		if err := db.Create(&siteMember).Error; err != nil {
 			log.Printf("[WARN] Failed to create site_member for user %s: %v", user.ID, err)
