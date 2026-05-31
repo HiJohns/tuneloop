@@ -19,7 +19,7 @@ type User struct {
 	DepositMode   string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
 	IsShadow      bool       `gorm:"default:true" json:"is_shadow"`
 	IsSystemAdmin bool       `gorm:"default:false" json:"is_system_admin"`
-	Status        string     `gorm:"type:varchar(20);default:'active'" json:"status"`
+	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	Position      string     `gorm:"type:varchar(100)" json:"position"`
 	UserType      string     `gorm:"type:varchar(20);default:'员工'" json:"user_type"`
 	Role          string     `gorm:"type:varchar(50)" json:"role"`
@@ -292,7 +292,7 @@ type Label struct {
 type Tenant struct {
 	ID          string    `gorm:"type:uuid;primaryKey" json:"id"`
 	Name        string    `gorm:"type:varchar(100);not null" json:"name"`
-	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Status      string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	Description string    `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
