@@ -185,6 +185,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())
 	authRequired.Use(middleware.AuditLogger(auditWriter))
+	authRequired.Use(middleware.RequirePasswordNotForceChange())
 	{
 		// IAM Proxy routes
 		iamProxyHandler := handlers.NewIAMProxyHandler()

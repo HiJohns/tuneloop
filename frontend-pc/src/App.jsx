@@ -91,6 +91,8 @@ function MainLayout() {
   const location = useLocation()
   const [userInfo, setUserInfo] = useState(null)
   const [showExpiryWarning, setShowExpiryWarning] = useState(false)
+  const [searchParams] = useSearchParams()
+  const isFirstLogin = location.pathname === '/user/change-password' && searchParams.get('first_login') === '1'
 
   const redirectToIAMLogin = () => {
     const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
@@ -221,6 +223,16 @@ function MainLayout() {
       }
     }
   }, [])
+
+  // Check force_password_change after userInfo is loaded
+  useEffect(() => {
+    if (!userInfo || location.pathname === '/user/change-password') return
+    api.get('/users/me').then(resp => {
+      if (resp.code === 20000 && resp.data?.force_password_change) {
+        navigate('/user/change-password?first_login=1')
+      }
+    }).catch(() => {})
+  }, [userInfo])
   
   const menuConfig = [
   {
@@ -356,6 +368,10 @@ function onMenuClick(e) {
   if (!getToken() && location.pathname !== '/callback') {
     redirectToIAMLogin()
     return null
+  }
+
+  if (isFirstLogin) {
+    return <ChangePassword />
   }
 
   return (

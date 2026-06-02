@@ -436,16 +436,19 @@ type CreateUserRequest struct {
 	Email                 string `json:"email"`
 	Phone                 string `json:"phone"`
 	Password              string `json:"password,omitempty"`
+	SkipActivation        bool   `json:"skip_activation"`
 	SendNotificationEmail bool   `json:"send_notification_email,omitempty"`
 	NotificationLang      string `json:"notification_lang,omitempty"`
+	ForcePasswordChange   bool   `json:"force_password_change,omitempty"`
 	CallbackURL           string `json:"callback_url,omitempty"`
 	Reason                string `json:"reason,omitempty"`
 	OperatorID            string `json:"operator_id,omitempty"`
 }
 
 type CreateUserResponse struct {
-	UserID string `json:"user_id"`
-	Status string `json:"status"`
+	UserID          string `json:"user_id"`
+	Status          string `json:"status"`
+	InitialPassword string `json:"initial_password,omitempty"`
 }
 
 // ExistingUserInfo holds data returned when creating a user that already exists.

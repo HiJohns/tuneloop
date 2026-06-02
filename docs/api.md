@@ -3057,7 +3057,10 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
   "position": "销售",
   "user_type": "员工",
   "site_id": "uuid-here",
-  "role": "site_member"
+  "role": "site_member",
+  "password": "MyPwd123",
+  "auto_generate": false,
+  "force_password_change": true
 }
 ```
 
@@ -3067,12 +3070,23 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 |------|------|------|------|
 | name | string | 是 | 姓名 |
 | phone | string | 是 | 手机号 |
-| email | string | 否 | 邮箱 |
+| email | string | 否 | 邮箱（改选填） |
 | username | string | 否 | 用户名（不传时自动使用 email 前缀） |
 | position | string | 否 | 职位 |
 | user_type | string | 否 | 用户类型（员工/维修技师） |
 | site_id | string | 否 | 归属网点 ID |
 | role | string | 否 | 角色：site_member / site_admin / worker |
+| password | string | 否 | 管理员设置的初始密码（8位+大写+小写+数字） |
+| auto_generate | bool | 否 | 自动生成密码（true时忽略 password 字段） |
+| force_password_change | bool | 否 | 首次登录强制修改密码 |
+
+**密码设置场景**:
+
+| 场景 | password | auto_generate | 说明 |
+|------|----------|---------------|------|
+| 手动设密 | 提供 | false | 用户直接激活，无确认邮件 |
+| 自动生成 | 空 | true | 后端返回 initial_password |
+| 兼容旧流程 | 空 | false | IAM 发送确认邮件 |
 
 **角色默认值逻辑**：
 - 未传 `role` 时，若指定了 `site_id`，查询该网点已有成员数：
@@ -3099,14 +3113,50 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
     "position": "销售",
     "user_type": "员工",
     "created_at": "2026-01-01T00:00:00Z",
-    "updated_at": "2026-01-01T00:00:00Z"
+    "updated_at": "2026-01-01T00:00:00Z",
+    "initial_password": "aB3xK9mQ2pL7"
   }
+}
+```
+
+> `initial_password` 仅在 `auto_generate=true` 时返回，展示一次后应丢弃。
+
+---
+
+#### 10.17.3 修改个人密码
+
+**接口**: `POST /api/user/change-password`
+
+**权限**: 登录即可（自服务）
+
+**说明**: 当前登录用户直接修改密码（无需邮件确认）。成功后清除 `force_password_change` 标志。
+
+**请求 Body**:
+```json
+{
+  "new_password": "NewPwd123"
+}
+```
+
+**参数说明**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| new_password | string | 是 | 新密码（8位+大写+小写+数字） |
+
+**频率限制**: 同用户每 5 分钟最多 3 次。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "密码修改成功"
 }
 ```
 
 ---
 
-#### 10.17.2 重置个人密码
+#### 10.17.4 重置个人密码
 
 **接口**: `POST /api/user/reset-password`
 

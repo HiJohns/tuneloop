@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	mrand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -297,17 +298,25 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 
 	var initialPassword string
+	var hasPassword bool
 	if req.AutoGenerate {
 		initialPassword = generatePassword()
 		createReq.Password = initialPassword
 		createReq.SendNotificationEmail = req.Email != ""
 		createReq.NotificationLang = "zh"
+		hasPassword = true
 	} else if req.Password != "" {
 		if err := validatePassword(req.Password); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": err.Error()})
 			return
 		}
 		createReq.Password = req.Password
+		hasPassword = true
+	}
+
+	if hasPassword {
+		createReq.SkipActivation = true
+		createReq.ForcePasswordChange = req.ForcePasswordChange
 	}
 
 	iamResp, err := iamClient.CreateUser(createReq)
@@ -320,9 +329,13 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: empty user_id returned"})
 		return
 	}
-	user.Status = iamResp.Status
-	if user.Status == "" {
-		user.Status = "pending"
+	if hasPassword {
+		user.Status = "active"
+	} else {
+		user.Status = iamResp.Status
+		if user.Status == "" {
+			user.Status = "pending"
+		}
 	}
 	user.ForcePasswordChange = req.ForcePasswordChange
 
@@ -737,6 +750,7 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"email":         user.Email,
 		"position":      user.Position,
 		"user_type":     user.UserType,
+		"force_password_change": user.ForcePasswordChange,
 		"role":          middleware.GetRole(ctx),
 		"business_role": middleware.GetBusinessRole(ctx),
 		"gid":           middleware.GetGid(ctx),
@@ -1090,29 +1104,48 @@ func getDescendantSiteIDs(db *gorm.DB, tenantID string, siteID uuid.UUID) ([]uui
 }
 
 func generatePassword() string {
-	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	const letters = "abcdefghijklmnopqrstuvwxyz"
+	const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const digits = "0123456789"
+	const all = letters + uppers + digits
+
 	b := make([]byte, 12)
-	for i := range b {
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
-		b[i] = charset[n.Int64()]
+	charlen := big.NewInt(int64(len(all)))
+	digitlen := big.NewInt(int64(len(digits)))
+	upperlen := big.NewInt(int64(len(uppers)))
+	letterlen := big.NewInt(int64(len(letters)))
+
+	n1, _ := rand.Int(rand.Reader, digitlen)
+	b[0] = digits[n1.Int64()]
+	n2, _ := rand.Int(rand.Reader, upperlen)
+	b[1] = uppers[n2.Int64()]
+	n3, _ := rand.Int(rand.Reader, letterlen)
+	b[2] = letters[n3.Int64()]
+	for i := 3; i < 12; i++ {
+		n, _ := rand.Int(rand.Reader, charlen)
+		b[i] = all[n.Int64()]
 	}
+	mrand.Shuffle(12, func(i, j int) { b[i], b[j] = b[j], b[i] })
 	return string(b)
 }
+
+var (
+	reUpper   = regexp.MustCompile(`[A-Z]`)
+	reLower   = regexp.MustCompile(`[a-z]`)
+	reDigit   = regexp.MustCompile(`[0-9]`)
+)
 
 func validatePassword(password string) error {
 	if len(password) < 8 {
 		return fmt.Errorf("密码长度不能少于 8 位")
 	}
-	hasUpper, _ := regexp.MatchString(`[A-Z]`, password)
-	hasLower, _ := regexp.MatchString(`[a-z]`, password)
-	hasDigit, _ := regexp.MatchString(`[0-9]`, password)
-	if !hasUpper {
+	if !reUpper.MatchString(password) {
 		return fmt.Errorf("密码必须包含大写字母")
 	}
-	if !hasLower {
+	if !reLower.MatchString(password) {
 		return fmt.Errorf("密码必须包含小写字母")
 	}
-	if !hasDigit {
+	if !reDigit.MatchString(password) {
 		return fmt.Errorf("密码必须包含数字")
 	}
 	return nil

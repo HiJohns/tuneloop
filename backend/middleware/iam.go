@@ -464,3 +464,30 @@ func contains(items []string, target string) bool {
 	}
 	return false
 }
+
+// RequirePasswordNotForceChange checks if the user needs to change password before accessing any route.
+// Uses local users.force_password_change flag (方案 A).
+// Exempts /api/user/change-password itself.
+func RequirePasswordNotForceChange() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.URL.Path == "/api/user/change-password" {
+			c.Next()
+			return
+		}
+		userID := GetUserID(c.Request.Context())
+		if userID == "" {
+			c.Next()
+			return
+		}
+		db := database.GetDB().WithContext(c.Request.Context())
+		var count int64
+		if err := db.Table("users").Where("(iam_sub = ? OR id = ?) AND force_password_change = ? AND deleted_at IS NULL", userID, userID, true).Count(&count).Error; err == nil && count > 0 {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"code":    40302,
+				"message": "请先修改密码后再使用系统功能",
+			})
+			return
+		}
+		c.Next()
+	}
+}
