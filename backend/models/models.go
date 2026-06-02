@@ -276,7 +276,7 @@ type Deposit struct {
 	UserID          string    `gorm:"type:uuid;index;not null" json:"user_id"`
 	Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Type            string    `gorm:"type:varchar(20);not null" json:"type"`
-	Status          string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
 	TransactionDate string    `gorm:"type:date;not null" json:"transaction_date"`
 	Notes           string    `gorm:"type:text" json:"notes"`
 	CreatedAt       time.Time `json:"created_at"`

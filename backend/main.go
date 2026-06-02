@@ -238,8 +238,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
-		authRequired.POST("/orders/preview", handlers.PreviewOrder)
-		authRequired.POST("/orders", middleware.RequireCusPerm("order:create"), handlers.CreateOrder)
 		authRequired.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
 		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
 		authRequired.GET("/orders/:id", middleware.RequireCusPerm("order:read"), handlers.GetOrder)
