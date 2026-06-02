@@ -247,6 +247,16 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/orders/:id/return", middleware.RequireCusPerm("order:update"), handlers.ReturnOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
 
+		// Forwarding session routes
+		authRequired.GET("/forwarding/sessions", handlers.ListForwardingSessions)
+		authRequired.PUT("/forwarding/sessions/:id/receive", handlers.ReceiveForwardingSession)
+		authRequired.PUT("/forwarding/sessions/:id/last-mile", handlers.LastMileForwardingSession)
+		authRequired.PUT("/forwarding/sessions/:id/complete", handlers.CompleteForwardingSession)
+		authRequired.PUT("/forwarding/sessions/:id/lost", handlers.LostForwardingSession)
+
+		// Scrap instrument
+		authRequired.POST("/instruments/:id/scrap", middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
+
 		// Merchant management routes (require tenant sys_perm + project_admin role)
 		authRequired.GET("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
 		authRequired.GET("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)

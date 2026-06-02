@@ -78,6 +78,7 @@ const (
 	StockStatusRented      = "rented"
 	StockStatusReturning   = "returning"
 	StockStatusMaintenance = "maintenance"
+	StockStatusLost       = "lost"
 	StockStatusArchived   = "archived"
 )
 
@@ -112,6 +113,24 @@ const (
 const (
 	MerchantTypeFull      = "full"
 	MerchantTypeControlled = "controlled"
+)
+
+const (
+	ForwardingStatusPending   = "pending"
+	ForwardingStatusInTransit = "in_transit"
+	ForwardingStatusReceived  = "received"
+	ForwardingStatusReady     = "ready"
+	ForwardingStatusLastMile  = "last_mile"
+	ForwardingStatusDelivered = "delivered"
+	ForwardingStatusCompleted = "completed"
+	ForwardingStatusLost      = "lost"
+	ForwardingStatusCancelled = "cancelled"
+	ForwardingStatusException = "exception"
+)
+
+const (
+	ForwardingDirectionOutbound = "outbound"
+	ForwardingDirectionReturn   = "return"
 )
 
 // Notification 通知消息表
@@ -436,6 +455,25 @@ type LeaseSession struct {
 	ReturnTracking  string     `gorm:"type:varchar(100)" json:"return_tracking"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+// ForwardingSession 转发会话表
+type ForwardingSession struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID         string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID            string    `gorm:"type:uuid;index" json:"org_id"`
+	LeaseSessionID   string    `gorm:"type:uuid;not null;index" json:"lease_session_id"`
+	OrderID          string    `gorm:"type:uuid;index" json:"order_id"`
+	MerchantID       string    `gorm:"type:uuid;index" json:"merchant_id"`
+	ForwardingSiteID string    `gorm:"type:uuid;index" json:"forwarding_site_id"`
+	Direction        string    `gorm:"type:varchar(20);not null" json:"direction"`
+	Status           string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	SessionCode      string    `gorm:"type:varchar(6);uniqueIndex" json:"session_code"`
+	InstrumentID     string    `gorm:"type:uuid;index" json:"instrument_id"`
+	TrackingNumbers  string    `gorm:"type:jsonb" json:"tracking_numbers"`
+	Notes            string    `gorm:"type:text" json:"notes"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // ElectronicContract 电子合同表

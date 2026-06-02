@@ -311,6 +311,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		if err := tx.Model(&models.LeaseSession{}).Where("id = ?", leaseSession.ID).Update("delivery_address", deliveryStr).Error; err != nil {
 			log.Printf("[CreateOrder] Warning: failed to set delivery_address: %v", err)
 		}
+		// Auto-create outbound forwarding session for controlled merchants
+		createForwardingSession(c, tx, tenantID, leaseSession.OrgID, leaseSession.ID, order.ID, req.InstrumentID, models.ForwardingDirectionOutbound)
 	}
 
 	// Update instrument stock_status to reserved
@@ -421,6 +423,9 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 			"phone":   transitInfo.Phone,
 			"contact": transitInfo.ContactName,
 		}
+		// Auto-create return forwarding session for controlled merchants
+		db2 := database.GetDB().WithContext(ctx)
+		createForwardingSession(c, db2, tenantID, leaseSession.OrgID, leaseSession.ID, leaseSession.OrderID, leaseSession.InstrumentID, models.ForwardingDirectionReturn)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
