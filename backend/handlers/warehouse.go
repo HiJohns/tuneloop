@@ -86,11 +86,11 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
-	// Update order logistics info
+	// Update order logistics info (must be in paid status)
 	shippedAt := req.ShippedAt
 	company := req.Company
 	trackingNumber := req.TrackingNumber
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, tenantID).Updates(map[string]interface{}{
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, "paid").Updates(map[string]interface{}{
 		"tracking_number": trackingNumber,
 		"courier_company": company,
 		"shipped_at":      shippedAt,
@@ -119,7 +119,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		TenantID:   tenantID,
 		OrgID:      stringPtr(order.OrgID),
 		OrderID:    orderID,
-		StatusFrom: "preparing",
+		StatusFrom: "paid",
 		StatusTo:   "shipped",
 		Notes:      "物流信息已录入",
 		ChangedBy:  stringPtr(userID),
@@ -182,8 +182,8 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		return
 	}
 
-	// 3. Update order status and record delivery time as lease start
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).Updates(map[string]interface{}{
+	// 3. Update order status and record delivery time as lease start (must be in shipped status)
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, order.TenantID, "shipped").Updates(map[string]interface{}{
 		"status":       "in_lease",
 		"delivered_at": req.DeliveredAt,
 	}).Error; err != nil {
@@ -279,7 +279,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	// Update order status
-	newStatus := "in_stock"
+	newStatus := "in_store"
 	if req.Condition == "damaged" {
 		newStatus = "maintenance"
 	}
@@ -376,8 +376,14 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
-	// Update order status to inspecting
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", "inspecting").Error; err != nil {
+	// Only allow damage assessment for returning orders
+	if order.Status != "returning" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "can only assess damage for orders in returning status"})
+		return
+	}
+
+	// Update order status to maintenance
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", "maintenance").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
 	}
@@ -396,7 +402,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		TenantID:   tenantID,
 		OrderID:    orderID,
 		StatusFrom: order.Status,
-		StatusTo:   "inspecting",
+		StatusTo:   "maintenance",
 		Notes:      "开始定损评估",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
@@ -422,13 +428,13 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		log.Printf("[AssessDamage] Failed to create notification: %v", err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    20000,
-		"message": "success",
-		"data": gin.H{
-			"order_id":      orderID,
-			"status":        "inspecting",
-			"damage_amount": req.DamageAmount,
-		},
-	})
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"message": "success",
+			"data": gin.H{
+				"order_id":      orderID,
+				"status":        "maintenance",
+				"damage_amount": req.DamageAmount,
+			},
+		})
 }

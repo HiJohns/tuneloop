@@ -375,23 +375,21 @@ func CancelOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != "pending" {
+	if order.Status != "reserved" && order.Status != "paid" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "order can only be cancelled when status is pending",
+			"message": "order can only be cancelled when status is reserved or paid",
 		})
 		return
 	}
 
-	// Restore inventory when cancelling order (optional but recommended)
-	// Get instrument and update stock_status back to available
+	// Restore inventory when cancelling order
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
 		// Log error but continue with cancellation
-		// In production, might want to handle this more carefully
 	}
 
-	// Update order status to cancelled
-	if err := db.Model(&order).Update("status", "cancelled").Error; err != nil {
+	// Update order status to in_store (cancelled)
+	if err := db.Model(&order).Update("status", "in_store").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),
@@ -403,8 +401,8 @@ func CancelOrder(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"order_id":   orderID,
-			"old_status": "pending",
-			"new_status": "cancelled",
+			"old_status": order.Status,
+			"new_status": "in_store",
 			"updated_at": time.Now().Format(time.RFC3339),
 		},
 	})
@@ -438,7 +436,7 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 
 	var order models.Order
 	if err := db.Where("instrument_id = ? AND status NOT IN ?",
-		instrument.ID, []string{"cancelled", "completed"}).
+		instrument.ID, []string{"in_store"}).
 		Order("created_at DESC").First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "未找到该乐器的活跃订单"})
 		return
