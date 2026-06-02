@@ -588,7 +588,7 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 
 	// Check for incomplete orders (paid or in_lease status)
 	var orderCount int64
-	db.Model(&models.Order{}).Where("org_id = ? AND status IN (?)", merchant.OrgID, []string{"paid", "in_lease"}).Count(&orderCount)
+	db.Model(&models.Order{}).Where("org_id = ? AND status IN (?)", merchant.OrgID, []string{models.OrderStatusPaid, models.OrderStatusInLease}).Count(&orderCount)
 	if orderCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,

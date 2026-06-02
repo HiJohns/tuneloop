@@ -236,9 +236,14 @@ func GetPublicInstrumentByID(c *gin.Context) {
 
 func GetPublicCategories(c *gin.Context) {
 	db := database.GetDB()
+	tenantID := c.Query("tenant")
 
 	var categories []models.Category
-	if err := db.Find(&categories).Error; err != nil {
+	query := db.Model(&models.Category{})
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.Find(&categories).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch categories",

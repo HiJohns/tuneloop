@@ -82,6 +82,22 @@ const (
 )
 
 const (
+	OrderStatusInStore      = "in_store"
+	OrderStatusReserved     = "reserved"
+	OrderStatusPaid         = "paid"
+	OrderStatusShipped      = "shipped"
+	OrderStatusInLease      = "in_lease"
+	OrderStatusReturning    = "returning"
+	OrderStatusMaintenance  = "maintenance"
+)
+
+const (
+	LeaseStatusActive         = "active"
+	LeaseStatusReturnRequested = "return_requested"
+	LeaseStatusCompleted      = "completed"
+)
+
+const (
 	MerchantTypeFull      = "full"
 	MerchantTypeControlled = "controlled"
 )

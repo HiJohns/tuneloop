@@ -80,8 +80,13 @@ func GetOrder(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 	var order models.Order
-	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+	query := db.Where("id = ?", orderID)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.First(&order).Error; err != nil {
 		if err.Error() == "record not found" {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
@@ -154,10 +159,15 @@ func PayOrder(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Find order and check status
 	var order models.Order
-	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+	query := db.Where("id = ?", orderID)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "order not found",
@@ -165,7 +175,7 @@ func PayOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != "reserved" && order.Status != "pending" {
+	if order.Status != models.OrderStatusReserved && order.Status != "pending" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order can only be paid when status is reserved",
@@ -174,7 +184,7 @@ func PayOrder(c *gin.Context) {
 	}
 
 	// Update order status to paid
-	if err := db.Model(&order).Update("status", "paid").Error; err != nil {
+	if err := db.Model(&order).Update("status", models.OrderStatusPaid).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),
@@ -187,7 +197,7 @@ func PayOrder(c *gin.Context) {
 		"data": gin.H{
 			"order_id":   orderID,
 			"old_status": "pending",
-			"new_status": "paid",
+			"new_status": models.OrderStatusPaid,
 			"updated_at": time.Now().Format(time.RFC3339),
 		},
 	})
@@ -205,10 +215,15 @@ func PickupOrder(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Find order and check status
 	var order models.Order
-	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+	query := db.Where("id = ?", orderID)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "order not found",
@@ -216,7 +231,7 @@ func PickupOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != "paid" {
+	if order.Status != models.OrderStatusPaid {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order can only be picked up when status is paid",
@@ -225,7 +240,7 @@ func PickupOrder(c *gin.Context) {
 	}
 
 	// Update order status to in_lease
-	if err := db.Model(&order).Update("status", "in_lease").Error; err != nil {
+	if err := db.Model(&order).Update("status", models.OrderStatusInLease).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),
@@ -237,8 +252,8 @@ func PickupOrder(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"order_id":   orderID,
-			"old_status": "paid",
-			"new_status": "in_lease",
+			"old_status": models.OrderStatusPaid,
+			"new_status": models.OrderStatusInLease,
 			"updated_at": time.Now().Format(time.RFC3339),
 		},
 	})
@@ -281,7 +296,7 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != "in_lease" {
+	if order.Status != models.OrderStatusInLease {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order can only be returned when status is in_lease",
@@ -302,7 +317,7 @@ func ReturnOrder(c *gin.Context) {
 	// Update order status: in_lease -> returning
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).
 		Updates(map[string]interface{}{
-			"status":          "returning",
+			"status":          models.OrderStatusReturning,
 			"courier_company": req.CourierCompany,
 			"tracking_number": req.TrackingNumber,
 		}).Error; err != nil {
@@ -328,8 +343,8 @@ func ReturnOrder(c *gin.Context) {
 		ID:         uuid.New().String(),
 		TenantID:   order.TenantID,
 		OrderID:    orderID,
-		StatusFrom: "in_lease",
-		StatusTo:   "returning",
+		StatusFrom: models.OrderStatusInLease,
+		StatusTo:   models.OrderStatusReturning,
 		Notes:      "顾客发起归还",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
@@ -346,8 +361,8 @@ func ReturnOrder(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"order_id":   orderID,
-			"old_status": "in_lease",
-			"new_status": "returning",
+			"old_status": models.OrderStatusInLease,
+			"new_status": models.OrderStatusReturning,
 		},
 	})
 }
@@ -375,7 +390,7 @@ func CancelOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != "reserved" && order.Status != "paid" {
+	if order.Status != models.OrderStatusReserved && order.Status != models.OrderStatusPaid {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order can only be cancelled when status is reserved or paid",
@@ -389,7 +404,7 @@ func CancelOrder(c *gin.Context) {
 	}
 
 	// Update order status to in_store (cancelled)
-	if err := db.Model(&order).Update("status", "in_store").Error; err != nil {
+	if err := db.Model(&order).Update("status", models.OrderStatusInStore).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),
@@ -402,7 +417,7 @@ func CancelOrder(c *gin.Context) {
 		"data": gin.H{
 			"order_id":   orderID,
 			"old_status": order.Status,
-			"new_status": "in_store",
+			"new_status": models.OrderStatusInStore,
 			"updated_at": time.Now().Format(time.RFC3339),
 		},
 	})
@@ -436,7 +451,7 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 
 	var order models.Order
 	if err := db.Where("instrument_id = ? AND status NOT IN ?",
-		instrument.ID, []string{"in_store"}).
+		instrument.ID, []string{models.OrderStatusInStore}).
 		Order("created_at DESC").First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "未找到该乐器的活跃订单"})
 		return

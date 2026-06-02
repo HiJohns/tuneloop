@@ -267,7 +267,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		MonthlyRent:  monthlyRent,
 		Deposit:      deposit,
 		ShippingFee:  shippingFee,
-		Status:       "reserved",
+		Status:       models.OrderStatusReserved,
 		StartDate:    &startDateStr,
 		EndDate:      &endDateStr,
 		CreatedAt:    time.Now(),

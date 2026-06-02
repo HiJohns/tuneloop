@@ -155,24 +155,24 @@ export default function WarehouseManagement() {
 
   const getStatusConfig = (status) => {
     const configMap = {
-      'preparing': { text: '待发货', color: 'orange' },
+      'paid': { text: '待发货', color: 'orange' },
       'shipped': { text: '运输中', color: 'blue' },
-      'delivered': { text: '已送达', color: 'green' },
-      'return_requested': { text: '归还申请', color: 'orange' },
-      'return_inspected': { text: '归还验收', color: 'blue' },
-      'return_completed': { text: '归还完成', color: 'green' }
+      'in_lease': { text: '已送达', color: 'green' },
+      'returning': { text: '归还申请', color: 'orange' },
+      'in_store': { text: '归还完成', color: 'green' },
+      'maintenance': { text: '维修中', color: 'red' }
     };
     return configMap[status] || { text: status, color: 'default' };
   };
 
   const getStepStatus = (status) => {
     const stepMap = {
-      'preparing': 0,
+      'paid': 0,
       'shipped': 1,
-      'delivered': 2,
-      'return_requested': 2,
-      'return_inspected': 3,
-      'return_completed': 4
+      'in_lease': 2,
+      'returning': 2,
+      'in_store': 4,
+      'maintenance': 3
     };
     return stepMap[status] || 0;
   };
@@ -225,7 +225,7 @@ export default function WarehouseManagement() {
           >
             详情
           </Button>
-          {record.status === 'preparing' && (
+          {record.status === 'paid' && (
             <Button 
               size="small" 
               icon={<TruckOutlined />}
@@ -254,7 +254,7 @@ export default function WarehouseManagement() {
                 确认收货
               </Button>
           )}
-          {record.status === 'return_requested' && (
+          {record.status === 'returning' && (
             <>
               <Button 
                 size="small" 
@@ -290,10 +290,10 @@ export default function WarehouseManagement() {
               allowClear
               style={{ width: 120 }}
               options={[
-                { label: '待发货', value: 'preparing' },
+                { label: '待发货', value: 'paid' },
                 { label: '运输中', value: 'shipped' },
-                { label: '已送达', value: 'delivered' },
-                { label: '归还申请', value: 'return_requested' }
+                { label: '已送达', value: 'in_lease' },
+                { label: '归还申请', value: 'returning' }
               ]}
             />
             <Button onClick={fetchOrders}>刷新</Button>

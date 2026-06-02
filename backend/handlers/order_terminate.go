@@ -31,7 +31,7 @@ func TerminateOrder(c *gin.Context) {
 
 	tx := db.Begin()
 
-	order.Status = "in_store"
+	order.Status = models.OrderStatusInStore
 	if err := tx.WithContext(c.Request.Context()).Save(&order).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -65,7 +65,7 @@ func TerminateOrder(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"order_id":           order.ID,
-			"status":             "in_store",
+			"status":             models.OrderStatusInStore,
 			"deposit_refunded":   depositRefunded,
 			"inventory_released": true,
 		},

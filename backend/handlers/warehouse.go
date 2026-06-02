@@ -37,6 +37,10 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 
 	query := db.Model(&models.Order{})
 
+	tenantID := middleware.GetTenantID(ctx)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
 	orgID := middleware.GetOrgID(ctx)
 	if orgID != "" {
 		query = query.Where("org_id = ?", orgID)
@@ -90,11 +94,11 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	shippedAt := req.ShippedAt
 	company := req.Company
 	trackingNumber := req.TrackingNumber
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, "paid").Updates(map[string]interface{}{
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(map[string]interface{}{
 		"tracking_number": trackingNumber,
 		"courier_company": company,
 		"shipped_at":      shippedAt,
-		"status":          "shipped",
+		"status":          models.OrderStatusShipped,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})
 		return
@@ -119,8 +123,8 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		TenantID:   tenantID,
 		OrgID:      stringPtr(order.OrgID),
 		OrderID:    orderID,
-		StatusFrom: "paid",
-		StatusTo:   "shipped",
+		StatusFrom: models.OrderStatusPaid,
+		StatusTo:   models.OrderStatusShipped,
 		Notes:      "物流信息已录入",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
@@ -134,7 +138,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 
 	resp := gin.H{
 		"order_id": orderID,
-		"status":   "shipped",
+		"status":   models.OrderStatusShipped,
 	}
 
 	transitInfo := GetMerchantTransitInfo(ctx, tenantID)
@@ -183,8 +187,8 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	// 3. Update order status and record delivery time as lease start (must be in shipped status)
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, order.TenantID, "shipped").Updates(map[string]interface{}{
-		"status":       "in_lease",
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, order.TenantID, models.OrderStatusShipped).Updates(map[string]interface{}{
+		"status":       models.OrderStatusInLease,
 		"delivered_at": req.DeliveredAt,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to confirm delivery: " + err.Error()})
@@ -203,8 +207,8 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		ID:         uuid.New().String(),
 		TenantID:   order.TenantID,
 		OrderID:    orderID,
-		StatusFrom: "shipped",
-		StatusTo:   "in_lease",
+		StatusFrom: models.OrderStatusShipped,
+		StatusTo:   models.OrderStatusInLease,
 		Notes:      "物流到达，开始租赁",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
@@ -219,7 +223,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		"message": "success",
 		"data": gin.H{
 			"order_id":    orderID,
-			"status":      "in_lease",
+			"status":      models.OrderStatusInLease,
 			"lease_start": req.DeliveredAt,
 		},
 	})
@@ -252,7 +256,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 
 	// Get order
 	var order models.Order
-	if err := db.Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, "returning").First(&order).Error; err != nil {
+	if err := db.Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusReturning).First(&order).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order not found or not in returning status"})
 		return
 	}
@@ -279,9 +283,9 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	// Update order status
-	newStatus := "in_store"
+	newStatus := models.OrderStatusInStore
 	if req.Condition == "damaged" {
-		newStatus = "maintenance"
+		newStatus = models.OrderStatusMaintenance
 	}
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", newStatus).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
@@ -299,12 +303,17 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
+	// Update LeaseSession to completed
+	if err := db.Model(&models.LeaseSession{}).Where("order_id = ?", orderID).Update("status", models.LeaseStatusCompleted).Error; err != nil {
+		log.Printf("[InspectReturn] Failed to update lease session: %v", err)
+	}
+
 	// Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
 		TenantID:   tenantID,
 		OrderID:    orderID,
-		StatusFrom: "returning",
+		StatusFrom: models.OrderStatusReturning,
 		StatusTo:   newStatus,
 		Notes:      "归还验收: " + req.Condition,
 		ChangedBy:  stringPtr(userID),
@@ -377,13 +386,13 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 
 	// Only allow damage assessment for returning orders
-	if order.Status != "returning" {
+	if order.Status != models.OrderStatusReturning {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "can only assess damage for orders in returning status"})
 		return
 	}
 
 	// Update order status to maintenance
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", "maintenance").Error; err != nil {
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusMaintenance).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
 	}
@@ -402,7 +411,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		TenantID:   tenantID,
 		OrderID:    orderID,
 		StatusFrom: order.Status,
-		StatusTo:   "maintenance",
+		StatusTo:   models.OrderStatusMaintenance,
 		Notes:      "开始定损评估",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
@@ -433,7 +442,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 			"message": "success",
 			"data": gin.H{
 				"order_id":      orderID,
-				"status":        "maintenance",
+				"status":        models.OrderStatusMaintenance,
 				"damage_amount": req.DamageAmount,
 			},
 		})

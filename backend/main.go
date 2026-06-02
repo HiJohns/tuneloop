@@ -634,6 +634,10 @@ func main() {
 	auditLogCleaner := services.NewAuditLogCleaner()
 	auditLogCleaner.Start()
 
+	autoConfirmSvc := handlers.NewAutoConfirmService()
+	autoConfirmSvc.Start()
+	defer autoConfirmSvc.Stop()
+
 	_ = wwwURL
 	_ = wxURL
 

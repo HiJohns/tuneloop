@@ -241,6 +241,19 @@ func (h *MaintenanceSessionHandler) Inspect(c *gin.Context) {
 		return
 	}
 
+	// Auto-update order and instrument status on passed inspection
+	if req.Result == "passed" {
+		var ticket struct{ OrderID string; InstrumentID string }
+		if err := db.Table("maintenance_tickets").Select("order_id, instrument_id").Where("id = ?", session.MaintenanceTicketID).First(&ticket).Error; err == nil {
+			if ticket.OrderID != "" {
+				db.Model(&models.Order{}).Where("id = ?", ticket.OrderID).Update("status", models.OrderStatusInStore)
+			}
+			if ticket.InstrumentID != "" {
+				db.Table("instruments").Where("id = ?", ticket.InstrumentID).Update("stock_status", models.StockStatusAvailable)
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",

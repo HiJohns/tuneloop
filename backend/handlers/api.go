@@ -121,7 +121,7 @@ func GetInstrumentByID(c *gin.Context) {
 	if instrument.StockStatus == "reserved" {
 		var order models.Order
 		if err := db.Where("instrument_id = ? AND status NOT IN (?, ?) ORDER BY created_at DESC LIMIT 1",
-			instrumentID, "cancelled", "completed").First(&order).Error; err == nil {
+			instrumentID, "cancelled", models.OrderStatusInStore).First(&order).Error; err == nil {
 			// Get user info
 			var user models.User
 			if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {

@@ -56,8 +56,15 @@
 | contact_name | VARCHAR(255) | | 联系人姓名 |
 | contact_email | VARCHAR(255) | | 联系人邮箱 |
 | contact_phone | VARCHAR(50) | | 联系人电话 |
+| phone | VARCHAR(50) | | 联系电话 |
+| address | TEXT | | 地址 |
 | admin_uid | UUID | INDEX | 管理员用户 ID |
+| admin_pending | BOOLEAN | DEFAULT false | 管理员待确认 |
 | status | VARCHAR(20) | DEFAULT 'active' | 状态 (active/inactive) |
+| merchant_type | VARCHAR(20) | DEFAULT 'full' | 商户类型: full/controlled |
+| transit_address | TEXT | | 受控商户转发地址 |
+| transit_phone | VARCHAR(50) | | 受控商户转发电话 |
+| transit_contact_name | VARCHAR(255) | | 受控商户转发联系人 |
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
@@ -244,12 +251,16 @@ photos:
 | created_at | TIMESTAMP | | 创建时间 |
 | updated_at | TIMESTAMP | | 更新时间 |
 
-**状态值**:
-- `pending`: 待支付
-- `paid`: 已支付
+**状态值** (参考 state-machine.md §1.1 标准):
+- `in_store`: 在库/待租
+- `reserved`: 已预约
+- `paid`: 已支付/待发货
+- `shipped`: 运输中
 - `in_lease`: 租赁中
-- `completed`: 已完成
-- `cancelled`: 已取消
+- `returning`: 归还中
+- `maintenance`: 维修中
+
+> **注意**: 以上为标准状态机值。所有 handler 中的状态字符串已使用 `models.OrderStatus*` 常量替代。
 
 ### 2.6 sites - 网点表
 
