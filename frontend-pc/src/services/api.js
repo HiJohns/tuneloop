@@ -463,19 +463,21 @@ export const bulkImportApi = {
       headers: {}
     })
   },
-  previewAccounts: (file) => {
+  previewAccounts: (file, skipActivation) => {
     const formData = new FormData()
     formData.append('file', file)
-    return request('/admin/bulk-import/accounts?dry_run=true', {
+    const params = skipActivation ? '?dry_run=true&skip_activation=true' : '?dry_run=true'
+    return request('/admin/bulk-import/accounts' + params, {
       method: 'POST',
       body: formData,
       headers: {}
     })
   },
-  importAccounts: (file) => {
+  importAccounts: (file, skipActivation) => {
     const formData = new FormData()
     formData.append('file', file)
-    return request('/admin/bulk-import/accounts', {
+    const params = skipActivation ? '?skip_activation=true' : ''
+    return request('/admin/bulk-import/accounts' + params, {
       method: 'POST',
       body: formData,
       headers: {}

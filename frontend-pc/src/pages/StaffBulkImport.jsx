@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Steps, Button, Upload, message, Card, Table, Alert, Space, Typography, Tag } from 'antd'
+import { Steps, Button, Upload, message, Card, Table, Alert, Space, Typography, Tag, Checkbox } from 'antd'
 import { UploadOutlined, DownloadOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { bulkImportApi, getToken } from '../services/api'
@@ -14,6 +14,7 @@ export default function StaffBulkImport() {
   const [previewData, setPreviewData] = useState(null)
   const [importResult, setImportResult] = useState(null)
   const [executing, setExecuting] = useState(false)
+  const [skipActivation, setSkipActivation] = useState(false)
 
   const steps = [
     { title: '上传 CSV' },
@@ -28,7 +29,7 @@ export default function StaffBulkImport() {
     }
     setLoading(true)
     try {
-      const result = await bulkImportApi.previewAccounts(fileList[0].originFileObj)
+      const result = await bulkImportApi.previewAccounts(fileList[0].originFileObj, skipActivation)
       if (result.code === 20000) {
         setPreviewData(result.data)
         setCurrentStep(1)
@@ -74,7 +75,7 @@ export default function StaffBulkImport() {
     setExecuting(true)
     setCurrentStep(2)
     try {
-      const result = await bulkImportApi.importAccounts(fileList[0].originFileObj)
+      const result = await bulkImportApi.importAccounts(fileList[0].originFileObj, skipActivation)
       if (result.code === 20000) {
         setImportResult(result.data)
       } else {
@@ -104,11 +105,16 @@ export default function StaffBulkImport() {
           <Card title="上传人员 CSV 文件">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Alert
-              message="CSV 格式要求：username, name, email, phone, site"
-              description="所有导入人员统一归入网点作为成员。"
+                message="CSV 格式要求：username, name, email, phone, site"
+                description="所有导入人员统一归入网点作为成员。"
                 type="info"
                 showIcon
               />
+              <div style={{ margin: '12px 0' }}>
+                <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>
+                  跳过邮箱激活（用户可直接登录，系统将发送账户+密码通知邮件）
+                </Checkbox>
+              </div>
               <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>
                 下载模板
               </Button>

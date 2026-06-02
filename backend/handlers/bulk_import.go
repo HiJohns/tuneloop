@@ -82,8 +82,9 @@ func (h *BulkImportHandler) ImportAccounts(c *gin.Context) {
 	}
 
 	dryRun := c.Query("dry_run") == "true"
+	skipActivation := c.DefaultQuery("skip_activation", "false") == "true"
 
-	result, err := services.ImportAccountsCSV(ctx, file, tenantID, h.iamClient, h.permReg, dryRun)
+	result, err := services.ImportAccountsCSV(ctx, file, tenantID, h.iamClient, h.permReg, dryRun, skipActivation)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "Import failed: " + err.Error()})
 		return

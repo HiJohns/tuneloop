@@ -431,13 +431,16 @@ func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 }
 
 type CreateUserRequest struct {
-	Username    string `json:"username"`
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Phone       string `json:"phone"`
-	CallbackURL string `json:"callback_url,omitempty"`
-	Reason      string `json:"reason,omitempty"`
-	OperatorID  string `json:"operator_id,omitempty"`
+	Username              string `json:"username"`
+	Name                  string `json:"name"`
+	Email                 string `json:"email"`
+	Phone                 string `json:"phone"`
+	Password              string `json:"password,omitempty"`
+	SendNotificationEmail bool   `json:"send_notification_email,omitempty"`
+	NotificationLang      string `json:"notification_lang,omitempty"`
+	CallbackURL           string `json:"callback_url,omitempty"`
+	Reason                string `json:"reason,omitempty"`
+	OperatorID            string `json:"operator_id,omitempty"`
 }
 
 type CreateUserResponse struct {

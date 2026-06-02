@@ -2,9 +2,11 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
@@ -23,8 +25,18 @@ type AccountImportRecord struct {
 	Role             string
 }
 
+func generateSecurePassword() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 10)
+	for i := range b {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		b[i] = charset[n.Int64()]
+	}
+	return string(b)
+}
+
 // ImportAccountsCSV imports accounts from a CSV file.
-func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, permReg *PermissionRegistry, dryRun bool) (*BulkImportResult, error) {
+func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, permReg *PermissionRegistry, dryRun bool, skipActivation bool) (*BulkImportResult, error) {
 	_, records, err := ParseCSV(r)
 	if err != nil {
 		return nil, err
@@ -208,6 +220,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 		// Create new user
 		newUserID := uuid.New().String()
+
 		newUser := models.User{
 			ID:       newUserID,
 			TenantID: tenantID,
@@ -231,6 +244,14 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Email:    acc.Email,
 			Phone:    acc.Phone,
 		}
+
+		if skipActivation {
+			password := generateSecurePassword()
+			createReq.Password = password
+			createReq.SendNotificationEmail = true
+			createReq.NotificationLang = "zh"
+		}
+
 		iamResp, err := iamClient.CreateUser(createReq)
 		if err != nil {
 			if iamExists {
@@ -273,6 +294,10 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 				continue
 			}
 			newUser.IAMSub = iamResp.UserID
+		}
+
+		if iamResp != nil && iamResp.Status != "" {
+			newUser.Status = iamResp.Status
 		}
 
 		// IAM operations before local create
