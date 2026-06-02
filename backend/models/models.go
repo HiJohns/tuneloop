@@ -398,7 +398,7 @@ type MaintenanceSession struct {
 	OrgID               string     `gorm:"type:uuid;index" json:"org_id"`
 	MaintenanceTicketID string     `gorm:"type:uuid;not null" json:"maintenance_ticket_id"`
 	WorkerID            *string    `gorm:"type:uuid;index" json:"worker_id"`
-	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
+	Status              string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	StartTime           *time.Time `json:"start_time"`
 	EndTime             *time.Time `json:"end_time"`
 	ProgressNotes       string     `gorm:"type:text" json:"progress_notes"`
@@ -499,7 +499,7 @@ type Appeal struct {
 	DamageReportID string     `gorm:"type:uuid;not null;index" json:"damage_report_id"`
 	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
 	AppealReason   string     `gorm:"type:text;not null" json:"appeal_reason"`
-	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
+	Status         string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	SubmittedAt    time.Time  `json:"submitted_at"`
 	ResolvedAt     *time.Time `json:"resolved_at,omitempty"`
 	Resolution     string     `gorm:"type:varchar(20)" json:"resolution"`
