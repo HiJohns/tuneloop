@@ -21,7 +21,7 @@ export default function InstrumentDetailUser() {
     setLoading(true)
     try {
       const data = await api.get(`/user/instruments/${id}`)
-      setInstrument(data)
+      setInstrument(data?.data)
     } catch (error) {
       console.error('Failed to fetch instrument:', error)
       message.error('加载乐器详情失败')

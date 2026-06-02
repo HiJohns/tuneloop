@@ -20,7 +20,7 @@ export default function OrderPayment() {
   const fetchOrder = async () => {
     setLoading(true)
     try {
-      const data = await api.get(`/user/orders/${id}`)
+      const data = await api.get(`/orders/${id}`)
       setOrder(data?.data)
     } catch (error) {
       console.error('Failed to fetch order:', error)
@@ -32,7 +32,7 @@ export default function OrderPayment() {
 
   const handlePayment = async (values) => {
     try {
-      await api.post(`/user/orders/${id}/pay`, {
+      await api.post(`/orders/${id}/pay`, {
         payment_method: values.payment_method,
         delivery_address: values.delivery_address
       })
@@ -50,7 +50,7 @@ export default function OrderPayment() {
       content: '取消后订单将无法恢复',
       onOk: async () => {
         try {
-          await api.post(`/user/orders/${id}/cancel`)
+          await api.post(`/orders/${id}/cancel`)
           message.success('订单已取消')
           navigate('/instruments')
         } catch (error) {

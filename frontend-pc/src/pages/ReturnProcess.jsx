@@ -20,8 +20,13 @@ export default function ReturnProcess() {
   const fetchRental = async () => {
     setLoading(true)
     try {
-      const data = await api.get(`/user/rentals/${id}`)
-      setRental(data?.data)
+      const data = await api.get(`/user/rentals`)
+      const found = data?.data?.list?.find(r => r.id === id || r.order_id === id)
+      if (found) {
+        setRental(found)
+      } else {
+        message.error('未找到该租赁信息')
+      }
     } catch (error) {
       console.error('Failed to fetch rental:', error)
       message.error('加载租赁信息失败')

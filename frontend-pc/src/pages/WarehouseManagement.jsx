@@ -144,7 +144,7 @@ export default function WarehouseManagement() {
 
   const handleViewDetails = async (order) => {
     try {
-      const data = await api.get(`/warehouse/orders/${order.id}`);
+      const data = await api.get(`/orders/${order.id}`);
       setSelectedOrder(data?.data);
       setDetailModalVisible(true);
     } catch (error) {
