@@ -11,66 +11,78 @@
 
 | 状态 | 含义 | 进入条件 | 可执行操作 |
 |------|------|---------|-----------|
+| `in_store` | 在库（可租） | 新乐器入库 / 验收通过 / 取消 / 终止 / 维修完成 | 预约下单 |
 | `reserved` | 顾客已下单，等待支付 | 顾客点击"立即租赁" | 支付、取消 |
-| `paid` | 已支付，等待发货 | 支付成功 | 发货 |
+| `paid` | 已支付，等待发货 | 支付成功 | 发货、取消 |
 | `shipped` | 已发货，运输中 | 网点员工录入物流 | 确认收货 |
 | `in_lease` | 租赁中（乐器在用户手中） | 确认收货 | 归还 |
 | `returning` | 归还中（运输中） | 用户发起归还 | 验收（通过/损坏） |
-| `completed` | 已完成（验收通过） | 验收通过 | —（终态） |
-| `maintenance` | 验收不通过，送修 | 验收发现损坏 | 定损、修复 |
-| `cancelled` | 已取消 | 用户在 reserved/paid 状态取消 | —（终态） |
-| `terminated` | 管理员强制终止 | 管理员操作 | —（终态） |
+| `maintenance` | 维修中 | 验收发现损坏 | 定损、修复 |
+
+**注意**：`cancelled`、`terminated`、`completed` 不再独立存在——三者在语义上均等价于"乐器回到可租状态"，统一用 `in_store` 表示。
 
 ### 1.2 状态跳转图
 
 ```
-                         ┌──────────┐
-                         │ reserved │ ← 顾客下单
-                         └────┬─────┘
-                              │ 支付
-                         ┌────▼─────┐
-                    ┌───►│   paid    │
-                    │    └────┬─────┘
-                    │         │ 发货
-                    │    ┌────▼─────┐
-                    │    │  shipped  │
-                    │    └────┬─────┘
-                    │         │ 确认收货
-                    │    ┌────▼─────┐
-                    │    │ in_lease  │ ← 乐器在用户手中
-                    │    └────┬─────┘
-                    │         │ 归还
-                    │    ┌────▼──────┐
-                    │    │ returning  │
-                    │    └────┬──────┘
-                    │         │ 验收
-                    │    ┌────┴─────┐
-                    │    │          │
-                    │ 通过        损坏
-                    │    │          │
-               ┌────▼──┐    ┌─────▼──────┐
-               │completed│    │maintenance │
-               └────────┘    └────────────┘
-
-任意状态 ──→ cancelled （用户在 reserved/paid 状态取消）
-任意状态 ──→ terminated（管理员强制终止）
+┌──────────────────────────────────────────────────────────┐
+│                      订单生命周期                          │
+│                                                          │
+│  顾客预约 ┌──────────┐  支付  ┌──────────┐  发货 ┌──────────┐ │
+│  ──────► │ reserved │ ────► │   paid   │ ────► │ shipped  │ │
+│          └────┬─────┘       └────┬─────┘       └────┬─────┘ │
+│               │                 │                   │       │
+│               │ 取消            │ 取消               │ 确认收货│
+│               ▼                 ▼                   ▼       │
+│          ┌──────────────────────────────────────────────┐   │
+│          │                in_lease                       │   │
+│          │            （乐器在用户手中）                    │   │
+│          └────────────────────┬─────────────────────────┘   │
+│                               │                             │
+│                               │ 归还                        │
+│                               ▼                             │
+│                          ┌──────────┐                       │
+│                          │returning │                       │
+│                          └────┬─────┘                       │
+│                               │                             │
+│                          ┌────┴─────┐                       │
+│                          │          │                       │
+│                       通过        损坏                       │
+│                          │          │                       │
+│                          ▼          ▼                       │
+│                    ┌──────────┐ ┌───────────┐              │
+│                    │ in_store │ │maintenance │              │
+│                    │  (在库)   │ │  (维修中)  │              │
+│                    └────┬─────┘ └─────┬─────┘              │
+│                         ▲             │                     │
+│                         │   维修完成    │                     │
+│                         └─────────────┘                     │
+│                         ▲                                   │
+│                         │ terminated（管理员）               │
+│                    ┌────┴─────┐                            │
+│                    │ 任意状态   │                            │
+│                    └──────────┘                            │
+└──────────────────────────────────────────────────────────┘
 ```
+
+**闭环**：`in_store` 可被顾客预约进入 `reserved`，形成完整的租赁循环。
 
 ### 1.3 状态门（Guard）
 
-每个跳转必须校验前置状态，不允许从任意状态跳转：
+每个跳转必须校验前置状态：
 
 | 跳转 | 允许的前置状态 |
 |------|-------------|
+| in_store → reserved | in_store |
 | reserved → paid | reserved |
 | paid → shipped | paid |
 | shipped → in_lease | shipped |
 | in_lease → returning | in_lease |
-| returning → completed | returning |
-| returning → maintenance | returning |
-| reserved → cancelled | reserved |
-| paid → cancelled | paid |
-| * → terminated | 任意状态（管理员特权） |
+| returning → in_store | returning（验收通过） |
+| returning → maintenance | returning（验收损坏） |
+| reserved → in_store | reserved（取消） |
+| paid → in_store | paid（取消） |
+| maintenance → in_store | maintenance（维修完成） |
+| * → in_store | 任意状态（管理员终止） |
 
 ---
 
@@ -80,25 +92,25 @@
 
 | 状态 | 含义 | 对应订单状态 |
 |------|------|-----------|
-| `available` | 可租 | — |
+| `available` | 在库，可租 | in_store |
 | `reserved` | 已被预订 | reserved |
 | `shipping` | 运输中（发往用户） | shipped |
 | `rented` | 租赁中 | in_lease |
 | `returning` | 归还途中 | returning |
 | `maintenance` | 维修中 | maintenance |
-| `archived` | 已归档/已售 | completed / 租转售 |
+| `archived` | 已归档/已售 | —（租转售终态） |
 
 ### 2.2 状态跳转
 
 ```
 available ──→ reserved ──→ shipping ──→ rented ──→ returning ──┬──→ available (验收通过)
-    ▲                                ▲                        │
-    │                                │                        └──→ maintenance (验收损坏)
-    └──── 取消 ──────────────────────┘                              │
-                                                                   │
-    available ◄── 维修完成 ◄─── maintenance ◄──────────────────────┘
-                                           │
-    available ◄── 定损完成 ◄───────────────┘
+    ▲                              ▲                           │
+    │                              │                           └──→ maintenance (验收损坏)
+    │      取消(in_store) ─────────┘                               │
+    │                                                              │
+    ├──────────── 维修完成 ◄─── maintenance ◄──────────────────────┘
+    │
+    └──────────── 管理员终止（任意订单状态 → in_store）
 ```
 
 ---
@@ -111,7 +123,7 @@ available ──→ reserved ──→ shipping ──→ rented ──→ retur
 |------|------|-----------|
 | `active` | 租赁进行中 | reserved → in_lease |
 | `return_requested` | 已申请归还 | returning |
-| `completed` | 租赁结束 | completed |
+| `completed` | 租赁结束 | in_store |
 
 ### 3.2 状态跳转
 
@@ -177,7 +189,7 @@ active ──→ return_requested ──→ completed
 | 2 | `reserved → paid` 无 handler | `PayOrder` 应接受 `reserved` | `PayOrder` 只接受 `pending` |
 | 3 | 前端路径错误 | `OrderPayment.jsx` 调用 `/api/orders/:id/*` | 实际调 `/api/user/orders/:id/*`（不存在） |
 | 4 | 状态门缺失 | 每个跳转校验前置状态 | `UpdateShipping`/`AssessDamage`/`SubmitAssessment` 不校验 |
-| 5 | `completed` 状态不存在 | final 状态用 `completed` | 用 `in_stock`（语义不清） |
+| 5 | `in_store` 未实现 | cancelled/completed/terminated → `in_store` | 当前用 `in_stock`（语义不清）、`cancelled`、`terminated` 分散 |
 | 6 | 幽灵状态 | 删除 `preparing` | 代码中使用但从未被设置 |
 | 7 | 订单状态无常量 | 定义 const | 全裸字符串 |
 | 8 | LeaseSession 不完整 | 验收完成后更新为 `completed` | 验收后不更新 |
