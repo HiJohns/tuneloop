@@ -157,7 +157,37 @@ export default function StaffManagement() {
 
       const result = await staffApi.createUser(values)
       if (result.code === 20000) {
-        message.success('创建用户成功')
+        const initialPwd = result.data?.initial_password
+        if (initialPwd) {
+          Modal.info({
+            title: '用户创建成功',
+            width: 480,
+            content: (
+              <div>
+                <p>以下为该用户的初始密码，仅展示一次，请妥善保存并告知用户：</p>
+                <div style={{
+                  padding: '12px 16px',
+                  background: '#f5f5f5',
+                  borderRadius: 4,
+                  fontFamily: 'monospace',
+                  fontSize: 18,
+                  textAlign: 'center',
+                  margin: '12px 0',
+                  userSelect: 'all',
+                }}>
+                  {initialPwd}
+                </div>
+                <p style={{ fontSize: 12, color: '#999' }}>关闭后将无法再次查看。用户首次登录后建议立即修改密码。</p>
+              </div>
+            ),
+            onOk() {
+              navigator.clipboard?.writeText(initialPwd)
+            },
+            okText: '复制并关闭',
+          })
+        } else {
+          message.success('创建用户成功')
+        }
         setCreateModalVisible(false)
         createUserForm.resetFields()
         fetchStaffList()

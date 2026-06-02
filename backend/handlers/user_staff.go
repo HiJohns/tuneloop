@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -149,14 +152,17 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Username string    `json:"username"`
-		Name     string    `json:"name" binding:"required"`
-		Phone    string    `json:"phone" binding:"required"`
-		Email    string    `json:"email"`
-		Position string    `json:"position"`
-		UserType string    `json:"user_type"`
-		SiteID   uuid.UUID `json:"site_id"`
-		Role     string    `json:"role"`
+		Username           string    `json:"username"`
+		Name               string    `json:"name" binding:"required"`
+		Phone              string    `json:"phone" binding:"required"`
+		Email              string    `json:"email"`
+		Position           string    `json:"position"`
+		UserType           string    `json:"user_type"`
+		SiteID             uuid.UUID `json:"site_id"`
+		Role               string    `json:"role"`
+		Password           string    `json:"password"`
+		AutoGenerate       bool      `json:"auto_generate"`
+		ForcePasswordChange bool     `json:"force_password_change"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -289,6 +295,21 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		Email:    req.Email,
 		Phone:    req.Phone,
 	}
+
+	var initialPassword string
+	if req.AutoGenerate {
+		initialPassword = generatePassword()
+		createReq.Password = initialPassword
+		createReq.SendNotificationEmail = req.Email != ""
+		createReq.NotificationLang = "zh"
+	} else if req.Password != "" {
+		if err := validatePassword(req.Password); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": err.Error()})
+			return
+		}
+		createReq.Password = req.Password
+	}
+
 	iamResp, err := iamClient.CreateUser(createReq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: " + err.Error()})
@@ -303,6 +324,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	if user.Status == "" {
 		user.Status = "pending"
 	}
+	user.ForcePasswordChange = req.ForcePasswordChange
 
 	if orgID != "" && user.IAMSub != "" {
 		userToken := services.ExtractUserToken(c)
@@ -362,20 +384,25 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		}
 	}
 
+	respData := gin.H{
+		"id":         user.ID,
+		"username":   user.Username,
+		"name":       user.Name,
+		"phone":      user.Phone,
+		"email":      user.Email,
+		"position":   user.Position,
+		"user_type":  user.UserType,
+		"created_at": user.CreatedAt,
+		"updated_at": user.UpdatedAt,
+	}
+	if initialPassword != "" {
+		respData["initial_password"] = initialPassword
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
-		"data": gin.H{
-			"id":         user.ID,
-			"username":   user.Username,
-			"name":       user.Name,
-			"phone":      user.Phone,
-			"email":      user.Email,
-			"position":   user.Position,
-			"user_type":  user.UserType,
-			"created_at": user.CreatedAt,
-			"updated_at": user.UpdatedAt,
-		},
+		"data":    respData,
 	})
 }
 
@@ -1060,4 +1087,33 @@ func getDescendantSiteIDs(db *gorm.DB, tenantID string, siteID uuid.UUID) ([]uui
 		}
 	}
 	return ids, nil
+}
+
+func generatePassword() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 12)
+	for i := range b {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		b[i] = charset[n.Int64()]
+	}
+	return string(b)
+}
+
+func validatePassword(password string) error {
+	if len(password) < 8 {
+		return fmt.Errorf("密码长度不能少于 8 位")
+	}
+	hasUpper, _ := regexp.MatchString(`[A-Z]`, password)
+	hasLower, _ := regexp.MatchString(`[a-z]`, password)
+	hasDigit, _ := regexp.MatchString(`[0-9]`, password)
+	if !hasUpper {
+		return fmt.Errorf("密码必须包含大写字母")
+	}
+	if !hasLower {
+		return fmt.Errorf("密码必须包含小写字母")
+	}
+	if !hasDigit {
+		return fmt.Errorf("密码必须包含数字")
+	}
+	return nil
 }

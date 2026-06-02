@@ -96,17 +96,37 @@ export default function UserProfile() {
         title={<span><SafetyOutlined /> 账户安全</span>}
         style={{ marginBottom: 16 }}
       >
-        <Button
-          type="primary"
-          icon={<KeyOutlined />}
-          onClick={handleResetPassword}
-          loading={resetting}
-        >
-          通过邮件重置密码
-        </Button>
-        <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-          系统将向您的注册邮箱发送密码重置邮件，点击邮件中的链接设置新密码。
+        <div style={{ marginBottom: 16 }}>
+          <Button
+            type="primary"
+            icon={<KeyOutlined />}
+            onClick={() => navigate('/user/change-password')}
+            style={{ marginRight: 12 }}
+          >
+            修改密码
+          </Button>
         </div>
+        <div style={{ marginBottom: user?.email ? 16 : 0 }}>
+          <Button
+            icon={<KeyOutlined />}
+            onClick={handleResetPassword}
+            loading={resetting}
+            disabled={!user?.email}
+            title={!user?.email ? '请先配置邮箱后再使用密码重置功能' : ''}
+          >
+            {user?.email ? '通过邮件重置密码' : '重置密码（未配置邮箱）'}
+          </Button>
+        </div>
+        {!user?.email && (
+          <div style={{ fontSize: 12, color: '#999' }}>
+            邮箱未配置，请先在基本资料中配置邮箱后可使用密码重置功能。
+          </div>
+        )}
+        {user?.email && (
+          <div style={{ fontSize: 12, color: '#999' }}>
+            系统将向您的注册邮箱发送密码重置邮件，点击邮件中的链接设置新密码。
+          </div>
+        )}
       </Card>
 
       <Card

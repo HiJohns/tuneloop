@@ -47,6 +47,7 @@ import BatchImport from './pages/admin/instrument/BatchImport'
 import SiteBulkImport from './pages/SiteBulkImport'
 import StaffBulkImport from './pages/StaffBulkImport'
 import UserProfile from './pages/UserProfile'
+import ChangePassword from './pages/ChangePassword'
 
 import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
@@ -445,6 +446,7 @@ function onMenuClick(e) {
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/user/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+            <Route path="/user/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
             <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
             <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />

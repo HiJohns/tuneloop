@@ -22,8 +22,9 @@ type User struct {
 	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	Position      string     `gorm:"type:varchar(100)" json:"position"`
 	UserType      string     `gorm:"type:varchar(20);default:'员工'" json:"user_type"`
-	Role          string     `gorm:"type:varchar(50)" json:"role"`
-	DeletedAt     *time.Time `gorm:"index" json:"deleted_at"`
+	Role                 string     `gorm:"type:varchar(50)" json:"role"`
+	ForcePasswordChange  bool       `gorm:"default:false" json:"force_password_change"`
+	DeletedAt            *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 }

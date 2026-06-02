@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { Form, Input, Select, Button, Space, Alert } from 'antd'
+import { Form, Input, Select, Button, Space, Alert, Switch, Radio, Modal } from 'antd'
 import { staffApi } from '../services/api'
 
 const { Option } = Select
 
 export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions }) {
   const [fieldErrors, setFieldErrors] = useState({})
+  const [autoGenerate, setAutoGenerate] = useState(true)
+  const [initialPassword, setInitialPassword] = useState('')
   const debounceRef = useRef({})
 
   useEffect(() => {
@@ -86,11 +88,11 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
 
       <Form.Item
         name="email"
-        label="邮箱"
+        label="邮箱（选填）"
         rules={[
-          { type: 'email', message: '请输入有效的邮箱地址' },
-          { required: true, message: '请输入邮箱' }
+          { type: 'email', message: '请输入有效的邮箱地址' }
         ]}
+        extra="配置邮箱后可支持密码重置"
       >
         <Input
           placeholder="请输入邮箱"
@@ -124,6 +126,33 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
           style={{ marginBottom: 16 }}
         />
       )}
+
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 8, fontWeight: 500 }}>密码设置</div>
+        <Form.Item name="auto_generate" initialValue={true}>
+          <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
+            <Radio value={true}>自动生成密码</Radio>
+            <Radio value={false}>手动设置密码</Radio>
+          </Radio.Group>
+        </Form.Item>
+        {!autoGenerate && (
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: '请输入密码' },
+              { min: 8, message: '密码长度不能少于 8 位' },
+              { pattern: /[A-Z]/, message: '必须包含大写字母' },
+              { pattern: /[a-z]/, message: '必须包含小写字母' },
+              { pattern: /[0-9]/, message: '必须包含数字' },
+            ]}
+          >
+            <Input.Password placeholder="8位以上 + 大写 + 小写 + 数字" />
+          </Form.Item>
+        )}
+        <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
+          <Switch /> 首次登录强制修改密码
+        </Form.Item>
+      </div>
 
       <Form.Item
         name="site_id"

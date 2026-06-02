@@ -751,6 +751,12 @@ func (c *IAMClient) UpdateUser(userID string, req *UpdateUserRequest) error {
 	return nil
 }
 
+func (c *IAMClient) UpdateUserPassword(userID, newPassword string) error {
+	return c.UpdateUser(userID, &UpdateUserRequest{
+		Password: newPassword,
+	})
+}
+
 type BindUserRequest struct {
 	Action     string `json:"action"`
 	Role       string `json:"role,omitempty"`

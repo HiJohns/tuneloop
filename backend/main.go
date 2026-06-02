@@ -274,6 +274,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/users/me", staffHandler.GetCurrentUser)
 			authRequired.PUT("/users/me", staffHandler.UpdateCurrentUser)
 			authRequired.POST("/user/reset-password", handlers.ResetPasswordSelf)
+			authRequired.POST("/user/change-password", handlers.ChangePasswordSelf)
 			authRequired.POST("/users", middleware.RequireSysPerm(middleware.SysPermUserCreate), staffHandler.CreateUser)
 			authRequired.PUT("/users/:id", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.UpdateUser)
 			authRequired.DELETE("/users/batch", middleware.RequireSysPerm(middleware.SysPermUserDelete), staffHandler.BatchDeleteUsers)
