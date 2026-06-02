@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Form, Input, message, Card, Space, Popconfirm, Tag } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, message, Card, Space, Popconfirm, Tag } from 'antd';
 import api from '../services/api';
 import ManagerSelector from '../components/ManagerSelector';
 
@@ -14,6 +14,7 @@ const MerchantManagement = () => {
   const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '', phone: '' });
   const [conflictOptions, setConflictOptions] = useState(null);
   const [creatingManager, setCreatingManager] = useState(false);
+  const [merchantType, setMerchantType] = useState('full');
 
   useEffect(() => {
     fetchMerchants();
@@ -37,6 +38,7 @@ const MerchantManagement = () => {
     form.resetFields();
     setAdminInfo({ name: '', id: null, email: '', username: '' });
     setConflictOptions(null);
+    setMerchantType('full');
     setModalOpen(true);
   };
 
@@ -51,6 +53,7 @@ const MerchantManagement = () => {
       form.setFieldsValue({ admin_uid: null })
     }
     setConflictOptions(null);
+    setMerchantType(record.merchant_type || 'full');
     setModalOpen(true);
   };
 
@@ -108,6 +111,16 @@ const MerchantManagement = () => {
       title: '地址',
       dataIndex: 'address',
       key: 'address',
+    },
+    {
+      title: '类型',
+      dataIndex: 'merchant_type',
+      key: 'merchant_type',
+      render: (type) => (
+        <Tag color={type === 'controlled' ? 'orange' : 'blue'}>
+          {type === 'controlled' ? '受控商户' : '全权商户'}
+        </Tag>
+      ),
     },
     {
       title: '状态',
@@ -195,6 +208,44 @@ const MerchantManagement = () => {
           <Form.Item name="address" label="地址">
             <Input placeholder="输入地址" />
           </Form.Item>
+
+          <Form.Item
+            name="merchant_type"
+            label="商户类型"
+            initialValue="full"
+          >
+            <Select
+              onChange={(value) => setMerchantType(value)}
+              options={[
+                { value: 'full', label: '全权商户' },
+                { value: 'controlled', label: '受控商户' },
+              ]}
+            />
+          </Form.Item>
+
+          {merchantType === 'controlled' && (
+            <>
+              <Form.Item
+                name="transit_address"
+                label="中转地址"
+                rules={[{ required: true, message: '受控商户必须填写中转地址' }]}
+              >
+                <Input placeholder="输入中转地址" />
+              </Form.Item>
+
+              <Form.Item
+                name="transit_phone"
+                label="中转电话"
+                rules={[{ required: true, message: '受控商户必须填写中转电话' }]}
+              >
+                <Input placeholder="输入中转电话" />
+              </Form.Item>
+
+              <Form.Item name="transit_contact_name" label="中转联系人">
+                <Input placeholder="输入中转联系人" />
+              </Form.Item>
+            </>
+          )}
 
           <Form.Item label="管理员">
             <ManagerSelector

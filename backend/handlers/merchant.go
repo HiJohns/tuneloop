@@ -150,15 +150,19 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 // CreateMerchant POST /api/merchants - Create a new merchant
 func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	var input struct {
-		Name          string   `json:"name" binding:"required"`
-		Phone         string   `json:"phone"`
-		Address       string   `json:"address"`
-		AdminUID      string   `json:"admin_uid"`
-		AdminName     string   `json:"admin_name"`
-		AdminUsername string   `json:"admin_username"`
-		AdminEmail    string   `json:"admin_email"`
-		AdminPhone    string   `json:"admin_phone"`
-		UserIDs       []map[string]interface{} `json:"user_ids"`
+		Name              string                    `json:"name" binding:"required"`
+		Phone             string                    `json:"phone"`
+		Address           string                    `json:"address"`
+		MerchantType      string                    `json:"merchant_type"`
+		TransitAddress    string                    `json:"transit_address"`
+		TransitPhone      string                    `json:"transit_phone"`
+		TransitContactName string                   `json:"transit_contact_name"`
+		AdminUID          string                    `json:"admin_uid"`
+		AdminName         string                    `json:"admin_name"`
+		AdminUsername     string                    `json:"admin_username"`
+		AdminEmail        string                    `json:"admin_email"`
+		AdminPhone        string                    `json:"admin_phone"`
+		UserIDs           []map[string]interface{}   `json:"user_ids"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -167,6 +171,20 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			"message": "Invalid input: " + err.Error(),
 		})
 		return
+	}
+
+	if input.MerchantType == "" {
+		input.MerchantType = models.MerchantTypeFull
+	}
+
+	if input.MerchantType == models.MerchantTypeControlled {
+		if input.TransitAddress == "" || input.TransitPhone == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40001,
+				"message": "受控商户必须填写中转地址和中转电话",
+			})
+			return
+		}
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
@@ -312,15 +330,19 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	merchant := models.Merchant{
-		TenantID:     tenantID,
-		OrgID:        iamOrgID,
-		Name:         input.Name,
-		Code:         input.Name,
-		Phone:         input.Phone,
-		Address:       input.Address,
-		AdminUID:      adminUserID,
-		AdminPending:  adminUserID != "" && adminUserID != "00000000-0000-0000-0000-000000000000",
-		Status:       "active",
+		TenantID:           tenantID,
+		OrgID:              iamOrgID,
+		Name:               input.Name,
+		Code:               input.Name,
+		Phone:              input.Phone,
+		Address:            input.Address,
+		MerchantType:       input.MerchantType,
+		TransitAddress:     input.TransitAddress,
+		TransitPhone:       input.TransitPhone,
+		TransitContactName: input.TransitContactName,
+		AdminUID:           adminUserID,
+		AdminPending:       adminUserID != "" && adminUserID != "00000000-0000-0000-0000-000000000000",
+		Status:             "active",
 	}
 
 	// Create tenants record using IAM org ID as primary key
@@ -419,10 +441,14 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Name     string `json:"name"`
-		Phone    string `json:"phone"`
-		Address  string `json:"address"`
-		AdminUID string `json:"admin_uid"`
+		Name              string `json:"name"`
+		Phone             string `json:"phone"`
+		Address           string `json:"address"`
+		MerchantType      string `json:"merchant_type"`
+		TransitAddress    string `json:"transit_address"`
+		TransitPhone      string `json:"transit_phone"`
+		TransitContactName string `json:"transit_contact_name"`
+		AdminUID          string `json:"admin_uid"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -456,6 +482,18 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	}
 	if input.Address != "" {
 		merchant.Address = input.Address
+	}
+	if input.MerchantType != "" {
+		merchant.MerchantType = input.MerchantType
+	}
+	if input.TransitAddress != "" {
+		merchant.TransitAddress = input.TransitAddress
+	}
+	if input.TransitPhone != "" {
+		merchant.TransitPhone = input.TransitPhone
+	}
+	if input.TransitContactName != "" {
+		merchant.TransitContactName = input.TransitContactName
 	}
 
 	// Handle admin_uid change
@@ -632,5 +670,26 @@ func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID 
 				}
 			}
 		}
+	}
+}
+
+type MerchantTransitInfo struct {
+	MerchantType string
+	Address      string
+	Phone        string
+	ContactName  string
+}
+
+func GetMerchantTransitInfo(ctx context.Context, tenantID string) *MerchantTransitInfo {
+	db := database.GetDB()
+	var merchant models.Merchant
+	if err := db.Where("tenant_id = ?", tenantID).First(&merchant).Error; err != nil {
+		return nil
+	}
+	return &MerchantTransitInfo{
+		MerchantType: merchant.MerchantType,
+		Address:      merchant.TransitAddress,
+		Phone:        merchant.TransitPhone,
+		ContactName:  merchant.TransitContactName,
 	}
 }

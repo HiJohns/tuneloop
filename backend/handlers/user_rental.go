@@ -300,6 +300,19 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	transitInfo := GetMerchantTransitInfo(ctx, tenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled && transitInfo.Address != "" {
+		deliveryJSON, _ := json.Marshal(map[string]string{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		})
+		deliveryStr := string(deliveryJSON)
+		if err := tx.Model(&models.LeaseSession{}).Where("id = ?", leaseSession.ID).Update("delivery_address", deliveryStr).Error; err != nil {
+			log.Printf("[CreateOrder] Warning: failed to set delivery_address: %v", err)
+		}
+	}
+
 	// Update instrument stock_status to reserved
 	if err := tx.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
 		tx.Rollback()
@@ -386,10 +399,34 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 		return
 	}
 
+	respData := map[string]interface{}{
+		"id":              leaseSession.ID,
+		"tenant_id":       leaseSession.TenantID,
+		"order_id":        leaseSession.OrderID,
+		"user_id":         leaseSession.UserID,
+		"instrument_id":   leaseSession.InstrumentID,
+		"start_date":      leaseSession.StartDate,
+		"end_date":        leaseSession.EndDate,
+		"status":          leaseSession.Status,
+		"return_method":   leaseSession.ReturnMethod,
+		"return_tracking": leaseSession.ReturnTracking,
+	}
+
+	transitInfo := GetMerchantTransitInfo(ctx, tenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		respData["return_address"] = transitInfo.Address
+		respData["return_phone"] = transitInfo.Phone
+		respData["transit_info"] = map[string]string{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
-		"data":    leaseSession,
+		"data":    respData,
 	})
 }
 

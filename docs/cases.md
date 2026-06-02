@@ -163,6 +163,42 @@
 - 超过24小时未确认 → IAM 自动将状态更新为 expired
 - 回调 result=failed → 本地记录失败日志
 
+### 0.2.6 个人密码重置
+
+**触发方式**: 用户在个人中心点击「通过邮件重置密码」
+
+**角色**: 所有已登录用户
+
+**前置条件**: 用户已绑定邮箱（`users.email` 不为空）
+
+**操作流程**:
+1. 用户点击「通过邮件重置密码」按钮
+2. 弹窗确认：「系统将向您的邮箱 xxx 发送密码重置邮件，邮件中的链接 24 小时内有效」
+3. 确认后调用 `POST /api/user/reset-password`
+4. 后端检查频率限制：每用户每 30 分钟最多 3 次
+5. 后端查本地 `users` 表获取邮箱，验证不为空
+6. 后端通过服务认证（client_credentials）调用 beaconiam `POST /api/v1/users/reset-password?user_ids=xxx`
+7. beaconiam 创建 ConfirmationSession（ConfirmSetupPassword），发送中文密码重置邮件
+8. 用户点击邮件中链接，在 beaconiam 页面设置新密码
+
+**密码重置后 JWT 状态**:
+- 现有 tuneloop JWT Token 仍然有效（直到过期）
+- 这是 JWT 无状态特性决定的，非 bug
+- 如需强制所有会话失效，需 beaconiam 侧支持 Token Revocation List（TRL）
+- 用户可主动登出后重新登录
+
+**频率限制**:
+- 每用户每 30 分钟最多 3 次
+- 超出返回 `42900`：「操作过于频繁，请 30 分钟后再试」
+
+**错误处理**:
+- 邮箱为空：「您的账户未绑定邮箱，请联系管理员」
+- 发送失败：「邮件发送失败，请稍后重试」
+
+**API 代理端点**:
+- `POST /api/user/reset-password` — tuneloop 后端代理转发到 beaconiam
+- 不涉及密码输入/存储，仅做代理转发
+
 ### 0.2.5 后端实现要点
 
 **IAM Client 代理层**:

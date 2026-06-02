@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Button, Space, Form, Input, message, Modal } from 'antd'
+import { Card, Button, Space, Form, Input, Radio, message, Modal } from 'antd'
 import { ArrowLeftOutlined, CheckCircleOutlined, TruckOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 
@@ -64,6 +64,13 @@ export default function ReturnProcess() {
             <div>乐器: {rental.instrument_name}</div>
             <div>租赁单号: {rental.id?.slice(0, 8)}</div>
             <div>应还日期: {rental.end_date?.slice(0, 10)}</div>
+            {rental.return_address && (
+              <div className="mt-2 pt-2 border-t border-blue-200">
+                <div className="font-medium text-blue-700">请将乐器寄回以下地址：</div>
+                <div>{rental.return_address}</div>
+                {rental.return_phone && <div>电话: {rental.return_phone}</div>}
+              </div>
+            )}
           </div>
         </div>
 

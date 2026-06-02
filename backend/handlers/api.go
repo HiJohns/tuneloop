@@ -76,6 +76,11 @@ func GetInstrumentByID(c *gin.Context) {
 		}
 	}
 
+	transitInfo := GetMerchantTransitInfo(c.Request.Context(), instrument.TenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		siteAddress = transitInfo.Address
+	}
+
 	instrumentMap := map[string]interface{}{
 		"id":             instrument.ID,
 		"tenant_id":      instrument.TenantID,
@@ -135,6 +140,15 @@ func GetInstrumentByID(c *gin.Context) {
 	}
 
 	// Return instrument data with parsed JSON
+	instrumentMap["transit_info"] = nil
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		instrumentMap["transit_info"] = map[string]string{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": instrumentMap,

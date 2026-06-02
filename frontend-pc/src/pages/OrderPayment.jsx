@@ -90,6 +90,16 @@ export default function OrderPayment() {
       </Card>
 
       <Card title="配送信息" className="mb-6">
+        {order?.transit_info ? (
+          <div className="p-4 bg-blue-50 rounded">
+            <h3 className="font-semibold mb-2">本商户使用中转地址</h3>
+            <div className="text-sm text-gray-600 space-y-1">
+              <div>地址: {order.transit_info.address}</div>
+              <div>电话: {order.transit_info.phone}</div>
+              {order.transit_info.contact && <div>联系人: {order.transit_info.contact}</div>}
+            </div>
+          </div>
+        ) : null}
         <Form
           form={form}
           layout="vertical"

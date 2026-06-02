@@ -378,31 +378,42 @@ func GetOrder(c *gin.Context) {
 		userName = user.Name
 	}
 
+	orderData := map[string]interface{}{
+		"id":                 order.ID,
+		"tenant_id":          order.TenantID,
+		"user_id":            order.UserID,
+		"user_name":          userName,
+		"instrument_id":      order.InstrumentID,
+		"level":              order.Level,
+		"lease_term":         order.LeaseTerm,
+		"deposit_mode":       order.DepositMode,
+		"monthly_rent":       order.MonthlyRent,
+		"deposit":            order.Deposit,
+		"shipping_fee":       order.ShippingFee,
+		"accumulated_months": order.AccumulatedMonths,
+		"status":             order.Status,
+		"start_date":         order.StartDate,
+		"end_date":           order.EndDate,
+		"tracking_number":    order.TrackingNumber,
+		"courier_company":    order.CourierCompany,
+		"shipped_at":         order.ShippedAt,
+		"delivered_at":       order.DeliveredAt,
+		"created_at":         order.CreatedAt,
+		"updated_at":         order.UpdatedAt,
+	}
+
+	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		orderData["transit_info"] = map[string]string{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": map[string]interface{}{
-			"id":                order.ID,
-			"tenant_id":         order.TenantID,
-			"user_id":           order.UserID,
-			"user_name":         userName,
-			"instrument_id":     order.InstrumentID,
-			"level":             order.Level,
-			"lease_term":        order.LeaseTerm,
-			"deposit_mode":      order.DepositMode,
-			"monthly_rent":      order.MonthlyRent,
-			"deposit":           order.Deposit,
-			"shipping_fee":      order.ShippingFee,
-			"accumulated_months": order.AccumulatedMonths,
-			"status":            order.Status,
-			"start_date":        order.StartDate,
-			"end_date":          order.EndDate,
-			"tracking_number":   order.TrackingNumber,
-			"courier_company":   order.CourierCompany,
-			"shipped_at":        order.ShippedAt,
-			"delivered_at":      order.DeliveredAt,
-			"created_at":        order.CreatedAt,
-			"updated_at":        order.UpdatedAt,
-		},
+		"data": orderData,
 	})
 }
 

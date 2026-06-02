@@ -41,10 +41,12 @@ export default function InstrumentDetailUser() {
         instrument_id: id,
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
-        delivery_address: {
-          street: '用户地址',
-          city: '城市',
-          phone: '联系电话'
+      }
+
+      if (instrument.transit_info) {
+        orderData.delivery_address = {
+          street: instrument.transit_info.address,
+          phone: instrument.transit_info.phone,
         }
       }
       

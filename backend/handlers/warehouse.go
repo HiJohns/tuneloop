@@ -132,13 +132,24 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		return
 	}
 
+	resp := gin.H{
+		"order_id": orderID,
+		"status":   "shipped",
+	}
+
+	transitInfo := GetMerchantTransitInfo(ctx, tenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		resp["transit_info"] = gin.H{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
-		"data": gin.H{
-			"order_id": orderID,
-			"status":   "shipped",
-		},
+		"data":    resp,
 	})
 }
 

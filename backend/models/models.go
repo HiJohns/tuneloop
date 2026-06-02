@@ -80,6 +80,11 @@ const (
 	StockStatusArchived   = "archived"
 )
 
+const (
+	MerchantTypeFull      = "full"
+	MerchantTypeControlled = "controlled"
+)
+
 // Notification 通知消息表
 type Notification struct {
 	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -500,11 +505,15 @@ type Merchant struct {
 	ContactPhone string    `gorm:"type:varchar(50)" json:"contact_phone"`
 	Phone        string    `gorm:"type:varchar(50)" json:"phone"`
 	Address      string    `gorm:"type:text" json:"address"`
-	AdminUID     string    `gorm:"type:uuid;index" json:"admin_uid"`
-	AdminPending bool      `gorm:"default:false" json:"admin_pending"`
-	Status       string    `gorm:"type:varchar(20);default:'active'" json:"status"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	AdminUID           string    `gorm:"type:uuid;index" json:"admin_uid"`
+	AdminPending       bool      `gorm:"default:false" json:"admin_pending"`
+	Status             string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	MerchantType       string    `gorm:"type:varchar(20);default:'full'" json:"merchant_type"`
+	TransitAddress     string    `gorm:"type:text" json:"transit_address"`
+	TransitPhone       string    `gorm:"type:varchar(50)" json:"transit_phone"`
+	TransitContactName string    `gorm:"type:varchar(255)" json:"transit_contact_name"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // SiteMember represents the many-to-many relationship between users and sites

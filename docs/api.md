@@ -3106,6 +3106,39 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 
 ---
 
+#### 10.17.2 重置个人密码
+
+**接口**: `POST /api/user/reset-password`
+
+**说明**: 当前登录用户请求发送密码重置邮件。后端代理转发到 beaconiam 的 `POST /api/v1/users/reset-password`。
+
+**权限**: 已登录用户（从 JWT 获取 `iam_sub`）
+
+**频率限制**: 每用户每 30 分钟最多 3 次，超出返回 `42900`
+
+**请求 Body**: 无（空请求体）
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "message": "密码重置邮件已发送至 z***@example.com，请查收",
+  "data": {
+    "email_masked": "z***@example.com",
+    "expires_in_minutes": 60
+  }
+}
+```
+
+**错误响应**:
+| HTTP 状态码 | code | message |
+|-------------|------|---------|
+| 400 | 40001 | 您的账户未绑定邮箱，请联系管理员 |
+| 429 | 42900 | 操作过于频繁，请 30 分钟后再试 |
+| 500 | 50002 | 邮件发送失败，请稍后重试 |
+
+---
+
 ## 十一、通用模块
 
 ### 11.1 文件上传
@@ -3212,7 +3245,11 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
   "address": "北京市海淀区",
   "admin_name": "管理员姓名",
   "admin_email": "admin@example.com",
-  "admin_phone": "13800000001"
+  "admin_phone": "13800000001",
+  "merchant_type": "controlled",
+  "transit_address": "中转库房地址",
+  "transit_phone": "13911112222",
+  "transit_contact_name": "中转联系人"
 }
 ```
 
@@ -3227,6 +3264,10 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 | admin_name | string | | 新管理员姓名（与 admin_uid 二选一） |
 | admin_email | string | | 新管理员邮箱（与 admin_uid 二选一） |
 | admin_phone | string | | 新管理员手机号 |
+| merchant_type | string | | 商户类型：`full`（全权商户，默认）或 `controlled`（受控商户）。受控商户使用中转地址隔离消费者与商户直接联系 |
+| transit_address | string | | 中转地址（受控商户必填） |
+| transit_phone | string | | 中转电话（受控商户必填） |
+| transit_contact_name | string | | 中转联系人（可选） |
 
 **响应**:
 ```json
@@ -3272,6 +3313,9 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
         "phone": "13800000000",
         "address": "北京市海淀区",
         "admin_uid": "uuid",
+        "merchant_type": "full",
+        "transit_address": "",
+        "transit_phone": "",
         "status": "active",
         "created_at": "2026-05-18T04:49:55Z"
       }
@@ -3290,7 +3334,11 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 {
   "name": "new-name",
   "phone": "13900000000",
-  "address": "新地址"
+  "address": "新地址",
+  "merchant_type": "controlled",
+  "transit_address": "新中转地址",
+  "transit_phone": "13911112222",
+  "transit_contact_name": "新联系人"
 }
 ```
 

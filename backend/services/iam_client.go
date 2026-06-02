@@ -958,6 +958,23 @@ func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, r
 	return &result.Data, nil
 }
 
+func (c *IAMClient) RequestPasswordReset(userID string) error {
+	req := map[string]interface{}{
+		"user_ids": []string{userID},
+	}
+	respBody, statusCode, err := c.doRequest("POST", "/api/v1/users/reset-password", req)
+	if err != nil {
+		return fmt.Errorf("RequestPasswordReset failed: %w", err)
+	}
+	if statusCode == http.StatusForbidden {
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("RequestPasswordReset returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
+}
+
 // --- WithToken variants (for user identity scoping) ---
 
 func (c *IAMClient) DeleteOrganizationWithToken(token, orgID string) error {

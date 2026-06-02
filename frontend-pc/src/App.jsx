@@ -46,6 +46,7 @@ import InstrumentDetail from './pages/admin/instrument/Detail'
 import BatchImport from './pages/admin/instrument/BatchImport'
 import SiteBulkImport from './pages/SiteBulkImport'
 import StaffBulkImport from './pages/StaffBulkImport'
+import UserProfile from './pages/UserProfile'
 
 import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
@@ -268,7 +269,8 @@ function MainLayout() {
       { key: '/system/audit-logs', label: '操作日志', permission: { cusPermCodes: ['audit_log:read'] } },
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } }
     ]
-  }
+  },
+  { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
 ]
 
 
@@ -297,7 +299,7 @@ function onMenuClick(e) {
         return checkPermission(child.permission, sysPerm, cusPerm, cusPermMapping)
       }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
     }))
-    .filter(item => item.children && item.children.length > 0);
+    .filter(item => (item.children && item.children.length > 0) || item.key.startsWith('/'));
 
   const selectedKeys = [location.pathname]
   let openKeys = []
@@ -306,6 +308,7 @@ function onMenuClick(e) {
   else if (['/inventory/transfer', '/inventory/rent-setting', '/pricing/config'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
   else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
   else if (['/merchants', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
+  else if (location.pathname.startsWith('/user/')) openKeys = []
 
 
   let pageTitle = '管理后台'
@@ -329,6 +332,7 @@ function onMenuClick(e) {
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
+    '/user/profile': { title: '个人中心' },
 
   }
 
@@ -440,6 +444,7 @@ function onMenuClick(e) {
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
+            <Route path="/user/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
             <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
             <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />

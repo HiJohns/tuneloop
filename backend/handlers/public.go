@@ -105,6 +105,11 @@ func GetPublicInstruments(c *gin.Context) {
 			}
 		}
 
+		instrTransitInfo := GetMerchantTransitInfo(c.Request.Context(), instrument.TenantID)
+		if instrTransitInfo != nil && instrTransitInfo.MerchantType == models.MerchantTypeControlled {
+			siteAddress = instrTransitInfo.Address
+		}
+
 		// Get tenant name
 		tenantName := ""
 		if instrument.TenantID != "" {
@@ -174,6 +179,11 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		}
 	}
 
+	transitInfo := GetMerchantTransitInfo(c.Request.Context(), instrument.TenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		siteAddress = transitInfo.Address
+	}
+
 	// Get tenant name with IAM fallback
 	tenantName := resolveTenantName(db, instrument.TenantID)
 
@@ -206,6 +216,16 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		response["properties"] = propsMap
 	} else {
 		response["properties"] = map[string]interface{}{}
+	}
+
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		response["transit_info"] = map[string]string{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		}
+	} else {
+		response["transit_info"] = nil
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -356,6 +356,14 @@ export default function WarehouseManagement() {
               {selectedOrder.delivered_at && (
                 <Descriptions.Item label="送达时间">{selectedOrder.delivered_at}</Descriptions.Item>
               )}
+              {selectedOrder.transit_info && (
+                <Descriptions.Item label="中转地址" span={2}>
+                  <div className="bg-blue-50 p-2 rounded">
+                    <div>{selectedOrder.transit_info.address}</div>
+                    <div>电话: {selectedOrder.transit_info.phone}</div>
+                  </div>
+                </Descriptions.Item>
+              )}
             </Descriptions>
           </div>
         )}
