@@ -249,10 +249,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 		// Forwarding session routes
 		authRequired.GET("/forwarding/sessions", handlers.ListForwardingSessions)
+		authRequired.PUT("/forwarding/sessions/:id/ship", handlers.ShipForwardingSession)
 		authRequired.PUT("/forwarding/sessions/:id/receive", handlers.ReceiveForwardingSession)
+		authRequired.PUT("/forwarding/sessions/:id/ready", handlers.ReadyForwardingSession)
 		authRequired.PUT("/forwarding/sessions/:id/last-mile", handlers.LastMileForwardingSession)
 		authRequired.PUT("/forwarding/sessions/:id/complete", handlers.CompleteForwardingSession)
 		authRequired.PUT("/forwarding/sessions/:id/lost", handlers.LostForwardingSession)
+		authRequired.PUT("/forwarding/sessions/:id/recover", handlers.RecoverForwardingSession)
 
 		// Scrap instrument
 		authRequired.POST("/instruments/:id/scrap", middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
@@ -648,6 +651,10 @@ func main() {
 	autoConfirmSvc := handlers.NewAutoConfirmService()
 	autoConfirmSvc.Start()
 	defer autoConfirmSvc.Stop()
+
+	logisticsMonitor := handlers.NewLogisticsMonitor()
+	logisticsMonitor.Start()
+	defer logisticsMonitor.Stop()
 
 	_ = wwwURL
 	_ = wxURL

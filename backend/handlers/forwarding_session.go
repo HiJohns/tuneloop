@@ -33,7 +33,16 @@ func generateSessionCode() string {
 
 func createForwardingSession(ctx *gin.Context, tx *gorm.DB, tenantID, orgID, leaseSessionID, orderID, instrumentID string, direction string) {
 	merchantID := middleware.GetOrgID(ctx.Request.Context())
-	code := generateSessionCode()
+	// Retry up to 3 times on session_code collision
+	var code string
+	for attempt := 0; attempt < 3; attempt++ {
+		code = generateSessionCode()
+		var count int64
+		tx.Model(&models.ForwardingSession{}).Where("session_code = ?", code).Count(&count)
+		if count == 0 {
+			break
+		}
+	}
 	session := models.ForwardingSession{
 		ID:             uuid.New().String(),
 		TenantID:       tenantID,
@@ -79,6 +88,28 @@ func ListForwardingSessions(c *gin.Context) {
 	})
 }
 
+// PUT /api/forwarding/sessions/:id/ship - Ship from controlled merchant to forwarding site
+func ShipForwardingSession(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB().WithContext(ctx)
+
+	var session models.ForwardingSession
+	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tenantID).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "forwarding session not found"})
+		return
+	}
+	if session.Status != models.ForwardingStatusPending {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session must be pending to ship"})
+		return
+	}
+	if err := db.Model(&session).Update("status", models.ForwardingStatusInTransit).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update status"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "shipped"})
+}
+
 // PUT /api/forwarding/sessions/:id/receive - Receive goods at forwarding site
 func ReceiveForwardingSession(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -90,8 +121,8 @@ func ReceiveForwardingSession(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "forwarding session not found"})
 		return
 	}
-	if session.Status != models.ForwardingStatusInTransit {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session must be in_transit to receive"})
+	if session.Status != models.ForwardingStatusInTransit && session.Status != models.ForwardingStatusPending {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session must be pending or in_transit to receive"})
 		return
 	}
 	if err := db.Model(&session).Update("status", models.ForwardingStatusReceived).Error; err != nil {
@@ -99,6 +130,28 @@ func ReceiveForwardingSession(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "received"})
+}
+
+// PUT /api/forwarding/sessions/:id/ready - Repack complete, ready for last mile
+func ReadyForwardingSession(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB().WithContext(ctx)
+
+	var session models.ForwardingSession
+	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tenantID).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "forwarding session not found"})
+		return
+	}
+	if session.Status != models.ForwardingStatusReceived {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session must be received to mark ready"})
+		return
+	}
+	if err := db.Model(&session).Update("status", models.ForwardingStatusReady).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update status"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "ready"})
 }
 
 // PUT /api/forwarding/sessions/:id/last-mile - Forward last mile
@@ -167,5 +220,38 @@ func LostForwardingSession(c *gin.Context) {
 	if session.InstrumentID != "" {
 		db.Table("instruments").Where("id = ?", session.InstrumentID).Update("stock_status", models.StockStatusLost)
 	}
+	// For outbound direction, cancel the order and refund
+	if session.Direction == models.ForwardingDirectionOutbound && session.OrderID != "" {
+		db.Model(&models.Order{}).Where("id = ?", session.OrderID).Updates(map[string]interface{}{
+			"status": models.OrderStatusInStore,
+		})
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "marked as lost"})
+}
+
+// PUT /api/forwarding/sessions/:id/recover - Recover from lost to previous status
+func RecoverForwardingSession(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB().WithContext(ctx)
+
+	var session models.ForwardingSession
+	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tenantID).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "forwarding session not found"})
+		return
+	}
+	if session.Status != models.ForwardingStatusLost {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "session must be lost to recover"})
+		return
+	}
+	// Recover to in_transit (forwarding site will re-process)
+	if err := db.Model(&session).Update("status", models.ForwardingStatusInTransit).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to recover session"})
+		return
+	}
+	// Restore instrument stock status
+	if session.InstrumentID != "" {
+		db.Table("instruments").Where("id = ?", session.InstrumentID).Update("stock_status", models.StockStatusAvailable)
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "recovered"})
 }
