@@ -3189,6 +3189,54 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 
 ---
 
+#### 10.17.5 批量导入用户
+
+**接口**: `POST /api/admin/bulk-import/accounts`
+
+**权限**: `sys_perm bit 17 (user:create)`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file | file | 是 | CSV 文件 |
+| skip_activation | bool | 否 | 跳过邮箱激活（默认 false） |
+
+**查询参数**:
+- `skip_activation=true`：自动生成密码，IAM 发送通知邮件，用户直接激活
+- `skip_activation=false`（默认）：用户为 pending 状态，需邮箱确认
+
+**CSV 格式**:
+```csv
+username,name,email,phone,site,role
+zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "summary": { "total": 2, "created": 2, "failed": 0 },
+    "details": [
+      { "row": 1, "key": "zhangsan@example.com", "action": "created" }
+    ]
+  }
+}
+```
+
+---
+
+#### 10.17.6 预览批量导入
+
+**接口**: `POST /api/admin/bulk-import/accounts?dry_run=true`
+
+**说明**: 预览解析结果，不实际创建用户。支持 `skip_activation` 参数。
+
+---
+
 ## 十一、通用模块
 
 ### 11.1 文件上传

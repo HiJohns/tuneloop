@@ -229,7 +229,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Email:    acc.Email,
 			Phone:    acc.Phone,
 			Role:     acc.Role,
-			Status:   "active",
+			Status:   "pending",
 			UserType: "员工",
 			IsShadow: false,
 		}

@@ -50,7 +50,7 @@ func TestListWarehouseOrders(t *testing.T) {
 	tenantID := uuid.New().String()
 	order := models.Order{
 		ID: uuid.New().String(), TenantID: tenantID, UserID: uuid.New().String(),
-		InstrumentID: uuid.New().String(), OrgID: uuid.New().String(), Status: "shipped",
+		InstrumentID: uuid.New().String(), OrgID: uuid.New().String(), Status: models.OrderStatusShipped,
 	}
 	db.Create(&order)
 
@@ -98,7 +98,7 @@ func TestUpdateShipping(t *testing.T) {
 	orderID := uuid.New().String()
 	order := models.Order{
 		ID: orderID, TenantID: tenantID, UserID: uuid.New().String(), OrgID: uuid.New().String(),
-		Status: "preparing", InstrumentID: uuid.New().String(),
+		Status: "paid", InstrumentID: uuid.New().String(),
 	}
 	db.Create(&order)
 

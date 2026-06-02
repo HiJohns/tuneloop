@@ -6,6 +6,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -44,14 +45,44 @@ func (s *AutoConfirmService) Stop() {
 }
 
 func (s *AutoConfirmService) process() {
-	result := s.db.Model(&models.Order{}).
-		Where("status = ? AND shipped_at < NOW() - INTERVAL '48 hours'", models.OrderStatusShipped).
-		Update("status", models.OrderStatusInLease)
-	if result.Error != nil {
-		log.Printf("[AutoConfirm] Failed to auto-confirm orders: %v", result.Error)
+	now := time.Now()
+	var orders []models.Order
+	if err := s.db.Where("status = ? AND shipped_at < NOW() - INTERVAL '48 hours'", models.OrderStatusShipped).Find(&orders).Error; err != nil {
+		log.Printf("[AutoConfirm] Failed to query orders: %v", err)
 		return
 	}
-	if result.RowsAffected > 0 {
-		log.Printf("[AutoConfirm] Auto-confirmed %d orders (shipped -> in_lease)", result.RowsAffected)
+
+	for _, order := range orders {
+		if err := s.db.Model(&order).Updates(map[string]interface{}{
+			"status":       models.OrderStatusInLease,
+			"delivered_at": now,
+		}).Error; err != nil {
+			log.Printf("[AutoConfirm] Failed to update order %s: %v", order.ID, err)
+			continue
+		}
+
+		// Update instrument stock status
+		if order.InstrumentID != "" {
+			s.db.Table("instruments").Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusRented)
+		}
+
+		// Create OrderStatusHistory
+		s.db.Create(&models.OrderStatusHistory{
+			ID:         uuid.New().String(),
+			TenantID:   order.TenantID,
+			OrderID:    order.ID,
+			StatusFrom: models.OrderStatusShipped,
+			StatusTo:   models.OrderStatusInLease,
+			Notes:      "系统自动确认（48h 未手动确认）",
+			ChangedAt:  now,
+		})
+
+		// Update LeaseSession start time
+		s.db.Model(&models.LeaseSession{}).Where("order_id = ?", order.ID).Updates(map[string]interface{}{
+			"start_date": now,
+			"status":     models.LeaseStatusActive,
+		})
+
+		log.Printf("[AutoConfirm] Auto-confirmed order %s (shipped -> in_lease)", order.ID)
 	}
 }

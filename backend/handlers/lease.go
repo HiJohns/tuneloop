@@ -136,7 +136,7 @@ func (h *LeaseHandler) CreateLease(c *gin.Context) {
 		EndDate:       req.EndDate,
 		MonthlyRent:   req.MonthlyRent,
 		DepositAmount: req.DepositAmount,
-		Status:        "active",
+		Status:        models.LeaseStatusActive,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 	}
@@ -238,7 +238,7 @@ func (h *LeaseHandler) TerminateLease(c *gin.Context) {
 	}
 
 	if err := h.db.WithContext(ctx).Model(&lease).Updates(map[string]interface{}{
-		"status":     "terminated",
+		"status":     models.LeaseStatusCancelled,
 		"updated_at": time.Now(),
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

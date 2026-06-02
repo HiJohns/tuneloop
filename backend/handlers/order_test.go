@@ -138,7 +138,7 @@ func TestLeaseFlow_CompleteLifecycle(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, "paid", data["new_status"])
+		assert.Equal(t, models.OrderStatusPaid, data["new_status"])
 	})
 
 	t.Run("Step4_PickupOrder", func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestLeaseFlow_CompleteLifecycle(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, "in_lease", data["new_status"])
+		assert.Equal(t, models.OrderStatusInLease, data["new_status"])
 	})
 
 	t.Run("Step5_ReturnOrder", func(t *testing.T) {
@@ -289,7 +289,7 @@ func TestLeaseFlow_GetOrdersWithStatusFilter(t *testing.T) {
 	router.GET("/orders", GetOrders)
 
 	now := time.Now()
-	for i, status := range []string{"pending", "paid", "in_lease", "completed"} {
+	for i, status := range []string{models.OrderStatusReserved, models.OrderStatusPaid, models.OrderStatusInLease, models.OrderStatusInStore} {
 		orderID := uuid.New().String()
 		db.Exec(`INSERT INTO orders (id, tenant_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, created_at) 
 			VALUES (?, ?, ?, ?, 'standard', 3, 100, 500, ?, ?)`,

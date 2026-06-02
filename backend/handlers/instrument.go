@@ -823,7 +823,7 @@ func DeleteInstrument(c *gin.Context) {
 		return
 	}
 
-	if instrument.StockStatus == "rented" || instrument.StockStatus == "reserved" {
+	if instrument.StockStatus == models.StockStatusRented || instrument.StockStatus == models.StockStatusReserved {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "乐器正在使用中，无法删除"})
 		return
 	}

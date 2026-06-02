@@ -81,10 +81,14 @@ func GetOrder(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
+	userID := middleware.GetUserID(c.Request.Context())
 	var order models.Order
 	query := db.Where("id = ?", orderID)
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if middleware.GetRole(c.Request.Context()) == "USER" && userID != "" {
+		query = query.Where("user_id = ?", userID)
 	}
 	if err := query.First(&order).Error; err != nil {
 		if err.Error() == "record not found" {
@@ -167,6 +171,9 @@ func PayOrder(c *gin.Context) {
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
+	if middleware.GetRole(c.Request.Context()) == "USER" {
+		query = query.Where("user_id = ?", middleware.GetUserID(c.Request.Context()))
+	}
 	if err := query.First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
@@ -222,6 +229,9 @@ func PickupOrder(c *gin.Context) {
 	query := db.Where("id = ?", orderID)
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if middleware.GetRole(c.Request.Context()) == "USER" {
+		query = query.Where("user_id = ?", middleware.GetUserID(c.Request.Context()))
 	}
 	if err := query.First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{

@@ -118,10 +118,10 @@ func GetInstrumentByID(c *gin.Context) {
 	}
 
 	// Fetch booker info for reserved instruments (staff only)
-	if instrument.StockStatus == "reserved" {
+	if instrument.StockStatus == models.StockStatusReserved {
 		var order models.Order
-		if err := db.Where("instrument_id = ? AND status NOT IN (?, ?) ORDER BY created_at DESC LIMIT 1",
-			instrumentID, "cancelled", models.OrderStatusInStore).First(&order).Error; err == nil {
+		if err := db.Where("instrument_id = ? AND status NOT IN (?) ORDER BY created_at DESC LIMIT 1",
+			instrumentID, models.OrderStatusInStore).First(&order).Error; err == nil {
 			// Get user info
 			var user models.User
 			if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {

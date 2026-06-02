@@ -247,6 +247,16 @@ func (h *MaintenanceSessionHandler) Inspect(c *gin.Context) {
 		if err := db.Table("maintenance_tickets").Select("order_id, instrument_id").Where("id = ?", session.MaintenanceTicketID).First(&ticket).Error; err == nil {
 			if ticket.OrderID != "" {
 				db.Model(&models.Order{}).Where("id = ?", ticket.OrderID).Update("status", models.OrderStatusInStore)
+
+				db.Create(&models.OrderStatusHistory{
+					ID:         uuid.New().String(),
+					TenantID:   session.TenantID,
+					OrderID:    ticket.OrderID,
+					StatusFrom: models.OrderStatusMaintenance,
+					StatusTo:   models.OrderStatusInStore,
+					Notes:      "维修完成",
+					ChangedAt:  time.Now(),
+				})
 			}
 			if ticket.InstrumentID != "" {
 				db.Table("instruments").Where("id = ?", ticket.InstrumentID).Update("stock_status", models.StockStatusAvailable)

@@ -189,7 +189,7 @@ func TestIntegration_Scenario2_WarehouseProcess(t *testing.T) {
 		ID:       orderID,
 		TenantID: tenantID,
 		UserID:   userID,
-		Status:   "preparing",
+		Status:   "paid",
 	}
 	db.Create(&order)
 

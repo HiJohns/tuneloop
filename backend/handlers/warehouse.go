@@ -46,7 +46,7 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 		query = query.Where("org_id = ?", orgID)
 	}
 	if siteID != "" {
-		query = query.Where("site_id = ?", siteID)
+		query = query.Joins("JOIN instruments ON orders.instrument_id = instruments.id").Where("instruments.site_id = ?", siteID)
 	}
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -268,14 +268,20 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		assessmentStatus = "damaged"
 	}
 	assessment := models.DamageAssessment{
-		ID:          uuid.New().String(),
-		TenantID:    tenantID,
-		OrderID:     orderID,
-		InspectorID: stringPtr(userID),
-		Description: req.Notes,
-		Status:      assessmentStatus,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrgID:        order.OrgID,
+		OrderID:      orderID,
+		InstrumentID: order.InstrumentID,
+		UserID:       order.UserID,
+		InspectorID:  stringPtr(userID),
+		Condition:    req.Condition,
+		Description:  req.Notes,
+		Notes:        req.Notes,
+		ScanTime:     &req.ScanTime,
+		Status:       assessmentStatus,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
@@ -303,9 +309,11 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
-	// Update LeaseSession to completed
-	if err := db.Model(&models.LeaseSession{}).Where("order_id = ?", orderID).Update("status", models.LeaseStatusCompleted).Error; err != nil {
-		log.Printf("[InspectReturn] Failed to update lease session: %v", err)
+	// Update LeaseSession to completed (good condition only)
+	if req.Condition == "good" {
+		if err := db.Model(&models.LeaseSession{}).Where("order_id = ?", orderID).Update("status", models.LeaseStatusCompleted).Error; err != nil {
+			log.Printf("[InspectReturn] Failed to update lease session: %v", err)
+		}
 	}
 
 	// Record status history

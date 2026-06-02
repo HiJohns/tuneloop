@@ -95,6 +95,18 @@ const (
 	LeaseStatusActive         = "active"
 	LeaseStatusReturnRequested = "return_requested"
 	LeaseStatusCompleted      = "completed"
+	LeaseStatusCancelled      = "cancelled"
+)
+
+const (
+	InstrumentStatusAvailable   = "available"
+	InstrumentStatusReserved    = "reserved"
+	InstrumentStatusShipping    = "shipping"
+	InstrumentStatusRented      = "rented"
+	InstrumentStatusReturning   = "returning"
+	InstrumentStatusMaintenance = "maintenance"
+	InstrumentStatusLost        = "lost"
+	InstrumentStatusArchived    = "archived"
 )
 
 const (
@@ -141,7 +153,7 @@ type Order struct {
 	Deposit           float64    `gorm:"type:decimal(10,2);default:0" json:"deposit"`
 	ShippingFee        float64    `gorm:"type:decimal(10,2);default:0" json:"shipping_fee"`
 	AccumulatedMonths int        `gorm:"default:0" json:"accumulated_months"`
-	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
 	StartDate         *string    `gorm:"type:date" json:"start_date"`
 	EndDate           *string    `gorm:"type:date" json:"end_date"`
 	TrackingNumber    *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
@@ -292,7 +304,7 @@ type Deposit struct {
 	UserID          string    `gorm:"type:uuid;index;not null" json:"user_id"`
 	Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Type            string    `gorm:"type:varchar(20);not null" json:"type"`
-	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
+	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	TransactionDate string    `gorm:"type:date;not null" json:"transaction_date"`
 	Notes           string    `gorm:"type:text" json:"notes"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -386,7 +398,7 @@ type MaintenanceSession struct {
 	OrgID               string     `gorm:"type:uuid;index" json:"org_id"`
 	MaintenanceTicketID string     `gorm:"type:uuid;not null" json:"maintenance_ticket_id"`
 	WorkerID            *string    `gorm:"type:uuid;index" json:"worker_id"`
-	Status              string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
 	StartTime           *time.Time `json:"start_time"`
 	EndTime             *time.Time `json:"end_time"`
 	ProgressNotes       string     `gorm:"type:text" json:"progress_notes"`
@@ -463,10 +475,17 @@ type DamageReport struct {
 type DamageAssessment struct {
 	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID         string     `gorm:"type:uuid;index" json:"org_id"`
 	OrderID       string     `gorm:"type:uuid;not null;index" json:"order_id"`
+	InstrumentID  string     `gorm:"type:uuid;index" json:"instrument_id"`
+	UserID        string     `gorm:"type:uuid;index" json:"user_id"`
 	InspectorID   *string    `gorm:"type:uuid;index" json:"inspector_id"`
+	Condition     string     `gorm:"type:varchar(20)" json:"condition"`
 	Description   string     `gorm:"type:text" json:"description"`
+	Photos        string     `gorm:"type:jsonb" json:"photos"`
+	Notes         string     `gorm:"type:text" json:"notes"`
 	EstimatedCost *float64   `gorm:"type:decimal(10,2)" json:"estimated_cost"`
+	ScanTime      *time.Time `json:"scan_time"`
 	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
@@ -480,7 +499,7 @@ type Appeal struct {
 	DamageReportID string     `gorm:"type:uuid;not null;index" json:"damage_report_id"`
 	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
 	AppealReason   string     `gorm:"type:text;not null" json:"appeal_reason"`
-	Status         string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	Status            string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
 	SubmittedAt    time.Time  `json:"submitted_at"`
 	ResolvedAt     *time.Time `json:"resolved_at,omitempty"`
 	Resolution     string     `gorm:"type:varchar(20)" json:"resolution"`
