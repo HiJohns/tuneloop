@@ -470,7 +470,8 @@ func contains(items []string, target string) bool {
 // Exempts /api/user/change-password itself.
 func RequirePasswordNotForceChange() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.URL.Path == "/api/user/change-password" {
+		path := c.Request.URL.Path
+		if path == "/api/user/change-password" || path == "/api/users/me" {
 			c.Next()
 			return
 		}

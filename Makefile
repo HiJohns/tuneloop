@@ -95,6 +95,9 @@ release: clean-prerelease
 	@echo "=========================================="
 	@echo "Package: $(RELEASE_DIR)/$(PKG_NAME).zip"
 	@echo "=========================================="
+	@echo "Uploading to cadenza:/opt/flow ..."
+	scp $(RELEASE_DIR)/$(PKG_NAME).zip cadenza:/opt/flow/
+	@echo "Upload complete -> cadenza:/opt/flow/$(PKG_NAME).zip"
 
 # Backward-compatible alias
 prerelease: release
