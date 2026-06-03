@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
+	"strings"
 	"tuneloop-backend/models"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -212,39 +214,6 @@ func RunMigrations(db *gorm.DB) error {
 	return nil
 }
 
-func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(
-		&models.User{},
-		&models.Category{},
-		&models.Instrument{},
-		&models.Order{},
-		&models.Site{},
-		&models.MaintenanceTicket{},
-		&models.BrandConfig{},
-		&models.OwnershipCertificate{},
-		&models.Client{},
-		&models.Tenant{},
-		&models.Property{},
-		&models.PropertyOption{},
-		&models.InstrumentProperty{},
-		&models.MaintenanceWorker{},
-		&models.MaintenanceSession{},
-		&models.MaintenanceSessionRecord{},
-		&models.LeaseSession{},
-		&models.ElectronicContract{},
-		&models.DamageReport{},
-		&models.DamageAssessment{},
-		&models.Appeal{},
-		&models.OrderStatusHistory{},
-		&models.AuditLog{},
-		&models.InstrumentPhotoBatch{},
-		&models.InstrumentPhotoSpec{},
-		&models.Merchant{},
-		&models.SiteMember{},
-		&models.Role{},
-	)
-}
-
 // RunMigrationsWithLogging runs database migrations with detailed logging
 func RunMigrationsWithLogging(db *gorm.DB) error {
 	sqlDB, err := db.DB()
@@ -317,24 +286,132 @@ func BootstrapDatabase(db *gorm.DB) error {
 	return nil
 }
 
-// validateDatabaseSchema checks that critical tables have required columns
+// modelTableName returns the table name for a given model struct.
+// It uses GORM's naming strategy, except for models with a custom TableName() method.
+func modelTableName(db *gorm.DB, instance interface{}) string {
+	typ := reflect.TypeOf(instance)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	switch typ.Name() {
+	case "OrderStatusHistory":
+		return "order_status_history"
+	case "AuditLog":
+		return "audit_logs"
+	default:
+		stmt := &gorm.Statement{DB: db}
+		if err := stmt.Parse(instance); err == nil && stmt.Schema != nil {
+			return stmt.Schema.Table
+		}
+		return db.NamingStrategy.TableName(typ.Name())
+	}
+}
+
+// validateModelColumns checks that all columns defined in the gorm tags
+// of a model struct exist in the database table.
+func validateModelColumns(db *gorm.DB, instance interface{}) error {
+	typ := reflect.TypeOf(instance)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	tableName := modelTableName(db, instance)
+
+	var tableExists int64
+	if err := db.Raw(`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?`, tableName).Scan(&tableExists).Error; err != nil {
+		return fmt.Errorf("failed to check table %s: %w", tableName, err)
+	}
+	if tableExists == 0 {
+		return nil
+	}
+
+	var expectedCols []string
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if !field.IsExported() {
+			continue
+		}
+
+		gormTag := field.Tag.Get("gorm")
+		if gormTag == "-" || strings.Contains(gormTag, "-:migration") {
+			continue
+		}
+
+		columnName := db.NamingStrategy.ColumnName("", field.Name)
+		if gormTag != "" {
+			for _, part := range strings.Split(gormTag, ";") {
+				part = strings.TrimSpace(part)
+				if strings.HasPrefix(part, "column:") {
+					columnName = strings.TrimPrefix(part, "column:")
+					break
+				}
+			}
+		}
+		expectedCols = append(expectedCols, columnName)
+	}
+
+	if len(expectedCols) == 0 {
+		return nil
+	}
+
+	var colCount int64
+	if err := db.Raw(`SELECT COUNT(*) FROM information_schema.columns WHERE table_name = ? AND column_name IN (?)`, tableName, expectedCols).Scan(&colCount).Error; err != nil {
+		return fmt.Errorf("failed to check columns for table %s: %w", tableName, err)
+	}
+
+	if colCount != int64(len(expectedCols)) {
+		for _, col := range expectedCols {
+			var exists int64
+			db.Raw(`SELECT COUNT(*) FROM information_schema.columns WHERE table_name = ? AND column_name = ?`, tableName, col).Scan(&exists)
+			if exists == 0 {
+				return fmt.Errorf("schema validation failed: table %s missing column %s", tableName, col)
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateDatabaseSchema checks that all model struct columns exist in the database.
 func validateDatabaseSchema(db *gorm.DB) error {
 	fmt.Println("Validating database schema...")
 
-	// Check instruments table has model column
-	var count int64
-	err := db.Raw(`
-		SELECT COUNT(*) 
-		FROM information_schema.columns 
-		WHERE table_name = 'instruments' AND column_name = 'model'
-	`).Scan(&count).Error
-
-	if err != nil {
-		return fmt.Errorf("failed to check instruments.model column: %w", err)
+	modelsToValidate := []interface{}{
+		&models.User{},
+		&models.Category{},
+		&models.Instrument{},
+		&models.Order{},
+		&models.Site{},
+		&models.MaintenanceTicket{},
+		&models.BrandConfig{},
+		&models.OwnershipCertificate{},
+		&models.Client{},
+		&models.Tenant{},
+		&models.Property{},
+		&models.PropertyOption{},
+		&models.InstrumentProperty{},
+		&models.MaintenanceWorker{},
+		&models.MaintenanceSession{},
+		&models.MaintenanceSessionRecord{},
+		&models.LeaseSession{},
+		&models.ElectronicContract{},
+		&models.DamageReport{},
+		&models.DamageAssessment{},
+		&models.Appeal{},
+		&models.OrderStatusHistory{},
+		&models.AuditLog{},
+		&models.InstrumentPhotoBatch{},
+		&models.InstrumentPhotoSpec{},
+		&models.Merchant{},
+		&models.SiteMember{},
+		&models.Role{},
 	}
 
-	if count == 0 {
-		return fmt.Errorf("critical error: instruments.model column does not exist in connected database")
+	for _, m := range modelsToValidate {
+		if err := validateModelColumns(db, m); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("✓ Database schema validation passed")
