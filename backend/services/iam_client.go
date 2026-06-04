@@ -1158,6 +1158,35 @@ func (c *IAMClient) SetUserCustomerPermissionsWithToken(token, orgID, userID str
 	return nil
 }
 
+// GetUserCustomerPermissions retrieves a user's customer permissions in an org.
+func (c *IAMClient) GetUserCustomerPermissions(orgID, userID string) (map[string]interface{}, int64, error) {
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("GetUserCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, 0, fmt.Errorf("GetUserCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result struct {
+		CusPerm    int64              `json:"cus_perm"`
+		CusPermExt string             `json:"cus_perm_ext"`
+		OrgID      string             `json:"org_id"`
+		UserID     string             `json:"user_id"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, 0, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	resp := map[string]interface{}{
+		"cus_perm":  result.CusPerm,
+		"org_id":    result.OrgID,
+		"user_id":   result.UserID,
+	}
+	return resp, result.CusPerm, nil
+}
+
 // SetUserCustomerPermissionsCodes sets the cus_perm via permission codes (backward compatibility).
 // Used before beaconiam #293 Phase 1 raw_bits support is deployed.
 func (c *IAMClient) SetUserCustomerPermissionsCodes(orgID, userID string, permCodes []string) error {
