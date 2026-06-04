@@ -201,15 +201,43 @@ make mobile-dev
 
 ### 编译
 ```bash
-make release    # 一步完成 PC+Mobile+Backend 编译，输出 zip
+make release    # 一步完成 PC+Mobile+Backend 编译，输出 zip + 包装 test.zip
 ```
-产物：`~/release/tuneloop_<timestamp>_<git-hash>.zip`
+产物：
+- `/opt/flow/tuneloop_<timestamp>_<git-hash>.zip` — 原始部署包
+- `~/test.zip` — 包裹原始 ZIP 的包装文件（内层即 `tuneloop_<timestamp>_<hash>.zip`），用于 Seafile 传输
 
-### 部署
+### 部署方式 A：直推（`make release` 自动执行）
 ```bash
-/opt/flow/deploy.sh ~/release/tuneloop_<timestamp>_<hash>.zip
+make release                              # 编译 + scp 到 cadenza:/opt/flow/
+# 然后在 cadenza 上：
+/opt/flow/deploy.sh /opt/flow/tuneloop_<timestamp>_<hash>.zip
 ```
-`deploy.sh` 从文件名解析 `tuneloop` → 解压 → 更新 `/opt/tuneloop/` symlink → 重启服务。
+
+### 部署方式 B：经由 Seafile（适用于直推速度慢时）
+```bash
+# 1. 编译
+make release
+
+# 2. 上传到 Seafile（在本地执行，需配置环境变量）
+export SEAFILE_SERVER_URL=https://seafile.example.com
+export SEAFILE_USERNAME=your_email
+export SEAFILE_PASSWORD=your_password
+export SEAFILE_REPO_ID=your_repo_uuid
+export SEAFILE_PATH=/deploy
+bash scripts/push_seafile.sh
+
+# 3. cadenza 上从 Seafile 下载并部署
+export SEAFILE_DEPLOY=https://seafile.example.com/d/.../test.zip
+/opt/flow/deploy.sh
+```
+`deploy.sh` 自动解包 `test.zip` → 找到内层 ZIP → 按文件名解析 `tuneloop` → 正常部署。
+
+### 部署脚本
+| 文件 | 位置 | 说明 |
+|------|------|------|
+| `scripts/push_seafile.sh` | 开发机 | SCP 拉取 `test.zip` 到本地 → 上传 Seafile |
+| `/opt/flow/deploy.sh` | cadenza | 接受 ZIP 路径 或 `SEAFILE_DEPLOY` URL |
 
 ### 访问地址
 - https://web.cadenzayueqi.com => NGINX => :5558 (PC端)

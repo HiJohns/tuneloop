@@ -98,6 +98,9 @@ release: clean-prerelease
 	@echo "Uploading to cadenza:/opt/flow ..."
 	scp $(RELEASE_DIR)/$(PKG_NAME).zip cadenza:/opt/flow/
 	@echo "Upload complete -> cadenza:/opt/flow/$(PKG_NAME).zip"
+	# Wrap into test.zip for Seafile deployment
+	cd $(RELEASE_DIR) && zip test.zip $(PKG_NAME).zip && cp test.zip ~/test.zip
+	@echo "Wrapped to ~/test.zip (contains $(PKG_NAME).zip)"
 
 # Backward-compatible alias
 prerelease: release
