@@ -219,13 +219,13 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	} else if input.AdminName != "" && input.AdminEmail != "" && len(input.UserIDs) == 0 {
 		// Scenario 2: create IAM user first, then use the returned ID
 		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
-			Username:       input.AdminUsername,
-			Name:           input.AdminName,
-			Email:          input.AdminEmail,
-			Phone:          input.AdminPhone,
-			SkipActivation: true,
-			Reason:         "商户管理员 - " + input.Name,
-			OperatorID:     middleware.GetUserID(c.Request.Context()),
+			Username:    input.AdminUsername,
+			Name:        input.AdminName,
+			Email:       input.AdminEmail,
+			Phone:       input.AdminPhone,
+			CallbackURL: callbackURL,
+			Reason:      "商户管理员 - " + input.Name,
+			OperatorID:  middleware.GetUserID(c.Request.Context()),
 		})
 		if err != nil {
 			log.Printf("[CreateMerchant] CreateOrGetUser failed: %v", err)
