@@ -413,6 +413,16 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 
+	// Update local user record with org_id, tenant_id and role
+	if adminIAMSub != "" && iamOrgID != "" {
+		db.Model(&models.User{}).Where("iam_sub = ?", adminIAMSub).Updates(map[string]interface{}{
+			"org_id":    iamOrgID,
+			"tenant_id": iamOrgID,
+			"role":      "merchant_admin",
+			"status":    "active",
+		})
+	}
+
 	var directlyAdded []string
 	for _, userEntry := range userIDsToProcess {
 		if userID, ok := userEntry["user_id"].(string); ok && userID != "" {
