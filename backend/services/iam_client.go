@@ -530,8 +530,9 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 		}
 
 		if len(conflicts) > 0 {
-			log.Printf("[IAMClient] CreateOrGetUser: conflicts found for %d fields", len(conflicts))
+			log.Printf("[IAMClient] CreateOrGetUser: conflicts found, returning existing user %s", conflicts[0].ID)
 			return &CreateUserResult{
+				UserID:        conflicts[0].ID,
 				Conflict:      true,
 				ExistingUsers: conflicts,
 			}, nil
@@ -547,6 +548,7 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 		var existing ExistingUserInfo
 		if err := json.Unmarshal(respBody, &existing); err == nil && existing.ID != "" {
 			return &CreateUserResult{
+				UserID:        existing.ID,
 				Conflict:      true,
 				ExistingUsers: []ExistingUserInfo{existing},
 			}, nil

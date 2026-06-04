@@ -109,17 +109,22 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         user_ids: existingUsers,
         new_users: newUsers,
       });
-      if (response.code === 20000) {
+      if (response.code === 20000 || response.code === 20100) {
         const data = response.data;
         const directCount = data.directly_added?.length || 0;
-        const pendingCount = data.confirmation_sessions?.length || 0;
         let msg = `成功添加 ${directCount} 个用户`;
-        if (pendingCount > 0) msg += `，${pendingCount} 个用户需等待确认`;
         message.success(msg);
         setSelectedUsers([]);
         setModalVisible(false);
         fetchMembers();
         onRefresh && onRefresh();
+      } else {
+        const data = response.data;
+        if (data?.conflicts) {
+          message.warning(`以下用户已存在：${data.conflicts.map(c => c.email || c.name).join(', ')}`);
+        } else {
+          message.error(response.message || '添加成员失败');
+        }
       }
     } catch { message.error('添加成员失败') }
     setAdding(false);

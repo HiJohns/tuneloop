@@ -152,11 +152,37 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				continue
 			}
 			if userResult.Conflict {
-				c.JSON(http.StatusConflict, gin.H{
-					"code": 40901,
-					"data": gin.H{"conflicts": userResult.ExistingUsers},
+				log.Printf("[AddMember] User already exists in IAM: %s, proceeding with binding", userResult.UserID)
+
+				// Create local user record for FK constraint if not exists
+				var existingLocal models.User
+				if err := db.Where("iam_sub = ?", userResult.UserID).First(&existingLocal).Error; err != nil {
+					existingUser := userResult.ExistingUsers[0]
+					localUser := models.User{
+						ID:       userResult.UserID,
+						IAMSub:   userResult.UserID,
+						TenantID: tenantID,
+						OrgID:    site.OrgID,
+						Name:     existingUser.Name,
+						Email:    existingUser.Email,
+						Phone:    nu.Phone,
+						Role:     "site_member",
+						Status:   "active",
+					}
+					if err := db.Create(&localUser).Error; err != nil {
+						log.Printf("[AddMember] Failed to create local user for existing IAM user %s: %v", userResult.UserID, err)
+					}
+				}
+
+				role := nu.Role
+				if role == "" {
+					role = "site_member"
+				}
+				usersToProcess = append(usersToProcess, map[string]interface{}{
+					"user_id": userResult.UserID,
+					"role":    role,
 				})
-				return
+				continue
 			}
 			localUser := models.User{
 				ID:       userResult.UserID,
