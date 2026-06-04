@@ -381,13 +381,13 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
 			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 			var setErr error
-			for attempt := 0; attempt < 3; attempt++ {
+			for attempt := 0; attempt < 5; attempt++ {
 				setErr = iamClient.SetUserCustomerPermissionsWithToken(userToken, iamOrgID, adminIAMSub, cusPerm, cusPermExt)
 				if setErr == nil {
 					break
 				}
-				log.Printf("[CreateMerchant] set cus_perm attempt %d/3: %v", attempt+1, setErr)
-				time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+				log.Printf("[CreateMerchant] set cus_perm attempt %d/5: %v", attempt+1, setErr)
+				time.Sleep(time.Duration(attempt+1) * 2 * time.Second)
 			}
 			if setErr != nil {
 				log.Printf("[CreateMerchant] Warning: failed to set admin cus_perm: %v", setErr)
