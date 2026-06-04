@@ -146,12 +146,21 @@ function MainLayout() {
 
   useEffect(() => {
     const token = getToken()
-    
+    console.log('%c[APP DEBUG] userInfo useEffect', 'color: teal;', {
+      hasToken: !!token,
+      tokenLen: token?.length,
+      isJWT: token?.includes('.'),
+      hasUserInfo: !!localStorage.getItem('user_info'),
+      userInfoLen: localStorage.getItem('user_info')?.length,
+      timestamp: new Date().toISOString()
+    })
+
     if (token && token.includes('.')) {
+      console.log('%c[APP DEBUG] attempting JWT parse...', 'color: teal;')
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
 
-        console.log('%c[APP DEBUG] JWT parsed', 'color: blue;', {
+        console.log('%c[APP DEBUG] JWT success', 'color: green;', {
           sub: payload.sub,
           tid: payload.tid,
           oid: payload.oid,
@@ -222,18 +231,25 @@ function MainLayout() {
             }
           }).catch(() => {})
         }
+        console.log('%c[APP DEBUG] setUserInfo called', 'color: green;', { name: userName, email, role: businessRole, sysPerm, cusPerm })
       } catch (e) {
-        // ignore parse errors
+        console.error('%c[APP DEBUG] JWT parse FAILED', 'color: red;', e.message, e.stack)
       }
-    } else {
+    } else if (token) {
+      console.log('%c[APP DEBUG] token is opaque (no dots), trying localStorage fallback', 'color: orange;')
       const info = localStorage.getItem('user_info')
+      console.log('%c[APP DEBUG] localStorage fallback', 'color: orange;', { hasUserInfo: !!info, infoLen: info?.length })
       if (info) {
         try {
-          setUserInfo(JSON.parse(info))
+          const parsed = JSON.parse(info)
+          console.log('%c[APP DEBUG] setUserInfo from fallback', 'color: green;', parsed)
+          setUserInfo(parsed)
         } catch (e) {
-          // ignore parse errors
+          console.error('%c[APP DEBUG] localStorage parse FAILED', 'color: red;', e.message)
         }
       }
+    } else {
+      console.log('%c[APP DEBUG] no token at all', 'color: red;')
     }
   }, [])
 
@@ -403,7 +419,19 @@ function onMenuClick(e) {
     breadcrumbItems.push({ title: '基础数据' }, { title: '乐器库存' }, { title: '资产详情' })
   }
 
+  const tokenBeforeRedirect = getToken()
+  console.log('%c[APP DEBUG] render-level token check', 'color: teal;', {
+    hasToken: !!tokenBeforeRedirect,
+    tokenType: tokenBeforeRedirect ? (tokenBeforeRedirect.includes('.') ? 'JWT' : 'opaque') : 'none',
+    pathname: location.pathname,
+    localStorageToken: !!localStorage.getItem('token'),
+    sessionStorageToken: !!sessionStorage.getItem('token'),
+    cookieToken: !!(document.cookie && document.cookie.includes('token')),
+    timestamp: new Date().toISOString()
+  })
+
   if (!getToken() && location.pathname !== '/callback') {
+    console.log('%c[APP DEBUG] redirecting to IAM (no token)', 'color: red;')
     redirectToIAMLogin()
     return null
   }
@@ -412,7 +440,7 @@ function onMenuClick(e) {
     return <ChangePassword />
   }
 
-  if (userInfo === null || !permMappingReady) {
+  if (location.pathname !== '/callback' && (userInfo === null || !permMappingReady)) {
     console.log('%c[APP DEBUG] Waiting for init', 'color: gray;', {
       userInfoExists: !!userInfo, permMappingReady,
       timestamp: new Date().toISOString()
@@ -600,7 +628,7 @@ function OAuthCallback() {
 
     const existingToken = getToken()
     if (existingToken) {
-      console.log('[OAuth] Token already exists, skipping exchange')
+      console.log('%c[CALLBACK DEBUG] Token already exists, skipping exchange', 'color: teal;', { tokenType: existingToken.includes('.') ? 'JWT' : 'opaque' })
       const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
       sessionStorage.removeItem('post_auth_redirect')
       window.location.href = redirectTo
@@ -633,6 +661,8 @@ function OAuthCallback() {
         }
 
         const responseData = await response.json()
+        console.log('%c[CALLBACK DEBUG] exchange response', 'color: teal;', { status: response.status, code: responseData.code, hasAccessToken: !!responseData.data?.access_token, hasData: !!responseData.data })
+
         const tokenData = responseData.data || responseData
 
         if (tokenData.relogin) {
@@ -642,9 +672,12 @@ function OAuthCallback() {
         }
         
         if (tokenData.access_token) {
+          console.log('%c[CALLBACK DEBUG] got access_token, storing...', 'color: green;', { tokenLen: tokenData.access_token.length, isJWT: tokenData.access_token.includes('.'), hasRefresh: !!tokenData.refresh_token })
+
           const expiresIn = Math.max(tokenData.expires_in || 3600, 60)
           storeToken(tokenData.access_token, expiresIn)
 
+          console.log('%c[CALLBACK DEBUG] after storeToken', 'color: green;', { localStorageHasToken: !!localStorage.getItem('token'), localStorageHasExpiry: !!localStorage.getItem('token_expiry') })
           if (tokenData.refresh_token) {
             localStorage.setItem('refresh_token', tokenData.refresh_token)
           }
@@ -656,13 +689,17 @@ function OAuthCallback() {
             localStorage.setItem('user_role', tokenData.role)
           }
           
+          console.log('%c[CALLBACK DEBUG] redirecting to', 'color: green;', { redirectTo, localStorageHasToken: !!localStorage.getItem('token') })
+
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
           sessionStorage.removeItem('post_auth_redirect')
           window.location.href = redirectTo
         } else {
+          console.error('%c[CALLBACK DEBUG] no access_token in response', 'color: red;', responseData)
           throw new Error('No access token received')
         }
       } catch (error) {
+        console.error('%c[CALLBACK DEBUG] exchange FAILED', 'color: red;', { message: error.message, stack: error.stack })
         setLoading(false)
         setErrorMsg(error.message || '认证失败')
         localStorage.removeItem('token')
