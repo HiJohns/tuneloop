@@ -66,10 +66,35 @@ fi
 echo "  Token obtained"
 
 echo "=== Step 3: Upload to ${SEAFILE_PATH} ==="
+
+TARGET_FILE="${SEAFILE_PATH}/test.zip"
+
+# Clean up existing test.zip before upload (overwrite share link changes, accepted)
+echo "  Cleaning old test.zip in ${SEAFILE_PATH}..."
+DIR_RESP=$(curl -sS -H "Authorization: Token ${TOKEN}" \
+  "${SEAFILE_SERVER_URL}/api2/repos/${SEAFILE_REPO_ID}/dir/?p=${SEAFILE_PATH}")
+
+EXISTING=$(echo "$DIR_RESP" | python3 -c "
+import sys,json,urllib.parse
+for f in json.load(sys.stdin):
+    n = f['name']
+    if (n == 'test.zip' or n.startswith('test (') and n.endswith('.zip')):
+        encoded = urllib.parse.quote(n)
+        sys.stdout.write(encoded + '|' + n + '\n')
+" 2>/dev/null)
+
+if [ -n "$EXISTING" ]; then
+  while IFS='|' read -r encoded name; do
+    echo "    Deleting ${name}..."
+    curl -sS -X DELETE -H "Authorization: Token ${TOKEN}" \
+      "${SEAFILE_SERVER_URL}/api2/repos/${SEAFILE_REPO_ID}/file/?p=${SEAFILE_PATH}/${encoded}" > /dev/null 2>&1
+  done <<< "$EXISTING"
+fi
+
+echo "  Uploading test.zip..."
 UPLOAD_RESP=$(curl -sS -H "Authorization: Token ${TOKEN}" \
   "${SEAFILE_SERVER_URL}/api2/repos/${SEAFILE_REPO_ID}/upload-link/?p=${SEAFILE_PATH}")
 
-# Upload link may be a bare URL string or JSON-encoded
 if echo "$UPLOAD_RESP" | grep -q '^"http'; then
   UPLOAD_LINK=$(echo "$UPLOAD_RESP" | sed 's/^"//;s/"$//')
 elif echo "$UPLOAD_RESP" | grep -q '^http'; then
