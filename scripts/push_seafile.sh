@@ -1,7 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# push_seafile.sh — SCP the test.zip from the build server and upload to Seafile.
+# push_seafile.sh — Upload test.zip to Seafile.
+#
+# Runs on the local workstation (NOT the build server).
+# SCPs test.zip from the build server, then uploads via Seafile REST API.
 #
 # Required environment variables:
 #   SEAFILE_SERVER_URL   e.g. https://cloud.seafile.com
@@ -25,38 +28,69 @@ for var in SEAFILE_SERVER_URL SEAFILE_USERNAME SEAFILE_PASSWORD SEAFILE_REPO_ID 
   fi
 done
 
-echo "=== Step 1: Download test.zip from build server ==="
-scp opencode:~/test.zip ~/Downloads/test.zip
-echo "  Downloaded to ~/Downloads/test.zip"
+# Accept optional -l/--local flag to skip scp (use local ~/test.zip)
+SKIP_SCP=false
+if [ "${1:-}" = "-l" ] || [ "${1:-}" = "--local" ]; then
+  SKIP_SCP=true
+  shift
+fi
+
+echo "=== Step 1: Get test.zip ==="
+if [ "$SKIP_SCP" = true ] || [ -f "${HOME}/test.zip" ]; then
+  echo "  Using local ~/test.zip"
+else
+  scp opencode:~/test.zip ~/Downloads/test.zip
+  echo "  Downloaded to ~/Downloads/test.zip"
+fi
+
+SRC="${HOME}/test.zip"
+[ -f "${HOME}/Downloads/test.zip" ] && SRC="${HOME}/Downloads/test.zip"
+[ "$SKIP_SCP" = true ] && SRC="${HOME}/test.zip"
 
 echo "=== Step 2: Authenticate with Seafile ==="
-TOKEN=$(curl -sS -X POST "${SEAFILE_SERVER_URL}/api2/auth-token/" \
-  -d "username=${SEAFILE_USERNAME}&password=${SEAFILE_PASSWORD}" | tr -d '"')
+AUTH_RESP=$(curl -sS -X POST "${SEAFILE_SERVER_URL}/api2/auth-token/" \
+  -d "username=${SEAFILE_USERNAME}&password=${SEAFILE_PASSWORD}")
+
+# Handle both JSON {"token":"..."} and plain-text token responses
+if echo "$AUTH_RESP" | grep -q '"token"'; then
+  TOKEN=$(echo "$AUTH_RESP" | grep -oP '"token"\s*:\s*"([^"]*)"' | sed 's/.*"\([^"]*\)".*/\1/')
+else
+  TOKEN=$(echo "$AUTH_RESP" | tr -d '"')
+fi
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
   echo "ERROR: Seafile authentication failed"
+  echo "  Response: $AUTH_RESP"
   exit 1
 fi
 echo "  Token obtained"
 
-echo "=== Step 3: Get upload link ==="
+echo "=== Step 3: Upload to ${SEAFILE_PATH} ==="
 UPLOAD_RESP=$(curl -sS -H "Authorization: Token ${TOKEN}" \
   "${SEAFILE_SERVER_URL}/api2/repos/${SEAFILE_REPO_ID}/upload-link/?p=${SEAFILE_PATH}")
 
-# Response is 'https://...upload...' — strip the surrounding quotes
-UPLOAD_LINK=$(echo "$UPLOAD_RESP" | sed 's/^"//;s/"$//')
-
-if [ -z "$UPLOAD_LINK" ] || [ "$UPLOAD_LINK" = "null" ]; then
-  echo "ERROR: Failed to get upload link from Seafile"
+# Upload link may be a bare URL string or JSON-encoded
+if echo "$UPLOAD_RESP" | grep -q '^"http'; then
+  UPLOAD_LINK=$(echo "$UPLOAD_RESP" | sed 's/^"//;s/"$//')
+elif echo "$UPLOAD_RESP" | grep -q '^http'; then
+  UPLOAD_LINK="$UPLOAD_RESP"
+elif echo "$UPLOAD_RESP" | grep -q '"upload_link"'; then
+  UPLOAD_LINK=$(echo "$UPLOAD_RESP" | grep -oP '"upload_link"\s*:\s*"([^"]*)"' | sed 's/.*"\([^"]*\)".*/\1/')
+else
+  echo "ERROR: Failed to get upload link"
   echo "  Response: $UPLOAD_RESP"
   exit 1
 fi
-echo "  Upload URL obtained"
 
-echo "=== Step 4: Upload test.zip to Seafile ==="
-# Upload using the returned link (multipart form)
+if [ -z "$UPLOAD_LINK" ]; then
+  echo "ERROR: Empty upload link"
+  exit 1
+fi
+
+echo "  Upload URL: ${UPLOAD_LINK:0:80}..."
+
 curl -sS -H "Authorization: Token ${TOKEN}" \
-  -F "file=@${HOME}/Downloads/test.zip" \
+  -F "file=@${SRC}" \
   -F "filename=test.zip" \
   -F "parent_dir=${SEAFILE_PATH}" \
   "$UPLOAD_LINK"
