@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select } from 'antd';
+import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { adminApi } from '../services/api';
@@ -34,8 +34,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState([]);
-  const [selectedRole, setSelectedRole] = useState('site_member');
+const [availableRoles, setAvailableRoles] = useState([]);
+const [selectedRole, setSelectedRole] = useState('site_admin');
+const [skipActivation, setSkipActivation] = useState(false);
 
   useEffect(() => {
     if (siteId) {
@@ -108,6 +109,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       const response = await api.post(`/sites/${siteId}/members`, {
         user_ids: existingUsers,
         new_users: newUsers,
+        skip_activation: skipActivation,
       });
       if (response.code === 20000 || response.code === 20100) {
         const data = response.data;
@@ -201,7 +203,8 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={() => {
           setSelectedUsers([]);
-          setSelectedRole('site_member');
+          setSelectedRole('site_admin');
+          setSkipActivation(false);
           setModalVisible(true);
         }}>
           添加成员
@@ -228,6 +231,11 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
               <Select.Option key={r.code} value={r.code}>{r.name}</Select.Option>
             ))}
           </Select>
+          <div style={{ marginTop: 12 }}>
+            <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>
+              跳过邮箱验证（直接激活）
+            </Checkbox>
+          </div>
         </div>
         <div style={{ textAlign: 'right', marginTop: 16 }}>
           <Button onClick={() => setModalVisible(false)} style={{ marginRight: 8 }}>

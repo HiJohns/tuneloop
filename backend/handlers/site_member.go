@@ -72,11 +72,12 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 		Role     string                   `json:"role" default:"Staff"`
 		UserIDs  []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
 		NewUsers []struct {
-			Username string `json:"username"`
-			Name     string `json:"name"`
-			Email    string `json:"email"`
-			Phone    string `json:"phone"`
-			Role     string `json:"role"`
+			Username        string `json:"username"`
+			Name            string `json:"name"`
+			Email           string `json:"email"`
+			Phone           string `json:"phone"`
+			Role            string `json:"role"`
+			SkipActivation  bool   `json:"skip_activation"`
 		} `json:"new_users"` // Create new users first, then add as members
 	}
 
@@ -134,15 +135,23 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if nuUsername == "" {
 				nuUsername = nu.Email
 			}
-			userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
+			createReq := &services.CreateUserRequest{
 				Username:    nuUsername,
 				Name:        nu.Name,
 				Email:       nu.Email,
 				Phone:       nu.Phone,
-				CallbackURL: callbackURL,
 				Reason:      "网点成员 - " + site.Name,
 				OperatorID:  operatorID,
-			})
+				SkipActivation: nu.SkipActivation,
+			}
+			if nu.SkipActivation {
+				createReq.Password = generatePassword()
+				createReq.SendNotificationEmail = true
+				createReq.NotificationLang = "zh"
+			} else {
+				createReq.CallbackURL = callbackURL
+			}
+			userResult, err := iamClient.CreateOrGetUser(userToken, createReq)
 			if err != nil {
 				log.Printf("[AddMember] Failed to create user %s: %v", nu.Email, err)
 				bindErrors = append(bindErrors, gin.H{
