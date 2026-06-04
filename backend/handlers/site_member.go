@@ -110,6 +110,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 
 	var directlyAdded []gin.H
 	var bindErrors []gin.H
+	var initialPasswords []gin.H
 
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err != nil {
@@ -148,6 +149,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				createReq.Password = generatePassword()
 				createReq.SendNotificationEmail = true
 				createReq.NotificationLang = "zh"
+				log.Printf("[AddMember] skip_activation=true, generated password for %s", nu.Email)
 			} else {
 				createReq.CallbackURL = callbackURL
 			}
@@ -193,6 +195,14 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				})
 				continue
 			}
+
+			if nu.SkipActivation && createReq.Password != "" {
+				initialPasswords = append(initialPasswords, gin.H{
+					"email":    nu.Email,
+					"password": createReq.Password,
+				})
+			}
+
 			localUser := models.User{
 				ID:       userResult.UserID,
 				IAMSub:   userResult.UserID,
@@ -309,6 +319,9 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	}
 	if len(bindErrors) > 0 {
 		responseData["bind_errors"] = bindErrors
+	}
+	if len(initialPasswords) > 0 {
+		responseData["initial_passwords"] = initialPasswords
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

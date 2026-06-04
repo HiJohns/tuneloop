@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox } from 'antd';
+import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { adminApi } from '../services/api';
@@ -120,6 +120,27 @@ const [skipActivation, setSkipActivation] = useState(false);
         setModalVisible(false);
         fetchMembers();
         onRefresh && onRefresh();
+
+        if (skipActivation && data.initial_passwords?.length > 0) {
+          const lines = data.initial_passwords.map((p, i) => (
+            <div key={i} style={{ marginBottom: 8 }}>
+              <span style={{ color: '#666' }}>{p.email}：</span>
+              <Typography.Text copyable code style={{ fontSize: 14, padding: '2px 8px' }}>
+                {p.password}
+              </Typography.Text>
+            </div>
+          ));
+          Modal.success({
+            title: '成员已创建',
+            content: (
+              <div>
+                <p>初始密码（请立即复制保存）：</p>
+                <div style={{ margin: '12px 0' }}>{lines}</div>
+                <p style={{ color: '#ff4d4f' }}>此为仅显示一次密码，请妥善保存。</p>
+              </div>
+            ),
+          });
+        }
       } else {
         const data = response.data;
         if (data?.conflicts) {
