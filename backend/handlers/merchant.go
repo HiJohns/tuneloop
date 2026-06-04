@@ -209,6 +209,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	var adminUserID string
+	var adminIAMSub string
 	var userIDsToProcess []map[string]interface{}
 
 	if input.AdminUID != "" && len(input.UserIDs) == 0 {
@@ -243,6 +244,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			return
 		}
 		adminUserID = userResult.UserID
+		adminIAMSub = userResult.UserID
 		userIDsToProcess = []map[string]interface{}{{"user_id": userResult.UserID, "action_type": "merchant_admin"}}
 	} else if len(input.UserIDs) > 0 {
 		adminUserID = input.UserIDs[0]["user_id"].(string)
@@ -255,7 +257,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		return
 	}
 
-	var adminName, adminEmail, adminPhone, adminIAMSub string
+	var adminName, adminEmail, adminPhone string
 	var adminUser models.User
 	if adminUserID != "" {
 		if _, err := uuid.Parse(adminUserID); err == nil {
@@ -268,10 +270,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 				adminIAMSub = adminUser.IAMSub
 			} else {
 				log.Printf("[CreateMerchant] Warning: admin user %s not found in local DB: %v", adminUserID, err)
-				// Newly created IAM user not yet in local DB — use adminUserID as fallback
-				if adminUserID != "" && adminIAMSub == "" {
-					adminIAMSub = adminUserID
-				}
 			}
 		}
 	}
