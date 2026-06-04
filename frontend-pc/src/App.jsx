@@ -681,17 +681,16 @@ function OAuthCallback() {
           if (tokenData.refresh_token) {
             localStorage.setItem('refresh_token', tokenData.refresh_token)
           }
-          
+
           if (tokenData.user_info) {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
           }
           if (tokenData.role) {
             localStorage.setItem('user_role', tokenData.role)
           }
-          
-          console.log('%c[CALLBACK DEBUG] redirecting to', 'color: green;', { redirectTo, localStorageHasToken: !!localStorage.getItem('token') })
 
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
+          console.log('%c[CALLBACK DEBUG] redirecting to', 'color: green;', { redirectTo, localStorageHasToken: !!localStorage.getItem('token') })
           sessionStorage.removeItem('post_auth_redirect')
           window.location.href = redirectTo
         } else {
