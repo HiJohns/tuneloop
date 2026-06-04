@@ -376,15 +376,21 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 
-	// Wait for IAM to process the user-org binding before setting perms
-	time.Sleep(500 * time.Millisecond)
-
 	// Set cus_perm for merchant admin using merchant_admin template
 	if adminIAMSub != "" && iamOrgID != "" {
 		if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
 			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-			if err := iamClient.SetUserCustomerPermissions(iamOrgID, adminIAMSub, cusPerm, cusPermExt); err != nil {
-				log.Printf("[CreateMerchant] Warning: failed to set admin cus_perm: %v", err)
+			var setErr error
+			for attempt := 0; attempt < 3; attempt++ {
+				setErr = iamClient.SetUserCustomerPermissions(iamOrgID, adminIAMSub, cusPerm, cusPermExt)
+				if setErr == nil {
+					break
+				}
+				log.Printf("[CreateMerchant] set cus_perm attempt %d/3: %v", attempt+1, setErr)
+				time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+			}
+			if setErr != nil {
+				log.Printf("[CreateMerchant] Warning: failed to set admin cus_perm: %v", setErr)
 			} else {
 				log.Printf("[CreateMerchant] Set merchant_admin cus_perm for %s", adminIAMSub)
 			}
