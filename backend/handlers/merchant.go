@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -374,6 +375,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			log.Printf("[CreateMerchant] Bound admin %s to org %s", adminIAMSub, iamOrgID)
 		}
 	}
+
+	// Wait for IAM to process the user-org binding before setting perms
+	time.Sleep(500 * time.Millisecond)
 
 	// Set cus_perm for merchant admin using merchant_admin template
 	if adminIAMSub != "" && iamOrgID != "" {
