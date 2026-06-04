@@ -1142,6 +1142,22 @@ func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, cusPerm int
 	return nil
 }
 
+func (c *IAMClient) SetUserCustomerPermissionsWithToken(token, orgID, userID string, cusPerm int64, cusPermExt []byte) error {
+	req := setPermissionCodesReq{RawBits: true, CusPerm: cusPerm, CusPermExt: cusPermExt}
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
+
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
+	if err != nil {
+		return fmt.Errorf("SetUserCustomerPermissions request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("SetUserCustomerPermissions returned status %d: %s", statusCode, string(respBody))
+	}
+
+	c.IncrementPermVersion()
+	return nil
+}
+
 // SetUserCustomerPermissionsCodes sets the cus_perm via permission codes (backward compatibility).
 // Used before beaconiam #293 Phase 1 raw_bits support is deployed.
 func (c *IAMClient) SetUserCustomerPermissionsCodes(orgID, userID string, permCodes []string) error {

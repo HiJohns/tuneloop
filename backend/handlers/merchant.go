@@ -382,7 +382,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 			var setErr error
 			for attempt := 0; attempt < 3; attempt++ {
-				setErr = iamClient.SetUserCustomerPermissions(iamOrgID, adminIAMSub, cusPerm, cusPermExt)
+				setErr = iamClient.SetUserCustomerPermissionsWithToken(userToken, iamOrgID, adminIAMSub, cusPerm, cusPermExt)
 				if setErr == nil {
 					break
 				}
