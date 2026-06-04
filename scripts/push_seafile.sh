@@ -53,7 +53,7 @@ AUTH_RESP=$(curl -sS -X POST "${SEAFILE_SERVER_URL}/api2/auth-token/" \
 
 # Handle both JSON {"token":"..."} and plain-text token responses
 if echo "$AUTH_RESP" | grep -q '"token"'; then
-  TOKEN=$(echo "$AUTH_RESP" | grep -oP '"token"\s*:\s*"([^"]*)"' | sed 's/.*"\([^"]*\)".*/\1/')
+  TOKEN=$(echo "$AUTH_RESP" | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 else
   TOKEN=$(echo "$AUTH_RESP" | tr -d '"')
 fi
@@ -75,7 +75,7 @@ if echo "$UPLOAD_RESP" | grep -q '^"http'; then
 elif echo "$UPLOAD_RESP" | grep -q '^http'; then
   UPLOAD_LINK="$UPLOAD_RESP"
 elif echo "$UPLOAD_RESP" | grep -q '"upload_link"'; then
-  UPLOAD_LINK=$(echo "$UPLOAD_RESP" | grep -oP '"upload_link"\s*:\s*"([^"]*)"' | sed 's/.*"\([^"]*\)".*/\1/')
+  UPLOAD_LINK=$(echo "$UPLOAD_RESP" | sed -n 's/.*"upload_link"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 else
   echo "ERROR: Failed to get upload link"
   echo "  Response: $UPLOAD_RESP"
