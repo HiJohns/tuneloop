@@ -303,6 +303,11 @@ Usage:
 **严禁**：AI 不得自行修改数据库记录。
 - 如需修改 DB，**必须先告知用户**，由用户手动执行或获得明确授权。
 
+**严禁**：AI 不得自行修改生产服（prerelease/production）的数据和数据库定义（DDL）。
+- 包括但不限于 `ALTER TABLE`、`CREATE TABLE`、`DROP TABLE`、`INSERT`、`UPDATE`、`DELETE` 等。
+- 即使 SSH 可达，也**必须先与用户确认**，由用户决定是否执行。
+- 此规则同时适用于开发环境的数据库，修改前也需确认。
+
 ---
 
 ## 🧪 调试效率经验 (Debugging Efficiency Lessons)

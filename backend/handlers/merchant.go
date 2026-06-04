@@ -268,6 +268,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 				adminIAMSub = adminUser.IAMSub
 			} else {
 				log.Printf("[CreateMerchant] Warning: admin user %s not found in local DB: %v", adminUserID, err)
+				// Newly created IAM user not yet in local DB — use adminUserID as fallback
+				if adminUserID != "" && adminIAMSub == "" {
+					adminIAMSub = adminUserID
+				}
 			}
 		}
 	}
