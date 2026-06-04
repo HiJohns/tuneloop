@@ -34,9 +34,9 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
-const [availableRoles, setAvailableRoles] = useState([]);
-const [selectedRole, setSelectedRole] = useState('site_admin');
-const [skipActivation, setSkipActivation] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [selectedRole, setSelectedRole] = useState('site_admin');
+  const [skipActivation, setSkipActivation] = useState(false);
 
   useEffect(() => {
     if (siteId) {

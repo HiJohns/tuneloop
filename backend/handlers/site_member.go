@@ -68,16 +68,16 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 
 	// Support both old and new request format
 	var input struct {
-		UserID   string                   `json:"user_id"` // Old format (backward compatibility)
-		Role     string                   `json:"role" default:"Staff"`
-		UserIDs  []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
-		NewUsers []struct {
-			Username        string `json:"username"`
-			Name            string `json:"name"`
-			Email           string `json:"email"`
-			Phone           string `json:"phone"`
-			Role            string `json:"role"`
-			SkipActivation  bool   `json:"skip_activation"`
+		UserID        string                   `json:"user_id"` // Old format (backward compatibility)
+		Role          string                   `json:"role" default:"Staff"`
+		UserIDs       []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
+		SkipActivation bool                    `json:"skip_activation"`
+		NewUsers      []struct {
+			Username string `json:"username"`
+			Name     string `json:"name"`
+			Email    string `json:"email"`
+			Phone    string `json:"phone"`
+			Role     string `json:"role"`
 		} `json:"new_users"` // Create new users first, then add as members
 	}
 
@@ -143,9 +143,9 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				Phone:       nu.Phone,
 				Reason:      "网点成员 - " + site.Name,
 				OperatorID:  operatorID,
-				SkipActivation: nu.SkipActivation,
+				SkipActivation: input.SkipActivation,
 			}
-			if nu.SkipActivation {
+			if input.SkipActivation {
 				createReq.Password = generatePassword()
 				createReq.SendNotificationEmail = true
 				createReq.NotificationLang = "zh"
@@ -196,7 +196,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				continue
 			}
 
-			if nu.SkipActivation && createReq.Password != "" {
+			if input.SkipActivation && createReq.Password != "" {
 				initialPasswords = append(initialPasswords, gin.H{
 					"email":    nu.Email,
 					"password": createReq.Password,
