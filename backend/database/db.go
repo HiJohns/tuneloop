@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 	"tuneloop-backend/models"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -335,6 +336,11 @@ func validateModelColumns(db *gorm.DB, instance interface{}) error {
 
 		gormTag := field.Tag.Get("gorm")
 		if gormTag == "-" || strings.Contains(gormTag, "-:migration") {
+			continue
+		}
+
+		// Skip GORM relationship fields (pointer to another model struct, e.g. *InstrumentLevel)
+		if field.Type.Kind() == reflect.Ptr && field.Type.Elem().Kind() == reflect.Struct && field.Type.Elem() != reflect.TypeOf(time.Time{}) {
 			continue
 		}
 
