@@ -364,8 +364,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
 				if t.Code == resolvedRole {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, user.IAMSub, t.ID); err != nil {
-						log.Printf("[CreateUser] AssignRoleTemplateToUserWithToken failed for user %s code %s: %v", user.IAMSub, resolvedRole, err)
+				if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, user.IAMSub, orgID, t.ID); err != nil {
+					log.Printf("[CreateUser] AssignRoleTemplateToUserWithToken failed for user %s code %s: %v", user.IAMSub, resolvedRole, err)
 					}
 					break
 				}

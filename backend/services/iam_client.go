@@ -191,14 +191,15 @@ func (c *IAMClient) doRequestWithToken(method, path, token string, payload inter
 }
 
 type CreateOrganizationRequest struct {
-	Name         string             `json:"name"`
-	ParentID     string             `json:"parent_id,omitempty"`
-	NamespaceID  string             `json:"namespace_id,omitempty"`
-	Address      string             `json:"address,omitempty"`
-	ContactPhone string             `json:"contact_phone,omitempty"`
-	AdminInfo    *OrganizationAdmin `json:"admin_info,omitempty"`
-	CallbackURL  string             `json:"callback_url,omitempty"`
-	OperatorID   string             `json:"operator_id,omitempty"`
+	Name          string             `json:"name"`
+	ParentID      string             `json:"parent_id,omitempty"`
+	NamespaceID   string             `json:"namespace_id,omitempty"`
+	Address       string             `json:"address,omitempty"`
+	ContactPhone  string             `json:"contact_phone,omitempty"`
+	AdminInfo     *OrganizationAdmin `json:"admin_info,omitempty"`
+	CallbackURL   string             `json:"callback_url,omitempty"`
+	OperatorID    string             `json:"operator_id,omitempty"`
+	SkipActivation bool              `json:"skip_activation,omitempty"`
 }
 
 type OrganizationAdmin struct {
@@ -209,8 +210,9 @@ type OrganizationAdmin struct {
 }
 
 type CreateOrganizationResponse struct {
-	OrgID   string `json:"org_id"`
-	AdminID string `json:"admin_id"`
+	OrgID           string `json:"org_id"`
+	AdminID         string `json:"admin_id"`
+	InitialPassword string `json:"initial_password,omitempty"`
 }
 
 func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateOrganizationResponse, error) {
@@ -1385,9 +1387,9 @@ func (c *IAMClient) AssignRoleTemplateToUser(userID, templateID string) error {
 }
 
 // AssignRoleTemplateToUserWithToken assigns a functional role template using the caller's token.
-func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, templateID string) error {
+func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, orgID, templateID string) error {
 	path := fmt.Sprintf("/api/v1/users/%s/roles", userID)
-	req := map[string]interface{}{"role_ids": []string{templateID}}
+	req := map[string]interface{}{"role_ids": []string{templateID}, "org_id": orgID}
 	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, req)
 	if err != nil {
 		return fmt.Errorf("AssignRoleTemplateToUserWithToken request failed: %w", err)

@@ -150,6 +150,19 @@ function MainLayout() {
     if (token && token.includes('.')) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
+
+        console.log('%c[APP DEBUG] JWT parsed', 'color: blue;', {
+          sub: payload.sub,
+          tid: payload.tid,
+          oid: payload.oid,
+          sys_perm: payload.sys_perm || payload.sysPerm,
+          cus_perm: payload.cus_perm || payload.cusPerm,
+          roles: payload.roles,
+          role: payload.role,
+          is_owner: payload.is_owner || payload.isOwner,
+          timestamp: new Date().toISOString()
+        })
+
         const name = payload.name || payload.username || payload.preferred_username || 
                      payload.displayName || payload.nickName || payload.nickname
         const email = payload.email || payload.mail || ''
@@ -222,6 +235,21 @@ function MainLayout() {
         }
       }
     }
+  }, [])
+
+  // Load permission mapping and trigger re-render when ready
+  const [permMappingReady, setPermMappingReady] = useState(false)
+  useEffect(() => {
+    console.log('%c[APP DEBUG] initPermissionMapping starting...', 'color: blue;')
+    initPermissionMapping().then(() => {
+      const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+      console.log('%c[APP DEBUG] permMappingReady=true', 'color: green;', {
+        keys: Object.keys(mapping).length,
+        mapping: mapping,
+        timestamp: new Date().toISOString()
+      })
+      setPermMappingReady(true)
+    }).catch(() => setPermMappingReady(true))
   }, [])
 
   // Check force_password_change after userInfo is loaded
@@ -314,6 +342,16 @@ function onMenuClick(e) {
     }))
     .filter(item => (item.children && item.children.length > 0) || item.key.startsWith('/'));
 
+  console.log('%c[APP DEBUG] Menu filter result', 'color: purple;', {
+    userInfoExists: !!userInfo,
+    sysPerm, cusPerm,
+    isNsAdmin, ownerAtMerchant,
+    permMappingKeys: Object.keys(cusPermMapping).length,
+    visibleItems: filteredItems.map(i => i.key),
+    totalItems: menuConfig.length,
+    timestamp: new Date().toISOString()
+  })
+
   const selectedKeys = [location.pathname]
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
@@ -372,6 +410,14 @@ function onMenuClick(e) {
 
   if (isFirstLogin) {
     return <ChangePassword />
+  }
+
+  if (userInfo === null || !permMappingReady) {
+    console.log('%c[APP DEBUG] Waiting for init', 'color: gray;', {
+      userInfoExists: !!userInfo, permMappingReady,
+      timestamp: new Date().toISOString()
+    })
+    return <Spin fullscreen tip="正在初始化..." />
   }
 
   return (
@@ -665,7 +711,6 @@ function App() {
         }
       })
       .catch(err => console.error('Failed to load config:', err))
-      .then(() => initPermissionMapping())
   }, [])
   
   return (

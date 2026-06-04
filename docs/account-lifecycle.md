@@ -13,6 +13,7 @@
 
 ## 创建流程
 
+### 普通创建（需邮箱确认）
 ```mermaid
 sequenceDiagram
     participant F as 前端
@@ -30,6 +31,30 @@ sequenceDiagram
     B->>B: db.Create(&site_member) (写入 site_members 表)
     B-->>F: {code: 20000}
 ```
+
+### skip_activation=true（直接激活）
+
+管理员创建时可以使用 `skip_activation=true` 跳过邮箱确认流程，用户直接激活：
+
+```mermaid
+sequenceDiagram
+    participant F as 前端
+    participant B as Tuneloop
+    participant I as IAM
+    
+    F->>B: POST /api/merchants {admin_name, admin_email, skip_activation: true}
+    B->>I: CreateUser(SkipActivation=true, password) 或 CreateOrg(SkipActivation=true)
+    I-->>B: {user_id, status: "active", initial_password}
+    B->>I: BindUserToOrganization (立即执行，不入队)
+    B->>I: SetUserCustomerPermissions (立即执行)
+    B->>I: AssignRoleTemplate (立即执行)
+    B-->>F: {code: 20100, data: {initial_password: "..."}}
+```
+
+**关键差异**：
+- IAM 用户状态直接为 `active`，无需邮箱确认
+- BindUser、SetUserCustomerPermissions、AssignRoleTemplate 全部同步执行，不入队
+- 响应中返回 `initial_password`，前端需展示给管理员
 
 ## 用户数据完整性清单
 

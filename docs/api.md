@@ -3347,7 +3347,8 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
   "merchant_type": "controlled",
   "transit_address": "中转库房地址",
   "transit_phone": "13911112222",
-  "transit_contact_name": "中转联系人"
+  "transit_contact_name": "中转联系人",
+  "skip_activation": true
 }
 ```
 
@@ -3366,6 +3367,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | transit_address | string | | 中转地址（受控商户必填） |
 | transit_phone | string | | 中转电话（受控商户必填） |
 | transit_contact_name | string | | 中转联系人（可选） |
+| skip_activation | bool | | 跳过邮箱验证，管理员直接激活（默认 false）。`true` 时管理员无需确认邮件即可登录，响应中返回 `initial_password` |
 
 **响应**:
 ```json
@@ -3379,10 +3381,16 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
     "admin_uid": "uuid",
     "directly_added": ["uuid"],
     "callback_url": "https://example.com/api/iam/confirmation-callback",
-    "iam_admin_id": "uuid"
+    "iam_admin_id": "uuid",
+    "initial_password": "AbCd1234XyZ"
   }
 }
 ```
+
+**响应字段补充**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| initial_password | string | 仅在 `skip_activation=true` 时返回。管理员初始密码，请尽快通知管理员修改 |
 
 **错误码**:
 - `40002`: 商户名已存在

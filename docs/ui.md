@@ -1705,6 +1705,8 @@ components/
   - 商户管理 (`/merchants`) — sys_perm bit 5
     - 创建/编辑表单新增**商户类型**下拉选择（全权商户/受控商户）
     - 选择"受控商户"时条件显示中转地址、中转电话、中转联系人字段
+    - 创建表单新增**跳过邮箱验证** Checkbox，勾选后管理员直接激活无需确认邮件
+    - 勾选"跳过邮箱验证"且创建成功时，弹窗显示管理员初始密码
   - 操作日志 (`/system/audit-logs`) — sys_perm bit 5
   - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
   - 客户端管理 (`/system/clients`) — sys_perm bit 0

@@ -36,7 +36,7 @@ const MerchantManagement = () => {
   const handleCreate = () => {
     setEditingMerchant(null);
     form.resetFields();
-    setAdminInfo({ name: '', id: null, email: '', username: '' });
+    setAdminInfo({ name: '', id: null, email: '', username: '', phone: '', isNewlyCreated: false });
     setConflictOptions(null);
     setMerchantType('full');
     setModalOpen(true);
@@ -79,6 +79,7 @@ const MerchantManagement = () => {
         await api.put(`/merchants/${editingMerchant.id}`, submitData);
         message.success('商户更新成功');
       } else {
+        submitData.skip_activation = adminInfo.skipActivation || false
         await api.post('/merchants', submitData);
         message.success('商户创建成功');
       }
@@ -254,7 +255,7 @@ const MerchantManagement = () => {
               onCreatingChange={setCreatingManager}
               onChange={(info) => {
                 if (info.id) {
-                  setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', phone: info.phone || '' })
+                  setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', phone: info.phone || '', isNewlyCreated: info.isNewlyCreated || false, skipActivation: info.skipActivation || false })
                   form.setFieldsValue({ admin_uid: info.id })
                 } else {
                   setAdminInfo({ name: '', id: null, email: '', username: '', phone: '' })

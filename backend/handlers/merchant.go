@@ -164,6 +164,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		AdminEmail        string                    `json:"admin_email"`
 		AdminPhone        string                    `json:"admin_phone"`
 		UserIDs           []map[string]interface{}   `json:"user_ids"`
+		SkipActivation    bool                      `json:"skip_activation"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -212,21 +213,34 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	var adminUserID string
 	var adminIAMSub string
 	var userIDsToProcess []map[string]interface{}
+	var initialPassword string
 
 	if input.AdminUID != "" && len(input.UserIDs) == 0 {
 		adminUserID = input.AdminUID
 		userIDsToProcess = []map[string]interface{}{{"user_id": input.AdminUID, "action_type": "merchant_admin"}}
 	} else if input.AdminName != "" && input.AdminEmail != "" && len(input.UserIDs) == 0 {
 		// Scenario 2: create IAM user first, then use the returned ID
-		userResult, err := iamClient.CreateOrGetUser(userToken, &services.CreateUserRequest{
-			Username:    input.AdminUsername,
-			Name:        input.AdminName,
-			Email:       input.AdminEmail,
-			Phone:       input.AdminPhone,
-			CallbackURL: callbackURL,
-			Reason:      "商户管理员 - " + input.Name,
-			OperatorID:  middleware.GetUserID(c.Request.Context()),
-		})
+		createReq := &services.CreateUserRequest{
+			Username:   input.AdminUsername,
+			Name:       input.AdminName,
+			Email:      input.AdminEmail,
+			Phone:      input.AdminPhone,
+			Reason:     "商户管理员 - " + input.Name,
+			OperatorID: middleware.GetUserID(c.Request.Context()),
+		}
+
+		if input.SkipActivation {
+			pwd := generatePassword()
+			createReq.Password = pwd
+			createReq.SkipActivation = true
+			createReq.SendNotificationEmail = true
+			createReq.NotificationLang = "zh"
+			initialPassword = pwd
+		} else {
+			createReq.CallbackURL = callbackURL
+		}
+
+		userResult, err := iamClient.CreateOrGetUser(userToken, createReq)
 		if err != nil {
 			log.Printf("[CreateMerchant] CreateOrGetUser failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -285,7 +299,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	if input.AdminUsername != "" {
 		adminUserName = input.AdminUsername
 	}
-	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, &services.CreateOrganizationRequest{
+	orgReq := &services.CreateOrganizationRequest{
 		Name:        input.Name,
 		Address:     input.Address,
 		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
@@ -295,9 +309,16 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			Email:    adminEmail,
 			Phone:    adminPhone,
 		},
-		CallbackURL: callbackURL,
-		OperatorID:  middleware.GetUserID(c.Request.Context()),
-	})
+		OperatorID: middleware.GetUserID(c.Request.Context()),
+	}
+
+	if input.SkipActivation {
+		orgReq.SkipActivation = true
+	} else {
+		orgReq.CallbackURL = callbackURL
+	}
+
+	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, orgReq)
 	if err != nil {
 		if strings.Contains(err.Error(), "name conflict") {
 			orgs, listErr := iamClient.ListOrganizationsWithToken(userToken)
@@ -329,7 +350,12 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 	if iamOrgID == "" {
-		iamOrgID = middleware.GetOrgID(c.Request.Context())
+		log.Printf("[CreateMerchant] Error: iamOrgID is empty after create/recovery — cannot determine merchant org")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to determine merchant organization ID",
+		})
+		return
 	}
 
 	merchant := models.Merchant{
@@ -344,7 +370,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		TransitPhone:       input.TransitPhone,
 		TransitContactName: input.TransitContactName,
 		AdminUID:           adminUserID,
-		AdminPending:       adminUserID != "" && adminUserID != "00000000-0000-0000-0000-000000000000",
+		AdminPending:       !input.SkipActivation && adminUserID != "" && adminUserID != "00000000-0000-0000-0000-000000000000",
 		Status:             "active",
 	}
 
@@ -410,7 +436,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		if err == nil {
 			for _, t := range templates {
 				if t.Code == "merchant_admin" {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, iamOrgID, t.ID); err != nil {
 						log.Printf("[CreateMerchant] Warning: failed to assign merchant_admin role: %v", err)
 					} else {
 						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminIAMSub)
@@ -440,6 +466,17 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 
+	pwd := initialPassword
+	orgInitPass := ""
+	if orgResp != nil {
+		orgInitPass = orgResp.InitialPassword
+	}
+	if pwd == "" {
+		pwd = orgInitPass
+	}
+	log.Printf("[CreateMerchant] skip_activation=%v initialPassword=%q orgResp.InitialPassword=%q finalPassword=%q respHasPassword=%v",
+		input.SkipActivation, initialPassword, orgInitPass, pwd, pwd != "")
+
 	responseData := gin.H{
 		"id":             merchant.ID,
 		"name":           merchant.Name,
@@ -451,6 +488,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 	if orgResp != nil {
 		responseData["iam_admin_id"] = orgResp.AdminID
+	}
+	if pwd != "" {
+		responseData["initial_password"] = pwd
 	}
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,
@@ -657,22 +697,19 @@ func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID 
 		"worker":         {"instrument:read", "instrument:maintain"},
 	}
 	for code, codes := range systemRoles {
-		var count int64
-		db.Model(&models.Role{}).Where("tenant_id = ? AND code = ?", tenantID, code).Count(&count)
-		if count == 0 {
-			role := models.Role{
-				TenantID:      tenantID,
-				IAMTemplateID: "",
-				Name:          services.AllRoleTemplates[code].Name,
-				Code:          code,
-				CusPermCodes:  codes,
-				IsSystem:      true,
-			}
-			if err := db.Create(&role).Error; err != nil {
-				log.Printf("[initSystemRoles] Warning: failed to create role %s: %v", code, err)
-			} else {
-				log.Printf("[initSystemRoles] Created system role %s for tenant %s", code, tenantID)
-			}
+		role := models.Role{
+			TenantID:      tenantID,
+			IAMTemplateID: "",
+			Name:          services.AllRoleTemplates[code].Name,
+			Code:          code,
+			CusPermCodes:  codes,
+			IsSystem:      true,
+		}
+		result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&role)
+		if result.Error != nil {
+			log.Printf("[initSystemRoles] Warning: failed to create role %s: %v", code, result.Error)
+		} else if result.RowsAffected > 0 {
+			log.Printf("[initSystemRoles] Created system role %s for tenant %s", code, tenantID)
 		}
 	}
 	// Also sync role templates to IAM for the namespace (idempotent)

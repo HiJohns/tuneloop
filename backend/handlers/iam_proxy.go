@@ -266,12 +266,13 @@ func reverse(s string) string {
 // POST /api/iam/users - Create IAM user (JIT provisioning)
 func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	var req struct {
-		Email    string `json:"email"`
-		Phone    string `json:"phone"`
-		Name     string `json:"name" binding:"required"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Role     string `json:"role"`
+		Email           string `json:"email"`
+		Phone           string `json:"phone"`
+		Name            string `json:"name" binding:"required"`
+		Username        string `json:"username"`
+		Password        string `json:"password"`
+		Role            string `json:"role"`
+		SkipActivation  bool   `json:"skip_activation"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -362,23 +363,35 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	}
 
 	// Prepare request payload
+	var initialPassword string
 	callbackURL := os.Getenv("EXTERNAL_WEB_URL")
 	if callbackURL == "" {
 		callbackURL = fmt.Sprintf("http://%s", c.Request.Host)
 	}
 	reason := "您已被设为管理员"
 	payload := map[string]interface{}{
-		"email":        req.Email,
-		"phone":        req.Phone,
-		"name":         req.Name,
-		"username":     req.Username,
-		"password":     req.Password,
-		"callback_url": callbackURL,
-		"reason":       reason,
-		"status":       "pending",
+		"email":    req.Email,
+		"phone":    req.Phone,
+		"name":     req.Name,
+		"username": req.Username,
+		"reason":   reason,
 	}
 
-	// Add role if provided
+	if req.SkipActivation {
+		pwd := generatePassword()
+		payload["password"] = pwd
+		payload["skip_activation"] = true
+		payload["send_notification_email"] = true
+		payload["notification_lang"] = "zh"
+		initialPassword = pwd
+	} else {
+		payload["callback_url"] = callbackURL
+		payload["status"] = "pending"
+	}
+
+	if req.Password != "" {
+		payload["password"] = req.Password
+	}
 	if req.Role != "" {
 		payload["role"] = req.Role
 	}
@@ -445,9 +458,9 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Check if IAM returned {status: "pending", user_id: "..."} format
+	// Check if IAM returned {status: "pending", user_id: "..."} format (or active for skip_activation)
 	if status, hasStatus := iamResponse["status"]; hasStatus {
-		if status == "pending" || status == "success" {
+		if status == "pending" || status == "success" || status == "active" {
 			if userID, hasUserID := iamResponse["user_id"]; hasUserID {
 				iamUserID, ok := userID.(string)
 				if !ok || iamUserID == "" {
@@ -460,23 +473,29 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 				}
 
 				// Create local user record after IAM user creation
-				localUserID, err := createLocalUser(c, iamUserID, &req)
+				localStatus := "pending"
+				if req.SkipActivation {
+					localStatus = "active"
+				}
+				localUserID, err := createLocalUserWithStatus(c, iamUserID, &req, localStatus)
 				if err != nil {
 					log.Printf("[IAM] Failed to create local user for IAM ID %s: %v", iamUserID, err)
-					// Continue even if local user creation fails, don't block the response
-					// But return IAM ID as fallback
 					localUserID = iamUserID
 				}
 
-				// Convert to our standard format using LOCAL user ID
+				respData := gin.H{
+					"id":     localUserID,
+					"iam_id": iamUserID,
+					"status": localStatus,
+				}
+				if initialPassword != "" {
+					respData["initial_password"] = initialPassword
+				}
+
 				c.JSON(http.StatusOK, gin.H{
 					"code":    20000,
 					"message": "success",
-					"data": gin.H{
-						"id":     localUserID, // Return LOCAL user ID for manager_id
-						"iam_id": iamUserID,   // Also return IAM ID if needed
-						"status": status,
-					},
+					"data":    respData,
 				})
 				return
 			}
@@ -487,20 +506,19 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
 }
 
-// createLocalUser creates a local user record after IAM user creation
-// Returns the local user ID to be used as manager_id
-func createLocalUser(c *gin.Context, iamUserID string, req *struct {
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Name     string `json:"name" binding:"required"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
-}) (string, error) {
+// createLocalUserWithStatus creates a local user record after IAM user creation.
+func createLocalUserWithStatus(c *gin.Context, iamUserID string, req *struct {
+	Email           string `json:"email"`
+	Phone           string `json:"phone"`
+	Name            string `json:"name" binding:"required"`
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	Role            string `json:"role"`
+	SkipActivation  bool   `json:"skip_activation"`
+}, status string) (string, error) {
 	nilUUID := "00000000-0000-0000-0000-000000000000"
 	localUserID := uuid.New().String()
 
-	// Prepare user data — use nil UUID, user hasn't been assigned to any tenant/org yet
 	user := models.User{
 		ID:          localUserID,
 		IAMSub:      iamUserID,
@@ -512,10 +530,9 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 		CreditScore: 600,
 		DepositMode: "standard",
 		IsShadow:    true,
-		Status:      "pending",
+		Status:      status,
 	}
 
-	// Save to database
 	db := database.GetDB().WithContext(c.Request.Context())
 	if err := db.Create(&user).Error; err != nil {
 		return "", fmt.Errorf("failed to create local user: %w", err)
@@ -523,6 +540,19 @@ func createLocalUser(c *gin.Context, iamUserID string, req *struct {
 
 	log.Printf("[IAM] Successfully created local user %s for IAM ID %s", localUserID, iamUserID)
 	return localUserID, nil
+}
+
+// createLocalUser creates a local user record with "pending" status (backward compat).
+func createLocalUser(c *gin.Context, iamUserID string, req *struct {
+	Email           string `json:"email"`
+	Phone           string `json:"phone"`
+	Name            string `json:"name" binding:"required"`
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	Role            string `json:"role"`
+	SkipActivation  bool   `json:"skip_activation"`
+}) (string, error) {
+	return createLocalUserWithStatus(c, iamUserID, req, "pending")
 }
 
 // UpdateIAMUser PUT /api/iam/users/:id - Update user via IAM

@@ -43,10 +43,11 @@ func Test_CreateMerchant_CusPerm(t *testing.T) {
 	email := "e2e_ma_" + ts + "@tuneloop.com"
 
 	body := map[string]interface{}{
-		"name":        name,
-		"admin_name":  "E2E Admin",
-		"admin_email": email,
-		"admin_phone": "13800000000",
+		"name":            name,
+		"admin_name":      "E2E Admin",
+		"admin_email":     email,
+		"admin_phone":     "13800000000",
+		"skip_activation": true,
 	}
 	jsonBody, _ := json.Marshal(body)
 
@@ -74,9 +75,14 @@ func Test_CreateMerchant_CusPerm(t *testing.T) {
 
 	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
+	require.Equal(t, float64(20100), resp["code"], "response code should be 20100")
+
 	data := resp["data"].(map[string]interface{})
 	orgID := data["iam_org_id"].(string)
 	require.NotEmpty(t, orgID)
+	initialPassword, hasPassword := data["initial_password"]
+	require.True(t, hasPassword, "initial_password should be present when skip_activation=true")
+	require.NotEmpty(t, initialPassword, "initial_password should not be empty")
 
 	users, err := iamClient.ListUsers()
 	require.NoError(t, err)

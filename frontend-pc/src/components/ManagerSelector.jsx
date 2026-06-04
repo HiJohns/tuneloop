@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AutoComplete, Button, Input, Space, Tabs, Alert } from 'antd'
+import { AutoComplete, Button, Input, Space, Tabs, Alert, Checkbox, Modal, Typography } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
 import api from '../services/api'
 
@@ -10,6 +10,7 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
   const [fields, setFields] = useState({ username: '', name: '', email: '', phone: '' })
   const [msg, setMsg] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [skipActivation, setSkipActivation] = useState(false)
 
   useEffect(() => {
     onCreatingChange?.(submitting)
@@ -58,12 +59,26 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
     setSubmitting(true)
     setMsg('')
     try {
+      console.log('%c[ManagerSelector] Creating user', 'color: blue;', {
+        email: fields.email,
+        skipActivation,
+        timestamp: new Date().toISOString()
+      })
+
       const resp = await api.post('/iam/users', {
         name: fields.name,
         email: fields.email,
         phone: fields.phone,
         username: fields.username,
         reason: createReason || '管理员创建',
+        skip_activation: skipActivation,
+      })
+
+      console.log('%c[ManagerSelector] Create response', 'color: green;', {
+        code: resp.code,
+        hasInitialPassword: !!resp.data?.initial_password,
+        hasId: !!resp.data?.id,
+        timestamp: new Date().toISOString()
       })
       if (resp.code === 20000 && resp.data?.id) {
         const s = {
@@ -72,10 +87,29 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
           email: fields.email,
           phone: fields.phone,
           username: fields.username,
+          isNewlyCreated: true,
+          skipActivation,
         }
         setSelected(s)
         onChange?.(s)
         setSearchResults([])
+
+        if (skipActivation && resp.data?.initial_password) {
+          Modal.success({
+            title: '管理员已创建',
+            content: (
+              <div>
+                <p>初始密码（请立即复制保存）：</p>
+                <div style={{ textAlign: 'center', margin: '12px 0' }}>
+                  <Typography.Text copyable code style={{ fontSize: 18, padding: '4px 12px' }}>
+                    {resp.data.initial_password}
+                  </Typography.Text>
+                </div>
+                <p style={{ color: '#ff4d4f' }}>此为仅显示一次密码，请妥善保存。</p>
+              </div>
+            ),
+          })
+        }
       } else if (resp.code === 40900) {
         const conflicts = resp.data?.conflicts || []
         const options = conflicts.map(u => ({
@@ -132,12 +166,15 @@ export default function ManagerSelector({ value, onChange, conflictOptions, conf
             onSelect={handleSelect}
           />
         </Tabs.TabPane>
-        <Tabs.TabPane tab="创建" key="create">
+          <Tabs.TabPane tab="创建" key="create">
           <Space direction="vertical" style={{ width: '100%' }}>
             <Input placeholder="姓名" value={fields.name} onChange={e => setFields({ ...fields, name: e.target.value })} />
             <Input placeholder="用户名" value={fields.username} onChange={e => setFields({ ...fields, username: e.target.value })} />
             <Input placeholder="邮箱" value={fields.email} onChange={e => setFields({ ...fields, email: e.target.value })} />
             <Input placeholder="电话" value={fields.phone} onChange={e => setFields({ ...fields, phone: e.target.value })} />
+            <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>
+              跳过邮箱验证（直接激活）
+            </Checkbox>
             <Button type="primary" block onClick={handleCreateSubmit} disabled={!fields.name || !fields.email} loading={submitting}>提交</Button>
           </Space>
         </Tabs.TabPane>

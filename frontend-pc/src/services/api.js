@@ -41,6 +41,12 @@ function getToken() {
   return null
 }
 
+function getRefreshToken() {
+  const rt = localStorage.getItem('refresh_token')
+  console.log('%c[AUTH DEBUG] getRefreshToken:', 'color: blue;', rt ? `found (${rt.substring(0, 10)}...)` : 'NOT FOUND')
+  return rt
+}
+
 function storeTokens(accessToken, refreshToken) {
   const token = typeof accessToken === 'string' ? accessToken : accessToken?.access_token
   const refresh = typeof refreshToken === 'string' ? refreshToken : accessToken?.refresh_token
@@ -113,16 +119,23 @@ function isTokenExpiringSoon(token) {
 }
 
 async function handleAuthError(token, retryCount, endpoint, options) {
+  console.log('%c[AUTH DEBUG] handleAuthError called', 'color: orange;', {
+    endpoint, retryCount, hasToken: !!token,
+    timestamp: new Date().toISOString()
+  })
+
   if (retryCount < 1) {
     try {
       await refreshAccessToken()
       Logger.log('AUTH', 'Token refreshed after auth error, retrying request')
       return await request(endpoint, options, retryCount + 1)
     } catch (e) {
+      console.error('%c[AUTH DEBUG] refreshAccessToken FAILED:', 'color: red;', e.message)
       Logger.warn('AUTH', 'Token refresh failed in handleAuthError:', e.message)
     }
   }
-  
+
+   console.log('%c[AUTH DEBUG] Auth failed → clearing tokens → redirecting to IAM', 'color: red;')
    Logger.warn('AUTH', 'Auth failed, redirecting to IAM login')
    clearTokens()
    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
