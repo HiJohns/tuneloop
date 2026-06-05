@@ -249,7 +249,7 @@ export default function StaffInstrumentDetail() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">日租金</span>
-              <span>¥{pricingInfo.daily_rent || 0}</span>
+              <span>¥{pricingInfo.daily_rent || instrument.base_daily_rate || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">押金</span>

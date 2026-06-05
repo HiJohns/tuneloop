@@ -116,6 +116,7 @@ export default function Detail() {
       site_address: instrument.site_address || '',
       images: instrument.images,
       pricing: instrument.pricing,
+      base_daily_rate: instrument.base_daily_rate,
       cycle: cycle,
       lease_term: termCount,
     })
@@ -168,7 +169,7 @@ export default function Detail() {
 
   // Computed pricing values
   const pricing = parsePricing(instrument?.pricing)
-  const dailyRent = pricing[0]?.daily_rent || 0
+  const dailyRent = pricing[0]?.daily_rent || instrument?.base_daily_rate || 0
   const deposit = pricing[0]?.deposit || 0
   const shippingFee = pricing[0]?.shipping_fee || 0
   const overdueDailyFee = pricing[0]?.overdue_daily_fee || dailyRent

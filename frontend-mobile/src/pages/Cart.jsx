@@ -36,7 +36,7 @@ const CYCLE_MULTIPLIER = {
 
 function calculateItemAmount(item) {
   const pricing = parsePricing(item.pricing)
-  const dailyRent = pricing[0]?.daily_rent || 0
+  const dailyRent = pricing[0]?.daily_rent || item.base_daily_rate || 0
   const deposit = pricing[0]?.deposit || 0
   const shippingFee = pricing[0]?.shipping_fee || 0
   const cycle = item.cycle || 'month'

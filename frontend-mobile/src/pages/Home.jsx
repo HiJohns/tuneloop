@@ -32,7 +32,7 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   // Safe parse JSON images and pricing
   const images = parseImages(instrument.images)
   const pricing = parsePricing(instrument.pricing)
-  const dailyRent = pricing[0]?.daily_rent || 0
+  const dailyRent = pricing[0]?.daily_rent || instrument.base_daily_rate || 0
 const monthlyRent = Math.round(dailyRent * 25)
   const weeklyRent = Math.round(dailyRent * 6)
   

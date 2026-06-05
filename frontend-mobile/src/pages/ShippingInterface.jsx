@@ -218,9 +218,11 @@ export default function ShippingInterface() {
                       {(() => {
                         try {
                           const pricing = JSON.parse(item.pricing || '[]')
-                          if (pricing[0]) {
-                            const p = pricing[0]
-                            return <p className="text-xs text-blue-600 font-medium mt-0.5">¥{p.daily_rent}/天 · ¥{p.monthly_rent}/月</p>
+                          const p = pricing[0] || {}
+                          const dailyRent = p.daily_rent || item.base_daily_rate || 0
+                          const monthlyRent = p.monthly_rent || Math.round(dailyRent * 25) || 0
+                          if (dailyRent > 0 || monthlyRent > 0) {
+                            return <p className="text-xs text-blue-600 font-medium mt-0.5">¥{dailyRent}/天 · ¥{monthlyRent}/月</p>
                           }
                         } catch {}
                         return null
