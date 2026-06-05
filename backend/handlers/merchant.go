@@ -430,6 +430,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	// Assign merchant_admin role template to admin user in IAM
+	var roleErrors []gin.H
 	if adminIAMSub != "" && iamOrgID != "" {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		templates, err := iamClient.ListRoleTemplates(nsID)
@@ -438,6 +439,11 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 				if t.Code == "merchant_admin" {
 					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, iamOrgID, t.ID); err != nil {
 						log.Printf("[CreateMerchant] Warning: failed to assign merchant_admin role: %v", err)
+						roleErrors = append(roleErrors, gin.H{
+							"user_id": adminIAMSub,
+							"template_code": "merchant_admin",
+							"error": err.Error(),
+						})
 					} else {
 						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminIAMSub)
 					}
@@ -446,6 +452,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			}
 		} else {
 			log.Printf("[CreateMerchant] Warning: failed to list role templates: %v", err)
+			roleErrors = append(roleErrors, gin.H{
+				"error": "failed to list role templates: " + err.Error(),
+			})
 		}
 	}
 
@@ -491,6 +500,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 	if pwd != "" {
 		responseData["initial_password"] = pwd
+	}
+	if len(roleErrors) > 0 {
+		responseData["role_errors"] = roleErrors
 	}
 	c.JSON(http.StatusCreated, gin.H{
 		"code": 20100,

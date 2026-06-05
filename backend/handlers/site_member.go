@@ -111,6 +111,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	var directlyAdded []gin.H
 	var bindErrors []gin.H
 	var initialPasswords []gin.H
+	var roleErrors []gin.H
 
 	var site models.Site
 	if err := db.Where("id = ?", siteID).First(&site).Error; err != nil {
@@ -274,12 +275,20 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 					if t.Code == templateCode {
 					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, site.OrgID, t.ID); err != nil {
 						log.Printf("[AddMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
-						}
-						break
+						roleErrors = append(roleErrors, gin.H{
+							"user_id":       userID,
+							"template_code": templateCode,
+							"error":         err.Error(),
+						})
+					}
+					break
 					}
 				}
 			} else {
 				log.Printf("[AddMember] ListRoleTemplates failed: %v", err)
+				roleErrors = append(roleErrors, gin.H{
+					"error": "failed to list role templates: " + err.Error(),
+				})
 			}
 		}
 
@@ -322,6 +331,9 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	}
 	if len(initialPasswords) > 0 {
 		responseData["initial_passwords"] = initialPasswords
+	}
+	if len(roleErrors) > 0 {
+		responseData["role_errors"] = roleErrors
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

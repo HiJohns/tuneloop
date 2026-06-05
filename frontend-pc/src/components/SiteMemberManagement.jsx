@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography } from 'antd';
+import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { adminApi } from '../services/api';
-import InlineUserSelector from './InlineUserSelector';
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -30,13 +29,21 @@ const roleToCode = (role) => {
 const SiteMemberManagement = ({ siteId, onRefresh }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState('site_admin');
   const [skipActivation, setSkipActivation] = useState(false);
+
+  const [formMode, setFormMode] = useState('new');
+  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [existingUser, setExistingUser] = useState(null);
+  const [duplicates, setDuplicates] = useState({});
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (siteId) {
@@ -90,66 +97,116 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
     }
   };
 
-  const handleConfirmAddMembers = async () => {
-    setAdding(true);
-    if (!selectedUsers || selectedUsers.length === 0) {
-      message.warning('请至少选择一个用户');
-      return;
-    }
+  const checkField = async (field, value) => {
+    if (!value || !value.trim()) return;
+    setChecking(true);
     try {
-      const existingUsers = [];
-      const newUsers = [];
-      selectedUsers.forEach(user => {
-        if (user.isNew) {
-          newUsers.push({ name: user.name, email: user.email, phone: user.phone, role: selectedRole });
-        } else {
-          existingUsers.push({ user_id: user.id || user.user_id, role: selectedRole });
-        }
-      });
-      const response = await api.post(`/sites/${siteId}/members`, {
-        user_ids: existingUsers,
-        new_users: newUsers,
-        skip_activation: skipActivation,
-      });
-      if (response.code === 20000 || response.code === 20100) {
-        const data = response.data;
-        const directCount = data.directly_added?.length || 0;
-        let msg = `成功添加 ${directCount} 个用户`;
-        message.success(msg);
-        setSelectedUsers([]);
-        setModalVisible(false);
-        fetchMembers();
-        onRefresh && onRefresh();
+      const resp = await api.get(`/users/check?${field}=${encodeURIComponent(value.trim())}`);
+      if (resp.code === 20000 && resp.data?.exists) {
+        setDuplicates(prev => ({ ...prev, [field]: true }));
+        setExistingUser(resp.data.user);
+      } else {
+        setDuplicates(prev => ({ ...prev, [field]: false }));
+      }
+    } catch { /* non-critical */ }
+    setChecking(false);
+  };
 
-        if (skipActivation && data.initial_passwords?.length > 0) {
-          const lines = data.initial_passwords.map((p, i) => (
-            <div key={i} style={{ marginBottom: 8 }}>
-              <span style={{ color: '#666' }}>{p.email}：</span>
-              <Typography.Text copyable code style={{ fontSize: 14, padding: '2px 8px' }}>
-                {p.password}
-              </Typography.Text>
-            </div>
-          ));
-          Modal.success({
-            title: '成员已创建',
-            content: (
-              <div>
-                <p>初始密码（请立即复制保存）：</p>
-                <div style={{ margin: '12px 0' }}>{lines}</div>
-                <p style={{ color: '#ff4d4f' }}>此为仅显示一次密码，请妥善保存。</p>
-              </div>
-            ),
-          });
+  const hasDuplicate = duplicates.username || duplicates.email || duplicates.phone;
+
+  const switchToExisting = () => {
+    setFormMode('existing');
+  };
+
+  const switchToNew = () => {
+    setFormMode('new');
+    setExistingUser(null);
+    setDuplicates({});
+  };
+
+  const resetForm = () => {
+    setFormMode('new');
+    setUsername('');
+    setName('');
+    setEmail('');
+    setPhone('');
+    setExistingUser(null);
+    setDuplicates({});
+    setSelectedRole('site_admin');
+    setSkipActivation(false);
+  };
+
+  const isFormValid = () => {
+    if (formMode === 'existing') return !!existingUser;
+    return username.trim() && name.trim() && email.trim() && phone.trim();
+  };
+
+  const handleSubmit = async () => {
+    setAdding(true);
+    try {
+      if (formMode === 'existing') {
+        const response = await api.post(`/sites/${siteId}/members`, {
+          user_ids: [{ user_id: existingUser.id, role: selectedRole }],
+        });
+        if (response.code === 20000 || response.code === 20100) {
+          message.success('成员已绑定');
+          setModalVisible(false);
+          resetForm();
+          fetchMembers();
+          onRefresh && onRefresh();
+          if (response.data?.role_errors?.length > 0) {
+            message.warning('绑定成功，但部分角色权限分配失败。');
+          }
+        } else {
+          message.error(response.message || '绑定失败');
         }
       } else {
-        const data = response.data;
-        if (data?.conflicts) {
-          message.warning(`以下用户已存在：${data.conflicts.map(c => c.email || c.name).join(', ')}`);
+        const response = await api.post(`/sites/${siteId}/members`, {
+          new_users: [{ username: username.trim(), name: name.trim(), email: email.trim(), phone: phone.trim(), role: selectedRole }],
+          skip_activation: skipActivation,
+        });
+        if (response.code === 20000 || response.code === 20100) {
+          const data = response.data;
+          const directCount = data.directly_added?.length || 0;
+          message.success(`成功添加 ${directCount} 个用户`);
+          setModalVisible(false);
+          resetForm();
+          fetchMembers();
+          onRefresh && onRefresh();
+
+          if (skipActivation && data.initial_passwords?.length > 0) {
+            const lines = data.initial_passwords.map((p, i) => (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <span style={{ color: '#666' }}>{p.email}：</span>
+                <Typography.Text copyable code style={{ fontSize: 14, padding: '2px 8px' }}>
+                  {p.password}
+                </Typography.Text>
+              </div>
+            ));
+            Modal.success({
+              title: '成员已创建',
+              content: (
+                <div>
+                  <p>初始密码（请立即复制保存）：</p>
+                  <div style={{ margin: '12px 0' }}>{lines}</div>
+                  <p style={{ color: '#ff4d4f' }}>此为仅显示一次密码，请妥善保存。</p>
+                </div>
+              ),
+            });
+          }
+          if (data.role_errors?.length > 0) {
+            message.warning('用户创建成功，但部分角色权限分配失败。');
+          }
+        } else if (response.code === 40901) {
+          const data = response.data;
+          if (data?.conflicts) {
+            message.warning(`用户已存在：${data.conflicts.map(c => c.email || c.name).join(', ')}`);
+          }
         } else {
           message.error(response.message || '添加成员失败');
         }
       }
-    } catch { message.error('添加成员失败') }
+    } catch { message.error('操作失败') }
     setAdding(false);
   };
 
@@ -223,9 +280,7 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
           onChange={(e) => setSearchKeyword(e.target.value)}
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-          setSelectedUsers([]);
-          setSelectedRole('site_admin');
-          setSkipActivation(false);
+          resetForm();
           setModalVisible(true);
         }}>
           添加成员
@@ -235,40 +290,102 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
       <Modal
         title="添加成员"
         open={modalVisible}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => { setModalVisible(false); resetForm(); }}
         footer={null}
-        width={600}
+        width={520}
       >
-        <InlineUserSelector
-          mode="multi"
-          merchantId="current-merchant-id"
-          value={selectedUsers}
-          onChange={setSelectedUsers}
-        />
-        <div style={{ marginTop: 16 }}>
-          <label style={{ display: 'block', marginBottom: 8, color: '#666' }}>初始角色</label>
+        {formMode === 'existing' && existingUser ? (
+          <>
+            <Alert
+              type="info"
+              message="绑定现有用户"
+              description="以下用户已在系统中注册，将直接绑定到本网点。"
+              style={{ marginBottom: 16 }}
+            />
+            <div style={{ marginBottom: 24, padding: 12, background: '#fafafa', borderRadius: 6 }}>
+              <p><strong>用户名：</strong>{existingUser.username || '-'}</p>
+              <p><strong>姓名：</strong>{existingUser.name || '-'}</p>
+              <p><strong>邮箱：</strong>{existingUser.email || '-'}</p>
+              <p><strong>手机：</strong>{existingUser.phone || '-'}</p>
+            </div>
+            <Button type="link" onClick={switchToNew} style={{ padding: 0, marginBottom: 16 }}>
+              改为新建用户
+            </Button>
+          </>
+        ) : (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 4, color: '#666' }}>用户名 <span style={{ color: '#ff4d4f' }}>*</span></label>
+              <Input
+                value={username}
+                onChange={e => { setUsername(e.target.value); setDuplicates(prev => ({ ...prev, username: false })); }}
+                onBlur={e => checkField('username', e.target.value)}
+                status={duplicates.username ? 'error' : undefined}
+              />
+              {duplicates.username && <span style={{ color: '#ff4d4f', fontSize: 12 }}>该用户名已注册</span>}
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 4, color: '#666' }}>姓名 <span style={{ color: '#ff4d4f' }}>*</span></label>
+              <Input value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 4, color: '#666' }}>邮箱 <span style={{ color: '#ff4d4f' }}>*</span></label>
+              <Input
+                value={email}
+                onChange={e => { setEmail(e.target.value); setDuplicates(prev => ({ ...prev, email: false })); }}
+                onBlur={e => checkField('email', e.target.value)}
+                status={duplicates.email ? 'error' : undefined}
+              />
+              {duplicates.email && <span style={{ color: '#ff4d4f', fontSize: 12 }}>该邮箱已注册</span>}
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 4, color: '#666' }}>手机 <span style={{ color: '#ff4d4f' }}>*</span></label>
+              <Input
+                value={phone}
+                onChange={e => { setPhone(e.target.value); setDuplicates(prev => ({ ...prev, phone: false })); }}
+                onBlur={e => checkField('phone', e.target.value)}
+                status={duplicates.phone ? 'error' : undefined}
+              />
+              {duplicates.phone && <span style={{ color: '#ff4d4f', fontSize: 12 }}>该手机号已注册</span>}
+            </div>
+            {hasDuplicate && existingUser && (
+              <div style={{ marginBottom: 16, padding: 8, background: '#fff2f0', borderRadius: 4 }}>
+                <span style={{ color: '#ff4d4f' }}>该用户已注册</span>
+                <Button type="link" onClick={switchToExisting} style={{ padding: '0 0 0 8px', height: 'auto' }}>
+                  改为绑定现有用户
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        <div style={formMode === 'existing' ? { borderTop: '1px solid #f0f0f0', paddingTop: 16 } : {}}>
+          <label style={{ display: 'block', marginBottom: 8, color: '#666' }}>角色</label>
           <Select value={selectedRole} onChange={setSelectedRole} style={{ width: '100%' }}>
             {availableRoles.map(r => (
               <Select.Option key={r.code} value={r.code}>{r.name}</Select.Option>
             ))}
           </Select>
-          <div style={{ marginTop: 12 }}>
-            <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>
-              跳过邮箱验证（直接激活）
-            </Checkbox>
-          </div>
+          {formMode !== 'existing' && (
+            <div style={{ marginTop: 12 }}>
+              <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>
+                跳过邮箱验证（直接激活）
+              </Checkbox>
+            </div>
+          )}
         </div>
+
         <div style={{ textAlign: 'right', marginTop: 16 }}>
-          <Button onClick={() => setModalVisible(false)} style={{ marginRight: 8 }}>
+          <Button onClick={() => { setModalVisible(false); resetForm(); }} style={{ marginRight: 8 }}>
             取消
           </Button>
           <Button
             type="primary"
-            onClick={handleConfirmAddMembers}
+            onClick={handleSubmit}
             loading={adding}
-            disabled={!selectedUsers || selectedUsers.length === 0}
+            disabled={!isFormValid()}
           >
-            确认添加 ({selectedUsers.length})
+            确认添加
           </Button>
         </div>
       </Modal>
