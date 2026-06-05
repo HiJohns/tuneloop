@@ -296,6 +296,19 @@ export default function Detail() {
           </div>
         )}
 
+        {/* Dynamic Properties */}
+        {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-500 text-xs block mb-1">动态属性</span>
+            {Object.entries(instrument.properties).map(([key, vals]) => (
+              <div key={key} className="flex justify-between text-xs mt-1">
+                <span className="text-gray-400">{key}</span>
+                <span>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {isRentable && (
         <div className="mt-4">
           <span className="text-gray-700 font-medium">租赁周期</span>
