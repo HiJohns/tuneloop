@@ -437,7 +437,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		if err == nil {
 			for _, t := range templates {
 				if t.Code == "merchant_admin" {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, iamOrgID, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, iamOrgID, t.Code); err != nil {
 						log.Printf("[CreateMerchant] Warning: failed to assign merchant_admin role: %v", err)
 						roleErrors = append(roleErrors, gin.H{
 							"user_id": adminIAMSub,

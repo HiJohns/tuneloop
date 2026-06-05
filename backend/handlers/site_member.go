@@ -273,7 +273,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 				for _, t := range templates {
 					if t.Code == templateCode {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, site.OrgID, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, site.OrgID, t.Code); err != nil {
 						log.Printf("[AddMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
 						roleErrors = append(roleErrors, gin.H{
 							"user_id":       userID,
@@ -399,7 +399,7 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 				for _, t := range templates {
 					if t.Code == templateCode {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.Code); err != nil {
 						log.Printf("[UpdateMemberRole] AssignRoleTemplate failed: %v", err)
 						}
 						break

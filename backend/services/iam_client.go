@@ -1389,9 +1389,9 @@ func (c *IAMClient) AssignRoleTemplateToUser(userID, templateID string) error {
 }
 
 // AssignRoleTemplateToUserWithToken assigns a functional role template using the caller's token.
-func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, orgID, templateID string) error {
+func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, orgID, roleCode string) error {
 	path := fmt.Sprintf("/api/v1/users/%s/roles", userID)
-	req := map[string]interface{}{"role_ids": []string{templateID}, "org_id": orgID}
+	req := map[string]interface{}{"role_ids": []string{roleCode}, "org_id": orgID}
 	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, req)
 	if err != nil {
 		return fmt.Errorf("AssignRoleTemplateToUserWithToken request failed: %w", err)
@@ -1399,7 +1399,7 @@ func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, orgID, temp
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		return fmt.Errorf("AssignRoleTemplateToUserWithToken returned status %d: %s", statusCode, string(respBody))
 	}
-	log.Printf("[IAMClient] Assigned role template %s to user %s (via user token)", templateID, userID)
+	log.Printf("[IAMClient] Assigned role template %s to user %s (via user token)", roleCode, userID)
 	return nil
 }
 

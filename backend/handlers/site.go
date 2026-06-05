@@ -321,7 +321,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
 				if t.Code == "site_admin" {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamManagerID, siteOrgID, t.ID); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamManagerID, siteOrgID, t.Code); err != nil {
 						log.Printf("[CreateSite] AssignRoleTemplate failed for manager %s: %v", iamManagerID, err)
 					}
 					break
@@ -405,7 +405,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 					for _, t := range templates {
 						if t.Code == "site_admin" {
-							if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userResult.UserID, siteOrgID, t.ID); err != nil {
+							if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userResult.UserID, siteOrgID, t.Code); err != nil {
 								log.Printf("[CreateSite] AssignRoleTemplate failed for auto-created manager %s: %v", userResult.UserID, err)
 							}
 							break
