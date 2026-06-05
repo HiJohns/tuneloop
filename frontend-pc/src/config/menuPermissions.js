@@ -3,6 +3,7 @@
 // cus_perm codes registered by TuneLoop with IAM
 
 const SysPermBits = {
+  Admin: 0,	// namespace_admin super-admin bit
   namespace_view: 0,
   namespace_list: 1,
   namespace_create: 2,

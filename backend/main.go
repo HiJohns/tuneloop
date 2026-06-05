@@ -303,12 +303,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		propertyRequired := authRequired.Group("")
 		{
 			propertyRequired.GET("/properties", propertyHandler.ListProperties)
-			propertyRequired.POST("/property", propertyHandler.CreateProperty)
-			propertyRequired.PUT("/property/:id", propertyHandler.UpdateProperty)
 			propertyRequired.GET("/properties/:id/options/search", propertyHandler.SearchPropertyOptions)
-			propertyRequired.POST("/property/option", propertyHandler.CreatePropertyOption)
-			propertyRequired.PUT("/property/confirm", propertyHandler.ConfirmPropertyValue)
-			propertyRequired.PUT("/property/merge", propertyHandler.MergePropertyValues)
+
+			propertyRequiredWithAdmin := propertyRequired.Group("")
+			propertyRequiredWithAdmin.Use(middleware.RequireSysPerm(0))
+			propertyRequiredWithAdmin.POST("/property", propertyHandler.CreateProperty)
+			propertyRequiredWithAdmin.PUT("/property/:id", propertyHandler.UpdateProperty)
+			propertyRequiredWithAdmin.POST("/property/option", propertyHandler.CreatePropertyOption)
+			propertyRequiredWithAdmin.PUT("/property/confirm", propertyHandler.ConfirmPropertyValue)
+			propertyRequiredWithAdmin.PUT("/property/merge", propertyHandler.MergePropertyValues)
 		}
 
 		inventoryRequired := authRequired.Group("")

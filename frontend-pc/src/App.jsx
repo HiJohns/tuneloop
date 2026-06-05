@@ -14,7 +14,7 @@ import {
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
 import { api, initPermissionMapping } from './services/api'
-import { checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
+import { SysPermBits, checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
@@ -286,7 +286,7 @@ function MainLayout() {
     children: [
       { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
       { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['instrument:update'] } },
-      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['instrument:update'] } }
+      { key: '/instruments/properties', label: '属性管理', permission: { sysPermBits: [SysPermBits.Admin] } }
     ]
   },
   {
@@ -553,7 +553,7 @@ function onMenuClick(e) {
               <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
                <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
                 <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-                <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:update'] }}><PropertyList /></ProtectedRoute>} />
+                <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ sysPermBits: [SysPermBits.Admin] }}><PropertyList /></ProtectedRoute>} />
                 <Route path="/organization/sites/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [12] }}><SiteBulkImport /></ProtectedRoute>} />
                 <Route path="/staff/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [17] }}><StaffBulkImport /></ProtectedRoute>} />
           </Routes>

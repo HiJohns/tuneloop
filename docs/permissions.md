@@ -69,7 +69,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 |-----|------|------|-----|------|
 | 0 | `instrument:create` | 创建乐器 | 乐器 | 含分类/属性/标签创建 |
 | 1 | `instrument:read` | 查看乐器 | 乐器 | 含列表/详情/分类/属性/标签/库存/维修记录 |
-| 2 | `instrument:update` | 编辑乐器 | 乐器 | 含分类/属性/标签/库存/调拨、标记维修中 |
+| 2 | `instrument:update` | 编辑乐器 | 乐器 | 含分类/标签/库存/调拨、标记维修中 |
 | 3 | `instrument:delete` | 删除乐器 | 乐器 | 含分类/属性/标签删除 |
 | 4 | `instrument:price` | 乐器定价 | 乐器 | 租金设定，独立于编辑 |
 | 5 | `instrument:maintain` | 维修管理 | 乐器 | 进入维修乐器列表，执行维修（开始/完成） |
@@ -89,7 +89,8 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | `instrument:list` / `instrument:view` | `instrument:read` | 合并 |
 | `instrument:edit` | `instrument:update` | 重命名 |
 | `instrument:create` / `instrument:delete` | 不变 | |
-| `category:manage` / `property:manage` | `instrument:update` | 归入乐器编辑 |
+| `category:manage` | `instrument:update` | 归入乐器编辑 |
+| `property:manage` | `namespace_admin` (sys_perm Admin) | #742 属性管理提升至超管 |
 | `inventory:view` | `instrument:read` | 归入乐器查看 |
 | `inventory:manage` | `instrument:update` | 归入乐器编辑 |
 | `rent:setting` / `finance:config` | `instrument:price` | 归入定价 |
@@ -153,7 +154,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 |--------|--------|------|------|
 | 乐器管理 | 乐器列表 | /instruments/list | cusPerm: instrument:create/read/update/delete |
 | 乐器管理 | 分类设置 | /instruments/categories | cusPerm: instrument:update |
-| 乐器管理 | 属性管理 | /instruments/properties | cusPerm: instrument:update |
+| 乐器管理 | 属性管理 | /instruments/properties | sysPerm: Admin (namespace_admin) |
 | 维修管理 | 师傅管理 | /maintenance/workers | cusPerm: instrument:maintain |
 | 维修管理 | 会话管理 | /maintenance/sessions | cusPerm: instrument:read, instrument:maintain |
 | 库存监控 | 租金设定 | /inventory/rent-setting | cusPerm: instrument:price |

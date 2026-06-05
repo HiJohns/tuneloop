@@ -128,6 +128,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   // 权限检查 - 用于条件渲染"管理"链接
   const [canManageCategories, setCanManageCategories] = useState(false)
   const [canManageSites, setCanManageSites] = useState(false)
+  const [canManageProperties, setCanManageProperties] = useState(false)
 
   useEffect(() => {
     const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
@@ -147,6 +148,13 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       sysPerm, cusPerm, cusPermMapping
     )
     setCanManageSites(canSite)
+
+    // 属性管理权限：仅 namespace_admin（sys_perm bit 0）
+    const canProp = checkPermission(
+      { sysPermBits: [SysPermBits.Admin] },
+      sysPerm, cusPerm, cusPermMapping
+    )
+    setCanManageProperties(canProp)
 
     // Pricing permission: instrument:price has BitCode 4
     const priceBit = 4
@@ -1153,7 +1161,7 @@ const loadCategoryChildren = async (node) => {
         {properties.length === 0 && propertiesLoading && (
           <div>加载动态属性中...</div>
         )}
-        {properties.length === 0 && !propertiesLoading && (
+        {properties.length === 0 && !propertiesLoading && canManageProperties && (
           <>
             <Divider orientation="left">动态属性</Divider>
             <div style={{ padding: '16px', textAlign: 'center', color: '#999' }}>
