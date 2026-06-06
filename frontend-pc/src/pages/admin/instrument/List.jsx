@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Modal, Form, InputNumber, Checkbox } from 'antd'
+import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons'
 import { api, instrumentsApi } from '../../../services/api'
@@ -47,7 +47,7 @@ export default function InstrumentList() {
     setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
-  const fetchInstruments = async (page = 1, pageSize = 20) => {
+  const fetchInstruments = async (page = 1, pageSize = 20, overrideSort = null) => {
     setLoading(true)
     try {
       const params = { page, pageSize }
@@ -58,7 +58,7 @@ export default function InstrumentList() {
       if (categoryFilter) params.category_id = categoryFilter
       if (levelFilter) params.level_id = levelFilter
       if (statusFilter) params.stock_status = statusFilter
-      params.sort = sortBy
+      params.sort = overrideSort || sortBy
       const response = await instrumentsApi.list(params)
       const list = response?.data?.list || []
       setInstruments(Array.isArray(list) ? list : [])
@@ -532,7 +532,7 @@ export default function InstrumentList() {
             ? (s.order === 'ascend' ? s.field : `-${s.field}`)
             : '-created_at'
           setSortBy(sortVal)
-          fetchInstruments(pag.current, pag.pageSize)
+          fetchInstruments(pag.current, pag.pageSize, sortVal)
         }}
         pagination={{
           current: pagination.page,
