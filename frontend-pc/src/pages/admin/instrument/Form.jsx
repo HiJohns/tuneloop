@@ -912,7 +912,7 @@ const loadCategoryChildren = async (node) => {
       
       // Upload video file if present
       let videoUrl = values.video || ''
-      if (videoFileList.length > 0 && videoFileList[0].originFileObj) {
+      if (videoFileList.length > 0 && videoFileList[0].size) {
         setVideoUploading(true)
         try {
           const videoResult = await uploadFileWithProgress(videoFileList[0], () => {})
