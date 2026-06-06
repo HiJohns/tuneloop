@@ -982,10 +982,15 @@ const loadCategoryChildren = async (node) => {
         const instrumentId = initialData?.id || editData?.id || result.data?.id
         if (instrumentId && fileKeys.length > 0) {
           try {
+            const videoExts = ['.mp4', '.webm', '.mov', '.avi', '.mkv']
             await instrumentsApi.createMedia(instrumentId, {
               batch_type: 'shipping',
               is_display: true,
-              files: fileKeys.map((key, i) => ({ file_key: key, file_type: fileList.find(f => f.fileKey === key)?.url?.includes('.mp4') ? 'video' : 'image', sort_order: i }))
+              files: fileKeys.map((key, i) => {
+                const f = fileList.find(f => f.fileKey === key)
+                const isVideo = f?.url && videoExts.some(ext => f.url.toLowerCase().includes(ext))
+                return { file_key: key, file_type: isVideo ? 'video' : 'image', sort_order: i }
+              })
             })
           } catch (mediaErr) {
             console.warn('[Media] Failed to bind media:', mediaErr)
