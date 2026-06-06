@@ -665,7 +665,9 @@ const loadCategoryChildren = async (node) => {
       xhr.onload = () => {
         if (xhr.status === 200) {
           const result = JSON.parse(xhr.responseText)
-          resolve(result.data?.url || result.url)
+          const url = result.data?.url || result.url
+          const fileKey = result.data?.file_key || ''
+          resolve({ url, fileKey })
         } else {
           reject(new Error('Upload failed'))
         }
@@ -736,12 +738,16 @@ const loadCategoryChildren = async (node) => {
     const previouslyUploadedImages = fileList
       .filter(file => file.status === 'done' && file.url)
       .map(file => file.url)
+    const previouslyUploadedFileKeys = fileList
+      .filter(file => file.status === 'done' && file.fileKey)
+      .map(file => file.fileKey)
     
     if (pendingFiles.length === 0) {
-      return { success: true, uploadedImages: previouslyUploadedImages }
+      return { success: true, uploadedImages: previouslyUploadedImages, fileKeys: previouslyUploadedFileKeys }
     }
     
     const newlyUploadedImages = []
+    const newlyUploadedFileKeys = []
     const failedFiles = []
     
     // Initialize progress tracking for all pending files
@@ -767,13 +773,14 @@ const loadCategoryChildren = async (node) => {
           }))
         }
         
-        const uploadedUrl = await uploadFileWithProgress(file, onProgress)
-        newlyUploadedImages.push(uploadedUrl)
+        const uploadResult = await uploadFileWithProgress(file, onProgress)
+        newlyUploadedImages.push(uploadResult.url)
+        if (uploadResult.fileKey) newlyUploadedFileKeys.push(uploadResult.fileKey)
         
         // Update fileList with uploaded status
         setFileList(prev => prev.map(f => {
           if (f.uid === file.uid) {
-            return { ...f, status: 'done', url: uploadedUrl }
+            return { ...f, status: 'done', url: uploadResult.url, fileKey: uploadResult.fileKey }
           }
           return f
         }))
@@ -817,7 +824,8 @@ const loadCategoryChildren = async (node) => {
     
     return { 
       success: true, 
-      uploadedImages: [...previouslyUploadedImages, ...newlyUploadedImages] 
+      uploadedImages: [...previouslyUploadedImages, ...newlyUploadedImages],
+      fileKeys: [...previouslyUploadedFileKeys, ...newlyUploadedFileKeys]
     }
   }
 
@@ -833,11 +841,11 @@ const loadCategoryChildren = async (node) => {
     }
     
     try {
-      const uploadedUrl = await uploadFileWithProgress(file, onProgress)
+      const uploadResult = await uploadFileWithProgress(file, onProgress)
       
       setFileList(prev => prev.map(f => {
         if (f.uid === file.uid) {
-          return { ...f, status: 'done', url: uploadedUrl }
+          return { ...f, status: 'done', url: uploadResult.url, fileKey: uploadResult.fileKey }
         }
         return f
       }))
@@ -887,6 +895,7 @@ const loadCategoryChildren = async (node) => {
       
       // Upload pending files first and get the uploaded image URLs
       let images = []
+      let fileKeys = []
       if (fileList.length > 0) {
         const uploadResult = await uploadPendingFiles()
         console.log('[DEBUG] Upload result:', uploadResult)
@@ -896,6 +905,7 @@ const loadCategoryChildren = async (node) => {
           return
         }
         images = uploadResult.uploadedImages || []
+        fileKeys = uploadResult.fileKeys || []
       }
       
       console.log('[DEBUG] Final images array:', images)
@@ -905,8 +915,10 @@ const loadCategoryChildren = async (node) => {
       if (videoFileList.length > 0 && videoFileList[0].originFileObj) {
         setVideoUploading(true)
         try {
-          videoUrl = await uploadFileWithProgress(videoFileList[0], () => {})
-          setVideoFileList([{ ...videoFileList[0], status: 'done', url: videoUrl }])
+          const videoResult = await uploadFileWithProgress(videoFileList[0], () => {})
+          videoUrl = videoResult.url
+          if (videoResult.fileKey) fileKeys.push(videoResult.fileKey)
+          setVideoFileList([{ ...videoFileList[0], status: 'done', url: videoResult.url, fileKey: videoResult.fileKey }])
         } catch (err) {
           console.error('Video upload failed:', err)
           message.error('视频上传失败')
@@ -966,6 +978,19 @@ const loadCategoryChildren = async (node) => {
       
       const result = await response.json()
       if (result.code === 20000 || result.code === 20100) {
+        // Bind uploaded media files to the instrument
+        const instrumentId = initialData?.id || editData?.id || result.data?.id
+        if (instrumentId && fileKeys.length > 0) {
+          try {
+            await instrumentsApi.createMedia(instrumentId, {
+              batch_type: 'shipping',
+              is_display: true,
+              files: fileKeys.map((key, i) => ({ file_key: key, file_type: fileList.find(f => f.fileKey === key)?.url?.includes('.mp4') ? 'video' : 'image', sort_order: i }))
+            })
+          } catch (mediaErr) {
+            console.warn('[Media] Failed to bind media:', mediaErr)
+          }
+        }
         message.success(initialData ? '更新成功' : '创建成功')
         console.log('[DEBUG] onSubmit callback:', onSubmit, 'type:', typeof onSubmit, 'isPageMode:', isPageMode)
         // Check page mode first - in page mode, redirect regardless of onSubmit

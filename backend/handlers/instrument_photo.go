@@ -32,6 +32,8 @@ type PhotoBatchResponse struct {
 
 // UploadInstrumentPhotos handles batch photo upload for instruments
 // POST /api/instruments/:id/photos/upload
+// Deprecated: Use POST /api/instruments/:id/media instead.
+// Old ZIP batch photo upload — kept for backward compatibility, will be removed in v2.
 func UploadInstrumentPhotos(c *gin.Context) {
 	instrumentID := c.Param("id")
 	if instrumentID == "" {
