@@ -36,7 +36,7 @@ func generateSecurePassword() string {
 }
 
 // ImportAccountsCSV imports accounts from a CSV file.
-func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, permReg *PermissionRegistry, dryRun bool, skipActivation bool) (*BulkImportResult, error) {
+func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, permReg *PermissionRegistry, dryRun bool, skipActivation bool, culture string) (*BulkImportResult, error) {
 	_, records, err := ParseCSV(r)
 	if err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			password := generateSecurePassword()
 			createReq.Password = password
 			createReq.SendNotificationEmail = true
-			createReq.NotificationLang = "zh"
+			createReq.NotificationLang = culture
 		}
 
 		iamResp, err := iamClient.CreateUser(createReq)

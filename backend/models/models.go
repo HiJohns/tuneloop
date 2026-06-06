@@ -666,3 +666,28 @@ type MerchantPricingConfig struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 	UpdatedBy  string    `gorm:"type:varchar(255)" json:"updated_by"`
 }
+
+type InstrumentMedia struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID        string    `gorm:"type:uuid;index" json:"org_id"`
+	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	BatchID      string    `gorm:"type:uuid;index;not null" json:"batch_id"`
+	BatchType    string    `gorm:"type:varchar(20);not null" json:"batch_type"`
+	FileName     string    `gorm:"type:varchar(255);not null" json:"file_name"`
+	FileType     string    `gorm:"type:varchar(10);not null" json:"file_type"`
+	FileSize     int64     `gorm:"default:0" json:"file_size"`
+	StorageKey   string    `gorm:"type:varchar(500);not null" json:"storage_key"`
+	IsDisplay    bool      `gorm:"default:false" json:"is_display"`
+	SortOrder    int       `gorm:"default:0" json:"sort_order"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type SystemSetting struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null;uniqueIndex:idx_setting_tenant_key" json:"tenant_id"`
+	SettingKey   string    `gorm:"type:varchar(100);not null;uniqueIndex:idx_setting_tenant_key" json:"setting_key"`
+	SettingValue string    `gorm:"type:text;not null;default:''" json:"setting_value"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	UpdatedBy    string    `gorm:"type:varchar(255)" json:"updated_by"`
+}

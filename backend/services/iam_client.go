@@ -191,15 +191,16 @@ func (c *IAMClient) doRequestWithToken(method, path, token string, payload inter
 }
 
 type CreateOrganizationRequest struct {
-	Name          string             `json:"name"`
-	ParentID      string             `json:"parent_id,omitempty"`
-	NamespaceID   string             `json:"namespace_id,omitempty"`
-	Address       string             `json:"address,omitempty"`
-	ContactPhone  string             `json:"contact_phone,omitempty"`
-	AdminInfo     *OrganizationAdmin `json:"admin_info,omitempty"`
-	CallbackURL   string             `json:"callback_url,omitempty"`
-	OperatorID    string             `json:"operator_id,omitempty"`
-	SkipActivation bool              `json:"skip_activation,omitempty"`
+	Name             string             `json:"name"`
+	ParentID         string             `json:"parent_id,omitempty"`
+	NamespaceID      string             `json:"namespace_id,omitempty"`
+	Address          string             `json:"address,omitempty"`
+	ContactPhone     string             `json:"contact_phone,omitempty"`
+	AdminInfo        *OrganizationAdmin `json:"admin_info,omitempty"`
+	CallbackURL      string             `json:"callback_url,omitempty"`
+	OperatorID       string             `json:"operator_id,omitempty"`
+	SkipActivation   bool               `json:"skip_activation,omitempty"`
+	NotificationLang string             `json:"notification_lang,omitempty"`
 }
 
 type OrganizationAdmin struct {
@@ -943,10 +944,11 @@ type ResetPasswordResult struct {
 	Skipped int `json:"skipped"`
 }
 
-func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, redirectURL string) (*ResetPasswordResult, error) {
+func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, redirectURL string, culture string) (*ResetPasswordResult, error) {
 	req := map[string]interface{}{
 		"user_ids":      userIDs,
 		"redirect_url":  redirectURL,
+		"culture":       culture,
 	}
 	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users/reset-password", userToken, req)
 	if err != nil {

@@ -15,6 +15,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
 
 func getAbsPath(relativePath string) string {
@@ -146,6 +147,79 @@ func GetInstrumentByID(c *gin.Context) {
 			"address": transitInfo.Address,
 			"phone":   transitInfo.Phone,
 			"contact": transitInfo.ContactName,
+		}
+	}
+
+	// Fetch media from instrument_media table
+	var mediaList []models.InstrumentMedia
+	if err := db.Where("instrument_id = ? AND tenant_id = ?", instrumentID, tenantID).
+		Order("sort_order asc, created_at desc").
+		Find(&mediaList).Error; err == nil && len(mediaList) > 0 {
+		type mediaItem struct {
+			BatchID   string `json:"batch_id"`
+			BatchType string `json:"batch_type"`
+			FileType  string `json:"file_type"`
+			URL       string `json:"url"`
+			ThumbURL  string `json:"thumb_url,omitempty"`
+			SortOrder int    `json:"sort_order"`
+		}
+		type batchInfo struct {
+			BatchID   string `json:"batch_id"`
+			BatchType string `json:"batch_type"`
+			Count     int    `json:"count"`
+			CreatedAt string `json:"created_at"`
+		}
+		var displayItems []mediaItem
+		var videoItem *mediaItem
+		batchesMap := make(map[string]*batchInfo)
+		thumbMap := make(map[string]string)
+		for _, m := range mediaList {
+			url := "/uploads/media/" + m.StorageKey
+			if m.FileType == "video_thumb" {
+				thumbMap[m.BatchID] = url
+				continue
+			}
+			item := mediaItem{
+				BatchID:   m.BatchID,
+				BatchType: m.BatchType,
+				FileType:  m.FileType,
+				URL:       url,
+				SortOrder: m.SortOrder,
+			}
+			if m.IsDisplay && m.FileType != "video" {
+				displayItems = append(displayItems, item)
+			}
+			if m.FileType == "video" {
+				videoItem = &item
+			}
+			if _, ok := batchesMap[m.BatchID]; !ok {
+				batchesMap[m.BatchID] = &batchInfo{
+					BatchID:   m.BatchID,
+					BatchType: m.BatchType,
+					CreatedAt: m.CreatedAt.Format(time.RFC3339),
+				}
+			}
+			batchesMap[m.BatchID].Count++
+		}
+		if videoItem != nil {
+			if thumbURL, ok := thumbMap[videoItem.BatchID]; ok {
+				videoItem.ThumbURL = thumbURL
+			}
+		}
+		var batches []batchInfo
+		for _, b := range batchesMap {
+			batches = append(batches, *b)
+		}
+		instrumentMap["media"] = gin.H{
+			"display": displayItems,
+			"batches": batches,
+			"video":   videoItem,
+		}
+	} else {
+		instrumentMap["media"] = gin.H{
+			"display": []interface{}{},
+			"batches": []interface{}{},
+			"video":   nil,
 		}
 	}
 
@@ -716,43 +790,60 @@ func HandleUpload(c *gin.Context) {
 		return
 	}
 
-	allowedTypes := map[string]bool{
-		"image/jpeg": true,
-		"image/png":  true,
-		"image/gif":  true,
-		"image/webp": true,
-	}
+	mimeType := file.Header.Get("Content-Type")
+	isImage := mimeType == "image/jpeg" || mimeType == "image/png" || mimeType == "image/gif" || mimeType == "image/webp"
+	isVideo := mimeType == "video/mp4" || mimeType == "video/webm" || mimeType == "video/quicktime"
 
-	if !allowedTypes[file.Header.Get("Content-Type")] {
+	if !isImage && !isVideo {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "Invalid file type. Only JPEG, PNG, GIF, WebP allowed",
+			"message": "Invalid file type. Only JPEG, PNG, GIF, WebP, MP4, WebM, MOV allowed",
 		})
 		return
 	}
 
-	maxSizeStr := os.Getenv("UPLOAD_MAX_SIZE")
-	maxSizeMB := 10 // default 10MB
-	if maxSizeStr != "" {
-		if parsed, err := strconv.Atoi(maxSizeStr); err == nil && parsed > 0 {
-			maxSizeMB = parsed
+	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	maxSizeBytes := int64(10 * 1024 * 1024)
+
+	var imageMaxSize, videoMaxSize string
+	if tenantID != "" {
+		var s models.SystemSetting
+		if err := db.Where("tenant_id = ? AND setting_key = 'upload_image_max_size'", tenantID).First(&s).Error; err == nil {
+			imageMaxSize = s.SettingValue
+		}
+		if err := db.Where("tenant_id = ? AND setting_key = 'upload_video_max_size'", tenantID).First(&s).Error; err == nil {
+			videoMaxSize = s.SettingValue
+		}
+	} else {
+		imageMaxSize = os.Getenv("UPLOAD_IMAGE_MAX_SIZE")
+		videoMaxSize = os.Getenv("UPLOAD_VIDEO_MAX_SIZE")
+	}
+
+	if isImage {
+		if imageMaxSize != "" {
+			if parsed, err := strconv.Atoi(imageMaxSize); err == nil && parsed > 0 {
+				maxSizeBytes = int64(parsed * 1024 * 1024)
+			}
+		} else if envSize := os.Getenv("UPLOAD_MAX_SIZE"); envSize != "" {
+			if parsed, err := strconv.Atoi(envSize); err == nil && parsed > 0 {
+				maxSizeBytes = int64(parsed * 1024 * 1024)
+			}
+		}
+	} else {
+		maxSizeBytes = int64(100 * 1024 * 1024)
+		if videoMaxSize != "" {
+			if parsed, err := strconv.Atoi(videoMaxSize); err == nil && parsed > 0 {
+				maxSizeBytes = int64(parsed * 1024 * 1024)
+			}
 		}
 	}
-	maxSizeBytes := int64(maxSizeMB * 1024 * 1024)
 
 	if file.Size > maxSizeBytes {
+		maxMB := maxSizeBytes / 1024 / 1024
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
-			"message": fmt.Sprintf("File too large. Max size is %dMB", maxSizeMB),
-		})
-		return
-	}
-
-	uploadDir := getAbsPath("./uploads")
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50001,
-			"message": "Failed to create upload directory",
+			"message": fmt.Sprintf("File too large. Max size is %dMB", maxMB),
 		})
 		return
 	}
@@ -761,22 +852,36 @@ func HandleUpload(c *gin.Context) {
 	timestamp := time.Now().UnixNano()
 	randomStr := fmt.Sprintf("%08x", rand.Int31())
 	filename := fmt.Sprintf("%d_%s%s", timestamp, randomStr, ext)
-	filepath := filepath.Join(uploadDir, filename)
 
-	if err := c.SaveUploadedFile(file, filepath); err != nil {
+	reader, err := file.Open()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50002,
-			"message": "Failed to save file",
+			"message": "Failed to open uploaded file",
+		})
+		return
+	}
+	defer reader.Close()
+
+	storage := services.NewMediaStorage()
+	if err := storage.Upload(c.Request.Context(), filename, reader, mimeType); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50003,
+			"message": "Failed to save file: " + err.Error(),
 		})
 		return
 	}
 
-	fileURL := fmt.Sprintf("/uploads/%s", filename)
+	fileURL, _ := storage.GetURL(c.Request.Context(), filename)
+	if fileURL == "" {
+		fileURL = fmt.Sprintf("/uploads/media/%s", filename)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"url":      fileURL,
+			"file_key": filename,
 			"fileName": file.Filename,
 			"size":     file.Size,
 		},

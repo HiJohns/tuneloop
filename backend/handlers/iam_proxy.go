@@ -382,7 +382,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 		payload["password"] = pwd
 		payload["skip_activation"] = true
 		payload["send_notification_email"] = true
-		payload["notification_lang"] = "zh"
+		payload["notification_lang"] = middleware.GetCulture(c)
 		initialPassword = pwd
 	} else {
 		payload["callback_url"] = callbackURL

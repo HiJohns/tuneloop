@@ -174,31 +174,39 @@ export default function InstrumentDetail() {
               
               <Col span={8}>
                 <Card title="多媒体">
-                  {instrument.images && instrument.images.length > 0 ? (
-                    <Image.PreviewGroup>
-                      {instrument.images.map((img, index) => (
-                        <Image
-                          key={index}
-                          src={img}
-                          alt={`${instrument.sn}-${index}`}
-                          width="100%"
-                          height={150}
-                          className="mb-2 object-cover rounded"
-                        />
-                      ))}
-                    </Image.PreviewGroup>
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      暂无图片
-                    </div>
-                  )}
-                  
-                  {instrument.video && (
-                    <div className="mt-4">
-                      <Divider>视频</Divider>
-                      <video src={instrument.video} controls width="100%" className="rounded" />
-                    </div>
-                  )}
+                  {(() => {
+                    const media = instrument.media
+                    const images = media?.display?.filter(m => m.file_type === 'image') || 
+                                   (instrument.images?.length ? instrument.images.map(u => ({ url: u, file_type: 'image' })) : [])
+                    const video = media?.video || (instrument.video ? { url: instrument.video } : null)
+                    
+                    return (
+                      <>
+                        {images.length > 0 ? (
+                          <Image.PreviewGroup>
+                            {images.map((item, index) => (
+                              <Image
+                                key={index}
+                                src={item.url || item}
+                                alt={`${instrument.sn}-${index}`}
+                                width="100%"
+                                height={150}
+                                className="mb-2 object-cover rounded"
+                              />
+                            ))}
+                          </Image.PreviewGroup>
+                        ) : (
+                          <div className="text-center text-gray-500 py-8">暂无图片</div>
+                        )}
+                        {video && (
+                          <div className="mt-4">
+                            <Divider>视频</Divider>
+                            <video src={video.url} controls width="100%" className="rounded" />
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </Card>
               </Col>
             </Row>

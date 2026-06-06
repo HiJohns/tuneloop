@@ -50,7 +50,8 @@ func (h *BulkImportHandler) ImportOrganizations(c *gin.Context) {
 
 	allowMerchant := slices.Contains(middleware.GetFunctionalRoles(ctx), "namespace_admin")
 
-	result, err := services.ImportOrganizationsCSV(ctx, file, tenantID, h.iamClient, dryRun, allowMerchant)
+	orgCulture := middleware.GetCulture(c)
+	result, err := services.ImportOrganizationsCSV(ctx, file, tenantID, h.iamClient, dryRun, allowMerchant, orgCulture)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "Import failed: " + err.Error()})
 		return
@@ -84,7 +85,8 @@ func (h *BulkImportHandler) ImportAccounts(c *gin.Context) {
 	dryRun := c.Query("dry_run") == "true"
 	skipActivation := c.DefaultQuery("skip_activation", "false") == "true"
 
-	result, err := services.ImportAccountsCSV(ctx, file, tenantID, h.iamClient, h.permReg, dryRun, skipActivation)
+	accountCulture := middleware.GetCulture(c)
+	result, err := services.ImportAccountsCSV(ctx, file, tenantID, h.iamClient, h.permReg, dryRun, skipActivation, accountCulture)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "Import failed: " + err.Error()})
 		return

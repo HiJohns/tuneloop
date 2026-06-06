@@ -88,6 +88,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	bulkImportHandler := handlers.NewBulkImportHandler(iamClient, permRegistry)
 
 	api := r.Group("/api")
+	api.Use(middleware.CultureMiddleware())
 
 	api.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -230,6 +231,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/instruments/:id/status", middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
 		authRequired.POST("/instruments/:id/photos/upload", handlers.UploadInstrumentPhotos)
 		authRequired.GET("/instruments/:id/photos/latest", handlers.GetLatestInstrumentPhotos)
+		authRequired.POST("/instruments/:id/media", middleware.RequireCusPerm("instrument:media_upload"), handlers.CreateInstrumentMedia)
+		authRequired.PUT("/instruments/:id/media/display", middleware.RequireCusPerm("instrument:media_display"), handlers.SetMediaDisplay)
+		authRequired.DELETE("/instruments/:id/media/:batch_id", middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteMediaBatch)
+		authRequired.GET("/instruments/:id/media", handlers.GetInstrumentMedia)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
@@ -436,6 +441,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			systemHandler := handlers.NewSystemHandler()
 			authRequired.GET("/system/clients", middleware.RequireSysPerm(middleware.SysPermNamespaceView), systemHandler.GetClients)
 			authRequired.GET("/system/tenants", middleware.RequireSysPerm(middleware.SysPermTenantList), systemHandler.GetTenants)
+			authRequired.GET("/settings/:key", handlers.GetSetting)
+			authRequired.PUT("/settings/:key", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), handlers.UpsertSetting)
 
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)
@@ -658,6 +665,10 @@ func main() {
 	logisticsMonitor := handlers.NewLogisticsMonitor()
 	logisticsMonitor.Start()
 	defer logisticsMonitor.Stop()
+
+	mediaCleanup := services.NewMediaCleanupService()
+	mediaCleanup.Start()
+	defer mediaCleanup.Stop()
 
 	_ = wwwURL
 	_ = wxURL

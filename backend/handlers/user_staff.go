@@ -303,7 +303,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		initialPassword = generatePassword()
 		createReq.Password = initialPassword
 		createReq.SendNotificationEmail = req.Email != ""
-		createReq.NotificationLang = "zh"
+		createReq.NotificationLang = middleware.GetCulture(c)
 		hasPassword = true
 	} else if req.Password != "" {
 		if err := validatePassword(req.Password); err != nil {
@@ -450,10 +450,11 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	iamClient := services.NewIAMClient()
 	username := user.Email
 	createReq := &services.CreateUserRequest{
-		Username: username,
-		Name:     user.Name,
-		Email:    user.Email,
-		Phone:    user.Phone,
+		Username:         username,
+		Name:             user.Name,
+		Email:            user.Email,
+		Phone:            user.Phone,
+		NotificationLang: middleware.GetCulture(c),
 	}
 	iamResp, err := iamClient.CreateUser(createReq)
 	if err != nil {
@@ -1019,7 +1020,7 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 	}
 
 	iamClient := services.NewIAMClient()
-	result, err := iamClient.ResetPasswordWithToken(userToken, iamSubs, redirectURL)
+	result, err := iamClient.ResetPasswordWithToken(userToken, iamSubs, redirectURL, middleware.GetCulture(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reset password: " + err.Error()})
 		return

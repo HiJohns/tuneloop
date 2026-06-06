@@ -234,7 +234,7 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 			createReq.Password = pwd
 			createReq.SkipActivation = true
 			createReq.SendNotificationEmail = true
-			createReq.NotificationLang = "zh"
+			createReq.NotificationLang = middleware.GetCulture(c)
 			initialPassword = pwd
 		} else {
 			createReq.CallbackURL = callbackURL
@@ -300,9 +300,10 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		adminUserName = input.AdminUsername
 	}
 	orgReq := &services.CreateOrganizationRequest{
-		Name:        input.Name,
-		Address:     input.Address,
-		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
+		Name:             input.Name,
+		Address:          input.Address,
+		NamespaceID:      middleware.GetNamespaceID(c.Request.Context()),
+		NotificationLang: middleware.GetCulture(c),
 		AdminInfo: &services.OrganizationAdmin{
 			Name:     adminName,
 			Username: adminUserName,

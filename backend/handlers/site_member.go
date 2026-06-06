@@ -149,7 +149,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if input.SkipActivation {
 				createReq.Password = generatePassword()
 				createReq.SendNotificationEmail = true
-				createReq.NotificationLang = "zh"
+				createReq.NotificationLang = middleware.GetCulture(c)
 				log.Printf("[AddMember] skip_activation=true, generated password for %s", nu.Email)
 			} else {
 				createReq.CallbackURL = callbackURL

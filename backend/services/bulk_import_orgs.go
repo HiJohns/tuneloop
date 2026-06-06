@@ -28,7 +28,7 @@ type siteInfo struct {
 }
 
 // ImportOrganizationsCSV imports organizations from a CSV file.
-func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, dryRun bool, allowMerchant bool) (*BulkImportResult, error) {
+func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, iamClient *IAMClient, dryRun bool, allowMerchant bool, culture string) (*BulkImportResult, error) {
 	_, records, err := ParseCSV(r)
 	if err != nil {
 		return nil, err
@@ -254,10 +254,11 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			siteByName[org.Name] = siteInfo{ID: newSite.ID, OrgID: orgID}
 
 			// Create IAM organization with parent
-			iamReq := &CreateOrganizationRequest{
-				Name:        org.Name,
-				NamespaceID: iamClient.GetNamespace(),
-			}
+		iamReq := &CreateOrganizationRequest{
+			Name:             org.Name,
+			NamespaceID:      iamClient.GetNamespace(),
+			NotificationLang: culture,
+		}
 			if parentID != nil && parentOrgID != "" {
 				iamReq.ParentID = parentOrgID
 			}

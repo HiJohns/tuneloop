@@ -285,13 +285,14 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	iamReq := &services.CreateOrganizationRequest{
-		Name:        req.Name,
-		ParentID:    orgID,
-		NamespaceID: middleware.GetNamespaceID(c.Request.Context()),
-		Address:     req.Address,
-		AdminInfo:   adminInfo,
-		CallbackURL: os.Getenv("EXTERNAL_WEB_URL"),
-		OperatorID:  middleware.GetUserID(c.Request.Context()),
+		Name:             req.Name,
+		ParentID:         orgID,
+		NamespaceID:      middleware.GetNamespaceID(c.Request.Context()),
+		Address:          req.Address,
+		NotificationLang: middleware.GetCulture(c),
+		AdminInfo:        adminInfo,
+		CallbackURL:      os.Getenv("EXTERNAL_WEB_URL"),
+		OperatorID:       middleware.GetUserID(c.Request.Context()),
 	}
 
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)
