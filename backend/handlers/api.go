@@ -256,6 +256,19 @@ func GetInstruments(c *gin.Context) {
 		query = scopedDB
 	}
 
+	if sn := c.Query("sn"); sn != "" {
+		query = query.Where("sn ILIKE ?", "%"+sn+"%")
+	}
+	if categoryID := c.Query("category_id"); categoryID != "" {
+		query = query.Where("category_id = ?", categoryID)
+	}
+	if levelID := c.Query("level_id"); levelID != "" {
+		query = query.Where("level_id = ?", levelID)
+	}
+	if stockStatus := c.Query("stock_status"); stockStatus != "" {
+		query = query.Where("stock_status = ?", stockStatus)
+	}
+
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -391,6 +404,62 @@ func GetInstruments(c *gin.Context) {
 			"page":       page,
 			"pageSize":   pageSize,
 			"totalPages": (total + int64(pageSize) - 1) / int64(pageSize),
+		},
+	})
+}
+
+func GetInstrumentFilterOptions(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	query := db.Model(&models.Instrument{}).Where("tenant_id = ?", tenantID)
+	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
+		query = scopedDB
+	}
+
+	type categoryOption struct {
+		CategoryID   string `json:"category_id"`
+		CategoryName string `json:"category_name"`
+	}
+	var categories []categoryOption
+	query.Select("DISTINCT category_id, category_name").
+		Where("category_id IS NOT NULL AND category_name != ''").
+		Find(&categories)
+
+	type levelOption struct {
+		LevelID   string `json:"level_id"`
+		LevelName string `json:"level_name"`
+	}
+	var levels []levelOption
+	db.Raw(`SELECT DISTINCT i.level_id, l.caption AS level_name
+		FROM instruments i
+		JOIN instrument_levels l ON l.id = i.level_id
+		WHERE i.tenant_id = ? AND i.level_id IS NOT NULL`, tenantID).Scan(&levels)
+
+	type statusOption struct {
+		Value string `json:"value"`
+	}
+	var statuses []statusOption
+	query.Select("DISTINCT stock_status").Find(&statuses)
+
+	type siteOption struct {
+		SiteID   string `json:"site_id"`
+		SiteName string `json:"site_name"`
+	}
+	var sites []siteOption
+	db.Raw(`SELECT DISTINCT i.site_id, s.name AS site_name
+		FROM instruments i
+		JOIN sites s ON s.id = i.site_id
+		WHERE i.tenant_id = ? AND i.site_id IS NOT NULL`, tenantID).Scan(&sites)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"categories": categories,
+			"levels":     levels,
+			"statuses":   statuses,
+			"sites":      sites,
 		},
 	})
 }

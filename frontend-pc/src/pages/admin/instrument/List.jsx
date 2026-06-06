@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons'
-import { api } from '../../../services/api'
+import { api, instrumentsApi } from '../../../services/api'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
 
@@ -19,6 +19,8 @@ export default function InstrumentList() {
   const [formVisible, setFormVisible] = useState(false)
   const [editingInstrument, setEditingInstrument] = useState(null)
   const [categories, setCategories] = useState([])
+  const [filterOptions, setFilterOptions] = useState({ categories: [], levels: [], statuses: [], sites: [] })
+  const [levelFilter, setLevelFilter] = useState('')
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
@@ -38,20 +40,25 @@ export default function InstrumentList() {
   useEffect(() => {
     fetchInstruments(pagination.page, pagination.pageSize)
     fetchCategories()
+    instrumentsApi.getFilterOptions().then(res => {
+      if (res.code === 20000) setFilterOptions(res.data)
+    })
     setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
   const fetchInstruments = async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
-      // Admin users (OWNER/ADMIN) see all sites' instruments via recursive query
+      const params = { page, pageSize }
       const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
       const isAdmin = userInfo.tid && userInfo.tid === userInfo.oid
-      const recursiveParam = isAdmin ? '&recursive=true' : ''
-      const response = await api.get(`/instruments?page=${page}&pageSize=${pageSize}${recursiveParam}`)
-      console.log('[DEBUG] Instruments API response:', response)
+      if (isAdmin) params.recursive = 'true'
+      if (searchText) params.sn = searchText
+      if (categoryFilter) params.category_id = categoryFilter
+      if (levelFilter) params.level_id = levelFilter
+      if (statusFilter) params.stock_status = statusFilter
+      const response = await instrumentsApi.list(params)
       const list = response?.data?.list || []
-      console.log('[DEBUG] Instruments list:', list)
       setInstruments(Array.isArray(list) ? list : [])
       setPagination({
         page: response?.data?.page || page,
@@ -66,6 +73,11 @@ export default function InstrumentList() {
     }
   }
 
+  const debouncedSearch = (value) => {
+    setSearchText(value)
+    fetchInstruments(1, pagination.pageSize)
+  }
+
   const fetchCategories = async () => {
     try {
       const response = await api.get('/categories')
@@ -74,14 +86,6 @@ export default function InstrumentList() {
       console.error('Load categories failed:', error)
     }
   }
-
-  const filteredInstruments = instruments.filter(instrument => {
-    const matchText = !searchText || 
-      instrument.sn?.toLowerCase().includes(searchText.toLowerCase())
-    const matchCategory = !categoryFilter || instrument.category_name === categoryFilter
-    const matchStatus = !statusFilter || instrument.status === statusFilter
-    return matchText && matchCategory && matchStatus
-  })
 
   const columns = [
     {
@@ -443,32 +447,43 @@ export default function InstrumentList() {
       {/* Toolbar */}
       <div className="mb-4 flex justify-between items-center">
         <Space>
-          <Input
+          <Input.Search
             placeholder="搜索识别码..."
-            prefix={<SearchOutlined className="text-gray-400" />}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 250 }}
+            onSearch={debouncedSearch}
             allowClear
+            style={{ width: 250 }}
           />
           <Select
             placeholder="选择分类"
             style={{ width: 150 }}
             allowClear
-            onChange={setCategoryFilter}
+            onChange={(val) => { setCategoryFilter(val); fetchInstruments(1, pagination.pageSize) }}
           >
-            {categories.map(cat => (
-              <Option key={cat.id} value={cat.name}>{cat.name}</Option>
+            {filterOptions.categories.map(cat => (
+              <Option key={cat.category_id} value={cat.category_id}>{cat.category_name}</Option>
+            ))}
+          </Select>
+          <Select
+            placeholder="乐器分级"
+            style={{ width: 150 }}
+            allowClear
+            onChange={(val) => { setLevelFilter(val); fetchInstruments(1, pagination.pageSize) }}
+          >
+            {filterOptions.levels.map(lv => (
+              <Option key={lv.level_id} value={lv.level_id}>{lv.level_name}</Option>
             ))}
           </Select>
           <Select
             placeholder="选择状态"
             style={{ width: 120 }}
             allowClear
-            onChange={setStatusFilter}
+            onChange={(val) => { setStatusFilter(val); fetchInstruments(1, pagination.pageSize) }}
           >
-            <Option value="available">可租</Option>
-            <Option value="rented">已租出</Option>
-            <Option value="maintenance">维修中</Option>
+            {filterOptions.statuses.map(st => (
+              <Option key={st.value} value={st.value}>
+                {st.value === 'available' ? '可租' : st.value === 'rented' ? '已租出' : st.value === 'maintenance' ? '维修中' : st.value === 'shipping' ? '配送中' : st.value === 'reserved' ? '已预订' : st.value}
+              </Option>
+            ))}
           </Select>
         </Space>
         
@@ -496,7 +511,7 @@ export default function InstrumentList() {
       {/* Table */}
       <Table
         columns={columns}
-        dataSource={filteredInstruments || []}
+        dataSource={instruments}
         rowKey="id"
         loading={loading}
         rowSelection={handleRowSelection}

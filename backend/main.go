@@ -220,6 +220,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/categories/sort", handlers.UpdateCategorySort)
 		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
 		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
+		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)
 		authRequired.GET("/instruments/check", handlers.CheckInstrumentSN)
 		authRequired.GET("/instruments/:id", middleware.RequireCusPerm("instrument:read"), handlers.GetInstrumentByID)
 		authRequired.PUT("/instruments/:id", middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrument)
