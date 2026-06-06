@@ -944,7 +944,9 @@ Content-Disposition: attachment; filename="instrument_import_template.xlsx"
 
 ---
 
-### 5.8 乐器照片存储
+### 5.8 乐器照片存储 (Deprecated)
+
+> ⚠️ **已废弃**: 此模块已被 §5.9 乐器媒体管理 替代。`POST /api/instruments/:id/photos/upload` 和 `GET /api/instruments/:id/photos/latest` 保留向后兼容，不再新增记录。新功能请使用 §5.9 的接口。
 
 #### 5.8.1 上传乐器照片批次
 
@@ -1125,6 +1127,110 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "message": "Instrument not found"
 }
 ```
+
+---
+
+### 5.9 乐器媒体管理
+
+> 取代 §5.8 照片存储系统，支持图片/视频上传、OSS/本地双模式、按批次管理。
+
+#### 5.9.1 通用文件上传
+
+**接口**: `POST /api/upload`
+
+**Content-Type**: `multipart/form-data`
+
+**表单字段**:
+- `file`: 图片或视频文件
+- `filename`: 可选，指定文件名（不含扩展名）
+
+**允许的文件类型**: JPEG, PNG, GIF, WebP, MP4, WebM, MOV
+
+**认证**: 需要 `Authorization: Bearer <JWT_TOKEN>`
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "url": "/uploads/media/1234567890_a1b2c3d4.jpg",
+    "file_key": "1234567890_a1b2c3d4.jpg",
+    "fileName": "original.jpg",
+    "size": 2048576
+  }
+}
+```
+`file_key` 为后续绑定到乐器时的唯一标识。
+
+#### 5.9.2 绑定媒体到乐器
+
+**接口**: `POST /api/instruments/:id/media`
+
+**请求 Body**:
+```json
+{
+  "batch_type": "shipping",
+  "is_display": true,
+  "files": [
+    { "file_key": "1234567890_a1b2c3d4.jpg", "file_type": "image", "sort_order": 1 },
+    { "file_key": "0987654321_e5f6g7h8.mp4", "file_type": "video", "sort_order": 0 }
+  ]
+}
+```
+
+**batch_type 枚举**: shipping / forwarding / accepting / returning / relaying / receiving / repaired
+
+**行为说明**:
+- `is_display=true` 时自动重置同乐器的其他展示批次
+- 视频唯一性：后上传的视频自动替换旧视频（删除旧视频 + 缩略图 + DB 记录）
+- 视频上传后自动提取缩略图（需容器部署 FFmpeg）
+
+**成功响应**: `{ "code": 20000, "data": { "batch_id": "uuid" } }`
+
+#### 5.9.3 设置展示批次
+
+**接口**: `PUT /api/instruments/:id/media/display`
+
+**请求 Body**: `{ "batch_id": "uuid" }`
+
+设置后自动同步到 `Instrument.Images`/`Video` 字段以保持向后兼容。
+
+#### 5.9.4 删除媒体批次
+
+**接口**: `DELETE /api/instruments/:id/media/:batch_id`
+
+删除对应存储文件及 DB 记录，自动同步 `Instrument.Images`/`Video`。
+
+#### 5.9.5 获取乐器媒体列表
+
+**接口**: `GET /api/instruments/:id/media`
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "display": [
+      { "batch_id": "uuid", "batch_type": "shipping", "file_type": "image", "url": "/uploads/media/...", "sort_order": 1 }
+    ],
+    "batches": [
+      { "batch_id": "uuid", "batch_type": "shipping", "count": 5, "created_at": "2026-06-06T00:00:00Z" }
+    ],
+    "video": { "batch_id": "uuid", "batch_type": "shipping", "file_type": "video", "url": "/uploads/media/...", "thumb_url": "/uploads/media/..._thumb.jpg", "sort_order": 0 }
+  }
+}
+```
+
+#### 5.9.6 上传大小限制
+
+全站点设置，存储于 `system_settings` 表：
+
+| 设置字段 | 默认值 | 说明 |
+|---------|--------|------|
+| `upload_image_max_size` | 10 MB | 图片最大尺寸 |
+| `upload_video_max_size` | 100 MB | 视频最大尺寸 |
+
+仅命名空间管理员可通过 `GET/PUT /api/settings/:key` 修改。
 
 ---
 

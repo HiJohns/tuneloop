@@ -36,7 +36,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 维修工程师 | WORKER | worker | 无 sys_perm + cus_perm (2) |
 
 **命名空间管理员规则**：
-> `roles 包含 "namespace_admin"` → 仅仪表盘 + 商户管理 + 客户端管理 + 操作日志。
+> `roles 包含 "namespace_admin"` → 仪表盘 + 商户管理 + 客户端管理 + 操作日志 + **媒体设置**。
 
 ---
 
@@ -61,7 +61,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 ## 三、cus_perm 业务权限表（#660 重新设计）
 
-> 来源: `backend/services/permission_registry.go`，10 个业务权限
+> 来源: `backend/services/permission_registry.go`，14 个业务权限（原 10 个 + 媒体操作 3 个 + 定价策略 1 个）
 
 ### 3.1 权限码定义
 
@@ -81,6 +81,10 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 11 | `appeal:read` | 查看申诉 | 申诉 | 查看申诉列表/详情 |
 | 12 | `appeal:handle` | 处理申诉 | 申诉 | 答复/关闭申诉 |
 | 13 | `audit_log:read` | 查看日志 | 日志 | 查看操作日志 |
+| 14 | `instrument:price_config` | 定价策略配置 | 定价 | 定价策略模板配置 |
+| 15 | `instrument:media_upload` | 上传媒体 | 媒体 | 上传图片/视频到乐器 |
+| 16 | `instrument:media_display` | 设置展示批次 | 媒体 | 指定乐器展示媒体批次 |
+| 17 | `instrument:media_delete` | 删除媒体批次 | 媒体 | 删除乐器的媒体批次 |
 
 ### 3.2 旧码→新码迁移映射
 
@@ -105,6 +109,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 权限域 | cus_perm 数量 | 权限代码 |
 |--------|-------------|---------|
 | 乐器 | 6 | instrument:create, instrument:read, instrument:update, instrument:delete, instrument:price, instrument:maintain |
+| 媒体 | 3 | instrument:media_upload, instrument:media_display, instrument:media_delete |
 | 订单 | 4 | order:create, order:read, order:update, order:cancel |
 | 申诉 | 3 | appeal:create, appeal:read, appeal:handle |
 | 日志 | 1 | audit_log:read |
@@ -117,9 +122,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 | 角色 | 代码 | cus_perm 数量 | 分配的权限 |
 |------|------|-------------|----------|
-| 商户管理员 | owner | 14 (全部) | 全部业务权限 |
-| 网点管理员 | admin | 11 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, order:read, order:update, order:cancel, appeal:read, appeal:handle, audit_log:read |
-| 网点员工 | staff | 8 | instrument:create, instrument:read, instrument:update, instrument:maintain, order:create, order:read, order:update, audit_log:read |
+| 商户管理员 | owner | 17 (全部) | 全部业务权限 |
+| 网点管理员 | admin | 13 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, **instrument:media_upload**, **instrument:media_display**, order:read, order:update, order:cancel, appeal:read, appeal:handle, audit_log:read |
+| 网点员工 | staff | 9 | instrument:create, instrument:read, instrument:update, instrument:maintain, **instrument:media_upload**, order:create, order:read, order:update, audit_log:read |
 | 维修工程师 | worker | 2 | instrument:read, instrument:maintain |
 | 顾客 | customer | 4 | order:create, order:read, order:cancel, appeal:create |
 
@@ -141,6 +146,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | appeal:read | ✅ | ✅ | ❌ | ❌ | ❌ |
 | appeal:handle | ✅ | ✅ | ❌ | ❌ | ❌ |
 | audit_log:read | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:media_upload | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:media_display | ✅ | ✅ | ❌ | ❌ | ❌ |
+| instrument:media_delete | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 ---
 

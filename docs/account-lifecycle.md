@@ -125,4 +125,28 @@ docker exec -it jobmaster-postgres psql -U tuneloop_user -d tuneloop_debug \
        VALUES ('<TENANT_ID>', '<SITE_ID>', '<LOCAL_USER_ID>', 'site_member');"
 ```
 
+---
+
+## 六、媒体数据生命周期
+
+### 6.1 基本规则
+
+`instrument_media` 表记录的媒体数据遵循以下生命周期规则：
+
+| 事件 | 行为 | 说明 |
+|------|------|------|
+| 用户移除（网点/商户） | 记录保留 | 媒体归属乐器而非用户，ON DELETE SET NULL |
+| 乐器删除 | 级联删除 | `instrument_id` 外键 `ON DELETE CASCADE` |
+| 商户/租户删除 | 手动清理 | MediaCleanupService 输出待清理列表，管理员确认后执行 |
+
+### 6.2 定时清理
+
+- **服务**: `MediaCleanupService`（`backend/services/media_cleanup.go`）
+- **间隔**: 每 24 小时执行一次
+- **保留期**: `MEDIA_RETENTION_YEARS`（默认 5 年），通过环境变量或 `system_settings` 表配置
+- **行为**: 仅输出待清理批次列表和 SQL 提示，不自动删除（需人工确认后手动执行）
+- **红线**: AGENTS.md 禁止 AI 自行修改数据库，清理必须由用户确认
+
+---
+
 > 来源: #701 事故 — IAM 响应格式变迁导致 `iam_sub` 为空，连锁引发绑定、权限、网点三缺。
