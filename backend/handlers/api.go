@@ -269,6 +269,13 @@ func GetInstruments(c *gin.Context) {
 		query = query.Where("stock_status = ?", stockStatus)
 	}
 
+	sortParam := c.DefaultQuery("sort", "-created_at")
+	orderClause := "created_at DESC"
+	if sortParam == "created_at" || sortParam == "+created_at" {
+		orderClause = "created_at ASC"
+	}
+	query = query.Order(orderClause)
+
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

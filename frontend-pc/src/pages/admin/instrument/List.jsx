@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
+import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons'
 import { api, instrumentsApi } from '../../../services/api'
@@ -21,6 +21,7 @@ export default function InstrumentList() {
   const [categories, setCategories] = useState([])
   const [filterOptions, setFilterOptions] = useState({ categories: [], levels: [], statuses: [], sites: [] })
   const [levelFilter, setLevelFilter] = useState('')
+  const [sortBy, setSortBy] = useState('-created_at')
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
@@ -57,6 +58,7 @@ export default function InstrumentList() {
       if (categoryFilter) params.category_id = categoryFilter
       if (levelFilter) params.level_id = levelFilter
       if (statusFilter) params.stock_status = statusFilter
+      params.sort = sortBy
       const response = await instrumentsApi.list(params)
       const list = response?.data?.list || []
       setInstruments(Array.isArray(list) ? list : [])
@@ -87,7 +89,10 @@ export default function InstrumentList() {
     }
   }
 
-  const columns = [
+  const businessRole = localStorage.getItem('user_business_role') || ''
+  const isSiteLevelRole = businessRole === 'site_admin' || businessRole === 'site_member'
+
+  const baseColumns = [
     {
       title: '图片',
       dataIndex: 'images',
@@ -123,17 +128,20 @@ export default function InstrumentList() {
       dataIndex: 'category_name',
       key: 'category_name',
       width: 120,
-      filters: [...new Set(instruments.map(i => i.category_name))].filter(Boolean).map(cat => ({
-        text: cat,
-        value: cat
-      })),
-      onFilter: (value, record) => record.category_name === value
     },
     {
       title: '乐器分级',
       dataIndex: 'level_name',
       key: 'level_name',
       width: 100,
+    },
+    {
+      title: '加入时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 120,
+      sorter: true,
+      render: (text) => text ? new Date(text).toLocaleDateString('zh-CN') : '-'
     },
     {
       title: '网点',
@@ -192,6 +200,9 @@ export default function InstrumentList() {
       )
     }
   ]
+  const columns = isSiteLevelRole
+    ? baseColumns.filter(col => col.key !== 'site_name')
+    : baseColumns
 
   const viewInstrument = (id) => {
     navigate(`/instruments/detail/${id}`)
@@ -515,6 +526,14 @@ export default function InstrumentList() {
         rowKey="id"
         loading={loading}
         rowSelection={handleRowSelection}
+        onChange={(pag, _filters, sorter) => {
+          const s = Array.isArray(sorter) ? sorter[0] : sorter
+          const sortVal = s.order
+            ? (s.order === 'ascend' ? s.field : `-${s.field}`)
+            : '-created_at'
+          setSortBy(sortVal)
+          fetchInstruments(pag.current, pag.pageSize)
+        }}
         pagination={{
           current: pagination.page,
           pageSize: pagination.pageSize,
