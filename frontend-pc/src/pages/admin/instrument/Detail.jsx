@@ -176,9 +176,13 @@ export default function InstrumentDetail() {
                 <Card title="多媒体">
                   {(() => {
                     const media = instrument.media
-                    const images = media?.display?.filter(m => m.file_type === 'image') || 
-                                   (instrument.images?.length ? instrument.images.map(u => ({ url: u, file_type: 'image' })) : [])
-                    const video = media?.video || (instrument.video ? { url: instrument.video } : null)
+                    const displayImages = media?.display?.filter(m => m.file_type === 'image') || []
+                    const images = displayImages.length > 0
+                      ? displayImages
+                      : (instrument.images?.length ? instrument.images.map(u => ({ url: u, file_type: 'image' })) : [])
+                    const video = (media?.video && media.video.url)
+                      ? media.video
+                      : (instrument.video ? { url: instrument.video } : null)
                     
                     return (
                       <>
