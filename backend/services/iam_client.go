@@ -671,6 +671,50 @@ func (c *IAMClient) GetUser(userID string) (*User, error) {
 	return nil, fmt.Errorf("GetUser: user %s not found in response", userID)
 }
 
+// GetUserEmailStatus fetches email confirmation timestamps from IAM
+// Handles flat user response format: {"id": "...", "email": "...", ...}
+func (c *IAMClient) GetUserEmailStatus(userID string) (*time.Time, *time.Time, error) {
+	path := fmt.Sprintf("/api/v1/users/%s", userID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetUserEmailStatus request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return nil, nil, fmt.Errorf("GetUserEmailStatus returned status %d: %s", statusCode, string(respBody))
+	}
+
+	// Try flat user response first
+	var flatUser struct {
+		EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+		EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
+	}
+	if err := json.Unmarshal(respBody, &flatUser); err == nil {
+		return flatUser.EmailSentAt, flatUser.EmailConfirmedAt, nil
+	}
+
+	// Fallback: try nested formats
+	var nested struct {
+		User *struct {
+			EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+			EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
+		} `json:"user"`
+		Data *struct {
+			EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+			EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &nested); err == nil {
+		if nested.User != nil {
+			return nested.User.EmailSentAt, nested.User.EmailConfirmedAt, nil
+		}
+		if nested.Data != nil {
+			return nested.Data.EmailSentAt, nested.Data.EmailConfirmedAt, nil
+		}
+	}
+
+	return nil, nil, fmt.Errorf("GetUserEmailStatus: email fields not found in response")
+}
+
 // ResendEmailConfirmation requests IAM to resend the email confirmation email
 func (c *IAMClient) ResendEmailConfirmation(userID string) error {
 	req := map[string]interface{}{

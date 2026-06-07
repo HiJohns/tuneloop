@@ -774,9 +774,9 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 
 	// Fetch email confirmation timestamps from IAM
 	iamClient := services.NewIAMClient()
-	if iamUser, err := iamClient.GetUser(user.IAMSub); err == nil {
-		result["email_sent_at"] = iamUser.EmailSentAt
-		result["email_confirmed_at"] = iamUser.EmailConfirmedAt
+	if sentAt, confirmedAt, err := iamClient.GetUserEmailStatus(user.IAMSub); err == nil {
+		result["email_sent_at"] = sentAt
+		result["email_confirmed_at"] = confirmedAt
 	}
 
 	c.JSON(http.StatusOK, gin.H{
