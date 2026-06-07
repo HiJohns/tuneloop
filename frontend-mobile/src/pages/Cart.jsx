@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
-import { getToken, redirectToLogin, api } from '../services/api'
+import { getToken, redirectToLogin, ordersApi } from '../services/api'
 import dayjs from 'dayjs'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -196,9 +196,8 @@ export default function Cart() {
       const startDate = item.start_date || dayjs().format('YYYY-MM-DD')
 
       try {
-        const resp = await api.post('/orders', {
+        const resp = await ordersApi.create({
           instrument_id: item.instrument_id,
-          level: item.level || 'standard',
           start_date: startDate,
           end_date: returnDate,
         })
@@ -227,7 +226,25 @@ export default function Cart() {
         alert('下单失败: ' + (err.message || '未知错误'))
       }
     } else {
-      alert('多乐器下单功能开发中，请分别下单')
+      const items = cart.items.map(item => ({
+        instrument_id: item.instrument_id,
+        start_date: item.start_date || dayjs().format('YYYY-MM-DD'),
+        end_date: item.end_date || dayjs().add(30, 'day').format('YYYY-MM-DD'),
+      }))
+
+      try {
+        const resp = await ordersApi.batchCreate({ items })
+        if (resp.code === 20000) {
+          clearCart()
+          navigate('/success', {
+            state: { orders: resp.data.orders, total_amount: resp.data.total_amount },
+          })
+        } else {
+          alert(resp.data?.message || '批量下单失败')
+        }
+      } catch (err) {
+        alert('批量下单失败: ' + (err.message || '未知错误'))
+      }
     }
   }
 

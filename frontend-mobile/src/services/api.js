@@ -296,6 +296,7 @@ export const instrumentsApi = {
 export const ordersApi = {
   preview: (data) => api.post('/orders/preview', data),
   create: (data) => api.post('/user/orders', data),
+  batchCreate: (data) => api.post('/user/orders/batch', data),
   transferOwnership: (id) => api.post(`/orders/${id}/transfer-ownership`),
   terminate: (id) => api.put(`/orders/${id}/terminate`),
   getOverdue: () => api.get('/overdue-leases'),

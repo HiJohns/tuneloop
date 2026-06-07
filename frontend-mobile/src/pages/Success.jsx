@@ -6,6 +6,7 @@ export default function Success() {
   const navigate = useNavigate()
   const location = useLocation()
   const orderData = location.state || {}
+  const isBatch = Array.isArray(orderData.orders)
 
   useEffect(() => {
     localStorage.removeItem('cart')
@@ -14,6 +15,44 @@ export default function Success() {
 
   const handleDone = () => {
     navigate('/')
+  }
+
+  if (isBatch) {
+    return (
+      <div className="min-h-screen bg-green-50 flex flex-col p-4">
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="text-center mb-8">
+            <CheckCircle className="text-green-500 mx-auto" size={80} />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">租赁成功</h1>
+          <p className="text-gray-500 text-center mb-8">您的订单已创建成功</p>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+            {orderData.orders.map((order, i) => (
+              <div key={i} className="pb-3 border-b border-gray-100 last:border-b-0">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">订单 #{i + 1}</span>
+                  <span className="text-sm font-medium">{order.order_id?.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-sm text-gray-500">金额</span>
+                  <span className="text-sm font-bold text-orange-500">¥{order.amount?.toFixed(0) || 0}</span>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-between items-center pt-2">
+              <span className="font-medium">合计</span>
+              <span className="text-xl font-bold text-orange-500">¥{orderData.total_amount?.toFixed(0) || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleDone} className="w-full py-4 bg-brand-primary text-white rounded-xl font-bold text-lg">
+          完成
+        </button>
+      </div>
+    )
   }
 
   return (

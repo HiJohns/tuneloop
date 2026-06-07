@@ -424,6 +424,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/user/instruments", userRentalHandler.ListInstruments)
 			authRequired.GET("/user/instruments/:id", userRentalHandler.GetInstrument)
 			authRequired.POST("/user/orders", userRentalHandler.CreateOrder)
+			authRequired.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
 			authRequired.GET("/user/rentals", userRentalHandler.ListRentals)
 			authRequired.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
 			authRequired.GET("/user/contracts", userRentalHandler.ListContracts)

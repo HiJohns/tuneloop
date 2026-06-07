@@ -1333,7 +1333,46 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 ---
 
-### 6.3 订单列表
+### 6.3 批量创建订单
+
+**接口**: `POST /api/user/orders/batch`
+
+**请求 Body**:
+```json
+{
+  "items": [
+    {
+      "instrument_id": "instr-001",
+      "start_date": "2026-03-21",
+      "end_date": "2026-06-21"
+    },
+    {
+      "instrument_id": "instr-002",
+      "start_date": "2026-03-21",
+      "end_date": "2026-06-21"
+    }
+  ]
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "orders": [
+      { "order_id": "order-001", "amount": 2800, "status": "reserved" },
+      { "order_id": "order-002", "amount": 1500, "status": "reserved" }
+    ],
+    "total_amount": 4300
+  }
+}
+```
+
+---
+
+### 6.4 订单列表
 
 **接口**: `GET /api/orders`
 

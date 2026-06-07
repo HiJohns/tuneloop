@@ -363,6 +363,195 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	})
 }
 
+// POST /api/user/orders/batch - Batch create rental orders
+func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
+	var req struct {
+		Items []struct {
+			InstrumentID string `json:"instrument_id" binding:"required"`
+			StartDate    string `json:"start_date" binding:"required"`
+			EndDate      string `json:"end_date" binding:"required"`
+		} `json:"items" binding:"required,min=1"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	db := database.GetDB().WithContext(ctx)
+
+	// Verify all instruments are available
+	for _, item := range req.Items {
+		var inst models.Instrument
+		if err := db.Where("id = ? AND tenant_id = ? AND stock_status = ?", item.InstrumentID, tenantID, "available").First(&inst).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument " + item.InstrumentID + " not available"})
+			return
+		}
+	}
+
+	// Process all orders in a single transaction
+	tx := db.Begin()
+
+	type orderResult struct {
+		OrderID string  `json:"order_id"`
+		Amount  float64 `json:"amount"`
+		Status  string  `json:"status"`
+	}
+
+	var results []orderResult
+	totalAmount := 0.0
+
+	for _, item := range req.Items {
+		startDate, err := time.Parse("2006-01-02", item.StartDate)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid start_date format for " + item.InstrumentID})
+			return
+		}
+
+		endDate, err := time.Parse("2006-01-02", item.EndDate)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format for " + item.InstrumentID})
+			return
+		}
+
+		if endDate.Before(startDate) {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date before start_date for " + item.InstrumentID})
+			return
+		}
+
+		// Lock and verify instrument
+		var lockedInstrument models.Instrument
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND tenant_id = ? AND stock_status = ?", item.InstrumentID, tenantID, "available").
+			First(&lockedInstrument).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "instrument " + item.InstrumentID + " already reserved"})
+			return
+		}
+
+		// Calculate pricing
+		days := int(endDate.Sub(startDate).Hours() / 24)
+		months := days / 30
+
+		var pricing []map[string]interface{}
+		dailyRent, deposit, shippingFee := 0.0, 0.0, 0.0
+		if lockedInstrument.Pricing != "" {
+			if err := json.Unmarshal([]byte(lockedInstrument.Pricing), &pricing); err == nil && len(pricing) > 0 {
+				if val, ok := pricing[0]["daily_rent"].(float64); ok {
+					dailyRent = val
+				}
+				if val, ok := pricing[0]["deposit"].(float64); ok {
+					deposit = val
+				}
+				if val, ok := pricing[0]["shipping_fee"].(float64); ok {
+					shippingFee = val
+				}
+			}
+		}
+
+		monthlyRent := dailyRent * 25
+		orderAmount := monthlyRent + deposit + shippingFee
+
+		startDateStr := item.StartDate
+		endDateStr := item.EndDate
+
+		order := models.Order{
+			ID:           uuid.New().String(),
+			TenantID:     tenantID,
+			UserID:       userID,
+			InstrumentID: item.InstrumentID,
+			Level:        lockedInstrument.Level,
+			LeaseTerm:    months,
+			MonthlyRent:  monthlyRent,
+			Deposit:      deposit,
+			ShippingFee:  shippingFee,
+			Status:       models.OrderStatusReserved,
+			StartDate:    &startDateStr,
+			EndDate:      &endDateStr,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := tx.Create(&order).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order for " + item.InstrumentID})
+			return
+		}
+
+		// Create lease session
+		leaseSession := models.LeaseSession{
+			ID:           uuid.New().String(),
+			TenantID:     tenantID,
+			OrderID:      order.ID,
+			UserID:       userID,
+			InstrumentID: item.InstrumentID,
+			StartDate:    startDate,
+			EndDate:      endDate,
+			Status:       "active",
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+		if err := tx.Create(&leaseSession).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session for " + item.InstrumentID})
+			return
+		}
+
+		// Create electronic contract
+		contract := models.ElectronicContract{
+			TenantID:       tenantID,
+			OrgID:          leaseSession.OrgID,
+			OrderID:        order.ID,
+			UserID:         userID,
+			InstrumentID:   item.InstrumentID,
+			ContractNumber: fmt.Sprintf("CT-%s", order.ID[:8]),
+			Status:         "active",
+			GeneratedAt:    time.Now(),
+			ContractURL:    "",
+		}
+		if err := tx.Create(&contract).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create contract for " + item.InstrumentID})
+			return
+		}
+
+		// Update instrument stock_status
+		if err := tx.Model(&models.Instrument{}).Where("id = ?", item.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reserve instrument " + item.InstrumentID})
+			return
+		}
+
+		results = append(results, orderResult{
+			OrderID: order.ID,
+			Amount:  orderAmount,
+			Status:  models.OrderStatusReserved,
+		})
+		totalAmount += orderAmount
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to commit transaction"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"orders":       results,
+			"total_amount": totalAmount,
+		},
+	})
+}
+
 // GET /api/user/rentals - Get my rental list
 func (h *UserRentalHandler) ListRentals(c *gin.Context) {
 	ctx := c.Request.Context()
