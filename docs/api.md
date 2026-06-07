@@ -740,6 +740,33 @@
 
 ---
 
+### 5.5.1 阶梯定价方案 V2（含分阶段计价）
+
+**接口**: `GET /api/public/instruments/:id/pricing-v2`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "base_daily_rate": 100,
+    "deposit": 2000,
+    "shipping_fee": 50,
+    "overdue_daily_fee": 150,
+    "tiers": [
+      { "days_max": 30, "daily_rate": 100 },
+      { "days_max": 90, "daily_rate": 85 },
+      { "days_max": 365, "daily_rate": 70 },
+      { "days_max": 0, "daily_rate": 55 }
+    ]
+  }
+}
+```
+
+> **注**: `days_max=0` 表示无上限（即超过 365 天后按此费率）。
+
+---
+
 ### 5.6 乐器管理扩展
 
 #### 5.6.1 检查乐器 SN 码

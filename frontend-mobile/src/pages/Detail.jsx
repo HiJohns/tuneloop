@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, ordersApi, getToken, apiFetch, redirectToLogin } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart, Calendar } from 'lucide-react'
-import { Switch, Tag, Modal, Button, DatePicker } from 'antd'
+import { Switch, Tag, Modal, Button, InputNumber } from 'antd'
 import dayjs from 'dayjs'
 
 const SERVICE_ITEMS = [
@@ -46,7 +46,7 @@ export default function Detail() {
   const [loading, setLoading] = useState(true)
   
   const [selectedLevel, setSelectedLevel] = useState('专业级')
-  const [endDate, setEndDate] = useState(null)
+  const [days, setDays] = useState(30)
   const [noDeposit, setNoDeposit] = useState(false)
   const [showComparison, setShowComparison] = useState(false)
   const [userCreditScore] = useState(750)
@@ -65,14 +65,16 @@ export default function Detail() {
     } catch { return 0 }
   })()
   
-  // Load saved endDate from cart when instrument loads
+  // Load saved days from cart when instrument loads
   useEffect(() => {
     if (!instrument?.id) return
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
       const item = cart.items?.find(i => i.instrument_id === instrument.id)
-      if (item?.end_date) {
-        setEndDate(dayjs(item.end_date))
+      if (item?.days) {
+        setDays(item.days)
+      } else if (item?.end_date) {
+        setDays(Math.max(dayjs(item.end_date).diff(dayjs().startOf('day'), 'day'), 1))
       }
     } catch {}
   }, [instrument?.id])
@@ -93,7 +95,7 @@ export default function Detail() {
     
     // Add new item with current lease terms
     const startDate = dayjs().format('YYYY-MM-DD')
-    const returnDate = endDate ? endDate.format('YYYY-MM-DD') : dayjs().add(1, 'day').format('YYYY-MM-DD')
+    const returnDate = dayjs().add(days, 'day').format('YYYY-MM-DD')
     filtered.push({
       instrument_id: instrument.id,
       name: instrument.name,
@@ -109,6 +111,7 @@ export default function Detail() {
       images: instrument.images,
       pricing: instrument.pricing,
       base_daily_rate: instrument.base_daily_rate,
+      days: days,
       start_date: startDate,
       end_date: returnDate,
       pricing_v2: pricingV2,
@@ -200,8 +203,6 @@ export default function Detail() {
   const shippingFee = pricing[0]?.shipping_fee || pricingV2?.shipping_fee || 0
   const overdueDailyFee = pricing[0]?.overdue_daily_fee || dailyRent
 
-  const days = endDate ? dayjs(endDate).diff(dayjs().startOf('day'), 'day') : 1
-
   const computeTieredRent = (pricingData, daysCount) => {
     if (!pricingData?.tiers?.length) {
       return (pricingData?.base_daily_rate || dailyRent) * daysCount
@@ -244,7 +245,7 @@ export default function Detail() {
     }
 
     const startDate = dayjs().format('YYYY-MM-DD')
-    const returnDate = endDate ? endDate.format('YYYY-MM-DD') : dayjs().add(1, 'day').format('YYYY-MM-DD')
+    const returnDate = dayjs().add(days, 'day').format('YYYY-MM-DD')
     
     try {
       const resp = await ordersApi.create({
@@ -355,30 +356,29 @@ export default function Detail() {
 
         {isRentable && (
         <div className="mt-4">
-          <span className="text-gray-700 font-medium">租赁到期日</span>
+          <span className="text-gray-700 font-medium">租赁天数</span>
           
           <div className="mt-2">
-            <DatePicker
-              value={endDate}
-              onChange={setEndDate}
-              disabledDate={(d) => d <= dayjs().endOf('day')}
-              placeholder="选择到期日"
+            <InputNumber
+              min={1}
+              max={730}
+              value={days}
+              onChange={v => setDays(v || 1)}
               style={{ width: '100%' }}
+              addonAfter="天"
             />
           </div>
           
-          {endDate && (
-            <div className="mt-2 text-sm text-gray-500 flex items-center gap-1">
-              <Calendar size={14} />
-              共 <span className="font-medium">{days}</span> 天
-              {pricingV2Loading && <span className="text-gray-400"> (计算中...)</span>}
-              {pricingV2?.tiers?.length > 0 && !pricingV2Loading && (
-                <span className="text-gray-400">
-                  · 分阶段计价
-                </span>
-              )}
-            </div>
-          )}
+          <div className="mt-2 text-sm text-gray-500 flex items-center gap-1">
+            <Calendar size={14} />
+            预计归还: {dayjs().add(days, 'day').format('YYYY-MM-DD')}
+            {pricingV2Loading && <span className="text-gray-400"> (计算中...)</span>}
+            {pricingV2?.tiers?.length > 0 && !pricingV2Loading && (
+              <span className="text-gray-400">
+                · 分阶段计价
+              </span>
+            )}
+          </div>
         </div>
         )}
 
