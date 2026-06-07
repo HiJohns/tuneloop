@@ -1,0 +1,1 @@
+ALTER TABLE maintenance_tickets ADD COLUMN IF NOT EXISTS deposit_refunded BOOLEAN DEFAULT FALSE;
