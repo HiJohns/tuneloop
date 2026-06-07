@@ -321,7 +321,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	updateFields := map[string]interface{}{
 		"status": newStatus,
 	}
-	if req.Condition == "good" {
+	if req.Condition == "good" && order.Deposit > 0 {
 		updateFields["deposit_refunded"] = true
 	}
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updateFields).Error; err != nil {

@@ -179,6 +179,7 @@ type Order struct {
 	CourierCompany    *string    `gorm:"type:varchar(100)" json:"courier_company"`
 	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
 	DeliveredAt       *time.Time `gorm:"type:timestamp" json:"delivered_at"`
+	DepositRefunded   bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
@@ -232,7 +233,6 @@ type MaintenanceTicket struct {
 	CompletionPhotos   string     `gorm:"type:jsonb;default:'[]'" json:"completion_photos"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
-	DepositRefunded   bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
 	CompletedAt        *time.Time `gorm:"index" json:"completed_at,omitempty"`
 }
 
