@@ -332,6 +332,11 @@ export const ownershipApi = {
   download: (id) => api.get(`/user/ownership/${id}/download`),
 }
 
+export const contractsApi = {
+  list: () => api.get('/user/contracts'),
+  get: (id) => api.get(`/user/contracts/${id}`),
+}
+
 // Permission config API (#414)
 export const permissionConfigApi = {
   getMapping: () => api.get('/config/permissions'),

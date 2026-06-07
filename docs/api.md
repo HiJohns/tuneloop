@@ -1325,6 +1325,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "amount": 2800,
     "deposit": 500,
     "lease_id": "lease-001",
+    "contract_id": "contract-001",
     "payment_url": "https://pay.example.com/..."
   }
 }
@@ -1405,22 +1406,57 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 ---
 
-### 6.5 获取租赁协议
+### 6.5 获取合同列表
 
-**接口**: `GET /api/orders/:id/contract`
+**接口**: `GET /api/user/contracts`
 
 **响应**:
 ```json
 {
   "code": 20000,
   "data": {
-    "contract_id": "contract-001",
-    "content": "<html>租用协议内容...</html>",
-    "signature_required": true,
-    "signed": false
+    "list": [
+      {
+        "id": "contract-001",
+        "order_id": "order-001",
+        "contract_number": "CT-order-00",
+        "status": "active",
+        "contract_url": "",
+        "generated_at": "2026-03-21T10:30:00Z",
+        "created_at": "2026-03-21T10:30:00Z"
+      }
+    ]
   }
 }
 ```
+
+### 6.6 获取合同详情
+
+**接口**: `GET /api/user/contracts/:id`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "contract-001",
+    "order_id": "order-001",
+    "contract_number": "CT-order-00",
+    "status": "active",
+    "contract_url": "",
+    "generated_at": "2026-03-21T10:30:00Z",
+    "instrument_name": "雅马哈立式钢琴 U1",
+    "order_status": "reserved",
+    "start_date": "2026-03-21",
+    "end_date": "2026-06-21",
+    "monthly_rent": 2500,
+    "deposit": 500,
+    "created_at": "2026-03-21T10:30:00Z"
+  }
+}
+```
+
+> **注**: PDF 生成和签署功能（原 §6.5 租赁协议签署 / §6.6 签署协议）尚未实现，需单独 Issue 处理。
 
 ---
 

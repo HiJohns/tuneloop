@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, apiFetch, getToken, redirectToLogin } from '../services/api'
-import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock } from 'lucide-react'
+import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText } from 'lucide-react'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ phone: '', email: '' })
@@ -379,6 +379,14 @@ export default function Profile() {
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium mb-3">My Account</h3>
+              <button
+                onClick={() => navigate('/my-contracts')}
+                className="flex items-center gap-3 w-full py-2"
+              >
+                <FileText size={18} className="text-gray-400" />
+                <span className="flex-1 text-left text-sm">我的合同</span>
+                <ChevronRight size={16} className="text-gray-300" />
+              </button>
               <button
                 onClick={() => navigate('/messages')}
                 className="flex items-center gap-3 w-full py-2"

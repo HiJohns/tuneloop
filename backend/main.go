@@ -426,6 +426,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/user/orders", userRentalHandler.CreateOrder)
 			authRequired.GET("/user/rentals", userRentalHandler.ListRentals)
 			authRequired.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
+			authRequired.GET("/user/contracts", userRentalHandler.ListContracts)
 			authRequired.GET("/user/contracts/:id", userRentalHandler.GetContract)
 
 			// Permission Management (merchant admin only, sys_perm bit 26)

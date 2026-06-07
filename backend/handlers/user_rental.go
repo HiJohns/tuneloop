@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -323,6 +324,25 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// Create electronic contract
+	contract := models.ElectronicContract{
+		TenantID:       tenantID,
+		OrgID:          leaseSession.OrgID,
+		OrderID:        order.ID,
+		UserID:         userID,
+		InstrumentID:   req.InstrumentID,
+		ContractNumber: fmt.Sprintf("CT-%s", order.ID[:8]),
+		Status:         "active",
+		GeneratedAt:    time.Now(),
+		ContractURL:    "",
+	}
+	if err := tx.Create(&contract).Error; err != nil {
+		tx.Rollback()
+		log.Printf("[CreateOrder] Failed to create contract: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create contract"})
+		return
+	}
+
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to commit transaction"})
@@ -337,6 +357,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			"amount":      totalAmount,
 			"deposit":     deposit,
 			"lease_id":    leaseSession.ID,
+			"contract_id": contract.ID,
 			"payment_url": "https://pay.example.com/" + order.ID,
 		},
 	})
@@ -436,6 +457,28 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 }
 
 // GET /api/user/contracts/:id - Get electronic contract
+// GET /api/user/contracts - List my contracts
+func (h *UserRentalHandler) ListContracts(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+
+	db := database.GetDB().WithContext(ctx)
+
+	var contracts []models.ElectronicContract
+	if err := db.Where("user_id = ?", userID).Order("generated_at DESC").Find(&contracts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query contracts: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list": contracts,
+		},
+	})
+}
+
+// GET /api/user/contracts/:id - Get contract with joined data
 func (h *UserRentalHandler) GetContract(c *gin.Context) {
 	contractID := c.Param("id")
 	ctx := c.Request.Context()
@@ -450,8 +493,45 @@ func (h *UserRentalHandler) GetContract(c *gin.Context) {
 		return
 	}
 
+	// Join with order and instrument for display data
+	type ContractDetail struct {
+		models.ElectronicContract
+		InstrumentName string  `json:"instrument_name"`
+		OrderStatus    string  `json:"order_status"`
+		StartDate      string  `json:"start_date"`
+		EndDate        string  `json:"end_date"`
+		MonthlyRent    float64 `json:"monthly_rent"`
+		Deposit        float64 `json:"deposit"`
+	}
+
+	detail := ContractDetail{
+		ElectronicContract: contract,
+	}
+
+	var order struct {
+		Status      string  `json:"status"`
+		StartDate   string  `json:"start_date"`
+		EndDate     string  `json:"end_date"`
+		MonthlyRent float64 `json:"monthly_rent"`
+		Deposit     float64 `json:"deposit"`
+	}
+	if err := db.Table("orders").Where("id = ?", contract.OrderID).First(&order).Error; err == nil {
+		detail.OrderStatus = order.Status
+		detail.StartDate = order.StartDate
+		detail.EndDate = order.EndDate
+		detail.MonthlyRent = order.MonthlyRent
+		detail.Deposit = order.Deposit
+	}
+
+	var instrument struct {
+		Name string `json:"name"`
+	}
+	if err := db.Table("instruments").Where("id = ?", contract.InstrumentID).First(&instrument).Error; err == nil {
+		detail.InstrumentName = instrument.Name
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": contract,
+		"data": detail,
 	})
 }
