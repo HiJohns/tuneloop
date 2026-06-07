@@ -63,7 +63,7 @@ func (h *OutboundHandler) GetOutboundPhotos(c *gin.Context) {
 
 // ConfirmOutbound handles outbound confirmation from mini-program
 func (h *OutboundHandler) ConfirmOutbound(c *gin.Context) {
-	orderID := c.Param("order_id")
+	orderID := c.Param("id")
 
 	var req struct {
 		Confirmed bool   `json:"confirmed"`

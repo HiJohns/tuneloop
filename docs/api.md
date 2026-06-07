@@ -1626,13 +1626,11 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "code": 20000,
   "data": {
     "outbound_condition": {
-      "notes": "外观完好",
-      "photos": ["img-001"]
+      "photos": ["https://cdn.example.com/shipping/photo1.jpg"]
     },
     "return_condition": {
-      "notes": "琴键磨损",
-      "photos": ["img-003"],
-      "damage_level": "minor"
+      "photos": ["https://cdn.example.com/receiving/photo2.jpg"],
+      "damage_level": "none"
     },
     "assessment_status": "pending"
   }

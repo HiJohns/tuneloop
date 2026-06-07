@@ -34,8 +34,13 @@ export default function ReceivingInterface() {
 
   const handlePhotoCapture = (e) => {
     const files = Array.from(e.target.files || [])
-    const urls = files.map(f => URL.createObjectURL(f))
-    setCapturedPhotos(prev => [...prev, ...urls])
+    files.forEach(f => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setCapturedPhotos(prev => [...prev, reader.result])
+      }
+      reader.readAsDataURL(f)
+    })
   }
 
   const checkInstrument = async (sn) => {
