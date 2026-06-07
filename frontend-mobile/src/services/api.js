@@ -102,6 +102,22 @@ export function redirectToLogin(reason) {
   }
 }
 
+/**
+ * Token 过期时静默降级为游客：清除 token、跳转首页
+ * 不同于 redirectToLogin() 跳转 IAM OAuth 页
+ */
+export function degradeToGuest() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('token_expiry')
+  localStorage.removeItem('user_sys_perm')
+  localStorage.removeItem('user_cus_perm')
+  localStorage.removeItem('user_cus_perm_ext')
+  sessionStorage.removeItem('token')
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  sessionStorage.setItem('logged_out_due_expiry', '1')
+  window.location.href = '/'
+}
+
 export function getToken() {
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
@@ -212,7 +228,7 @@ async function request(endpoint, options = {}) {
         return processApiResponse(endpoint, retryData)
       }
     } catch {}
-    redirectToLogin('session_expired')
+    degradeToGuest()
     return []
   }
 
@@ -234,7 +250,7 @@ async function request(endpoint, options = {}) {
         return processApiResponse(endpoint, retryData)
       }
     } catch {}
-    redirectToLogin('session_expired')
+    degradeToGuest()
     return []
   }
 
@@ -272,7 +288,7 @@ export async function apiFetch(url, options = {}) {
       const retryResp = await fetch(url, { ...options, headers })
       if (retryResp.ok || retryResp.status !== 401) return retryResp
     } catch {}
-    redirectToLogin('session_expired')
+    degradeToGuest()
     throw new Error('Unauthorized')
   }
   

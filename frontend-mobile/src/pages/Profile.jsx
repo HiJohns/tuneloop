@@ -507,13 +507,23 @@ export default function Profile() {
             <span className="text-xl">🔧</span>
             <span className="text-xs mt-1">Service</span>
           </div>
-          <div
-            className="flex flex-col items-center text-brand-primary cursor-pointer"
-            onClick={() => navigate('/profile')}
-          >
-            <span className="text-xl">👤</span>
-            <span className="text-xs mt-1">Me</span>
-          </div>
+          {getToken() ? (
+            <div
+              className="flex flex-col items-center text-brand-primary cursor-pointer"
+              onClick={() => navigate('/profile')}
+            >
+              <span className="text-xl">👤</span>
+              <span className="text-xs mt-1">Me</span>
+            </div>
+          ) : (
+            <div
+              className="flex flex-col items-center text-brand-primary cursor-pointer"
+              onClick={() => redirectToLogin('welcome')}
+            >
+              <span className="text-xl">👤</span>
+              <span className="text-xs mt-1">登录</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

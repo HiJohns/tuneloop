@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../services/api'
+import { api, getToken, redirectToLogin } from '../services/api'
 import { Badge, Tag } from 'antd'
 import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 
@@ -95,13 +95,23 @@ export default function MyService() {
             <span className="text-xl">🔧</span>
             <span className="text-xs mt-1">维修</span>
           </div>
-          <div 
-            className="flex flex-col items-center text-gray-400 cursor-pointer"
-            onClick={() => navigate('/profile')}
-          >
-            <span className="text-xl">👤</span>
-            <span className="text-xs mt-1">我的</span>
-          </div>
+          {getToken() ? (
+            <div 
+              className="flex flex-col items-center text-gray-400 cursor-pointer"
+              onClick={() => navigate('/profile')}
+            >
+              <span className="text-xl">👤</span>
+              <span className="text-xs mt-1">我的</span>
+            </div>
+          ) : (
+            <div 
+              className="flex flex-col items-center text-gray-400 cursor-pointer"
+              onClick={() => redirectToLogin('welcome')}
+            >
+              <span className="text-xl">👤</span>
+              <span className="text-xs mt-1">登录</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
