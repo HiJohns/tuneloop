@@ -33,6 +33,15 @@ func CalculatePricing(baseDailyRate float64, configJSON string, overridesJSON st
 	var config map[string]interface{}
 	json.Unmarshal([]byte(configJSON), &config)
 
+	// Merge defaults into root level for schema-style templates
+	if defaults, ok := config["defaults"].(map[string]interface{}); ok {
+		for k, v := range defaults {
+			if _, exists := config[k]; !exists {
+				config[k] = v
+			}
+		}
+	}
+
 	result := &InstrumentPricing{
 		BaseDailyRate: baseDailyRate,
 		DepositMode:   "ratio",
