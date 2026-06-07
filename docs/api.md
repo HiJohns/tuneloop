@@ -1505,8 +1505,8 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "data": {
     "outbound_photos": [
       {
-        "image_id": "img-001",
         "url": "https://cdn.example.com/outbound/photo1.jpg",
+        "batch_id": "batch-001",
         "taken_at": "2026-03-21T10:30:00Z"
       }
     ],

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload } from 'lucide-react'
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
@@ -14,8 +14,29 @@ export default function ReceivingInterface() {
   const [submitting, setSubmitting] = useState(false)
   const [photoSpecs, setPhotoSpecs] = useState([])
   const [orderID, setOrderID] = useState(null)
+  const [outboundPhotos, setOutboundPhotos] = useState([])
+  const [capturedPhotos, setCapturedPhotos] = useState([])
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+
+  useEffect(() => {
+    if (orderID) {
+      apiFetch(`${baseUrl}/orders/${orderID}/outbound-photos`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.code === 20000) {
+            setOutboundPhotos(res.data.outbound_photos || [])
+          }
+        })
+        .catch(() => {})
+    }
+  }, [orderID])
+
+  const handlePhotoCapture = (e) => {
+    const files = Array.from(e.target.files || [])
+    const urls = files.map(f => URL.createObjectURL(f))
+    setCapturedPhotos(prev => [...prev, ...urls])
+  }
 
   const checkInstrument = async (sn) => {
     try {
@@ -59,6 +80,7 @@ export default function ReceivingInterface() {
           scan_time: new Date().toISOString(),
           condition: condition,
           notes: condition === 'damaged' ? damageDesc : '',
+          photos: capturedPhotos,
         }),
       })
       const result = await resp.json()
@@ -89,6 +111,8 @@ export default function ReceivingInterface() {
       setDamageDesc('')
       setDamageAmount('')
       setOrderID(null)
+      setOutboundPhotos([])
+      setCapturedPhotos([])
     } catch (err) {
       alert('Error: ' + err.message)
     }
@@ -148,6 +172,35 @@ export default function ReceivingInterface() {
                 </ul>
               </div>
             )}
+
+            {outboundPhotos.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">出库照片（供对比）</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {outboundPhotos.map((p, i) => (
+                    <img key={i} src={p.url} alt="outbound" className="w-full rounded border object-cover h-24" />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">归还拍照</h4>
+              <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer text-gray-500 hover:text-brand-primary">
+                <Upload size={18} />
+                <span className="text-sm">拍照上传</span>
+                <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+              </label>
+              {capturedPhotos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {capturedPhotos.map((url, i) => (
+                    <div key={i} className="relative">
+                      <img src={url} alt="captured" className="w-full rounded border object-cover h-20" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="space-y-3">
               <div className="flex gap-2">

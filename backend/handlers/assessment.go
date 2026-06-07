@@ -21,7 +21,7 @@ func NewAssessmentHandler(db *gorm.DB) *AssessmentHandler {
 
 // GetAssessmentData returns outbound and return photos for comparison
 func (h *AssessmentHandler) GetAssessmentData(c *gin.Context) {
-	orderID := c.Param("order_id")
+	orderID := c.Param("id")
 
 	// Fetch order with instrument and photos
 	var order struct {
@@ -42,49 +42,53 @@ func (h *AssessmentHandler) GetAssessmentData(c *gin.Context) {
 		return
 	}
 
-	// Fetch instrument details
-	var instrument struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Brand       string `json:"brand"`
-		Model       string `json:"model"`
-		SN          string `json:"sn"`
-		Images      string `json:"images"`
-		StockStatus string `json:"stock_status"`
+	// Query instrument_media for shipping (outbound) photos
+	var outboundMedia []models.InstrumentMedia
+	h.db.Where("instrument_id = ? AND batch_type = ? AND file_type = ?",
+		order.InstrumentID, "shipping", "image").
+		Order("sort_order ASC").
+		Find(&outboundMedia)
+
+	// Query instrument_media for receiving/returning (return) photos
+	var returnMedia []models.InstrumentMedia
+	h.db.Where("instrument_id = ? AND batch_type IN ? AND file_type = ?",
+		order.InstrumentID, []string{"receiving", "returning"}, "image").
+		Order("sort_order ASC").
+		Find(&returnMedia)
+
+	outboundPhotos := make([]string, 0)
+	for _, m := range outboundMedia {
+		outboundPhotos = append(outboundPhotos, m.StorageKey)
 	}
 
-	if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).First(&instrument).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    40400,
-			"message": "Instrument not found",
-		})
-		return
+	returnPhotos := make([]string, 0)
+	for _, m := range returnMedia {
+		returnPhotos = append(returnPhotos, m.StorageKey)
 	}
 
-	// Parse images as JSON array
-	outboundPhotos := []string{}
-	if instrument.Images != "" && instrument.Images != "[]" {
-		// TODO: Parse JSON array properly
-		outboundPhotos = append(outboundPhotos, "/uploads/default.jpg")
+	damageLevel := "none"
+	if order.Status == models.OrderStatusMaintenance {
+		damageLevel = "damaged"
 	}
-
-	// For now, use placeholder return photos
-	returnPhotos := []string{"/uploads/return1.jpg", "/uploads/return2.jpg"}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"order":          order,
-			"instrument":     instrument,
-			"outboundPhotos": outboundPhotos,
-			"returnPhotos":   returnPhotos,
+			"outbound_condition": gin.H{
+				"photos": outboundPhotos,
+			},
+			"return_condition": gin.H{
+				"photos":      returnPhotos,
+				"damage_level": damageLevel,
+			},
+			"assessment_status": "pending",
 		},
 	})
 }
 
 // SubmitAssessment submits damage assessment and optionally creates maintenance ticket
 func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
-	orderID := c.Param("order_id")
+	orderID := c.Param("id")
 
 	var req struct {
 		HasDamage  bool   `json:"hasDamage"`

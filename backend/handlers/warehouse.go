@@ -236,6 +236,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		ScanTime     time.Time `json:"scan_time" binding:"required"`
 		Condition    string    `json:"condition" binding:"required"`
 		Notes        string    `json:"notes"`
+		Photos       []string  `json:"photos"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -286,6 +287,30 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
 		return
+	}
+
+	// Save return photos to instrument_media
+	if len(req.Photos) > 0 && order.InstrumentID != "" {
+		batchID := uuid.New().String()
+		for i, photoURL := range req.Photos {
+			media := models.InstrumentMedia{
+				ID:           uuid.New().String(),
+				TenantID:     tenantID,
+				OrgID:        order.OrgID,
+				InstrumentID: order.InstrumentID,
+				BatchID:      batchID,
+				BatchType:    "receiving",
+				FileName:     fmt.Sprintf("return_%d.jpg", i+1),
+				FileType:     "image",
+				StorageKey:   photoURL,
+				IsDisplay:    false,
+				SortOrder:    i,
+				CreatedAt:    time.Now(),
+			}
+			if err := db.Create(&media).Error; err != nil {
+				log.Printf("[InspectReturn] Failed to save photo %d: %v", i, err)
+			}
+		}
 	}
 
 	// Update order status

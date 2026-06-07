@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"time"
+	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -20,15 +20,12 @@ func NewOutboundHandler(db *gorm.DB) *OutboundHandler {
 
 // GetOutboundPhotos returns outbound photos for confirmation
 func (h *OutboundHandler) GetOutboundPhotos(c *gin.Context) {
-	orderID := c.Param("order_id")
+	orderID := c.Param("id")
 
 	// Fetch order with instrument
 	var order struct {
-		ID           string    `json:"id"`
-		UserID       string    `json:"user_id"`
-		InstrumentID string    `json:"instrument_id"`
-		Status       string    `json:"status"`
-		CreatedAt    time.Time `json:"created_at"`
+		ID           string `json:"id"`
+		InstrumentID string `json:"instrument_id"`
 	}
 
 	if err := h.db.Table("orders").Where("id = ?", orderID).First(&order).Error; err != nil {
@@ -39,40 +36,27 @@ func (h *OutboundHandler) GetOutboundPhotos(c *gin.Context) {
 		return
 	}
 
-	// Fetch instrument with photos
-	var instrument struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Brand       string `json:"brand"`
-		Model       string `json:"model"`
-		Images      string `json:"images"`
-		StockStatus string `json:"stock_status"`
-	}
+	// Query instrument_media for shipping (outbound) photos
+	var media []models.InstrumentMedia
+	h.db.Where("instrument_id = ? AND batch_type = ? AND file_type = ?",
+		order.InstrumentID, "shipping", "image").
+		Order("sort_order ASC").
+		Find(&media)
 
-	if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).First(&instrument).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    40400,
-			"message": "乐器不存在",
+	outboundPhotos := make([]map[string]interface{}, 0)
+	for _, m := range media {
+		outboundPhotos = append(outboundPhotos, map[string]interface{}{
+			"url":      m.StorageKey,
+			"batch_id": m.BatchID,
+			"taken_at": m.CreatedAt,
 		})
-		return
-	}
-
-	// Parse photos from JSON
-	photos := []string{}
-	if instrument.Images != "" && instrument.Images != "[]" {
-		// TODO: Parse actual JSON array
-		// For now, return placeholder
-		photos = []string{"/uploads/default.jpg"}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"orderId":        orderID,
-			"instrumentName": instrument.Name,
-			"instrumentId":   instrument.ID,
-			"photos":         photos,
-			"confirmed":      order.Status == "outbound_confirmed",
+			"outbound_photos":   outboundPhotos,
+			"assessment_photos": []interface{}{},
 		},
 	})
 }
