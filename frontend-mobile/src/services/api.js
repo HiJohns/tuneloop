@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
-const publicRoutes = ['/', '/instrument/', '/cart', '/success', '/callback']
+export const publicRoutes = ['/', '/instrument', '/cart', '/success', '/callback']
 
 function isPublicRoute() {
   const path = window.location.pathname
