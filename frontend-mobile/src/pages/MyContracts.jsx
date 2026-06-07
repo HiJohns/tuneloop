@@ -12,7 +12,9 @@ export default function MyContracts() {
     const fetchContracts = async () => {
       try {
         const resp = await contractsApi.list()
-        if (resp.code === 20000) {
+        if (Array.isArray(resp)) {
+          setContracts(resp)
+        } else if (resp.code === 20000) {
           setContracts(resp.data?.list || [])
         }
       } catch (err) {

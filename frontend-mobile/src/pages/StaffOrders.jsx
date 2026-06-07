@@ -34,7 +34,9 @@ export default function StaffOrders() {
       setLoading(true)
       try {
         const resp = await warehouseApi.listOrders({ status: activeTab })
-        if (resp.code === 20000) {
+        if (Array.isArray(resp)) {
+          setOrders(resp)
+        } else if (resp.code === 20000) {
           setOrders(resp.data?.list || [])
         }
       } catch (err) {
