@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, apiFetch, getToken, redirectToLogin } from '../services/api'
-import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList } from 'lucide-react'
+import { api, apiFetch, getToken, redirectToLogin, addressesApi } from '../services/api'
+import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2 } from 'lucide-react'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ phone: '', email: '' })
@@ -108,6 +108,9 @@ export default function Profile() {
   const [showEdit, setShowEdit] = useState(false)
   const [activeLeases, setActiveLeases] = useState([])
   const [leaseHistory, setLeaseHistory] = useState([])
+  const [addresses, setAddresses] = useState([])
+  const [showAddressForm, setShowAddressForm] = useState(false)
+  const [editingAddress, setEditingAddress] = useState(null)
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -125,6 +128,22 @@ export default function Profile() {
       setLoading(false)
     }
     fetchUser()
+  }, [])
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const resp = await addressesApi.list()
+        if (Array.isArray(resp)) {
+          setAddresses(resp)
+        } else if (resp.code === 20000) {
+          setAddresses(resp.data?.list || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch addresses:', err)
+      }
+    }
+    fetchAddresses()
   }, [])
 
   useEffect(() => {
@@ -252,6 +271,32 @@ export default function Profile() {
             <span className="flex-1 text-left text-sm">设置密码</span>
             <ChevronRight size={16} className="text-gray-300" />
           </button>
+        </div>
+
+        {/* 收货地址 */}
+        <div className="bg-white rounded-xl p-4">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <MapPin size={18} className="text-brand-primary" />
+              收货地址
+            </h3>
+            <button onClick={() => { setEditingAddress(null); setShowAddressForm(true) }} className="text-brand-primary">
+              <Plus size={18} />
+            </button>
+          </div>
+          {addresses.length === 0 ? (
+            <p className="text-sm text-red-500">请设置默认收货地址</p>
+          ) : (
+            <div className="space-y-2">
+              {addresses.filter(a => a.is_default).slice(0, 1).map(addr => (
+                <div key={addr.id} className="text-sm text-gray-600">
+                  <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
+                  <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}</p>
+                  <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Current Rentals */}

@@ -2155,13 +2155,15 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
     "list": [
       {
         "id": "addr-001",
-        "receiver_name": "张三",
+        "recipient_name": "张三",
         "phone": "13800000000",
         "province": "北京市",
         "city": "北京市",
         "district": "朝阳区",
         "detail": "xxx路123号",
-        "is_default": true
+        "is_default": true,
+        "created_at": "2026-06-01T10:00:00Z",
+        "updated_at": "2026-06-01T10:00:00Z"
       }
     ]
   }
@@ -2177,7 +2179,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **请求 Body**:
 ```json
 {
-  "receiver_name": "李四",
+  "recipient_name": "李四",
   "phone": "13900000000",
   "province": "上海市",
   "city": "上海市",
@@ -2191,8 +2193,19 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ```json
 {
   "code": 20000,
+  "message": "success",
   "data": {
-    "address_id": "addr-002"
+    "id": "addr-002",
+    "user_id": "user-001",
+    "recipient_name": "李四",
+    "phone": "13900000000",
+    "province": "上海市",
+    "city": "上海市",
+    "district": "浦东新区",
+    "detail": "xxx路456号",
+    "is_default": false,
+    "created_at": "2026-06-01T10:00:00Z",
+    "updated_at": "2026-06-01T10:00:00Z"
   }
 }
 ```
@@ -2203,11 +2216,33 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `PUT /api/user/addresses/:id`
 
-**响应**: 同新增地址
+**请求 Body**: 同新增地址
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success"
+}
+```
 
 ---
 
-#### 8.10.4 删除地址
+#### 8.10.4 设为默认地址
+
+**接口**: `PUT /api/user/addresses/:id/default`
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success"
+}
+```
+
+---
+
+#### 8.10.5 删除地址
 
 **接口**: `DELETE /api/user/addresses/:id`
 
@@ -2215,9 +2250,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 ```json
 {
   "code": 20000,
-  "data": {
-    "deleted": true
-  }
+  "message": "success"
 }
 ```
 

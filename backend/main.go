@@ -83,6 +83,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	roleManageHandler := handlers.NewRoleManageHandler(database.GetDB(), iamClient, permRegistry)
 	warehouseHandler := handlers.NewWarehouseHandler()
 	userRentalHandler := handlers.NewUserRentalHandler()
+	userAddressHandler := handlers.NewUserAddressHandler()
 
 	// Bulk import handler (Issue #423)
 	bulkImportHandler := handlers.NewBulkImportHandler(iamClient, permRegistry)
@@ -344,6 +345,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userRequired.GET("/user/ownership/:id/download", handlers.DownloadOwnershipCertificate)
 			userRequired.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
 			userRequired.PUT("/orders/:id/terminate", handlers.TerminateOrder)
+			userRequired.GET("/user/addresses", userAddressHandler.ListAddresses)
+			userRequired.POST("/user/addresses", userAddressHandler.CreateAddress)
+			userRequired.PUT("/user/addresses/:id", userAddressHandler.UpdateAddress)
+			userRequired.PUT("/user/addresses/:id/default", userAddressHandler.SetDefaultAddress)
+			userRequired.DELETE("/user/addresses/:id", userAddressHandler.DeleteAddress)
 		}
 
 		maintHandler := handlers.NewMaintenanceHandler()

@@ -685,6 +685,21 @@ type InstrumentMedia struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+// UserAddress stores user's shipping addresses
+type UserAddress struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID        string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	RecipientName string    `gorm:"type:varchar(100)" json:"recipient_name"`
+	Phone         string    `gorm:"type:varchar(50)" json:"phone"`
+	Province      string    `gorm:"type:varchar(50)" json:"province"`
+	City          string    `gorm:"type:varchar(50)" json:"city"`
+	District      string    `gorm:"type:varchar(50)" json:"district"`
+	Detail        string    `gorm:"type:varchar(500)" json:"detail"`
+	IsDefault     bool      `gorm:"default:false" json:"is_default"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
 type SystemSetting struct {
 	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID     string    `gorm:"type:uuid;index;not null;uniqueIndex:idx_setting_tenant_key" json:"tenant_id"`

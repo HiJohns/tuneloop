@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
-import { getToken, redirectToLogin, ordersApi } from '../services/api'
+import { getToken, redirectToLogin, ordersApi, addressesApi } from '../services/api'
 import dayjs from 'dayjs'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -78,6 +78,35 @@ export default function Cart() {
     }
     setGrouped(groups)
     setTempAddress(address)
+  }, [])
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const resp = await addressesApi.list()
+        if (Array.isArray(resp)) {
+          const defaultAddr = resp.find(a => a.is_default)
+          if (defaultAddr) {
+            const addrStr = `${defaultAddr.recipient_name} ${defaultAddr.phone} ${defaultAddr.province}${defaultAddr.city}${defaultAddr.district}${defaultAddr.detail}`
+            setAddress(addrStr)
+            localStorage.setItem('user_address', addrStr)
+          }
+        } else if (resp.code === 20000 && resp.data?.list) {
+          const defaultAddr = resp.data.list.find(a => a.is_default)
+          if (defaultAddr) {
+            const addrStr = `${defaultAddr.recipient_name} ${defaultAddr.phone} ${defaultAddr.province}${defaultAddr.city}${defaultAddr.district}${defaultAddr.detail}`
+            setAddress(addrStr)
+            localStorage.setItem('user_address', addrStr)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch addresses:', err)
+      }
+    }
+    const token = getToken()
+    if (token) {
+      fetchAddresses()
+    }
   }, [])
 
   useEffect(() => {

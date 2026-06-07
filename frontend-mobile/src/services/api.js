@@ -357,6 +357,14 @@ export const contractsApi = {
   get: (id) => api.get(`/user/contracts/${id}`),
 }
 
+export const addressesApi = {
+  list: () => api.get('/user/addresses'),
+  create: (data) => api.post('/user/addresses', data),
+  update: (id, data) => api.put(`/user/addresses/${id}`, data),
+  setDefault: (id) => api.put(`/user/addresses/${id}/default`),
+  delete: (id) => api.delete(`/user/addresses/${id}`),
+}
+
 // Permission config API (#414)
 export const permissionConfigApi = {
   getMapping: () => api.get('/config/permissions'),
