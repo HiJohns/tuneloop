@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch, getToken } from '../services/api'
+import { message } from 'antd'
+import { apiFetch, getToken, appealsApi } from '../services/api'
 import { ArrowLeft, Bell } from 'lucide-react'
 
 export default function Messages() {
@@ -84,20 +85,34 @@ export default function Messages() {
                 {notif.type === 'damage' && (
                   <div className="flex gap-2 mt-3">
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation()
-                        alert('已同意定损，退款流程将开始。')
+                        try {
+                          const damageReportId = notif.ref_id
+                          await appealsApi.agree(damageReportId)
+                          message.success('已同意定损，退款流程将开始')
+                        } catch (err) {
+                          alert('操作失败: ' + (err.message || '未知错误'))
+                        }
                       }}
                       className="flex-1 py-1.5 bg-green-500 text-white rounded text-sm"
                     >
                       同意
                     </button>
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation()
                         const reason = prompt('申诉原因：')
                         if (reason) {
-                          alert('申诉已提交。')
+                          try {
+                            await appealsApi.submit({
+                              damage_report_id: notif.ref_id,
+                              appeal_reason: reason,
+                            })
+                            message.success('申诉已提交')
+                          } catch (err) {
+                            alert('提交失败: ' + (err.message || '未知错误'))
+                          }
                         }
                       }}
                       className="flex-1 py-1.5 bg-red-500 text-white rounded text-sm"

@@ -4137,20 +4137,19 @@ PUT /api/merchant/appeals/:id/resolve
 
 ### 7.4 用户提交申诉
 ```
-POST /api/user/appeals
+POST /api/appeals
 ```
 **请求体**:
 ```json
 {
   "damage_report_id": "uuid",
-  "reason": "申诉理由",
-  "evidence": ["url1", "url2"]
+  "appeal_reason": "申诉理由"
 }
 ```
 
 ### 7.5 用户同意定损
 ```
-POST /api/user/appeals/:damage_id/agree
+POST /api/appeals/:id/agree
 ```
 
 **响应**:

@@ -73,9 +73,17 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 		return
 	}
 
+	var damageReport models.DamageReport
+	if err := db.Where("id = ?", appeal.DamageReportID).First(&damageReport).Error; err != nil {
+		damageReport = models.DamageReport{}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": appeal,
+		"data": gin.H{
+			"appeal":        appeal,
+			"damage_report": damageReport,
+		},
 	})
 }
 
@@ -200,7 +208,7 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 
 // POST /api/user/appeals/:damage_id/agree - Agree to damage assessment
 func (h *AppealHandler) AgreeDamage(c *gin.Context) {
-	damageID := c.Param("damage_id")
+	damageID := c.Param("id")
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	userID := middleware.GetUserID(ctx)

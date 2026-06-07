@@ -345,6 +345,13 @@ export const warehouseApi = {
   },
 }
 
+export const appealsApi = {
+  submit: (data) => api.post('/appeals', data),
+  agree: (damageReportId) => api.post(`/appeals/${damageReportId}/agree`),
+  list: () => api.get('/user/appeals'),
+  get: (id) => api.get(`/appeals/${id}`),
+}
+
 export const contractsApi = {
   list: () => api.get('/user/contracts'),
   get: (id) => api.get(`/user/contracts/${id}`),

@@ -461,6 +461,25 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 
 	orgID := middleware.GetOrgID(ctx)
+
+	// Create damage report
+	damageReport := models.DamageReport{
+		ID:                uuid.New().String(),
+		TenantID:          tenantID,
+		OrgID:             orgID,
+		LeaseID:           orderID,
+		InstrumentID:      order.InstrumentID,
+		UserID:            order.UserID,
+		DamageAmount:      &req.DamageAmount,
+		DamageDescription: req.DamageDescription,
+		Status:            "pending",
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+	}
+	if err := db.Create(&damageReport).Error; err != nil {
+		log.Printf("[AssessDamage] Failed to create damage report: %v", err)
+	}
+
 	notification := models.Notification{
 		TenantID: tenantID,
 		OrgID:    orgID,
@@ -468,8 +487,8 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		Type:     "damage",
 		Title:    "定损通知",
 		Content:  fmt.Sprintf("您的乐器租赁订单已被定损评估，定损金额：%.2f，说明：%s", req.DamageAmount, req.DamageDescription),
-		RefID:    orderID,
-		RefType:  "order",
+		RefID:    damageReport.ID,
+		RefType:  "damage_report",
 		Status:   "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {
