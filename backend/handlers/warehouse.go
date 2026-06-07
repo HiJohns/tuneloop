@@ -293,7 +293,13 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	if req.Condition == "damaged" {
 		newStatus = models.OrderStatusMaintenance
 	}
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", newStatus).Error; err != nil {
+	updateFields := map[string]interface{}{
+		"status": newStatus,
+	}
+	if req.Condition == "good" {
+		updateFields["deposit_refunded"] = true
+	}
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updateFields).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
 	}

@@ -4,7 +4,7 @@ import { apiFetch } from '../services/api';
 import { Card, Steps, Tag, Button } from 'antd';
 import { CheckCircleFilled } from '@ant-design/icons';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5553';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const STEPS = [
   { title: '提交报修', key: 'pending' },
@@ -22,7 +22,7 @@ export default function MaintenanceProgress() {
 
   const fetchTicket = useCallback(async () => {
     try {
-      const response = await apiFetch(`${API_BASE}/api/maintenance/${id}`);
+      const response = await apiFetch(`${API_BASE}/maintenance/${id}`);
       const result = await response.json();
       if (result.code === 20000) {
         setTicket(result.data);

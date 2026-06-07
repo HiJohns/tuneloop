@@ -249,7 +249,6 @@ export default function Detail() {
     try {
       const resp = await ordersApi.create({
         instrument_id: instrument?.id,
-        level: instrument?.level || 'standard',
         start_date: startDate,
         end_date: returnDate,
       })
@@ -469,6 +468,12 @@ export default function Detail() {
                 <ShoppingCart size={18} />
                 加入购物车
               </button>
+              <button
+                onClick={handleCreateOrder}
+                className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-500 text-white"
+              >
+                立即租赁
+              </button>
             </div>
           </>
         ) : activeOrder ? (
@@ -497,6 +502,9 @@ export default function Detail() {
               <p className="text-gray-500 text-sm">
                 租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
               </p>
+              {activeOrder.deposit_refunded && (
+                <p className="text-green-600 text-sm mt-1">押金已退还</p>
+              )}
             </div>
           ) : ['pending', 'paid'].includes(activeOrder.order_status) ? (
             <div className="p-3 bg-blue-50 rounded-lg space-y-2">

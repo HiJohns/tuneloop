@@ -326,6 +326,11 @@ export default function Profile() {
                     {order.start_date && <p>开始: {order.start_date}</p>}
                     {order.end_date && <p>归还: {order.end_date}</p>}
                     <p>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</p>
+                    {(order.status === 'returned' || order.status === 'completed') && (
+                      <p className={order.deposit_refunded ? 'text-green-600' : 'text-yellow-600'}>
+                        {order.deposit_refunded ? '押金已退还' : '押金退还中'}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

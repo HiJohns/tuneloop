@@ -5,7 +5,7 @@ import { Card, Button, Image, Tag, Divider, Typography } from 'antd';
 import { EnvironmentOutlined, PhoneOutlined, ClockCircleOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5553';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export default function SiteDetail() {
   const { id } = useParams();
@@ -15,7 +15,7 @@ export default function SiteDetail() {
 
   const fetchSiteDetail = useCallback(async () => {
     try {
-      const response = await apiFetch(`${API_BASE}/api/common/sites/${id}`);
+      const response = await apiFetch(`${API_BASE}/common/sites/${id}`);
       const result = await response.json();
       
       if (result.code === 20000) {

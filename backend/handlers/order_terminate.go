@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
@@ -54,12 +55,17 @@ func TerminateOrder(c *gin.Context) {
 		}
 	}
 
-	tx.Commit()
-
 	depositRefunded := false
 	if order.DepositMode == "standard" && order.Deposit > 0 {
 		depositRefunded = true
 	}
+
+	// Persist deposit_refunded to order record
+	if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Update("deposit_refunded", depositRefunded).Error; err != nil {
+		log.Printf("[TerminateOrder] Failed to persist deposit_refunded: %v", err)
+	}
+
+	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

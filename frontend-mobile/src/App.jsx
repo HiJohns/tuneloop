@@ -22,6 +22,8 @@ import StaffReceiveConfirm from './pages/StaffReceiveConfirm'
 import ShippingInterface from './pages/ShippingInterface'
 import ReceivingInterface from './pages/ReceivingInterface'
 import Cart from './pages/Cart'
+import MaintenanceProgress from './pages/MaintenanceProgress'
+import SiteDetail from './pages/SiteDetail'
 
 const getWXConfig = () => {
   return window.APP_CONFIG?.wx || {
@@ -227,6 +229,8 @@ function App() {
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
+        <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
+        <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

@@ -230,8 +230,9 @@ type MaintenanceTicket struct {
 	AcceptedAt         *time.Time `json:"accepted_at"`
 	CompletionNotes    string     `gorm:"type:text" json:"completion_notes"`
 	CompletionPhotos   string     `gorm:"type:jsonb;default:'[]'" json:"completion_photos"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	DepositRefunded   bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
 	CompletedAt        *time.Time `gorm:"index" json:"completed_at,omitempty"`
 }
 

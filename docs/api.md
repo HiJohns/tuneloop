@@ -1302,18 +1302,16 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 ### 6.2 创建订单
 
-**接口**: `POST /api/orders`
+**接口**: `POST /api/user/orders`
 
 **请求 Body**:
 ```json
 {
   "instrument_id": "instr-001",
-  "level": "professional",
-  "lease_term": 12,
-  "deposit_mode": "free",
-  "delivery_type": "self_pickup", // self_pickup, delivery
-  "delivery_address_id": "addr-001",
-  "agreement_signed": true
+  "start_date": "2026-03-21",
+  "end_date": "2026-06-21",
+  "delivery_address": {},
+  "notes": ""
 }
 ```
 
@@ -1321,11 +1319,13 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 ```json
 {
   "code": 20000,
+  "message": "success",
   "data": {
     "order_id": "order-001",
-    "payment_url": "https://pay.example.com/...",
-    "first_payment_amount": 760,
-    "created_at": "2026-03-21T10:30:00Z"
+    "amount": 2800,
+    "deposit": 500,
+    "lease_id": "lease-001",
+    "payment_url": "https://pay.example.com/..."
   }
 }
 ```
@@ -1383,6 +1383,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "lease_term": 12,
     "monthly_rent": 760,
     "deposit": 0,
+    "deposit_refunded": false,
     "status": "active",
     "created_at": "2026-03-21T10:30:00Z",
     "start_date": "2026-03-21",
