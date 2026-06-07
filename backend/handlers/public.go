@@ -329,3 +329,64 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 		"data": services.FormatPricingResult(result),
 	})
 }
+
+// GET /api/public/instruments/:id/media — Public instrument media (no auth)
+func GetPublicInstrumentMedia(c *gin.Context) {
+	db := database.GetDB()
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id is required"})
+		return
+	}
+
+	var instrument models.Instrument
+	if err := db.First(&instrument, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	var mediaList []models.InstrumentMedia
+	db.Where("instrument_id = ? AND (is_display = ? OR file_type = ?)", id, true, "video").
+		Order("sort_order asc, created_at desc").
+		Find(&mediaList)
+
+	type mediaItem struct {
+		URL      string `json:"url"`
+		ThumbURL string `json:"thumb_url,omitempty"`
+		FileType string `json:"file_type"`
+	}
+
+	storage := services.NewMediaStorage()
+	var images []mediaItem
+	var video *mediaItem
+
+	for _, m := range mediaList {
+		url, _ := storage.GetURL(c.Request.Context(), m.StorageKey)
+		if url == "" {
+			url = "/uploads/media/" + m.StorageKey
+		}
+
+		item := mediaItem{URL: url, FileType: m.FileType}
+
+		if m.FileType == "video" {
+			var thumb models.InstrumentMedia
+			if db.Where("instrument_id = ? AND batch_id = ? AND file_type = ?", id, m.BatchID, "video_thumb").First(&thumb).Error == nil {
+				thumbURL, _ := storage.GetURL(c.Request.Context(), thumb.StorageKey)
+				if thumbURL != "" {
+					item.ThumbURL = thumbURL
+				}
+			}
+			video = &item
+		} else if m.FileType != "video_thumb" {
+			images = append(images, item)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"images": images,
+			"video":  video,
+		},
+	})
+}

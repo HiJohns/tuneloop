@@ -127,13 +127,13 @@
 **布局结构**:
 ```html
 <view class="instrument-detail">
-  <!-- 多图轮播 + 视频 -->
+  <!-- 多图轮播 + 视频 (数据来源: GET /api/public/instruments/:id/media，含缩略图封面) -->
   <swiper class="image-swiper">
     <swiper-item wx:for="{{images}}">
       <image src="{{item}}" mode="aspectFill" />
     </swiper-item>
     <swiper-item wx:if="{{video}}">
-      <video src="{{video}}" />
+      <video src="{{video}}" poster="{{thumbUrl}}" />
     </swiper-item>
   </swiper>
 
@@ -2188,6 +2188,13 @@ cd frontend-pc && npm run build  # 应该成功
 **权限**: 公开（需登录）
 
 **功能点**:
+- 多媒体管理
+  - 当前展示图片缩略图预览
+  - 当前视频播放 + 删除按钮
+  - 历史批次列表（按 `batch_id` 分组，含 `batch_type` 标签、创建时间）
+  - 每批次支持"设为展示"（调用 `PUT /api/instruments/:id/media/display`）和"删除"操作
+  - 无媒体时显示 `<Empty>` 占位
+  - 数据来源：`GET /api/instruments/:id/media`（不依赖 `instrument.media` 中的旧 `display`/`video` 字段）
 - 图片轮播（最新一批图片）
 - 基础信息
   - 品牌、型号

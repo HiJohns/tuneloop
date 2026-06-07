@@ -1216,12 +1216,45 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "batches": [
       { "batch_id": "uuid", "batch_type": "shipping", "count": 5, "created_at": "2026-06-06T00:00:00Z" }
     ],
-    "video": { "batch_id": "uuid", "batch_type": "shipping", "file_type": "video", "url": "/uploads/media/...", "thumb_url": "/uploads/media/..._thumb.jpg", "sort_order": 0 }
+    "video": { "batch_id": "uuid", "batch_type": "shipping", "file_type": "video", "url": "/uploads/media/...", "thumb_url": "/uploads/media/..._thumb.jpg", "sort_order": 0 },
+    "groups": [
+      {
+        "batch_id": "uuid",
+        "batch_type": "shipping",
+        "created_at": "2026-06-06T00:00:00Z",
+        "items": [
+          { "batch_id": "uuid", "batch_type": "shipping", "file_type": "image", "url": "/uploads/media/...", "sort_order": 1 }
+        ]
+      }
+    ]
   }
 }
 ```
 
-#### 5.9.6 上传大小限制
+`display`: 当前设为展示的图片列表。`batches`: 所有批次的汇总信息（不含具体文件）。`groups`: 按 `batch_id` 分组的完整文件列表。
+
+#### 5.9.6 公共乐器媒体列表
+
+**接口**: `GET /api/public/instruments/:id/media`
+
+**说明**: 无登录访问，仅返回当前展示图片和当前视频，不暴露历史批次数据。
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "images": [
+      { "url": "/uploads/media/...", "file_type": "image" }
+    ],
+    "video": { "url": "/uploads/media/...", "thumb_url": "/uploads/media/..._thumb.jpg", "file_type": "video" }
+  }
+}
+```
+
+`images`: 当前展示的图片列表。`video`: 当前视频（含缩略图封面）。无视频时 `video` 为 `null`。
+
+#### 5.9.7 上传大小限制
 
 全站点设置，存储于 `system_settings` 表：
 

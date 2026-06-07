@@ -181,6 +181,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/instruments", handlers.GetPublicInstruments)
 	api.GET("/public/instruments/:id", handlers.GetPublicInstrumentByID)
 	api.GET("/public/instruments/:id/pricing-v2", handlers.GetPublicInstrumentPricingV2)
+	api.GET("/public/instruments/:id/media", handlers.GetPublicInstrumentMedia)
 	api.GET("/public/categories", handlers.GetPublicCategories)
 	api.GET("/public/sites", handlers.GetPublicSites)
 	authRequired := api.Group("")

@@ -328,9 +328,17 @@ func GetInstrumentMedia(c *gin.Context) {
 		CreatedAt string `json:"created_at"`
 	}
 
+	type batchGroup struct {
+		BatchID   string      `json:"batch_id"`
+		BatchType string      `json:"batch_type"`
+		CreatedAt string      `json:"created_at"`
+		Items     []mediaItem `json:"items"`
+	}
+
 	var displayItems []mediaItem
 	var videoItem *mediaItem
 	batchesMap := make(map[string]*batchInfo)
+	batchGroupsMap := make(map[string]*batchGroup)
 	thumbMap := make(map[string]string)
 
 	for _, m := range mediaList {
@@ -369,6 +377,18 @@ func GetInstrumentMedia(c *gin.Context) {
 			}
 		}
 		batchesMap[m.BatchID].Count++
+
+		if m.FileType != "video_thumb" {
+			if _, ok := batchGroupsMap[m.BatchID]; !ok {
+				batchGroupsMap[m.BatchID] = &batchGroup{
+					BatchID:   m.BatchID,
+					BatchType: m.BatchType,
+					CreatedAt: m.CreatedAt.Format(time.RFC3339),
+					Items:     []mediaItem{},
+				}
+			}
+			batchGroupsMap[m.BatchID].Items = append(batchGroupsMap[m.BatchID].Items, item)
+		}
 	}
 
 	if videoItem != nil {
@@ -382,12 +402,18 @@ func GetInstrumentMedia(c *gin.Context) {
 		batches = append(batches, *b)
 	}
 
+	var groups []batchGroup
+	for _, g := range batchGroupsMap {
+		groups = append(groups, *g)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"display": displayItems,
 			"batches": batches,
 			"video":   videoItem,
+			"groups":  groups,
 		},
 	})
 }

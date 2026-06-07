@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty } from 'antd'
+import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
-import { pricingApi } from '../../../services/api'
+import { pricingApi, instrumentsApi } from '../../../services/api'
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -46,6 +46,51 @@ export default function InstrumentDetail() {
       })
     }
   }, [id])
+
+  const [mediaDetail, setMediaDetail] = useState(null)
+  const [mediaLoading, setMediaLoading] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    setMediaLoading(true)
+    instrumentsApi.getMedia(id).then(res => {
+      if (res.code === 20000) setMediaDetail(res.data)
+    }).catch(err => {
+      console.warn('Failed to load media detail:', err)
+    }).finally(() => {
+      setMediaLoading(false)
+    })
+  }, [id])
+
+  const handleSetDisplay = async (batchId) => {
+    try {
+      const res = await instrumentsApi.setMediaDisplay(id, { batch_id: batchId })
+      if (res.code === 20000) {
+        message.success('展示批次已更新')
+        fetchInstrument()
+        instrumentsApi.getMedia(id).then(r => { if (r.code === 20000) setMediaDetail(r.data) })
+      }
+    } catch (e) {
+      message.error('更新失败: ' + e.message)
+    }
+  }
+
+  const handleDeleteBatch = async (batchId) => {
+    try {
+      const res = await instrumentsApi.deleteMediaBatch(id, batchId)
+      if (res.code === 20000) {
+        message.success('批次已删除')
+        fetchInstrument()
+        instrumentsApi.getMedia(id).then(r => { if (r.code === 20000) setMediaDetail(r.data) })
+      }
+    } catch (e) {
+      message.error('删除失败: ' + e.message)
+    }
+  }
+
+  const handleDeleteVideo = async (batchId) => {
+    handleDeleteBatch(batchId)
+  }
 
   const fetchInstrument = async () => {
     setLoading(true)
@@ -192,7 +237,7 @@ export default function InstrumentDetail() {
               
               <Col span={8}>
                 <Card title="多媒体">
-                  {(() => {
+                  {mediaLoading ? <Spin /> : (() => {
                     const media = instrument.media
                     const displayImages = media?.display?.filter(m => m.file_type === 'image') || []
                     const images = displayImages.length > 0
@@ -204,26 +249,66 @@ export default function InstrumentDetail() {
                     
                     return (
                       <>
-                        {images.length > 0 ? (
-                          <Image.PreviewGroup>
-                            {images.map((item, index) => (
-                              <Image
-                                key={index}
-                                src={item.url || item}
-                                alt={`${instrument.sn}-${index}`}
-                                width="100%"
-                                height={150}
-                                className="mb-2 object-cover rounded"
-                              />
-                            ))}
-                          </Image.PreviewGroup>
-                        ) : (
-                          <div className="text-center text-gray-500 py-8">暂无图片</div>
-                        )}
+                        <div className="mb-4">
+                          <h4 className="text-sm font-medium text-gray-600 mb-2">当前展示</h4>
+                          {images.length > 0 ? (
+                            <Image.PreviewGroup>
+                              {images.map((item, index) => (
+                                <Image
+                                  key={index}
+                                  src={item.url || item}
+                                  alt={`${instrument.sn}-${index}`}
+                                  width={80}
+                                  height={80}
+                                  className="mr-2 mb-2 object-cover rounded"
+                                />
+                              ))}
+                            </Image.PreviewGroup>
+                          ) : (
+                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无展示图片" />
+                          )}
+                        </div>
+
                         {video && (
-                          <div className="mt-4">
-                            <Divider>视频</Divider>
-                            <video src={video.url} controls width="100%" className="rounded" />
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">当前视频</h4>
+                            <div className="flex items-start gap-4">
+                              <video src={video.url} controls width="240" className="rounded" />
+                              <Popconfirm title="确定删除此视频？" onConfirm={() => handleDeleteVideo(video.batch_id)}>
+                                <Button danger size="small">删除视频</Button>
+                              </Popconfirm>
+                            </div>
+                          </div>
+                        )}
+
+                        {mediaDetail?.groups?.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">历史批次</h4>
+                            {mediaDetail.groups.map(group => (
+                              <Card key={group.batch_id} size="small" className="mb-2"
+                                title={
+                                  <Space>
+                                    <Tag>{group.batch_type}</Tag>
+                                    <span className="text-xs text-gray-400">{new Date(group.created_at).toLocaleString()}</span>
+                                    {group.batch_id === (mediaDetail.display?.[0]?.batch_id) && <Tag color="green">当前展示</Tag>}
+                                  </Space>
+                                }
+                                extra={
+                                  <Space>
+                                    <Button size="small" onClick={() => handleSetDisplay(group.batch_id)}>设为展示</Button>
+                                    <Popconfirm title="删除此批次将同时删除批次内所有文件，确定？" onConfirm={() => handleDeleteBatch(group.batch_id)}>
+                                      <Button danger size="small">删除</Button>
+                                    </Popconfirm>
+                                  </Space>
+                                }
+                              >
+                                <Image.PreviewGroup>
+                                  {group.items.filter(i => i.file_type === 'image').map((item, idx) => (
+                                    <Image key={idx} src={item.url} width={60} height={60} className="mr-1 mb-1 object-cover rounded" />
+                                  ))}
+                                </Image.PreviewGroup>
+                              </Card>
+                            ))}
                           </div>
                         )}
                       </>

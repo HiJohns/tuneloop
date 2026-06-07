@@ -171,6 +171,20 @@ export default function Detail() {
       })
   }, [id])
 
+  const [mediaPublic, setMediaPublic] = useState(null)
+
+  useEffect(() => {
+    if (!id) return
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+    apiFetch(`${baseUrl}/public/instruments/${id}/media`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.code === 20000) setMediaPublic(res.data)
+      }).catch(() => {
+        // fallback to old instrument.images/video fields
+      })
+  }, [id])
+
   useEffect(() => {
     const creditScore = userCreditScore
     setCanUseDepositFree(creditScore >= 650)
@@ -266,7 +280,8 @@ export default function Detail() {
     return <div className="p-4">乐器不存在</div>
   }
 
-  const images = parseImages(instrument.images)
+  const publicImages = mediaPublic?.images?.length > 0 ? mediaPublic.images.map(i => i.url) : null
+  const images = publicImages || parseImages(instrument.images)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -280,6 +295,18 @@ export default function Detail() {
              e.target.src = PLACEHOLDER_IMAGE
            }}
          />
+        {mediaPublic?.video && (
+          <div className="mt-2 px-4">
+            <video
+              src={mediaPublic.video.url}
+              poster={mediaPublic.video.thumb_url}
+              controls
+              preload="metadata"
+              className="w-full rounded-lg"
+              style={{ maxHeight: 240 }}
+            />
+          </div>
+        )}
         <button 
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 bg-black/30 text-white p-2 rounded-full"
