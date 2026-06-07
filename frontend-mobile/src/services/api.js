@@ -333,6 +333,18 @@ export const ownershipApi = {
   download: (id) => api.get(`/user/ownership/${id}/download`),
 }
 
+export const warehouseApi = {
+  listOrders: (params = {}) => {
+    const query = new URLSearchParams()
+    if (params.status) query.set('status', params.status)
+    if (params.site_id) query.set('site_id', params.site_id)
+    if (params.page) query.set('page', params.page)
+    if (params.pageSize) query.set('pageSize', params.pageSize)
+    const qs = query.toString()
+    return api.get(`/warehouse/orders${qs ? '?' + qs : ''}`)
+  },
+}
+
 export const contractsApi = {
   list: () => api.get('/user/contracts'),
   get: (id) => api.get(`/user/contracts/${id}`),

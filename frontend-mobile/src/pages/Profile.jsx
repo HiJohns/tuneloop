@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, apiFetch, getToken, redirectToLogin } from '../services/api'
-import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText } from 'lucide-react'
+import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList } from 'lucide-react'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ phone: '', email: '' })
@@ -343,7 +343,7 @@ export default function Profile() {
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium mb-3">员工功能</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 {(() => {
                   const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
                   const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
@@ -354,6 +354,12 @@ export default function Profile() {
                         <button onClick={() => navigate('/staff/instruments')} className="flex flex-col items-center p-2">
                           <MapPin size={24} className="text-brand-primary" />
                           <span className="text-xs mt-1 text-gray-600">乐器管理</span>
+                        </button>
+                      )}
+                      {has('order:manage') && (
+                        <button onClick={() => navigate('/staff/orders')} className="flex flex-col items-center p-2">
+                          <ClipboardList size={24} className="text-brand-primary" />
+                          <span className="text-xs mt-1 text-gray-600">订单管理</span>
                         </button>
                       )}
                       {has('order:manage') && (
