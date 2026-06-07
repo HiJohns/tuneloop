@@ -97,7 +97,7 @@ function redirectToIAM() {
     window.location.href = webLoginUrl
   } else {
     // Standard OAuth flow
-    const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
+    const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&noRegister=1`
     window.location.href = authUrl
   }
 }
@@ -141,10 +141,9 @@ async function handleAuthError(token, retryCount, endpoint, options) {
    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
    const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-   window.location.href = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code'
-  
+    window.location.href = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
+
   // 返回特殊标记表示认证失败
-  return { __authFailed: true }
 }
 
 async function refreshAccessToken() {
@@ -217,7 +216,7 @@ async function request(endpoint, options = {}, retryCount = 0) {
       const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
       const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
       const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-      window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri
+      window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&noRegister=1'
       throw new Error('Permission version changed, please re-login')
     }
   }

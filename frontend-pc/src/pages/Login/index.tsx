@@ -15,7 +15,7 @@ const LoginPage: React.FC = () => {
 
   // If session expired, redirect directly to IAM login
   if (reason === 'session_expired' && iamUrl) {
-    window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri;
+    window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&noRegister=1';
   }
 
   const handleLogin = () => {
@@ -27,7 +27,7 @@ const LoginPage: React.FC = () => {
     const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc';
     const redirectUri = encodeURIComponent(window.location.origin + '/callback');
     const state = btoa(JSON.stringify({ originalUrl }));
-    window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${encodeURIComponent(state)}`;
+    window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${encodeURIComponent(state)}&noRegister=1`;
   };
 
   if (redirecting) {

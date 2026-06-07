@@ -53,7 +53,7 @@ func (h *AuthHandler) GetOIDCAuthorizationURL(c *gin.Context) {
 	redirectURI += "/callback"
 
 	culture := middleware.GetCulture(c)
-	authURL := externalURL + "/oauth/authorize?client_id=" + clientID + "&redirect_uri=" + redirectURI + "&response_type=code&culture=" + culture
+	authURL := externalURL + "/oauth/authorize?client_id=" + clientID + "&redirect_uri=" + redirectURI + "&response_type=code&culture=" + culture + "&noRegister=1"
 
 	state := generateRandomState(32)
 	c.SetCookie("oauth_state", state, 300, "/", "", false, false)
