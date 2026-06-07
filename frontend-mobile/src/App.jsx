@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { message } from 'antd'
 import { getToken, initPermissionMapping } from './services/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
@@ -60,7 +61,7 @@ function isNamespaceAdmin() {
   return sysPerm > 0 && cusPerm === 0
 }
 
-const publicRoutes = ['/', '/success', '/callback']
+const publicRoutes = ['/', '/instrument/', '/cart', '/success', '/callback']
 
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
@@ -71,6 +72,7 @@ function ProtectedRoute({ children, requireAuth = true }) {
   }
   
   if (!token && !publicRoutes.includes(location)) {
+    sessionStorage.setItem('post_auth_redirect', location)
     const config = getWXConfig()
     const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
     const authUrl = `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
@@ -125,13 +127,19 @@ function OAuthCallback() {
         
         if (tokenData.access_token) {
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
-          
+
           if (tokenData.user_info) {
             localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
           }
-          
+
           cachePermissions(parseJWT(tokenData.access_token))
-          
+
+          const reason = sessionStorage.getItem('login_reason')
+          if (reason) {
+            sessionStorage.removeItem('login_reason')
+            sessionStorage.setItem('show_login_reason', reason)
+          }
+
           const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
           sessionStorage.removeItem('post_auth_redirect')
           window.location.href = redirectTo
@@ -181,6 +189,18 @@ function App() {
     // Cache permissions from existing JWT on app start
     if (token) {
       cachePermissions(parseJWT(token))
+    }
+
+    const showReason = sessionStorage.getItem('show_login_reason')
+    if (showReason) {
+      sessionStorage.removeItem('show_login_reason')
+      if (showReason === 'session_expired') {
+        message.info('登录已过期，请重新登录')
+      } else if (showReason === 'token_missing') {
+        message.info('请先登录')
+      } else {
+        message.info('请先登录')
+      }
     }
   }, [])
 

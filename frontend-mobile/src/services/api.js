@@ -1,5 +1,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+const publicRoutes = ['/', '/instrument/', '/cart', '/success', '/callback']
+
+function isPublicRoute() {
+  const path = window.location.pathname
+  return publicRoutes.some(p => path === p || path.startsWith(p + '/'))
+}
+
 // 开发环境注入 mock wx 对象，防止浏览器调试时崩溃
 if (import.meta.env.DEV && typeof window !== 'undefined' && typeof window.wx === 'undefined') {
   console.log('[Dev Mode] Injecting mock wx object for browser debugging')
@@ -64,13 +71,15 @@ function isWeChatMiniProgram() {
 /**
  * 统一的登录重定向函数
  */
-export function redirectToLogin() {
-  console.log('[redirectToLogin] Environment check:', {
-    isWeChat: isWeChatMiniProgram(),
-    wxExists: typeof wx !== 'undefined',
-    wxMiniProgram: typeof wx !== 'undefined' ? !!wx.miniProgram : false
-  })
-  
+export function redirectToLogin(reason) {
+  if (reason) {
+    sessionStorage.setItem('login_reason', reason)
+  }
+
+  if (reason && reason !== 'session_expired' && reason !== 'token_missing') {
+    if (!window.confirm('此功能需要登录，是否前往登录？')) return
+  }
+
   localStorage.removeItem('token')
   localStorage.removeItem('token_expiry')
   localStorage.removeItem('user_sys_perm')
@@ -78,7 +87,7 @@ export function redirectToLogin() {
   localStorage.removeItem('user_cus_perm_ext')
   sessionStorage.removeItem('token')
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-  
+
   if (isWeChatMiniProgram()) {
     wx.miniProgram.redirectTo({
       url: '/pages/login/login'
@@ -191,7 +200,9 @@ async function request(endpoint, options = {}) {
   })
 
   if (response.status === 401) {
-    // 尝试刷新 token 后重试
+    if (isPublicRoute()) {
+      return []
+    }
     try {
       const newToken = await refreshAccessToken()
       headers['Authorization'] = `Bearer ${newToken}`
@@ -201,8 +212,8 @@ async function request(endpoint, options = {}) {
         return processApiResponse(endpoint, retryData)
       }
     } catch {}
-    redirectToLogin()
-    return
+    redirectToLogin('session_expired')
+    return []
   }
 
   if (!response.ok) {
@@ -223,7 +234,7 @@ async function request(endpoint, options = {}) {
         return processApiResponse(endpoint, retryData)
       }
     } catch {}
-    redirectToLogin()
+    redirectToLogin('session_expired')
     return []
   }
 
@@ -252,13 +263,16 @@ export async function apiFetch(url, options = {}) {
   })
   
   if (response.status === 401 && !url.includes('/public/')) {
+    if (isPublicRoute()) {
+      throw new Error('Unauthorized')
+    }
     try {
       const newToken = await refreshAccessToken()
       headers['Authorization'] = `Bearer ${newToken}`
       const retryResp = await fetch(url, { ...options, headers })
       if (retryResp.ok || retryResp.status !== 401) return retryResp
     } catch {}
-    redirectToLogin()
+    redirectToLogin('session_expired')
     throw new Error('Unauthorized')
   }
   
@@ -327,6 +341,8 @@ let permissionMappingLoaded = false
 
 export async function initPermissionMapping() {
   if (permissionMappingLoaded) return
+  const token = getToken()
+  if (!token) return
   try {
     const resp = await permissionConfigApi.getMapping()
     if (resp && resp.code === 20000) {

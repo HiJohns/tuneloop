@@ -137,13 +137,16 @@ export default function Detail() {
           setInstrument(inst)
 
           if (inst.sn) {
-            try {
-              const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
-              const orderResult = await orderResp.json()
-              if (orderResult.code === 20000 && orderResult.data) {
-                setActiveOrder(orderResult.data)
-              }
-            } catch {}
+            const token = getToken()
+            if (token) {
+              try {
+                const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+                const orderResult = await orderResp.json()
+                if (orderResult.code === 20000 && orderResult.data) {
+                  setActiveOrder(orderResult.data)
+                }
+              } catch {}
+            }
           }
         }
         setLoading(false)
@@ -251,10 +254,11 @@ export default function Detail() {
         end_date: returnDate,
       })
       
-      if (resp.data?.code === 20000 || resp.data?.code === 20100) {
+      if (resp.code === 20000 || resp.code === 20100) {
+        const orderData = resp.data
         navigate('/success', {
           state: {
-            order_id: resp.data.data.order_id,
+            order_id: orderData.order_id,
             instrument_name: instrument?.name,
             instrument_sn: instrument?.sn,
             category_name: instrument?.category_name,
@@ -263,7 +267,7 @@ export default function Detail() {
             site_address: instrument?.site_address,
             lease_term: `${days}天`,
             return_date: returnDate,
-            total_amount: resp.data.data.first_payment_amount,
+            total_amount: orderData.first_payment_amount,
           },
         })
       }
