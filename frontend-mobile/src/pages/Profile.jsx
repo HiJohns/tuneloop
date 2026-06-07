@@ -350,25 +350,25 @@ export default function Profile() {
                   const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
                   return (
                     <>
-                      {has('instrument:view') && (
+                      {has('instrument:read') && (
                         <button onClick={() => navigate('/staff/instruments')} className="flex flex-col items-center p-2">
                           <MapPin size={24} className="text-brand-primary" />
                           <span className="text-xs mt-1 text-gray-600">乐器管理</span>
                         </button>
                       )}
-                      {has('order:manage') && (
+                      {has('order:read') && (
                         <button onClick={() => navigate('/staff/orders')} className="flex flex-col items-center p-2">
                           <ClipboardList size={24} className="text-brand-primary" />
                           <span className="text-xs mt-1 text-gray-600">订单管理</span>
                         </button>
                       )}
-                      {has('order:manage') && (
+                      {has('order:update') && (
                         <button onClick={() => navigate('/staff/shipping')} className="flex flex-col items-center p-2">
                           <Bell size={24} className="text-brand-primary" />
                           <span className="text-xs mt-1 text-gray-600">发货管理</span>
                         </button>
                       )}
-                      {has('inventory:manage') && (
+                      {has('instrument:maintain') && (
                         <button onClick={() => navigate('/staff/receiving')} className="flex flex-col items-center p-2">
                           <Package size={24} className="text-brand-primary" />
                           <span className="text-xs mt-1 text-gray-600">收货管理</span>
