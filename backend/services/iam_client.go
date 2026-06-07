@@ -324,14 +324,16 @@ type Organization struct {
 
 // User represents an IAM user
 type User struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Status   string `json:"status"`
-	OrgID    string `json:"org_id"`
-	Role     string `json:"role"`
+	ID              string     `json:"id"`
+	Name            string     `json:"name"`
+	Username        string     `json:"username"`
+	Email           string     `json:"email"`
+	Phone           string     `json:"phone"`
+	Status          string     `json:"status"`
+	OrgID           string     `json:"org_id"`
+	Role            string     `json:"role"`
+	EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+	EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
 }
 
 func (c *IAMClient) GetNamespaceID() (string, error) {
@@ -667,6 +669,21 @@ func (c *IAMClient) GetUser(userID string) (*User, error) {
 		return result.Data, nil
 	}
 	return nil, fmt.Errorf("GetUser: user %s not found in response", userID)
+}
+
+// ResendEmailConfirmation requests IAM to resend the email confirmation email
+func (c *IAMClient) ResendEmailConfirmation(userID string) error {
+	req := map[string]interface{}{
+		"user_ids": []string{userID},
+	}
+	respBody, statusCode, err := c.doRequest("POST", "/api/v1/users/resend-confirmation", req)
+	if err != nil {
+		return fmt.Errorf("ResendEmailConfirmation request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("ResendEmailConfirmation returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
 }
 
 func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {

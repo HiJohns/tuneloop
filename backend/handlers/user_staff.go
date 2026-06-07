@@ -772,10 +772,35 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		result["site_name"] = memberSite.SiteName
 	}
 
+	// Fetch email confirmation timestamps from IAM
+	iamClient := services.NewIAMClient()
+	if iamUser, err := iamClient.GetUser(user.IAMSub); err == nil {
+		result["email_sent_at"] = iamUser.EmailSentAt
+		result["email_confirmed_at"] = iamUser.EmailConfirmedAt
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
 		"data":    result,
+	})
+}
+
+// ResendEmailConfirmation POST /api/users/me/resend-email-confirmation
+func (h *UserStaffHandler) ResendEmailConfirmation(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+
+	iamClient := services.NewIAMClient()
+	if err := iamClient.ResendEmailConfirmation(userID); err != nil {
+		log.Printf("[ResendEmailConfirmation] Failed for %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resend confirmation email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
 	})
 }
 

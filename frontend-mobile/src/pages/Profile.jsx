@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, apiFetch, getToken, redirectToLogin, addressesApi } from '../services/api'
-import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2 } from 'lucide-react'
+import { message } from 'antd'
+import { api, apiFetch, getToken, redirectToLogin, addressesApi, resendEmailConfirmation } from '../services/api'
+import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2, CheckCircle, Send, AlertCircle } from 'lucide-react'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ phone: '', email: '' })
@@ -257,7 +258,39 @@ export default function Profile() {
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex justify-between"><span>姓名</span><span>{user?.name || '-'}</span></div>
             <div className="flex justify-between"><span>电话</span><span>{user?.phone || '-'}</span></div>
-            <div className="flex justify-between"><span>邮箱</span><span>{user?.email || '-'}</span></div>
+            <div className="flex justify-between items-start">
+              <span>邮箱</span>
+              <div className="text-right">
+                <span>{user?.email || '-'}</span>
+                {user?.email && (() => {
+                  const sent = user.email_sent_at ? new Date(user.email_sent_at) : null
+                  const confirmed = user.email_confirmed_at ? new Date(user.email_confirmed_at) : null
+                  const isConfirmed = confirmed && sent && confirmed > sent
+                  const expired = sent && (Date.now() - sent.getTime() > 24 * 60 * 60 * 1000)
+
+                  if (isConfirmed) {
+                    return <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5 justify-end"><CheckCircle size={12} /> 已确认</p>
+                  } else if (sent && !expired) {
+                    return <p className="text-xs text-orange-500 mt-0.5">确认邮件已发送，请检查邮箱及垃圾箱</p>
+                  } else if (sent && expired) {
+                    return (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await resendEmailConfirmation()
+                            message.success('确认邮件已重新发送')
+                          } catch { message.error('重发失败，请稍后重试') }
+                        }}
+                        className="text-xs text-red-500 underline mt-0.5"
+                      >
+                        确认邮件已失效，点击重发
+                      </button>
+                    )
+                  }
+                  return null
+                })()}
+              </div>
+            </div>
           </div>
         </div>
 

@@ -365,6 +365,10 @@ export const addressesApi = {
   delete: (id) => api.delete(`/user/addresses/${id}`),
 }
 
+export function resendEmailConfirmation() {
+  return api.post('/users/me/resend-email-confirmation')
+}
+
 // Permission config API (#414)
 export const permissionConfigApi = {
   getMapping: () => api.get('/config/permissions'),
