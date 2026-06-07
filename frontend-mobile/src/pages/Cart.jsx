@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
 import { getToken, redirectToLogin, api } from '../services/api'
+import dayjs from 'dayjs'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -28,39 +29,27 @@ function parsePricing(pricing) {
   return []
 }
 
-const CYCLE_MULTIPLIER = {
-  day: 1,
-  week: 6,
-  month: 25,
-}
-
 function calculateItemAmount(item) {
+  if (item.calculated_rent !== undefined) {
+    const pricing = parsePricing(item.pricing)
+    const deposit = pricing[0]?.deposit || 0
+    const shippingFee = pricing[0]?.shipping_fee || 0
+    return { rent: item.calculated_rent, deposit: deposit, shippingFee: shippingFee, total: item.calculated_rent + deposit + shippingFee }
+  }
   const pricing = parsePricing(item.pricing)
   const dailyRent = pricing[0]?.daily_rent || item.base_daily_rate || 0
   const deposit = pricing[0]?.deposit || 0
   const shippingFee = pricing[0]?.shipping_fee || 0
-  const cycle = item.cycle || 'month'
-  const termCount = item.lease_term || 1
-  const multiplier = CYCLE_MULTIPLIER[cycle] || 25
-  const rent = dailyRent * multiplier * termCount
+  const startDate = item.start_date ? dayjs(item.start_date) : dayjs()
+  const endDate = item.end_date ? dayjs(item.end_date) : startDate.add(1, 'month')
+  const days = endDate.diff(startDate, 'day') || 1
+  const rent = dailyRent * days
   return { rent, deposit, shippingFee, total: rent + deposit + shippingFee }
 }
 
 function calculateDeadline(item) {
-  const today = new Date()
-  const cycle = item.cycle || 'month'
-  const termCount = item.lease_term || 1
-  if (cycle === 'day') {
-    today.setDate(today.getDate() + termCount)
-  } else if (cycle === 'week') {
-    today.setDate(today.getDate() + termCount * 7)
-  } else {
-    today.setMonth(today.getMonth() + termCount)
-  }
-    const y = today.getFullYear()
-    const m = String(today.getMonth() + 1).padStart(2, '0')
-    const d = String(today.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
+  if (item.end_date) return item.end_date
+  return dayjs().add(1, 'month').format('YYYY-MM-DD')
 }
 
 export default function Cart() {
@@ -108,7 +97,7 @@ export default function Cart() {
           site_name: item.site_name,
           site_address: item.site_address,
           tenant_name: item.tenant_name,
-          lease_term: `${item.lease_term || 1}${item.cycle === 'day' ? '天' : item.cycle === 'week' ? '周' : '个月'}`,
+          lease_term: `${dayjs(returnDate).diff(dayjs(item.start_date || dayjs()), 'day') || 1}天`,
           return_date: returnDate,
           total_amount: amount.total,
         },
@@ -204,15 +193,13 @@ export default function Cart() {
       const item = cart.items[0]
       const amount = calculateItemAmount(item)
       const returnDate = calculateDeadline(item)
-      const cycle = item.cycle || 'month'
-      const leaseTerm = item.lease_term || 1
+      const startDate = item.start_date || dayjs().format('YYYY-MM-DD')
 
       try {
         const resp = await api.post('/orders', {
           instrument_id: item.instrument_id,
           level: item.level || 'standard',
-          lease_term: leaseTerm,
-          start_date: new Date().toISOString().split('T')[0],
+          start_date: startDate,
           end_date: returnDate,
         })
 
@@ -227,7 +214,7 @@ export default function Cart() {
               site_name: item.site_name,
               site_address: item.site_address,
               tenant_name: item.tenant_name,
-              lease_term: `${item.lease_term || 1}${item.cycle === 'day' ? '天' : item.cycle === 'week' ? '周' : '个月'}`,
+              lease_term: `${dayjs(returnDate).diff(dayjs(startDate), 'day') || 1}天`,
               return_date: returnDate,
               total_amount: amount.total,
             },
@@ -290,8 +277,7 @@ export default function Cart() {
                             <p className="font-medium text-sm text-gray-800">{item.name}</p>
                             <p className="text-xs text-gray-500">{item.brand} {item.model}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              {item.cycle === 'month' ? `${item.lease_term || 1}个月` : `${item.lease_term || 1}${item.cycle === 'day' ? '天' : '周'}`}
-                              <span className="text-xs text-gray-500">→ {calculateDeadline(item)}</span>
+                              {item.start_date} → {item.end_date || calculateDeadline(item)}
                             </div>
                             <p className="text-orange-600 font-bold text-sm mt-1">
                               ¥{amount.rent.toFixed(0)} + ¥{amount.deposit} 押{(parsePricing(item.pricing)[0]?.shipping_fee || 0) > 0 ? ` + ¥${parsePricing(item.pricing)[0].shipping_fee} 运` : ''}

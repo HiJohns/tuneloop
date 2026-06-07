@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Statistic, Spin, Empty } from 'antd'
+import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty } from 'antd'
 import { ArrowLeftOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
+import { pricingApi } from '../../../services/api'
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -29,6 +30,22 @@ export default function InstrumentDetail() {
   useEffect(() => {
     if (instrument?.sn) fetchLeaseData()
   }, [instrument?.sn])
+
+  const [pricingV2, setPricingV2] = useState(null)
+  const [pricingV2Loading, setPricingV2Loading] = useState(false)
+
+  useEffect(() => {
+    if (id) {
+      setPricingV2Loading(true)
+      pricingApi.getInstrumentPricingV2(id).then(res => {
+        if (res.code === 20000) setPricingV2(res.data)
+      }).catch(err => {
+        console.warn('Failed to load pricing-v2:', err)
+      }).finally(() => {
+        setPricingV2Loading(false)
+      })
+    }
+  }, [id])
 
   const fetchInstrument = async () => {
     setLoading(true)
@@ -108,6 +125,7 @@ export default function InstrumentDetail() {
   }
 
   const pricing = parsePricing(instrument.pricing)
+  const overdueDailyFee = pricing?.overdue_daily_fee || 0
 
   const activeStatuses = ['reserved', 'shipping', 'rented', 'returning']
 
@@ -220,38 +238,60 @@ export default function InstrumentDetail() {
           label: '价格配置',
           key: 'pricing',
           children: (
-            <Card title="租金价格">
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Statistic
-                    title="日租金"
-                    value={`¥${pricing?.daily_rent || 0}`}
-                    prefix={<DollarOutlined />}
+            <Card title="分段租金策略">
+              {pricingV2Loading ? (
+                <Spin />
+              ) : pricingV2?.tiers?.length > 0 ? (
+                <>
+                  <Table
+                    dataSource={pricingV2.tiers.map((t, i) => ({ ...t, _key: i }))}
+                    rowKey="_key"
+                    pagination={false}
+                    columns={[
+                      {
+                        title: '阶段',
+                        key: 'name',
+                        width: 80,
+                        render: (_, __, i) => `第${i + 1}阶`,
+                      },
+                      {
+                        title: '天数范围',
+                        key: 'range',
+                        width: 150,
+                        render: (_, r, i) => {
+                          const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
+                          const daysMax = r.days_max > 0 ? r.days_max : '以上'
+                          return `${prevMax + 1}-${daysMax}天`
+                        },
+                      },
+                      {
+                        title: '日租金',
+                        dataIndex: 'daily_rate',
+                        key: 'daily',
+                        width: 100,
+                        render: (v) => `¥${(v || 0).toFixed(2)}`,
+                      },
+                    ]}
                   />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="周租金"
-                    value={`¥${pricing?.weekly_rent || 0}`}
-                    prefix={<DollarOutlined />}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="月租金"
-                    value={`¥${pricing?.monthly_rent || 0}`}
-                    prefix={<DollarOutlined />}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="押金"
-                    value={`¥${pricing?.deposit || 0}`}
-                    prefix={<DollarOutlined />}
-                    valueStyle={{ color: '#cf1322' }}
-                  />
-                </Col>
-              </Row>
+                  <Divider />
+                  <Descriptions column={2} size="small" bordered>
+                    <Descriptions.Item label="日均底价">
+                      ¥{(pricingV2?.base_daily_rate || 0).toFixed(2)}/天
+                    </Descriptions.Item>
+                    <Descriptions.Item label="押金">
+                      ¥{(pricingV2?.deposit || 0).toFixed(2)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="物流费">
+                      ¥{(pricingV2?.shipping_fee ?? 0).toFixed(2)}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="逾期日费">
+                      ¥{(overdueDailyFee || 0).toFixed(2)}/天
+                    </Descriptions.Item>
+                  </Descriptions>
+                </>
+              ) : (
+                <Empty description="暂未配置分阶段定价" />
+              )}
             </Card>
           )
         },

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
 import { Row, Col } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
 import { api, instrumentsApi } from '../../../services/api'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
@@ -39,13 +39,16 @@ export default function InstrumentList() {
   const [selectedExportFields, setSelectedExportFields] = useState([])
 
   useEffect(() => {
-    fetchInstruments(pagination.page, pagination.pageSize)
     fetchCategories()
     instrumentsApi.getFilterOptions().then(res => {
       if (res.code === 20000) setFilterOptions(res.data)
     })
     setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
+
+  useEffect(() => {
+    fetchInstruments(1, pagination.pageSize)
+  }, [categoryFilter, levelFilter, statusFilter])
 
   const fetchInstruments = async (page = 1, pageSize = 20, overrideSort = null) => {
     setLoading(true)
@@ -407,6 +410,23 @@ export default function InstrumentList() {
 
   return (
     <div className="p-6">
+      <style>{`
+        .filter-select.ant-select .ant-select-clear {
+          opacity: 1 !important;
+          visibility: visible !important;
+          display: block !important;
+          font-size: 16px;
+          right: 28px;
+          margin-top: -8px;
+          width: 16px;
+          height: 16px;
+        }
+        .filter-select.ant-select .ant-select-arrow {
+          opacity: 1 !important;
+          visibility: visible !important;
+          display: block !important;
+        }
+      `}</style>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">乐器管理</h1>
@@ -466,9 +486,10 @@ export default function InstrumentList() {
           />
           <Select
             placeholder="选择分类"
+            className="filter-select"
             style={{ width: 150 }}
-            allowClear
-            onChange={(val) => { setCategoryFilter(val); fetchInstruments(1, pagination.pageSize) }}
+            allowClear={{ clearIcon: <CloseCircleFilled style={{ fontSize: 16 }} /> }}
+            onChange={setCategoryFilter}
           >
             {filterOptions.categories.map(cat => (
               <Option key={cat.category_id} value={cat.category_id}>{cat.category_name}</Option>
@@ -476,9 +497,10 @@ export default function InstrumentList() {
           </Select>
           <Select
             placeholder="乐器分级"
+            className="filter-select"
             style={{ width: 150 }}
-            allowClear
-            onChange={(val) => { setLevelFilter(val); fetchInstruments(1, pagination.pageSize) }}
+            allowClear={{ clearIcon: <CloseCircleFilled style={{ fontSize: 16 }} /> }}
+            onChange={setLevelFilter}
           >
             {filterOptions.levels.map(lv => (
               <Option key={lv.level_id} value={lv.level_id}>{lv.level_name}</Option>
@@ -486,9 +508,10 @@ export default function InstrumentList() {
           </Select>
           <Select
             placeholder="选择状态"
+            className="filter-select"
             style={{ width: 120 }}
-            allowClear
-            onChange={(val) => { setStatusFilter(val); fetchInstruments(1, pagination.pageSize) }}
+            allowClear={{ clearIcon: <CloseCircleFilled style={{ fontSize: 16 }} /> }}
+            onChange={setStatusFilter}
           >
             {filterOptions.statuses.map(st => (
               <Option key={st.value} value={st.value}>

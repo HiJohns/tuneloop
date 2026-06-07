@@ -675,6 +675,44 @@ tenants (1) ---> (N) clients
 
 ---
 
+### 2.23 pricing_templates - 定价模板表
+
+**说明**: 系统定价策略模板表。其中最多仅有一条记录的 `is_system_default = true`，作为商户未自定义配置时的全局回退策略。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| code | VARCHAR(50) | UNIQUE, NOT NULL | 模板代码 |
+| name | VARCHAR(100) | NOT NULL | 模板名称 |
+| description | TEXT | | 模板描述 |
+| config_schema | JSONB | NOT NULL, DEFAULT '{}' | 定价配置 Schema（含 tiers、deposit_mode 等） |
+| is_active | BOOLEAN | DEFAULT true | 是否启用 |
+| is_system_default | BOOLEAN | DEFAULT false | 是否为系统默认策略（全局回退用） |
+| created_at | TIMESTAMP | | 创建时间 |
+
+**索引**:
+- `idx_pricing_templates_code` UNIQUE (code)
+- `idx_pricing_templates_system_default` UNIQUE (is_system_default) WHERE is_system_default = true
+
+---
+
+### 2.24 merchant_pricing_configs - 商户定价配置表
+
+**说明**: 商户自定义定价配置。每个商户最多一条记录。无记录时回退到 `pricing_templates` 中 `is_system_default = true` 的模板。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
+| tenant_id | UUID | UNIQUE, NOT NULL | 租户 ID |
+| template_id | UUID | NOT NULL, FK → pricing_templates.id | 关联模板 ID |
+| config | JSONB | NOT NULL, DEFAULT '{}' | 商户实际生效的定价配置 |
+| updated_by | UUID | | 最后更新人 |
+| created_at | TIMESTAMP | | 创建时间 |
+| updated_at | TIMESTAMP | | 更新时间 |
+
+**索引**:
+- `idx_merchant_pricing_configs_tenant` UNIQUE (tenant_id)
+
 ---
 
 *Model: glm-5*

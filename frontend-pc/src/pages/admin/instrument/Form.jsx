@@ -485,7 +485,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           level_id: instrumentData.level_id,
           description: instrumentData.description,
           video: instrumentData.video,
-          status: instrumentData.status || 'active'
+          status: instrumentData.status || 'active',
+          base_daily_rate: instrumentData.base_daily_rate,
         })
 
         if (instrumentData.video) {
@@ -497,10 +498,18 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           }])
         }
 
-        // Parse pricing JSONB for edit mode
+        // Parse pricing JSONB and populate individual fields
         if (instrumentData.pricing && typeof instrumentData.pricing === 'string') {
           try {
-            form.setFieldsValue({ pricing: JSON.parse(instrumentData.pricing) })
+            const pricingArr = JSON.parse(instrumentData.pricing)
+            if (Array.isArray(pricingArr) && pricingArr.length > 0) {
+              const p = pricingArr[0]
+              form.setFieldsValue({
+                deposit: p.deposit || 0,
+                shipping_fee: p.shipping_fee || 0,
+                overdue_daily_fee: p.overdue_daily_fee || p.daily_rent || 0,
+              })
+            }
           } catch (e) {
             console.warn('[DEBUG] Failed to parse pricing:', e)
           }
@@ -938,6 +947,12 @@ const loadCategoryChildren = async (node) => {
         level_id: values.level_id,
         description: values.description,
         base_daily_rate: values.base_daily_rate || 0,
+        pricing: [{
+          daily_rent: values.base_daily_rate || 0,
+          deposit: values.deposit || 0,
+          shipping_fee: values.shipping_fee || 0,
+          overdue_daily_fee: values.overdue_daily_fee || values.base_daily_rate || 0,
+        }],
         images: images,
         video: videoUrl,
         status: initialData ? (values.status || loadedData?.status || 'available') : 'available',
@@ -982,13 +997,14 @@ const loadCategoryChildren = async (node) => {
         const instrumentId = initialData?.id || editData?.id || result.data?.id
         if (instrumentId && fileKeys.length > 0) {
           try {
-            const videoExts = ['.mp4', '.webm', '.mov', '.avi', '.mkv']
             await instrumentsApi.createMedia(instrumentId, {
               batch_type: 'shipping',
               is_display: true,
               files: fileKeys.map((key, i) => {
-                const f = fileList.find(f => f.fileKey === key)
-                const isVideo = f?.url && videoExts.some(ext => f.url.toLowerCase().includes(ext))
+                const allFiles = [...fileList, ...(videoFileList || [])]
+                const f = allFiles.find(f => f.fileKey === key)
+                const ext = key.split('.').pop()?.toLowerCase()
+                const isVideo = f?.type?.startsWith('video/') || ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)
                 return { file_key: key, file_type: isVideo ? 'video' : 'image', sort_order: i }
               })
             })
@@ -1218,6 +1234,15 @@ const loadCategoryChildren = async (node) => {
           <Card title="定价设置" size="small" style={{ marginBottom: 16 }}>
             <Form.Item label="第一阶梯日均价(¥)" name="base_daily_rate">
               <InputNumber min={0} precision={2} style={{ width: 200 }} placeholder="输入后预览阶梯价格" onChange={(val) => setBaseDailyRate(val)} />
+            </Form.Item>
+            <Form.Item label="押金(¥)" name="deposit">
+              <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
+            </Form.Item>
+            <Form.Item label="物流费(¥)" name="shipping_fee">
+              <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
+            </Form.Item>
+            <Form.Item label="逾期日费(¥/天)" name="overdue_daily_fee">
+              <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
             </Form.Item>
 
             {baseDailyRate > 0 && merchantPricingConfig && merchantPricingConfig.tiers && (

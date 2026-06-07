@@ -331,6 +331,9 @@ func CreateInstrument(c *gin.Context) {
 		instrument.BaseDailyRate = req.BaseDailyRate
 	}
 
+	// Handle Video field
+	instrument.Video = req.Video
+
 	log.Printf("[DEBUG CreateInstrument] Before DB Create: tenantID=%s", instrument.TenantID)
 
 	if err := db.Create(&instrument).Error; err != nil {

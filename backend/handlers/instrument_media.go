@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
@@ -27,6 +28,21 @@ var validBatchTypes = map[string]bool{
 	"relaying":   true,
 	"receiving":  true,
 	"repaired":   true,
+}
+
+func buildStructuredKey(ctx context.Context, originalKey string, batchType string, seq int) string {
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	if orgID == "" {
+		orgID = "_namespace"
+	}
+	ext := filepath.Ext(originalKey)
+	if ext == "" {
+		ext = ".bin"
+	}
+	return fmt.Sprintf("%s/%s/%s_%s_%d_%d%s",
+		tenantID, orgID,
+		uuid.New().String()[:8], batchType, time.Now().Unix(), seq, ext)
 }
 
 func CreateInstrumentMedia(c *gin.Context) {
@@ -92,8 +108,12 @@ func CreateInstrumentMedia(c *gin.Context) {
 			var existing models.InstrumentMedia
 			if err := tx.Where("instrument_id = ? AND tenant_id = ? AND file_type = 'video'", instrumentID, tenantID).
 				First(&existing).Error; err == nil {
-				if err := storage.DeletePrefix(ctx, strings.TrimSuffix(existing.StorageKey, filepath.Ext(existing.StorageKey))); err != nil {
-					log.Printf("[InstrumentMedia] Failed to delete old video files: %v", err)
+				if existing.StorageKey != "" {
+					if err := storage.Delete(ctx, existing.StorageKey); err != nil {
+						log.Printf("[InstrumentMedia] Failed to delete old video file: %v", err)
+					}
+					thumbKey := strings.TrimSuffix(existing.StorageKey, filepath.Ext(existing.StorageKey)) + "_thumb.jpg"
+					storage.Delete(ctx, thumbKey)
 				}
 				tx.Delete(&existing)
 			}
@@ -105,7 +125,12 @@ func CreateInstrumentMedia(c *gin.Context) {
 		}
 	}
 
-	for _, f := range req.Files {
+	for i, f := range req.Files {
+		newKey := buildStructuredKey(ctx, f.FileKey, req.BatchType, i+1)
+		if err := storage.Rename(ctx, f.FileKey, newKey); err != nil {
+			log.Printf("[InstrumentMedia] Rename failed, using original key: %v", err)
+			newKey = f.FileKey
+		}
 		media := models.InstrumentMedia{
 			TenantID:     tenantID,
 			OrgID:        middleware.GetOrgID(ctx),
@@ -114,7 +139,7 @@ func CreateInstrumentMedia(c *gin.Context) {
 			BatchType:    req.BatchType,
 			FileName:     filepath.Base(f.FileKey),
 			FileType:     f.FileType,
-			StorageKey:   f.FileKey,
+			StorageKey:   newKey,
 			IsDisplay:    req.IsDisplay,
 			SortOrder:    f.SortOrder,
 		}

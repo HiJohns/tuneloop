@@ -2,19 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, ordersApi, getToken, apiFetch, redirectToLogin } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart, Calendar } from 'lucide-react'
-import { Switch, Segmented, Tag, Modal, Button, InputNumber } from 'antd'
-
-const CYCLE_OPTIONS = [
-  { label: '按天', value: 'day' },
-  { label: '按周', value: 'week' },
-  { label: '按月', value: 'month' },
-]
-
-const CYCLE_MULTIPLIER = {
-  day: 1,
-  week: 6,
-  month: 25,
-}
+import { Switch, Tag, Modal, Button, DatePicker } from 'antd'
+import dayjs from 'dayjs'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -57,12 +46,14 @@ export default function Detail() {
   const [loading, setLoading] = useState(true)
   
   const [selectedLevel, setSelectedLevel] = useState('专业级')
-  const [cycle, setCycle] = useState('month')
-  const [termCount, setTermCount] = useState(1)
+  const [endDate, setEndDate] = useState(null)
   const [noDeposit, setNoDeposit] = useState(false)
   const [showComparison, setShowComparison] = useState(false)
   const [userCreditScore] = useState(750)
   const [canUseDepositFree, setCanUseDepositFree] = useState(false)
+
+  const [pricingV2, setPricingV2] = useState(null)
+  const [pricingV2Loading, setPricingV2Loading] = useState(false)
   
   const [calculatedRent, setCalculatedRent] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
@@ -74,15 +65,14 @@ export default function Detail() {
     } catch { return 0 }
   })()
   
-  // Load saved cycle/termCount from cart when instrument loads
+  // Load saved endDate from cart when instrument loads
   useEffect(() => {
     if (!instrument?.id) return
     try {
       const cart = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
       const item = cart.items?.find(i => i.instrument_id === instrument.id)
-      if (item) {
-        if (item.cycle && item.cycle !== cycle) setCycle(item.cycle)
-        if (item.lease_term && item.lease_term !== termCount) setTermCount(item.lease_term)
+      if (item?.end_date) {
+        setEndDate(dayjs(item.end_date))
       }
     } catch {}
   }, [instrument?.id])
@@ -102,6 +92,8 @@ export default function Detail() {
     const filtered = existing.items.filter(i => i.instrument_id !== instrument.id)
     
     // Add new item with current lease terms
+    const startDate = dayjs().format('YYYY-MM-DD')
+    const returnDate = endDate ? endDate.format('YYYY-MM-DD') : dayjs().add(1, 'day').format('YYYY-MM-DD')
     filtered.push({
       instrument_id: instrument.id,
       name: instrument.name,
@@ -117,8 +109,10 @@ export default function Detail() {
       images: instrument.images,
       pricing: instrument.pricing,
       base_daily_rate: instrument.base_daily_rate,
-      cycle: cycle,
-      lease_term: termCount,
+      start_date: startDate,
+      end_date: returnDate,
+      pricing_v2: pricingV2,
+      calculated_rent: totalRent,
     })
     
     localStorage.setItem('cart', JSON.stringify({ items: filtered }))
@@ -163,6 +157,21 @@ export default function Detail() {
   }, [id])
 
   useEffect(() => {
+    if (!id) return
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+    setPricingV2Loading(true)
+    apiFetch(`${baseUrl}/public/instruments/${id}/pricing-v2`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.code === 20000) setPricingV2(res.data)
+      }).catch(() => {
+        // pricing-v2 not available, fallback to flat daily rate
+      }).finally(() => {
+        setPricingV2Loading(false)
+      })
+  }, [id])
+
+  useEffect(() => {
     const creditScore = userCreditScore
     setCanUseDepositFree(creditScore >= 650)
   }, [userCreditScore])
@@ -170,38 +179,43 @@ export default function Detail() {
   // Computed pricing values
   const pricing = parsePricing(instrument?.pricing)
   const dailyRent = pricing[0]?.daily_rent || instrument?.base_daily_rate || 0
-  const deposit = pricing[0]?.deposit || 0
-  const shippingFee = pricing[0]?.shipping_fee || 0
+  const deposit = pricing[0]?.deposit || pricingV2?.deposit || 0
+  const shippingFee = pricing[0]?.shipping_fee || pricingV2?.shipping_fee || 0
   const overdueDailyFee = pricing[0]?.overdue_daily_fee || dailyRent
-  
-  const cycleMultiplier = CYCLE_MULTIPLIER[cycle]
-  const rentPerCycle = dailyRent * cycleMultiplier
-  const totalRent = rentPerCycle * termCount
-  
+
+  const days = endDate ? dayjs(endDate).diff(dayjs().startOf('day'), 'day') : 1
+
+  const computeTieredRent = (pricingData, daysCount) => {
+    if (!pricingData?.tiers?.length) {
+      return (pricingData?.base_daily_rate || dailyRent) * daysCount
+    }
+    let remaining = daysCount
+    let total = 0
+    let prevMax = 0
+    for (const tier of pricingData.tiers) {
+      const tierDays = tier.days_max > 0 ? tier.days_max - prevMax : remaining
+      const segDays = Math.min(tierDays, remaining)
+      total += segDays * tier.daily_rate
+      remaining -= segDays
+      prevMax = tier.days_max
+      if (remaining <= 0) break
+    }
+    return total
+  }
+
+  const totalRent = computeTieredRent(pricingV2, days)
+
   const calculatePrice = useCallback(() => {
     if (!instrument) return
+    if (!pricingV2 && !dailyRent) return
+    const total = totalRent + deposit + shippingFee
     setCalculatedRent(totalRent)
-    setTotalAmount(totalRent + deposit + shippingFee)
-  }, [dailyRent, deposit, shippingFee, instrument, cycle, termCount])
+    setTotalAmount(total)
+  }, [totalRent, deposit, shippingFee, pricingV2, dailyRent, instrument])
 
   useEffect(() => {
     calculatePrice()
   }, [calculatePrice])
-
-  const getExpiryDate = () => {
-    const today = new Date()
-    if (cycle === 'day') {
-      today.setDate(today.getDate() + termCount)
-    } else if (cycle === 'week') {
-      today.setDate(today.getDate() + termCount * 7)
-    } else {
-      today.setMonth(today.getMonth() + termCount)
-    }
-    const y = today.getFullYear()
-    const m = String(today.getMonth() + 1).padStart(2, '0')
-    const d = String(today.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  }
 
   const handleCreateOrder = async () => {
     const token = getToken()
@@ -211,16 +225,15 @@ export default function Detail() {
       redirectToLogin()
       return
     }
-    
-    const leaseTerm = termCount || 1
-    const returnDate = getExpiryDate()
+
+    const startDate = dayjs().format('YYYY-MM-DD')
+    const returnDate = endDate ? endDate.format('YYYY-MM-DD') : dayjs().add(1, 'day').format('YYYY-MM-DD')
     
     try {
       const resp = await ordersApi.create({
         instrument_id: instrument?.id,
         level: instrument?.level || 'standard',
-        lease_term: leaseTerm,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: startDate,
         end_date: returnDate,
       })
       
@@ -234,7 +247,7 @@ export default function Detail() {
             tenant_name: instrument?.tenant_name,
             site_name: instrument?.site_name,
             site_address: instrument?.site_address,
-            lease_term: `${leaseTerm}个月`,
+            lease_term: `${days}天`,
             return_date: returnDate,
             total_amount: resp.data.data.first_payment_amount,
           },
@@ -312,48 +325,30 @@ export default function Detail() {
 
         {isRentable && (
         <div className="mt-4">
-          <span className="text-gray-700 font-medium">租赁周期</span>
+          <span className="text-gray-700 font-medium">租赁到期日</span>
           
-          {/* Row 1: Cycle selector buttons */}
-          <div className="flex gap-2 mt-2">
-            {CYCLE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setCycle(opt.value)}
-                className={`flex-1 py-2 rounded-lg border text-center transition-all ${
-                  cycle === opt.value
-                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                    : 'border-gray-200 text-gray-600'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          
-          {/* Row 2: Number input + cycle text + rent per cycle */}
-          <div className="mt-3 flex items-center gap-2">
-            <InputNumber
-              min={1}
-              max={365}
-              value={termCount}
-              onChange={(val) => setTermCount(val || 1)}
-              className="w-20"
+          <div className="mt-2">
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              disabledDate={(d) => d <= dayjs().endOf('day')}
+              placeholder="选择到期日"
+              style={{ width: '100%' }}
             />
-            <span className="text-gray-600">
-              {cycle === 'day' ? '天' : cycle === 'week' ? '周' : '月'}
-            </span>
-            <span className="text-gray-500">×</span>
-            <span className="text-brand-primary font-bold">¥{rentPerCycle.toFixed(0)}</span>
-            <span className="text-gray-500">=</span>
-            <span className="text-brand-primary font-bold">¥{calculatedRent.toFixed(0)}</span>
           </div>
           
-          {/* Row 3: Expiry date */}
-          <div className="mt-2 text-sm text-gray-500 flex items-center gap-1">
-            <Calendar size={14} />
-            截止日期: <span className="font-medium">{getExpiryDate()}</span>
-          </div>
+          {endDate && (
+            <div className="mt-2 text-sm text-gray-500 flex items-center gap-1">
+              <Calendar size={14} />
+              共 <span className="font-medium">{days}</span> 天
+              {pricingV2Loading && <span className="text-gray-400"> (计算中...)</span>}
+              {pricingV2?.tiers?.length > 0 && !pricingV2Loading && (
+                <span className="text-gray-400">
+                  · 分阶段计价
+                </span>
+              )}
+            </div>
+          )}
         </div>
         )}
 
@@ -362,9 +357,18 @@ export default function Detail() {
           <p className="font-medium text-sm text-blue-800 mb-1">费用明细</p>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">租金 ({termCount}{cycle === 'day' ? '天' : cycle === 'week' ? '周' : '月'} × ¥{rentPerCycle.toFixed(0)})</span>
-              <span className="font-medium">¥{calculatedRent.toFixed(0)}</span>
+              <span className="text-gray-600">租金 ({days}天{pricingV2?.tiers?.length ? ' · 分阶段计价' : ''})</span>
+              <span className="font-medium">¥{totalRent.toFixed(0)}</span>
             </div>
+            {pricingV2?.tiers?.length > 0 && (
+              <div className="text-xs text-gray-400 pl-2">
+                {pricingV2.tiers.map((t, i) => {
+                  const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
+                  const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+                  return <span key={i} className="mr-2">{range}: ¥{t.daily_rate}/天</span>
+                })}
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-600">押金</span>
               <span className="font-medium">¥{deposit}</span>

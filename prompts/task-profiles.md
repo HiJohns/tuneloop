@@ -1,0 +1,1 @@
+/home/coder/.config/opencode/prompts/task-profiles.md

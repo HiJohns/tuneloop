@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"tuneloop-backend/database"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // GET /api/pricing/templates - List available pricing templates
@@ -48,7 +50,7 @@ func GetMerchantPricingConfig(c *gin.Context) {
 	if err := db.Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
 		// Return default template config if merchant hasn't configured yet
 		var defaultTemplate models.PricingTemplate
-		if err := db.Where("code = ? AND is_active = ?", "tiered_discount_v1", true).First(&defaultTemplate).Error; err != nil {
+		if err := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
 				"message": "no pricing template found",
@@ -58,11 +60,12 @@ func GetMerchantPricingConfig(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
-				"template_id":   defaultTemplate.ID,
-				"template_name": defaultTemplate.Name,
-				"template_code": defaultTemplate.Code,
-				"config":        defaultTemplate.ConfigSchema,
-				"configured":    false,
+				"template_id":       defaultTemplate.ID,
+				"template_name":     defaultTemplate.Name,
+				"template_code":     defaultTemplate.Code,
+				"is_system_default": defaultTemplate.IsSystemDefault,
+				"config":            defaultTemplate.ConfigSchema,
+				"configured":        false,
 			},
 		})
 		return
@@ -78,11 +81,12 @@ func GetMerchantPricingConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"id":            config.ID,
-			"template_id":   config.TemplateID,
-			"template_name": tmplName,
-			"config":        config.Config,
-			"configured":    true,
+			"id":                config.ID,
+			"template_id":       config.TemplateID,
+			"template_name":     tmplName,
+			"is_system_default": tmpl.IsSystemDefault,
+			"config":            config.Config,
+			"configured":        true,
 		},
 	})
 }
@@ -277,11 +281,24 @@ func GetInstrumentPricingV2(c *gin.Context) {
 	// Fetch merchant pricing config
 	var config models.MerchantPricingConfig
 	if err := db.Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    40400,
-			"message": "merchant pricing config not found",
-		})
-		return
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Fallback to system default template
+			var defaultTemplate models.PricingTemplate
+			if err2 := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err2 != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"code":    40400,
+					"message": "no pricing template found",
+				})
+				return
+			}
+			config.Config = defaultTemplate.ConfigSchema
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to query pricing config",
+			})
+			return
+		}
 	}
 
 	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides)

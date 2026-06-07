@@ -649,13 +649,14 @@ type Role struct {
 }
 
 type PricingTemplate struct {
-	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Code         string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"code"`
-	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
-	Description  string    `gorm:"type:text" json:"description"`
-	ConfigSchema string    `gorm:"type:jsonb;not null;default:'{}'" json:"config_schema"`
-	IsActive     bool      `gorm:"default:true" json:"is_active"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code            string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"code"`
+	Name            string    `gorm:"type:varchar(100);not null" json:"name"`
+	Description     string    `gorm:"type:text" json:"description"`
+	ConfigSchema    string    `gorm:"type:jsonb;not null;default:'{}'" json:"config_schema"`
+	IsActive        bool      `gorm:"default:true" json:"is_active"`
+	IsSystemDefault bool      `gorm:"default:false" json:"is_system_default"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type MerchantPricingConfig struct {

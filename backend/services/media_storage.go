@@ -15,6 +15,8 @@ type MediaStorage interface {
 	GetURL(ctx context.Context, key string) (string, error)
 	Delete(ctx context.Context, key string) error
 	DeletePrefix(ctx context.Context, prefix string) error
+	Copy(ctx context.Context, srcKey string, dstKey string) error
+	Rename(ctx context.Context, srcKey string, dstKey string) error
 }
 
 type LocalStorage struct {
@@ -46,6 +48,34 @@ func (s *LocalStorage) Upload(ctx context.Context, key string, reader io.Reader,
 		return fmt.Errorf("failed to write file %s: %w", fullPath, err)
 	}
 	return nil
+}
+
+func (s *LocalStorage) Copy(ctx context.Context, srcKey string, dstKey string) error {
+	srcPath := s.fullPath(srcKey)
+	dstPath := s.fullPath(dstKey)
+	dir := filepath.Dir(dstPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("open src: %w", err)
+	}
+	defer src.Close()
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		return fmt.Errorf("create dst: %w", err)
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, src)
+	return err
+}
+
+func (s *LocalStorage) Rename(ctx context.Context, srcKey string, dstKey string) error {
+	if err := s.Copy(ctx, srcKey, dstKey); err != nil {
+		return err
+	}
+	return s.Delete(ctx, srcKey)
 }
 
 func (s *LocalStorage) GetURL(ctx context.Context, key string) (string, error) {
@@ -103,6 +133,14 @@ func (s *OSSStorage) Delete(ctx context.Context, key string) error {
 }
 
 func (s *OSSStorage) DeletePrefix(ctx context.Context, prefix string) error {
+	return fmt.Errorf("OSS storage not implemented yet")
+}
+
+func (s *OSSStorage) Copy(ctx context.Context, srcKey string, dstKey string) error {
+	return fmt.Errorf("OSS storage not implemented yet")
+}
+
+func (s *OSSStorage) Rename(ctx context.Context, srcKey string, dstKey string) error {
 	return fmt.Errorf("OSS storage not implemented yet")
 }
 

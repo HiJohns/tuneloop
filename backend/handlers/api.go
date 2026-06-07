@@ -260,7 +260,16 @@ func GetInstruments(c *gin.Context) {
 		query = query.Where("sn ILIKE ?", "%"+sn+"%")
 	}
 	if categoryID := c.Query("category_id"); categoryID != "" {
-		query = query.Where("category_id = ?", categoryID)
+		var childIDs []string
+		db.WithContext(ctx).
+			Model(&models.Category{}).
+			Where("parent_id = ? OR id = ?", categoryID, categoryID).
+			Pluck("id", &childIDs)
+		if len(childIDs) > 0 {
+			query = query.Where("category_id IN ?", childIDs)
+		} else {
+			query = query.Where("category_id = ?", categoryID)
+		}
 	}
 	if levelID := c.Query("level_id"); levelID != "" {
 		query = query.Where("level_id = ?", levelID)
@@ -430,8 +439,9 @@ func GetInstrumentFilterOptions(c *gin.Context) {
 		CategoryName string `json:"category_name"`
 	}
 	var categories []categoryOption
-	query.Select("DISTINCT category_id, category_name").
-		Where("category_id IS NOT NULL AND category_name != ''").
+	db.WithContext(ctx).Model(&models.Category{}).
+		Select("id AS category_id, name AS category_name").
+		Where("tenant_id = ?", tenantID).
 		Find(&categories)
 
 	type levelOption struct {
@@ -445,7 +455,7 @@ func GetInstrumentFilterOptions(c *gin.Context) {
 		WHERE i.tenant_id = ? AND i.level_id IS NOT NULL`, tenantID).Scan(&levels)
 
 	type statusOption struct {
-		Value string `json:"value"`
+		Value string `gorm:"column:stock_status" json:"value"`
 	}
 	var statuses []statusOption
 	query.Select("DISTINCT stock_status").Find(&statuses)

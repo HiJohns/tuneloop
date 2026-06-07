@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -278,5 +280,52 @@ func GetPublicSites(c *gin.Context) {
 		"data": gin.H{
 			"list": sites,
 		},
+	})
+}
+
+// GET /api/public/instruments/:id/pricing-v2 — Public pricing info (no auth)
+func GetPublicInstrumentPricingV2(c *gin.Context) {
+	db := database.GetDB()
+	id := c.Param("id")
+
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument id is required"})
+		return
+	}
+	if _, err := uuid.Parse(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "invalid instrument id format"})
+		return
+	}
+
+	var instrument models.Instrument
+	if err := db.First(&instrument, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "instrument has no base daily rate configured"})
+		return
+	}
+
+	var config models.MerchantPricingConfig
+	if err := db.Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			var defaultTemplate models.PricingTemplate
+			if err2 := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err2 != nil {
+				c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "no pricing template found"})
+				return
+			}
+			config.Config = defaultTemplate.ConfigSchema
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query pricing config"})
+			return
+		}
+	}
+
+	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides)
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": services.FormatPricingResult(result),
 	})
 }

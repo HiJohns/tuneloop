@@ -21,6 +21,8 @@ export default function MerchantPricingConfig() {
   const [depositRatio, setDepositRatio] = useState(2.0)
   const [depositFixed, setDepositFixed] = useState(0)
   const [templateId, setTemplateId] = useState(null)
+  const [configured, setConfigured] = useState(false)
+  const [templateName, setTemplateName] = useState('')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -34,7 +36,9 @@ export default function MerchantPricingConfig() {
       if (response.code === 20000) {
         const data = response.data
         setTemplateId(data.template_id)
-        if (data.configured && data.config) {
+        setConfigured(data.configured || false)
+        setTemplateName(data.template_name || '')
+        if (data.config) {
           applyConfig(data.config)
         } else {
           applyConfig(DEFAULT_CONFIG)
@@ -49,7 +53,12 @@ export default function MerchantPricingConfig() {
   }
 
   const applyConfig = (config) => {
-    setTiers(config.tiers || DEFAULT_CONFIG.tiers)
+    const tiers = (config.tiers || []).map((t, i) => ({
+      name: t.name || `第${i + 1}段`,
+      days_max: t.days_max ?? DEFAULT_CONFIG.tiers[i]?.days_max ?? -1,
+      discount_percent: t.discount_percent ?? 0,
+    }))
+    setTiers(tiers)
     setDepositMode(config.deposit_mode || 'ratio')
     setDepositRatio(config.deposit_ratio || 2.0)
     setDepositFixed(config.deposit_fixed || 0)
@@ -203,7 +212,16 @@ export default function MerchantPricingConfig() {
   return (
     <div className="p-6">
       <Card
-        title="定价策略配置"
+        title={
+          <Space>
+            <span>定价策略配置</span>
+            {configured ? (
+              <span style={{ fontSize: 12, color: '#1677ff', background: '#e6f4ff', padding: '2px 8px', borderRadius: 4 }}>自定义策略</span>
+            ) : (
+              <span style={{ fontSize: 12, color: '#52c41a', background: '#f6ffed', padding: '2px 8px', borderRadius: 4 }}>系统默认策略</span>
+            )}
+          </Space>
+        }
         extra={
           <Space>
             <Button icon={<UndoOutlined />} onClick={resetToDefault}>恢复默认</Button>
