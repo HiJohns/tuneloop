@@ -285,8 +285,8 @@ function MainLayout() {
     label: '乐器管理',
     children: [
       { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
-      { key: '/instruments/categories', label: '分类设置', permission: { sysPermBits: [SysPermBits.Admin] } },
-      { key: '/instruments/properties', label: '属性管理', permission: { sysPermBits: [SysPermBits.Admin] } }
+      { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
+      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } }
     ]
   },
   {
@@ -543,7 +543,7 @@ function onMenuClick(e) {
             <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
             <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           
-            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ sysPermBits: [SysPermBits.Admin] }}><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id/edit" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/new" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
@@ -553,7 +553,7 @@ function onMenuClick(e) {
               <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
                <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
                 <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
-                <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ sysPermBits: [SysPermBits.Admin] }}><PropertyList /></ProtectedRoute>} />
+                <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['attribute:manage'] }}><PropertyList /></ProtectedRoute>} />
                 <Route path="/organization/sites/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [12] }}><SiteBulkImport /></ProtectedRoute>} />
                 <Route path="/staff/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [17] }}><StaffBulkImport /></ProtectedRoute>} />
           </Routes>

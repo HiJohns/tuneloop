@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
-import { SysPermBits, checkPermission } from '../config/menuPermissions'
+import { checkPermission } from '../config/menuPermissions'
 
 const getIAMUrl = () => window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'

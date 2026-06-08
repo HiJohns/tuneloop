@@ -105,6 +105,8 @@ func getTuneLoopPermissions() []PermissionDef {
 		{Code: "instrument:media_upload", Name: "上传媒体", BitCode: 15},
 		{Code: "instrument:media_display", Name: "设置展示批次", BitCode: 16},
 		{Code: "instrument:media_delete", Name: "删除媒体批次", BitCode: 17},
+		{Code: "category:manage", Name: "分类管理", BitCode: 18},
+		{Code: "attribute:manage", Name: "属性管理", BitCode: 19},
 	}
 }
 

@@ -88,6 +88,8 @@ release: clean-prerelease
 	# Backend
 	cd backend && go build -o $(RELEASE_BUILD)/tuneloop/service/tuneloop .
 	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop/database/
+	# Migration scripts
+	cp scripts/migrate.sh $(RELEASE_BUILD)/tuneloop/service/
 	# Package
 	mkdir -p $(RELEASE_DIR)
 	cd $(RELEASE_BUILD) && zip -r $(RELEASE_DIR)/$(PKG_NAME).zip .

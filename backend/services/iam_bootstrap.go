@@ -82,18 +82,20 @@ func BootstrapIAM(db *gorm.DB) error {
 				// beaconiam #202: RegisterAdmin now creates org + binds admin in one step.
 				// No separate BindUserToOrg call needed.
 
-				// Clear namespace admin's cus_perm to 0.
-				// RegisterAdmin sets CusPerm=(1<<25)-1, but namespace admin should have
-				// cus_perm=0 per docs/permissions.md (sys_perm > 0 && cus_perm === 0).
+				// Set namespace admin's cus_perm to only include namespace-admin codes.
+				// RegisterAdmin sets CusPerm=(1<<25)-1 (all bits), but namespace admin
+				// should only have specific cus_perm codes (category:manage, attribute:manage).
 				if adminUserID != "" {
 					appCredentialsLock.RLock()
 					orgID := appCredentials["_org_id"]
 					appCredentialsLock.RUnlock()
 					if orgID != "" {
-						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, 0, nil); err != nil {
-							log.Printf("[Bootstrap] Warning: failed to clear admin cus_perm: %v", err)
+						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage"}
+						nsAdminCusPerm, nsAdminCusPermExt := ComputeCusPermBitmapExt(nsAdminCusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
+						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
+							log.Printf("[Bootstrap] Warning: failed to set admin cus_perm: %v", err)
 						} else {
-							log.Printf("[Bootstrap] Cleared admin cus_perm to 0 for namespace-admin semantics")
+							log.Printf("[Bootstrap] Set admin cus_perm to namespace-admin codes: %v → %d", nsAdminCusPermCodes, nsAdminCusPerm)
 						}
 					}
 				}

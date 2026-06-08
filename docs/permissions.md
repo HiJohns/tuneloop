@@ -93,8 +93,8 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | `instrument:list` / `instrument:view` | `instrument:read` | 合并 |
 | `instrument:edit` | `instrument:update` | 重命名 |
 | `instrument:create` / `instrument:delete` | 不变 | |
-| `category:manage` | `instrument:update` | 归入乐器编辑 |
-| `property:manage` | `namespace_admin` (sys_perm Admin) | #742 属性管理提升至超管 |
+| `category:manage` | `namespace_admin` (cus_perm, bit 18) | #785 分类管理独立权限 |
+| `attribute:manage` | `namespace_admin` (cus_perm, bit 19) | #785 属性管理独立权限 |
 | `inventory:view` | `instrument:read` | 归入乐器查看 |
 | `inventory:manage` | `instrument:update` | 归入乐器编辑 |
 | `rent:setting` / `finance:config` | `instrument:price` | 归入定价 |
@@ -161,8 +161,8 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 菜单组 | 菜单项 | 路由 | 权限 |
 |--------|--------|------|------|
 | 乐器管理 | 乐器列表 | /instruments/list | cusPerm: instrument:create/read/update/delete |
-| 乐器管理 | 分类设置 | /instruments/categories | cusPerm: instrument:update |
-| 乐器管理 | 属性管理 | /instruments/properties | sysPerm: Admin (namespace_admin) |
+| 乐器管理 | 分类设置 | /instruments/categories | cusPerm: category:manage |
+| 乐器管理 | 属性管理 | /instruments/properties | cusPerm: attribute:manage |
 | 维修管理 | 师傅管理 | /maintenance/workers | cusPerm: instrument:maintain |
 | 维修管理 | 会话管理 | /maintenance/sessions | cusPerm: instrument:read, instrument:maintain |
 | 库存监控 | 租金设定 | /inventory/rent-setting | cusPerm: instrument:price |

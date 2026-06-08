@@ -8,7 +8,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../../services/api'
-import { checkPermission, SysPermBits } from '../../../config/menuPermissions'
+import { checkPermission } from '../../../config/menuPermissions'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -150,9 +150,9 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     )
     setCanManageSites(canSite)
 
-    // 属性管理权限：仅 namespace_admin（sys_perm bit 0）
+    // 属性管理权限：需要 attribute:manage cus_perm
     const canProp = checkPermission(
-      { sysPermBits: [SysPermBits.Admin] },
+      { cusPermCodes: ['attribute:manage'] },
       sysPerm, cusPerm, cusPermMapping
     )
     setCanManageProperties(canProp)
