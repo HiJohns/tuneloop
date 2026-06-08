@@ -419,4 +419,31 @@ export async function initPermissionMapping() {
   }
 }
 
+// Global fetch 401 interceptor — catches all fetch calls, not just apiFetch/request
+const origFetch = window.fetch.bind(window)
+window.fetch = async function(input, init) {
+  const response = await origFetch(input, init)
+  if (response.status === 401) {
+    const url = typeof input === 'string' ? input : (input?.url || '')
+    if (url.includes('/public/')) return response
+    let skipDegrade = false
+    try {
+      const clone = response.clone()
+      const body = await clone.json()
+      if (body.code === 40104) skipDegrade = true
+    } catch {}
+    if (!skipDegrade && getToken()) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('token_expiry')
+      localStorage.removeItem('user_sys_perm')
+      localStorage.removeItem('user_cus_perm')
+      localStorage.removeItem('user_cus_perm_ext')
+      sessionStorage.removeItem('token')
+      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      window.location.href = '/'
+    }
+  }
+  return response
+}
+
 export default api
