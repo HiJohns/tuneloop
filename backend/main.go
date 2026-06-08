@@ -428,14 +428,23 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/warehouse/orders/:id/damage", warehouseHandler.AssessDamage)
 
 			// Issue #307: User Rental Routes
+			// /user/instruments require tenant context (org binding required)
 			authRequired.GET("/user/instruments", userRentalHandler.ListInstruments)
 			authRequired.GET("/user/instruments/:id", userRentalHandler.GetInstrument)
-			authRequired.POST("/user/orders", userRentalHandler.CreateOrder)
-			authRequired.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
-			authRequired.GET("/user/rentals", userRentalHandler.ListRentals)
-			authRequired.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
-			authRequired.GET("/user/contracts", userRentalHandler.ListContracts)
-			authRequired.GET("/user/contracts/:id", userRentalHandler.GetContract)
+
+			// User-friendly routes: auth required but org binding optional (guest support)
+			userOptionalAuth := api.Group("")
+			userOptionalAuth.Use(middleware.OptionalIAMInterceptor(iamService, iamClient))
+			userOptionalAuth.Use(middleware.NoCache())
+			userOptionalAuth.Use(middleware.AuditLogger(auditWriter))
+			{
+				userOptionalAuth.POST("/user/orders", userRentalHandler.CreateOrder)
+				userOptionalAuth.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
+				userOptionalAuth.GET("/user/rentals", userRentalHandler.ListRentals)
+				userOptionalAuth.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
+				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)
+				userOptionalAuth.GET("/user/contracts/:id", userRentalHandler.GetContract)
+			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
 			permRequired := authRequired.Group("")

@@ -13,10 +13,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm/clause"
-	"log"
 )
 
 type UserRentalHandler struct{}
+
+func strVal(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
 
 func NewUserRentalHandler() *UserRentalHandler {
 	return &UserRentalHandler{}
@@ -188,21 +194,57 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	userID := middleware.GetUserID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+
+	effectiveTenantID := tenantID
+	effectiveOrgID := orgID
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Verify instrument exists and is available
+	// Look up instrument (no tenant_id filter — guest doesn't know it)
 	var instrument models.Instrument
-	if err := db.Where("id = ? AND tenant_id = ? AND stock_status = ?", req.InstrumentID, tenantID, "available").First(&instrument).Error; err != nil {
+	if err := db.Where("id = ? AND stock_status = ?", req.InstrumentID, "available").First(&instrument).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument not available"})
 		return
+	}
+
+	// Guest (tid empty): derive tenant/org from instrument
+	if effectiveTenantID == "" {
+		effectiveTenantID = instrument.TenantID
+		if instrument.OrgID != nil {
+			effectiveOrgID = *instrument.OrgID
+		} else if instrument.SiteID != nil {
+			effectiveOrgID = instrument.SiteID.String()
+		} else if instrument.CurrentSiteID != nil {
+			effectiveOrgID = instrument.CurrentSiteID.String()
+		}
+	}
+
+	// Ensure user exists locally (guest may not have a local record yet)
+	var existingUser models.User
+	if err := db.Where("id = ?", userID).First(&existingUser).Error; err != nil {
+		shadowUser := models.User{
+			ID:        userID,
+			IAMSub:    userID,
+			TenantID:  effectiveTenantID,
+			OrgID:     effectiveOrgID,
+			IsShadow:  true,
+			Status:    "active",
+			Name:      "Guest",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := db.Create(&shadowUser).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user record: " + err.Error()})
+			return
+		}
 	}
 
 	// Begin transaction with row lock to prevent oversell
 	tx := db.Begin()
 	var lockedInstrument models.Instrument
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND tenant_id = ? AND stock_status = ?", req.InstrumentID, tenantID, "available").
+		Where("id = ? AND tenant_id = ? AND stock_status = ?", req.InstrumentID, effectiveTenantID, "available").
 		First(&lockedInstrument).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "instrument already reserved"})
@@ -260,7 +302,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	endDateStr := req.EndDate
 	order := models.Order{
 		ID:           uuid.New().String(),
-		TenantID:     tenantID,
+		TenantID:     effectiveTenantID,
+		OrgID:        effectiveOrgID,
 		UserID:       userID,
 		InstrumentID: req.InstrumentID,
 		Level:        instrument.Level,
@@ -284,7 +327,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Create lease session
 	leaseSession := models.LeaseSession{
 		ID:           uuid.New().String(),
-		TenantID:     tenantID,
+		TenantID:     effectiveTenantID,
+		OrgID:        stringPtr(effectiveOrgID),
 		OrderID:      order.ID,
 		UserID:       userID,
 		InstrumentID: req.InstrumentID,
@@ -294,40 +338,17 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
-
 	if err := tx.Create(&leaseSession).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session: " + err.Error()})
-		return
-	}
-
-	transitInfo := GetMerchantTransitInfo(ctx, tenantID)
-	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled && transitInfo.Address != "" {
-		deliveryJSON, _ := json.Marshal(map[string]string{
-			"address": transitInfo.Address,
-			"phone":   transitInfo.Phone,
-			"contact": transitInfo.ContactName,
-		})
-		deliveryStr := string(deliveryJSON)
-		if err := tx.Model(&models.LeaseSession{}).Where("id = ?", leaseSession.ID).Update("delivery_address", deliveryStr).Error; err != nil {
-			log.Printf("[CreateOrder] Warning: failed to set delivery_address: %v", err)
-		}
-		// Auto-create outbound forwarding session for controlled merchants
-		createForwardingSession(c, tx, tenantID, leaseSession.OrgID, leaseSession.ID, order.ID, req.InstrumentID, models.ForwardingDirectionOutbound)
-	}
-
-	// Update instrument stock_status to reserved
-	if err := tx.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
-		tx.Rollback()
-		log.Printf("[ERROR] Failed to update instrument stock_status: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reserve instrument"})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create lease session"})
 		return
 	}
 
 	// Create electronic contract
 	contract := models.ElectronicContract{
-		TenantID:       tenantID,
-		OrgID:          leaseSession.OrgID,
+		ID:             uuid.New().String(),
+		TenantID:       effectiveTenantID,
+		OrgID:          stringPtr(effectiveOrgID),
 		OrderID:        order.ID,
 		UserID:         userID,
 		InstrumentID:   req.InstrumentID,
@@ -338,28 +359,36 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 	if err := tx.Create(&contract).Error; err != nil {
 		tx.Rollback()
-		log.Printf("[CreateOrder] Failed to create contract: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create contract"})
 		return
 	}
 
-	// Commit transaction
+	// Update instrument stock_status
+	if err := tx.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reserve instrument"})
+		return
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to commit transaction"})
 		return
 	}
 
+	// Build response
+	respData := gin.H{
+		"order_id":    order.ID,
+		"amount":      totalAmount,
+		"deposit":     deposit,
+		"lease_id":    leaseSession.ID,
+		"contract_id": contract.ID,
+		"payment_url": "https://pay.example.com/" + order.ID,
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code":    20000,
 		"message": "success",
-		"data": gin.H{
-			"order_id":    order.ID,
-			"amount":      totalAmount,
-			"deposit":     deposit,
-			"lease_id":    leaseSession.ID,
-			"contract_id": contract.ID,
-			"payment_url": "https://pay.example.com/" + order.ID,
-		},
+		"data":    respData,
 	})
 }
 
@@ -381,14 +410,49 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 	userID := middleware.GetUserID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+
+	effectiveTenantID := tenantID
+	effectiveOrgID := orgID
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Verify all instruments are available
+	// Verify all instruments are available (no tenant_id filter for guests)
 	for _, item := range req.Items {
 		var inst models.Instrument
-		if err := db.Where("id = ? AND tenant_id = ? AND stock_status = ?", item.InstrumentID, tenantID, "available").First(&inst).Error; err != nil {
+		if err := db.Where("id = ? AND stock_status = ?", item.InstrumentID, "available").First(&inst).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument " + item.InstrumentID + " not available"})
+			return
+		}
+		// Derive tenant from first instrument if guest
+		if effectiveTenantID == "" {
+			effectiveTenantID = inst.TenantID
+			if inst.OrgID != nil {
+				effectiveOrgID = *inst.OrgID
+			} else if inst.SiteID != nil {
+				effectiveOrgID = inst.SiteID.String()
+			} else if inst.CurrentSiteID != nil {
+				effectiveOrgID = inst.CurrentSiteID.String()
+			}
+		}
+	}
+
+	// Ensure user exists locally (guest may not have a local record yet)
+	var existingUser models.User
+	if err := db.Where("id = ?", userID).First(&existingUser).Error; err != nil {
+		shadowUser := models.User{
+			ID:        userID,
+			IAMSub:    userID,
+			TenantID:  effectiveTenantID,
+			OrgID:     effectiveOrgID,
+			IsShadow:  true,
+			Status:    "active",
+			Name:      "Guest",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		if err := db.Create(&shadowUser).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user record: " + err.Error()})
 			return
 		}
 	}
@@ -429,7 +493,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		// Lock and verify instrument
 		var lockedInstrument models.Instrument
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND tenant_id = ? AND stock_status = ?", item.InstrumentID, tenantID, "available").
+			Where("id = ? AND tenant_id = ? AND stock_status = ?", item.InstrumentID, effectiveTenantID, "available").
 			First(&lockedInstrument).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "instrument " + item.InstrumentID + " already reserved"})
@@ -464,7 +528,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 		order := models.Order{
 			ID:           uuid.New().String(),
-			TenantID:     tenantID,
+			TenantID:     effectiveTenantID,
+			OrgID:        effectiveOrgID,
 			UserID:       userID,
 			InstrumentID: item.InstrumentID,
 			Level:        lockedInstrument.Level,
@@ -488,7 +553,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		// Create lease session
 		leaseSession := models.LeaseSession{
 			ID:           uuid.New().String(),
-			TenantID:     tenantID,
+			TenantID:     effectiveTenantID,
+			OrgID:        stringPtr(effectiveOrgID),
 			OrderID:      order.ID,
 			UserID:       userID,
 			InstrumentID: item.InstrumentID,
@@ -506,8 +572,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 		// Create electronic contract
 		contract := models.ElectronicContract{
-			TenantID:       tenantID,
-			OrgID:          leaseSession.OrgID,
+			TenantID:       effectiveTenantID,
+			OrgID:          stringPtr(effectiveOrgID),
 			OrderID:        order.ID,
 			UserID:         userID,
 			InstrumentID:   item.InstrumentID,
@@ -561,7 +627,11 @@ func (h *UserRentalHandler) ListRentals(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var leaseSessions []models.LeaseSession
-	if err := db.Where("tenant_id = ? AND user_id = ?", tenantID, userID).Find(&leaseSessions).Error; err != nil {
+	query := db.Where("user_id = ?", userID)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if err := query.Find(&leaseSessions).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query rentals: " + err.Error()})
 		return
 	}
@@ -595,9 +665,19 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 
 	// Get lease session
 	var leaseSession models.LeaseSession
-	if err := db.Where("id = ? AND tenant_id = ? AND user_id = ?", leaseID, tenantID, userID).First(&leaseSession).Error; err != nil {
+	q := db.Where("id = ? AND user_id = ?", leaseID, userID)
+	if tenantID != "" {
+		q = q.Where("tenant_id = ?", tenantID)
+	}
+	if err := q.First(&leaseSession).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "rental not found"})
 		return
+	}
+
+	// Use the record's tenant for subsequent operations
+	effectiveTenantID := tenantID
+	if effectiveTenantID == "" {
+		effectiveTenantID = leaseSession.TenantID
 	}
 
 	// Update lease session
@@ -624,7 +704,7 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 		"return_tracking": leaseSession.ReturnTracking,
 	}
 
-	transitInfo := GetMerchantTransitInfo(ctx, tenantID)
+	transitInfo := GetMerchantTransitInfo(ctx, effectiveTenantID)
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
 		respData["return_address"] = transitInfo.Address
 		respData["return_phone"] = transitInfo.Phone
@@ -635,7 +715,7 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 		}
 		// Auto-create return forwarding session for controlled merchants
 		db2 := database.GetDB().WithContext(ctx)
-		createForwardingSession(c, db2, tenantID, leaseSession.OrgID, leaseSession.ID, leaseSession.OrderID, leaseSession.InstrumentID, models.ForwardingDirectionReturn)
+		createForwardingSession(c, db2, effectiveTenantID, strVal(leaseSession.OrgID), leaseSession.ID, leaseSession.OrderID, leaseSession.InstrumentID, models.ForwardingDirectionReturn)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -677,7 +757,11 @@ func (h *UserRentalHandler) GetContract(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	var contract models.ElectronicContract
-	if err := db.Where("id = ? AND tenant_id = ? AND user_id = ?", contractID, tenantID, userID).First(&contract).Error; err != nil {
+	q := db.Where("id = ? AND user_id = ?", contractID, userID)
+	if tenantID != "" {
+		q = q.Where("tenant_id = ?", tenantID)
+	}
+	if err := q.First(&contract).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "contract not found"})
 		return
 	}

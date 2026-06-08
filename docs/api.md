@@ -1332,6 +1332,9 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 **接口**: `POST /api/user/orders`
 
+> **游客支持**：已认证但未绑定组织的用户（token 中 `tid`/`oid` 为空）也可调用此接口。
+> 订单的 `tenant_id` 和 `org_id` 从乐器 (`instrument`) 记录中派生，无需依赖 token 中的组织绑定。
+
 **请求 Body**:
 ```json
 {
@@ -1364,6 +1367,9 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 ### 6.3 批量创建订单
 
 **接口**: `POST /api/user/orders/batch`
+
+> **游客支持**：已认证但未绑定组织的用户（token 中 `tid`/`oid` 为空）也可调用此接口。
+> 订单的 `tenant_id` 和 `org_id` 从第一批乐器的记录中派生。
 
 **请求 Body**:
 ```json

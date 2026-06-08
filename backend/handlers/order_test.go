@@ -329,6 +329,190 @@ func TestLeaseFlow_GetOrdersWithStatusFilter(t *testing.T) {
 	})
 }
 
+func setupGuestTestRouter(t *testing.T, userID string) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		// Guest token: has userID but NO tenantID/orgID
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "")
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, "")
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Set("tenant_id", "")
+		c.Set("user_id", userID)
+		c.Set("org_id", "")
+		c.Next()
+	})
+	return router
+}
+
+func TestGuestCreateOrder_TenantDerivedFromInstrument(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	gTenantID := uuid.New().String()
+	gOrgID := uuid.New().String()
+	gInstrumentID := uuid.New().String()
+	gUserID := uuid.New().String()
+	now := time.Now()
+
+	db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
+		gUserID, gUserID, gTenantID, gOrgID, "Guest User", "guest@example.com", "13900139000", now, now)
+
+	db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, site_id, level, stock_status, images, specifications, pricing, created_at, updated_at) 
+		VALUES (?, ?, ?, NULL, 'standard', 'available', '[]', '{}', '[]', ?, ?)`,
+		gInstrumentID, gTenantID, gOrgID, now, now)
+
+	defer func() {
+		db.Exec(`DELETE FROM lease_sessions WHERE tenant_id = ?`, gTenantID)
+		db.Exec(`DELETE FROM orders WHERE tenant_id = ?`, gTenantID)
+		db.Exec(`DELETE FROM instruments WHERE id = ?`, gInstrumentID)
+		db.Exec(`DELETE FROM users WHERE id = ?`, gUserID)
+	}()
+
+	router := setupGuestTestRouter(t, gUserID)
+	handler := &UserRentalHandler{}
+	router.POST("/user/orders", handler.CreateOrder)
+
+	body := map[string]interface{}{
+		"instrument_id": gInstrumentID,
+		"start_date":    "2026-06-10",
+		"end_date":      "2026-07-10",
+		"delivery_address": map[string]interface{}{
+			"city":    "Beijing",
+			"address": "Chaoyang District",
+		},
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest("POST", "/user/orders", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, float64(20000), resp["code"])
+
+	// Verify order was created with the instrument's tenant_id
+	var order models.Order
+	result := db.Where("user_id = ? AND instrument_id = ?", gUserID, gInstrumentID).First(&order)
+	require.NoError(t, result.Error)
+	assert.Equal(t, gTenantID, order.TenantID, "order tenant should match instrument tenant")
+	assert.Equal(t, gOrgID, order.OrgID, "order org should match instrument org")
+}
+
+func TestGuestCreateOrder_InstrumentNotFound(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	gUserID := uuid.New().String()
+	now := time.Now()
+	db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
+		gUserID, gUserID, uuid.New().String(), uuid.New().String(), "Guest User", "guest@example.com", "13900139000", now, now)
+
+	defer db.Exec(`DELETE FROM users WHERE id = ?`, gUserID)
+
+	router := setupGuestTestRouter(t, gUserID)
+	handler := &UserRentalHandler{}
+	router.POST("/user/orders", handler.CreateOrder)
+
+	body := map[string]interface{}{
+		"instrument_id": uuid.New().String(),
+		"start_date":    "2026-06-10",
+		"end_date":      "2026-07-10",
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest("POST", "/user/orders", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Equal(t, float64(40002), resp["code"])
+}
+
+func TestGuestBatchCreateOrder(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	gTenantID := uuid.New().String()
+	gOrgID := uuid.New().String()
+	gUserID := uuid.New().String()
+	now := time.Now()
+
+	db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, ?, ?)`,
+		gUserID, gUserID, gTenantID, gOrgID, "Guest User", "guest@example.com", "13900139000", now, now)
+
+	id1 := uuid.New().String()
+	db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, level, stock_status, images, specifications, pricing, created_at, updated_at) 
+		VALUES (?, ?, ?, 'standard', 'available', '[]', '{}', '[]', ?, ?)`,
+		id1, gTenantID, gOrgID, now, now)
+
+	id2 := uuid.New().String()
+	db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, level, stock_status, images, specifications, pricing, created_at, updated_at) 
+		VALUES (?, ?, ?, 'standard', 'available', '[]', '{}', '[]', ?, ?)`,
+		id2, gTenantID, gOrgID, now, now)
+
+	defer func() {
+		db.Exec(`DELETE FROM lease_sessions WHERE tenant_id = ?`, gTenantID)
+		db.Exec(`DELETE FROM orders WHERE tenant_id = ?`, gTenantID)
+		db.Exec(`DELETE FROM instruments WHERE id IN (?, ?)`, id1, id2)
+		db.Exec(`DELETE FROM users WHERE id = ?`, gUserID)
+	}()
+
+	router := setupGuestTestRouter(t, gUserID)
+	handler := &UserRentalHandler{}
+	router.POST("/user/orders/batch", handler.BatchCreateOrder)
+
+	body := map[string]interface{}{
+		"items": []map[string]interface{}{
+			{"instrument_id": id1, "start_date": "2026-06-10", "end_date": "2026-07-10"},
+			{"instrument_id": id2, "start_date": "2026-06-15", "end_date": "2026-07-15"},
+		},
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest("POST", "/user/orders/batch", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Equal(t, float64(20000), resp["code"])
+	data := resp["data"].(map[string]interface{})
+	orders := data["orders"].([]interface{})
+	assert.Len(t, orders, 2)
+}
+
 func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
 	cfg := database.LoadConfig()
 	db, err := database.InitDB(cfg)

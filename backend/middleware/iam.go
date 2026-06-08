@@ -210,6 +210,96 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 	}
 }
 
+func OptionalIAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+
+		if authHeader == "" {
+			if token, err := c.Cookie("token"); err == nil && token != "" {
+				authHeader = "Bearer " + token
+			}
+		}
+
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    40100,
+				"message": "missing or invalid authorization header",
+			})
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		claims, err := iamService.ValidateToken(tokenString)
+		if err != nil {
+			log.Printf("[IAM] Token validation failed: %v", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    40101,
+				"message": "invalid token: " + err.Error(),
+			})
+			return
+		}
+
+		log.Printf("[IAM DEBUG] OptionalIAMInterceptor: sub=%s, tid=%s, oid=%s, role=%s, iss=%s", claims.Subject, claims.TenantID, claims.OrgID, claims.Role, claims.Issuer)
+
+		issuerValid := len(validIssuers) == 0
+		for _, issuer := range validIssuers {
+			if claims.Issuer == issuer {
+				issuerValid = true
+				break
+			}
+		}
+		if claims.Issuer == "" {
+			issuerValid = true
+		}
+		if !issuerValid {
+			log.Printf("[IAM DEBUG] Invalid issuer: %s, valid issuers: %v", claims.Issuer, validIssuers)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    40102,
+				"message": "invalid token issuer",
+			})
+			return
+		}
+
+		tenantID := claims.TenantID
+		if tenantID == "" {
+			tenantID = claims.OrgID
+		}
+		orgID := claims.OrgID
+		if orgID == "" {
+			orgID = tenantID
+		}
+
+		ctx := database.SetTenantID(c.Request.Context(), tenantID)
+		ctx = context.WithValue(ctx, ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, ContextKeyOrgID, orgID)
+		ctx = database.SetOrgID(ctx, orgID)
+		ctx = context.WithValue(ctx, ContextKeyNamespaceID, claims.NamespaceID)
+		ctx = context.WithValue(ctx, ContextKeyUserID, claims.UserID)
+		ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
+		ctx = context.WithValue(ctx, ContextKeyIsOwner, claims.IsOwner)
+		ctx = context.WithValue(ctx, ContextKeyFunctionalRoles, claims.Roles)
+		ctx = context.WithValue(ctx, ContextKeyGid, claims.Gid)
+		ctx = context.WithValue(ctx, ContextKeySysPerm, claims.SysPerm)
+		ctx = context.WithValue(ctx, ContextKeyCusPerm, claims.CusPerm)
+		ctx = context.WithValue(ctx, ContextKeyCusPermExt, claims.CusPermExt)
+		ctx = context.WithValue(ctx, ContextKeyIAMClient, iamClient)
+		ctx = context.WithValue(ctx, ContextKeyName, claims.Name)
+		c.Request = c.Request.WithContext(ctx)
+
+		if claims.ExpiresAt != nil {
+			timeUntilExpiry := time.Until(claims.ExpiresAt.Time)
+			if timeUntilExpiry < 10*time.Minute {
+				log.Printf("[IAM] Token for user %s expires in %v", claims.Subject, timeUntilExpiry)
+				c.Header("X-Token-Expires-Soon", "true")
+				c.Header("X-Token-Expires-At", claims.ExpiresAt.Time.Format(time.RFC3339))
+			}
+		}
+
+		c.Next()
+	}
+}
+
 func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if isPublicRoute(c.Request.URL.Path) {
