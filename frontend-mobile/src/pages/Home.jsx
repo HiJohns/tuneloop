@@ -32,9 +32,12 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   // Safe parse JSON images and pricing
   const images = parseImages(instrument.images)
   const pricing = parsePricing(instrument.pricing)
-  const dailyRent = pricing[0]?.daily_rent || instrument.base_daily_rate || 0
-const monthlyRent = Math.round(dailyRent * 25)
+  const dailyRent = (Array.isArray(pricing) ? pricing[0]?.daily_rent : pricing.daily_rent) || instrument.base_daily_rate || 0
+  const monthlyRent = Math.round(dailyRent * 25)
   const weeklyRent = Math.round(dailyRent * 6)
+  const rawDeposit = Array.isArray(pricing) ? pricing[0]?.deposit : pricing?.deposit
+  const fallbackDeposit = dailyRent * 2
+  const displayDeposit = rawDeposit || fallbackDeposit || 0
   
   const handleFavoriteClick = (e) => {
     e.stopPropagation()
@@ -74,7 +77,7 @@ const monthlyRent = Math.round(dailyRent * 25)
            ¥{monthlyRent}<span className="text-brand-unit text-sm">/月</span>
          </p>
          <p className="text-gray-500 text-sm">
-           押金: ¥{pricing[0]?.deposit || 0}
+            押金: ¥{displayDeposit}
          </p>
        </div>
     </div>
