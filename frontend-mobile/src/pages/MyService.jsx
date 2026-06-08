@@ -106,7 +106,7 @@ export default function MyService() {
           ) : (
             <div 
               className="flex flex-col items-center text-gray-400 cursor-pointer"
-              onClick={() => redirectToLogin('welcome')}
+              onClick={() => redirectToLogin()}
             >
               <span className="text-xl">👤</span>
               <span className="text-xs mt-1">登录</span>

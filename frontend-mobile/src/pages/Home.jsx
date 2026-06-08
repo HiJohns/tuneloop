@@ -377,10 +377,7 @@ export default function Home() {
           ) : (
             <div 
               className="flex flex-col items-center text-brand-primary cursor-pointer"
-              onClick={() => {
-                sessionStorage.setItem('post_auth_redirect', window.location.pathname)
-                redirectToLogin('welcome')
-              }}
+              onClick={() => redirectToLogin()}
             >
               <span className="text-xl">🔑</span>
               <span className="text-xs mt-1">登录</span>
