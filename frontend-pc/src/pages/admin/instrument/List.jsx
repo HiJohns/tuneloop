@@ -491,7 +491,7 @@ export default function InstrumentList() {
             allowClear={{ clearIcon: <CloseCircleFilled style={{ fontSize: 16 }} /> }}
             onChange={setCategoryFilter}
           >
-            {filterOptions.categories.map(cat => (
+            {(filterOptions.categories || []).map(cat => (
               <Option key={cat.category_id} value={cat.category_id}>{cat.category_name}</Option>
             ))}
           </Select>
@@ -502,7 +502,7 @@ export default function InstrumentList() {
             allowClear={{ clearIcon: <CloseCircleFilled style={{ fontSize: 16 }} /> }}
             onChange={setLevelFilter}
           >
-            {filterOptions.levels.map(lv => (
+            {(filterOptions.levels || []).map(lv => (
               <Option key={lv.level_id} value={lv.level_id}>{lv.level_name}</Option>
             ))}
           </Select>
@@ -513,7 +513,7 @@ export default function InstrumentList() {
             allowClear={{ clearIcon: <CloseCircleFilled style={{ fontSize: 16 }} /> }}
             onChange={setStatusFilter}
           >
-            {filterOptions.statuses.map(st => (
+            {(filterOptions.statuses || []).map(st => (
               <Option key={st.value} value={st.value}>
                 {st.value === 'available' ? '可租' : st.value === 'rented' ? '已租出' : st.value === 'maintenance' ? '维修中' : st.value === 'shipping' ? '配送中' : st.value === 'reserved' ? '已预订' : st.value}
               </Option>
