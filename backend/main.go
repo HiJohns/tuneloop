@@ -248,7 +248,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
-		authRequired.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
 		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
 		authRequired.GET("/orders/:id", middleware.RequireCusPerm("order:read"), handlers.GetOrder)
 		authRequired.POST("/orders/:id/pay", middleware.RequireCusPerm("order:update"), handlers.PayOrder)
@@ -292,7 +291,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", middleware.RequireRole("ADMIN", "OWNER"), staffHandler.ListStaff)
-			authRequired.GET("/users/me", staffHandler.GetCurrentUser)
 			authRequired.PUT("/users/me", staffHandler.UpdateCurrentUser)
 			authRequired.POST("/users/me/resend-email-confirmation", staffHandler.ResendEmailConfirmation)
 			authRequired.POST("/user/reset-password", handlers.ResetPasswordSelf)
@@ -444,6 +442,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
 				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)
 				userOptionalAuth.GET("/user/contracts/:id", userRentalHandler.GetContract)
+				userOptionalAuth.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
+				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
