@@ -344,11 +344,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userRequired.GET("/user/ownership/:id/download", handlers.DownloadOwnershipCertificate)
 			userRequired.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
 			userRequired.PUT("/orders/:id/terminate", handlers.TerminateOrder)
-			userRequired.GET("/user/addresses", userAddressHandler.ListAddresses)
-			userRequired.POST("/user/addresses", userAddressHandler.CreateAddress)
-			userRequired.PUT("/user/addresses/:id", userAddressHandler.UpdateAddress)
-			userRequired.PUT("/user/addresses/:id/default", userAddressHandler.SetDefaultAddress)
-			userRequired.DELETE("/user/addresses/:id", userAddressHandler.DeleteAddress)
 		}
 
 		maintHandler := handlers.NewMaintenanceHandler()
@@ -444,6 +439,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/contracts/:id", userRentalHandler.GetContract)
 				userOptionalAuth.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
+				userOptionalAuth.GET("/user/addresses", userAddressHandler.ListAddresses)
+				userOptionalAuth.POST("/user/addresses", userAddressHandler.CreateAddress)
+				userOptionalAuth.PUT("/user/addresses/:id", userAddressHandler.UpdateAddress)
+				userOptionalAuth.PUT("/user/addresses/:id/default", userAddressHandler.SetDefaultAddress)
+				userOptionalAuth.DELETE("/user/addresses/:id", userAddressHandler.DeleteAddress)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)

@@ -240,6 +240,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user record: " + err.Error()})
 			return
 		}
+		// Fetch real user info from IAM to replace shadow defaults
+		iamClient := services.NewIAMClient()
+		if iamUser, err := iamClient.GetUser(userID); err == nil && iamUser != nil {
+			db.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+				"name":  iamUser.Name,
+				"email": iamUser.Email,
+				"phone": iamUser.Phone,
+			})
+		}
 	}
 
 	// Begin transaction with row lock to prevent oversell
@@ -471,6 +480,15 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		if err := db.Create(&shadowUser).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user record: " + err.Error()})
 			return
+		}
+		// Fetch real user info from IAM to replace shadow defaults
+		iamClient := services.NewIAMClient()
+		if iamUser, err := iamClient.GetUser(userID); err == nil && iamUser != nil {
+			db.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+				"name":  iamUser.Name,
+				"email": iamUser.Email,
+				"phone": iamUser.Phone,
+			})
 		}
 	}
 

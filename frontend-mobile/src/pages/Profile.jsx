@@ -306,31 +306,33 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* 收货地址 */}
-        <div className="bg-white rounded-xl p-4">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium flex items-center gap-2">
-              <MapPin size={18} className="text-brand-primary" />
-              收货地址
-            </h3>
-            <button onClick={() => { setEditingAddress(null); setShowAddressForm(true) }} className="text-brand-primary">
-              <Plus size={18} />
-            </button>
-          </div>
-          {addresses.length === 0 ? (
-            <p className="text-sm text-red-500">请设置默认收货地址</p>
-          ) : (
-            <div className="space-y-2">
-              {addresses.filter(a => a.is_default).slice(0, 1).map(addr => (
-                <div key={addr.id} className="text-sm text-gray-600">
-                  <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
-                  <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}</p>
-                  <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
-                </div>
-              ))}
+        {/* 收货地址 — 仅对顾客显示 */}
+        {businessRole !== 'site_admin' && businessRole !== 'site_member' && (
+          <div className="bg-white rounded-xl p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <MapPin size={18} className="text-brand-primary" />
+                收货地址
+              </h3>
+              <button onClick={() => { setEditingAddress(null); setShowAddressForm(true) }} className="text-brand-primary">
+                <Plus size={18} />
+              </button>
             </div>
-          )}
-        </div>
+            {addresses.length === 0 ? (
+              <p className="text-sm text-red-500">请设置默认收货地址</p>
+            ) : (
+              <div className="space-y-2">
+                {addresses.filter(a => a.is_default).slice(0, 1).map(addr => (
+                  <div key={addr.id} className="text-sm text-gray-600">
+                    <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
+                    <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}</p>
+                    <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Current Rentals */}
         {businessRole !== 'site_admin' && businessRole !== 'site_member' && activeLeases.length > 0 && (
