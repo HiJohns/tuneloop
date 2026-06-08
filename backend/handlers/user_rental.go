@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,9 +9,11 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -276,22 +278,37 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	days := int(endDate.Sub(startDate).Hours() / 24)
 	months := days / 30
 
-	// Parse pricing for calculation
-	var pricing []map[string]interface{}
-	dailyRent, deposit, shippingFee := 0.0, 0.0, 0.0
-	if instrument.Pricing != "" {
-		if err := json.Unmarshal([]byte(instrument.Pricing), &pricing); err == nil && len(pricing) > 0 {
-			if val, ok := pricing[0]["daily_rent"].(float64); ok {
-				dailyRent = val
+	// Compute pricing via CalculatePricing (merchant defaults as fallback)
+	var merchantConfigJSON string
+	var config models.MerchantPricingConfig
+	if err := db.Where("tenant_id = ?", effectiveTenantID).First(&config).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			var defaultTemplate models.PricingTemplate
+			if err2 := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err2 != nil {
+				merchantConfigJSON = "{}"
+			} else {
+				merchantConfigJSON = defaultTemplate.ConfigSchema
 			}
-			if val, ok := pricing[0]["deposit"].(float64); ok {
-				deposit = val
-			}
-			if val, ok := pricing[0]["shipping_fee"].(float64); ok {
-				shippingFee = val
-			}
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query pricing config"})
+			return
 		}
+	} else {
+		merchantConfigJSON = config.Config
 	}
+
+	baseRate := 0.0
+	if instrument.BaseDailyRate != nil {
+		baseRate = *instrument.BaseDailyRate
+	}
+	pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, instrument.PricingOverrides)
+
+	dailyRent := 0.0
+	if len(pricingResult.Tiers) > 0 {
+		dailyRent = pricingResult.Tiers[0].DailyRate
+	}
+	deposit := pricingResult.Deposit
+	shippingFee := pricingResult.ShippingFee
 
 	// monthly rent = daily_rent * 25
 	monthlyRent := dailyRent * 25
@@ -457,6 +474,25 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 	}
 
+	// Resolve merchant pricing config once (used for all items)
+	var merchantConfigJSON string
+	var config models.MerchantPricingConfig
+	if err := db.Where("tenant_id = ?", effectiveTenantID).First(&config).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			var defaultTemplate models.PricingTemplate
+			if err2 := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err2 != nil {
+				merchantConfigJSON = "{}"
+			} else {
+				merchantConfigJSON = defaultTemplate.ConfigSchema
+			}
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query pricing config"})
+			return
+		}
+	} else {
+		merchantConfigJSON = config.Config
+	}
+
 	// Process all orders in a single transaction
 	tx := db.Begin()
 
@@ -504,21 +540,17 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		days := int(endDate.Sub(startDate).Hours() / 24)
 		months := days / 30
 
-		var pricing []map[string]interface{}
-		dailyRent, deposit, shippingFee := 0.0, 0.0, 0.0
-		if lockedInstrument.Pricing != "" {
-			if err := json.Unmarshal([]byte(lockedInstrument.Pricing), &pricing); err == nil && len(pricing) > 0 {
-				if val, ok := pricing[0]["daily_rent"].(float64); ok {
-					dailyRent = val
-				}
-				if val, ok := pricing[0]["deposit"].(float64); ok {
-					deposit = val
-				}
-				if val, ok := pricing[0]["shipping_fee"].(float64); ok {
-					shippingFee = val
-				}
-			}
+		baseRate := 0.0
+		if lockedInstrument.BaseDailyRate != nil {
+			baseRate = *lockedInstrument.BaseDailyRate
 		}
+		pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, lockedInstrument.PricingOverrides)
+		dailyRent := 0.0
+		if len(pricingResult.Tiers) > 0 {
+			dailyRent = pricingResult.Tiers[0].DailyRate
+		}
+		deposit := pricingResult.Deposit
+		shippingFee := pricingResult.ShippingFee
 
 		monthlyRent := dailyRent * 25
 		orderAmount := monthlyRent + deposit + shippingFee

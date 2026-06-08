@@ -314,7 +314,7 @@ export default function StaffInstrumentDetail() {
                   <Archive size={18} />下架
                 </button>
               )}
-              {instrument.stock_status === 'reserved' && has('order:manage') && (
+              {instrument.stock_status === 'reserved' && has('order:update') && (
                 <button onClick={handleShip} className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <Truck size={18} />发货
                 </button>

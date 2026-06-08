@@ -82,6 +82,37 @@ func GetInstrumentByID(c *gin.Context) {
 		siteAddress = transitInfo.Address
 	}
 
+	// Compute pricing fallback: if instrument has no explicit pricing, use CalculatePricing with merchant defaults
+	pricingField := json.RawMessage(instrument.Pricing)
+	if instrument.Pricing == "" || instrument.Pricing == "{}" || instrument.Pricing == "[]" {
+		var mConfig models.MerchantPricingConfig
+		configJSON := "{}"
+		if err := db.Where("tenant_id = ?", instrument.TenantID).First(&mConfig).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				var defaultTemplate models.PricingTemplate
+				if err2 := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err2 == nil {
+					configJSON = defaultTemplate.ConfigSchema
+				}
+			}
+		} else {
+			configJSON = mConfig.Config
+		}
+		baseRate := 0.0
+		if instrument.BaseDailyRate != nil {
+			baseRate = *instrument.BaseDailyRate
+		}
+		computed := services.CalculatePricing(baseRate, configJSON, instrument.PricingOverrides)
+		dailyRent := 0.0
+		if len(computed.Tiers) > 0 {
+			dailyRent = computed.Tiers[0].DailyRate
+		}
+		computedArr := []map[string]interface{}{
+			{"daily_rent": dailyRent, "deposit": computed.Deposit, "shipping_fee": computed.ShippingFee},
+		}
+		raw, _ := json.Marshal(computedArr)
+		pricingField = json.RawMessage(raw)
+	}
+
 	instrumentMap := map[string]interface{}{
 		"id":             instrument.ID,
 		"tenant_id":      instrument.TenantID,
@@ -102,7 +133,7 @@ func GetInstrumentByID(c *gin.Context) {
 		"created_at":     instrument.CreatedAt,
 		"updated_at":     instrument.UpdatedAt,
 		"specifications": specsArray,
-		"pricing":        json.RawMessage(instrument.Pricing),
+		"pricing":        pricingField,
 	}
 
 	// Fetch dynamic properties from instrument_properties table
