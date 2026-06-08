@@ -99,6 +99,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const isPageMode = !onCancel
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [loadedData, setLoadedData] = useState(null)
   const [fileList, setFileList] = useState([])    
   const [uploadStatus, setUploadStatus] = useState({
@@ -896,14 +897,14 @@ const loadCategoryChildren = async (node) => {
         return
       }
       
-      setLoading(true)
+      setSubmitting(true)
       
       console.log('[DEBUG] Form values:', values)
       
       // Validate level is selected
       if (!values.level_id) {
         message.error('请选择乐器分级')
-        setLoading(false)
+        setSubmitting(false)
         return
       }
       
@@ -915,7 +916,7 @@ const loadCategoryChildren = async (node) => {
         console.log('[DEBUG] Upload result:', uploadResult)
         if (!uploadResult.success) {
           console.error('[DEBUG] Upload failed, aborting submit')
-          setLoading(false)
+          setSubmitting(false)
           return
         }
         images = uploadResult.uploadedImages || []
@@ -936,7 +937,7 @@ const loadCategoryChildren = async (node) => {
         } catch (err) {
           console.error('Video upload failed:', err)
           message.error('视频上传失败')
-          setLoading(false)
+          setSubmitting(false)
           setVideoUploading(false)
           return
         } finally {
@@ -1043,7 +1044,7 @@ const loadCategoryChildren = async (node) => {
         message.error(error.message || '提交失败')
       }
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -1357,8 +1358,8 @@ const loadCategoryChildren = async (node) => {
             <Button 
               type="primary"
               onClick={handleSubmit}
-              loading={loading || uploadStatus.isUploading}
-              disabled={uploadStatus.failedFiles.length > 0}
+               loading={submitting || uploadStatus.isUploading}
+               disabled={submitting || uploadStatus.failedFiles.length > 0}
             >
               提交
             </Button>
