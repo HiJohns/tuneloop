@@ -163,7 +163,7 @@ export default function SiteBulkImport() {
               {previewData?.summary?.failed > 0 && (
                 <Alert message={`警告：${previewData.summary.failed} 条记录存在错误，将被跳过`} type="warning" showIcon />
               )}
-              <Button type="primary" onClick={handleExecuteImport} loading={executing}>
+              <Button type="primary" onClick={handleExecuteImport} loading={executing} disabled={executing}>
                 确认导入
               </Button>
             </Space>

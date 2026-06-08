@@ -191,7 +191,7 @@ const MerchantManagement = () => {
         onOk={() => form.submit()}
         onCancel={() => setModalOpen(false)}
         width={600}
-        okButtonProps={{ disabled: creatingManager }}
+        okButtonProps={{ disabled: creatingManager, loading: creatingManager }}
       >
         <Form form={form} onFinish={handleSubmit} layout="vertical">
           <Form.Item
