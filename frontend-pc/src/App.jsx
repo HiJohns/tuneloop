@@ -285,7 +285,7 @@ function MainLayout() {
     label: '乐器管理',
     children: [
       { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
-      { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['instrument:update'] } },
+      { key: '/instruments/categories', label: '分类设置', permission: { sysPermBits: [SysPermBits.Admin] } },
       { key: '/instruments/properties', label: '属性管理', permission: { sysPermBits: [SysPermBits.Admin] } }
     ]
   },
@@ -543,7 +543,7 @@ function onMenuClick(e) {
             <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
             <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           
-            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:update'] }}><CategoryList /></ProtectedRoute>} />
+            <Route path="/instruments/categories" element={<ProtectedRoute requiredPermission={{ sysPermBits: [SysPermBits.Admin] }}><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/:id/edit" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
             <Route path="/instruments/categories/new" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
