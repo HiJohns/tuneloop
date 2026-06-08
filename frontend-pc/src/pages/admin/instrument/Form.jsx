@@ -158,7 +158,12 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
 
     // Pricing permission: instrument:price has BitCode 4
     const priceBit = 4
-    setHasPricePerm((cusPerm & (1 << priceBit)) !== 0)
+    // In create mode, always show pricing section; in edit mode, check permission
+    if (initialData) {
+      setHasPricePerm((cusPerm & (1 << priceBit)) !== 0)
+    } else {
+      setHasPricePerm(true)
+    }
   }, [])
 
   // Load merchant pricing config for tiered pricing preview
@@ -947,12 +952,12 @@ const loadCategoryChildren = async (node) => {
         level_id: values.level_id,
         description: values.description,
         base_daily_rate: values.base_daily_rate || 0,
-        pricing: [{
+        pricing: {
           daily_rent: values.base_daily_rate || 0,
           deposit: values.deposit || 0,
           shipping_fee: values.shipping_fee || 0,
           overdue_daily_fee: values.overdue_daily_fee || values.base_daily_rate || 0,
-        }],
+        },
         images: images,
         video: videoUrl,
         status: initialData ? (values.status || loadedData?.status || 'available') : 'available',
