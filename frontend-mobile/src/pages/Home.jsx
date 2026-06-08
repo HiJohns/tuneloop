@@ -104,8 +104,7 @@ export default function Home() {
       else setLoadingMore(true)
       
       const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-      const token = getToken()
-      const endpoint = token ? '/instruments' : '/public/instruments'
+      const endpoint = '/public/instruments'
       const response = await apiFetch(`${baseUrl}${endpoint}?page=${pageNum}&pageSize=20${tenant ? `&tenant=${tenant}` : ''}`)
       const result = await response.json()
       
