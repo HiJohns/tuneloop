@@ -484,13 +484,9 @@ func GetInstrumentFilterOptions(c *gin.Context) {
 func GetCategories(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
 
 	var categories []models.Category
-	// Fix: Query ALL categories (regardless of visible) to build hierarchy
-	// The frontend will handle displaying only visible ones if needed
-	if err := db.Where("tenant_id = ?", tenantID).
-		Order("sort ASC").
+	if err := db.Order("sort ASC").
 		Find(&categories).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,

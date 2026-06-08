@@ -55,8 +55,8 @@
 | 认证（登录/回调/刷新） | 无 | — |
 | 乐器查看/分类查看 | 已登录 | — |
 | 乐器创建/编辑/删除 | cus_perm | instrument:create/update/delete |
-| 分类配置 | cus_perm | instrument:update |
-| 属性管理 | cus_perm | instrument:update |
+| 分类配置 | cus_perm | category:manage |
+| 属性管理 | cus_perm | attribute:manage |
 | 库存查看 | cus_perm | instrument:read |
 | 库存调拨 | cus_perm | instrument:update |
 | 租金设定 | cus_perm | instrument:price |
@@ -381,7 +381,8 @@
 
 ### 3.3 分类列表
 
-**接口**: `GET /api/public/categories`
+**接口**: `GET /api/public/categories` — 公开分类（不限制 tenant）
+**接口**: `GET /api/categories` — 全站统一分类，需已登录（不限 tenant，由 namespace_admin 统一管理）
 
 ### 3.4 网点列表
 

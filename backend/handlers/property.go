@@ -20,11 +20,10 @@ func NewPropertyHandler() *PropertyHandler {
 
 // GET /api/properties - List all properties
 func (h *PropertyHandler) ListProperties(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c.Request.Context())
 	db := database.GetDB().WithContext(c.Request.Context())
 
 	var properties []models.Property
-	if err := db.Where("tenant_id = ?", tenantID).Find(&properties).Error; err != nil {
+	if err := db.Find(&properties).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to query properties: " + err.Error(),
@@ -45,7 +44,7 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 	var result []PropertyWithOptions
 	for _, prop := range properties {
 		var rawOptions []models.PropertyOption
-		db.Where("property_name = ? AND tenant_id = ? AND status != ?", prop.Name, tenantID, "obsolete").Find(&rawOptions)
+		db.Where("property_name = ? AND status != ?", prop.Name, "obsolete").Find(&rawOptions)
 
 		options := make([]PropertyOptionResponse, 0, len(rawOptions))
 		for _, opt := range rawOptions {
@@ -428,7 +427,7 @@ func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 	}
 
 	var prop models.Property
-	if err := db.Where("id = ? AND tenant_id = ?", propertyID, tenantID).First(&prop).Error; err != nil {
+	if err := db.Where("id = ?", propertyID).First(&prop).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
@@ -454,7 +453,7 @@ func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 		Select("po.value, po.status, COALESCE(ip_cnt.cnt, 0) AS frequency").
 		Joins("LEFT JOIN (SELECT property_name, value, tenant_id, COUNT(*) AS cnt FROM instrument_properties WHERE tenant_id = ? GROUP BY property_name, value, tenant_id) ip_cnt ON ip_cnt.property_name = po.property_name AND ip_cnt.value = po.value AND ip_cnt.tenant_id = po.tenant_id",
 			tenantID).
-		Where("po.property_name = ? AND po.tenant_id = ? AND po.status != ?", prop.Name, tenantID, "obsolete")
+		Where("po.property_name = ? AND po.status != ?", prop.Name, "obsolete")
 
 	if query != "" {
 		q = q.Where("po.value ILIKE ?", "%"+query+"%")
