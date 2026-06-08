@@ -146,9 +146,10 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				OperatorID:  operatorID,
 				SkipActivation: input.SkipActivation,
 			}
+			// Always generate password (IAM requires it), conditionally show to user
+			createReq.Password = generatePassword()
+			createReq.SendNotificationEmail = input.SkipActivation
 			if input.SkipActivation {
-				createReq.Password = generatePassword()
-				createReq.SendNotificationEmail = true
 				createReq.NotificationLang = middleware.GetCulture(c)
 				log.Printf("[AddMember] skip_activation=true, generated password for %s", nu.Email)
 			} else {
