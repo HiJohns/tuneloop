@@ -316,7 +316,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			propertyRequired.GET("/properties/:id/options/search", propertyHandler.SearchPropertyOptions)
 
 			propertyRequiredWithAdmin := propertyRequired.Group("")
-			propertyRequiredWithAdmin.Use(middleware.RequireSysPerm(0))
+			propertyRequiredWithAdmin.Use(middleware.RequireCusPerm("attribute:manage"))
 			propertyRequiredWithAdmin.POST("/property", propertyHandler.CreateProperty)
 			propertyRequiredWithAdmin.PUT("/property/:id", propertyHandler.UpdateProperty)
 			propertyRequiredWithAdmin.POST("/property/option", propertyHandler.CreatePropertyOption)
