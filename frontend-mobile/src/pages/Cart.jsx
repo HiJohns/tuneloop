@@ -213,6 +213,17 @@ export default function Cart() {
       redirectToLogin()
       return
     }
+    if (token.includes('.')) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (!payload.tid && !payload.oid) {
+          sessionStorage.setItem('post_auth_redirect', '/cart')
+          sessionStorage.setItem('pending_order', 'true')
+          redirectToLogin()
+          return
+        }
+      } catch {}
+    }
     sessionStorage.removeItem('pending_order')
     if (!address.trim()) {
       alert('请先填写收货地址')
