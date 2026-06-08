@@ -228,6 +228,12 @@ async function request(endpoint, options = {}) {
         return processApiResponse(endpoint, retryData)
       }
     } catch {}
+    // 40104 = no org binding, don't force logout, just return empty
+    try {
+      const clone = response.clone()
+      const body = await clone.json()
+      if (body.code === 40104) return []
+    } catch {}
     degradeToGuest()
     return []
   }
@@ -287,6 +293,12 @@ export async function apiFetch(url, options = {}) {
       headers['Authorization'] = `Bearer ${newToken}`
       const retryResp = await fetch(url, { ...options, headers })
       if (retryResp.ok || retryResp.status !== 401) return retryResp
+    } catch {}
+    // 40104 = no org binding, don't force logout, just return response
+    try {
+      const clone = response.clone()
+      const body = await clone.json()
+      if (body.code === 40104) return response
     } catch {}
     degradeToGuest()
     throw new Error('Unauthorized')
