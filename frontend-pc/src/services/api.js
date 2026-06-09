@@ -88,7 +88,11 @@ function isWeChatBrowser() {
 
 function redirectToIAM() {
   const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-  const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+  const clientId = window.APP_CONFIG?.pc?.iamClientId
+  if (!clientId) {
+    alert('无法获取配置，请刷新页面重试')
+    return
+  }
   const redirectUri = encodeURIComponent(window.location.origin + '/callback')
   
   if (isWeChatBrowser()) {
@@ -139,7 +143,7 @@ async function handleAuthError(token, retryCount, endpoint, options) {
    Logger.warn('AUTH', 'Auth failed, redirecting to IAM login')
    clearTokens()
    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-   const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+   const clientId = window.APP_CONFIG?.pc?.iamClientId
    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     window.location.href = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
 
@@ -214,7 +218,7 @@ async function request(endpoint, options = {}, retryCount = 0) {
       console.warn('[AUTH] perm_version changed:', storedVersion, '->', serverVersion, ', forcing re-login')
       clearTokens()
       const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-      const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+      const clientId = window.APP_CONFIG?.pc?.iamClientId
       const redirectUri = encodeURIComponent(window.location.origin + '/callback')
       window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&noRegister=1'
       throw new Error('Permission version changed, please re-login')

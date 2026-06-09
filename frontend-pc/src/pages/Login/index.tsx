@@ -10,7 +10,7 @@ const LoginPage: React.FC = () => {
   const reason = params.get('reason');
 
   const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '';
-  const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc';
+  const clientId = window.APP_CONFIG?.pc?.iamClientId;
   const redirectUri = encodeURIComponent(window.location.origin + '/callback');
 
   // If session expired, redirect directly to IAM login
@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
 
     setRedirecting(true);
     const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '';
-    const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc';
+    const clientId = window.APP_CONFIG?.pc?.iamClientId;
     const redirectUri = encodeURIComponent(window.location.origin + '/callback');
     const state = btoa(JSON.stringify({ originalUrl }));
     window.location.href = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${encodeURIComponent(state)}&noRegister=1`;

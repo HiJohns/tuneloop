@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { checkPermission } from '../config/menuPermissions'
 
 const getIAMUrl = () => window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId
 
 function getToken() {
   const token = localStorage.getItem('token')

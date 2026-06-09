@@ -78,10 +78,11 @@ function handleLogout() {
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   
-   // Redirect to IAM login for proper logout with redirect back
-   const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-   const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
-   const redirectUri = encodeURIComponent(window.location.origin)
+    // Redirect to IAM login for proper logout with redirect back
+    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+    const clientId = window.APP_CONFIG?.pc?.iamClientId
+    if (!clientId) { alert('无法获取配置，请刷新页面重试'); return }
+    const redirectUri = encodeURIComponent(window.location.origin)
     window.location.href = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
 }
 
@@ -96,7 +97,8 @@ function MainLayout() {
 
   const redirectToIAMLogin = () => {
     const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-    const clientId = window.APP_CONFIG?.pc?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc'
+    const clientId = window.APP_CONFIG?.pc?.iamClientId
+    if (!clientId) { alert('无法获取配置，请刷新页面重试'); return }
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     const targetUrl = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
     window.location.href = targetUrl
@@ -592,7 +594,7 @@ function OAuthCallback() {
   const getOAuthUrl = () => {
     const config = window.APP_CONFIG?.pc || {
       iamExternalUrl: import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '',
-      iamClientId: import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc',
+      iamClientId: null,
       iamRedirectUri: import.meta.env.VITE_IAM_PC_REDIRECT_URI || ''
     }
     const redirectUri = encodeURIComponent(config.iamRedirectUri)

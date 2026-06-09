@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { message } from 'antd'
 import { api, apiFetch, getToken, redirectToLogin, addressesApi, resendEmailConfirmation } from '../services/api'
 import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2, CheckCircle, Send, AlertCircle } from 'lucide-react'
+import AddressForm from '../components/AddressForm'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ phone: '', email: '' })
@@ -131,20 +132,21 @@ export default function Profile() {
     fetchUser()
   }, [])
 
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      try {
-        const resp = await addressesApi.list()
-        if (Array.isArray(resp)) {
-          setAddresses(resp)
-        } else if (resp.code === 20000) {
-          setAddresses(resp.data?.list || [])
-        }
-      } catch (err) {
-        console.error('Failed to fetch addresses:', err)
+  const loadAddresses = async () => {
+    try {
+      const resp = await addressesApi.list()
+      if (Array.isArray(resp)) {
+        setAddresses(resp)
+      } else if (resp.code === 20000) {
+        setAddresses(resp.data?.list || [])
       }
+    } catch (err) {
+      console.error('Failed to fetch addresses:', err)
     }
-    fetchAddresses()
+  }
+
+  useEffect(() => {
+    loadAddresses()
   }, [])
 
   useEffect(() => {
@@ -333,7 +335,11 @@ export default function Profile() {
                   <div key={addr.id} className="text-sm text-gray-600">
                     <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
                     <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}</p>
-                    <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
+                      <button onClick={() => { setEditingAddress(addr); setShowAddressForm(true) }} className="text-xs text-brand-primary">编辑</button>
+                      <button onClick={async () => { if (confirm('确认删除？')) { await addressesApi.delete(addr.id); loadAddresses() } }} className="text-xs text-red-500">删除</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -517,6 +523,13 @@ export default function Profile() {
           )}
         </div>
       </div>
+      {showAddressForm && (
+        <AddressForm
+          address={editingAddress}
+          onClose={() => { setShowAddressForm(false); setEditingAddress(null) }}
+          onSaved={() => loadAddresses()}
+        />
+      )}
     </div>
   )
 }

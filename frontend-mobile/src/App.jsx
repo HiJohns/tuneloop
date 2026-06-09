@@ -30,11 +30,7 @@ import StaffOrderDetail from './pages/StaffOrderDetail'
 import OrderDetail from './pages/OrderDetail'
 
 const getWXConfig = () => {
-  return window.APP_CONFIG?.wx || {
-    iamExternalUrl: import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '',
-    iamClientId: import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx',
-    iamRedirectUri: import.meta.env.VITE_IAM_WX_REDIRECT_URI || ''
-  }
+  return window.APP_CONFIG?.wx || null
 }
 
 function storeToken(accessToken, expiresIn = 3600, refreshToken) {
@@ -176,14 +172,20 @@ function OAuthCallback() {
 
 function App() {
   useEffect(() => {
-    fetch('/api/config')
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === 20000) {
-          window.APP_CONFIG = data.data
-        }
-      })
-      .catch(err => console.error('Failed to load config:', err))
+    const fetchConfig = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch('/api/config')
+          const data = await res.json()
+          if (data.code === 20000) {
+            window.APP_CONFIG = data.data
+            return
+          }
+        } catch {}
+        if (i < retries - 1) await new Promise(r => setTimeout(r, 1000))
+      }
+    }
+    fetchConfig()
     initPermissionMapping()
     const token = getToken()
     const location = window.location.pathname

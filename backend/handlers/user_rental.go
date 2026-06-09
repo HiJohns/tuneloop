@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -351,18 +352,25 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Create lease session
+	deliveryAddressJSON := ""
+	if req.DeliveryAddress != nil {
+		if b, err := json.Marshal(req.DeliveryAddress); err == nil {
+			deliveryAddressJSON = string(b)
+		}
+	}
 	leaseSession := models.LeaseSession{
-		ID:           uuid.New().String(),
-		TenantID:     effectiveTenantID,
-		OrgID:        stringPtr(effectiveOrgID),
-		OrderID:      order.ID,
-		UserID:       userID,
-		InstrumentID: req.InstrumentID,
-		StartDate:    startDate,
-		EndDate:      endDate,
-		Status:       "active",
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:               uuid.New().String(),
+		TenantID:         effectiveTenantID,
+		OrgID:            stringPtr(effectiveOrgID),
+		OrderID:          order.ID,
+		UserID:           userID,
+		InstrumentID:     req.InstrumentID,
+		StartDate:        startDate,
+		EndDate:          endDate,
+		Status:           "active",
+		DeliveryAddress:  &deliveryAddressJSON,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
 	}
 	if err := tx.Create(&leaseSession).Error; err != nil {
 		tx.Rollback()

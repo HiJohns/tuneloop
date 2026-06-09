@@ -761,6 +761,21 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"site_id":       nil,
 	}
 
+	// Sync shadow user data from IAM
+	iamClient := services.NewIAMClient()
+	if user.IsShadow {
+		if iamUser, err := iamClient.GetUser(user.IAMSub); err == nil && iamUser != nil {
+			updates := map[string]interface{}{}
+			if iamUser.Name != "" { updates["name"] = iamUser.Name; result["name"] = iamUser.Name }
+			if iamUser.Email != "" { updates["email"] = iamUser.Email; result["email"] = iamUser.Email }
+			if iamUser.Phone != "" { updates["phone"] = iamUser.Phone; result["phone"] = iamUser.Phone }
+			if len(updates) > 0 {
+				updates["is_shadow"] = false
+				db.Model(&user).Updates(updates)
+			}
+		}
+	}
+
 	// Load user's primary site from site_members
 	var memberSite struct{ SiteID string; SiteName string }
 	if err := db.Table("site_members").
@@ -773,7 +788,6 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	}
 
 	// Fetch email confirmation timestamps from IAM
-	iamClient := services.NewIAMClient()
 	if sentAt, confirmedAt, err := iamClient.GetUserEmailStatus(user.IAMSub); err == nil {
 		result["email_sent_at"] = sentAt
 		result["email_confirmed_at"] = confirmedAt

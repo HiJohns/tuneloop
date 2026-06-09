@@ -5,7 +5,7 @@ const AuthCallback: React.FC = () => {
   // OAuth URL 构建函数
   const getOAuthUrl = () => {
     const IAM_URL = window.APP_CONFIG?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '';
-    const CLIENT_ID = window.APP_CONFIG?.iamClientId || import.meta.env.VITE_IAM_PC_CLIENT_ID || 'tuneloop-pc';
+    const CLIENT_ID = window.APP_CONFIG?.pc?.iamClientId;
     const redirectUri = encodeURIComponent(window.location.origin + '/callback');
     return `${IAM_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
   };

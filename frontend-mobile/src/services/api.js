@@ -95,7 +95,11 @@ export function redirectToLogin(reason) {
   } else {
     const wxConfig = window.APP_CONFIG?.wx || {}
     const iamUrl = wxConfig.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-    const clientId = wxConfig.iamClientId || import.meta.env.VITE_IAM_WX_CLIENT_ID || 'tuneloop-wx'
+    const clientId = wxConfig.iamClientId
+    if (!clientId) {
+      alert('无法获取配置，请刷新页面重试')
+      return
+    }
     const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
     window.location.href = authUrl
