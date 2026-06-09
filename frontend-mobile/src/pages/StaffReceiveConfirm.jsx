@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Camera, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch } from '../services/api'
 
@@ -23,6 +23,8 @@ export default function StaffReceiveConfirm() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [photoFiles, setPhotoFiles] = useState([])
+  const [outboundPhotos, setOutboundPhotos] = useState([])
+  const [photoSpecs, setPhotoSpecs] = useState([])
   const [hasDamage, setHasDamage] = useState(false)
   const [damageReason, setDamageReason] = useState('')
   const [damageAmount, setDamageAmount] = useState('')
@@ -45,6 +47,26 @@ export default function StaffReceiveConfirm() {
     }
     fetchData()
   }, [orderId, instrumentId])
+
+  useEffect(() => {
+    if (!orderId) return
+    apiFetch(`${baseUrl}/orders/${orderId}/outbound-photos`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.code === 20000) setOutboundPhotos(res.data.outbound_photos || [])
+      })
+      .catch(() => {})
+  }, [orderId])
+
+  useEffect(() => {
+    if (!instrument?.category_id) return
+    apiFetch(`${baseUrl}/instrument-photo-specs/${instrument.category_id}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.code === 20000) setPhotoSpecs(res.data?.photo_requirements || [])
+      })
+      .catch(() => {})
+  }, [instrument?.category_id])
 
   const handleConfirmReceive = async () => {
     if (hasDamage && (!damageReason.trim() || !damageAmount.trim())) {
@@ -136,6 +158,32 @@ export default function StaffReceiveConfirm() {
             拍照留档
           </h3>
           <p className="text-sm text-gray-500 mb-3">请拍摄乐器当前状态照片作为接收留档</p>
+
+          {photoSpecs.length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-800 mb-1">拍照要求</h4>
+              <ul className="text-xs text-blue-700 space-y-0.5">
+                {photoSpecs.map((spec, idx) => (
+                  <li key={idx}>• {spec.position}: {spec.description}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {outboundPhotos.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <Image size={14} />
+                出库照片（供对比）
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {outboundPhotos.map((p, i) => (
+                  <img key={i} src={p.url} alt="出库照" className="w-full rounded border object-cover h-20" />
+                ))}
+              </div>
+            </div>
+          )}
+
           <ImageUploader maxImages={5} onChange={(files) => setPhotoFiles(files)} />
         </div>
 

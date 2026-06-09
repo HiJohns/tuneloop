@@ -8,7 +8,7 @@ const STATUS_LABELS = {
   paid: '待发货',
   pending_shipment: '待发货',
   in_transit: '运输中',
-  shipped: '已送达',
+  shipped: '已发货',
   in_lease: '租赁中',
   returning: '归还中',
   returned: '已归还',
@@ -235,7 +235,7 @@ export default function StaffOrderDetail() {
               {status === 'reserved' ? (
                 <><Clock size={16} /> 等待用户支付</>
               ) : status === 'shipped' ? (
-                <><CheckCircle size={16} /> 乐器已送达，等待用户签收</>
+                <><CheckCircle size={16} /> 乐器已发货，等待用户签收</>
               ) : status === 'in_lease' ? (
                 <><CheckCircle size={16} /> 租赁中</>
               ) : status === 'expired' ? (

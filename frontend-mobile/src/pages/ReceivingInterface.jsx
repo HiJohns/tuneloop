@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload } from 'lucide-react'
+import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload, User, MapPin, Package } from 'lucide-react'
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const preloadedOrderId = searchParams.get('order_id')
   const [snInput, setSnInput] = useState('')
   const [currentItem, setCurrentItem] = useState(null)
   const [currentSN, setCurrentSN] = useState('')
+  const [orderData, setOrderData] = useState(null)
   const [condition, setCondition] = useState('')
   const [damageDesc, setDamageDesc] = useState('')
   const [damageAmount, setDamageAmount] = useState('')
@@ -18,6 +21,35 @@ export default function ReceivingInterface() {
   const [capturedPhotos, setCapturedPhotos] = useState([])
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+
+  // Auto-load order when order_id is provided via URL
+  useEffect(() => {
+    if (!preloadedOrderId) return
+    const loadOrder = async () => {
+      try {
+        const orderResp = await apiFetch(`${baseUrl}/orders/${preloadedOrderId}`)
+        const orderResult = await orderResp.json()
+        if (orderResult.code !== 20000) return
+        setOrderData(orderResult.data)
+        setOrderID(preloadedOrderId)
+
+        const instResp = await apiFetch(`${baseUrl}/instruments/${orderResult.data.instrument_id}`)
+        const instResult = await instResp.json()
+        if (instResult.code !== 20000) return
+        const inst = instResult.data
+        setCurrentItem(inst)
+        setCurrentSN(inst.sn || '')
+        if (inst.category_id) {
+          const specResp = await apiFetch(`${baseUrl}/instrument-photo-specs/${inst.category_id}`)
+          const specResult = await specResp.json()
+          if (specResult.code === 20000) setPhotoSpecs(specResult.data?.photo_requirements || [])
+        }
+      } catch (err) {
+        console.error('Failed to load order:', err)
+      }
+    }
+    loadOrder()
+  }, [preloadedOrderId])
 
   useEffect(() => {
     if (orderID) {
@@ -63,7 +95,7 @@ export default function ReceivingInterface() {
         const orderResult = await orderResp.json()
         setOrderID(orderResult.code === 20000 ? orderResult.data?.order_id : null)
       } else {
-        alert('Instrument not found')
+        alert('未找到该乐器')
       }
     } catch (err) {
       console.error('Failed to check instrument:', err)
@@ -73,7 +105,7 @@ export default function ReceivingInterface() {
   const handleSubmit = async () => {
     if (!currentItem) return
     if (!orderID) {
-      alert('No active order found for this instrument')
+      alert('未找到该乐器的活跃订单')
       return
     }
     setSubmitting(true)
@@ -100,14 +132,14 @@ export default function ReceivingInterface() {
         })
         const damageResult = await damageResp.json()
         if (damageResult.code === 20000) {
-          alert('Damage assessment recorded. Notification sent to user.')
+          alert('定损评估已记录，通知已发送给用户')
         } else {
-          alert('Damage assessment failed: ' + damageResult.message)
+          alert('定损评估失败: ' + damageResult.message)
         }
       } else if (result.code === 20000) {
-        alert('Item received successfully. Deposit refund initiated.')
+        alert('验收成功，押金退还已发起')
       } else {
-        alert('Failed: ' + result.message)
+        alert('失败: ' + result.message)
       }
 
       setCurrentItem(null)
@@ -119,7 +151,7 @@ export default function ReceivingInterface() {
       setOutboundPhotos([])
       setCapturedPhotos([])
     } catch (err) {
-      alert('Error: ' + err.message)
+      alert('错误: ' + err.message)
     }
     setSubmitting(false)
   }
@@ -128,29 +160,81 @@ export default function ReceivingInterface() {
     <div className="min-h-screen bg-brand-bg pb-20">
       <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
         <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">Receiving</h1>
+        <h1 className="text-lg font-bold">收货确认</h1>
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Customer & Instrument Info (preloaded from order) */}
+        {orderData && (
+          <>
+            <div className="bg-white rounded-xl p-4">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <User size={16} className="text-brand-primary" />
+                租赁人信息
+              </h3>
+              <p className="text-sm font-medium">{orderData.user_name || '-'}</p>
+              {orderData.delivery_address && (
+                <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
+                  <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>{orderData.delivery_address}</span>
+                </div>
+              )}
+            </div>
+
+            {currentItem && (
+              <div className="bg-white rounded-xl p-4">
+                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <Package size={16} className="text-brand-primary" />
+                  乐器信息
+                </h3>
+                <div className="flex gap-3">
+                  {(() => {
+                    try {
+                      const imgs = JSON.parse(currentItem.images || '[]')
+                      if (imgs[0]) return <img src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                    } catch {}
+                    return null
+                  })()}
+                  <div>
+                    <p className="text-sm font-mono font-medium">SN: {currentItem.sn || '-'}</p>
+                    <p className="text-xs text-gray-500">{currentItem.category_name}{currentItem.level_name ? ` · ${currentItem.level_name}` : ''}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white rounded-xl p-4">
+              <h3 className="font-medium text-gray-900 mb-2">租赁信息</h3>
+              <div className="text-sm space-y-1 text-gray-600">
+                <p>租期: {orderData.start_date || '-'} 至 {orderData.end_date || '-'}</p>
+                {orderData.deposit > 0 && <p>押金: ¥{orderData.deposit}</p>}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* QR Scan / SN Entry — only when not preloaded */}
+        {!preloadedOrderId && (
         <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">Scan or Enter Instrument</h3>
+          <h3 className="font-medium mb-3">扫码或输入识别码</h3>
           <div className="flex gap-2">
             <input
               type="text"
               value={snInput}
               onChange={e => setSnInput(e.target.value)}
-              placeholder="Enter SN or scan QR code"
+              placeholder="输入识别码或扫码"
               className="flex-1 border rounded-lg px-3 py-2"
               onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
             />
             <button
-              onClick={() => alert('QR scanner is not yet available')}
+              onClick={() => alert('扫码功能暂不可用')}
               className="px-4 py-2 border rounded-lg"
             >
               <Scan size={18} />
             </button>
           </div>
         </div>
+        )}
 
         {currentItem && (
           <div className="bg-white rounded-xl p-4">
@@ -168,7 +252,7 @@ export default function ReceivingInterface() {
               <div className="mb-4">
                 <h4 className="text-sm font-medium flex items-center gap-1 mb-1">
                   <Camera size={14} className="text-brand-primary" />
-                  Photo Requirements
+                  拍照要求
                 </h4>
                 <ul className="text-xs text-gray-500 space-y-0.5">
                   {photoSpecs.map((spec, idx) => (
@@ -215,7 +299,7 @@ export default function ReceivingInterface() {
                     condition === 'good' ? 'bg-green-500 text-white' : 'border text-gray-600'
                   }`}
                 >
-                  <CheckCircle size={16} /> No Damage
+                  <CheckCircle size={16} /> 无损坏
                 </button>
                 <button
                   onClick={() => setCondition('damaged')}
@@ -223,7 +307,7 @@ export default function ReceivingInterface() {
                     condition === 'damaged' ? 'bg-red-500 text-white' : 'border text-gray-600'
                   }`}
                 >
-                  <AlertTriangle size={16} /> Damaged
+                  <AlertTriangle size={16} /> 有损坏
                 </button>
               </div>
 
@@ -232,7 +316,7 @@ export default function ReceivingInterface() {
                   <textarea
                     value={damageDesc}
                     onChange={e => setDamageDesc(e.target.value)}
-                    placeholder="Describe the damage..."
+                    placeholder="请描述损坏情况"
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                     rows={3}
                   />
@@ -240,7 +324,7 @@ export default function ReceivingInterface() {
                     type="number"
                     value={damageAmount}
                     onChange={e => setDamageAmount(e.target.value)}
-                    placeholder="Damage amount"
+                    placeholder="定损金额"
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                   />
                 </div>
@@ -252,7 +336,7 @@ export default function ReceivingInterface() {
                   disabled={submitting}
                   className="w-full py-3 bg-brand-primary text-white rounded-lg disabled:opacity-50 font-medium"
                 >
-                  {submitting ? 'Submitting...' : 'Submit'}
+                  {submitting ? '提交中...' : '提交'}
                 </button>
               )}
             </div>

@@ -317,7 +317,7 @@ flowchart TD
   reserved -- 支付成功 --> paid[已支付 paid]
   paid -- 提交发货 --> pending_shipment[待发货 pending_shipment]
   pending_shipment -- 仓库发货 --> in_transit[运输中 in_transit]
-  in_transit -- 到达中转站 --> shipped[已送达 shipped]
+  in_transit -- 到达中转站 --> shipped[已发货 shipped]
   shipped -- 用户签收 --> in_lease[租赁中 in_lease]
   in_lease -- 用户申请归还 --> returning[归还中 returning]
   returning -- 仓库验收完好 --> returned[已归还 returned]
@@ -337,7 +337,7 @@ flowchart TD
 | `paid` | 已支付 | 支付已完成，等待发货 |
 | `pending_shipment` | 待发货 | 支付完成，准备物流 |
 | `in_transit` | 运输中 | 乐器已发出，到达转运站前（用户可取消） |
-| `shipped` | 已送达 | 已到达目的地（不可取消） |
+| `shipped` | 已发货 | 已到达目的地（不可取消） |
 | `in_lease` | 租赁中 | 用户已签收，租期内 |
 | `returning` | 归还中 | 用户已提交归还，返程物流中 |
 | `returned` | 已归还 | 仓库验收完成 |

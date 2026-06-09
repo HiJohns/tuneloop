@@ -33,7 +33,7 @@
   --order-paid: #F97316;           /* Orange - 待发货 */
   --order-pending-shipment: #F97316; /* Orange - 待发货 */
   --order-in-transit: #06B6D4;     /* Cyan - 运输中 */
-  --order-shipped: #10B981;        /* Green - 已送达 */
+  --order-shipped: #10B981;        /* Green - 已发货 */
   --order-in-lease: #6366F1;       /* Indigo - 租赁中 */
   --order-returning: #EAB308;      /* Yellow - 归还中 */
   --order-returned: #9CA3AF;       /* Gray - 已归还 */
@@ -2224,7 +2224,7 @@ cd frontend-pc && npm run build  # 应该成功
 | `reserved` | 无 | 等待用户支付 | — |
 | `paid` / `pending_shipment` | 发货 | /staff/shipping | order:update |
 | `in_transit` | 接收并转发 | /staff/shipping | order:update |
-| `shipped` | 无 | 乐器已送达，等待用户签收 | — |
+| `shipped` | 无 | 乐器已发货，等待用户签收 | — |
 | `in_lease` | 无 | 租赁中 | — |
 | `expired` | 无 | 租约已超期 ⚠️ | — |
 | `returning` | 收货 | /staff/receiving | inventory:manage |
