@@ -38,7 +38,8 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   const rawDeposit = Array.isArray(pricing) ? pricing[0]?.deposit : pricing?.deposit
   const fallbackDeposit = dailyRent * 2
   const displayDeposit = rawDeposit || fallbackDeposit || 0
-  
+  const isAvailable = instrument.stock_status === 'available'
+
   const handleFavoriteClick = (e) => {
     e.stopPropagation()
     onToggleFavorite(instrument.id)
@@ -49,21 +50,26 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
       onClick={onClick}
     >
-       <div className="relative">
-         <img 
-           src={images[0] || PLACEHOLDER_IMAGE}
-           alt={instrument.name}
-           className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-           onError={(e) => {
-             e.target.onerror = null
-             e.target.src = PLACEHOLDER_IMAGE
-           }}
-         />
-         {dailyRent > 0 && (
-           <div className="absolute top-2 left-2 bg-brand-primary text-white text-xs px-2 py-1 rounded">
-             特惠
-           </div>
-         )}
+        <div className="relative">
+          <img 
+            src={images[0] || PLACEHOLDER_IMAGE}
+            alt={instrument.name}
+            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
+            onError={(e) => {
+              e.target.onerror = null
+              e.target.src = PLACEHOLDER_IMAGE
+            }}
+          />
+          <div className="absolute top-2 left-2 flex gap-1">
+            {isAvailable ? (
+              <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">可租</span>
+            ) : (
+              <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">已租</span>
+            )}
+            {dailyRent > 0 && (
+              <span className="bg-brand-primary text-white text-xs px-2 py-0.5 rounded">特惠</span>
+            )}
+          </div>
          <button
            onClick={handleFavoriteClick}
            className="absolute top-2 right-2 text-white bg-black/30 rounded-full p-1"
@@ -111,8 +117,8 @@ export default function Home() {
       const response = await apiFetch(`${baseUrl}${endpoint}?page=${pageNum}&pageSize=20${tenant ? `&tenant=${tenant}` : ''}`)
       const result = await response.json()
       
-      if (result.code === 20000) {
-        const newData = result.data?.list || []
+       if (result.code === 20000) {
+        let newData = (result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost')
         console.log('[Infinite Scroll] Received', newData.length, 'items')
         console.log('[Infinite Scroll] Pagination:', result.data?.pagination)
         
