@@ -878,11 +878,12 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 | model | 型号 | ❌ | 型号 |
 | category_name | 分类名称 | ✅ | 分类名称，支持模糊匹配 |
 | level | 级别 | ❌ | enum: entry/pro/master，默认entry |
-| daily_rate | 日租金 | ❌ | 数字格式，如: 50 |
-| monthly_rate | 月租金 | ❌ | 数字格式 |
+| daily_rate | 日租金 | ❌ | 数字格式，如: 50（旧模型） |
+| monthly_rate | 月租金 | ❌ | 数字格式（旧模型，建议用 base_daily_rate） |
+| base_daily_rate | 第一阶梯日均价 | ❌ | 数字格式，阶梯定价锚点 |
 | deposit | 押金 | ❌ | 数字格式 |
 | stock | 库存数量 | ❌ | 整数，默认0 |
-| status | 状态 | ❌ | enum: available/rented/maintenance，默认available |
+| status | 状态 | ❌ | enum: available/rented/maintenance/archived/lost，默认available |
 | description | 描述 | ❌ | 乐器描述 |
 | images | 图片URL | ❌ | 支持多个，逗号分隔 |
 

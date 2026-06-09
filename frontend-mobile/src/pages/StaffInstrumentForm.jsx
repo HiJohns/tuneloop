@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { apiFetch } from '../services/api'
@@ -13,6 +13,7 @@ export default function StaffInstrumentForm() {
   const [levels, setLevels] = useState([])
   const [properties, setProperties] = useState([])
   const [files, setFiles] = useState([])
+  const [snChecking, setSnChecking] = useState(false)
 
   const [form, setForm] = useState({
     sn: '',
@@ -20,11 +21,10 @@ export default function StaffInstrumentForm() {
     site_id: '',
     level_id: '',
     description: '',
-    daily_rent: '',
-    weekly_rent: '',
-    monthly_rent: '',
+    base_daily_rate: '',
+    shipping_fee: '',
     deposit: '',
-    overdue_daily: '',
+    overdue_daily_fee: '',
   })
 
   const [propValues, setPropValues] = useState({})
@@ -63,24 +63,24 @@ export default function StaffInstrumentForm() {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleDailyRentChange = (value) => {
-    const newDaily = parseFloat(value) || 0
-    const oldDaily = parseFloat(form.daily_rent) || 0
-    const oldWeekly = parseFloat(form.weekly_rent) || 0
-    const oldMonthly = parseFloat(form.monthly_rent) || 0
-    setForm(prev => {
-      const next = { ...prev, daily_rent: value }
-      if (newDaily > 0) {
-        if (oldWeekly === 0 || oldWeekly === oldDaily * 6) {
-          next.weekly_rent = String(newDaily * 6)
-        }
-        if (oldMonthly === 0 || oldMonthly === oldDaily * 25) {
-          next.monthly_rent = String(newDaily * 25)
-        }
-      }
-      return next
-    })
-  }
+  const [snTimer, setSnTimer] = useState(null)
+  const [snExists, setSnExists] = useState(false)
+
+  const handleSnChange = useCallback((value) => {
+    setForm(prev => ({ ...prev, sn: value }))
+    if (snTimer) clearTimeout(snTimer)
+    if (!value.trim()) { setSnExists(false); return }
+    const timer = setTimeout(async () => {
+      setSnChecking(true)
+      try {
+        const resp = await apiFetch(`${BASE_URL}/instruments/check?sn=${encodeURIComponent(value.trim())}`)
+        const result = await resp.json()
+        setSnExists(result.code === 20000 && result.data?.exists)
+      } catch { setSnExists(false) }
+      setSnChecking(false)
+    }, 800)
+    setSnTimer(timer)
+  }, [snTimer])
 
   const handleUpload = (e) => {
     const newFiles = Array.from(e.target.files || [])
@@ -115,11 +115,10 @@ export default function StaffInstrumentForm() {
       }
 
       const pricing = {}
-      if (form.daily_rent) pricing.daily_rent = parseFloat(form.daily_rent)
-      if (form.weekly_rent) pricing.weekly_rent = parseFloat(form.weekly_rent)
-      if (form.monthly_rent) pricing.monthly_rent = parseFloat(form.monthly_rent)
+      if (form.base_daily_rate) pricing.daily_rent = parseFloat(form.base_daily_rate)
       if (form.deposit) pricing.deposit = parseFloat(form.deposit)
-      if (form.overdue_daily) pricing.overdue_daily = parseFloat(form.overdue_daily)
+      if (form.shipping_fee) pricing.shipping_fee = parseFloat(form.shipping_fee)
+      if (form.overdue_daily_fee) pricing.overdue_daily_fee = parseFloat(form.overdue_daily_fee)
 
       const body = {
         sn: form.sn,
@@ -127,6 +126,7 @@ export default function StaffInstrumentForm() {
         site_id: form.site_id || undefined,
         level_id: form.level_id || undefined,
         description: form.description || undefined,
+        base_daily_rate: form.base_daily_rate ? parseFloat(form.base_daily_rate) : undefined,
         images,
         pricing: Object.keys(pricing).length > 0 ? pricing : undefined,
         properties: Object.keys(propValues).length > 0 ? propValues : undefined,
@@ -168,7 +168,12 @@ export default function StaffInstrumentForm() {
 
           <div>
             <label className={labelClass}>识别码 *</label>
-            <input className={inputClass} value={form.sn} onChange={e => handleChange('sn', e.target.value)} placeholder="请输入识别码" />
+            <div className="relative">
+              <input className={inputClass} value={form.sn} onChange={e => handleSnChange(e.target.value)} placeholder="请输入识别码" />
+              {snChecking && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">检查中...</span>}
+              {!snChecking && snExists && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-500">已存在</span>}
+              {!snChecking && form.sn && !snExists && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-500">可用</span>}
+            </div>
           </div>
 
           <div>
@@ -212,24 +217,20 @@ export default function StaffInstrumentForm() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>日租金(¥)</label>
-              <input className={inputClass} type="number" min="0" step="1" value={form.daily_rent} onChange={e => handleDailyRentChange(e.target.value)} placeholder="0" />
+              <label className={labelClass}>第一阶梯日均价(¥)</label>
+              <input className={inputClass} type="number" min="0" step="1" value={form.base_daily_rate} onChange={e => handleChange('base_daily_rate', e.target.value)} placeholder="0" />
             </div>
             <div>
-              <label className={labelClass}>周租金(¥)</label>
-              <input className={inputClass} type="number" min="0" step="1" value={form.weekly_rent} onChange={e => handleChange('weekly_rent', e.target.value)} placeholder="0" />
-            </div>
-            <div>
-              <label className={labelClass}>月租金(¥)</label>
-              <input className={inputClass} type="number" min="0" step="1" value={form.monthly_rent} onChange={e => handleChange('monthly_rent', e.target.value)} placeholder="0" />
+              <label className={labelClass}>物流费(¥)</label>
+              <input className={inputClass} type="number" min="0" step="1" value={form.shipping_fee} onChange={e => handleChange('shipping_fee', e.target.value)} placeholder="0" />
             </div>
             <div>
               <label className={labelClass}>押金(¥)</label>
               <input className={inputClass} type="number" min="0" step="1" value={form.deposit} onChange={e => handleChange('deposit', e.target.value)} placeholder="0" />
             </div>
             <div>
-              <label className={labelClass}>逾期日租(¥)</label>
-              <input className={inputClass} type="number" min="0" step="1" value={form.overdue_daily} onChange={e => handleChange('overdue_daily', e.target.value)} placeholder="0" />
+              <label className={labelClass}>逾期日费(¥/天)</label>
+              <input className={inputClass} type="number" min="0" step="1" value={form.overdue_daily_fee} onChange={e => handleChange('overdue_daily_fee', e.target.value)} placeholder="0" />
             </div>
           </div>
         </div>
@@ -243,6 +244,9 @@ export default function StaffInstrumentForm() {
                 {prop.property_type === 'select' ? (
                   <select className={inputClass} value={propValues[prop.name] || ''} onChange={e => setPropValues(prev => ({ ...prev, [prop.name]: e.target.value }))}>
                     <option value="">请选择{prop.caption || prop.name}</option>
+                    {(prop.options || []).filter(o => o.status !== 'obsolete').map(opt => (
+                      <option key={opt.id} value={opt.value}>{opt.display_value || opt.value}</option>
+                    ))}
                   </select>
                 ) : (
                   <input className={inputClass} value={propValues[prop.name] || ''} onChange={e => setPropValues(prev => ({ ...prev, [prop.name]: e.target.value }))} placeholder={`请输入${prop.caption || prop.name}`} />
@@ -276,7 +280,7 @@ export default function StaffInstrumentForm() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || snExists}
           className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50"
         >
           {loading ? '提交中...' : '创建乐器'}

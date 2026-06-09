@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { instrumentsApi, ordersApi, getToken, apiFetch, redirectToLogin } from '../services/api'
-import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart, Calendar } from 'lucide-react'
-import { Switch, Tag, Modal, Button, InputNumber } from 'antd'
+import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
+import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
+import { Switch, Tag, Modal, Button } from 'antd'
 import dayjs from 'dayjs'
 
 const SERVICE_ITEMS = [
@@ -235,47 +235,6 @@ export default function Detail() {
     calculatePrice()
   }, [calculatePrice])
 
-  const handleCreateOrder = async () => {
-    const token = getToken()
-    
-    if (!token) {
-      sessionStorage.setItem('post_auth_redirect', window.location.pathname)
-      redirectToLogin()
-      return
-    }
-
-    const startDate = dayjs().format('YYYY-MM-DD')
-    const returnDate = dayjs().add(days, 'day').format('YYYY-MM-DD')
-    
-    try {
-      const resp = await ordersApi.create({
-        instrument_id: instrument?.id,
-        start_date: startDate,
-        end_date: returnDate,
-      })
-      
-      if (resp.code === 20000 || resp.code === 20100) {
-        const orderData = resp.data
-        navigate('/success', {
-          state: {
-            order_id: orderData.order_id,
-            instrument_name: instrument?.name,
-            instrument_sn: instrument?.sn,
-            category_name: instrument?.category_name,
-            tenant_name: instrument?.tenant_name,
-            site_name: instrument?.site_name,
-            site_address: instrument?.site_address,
-            lease_term: `${days}天`,
-            return_date: returnDate,
-            total_amount: orderData.first_payment_amount,
-          },
-        })
-      }
-    } catch (err) {
-      alert('租赁失败: ' + (err.response?.data?.message || err.message))
-    }
-  }
-
   if (loading) {
     return <div className="p-4">加载中...</div>
   }
@@ -354,63 +313,17 @@ export default function Detail() {
           </div>
         )}
 
-        {isRentable && (
-        <div className="mt-4">
-          <span className="text-gray-700 font-medium">租赁天数</span>
-          
-          <div className="mt-2">
-            <InputNumber
-              min={1}
-              max={730}
-              value={days}
-              onChange={v => setDays(v || 1)}
-              style={{ width: '100%' }}
-              addonAfter="天"
-            />
-          </div>
-          
-          <div className="mt-2 text-sm text-gray-500 flex items-center gap-1">
-            <Calendar size={14} />
-            预计归还: {dayjs().add(days, 'day').format('YYYY-MM-DD')}
-            {pricingV2Loading && <span className="text-gray-400"> (计算中...)</span>}
-            {pricingV2?.tiers?.length > 0 && !pricingV2Loading && (
-              <span className="text-gray-400">
-                · 分阶段计价
-              </span>
-            )}
-          </div>
-        </div>
-        )}
-
-        {isRentable && (
+        {isRentable && pricingV2?.tiers?.length > 0 && (
         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="font-medium text-sm text-blue-800 mb-1">费用明细</p>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">租金 ({days}天{pricingV2?.tiers?.length ? ' · 分阶段计价' : ''})</span>
-              <span className="font-medium">¥{totalRent.toFixed(0)}</span>
-            </div>
-            {pricingV2?.tiers?.length > 0 && (
-              <div className="text-xs text-gray-400 pl-2">
-                {pricingV2.tiers.map((t, i) => {
-                  const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                  const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <span key={i} className="mr-2">{range}: ¥{t.daily_rate}/天</span>
-                })}
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-gray-600">押金</span>
-              <span className="font-medium">¥{deposit}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">物流费</span>
-              <span className="font-medium">¥{shippingFee}</span>
-            </div>
-            <div className="border-t border-blue-200 mt-2 pt-2 flex justify-between font-bold">
-              <span className="text-blue-900">合计</span>
-              <span className="text-blue-600">¥{totalAmount.toFixed(0)}</span>
-            </div>
+          <p className="font-medium text-sm text-blue-800 mb-1">定价策略</p>
+          <div className="text-xs text-gray-500 space-y-0.5">
+            {pricingV2.tiers.map((t, i) => {
+              const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
+              const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+              return <p key={i}>{range}: ¥{t.daily_rate}/天</p>
+            })}
+            {pricingV2.deposit > 0 && <p className="mt-1">押金: ¥{pricingV2.deposit}</p>}
+            {pricingV2.shipping_fee > 0 && <p>物流费: ¥{pricingV2.shipping_fee}</p>}
           </div>
         </div>
         )}
@@ -469,7 +382,7 @@ export default function Detail() {
                 加入购物车
               </button>
               <button
-                onClick={handleCreateOrder}
+                onClick={() => navigate(`/checkout/${id}`)}
                 className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-500 text-white"
               >
                 立即租赁
