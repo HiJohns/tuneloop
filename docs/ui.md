@@ -2221,12 +2221,16 @@ cd frontend-pc && npm run build  # 应该成功
 
 | 状态 | 按钮 | 目标 | 权限 |
 |------|------|------|------|
-| `reserved` | 无 | — | — |
-| `paid` / `pending_shipment` | 发货 | `/staff/shipping?order_id=:id` | `order:update` |
-| `in_transit` | 接收并转发 | `/staff/shipping?order_id=:id` | `order:update` |
-| `shipped` / `in_lease` / `expired` | 无 | — | — |
-| `returning` | 收货 | `/staff/receiving?order_id=:id` | `inventory:manage` |
-| `cancelled` / `completed` / `returned` / `transferred` | 终端描述 | — | — |
+| `reserved` | 无 | 等待用户支付 | — |
+| `paid` / `pending_shipment` | 发货 | /staff/shipping | order:update |
+| `in_transit` | 接收并转发 | /staff/shipping | order:update |
+| `shipped` | 无 | 乐器已送达，等待用户签收 | — |
+| `in_lease` | 无 | 租赁中 | — |
+| `expired` | 无 | 租约已超期 ⚠️ | — |
+| `returning` | 收货 | /staff/receiving | inventory:manage |
+| `returned` / `completed` | 无 | 该订单已完成 | — |
+| `cancelled` | 无 | 该订单已取消 | — |
+| `transferred` | 无 | 已过户 | — |
 
 #### 收货界面 (`/staff/receiving`)
 

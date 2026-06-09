@@ -332,6 +332,8 @@ export default function OrderDetail() {
                 <><XCircle size={16} /> 该订单已取消</>
               ) : status === 'returning' ? (
                 <><Truck size={16} /> 乐器归还中，等待验收</>
+              ) : status === 'transferred' ? (
+                <><CheckCircle size={16} /> 已过户</>
               ) : (
                 <><CheckCircle size={16} /> 当前状态无操作</>
               )}

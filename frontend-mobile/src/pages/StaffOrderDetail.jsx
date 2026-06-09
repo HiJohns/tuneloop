@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, User, MapPin, Calendar, Clock, Package, Truck, RotateCcw, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Calendar, Clock, Package, Truck, RotateCcw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 const STATUS_LABELS = {
   reserved: '已预约',
@@ -232,10 +232,20 @@ export default function StaffOrderDetail() {
             status === 'in_lease' || status === 'expired' || status === 'returned' ||
             status === 'completed' || status === 'transferred') && (
             <div className="text-center text-sm text-gray-400 py-2 flex items-center justify-center gap-2">
-              {status === 'completed' || status === 'returned' ? (
+              {status === 'reserved' ? (
+                <><Clock size={16} /> 等待用户支付</>
+              ) : status === 'shipped' ? (
+                <><CheckCircle size={16} /> 乐器已送达，等待用户签收</>
+              ) : status === 'in_lease' ? (
+                <><CheckCircle size={16} /> 租赁中</>
+              ) : status === 'expired' ? (
+                <><AlertTriangle size={16} className="text-red-400" /> 租约已超期</>
+              ) : status === 'returned' || status === 'completed' ? (
                 <><CheckCircle size={16} /> 该订单已完成</>
               ) : status === 'cancelled' ? (
                 <><XCircle size={16} /> 该订单已取消</>
+              ) : status === 'transferred' ? (
+                <><CheckCircle size={16} /> 已过户</>
               ) : (
                 <><Clock size={16} /> 当前状态无操作</>
               )}

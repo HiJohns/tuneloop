@@ -419,12 +419,42 @@ export default function Detail() {
                 <p className="text-green-600 text-sm mt-1">押金已退还</p>
               )}
             </div>
-          ) : ['pending', 'paid'].includes(activeOrder.order_status) ? (
+          ) : ['reserved', 'pending', 'paid', 'pending_shipment'].includes(activeOrder.order_status) ? (
             <div className="p-3 bg-blue-50 rounded-lg space-y-2">
               <p className="text-blue-700 font-medium">已预约</p>
               <p className="text-gray-500 text-sm">
                 租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
               </p>
+            </div>
+          ) : ['in_transit', 'shipped'].includes(activeOrder.order_status) ? (
+            <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+              <p className="text-cyan-700 font-medium">乐器物流中</p>
+              <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
+              <button
+                onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
+              >
+                <CheckCircle size={18} className="inline mr-1" />
+                确认收货
+              </button>
+            </div>
+          ) : activeOrder.order_status === 'expired' ? (
+            <div className="p-3 bg-red-50 rounded-lg space-y-2">
+              <p className="text-red-700 font-medium">已超期</p>
+              <p className="text-gray-500 text-sm">
+                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+              </p>
+              {activeOrder.end_date && (
+                <p className="text-red-600 font-bold">
+                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                </p>
+              )}
+              <button
+                onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
+                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
+              >
+                归还乐器
+              </button>
             </div>
           ) : (
             <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
