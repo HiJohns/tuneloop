@@ -390,7 +390,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Update instrument stock_status
-	if err := tx.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+	if err := tx.Model(&models.Instrument{}).Where("id = ?", req.InstrumentID).Update("stock_status", models.StockStatusRented).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reserve instrument"})
 		return
@@ -639,7 +639,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 
 		// Update instrument stock_status
-		if err := tx.Model(&models.Instrument{}).Where("id = ?", item.InstrumentID).Update("stock_status", models.StockStatusReserved).Error; err != nil {
+		if err := tx.Model(&models.Instrument{}).Where("id = ?", item.InstrumentID).Update("stock_status", models.StockStatusRented).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reserve instrument " + item.InstrumentID})
 			return

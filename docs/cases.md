@@ -280,38 +280,71 @@
 
 ---
 
-## 0.3 乐器状态机 (Instrument State Machine)
+## 0.3 乐器与订单状态机 (Instrument & Order State Machine)
 
-乐器在生命周期中可能经历以下状态转换：
+### Instrument 状态机
+
+乐器自身状态与订单流转状态分离。乐器状态仅反映物理状态：
 
 ```mermaid
 flowchart TD
-  available[可租 available] -- 用户下单 --> reserved[已预约 reserved]
-  reserved -- 物流取货 --> shipping[物流中 shipping]
-  shipping -- 用户签收 --> rented[租赁中 rented]
-  rented -- 用户提交给返程物流 --> returning[归还中 returning]
-  returning -- 员工签收状态正常 --> available
-  returning -- 员工签收有损坏 --> maintenance[维修 maintenance]
-  maintenance -- 维修师傅完成处理 --> available
-  rented -- 超期 --> expired[超期 expired]
-  expired -- 用户提交给返程物流 --> returning
-  available -- 经理选择下架 --> archived[下架 archived]
-  maintenance -- 经理选择下架 --> archived
-  archived -- 经理选择恢复 --> available
+  available[可租 available] -- 用户下单 --> rented[租赁中 rented]
+  rented -- 员工签收归还,完好 --> available
+  rented -- 员工签收归还,有损坏 --> maintenance[维修 maintenance]
+  maintenance -- 维修完成 --> available
+  available -- 经理下架 --> archived[下架 archived]
+  archived -- 经理恢复 --> available
+  rented -- 物流丢失 --> lost[丢失 lost]
+  available -- 经理标记丢失 --> lost
+  maintenance -- 无法修复 --> lost
 ```
-
-### 状态定义
 
 | 状态代码 | 中文名 | 说明 |
 |----------|--------|------|
 | `available` | 可租 | 乐器在库，可供租赁 |
-| `reserved` | 已预约 | 用户已下单但尚未发货 |
-| `shipping` | 物流中 | 乐器已交付物流，运输中 |
-| `rented` | 租赁中 | 用户已签收，租期内 |
-| `returning` | 归还中 | 用户已提交归还，返程物流中 |
+| `rented` | 租赁中 | 乐器已租出（含发货/运输/归还途中） |
 | `maintenance` | 维修 | 乐器损坏，等待或正在维修 |
-| `expired` | 超期 | 租赁期已过但用户尚未归还 |
 | `archived` | 下架 | 乐器已下架，不对外租赁 |
+| `lost` | 丢失 | 乐器已丢失（物流丢失或实物灭失） |
+
+### Order 状态机
+
+订单状态覆盖从下单到完成的完整流转：
+
+```mermaid
+flowchart TD
+  reserved[已预约 reserved] -- 超时未支付 --> cancelled[已取消 cancelled]
+  reserved -- 支付成功 --> paid[已支付 paid]
+  paid -- 提交发货 --> pending_shipment[待发货 pending_shipment]
+  pending_shipment -- 仓库发货 --> in_transit[运输中 in_transit]
+  in_transit -- 到达中转站 --> shipped[已送达 shipped]
+  shipped -- 用户签收 --> in_lease[租赁中 in_lease]
+  in_lease -- 用户申请归还 --> returning[归还中 returning]
+  returning -- 仓库验收完好 --> returned[已归还 returned]
+  returning -- 仓库验收有损坏 --> returned
+  returned --> completed[已完成 completed]
+  in_lease -- 租约超期 --> expired[超期 expired]
+  expired -- 用户归还 --> returning
+  reserved -- 用户取消 --> cancelled
+  paid -- 用户取消 --> cancelled
+  in_transit -- 用户取消 --> cancelled
+  in_lease -- 租转售 --> transferred[已过户 transferred]
+```
+
+| 状态代码 | 中文名 | 说明 |
+|----------|--------|------|
+| `reserved` | 已预约 | 订单已创建，等待支付（10分钟超时自动取消） |
+| `paid` | 已支付 | 支付已完成，等待发货 |
+| `pending_shipment` | 待发货 | 支付完成，准备物流 |
+| `in_transit` | 运输中 | 乐器已发出，到达转运站前（用户可取消） |
+| `shipped` | 已送达 | 已到达目的地（不可取消） |
+| `in_lease` | 租赁中 | 用户已签收，租期内 |
+| `returning` | 归还中 | 用户已提交归还，返程物流中 |
+| `returned` | 已归还 | 仓库验收完成 |
+| `completed` | 已完成 | 租赁流程全部结束 |
+| `cancelled` | 已取消 | 订单已取消 |
+| `expired` | 超期 | 租约已过期，计逾期费 |
+| `transferred` | 已过户 | 租转售完成，乐器所有权转移 |
 
 ### 角色可见性
 

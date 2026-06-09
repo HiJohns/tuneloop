@@ -47,7 +47,7 @@ export default function StaffInstrumentDetail() {
         if (result.code === 20000) {
           setInstrument(result.data)
           const inst = result.data
-          if (inst.sn && (inst.stock_status === 'reserved' || inst.stock_status === 'returning')) {
+          if (inst.sn && inst.stock_status === 'rented') {
             try {
               const orderResp = await fetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
               const orderResult = await orderResp.json()
@@ -67,35 +67,31 @@ export default function StaffInstrumentDetail() {
 
   const statusColor = {
     available: 'bg-green-100 text-green-700',
-    reserved: 'bg-blue-100 text-blue-700',
-    shipping: 'bg-cyan-100 text-cyan-700',
     rented: 'bg-indigo-100 text-indigo-700',
-    returning: 'bg-yellow-100 text-yellow-700',
     maintenance: 'bg-orange-100 text-orange-700',
     archived: 'bg-gray-100 text-gray-700',
+    lost: 'bg-gray-100 text-gray-700',
   }
 
   const statusLabel = {
     available: '可租',
-    reserved: '已预约',
-    shipping: '物流中',
     rented: '租赁中',
-    returning: '归还中',
     maintenance: '维修中',
     archived: '已下架',
+    lost: '已丢失',
   }
 
   const handleShip = async () => {
-    if (instrument.stock_status !== 'reserved') {
-      alert('乐器不在已预约状态，无法发货')
+    if (instrument.stock_status !== 'rented') {
+      alert('乐器不在租赁中状态，无法发货')
       return
     }
     navigate(`/staff/shipping?instrument=${instrument.id}`)
   }
 
   const handleReceive = async () => {
-    if (instrument.stock_status !== 'returning') {
-      alert('乐器不在归还中状态')
+    if (instrument.stock_status !== 'rented') {
+      alert('乐器不在租赁状态')
       return
     }
     if (activeOrder) {
@@ -267,7 +263,7 @@ export default function StaffInstrumentDetail() {
         </div>
 
         {/* Booker Info Card - Only show for reserved status */}
-        {instrument.stock_status === 'reserved' && (instrument.booker_name || instrument.booker_phone) && (
+        {instrument.stock_status === 'rented' && (instrument.booker_name || instrument.booker_phone) && (
           <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-center gap-2 mb-3">
               <User size={18} className="text-yellow-600" />
@@ -314,12 +310,12 @@ export default function StaffInstrumentDetail() {
                   <Archive size={18} />下架
                 </button>
               )}
-              {instrument.stock_status === 'reserved' && has('order:update') && (
+              {instrument.stock_status === 'rented' && has('order:update') && (
                 <button onClick={handleShip} className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <Truck size={18} />发货
                 </button>
               )}
-              {instrument.stock_status === 'returning' && has('inventory:manage') && (
+              {instrument.stock_status === 'rented' && has('inventory:manage') && (
                 <button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <RotateCcw size={18} />接收确认
                 </button>

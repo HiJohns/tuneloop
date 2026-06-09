@@ -67,7 +67,7 @@ func (h *AssessmentHandler) GetAssessmentData(c *gin.Context) {
 	}
 
 	damageLevel := "none"
-	if order.Status == models.OrderStatusMaintenance {
+	if order.Status == models.OrderStatusCompleted {
 		damageLevel = "damaged"
 	}
 

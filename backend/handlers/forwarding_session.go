@@ -223,7 +223,7 @@ func LostForwardingSession(c *gin.Context) {
 	// For outbound direction, cancel the order and refund
 	if session.Direction == models.ForwardingDirectionOutbound && session.OrderID != "" {
 		db.Model(&models.Order{}).Where("id = ?", session.OrderID).Updates(map[string]interface{}{
-			"status": models.OrderStatusInStore,
+			"status": models.OrderStatusCancelled,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "marked as lost"})

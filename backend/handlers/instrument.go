@@ -647,12 +647,10 @@ func UpdateInstrumentStatus(c *gin.Context) {
 	// Validate stock_status value
 	validStatuses := []string{
 		models.StockStatusAvailable,
-		models.StockStatusReserved,
-		models.StockStatusShipping,
 		models.StockStatusRented,
-		models.StockStatusReturning,
 		models.StockStatusMaintenance,
 		models.StockStatusArchived,
+		models.StockStatusLost,
 	}
 	isValid := false
 	for _, status := range validStatuses {
@@ -826,7 +824,7 @@ func DeleteInstrument(c *gin.Context) {
 		return
 	}
 
-	if instrument.StockStatus == models.StockStatusRented || instrument.StockStatus == models.StockStatusReserved {
+	if instrument.StockStatus == models.StockStatusRented {
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "乐器正在使用中，无法删除"})
 		return
 	}

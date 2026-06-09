@@ -359,7 +359,7 @@
         "level_name": "级别名",
         "images": ["url1", "url2"],
         "pricing": {},
-        "stock_status": "available", // available/reserved/shipping/rented/returning/maintenance/expired/archived
+        "stock_status": "available", // available/rented/maintenance/archived/lost
         "tenant_id": "uuid",
         "site_id": "uuid",
         "site_name": "网点名",
@@ -657,7 +657,7 @@
         "level_name": "专业级",
         "monthly_rent": 800,
         "deposit": 5000,
-        "stock_status": "available" // available, reserved, shipping, rented, returning, maintenance, expired, archived
+        "stock_status": "available" // available, rented, maintenance, archived, lost
       }
     ],
     "total": 120
@@ -1413,7 +1413,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 **请求参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| status | string | 状态: pending, active, completed, terminated |
+| status | string | 状态: reserved, paid, pending_shipment, in_transit, shipped, in_lease, returning, returned, completed, cancelled, expired |
 | type | string | 类型: lease, maintenance |
 
 **响应**:

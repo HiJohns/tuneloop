@@ -58,22 +58,18 @@ export default function StaffInstruments() {
 
   const statusColor = {
     available: 'bg-green-100 text-green-700',
-    reserved: 'bg-blue-100 text-blue-700',
-    shipping: 'bg-cyan-100 text-cyan-700',
     rented: 'bg-blue-100 text-blue-700',
-    returning: 'bg-yellow-100 text-yellow-700',
     maintenance: 'bg-orange-100 text-orange-700',
     archived: 'bg-gray-100 text-gray-700',
+    lost: 'bg-gray-100 text-gray-700',
   }
 
   const statusLabel = {
     available: '可租',
-    reserved: '已预约',
-    shipping: '物流中',
     rented: '租赁中',
-    returning: '归还中',
     maintenance: '维修中',
     archived: '已下架',
+    lost: '已丢失',
   }
 
   return (
@@ -133,7 +129,7 @@ export default function StaffInstruments() {
                     </span>
                     <span className="text-xs text-gray-400">{inst.site_name}</span>
                   </div>
-                  {(inst.stock_status === 'shipped' || inst.stock_status === 'returning') && inst.tracking_number && (
+                  {inst.stock_status === 'rented' && inst.tracking_number && (
                     <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                       <Truck size={12} />
                       <span>{inst.tracking_number}</span>

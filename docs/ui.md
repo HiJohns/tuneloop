@@ -1,7 +1,7 @@
 # TuneLoop UI 设计文档
 
-> 版本: v2.2 (权限管理系统重构: 10 cus_perm + sys_perm 25-26 + 权限管理页面)
-> 最后更新: 2026-05-27
+> 版本: v2.3 (状态模型重构: Instrument 5态 + Order 11态; 订单详情页 + 顾客/员工按钮逻辑)
+> 最后更新: 2026-06-09
 > 覆盖度: 100% features.md
 
 ---
@@ -14,14 +14,33 @@
 - **覆盖范围**: 所有页面（小程序/PC）支持主题切换
 
 ### 1.2 状态色规范
+
+#### Instrument 状态
 ```css
 :root {
-  --status-online: #10B981;      /* Green - 在库/正常 */
-  --status-maintenance: #F59E0B; /* Orange - 维修中 */
-  --status-banned: #EF4444;     /* Red - 熔断/逾期 */
-  --progress-rent: #3B82F6;      /* 租赁中 */
-  --progress-transfer: #8B5CF6;  /* 转售中 */
-  --progress-complete: #10B981; /* 已完成 */
+  --status-available: #10B981;     /* Green - 可租 */
+  --status-rented: #3B82F6;        /* Blue/Indigo - 租赁中 */
+  --status-maintenance: #F59E0B;   /* Orange - 维修中 */
+  --status-archived: #9CA3AF;      /* Gray - 已下架 */
+  --status-lost: #6B7280;          /* Dark Gray - 已丢失 */
+}
+```
+
+#### Order 状态
+```css
+:root {
+  --order-reserved: #3B82F6;       /* Blue - 已预约 */
+  --order-paid: #F97316;           /* Orange - 待发货 */
+  --order-pending-shipment: #F97316; /* Orange - 待发货 */
+  --order-in-transit: #06B6D4;     /* Cyan - 运输中 */
+  --order-shipped: #10B981;        /* Green - 已送达 */
+  --order-in-lease: #6366F1;       /* Indigo - 租赁中 */
+  --order-returning: #EAB308;      /* Yellow - 归还中 */
+  --order-returned: #9CA3AF;       /* Gray - 已归还 */
+  --order-completed: #9CA3AF;      /* Gray - 已完成 */
+  --order-cancelled: #EF4444;      /* Red - 已取消 */
+  --order-expired: #EF4444;        /* Red - 超期 */
+  --order-transferred: #8B5CF6;    /* Purple - 已过户 */
 }
 ```
 
@@ -57,6 +76,30 @@
     ├── favorites/                  # 我的收藏
     └── addresses/                  # 地址管理
 ```
+
+---
+
+### 2.1a React Mobile App 路由表
+
+**组件**: `frontend-mobile/src/App.jsx`
+
+| 路由 | 组件 | 认证 | 说明 |
+|------|------|------|------|
+| `/` | `Home` | 可选 | 首页（乐器浏览） |
+| `/instrument/:id` | `Detail` | 可选 | 乐器详情 |
+| `/order/:id` | `OrderDetail` | 必须 | 顾客订单详情 |
+| `/profile` | `Profile` | 必须 | 个人中心 |
+| `/cart` | `Cart` | 可选 | 购物车 |
+| `/receive/:orderId` | `ReceiveConfirm` | 必须 | 确认收货 |
+| `/return/:orderId` | `ReturnConfirm` | 必须 | 归还 |
+| `/staff/orders` | `StaffOrders` | 必须 | 员工订单管理（含搜索+扫码） |
+| `/staff/orders/:id` | `StaffOrderDetail` | 必须 | 员工订单详情 |
+| `/staff/instruments` | `StaffInstruments` | 必须 | 员工乐器管理 |
+| `/staff/instrument/:id` | `StaffInstrumentDetail` | 必须 | 员工乐器详情 |
+| `/staff/instrument/new` | `StaffInstrumentForm` | 必须 | 新建乐器 |
+| `/staff/shipping` | `ShippingInterface` | 必须 | 发货界面 |
+| `/staff/receiving` | `ReceivingInterface` | 必须 | 收货界面 |
+| `/staff/receiving/:orderId` | `StaffReceiveConfirm` | 必须 | 收货确认 |
 
 ---
 
@@ -397,7 +440,60 @@
 
 ---
 
-### 2.6 电子证书预览页 (`/pages/certificate/preview`) 【新增】
+### 2.5a 个人中心-React实现 (Profile Page)
+
+**路由**: `/profile`
+**组件**: `frontend-mobile/src/pages/Profile.jsx`
+
+#### 顾客视图
+
+当 `businessRole` 不是 `site_admin` 或 `site_member` 时显示：
+
+**当前租赁区**:
+- 显示活跃订单列表（状态：`reserved`/`paid`/`pending_shipment`/`in_transit`/`shipped`/`in_lease`/`returning`/`expired`）
+- 订单卡片：订单号、状态标签、租期、逾期提醒、月租/押金
+- 点击 → 跳转 `/order/:id`（订单详情页）
+
+**租赁历史区**:
+- 显示已结束订单（`returned`/`completed`/`cancelled`/`transferred`）
+- 显示押金退还状态
+- 点击 → 跳转 `/order/:id`
+
+**订单详情页**（顾客，`/order/:id`）:
+
+| 状态 | 按钮 | 行为 |
+|------|------|------|
+| `reserved` | 支付 | `POST /orders/:id/pay`（二次确认） |
+| `paid`/`pending_shipment`/`in_transit` | 取消订单 | `POST /orders/:id/cancel`（二次确认） |
+| `shipped` | 确认收货 | 跳转 `/receive/:id` |
+| `in_lease`/`expired` | 归还 | 跳转 `/return/:id` |
+| `expired` | — | 状态区上方红框显示逾期天数+累计费 |
+| `returning` | — | "乐器归还中，等待验收" |
+| `cancelled`/`completed`/`returned`/`transferred` | — | 终端描述 |
+
+#### 员工视图
+
+当 `businessRole` 为 `site_admin` 或 `site_member` 时显示：
+
+**员工功能区**（权限门控）：
+
+| 按钮 | 目标 | 所需权限 |
+|------|------|---------|
+| 乐器管理 | `/staff/instruments` | `instrument:read` |
+| 订单管理 | `/staff/orders` | `order:read` |
+
+权限检查方式（客户端 bitmask）:
+```js
+const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
+const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
+```
+
+API 来源：
+- `GET /api/config/permissions` → `cus_perm_mapping`（权限位映射）
+- JWT claims → `sys_perm` / `cus_perm`（用户权限位掩码）
+
+---
 
 **布局结构**:
 ```html
@@ -2093,47 +2189,109 @@ cd frontend-pc && npm run build  # 应该成功
 - 申诉：进入经理仲裁流程
 - 超时未操作：按申诉处理
 
-### 3.19 库管工作台 (WarehouseManagement)
+### 3.19 库管工作台 / 员工订单管理 (Staff Order Management)
 
-**路由**: `/warehouse`
+**移动端路由**: `/staff/orders` → `/staff/orders/:id`
+**移动端组件**: `frontend-mobile/src/pages/StaffOrders.jsx`, `frontend-mobile/src/pages/StaffOrderDetail.jsx`
 
-**权限**: MANAGER
+**权限**: `businessRole === 'site_admin' || businessRole === 'site_member'`
+
+**入口**: Profile 页「员工功能」→「订单管理」（权限 `order:read`）
+
+#### 订单列表页 (`/staff/orders`)
 
 **功能点**:
-- 订单列表（按状态筛选）
-  - 预订状态（preparing）
-  - 发货状态（shipped）
-  - 租赁状态（in_lease）
-  - 归还状态（returning）
-- 订单详情页
-  - 乐器信息
-  - 用户信息
-  - 物流信息
-- 物流管理
-  - 录入物流单号
-  - 选择物流公司
-  - 发货确认
-- 归还验收
-  - 扫码乐器二维码
-  - 查看乐器信息
-  - 按规定完成拍照上传
-  - 检查功能按钮
-  - 定损处理入口
+- 顶部搜索栏：手动输入订单号 + 扫码按钮（调用 `BarcodeDetector` API 识别二维码）
+- 状态筛选 Tab：全部 / 待发货 / 运输中 / 租赁中 / 归还验收
+- 订单卡片：订单号、下单人、乐器 SN、到期日、状态标签
+- 点击卡片 → 进入订单详情
 
-**状态流转**:
-- 预订 → 发货中（填写物流信息）
-- 发货中 → 租赁中（物流到达）
-- 租赁中 → 归还中（用户发起归还）
-- 归还中 → 在库（验收通过）
-- 归还中 → 维修中（验收不通过，定损）
+#### 订单详情页 (`/staff/orders/:id`)
+
+**数据来源**: `GET /api/orders/:id`
+
+**展示项**:
+- 订单编号（大字醒目）
+- 当前状态标签
+- 客户信息：下单人、收货地址
+- 租期信息：租期起点、预计天数、预计到期日
+- 物流信息（如有）
+
+**状态按钮**:
+
+| 状态 | 按钮 | 目标 | 权限 |
+|------|------|------|------|
+| `reserved` | 无 | — | — |
+| `paid` / `pending_shipment` | 发货 | `/staff/shipping?order_id=:id` | `order:update` |
+| `in_transit` | 接收并转发 | `/staff/shipping?order_id=:id` | `order:update` |
+| `shipped` / `in_lease` / `expired` | 无 | — | — |
+| `returning` | 收货 | `/staff/receiving?order_id=:id` | `inventory:manage` |
+| `cancelled` / `completed` / `returned` / `transferred` | 终端描述 | — | — |
+
+#### 收货界面 (`/staff/receiving`)
+
+**功能点**:
+- 扫码/手动输入订单号 → 搜索 → 进入订单详情
+- 订单详情中 `returning` 状态点击「收货」→ 进入收货验收流程
+
+**状态流转（订单维度）**:
+- `reserved` → `paid`（支付完成）
+- `paid` → `pending_shipment` → `in_transit` → `shipped`（发货流程）
+- `shipped` → `in_lease`（用户签收）
+- `in_lease` → `returning`（用户发起归还）
+- `returning` → `returned`（验收通过）
+- `returning` → `completed`（验收通过或维修完成关闭）
+- `in_lease` → `expired`（租约超期）
+- `expired` → `returning`（用户归还）
+- `reserved` → `cancelled`（10分钟超时或用户取消）
+- `paid` / `pending_shipment` / `in_transit` → `cancelled`（用户取消）
+- `in_lease` → `transferred`（租转售完成）
 
 **交互逻辑**:
-- 扫码使用移动端相机
-- 照片上传自动生成时间戳
-- 状态变更推送通知给用户
-- 发货确认需填写完整物流信息
+- 扫码使用移动端相机 + BarcodeDetector API
+- 订单详情实时渲染，状态变更后自动刷新
+- 发货/收货需填写完整物流信息
 
-### 3.20 用户租赁列表 (UserRentalList)
+---
+
+### 3.20 用户订单详情 (Customer Order Detail)
+
+**路由**: `/order/:id`
+**组件**: `frontend-mobile/src/pages/OrderDetail.jsx`
+
+**权限**: 需要登录，仅可查看本人订单（后端 `user_id` 过滤）
+
+**入口**: Profile 页「当前租赁」/「租赁历史」点击订单卡片
+
+**数据来源**: `GET /api/orders/:id`
+
+**展示项**:
+- 订单编号（大字醒目）
+- 当前状态标签
+- 超期警告条（红框，显示逾期天数 + 累计逾期费 + 日费率）
+- 配送信息：下单人、收货地址
+- 租期信息：租期起点、预计天数、预计到期日
+- 费用信息：月租金、押金、逾期费（如有）
+- 物流信息（如有）
+
+**状态按钮**:
+
+| 状态 | 按钮 | 行为 | 确认弹窗 |
+|------|------|------|---------|
+| `reserved` | 支付 | `POST /orders/:id/pay` | 二次确认 |
+| `paid` | 取消订单 | `POST /orders/:id/cancel` | 二次确认 |
+| `pending_shipment` | 取消订单 | `POST /orders/:id/cancel` | 二次确认 |
+| `in_transit` | 取消订单 | `POST /orders/:id/cancel` | 二次确认 |
+| `shipped` | 确认收货 | 跳转 `/receive/:id` | — |
+| `in_lease` | 归还 | 跳转 `/return/:id` | — |
+| `expired` | 归还 | 跳转 `/return/:id` | — |
+| `returning` | 无 | 显示「乐器归还中，等待验收」 | — |
+| `cancelled` | 无 | 显示「该订单已取消」 | — |
+| `returned` / `completed` / `transferred` | 无 | 显示「该订单已完成」 | — |
+
+**超期提醒**:
+- 当 `status === 'expired'` 或 `in_lease` 且 `end_date < now` 时，在状态区域下方显示醒目红框
+- 内容：超期 X 天 · 累计逾期费 ¥XXX（¥XX/天）
 
 **路由**: `/user/rentals`
 

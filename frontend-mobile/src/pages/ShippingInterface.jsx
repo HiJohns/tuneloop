@@ -30,8 +30,8 @@ export default function ShippingInterface() {
       const result = await resp.json()
       if (result.code === 20000 && result.data) {
         const inst = result.data
-        if (inst.stock_status !== 'reserved') {
-          alert(`乐器 ${inst.sn} 未处于已预约状态（当前: ${inst.stock_status}）`)
+        if (inst.stock_status !== 'rented') {
+          alert(`乐器 ${inst.sn} 未处于租赁状态（当前: ${inst.stock_status}）`)
           return
         }
         const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
@@ -59,8 +59,8 @@ export default function ShippingInterface() {
       const result = await resp.json()
       if (result.code === 20000 && result.data?.exists) {
         const inst = result.data.info
-        if (inst.stock_status !== 'reserved') {
-          alert(`乐器 ${sn} 未处于已预约状态（当前: ${inst.stock_status}）`)
+        if (inst.stock_status !== 'rented') {
+          alert(`乐器 ${sn} 未处于租赁状态（当前: ${inst.stock_status}）`)
           return
         }
 

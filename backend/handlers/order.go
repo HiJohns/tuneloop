@@ -112,6 +112,13 @@ func GetOrder(c *gin.Context) {
 		userName = user.Name
 	}
 
+	// Fetch delivery address from lease_session
+	deliveryAddress := ""
+	var leaseSession struct{ DeliveryAddress string }
+	if err := db.Raw("SELECT COALESCE(delivery_address::text, '') as delivery_address FROM lease_sessions WHERE order_id = ? LIMIT 1", orderID).Scan(&leaseSession).Error; err == nil {
+		deliveryAddress = leaseSession.DeliveryAddress
+	}
+
 	orderData := map[string]interface{}{
 		"id":                 order.ID,
 		"tenant_id":          order.TenantID,
@@ -132,6 +139,7 @@ func GetOrder(c *gin.Context) {
 		"courier_company":    order.CourierCompany,
 		"shipped_at":         order.ShippedAt,
 		"delivered_at":       order.DeliveredAt,
+		"delivery_address":   deliveryAddress,
 		"created_at":         order.CreatedAt,
 		"updated_at":         order.UpdatedAt,
 	}
@@ -182,7 +190,7 @@ func PayOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != models.OrderStatusReserved && order.Status != "pending" {
+	if order.Status != models.OrderStatusReserved {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order can only be paid when status is reserved",
@@ -203,7 +211,7 @@ func PayOrder(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"order_id":   orderID,
-			"old_status": "pending",
+			"old_status": models.OrderStatusReserved,
 			"new_status": models.OrderStatusPaid,
 			"updated_at": time.Now().Format(time.RFC3339),
 		},
@@ -338,9 +346,9 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
-	// Update instrument status -> returning
+	// Instrument stays rented during return transit
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
-		Update("stock_status", models.StockStatusReturning).Error; err != nil {
+		Update("stock_status", models.StockStatusRented).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update instrument status: " + err.Error(),
@@ -413,8 +421,8 @@ func CancelOrder(c *gin.Context) {
 		// Log error but continue with cancellation
 	}
 
-	// Update order status to in_store (cancelled)
-	if err := db.Model(&order).Update("status", models.OrderStatusInStore).Error; err != nil {
+	// Update order status to cancelled
+	if err := db.Model(&order).Update("status", models.OrderStatusCancelled).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update order status: " + err.Error(),
@@ -427,7 +435,7 @@ func CancelOrder(c *gin.Context) {
 		"data": gin.H{
 			"order_id":   orderID,
 			"old_status": order.Status,
-			"new_status": models.OrderStatusInStore,
+			"new_status": models.OrderStatusCancelled,
 			"updated_at": time.Now().Format(time.RFC3339),
 		},
 	})
@@ -461,7 +469,7 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 
 	var order models.Order
 	if err := db.Where("instrument_id = ? AND status NOT IN ?",
-		instrument.ID, []string{models.OrderStatusInStore}).
+		instrument.ID, []string{models.OrderStatusCancelled, models.OrderStatusCompleted}).
 		Order("created_at DESC").First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "未找到该乐器的活跃订单"})
 		return

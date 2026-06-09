@@ -26,6 +26,8 @@ import MaintenanceProgress from './pages/MaintenanceProgress'
 import SiteDetail from './pages/SiteDetail'
 import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
+import StaffOrderDetail from './pages/StaffOrderDetail'
+import OrderDetail from './pages/OrderDetail'
 
 const getWXConfig = () => {
   return window.APP_CONFIG?.wx || {
@@ -232,6 +234,8 @@ function App() {
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
         <Route path="/staff/orders" element={<ProtectedRoute><StaffOrders /></ProtectedRoute>} />
+        <Route path="/staff/orders/:id" element={<ProtectedRoute><StaffOrderDetail /></ProtectedRoute>} />
+        <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
         <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
         <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />

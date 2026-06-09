@@ -166,13 +166,13 @@ func TestScenarioA_StandardClosedLoop(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusOK, w.Code)
-		testutil.AssertState(t, orderID, models.OrderStatusInStore)
-		assert.True(t, testutil.AssertStateHistoryContains(t, orderID, models.OrderStatusReturning, models.OrderStatusInStore))
+		testutil.AssertState(t, orderID, models.OrderStatusCompleted)
+		assert.True(t, testutil.AssertStateHistoryContains(t, orderID, models.OrderStatusReturning, models.OrderStatusCompleted))
 
 		var resp map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		data := resp["data"].(map[string]interface{})
-		assert.Equal(t, models.OrderStatusInStore, data["status"])
+		assert.Equal(t, models.OrderStatusCompleted, data["status"])
 	})
 }
 
@@ -189,7 +189,7 @@ func TestScenarioC_CancelBoundary(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusOK, w.Code)
-		testutil.AssertState(t, orderID, models.OrderStatusInStore)
+		testutil.AssertState(t, orderID, models.OrderStatusCancelled)
 	})
 
 	t.Run("C2_CancelPaid", func(t *testing.T) {
@@ -203,7 +203,7 @@ func TestScenarioC_CancelBoundary(t *testing.T) {
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, cancelReq)
 		require.Equal(t, http.StatusOK, w.Code)
-		testutil.AssertState(t, orderID, models.OrderStatusInStore)
+		testutil.AssertState(t, orderID, models.OrderStatusCancelled)
 	})
 
 	t.Run("C3_CannotCancelShipped", func(t *testing.T) {
@@ -259,7 +259,7 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusOK, w.Code)
-		testutil.AssertState(t, orderID, models.OrderStatusMaintenance)
+		testutil.AssertState(t, orderID, models.OrderStatusCompleted)
 	})
 }
 

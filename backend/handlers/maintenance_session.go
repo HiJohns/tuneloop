@@ -246,15 +246,14 @@ func (h *MaintenanceSessionHandler) Inspect(c *gin.Context) {
 		var ticket struct{ OrderID string; InstrumentID string }
 		if err := db.Table("maintenance_tickets").Select("order_id, instrument_id").Where("id = ?", session.MaintenanceTicketID).First(&ticket).Error; err == nil {
 			if ticket.OrderID != "" {
-				db.Model(&models.Order{}).Where("id = ?", ticket.OrderID).Update("status", models.OrderStatusInStore)
+				db.Model(&models.Order{}).Where("id = ?", ticket.OrderID).Update("status", models.OrderStatusCompleted)
 
 				db.Create(&models.OrderStatusHistory{
 					ID:         uuid.New().String(),
 					TenantID:   session.TenantID,
 					OrderID:    ticket.OrderID,
-					StatusFrom: models.OrderStatusMaintenance,
-					StatusTo:   models.OrderStatusInStore,
-					Notes:      "维修完成",
+					StatusFrom: models.OrderStatusReturning,
+					StatusTo:   models.OrderStatusCompleted,
 					ChangedAt:  time.Now(),
 				})
 			}

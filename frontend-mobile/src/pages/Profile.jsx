@@ -157,8 +157,8 @@ export default function Profile() {
       const result = await resp.json()
       if (result.code === 20000) {
         const allOrders = result.data?.list || []
-        const active = allOrders.filter(o => ['reserved', 'pending', 'paid', 'in_lease', 'shipping', 'shipped', 'returning'].includes(o.status))
-        const history = allOrders.filter(o => ['returned', 'completed'].includes(o.status))
+        const active = allOrders.filter(o => ['reserved', 'paid', 'pending_shipment', 'in_transit', 'shipped', 'in_lease', 'returning', 'expired'].includes(o.status))
+        const history = allOrders.filter(o => ['returned', 'completed', 'cancelled', 'transferred'].includes(o.status))
         setActiveLeases(active)
         setLeaseHistory(history)
       }
@@ -191,27 +191,34 @@ export default function Profile() {
 
   const statusLabel = {
     reserved: '已预约',
-    pending: '待付款',
     paid: '待发货',
-    shipped: '已发货',
+    pending_shipment: '待发货',
+    in_transit: '运输中',
+    shipped: '已送达',
     in_lease: '租赁中',
     returning: '归还中',
     returned: '已归还',
     completed: '已完成',
     cancelled: '已取消',
+    expired: '超期',
   }
 
   const statusColor = {
     reserved: 'bg-blue-100 text-blue-700',
-    in_lease: 'bg-green-100 text-green-700',
-    shipping: 'bg-blue-100 text-blue-700',
+    paid: 'bg-orange-100 text-orange-700',
+    pending_shipment: 'bg-orange-100 text-orange-700',
+    in_transit: 'bg-cyan-100 text-cyan-700',
+    shipped: 'bg-green-100 text-green-700',
+    in_lease: 'bg-indigo-100 text-indigo-700',
     returning: 'bg-yellow-100 text-yellow-700',
     returned: 'bg-gray-100 text-gray-600',
     completed: 'bg-gray-100 text-gray-600',
+    cancelled: 'bg-red-100 text-red-700',
+    expired: 'bg-red-100 text-red-700',
   }
 
   const isOverdue = (order) => {
-    if (order.status !== 'in_lease' || !order.end_date) return false
+    if ((order.status !== 'in_lease' && order.status !== 'expired') || !order.end_date) return false
     return new Date(order.end_date) < new Date()
   }
 
@@ -346,10 +353,7 @@ export default function Profile() {
                 <div
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => {
-                    const isStaff = businessRole === 'site_admin' || businessRole === 'site_member'
-                    navigate(isStaff ? `/staff/instrument/${order.instrument_id}` : `/instrument/${order.instrument_id}`)
-                  }}
+                  onClick={() => navigate(`/order/${order.id}`)}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-medium text-sm">Order #{order.id?.slice(0, 8)}</span>
@@ -365,7 +369,7 @@ export default function Profile() {
                         超期 {overdueDays(order)} 天 · 超期费 ¥{((order.monthly_rent || 0) / 30 * overdueDays(order)).toFixed(0)}
                       </p>
                     )}
-                    {order.status === 'shipping' && order.tracking_number && (
+                    {(order.status === 'in_transit' || order.status === 'shipped') && order.tracking_number && (
                       <p>物流: {order.courier_company || ''} {order.tracking_number}</p>
                     )}
                     {order.status === 'returning' && order.tracking_number && (
@@ -393,10 +397,7 @@ export default function Profile() {
                 <div
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => {
-                    const isStaff = businessRole === 'site_admin' || businessRole === 'site_member'
-                    navigate(isStaff ? `/staff/instrument/${order.instrument_id}` : `/instrument/${order.instrument_id}`)
-                  }}
+                  onClick={() => navigate(`/order/${order.id}`)}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-sm font-medium">Order #{order.id?.slice(0, 8)}</span>
@@ -423,7 +424,7 @@ export default function Profile() {
           <div className="space-y-3">
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium mb-3">员工功能</h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {(() => {
                   const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
                   const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
@@ -440,18 +441,6 @@ export default function Profile() {
                         <button onClick={() => navigate('/staff/orders')} className="flex flex-col items-center p-2">
                           <ClipboardList size={24} className="text-brand-primary" />
                           <span className="text-xs mt-1 text-gray-600">订单管理</span>
-                        </button>
-                      )}
-                      {has('order:update') && (
-                        <button onClick={() => navigate('/staff/shipping')} className="flex flex-col items-center p-2">
-                          <Bell size={24} className="text-brand-primary" />
-                          <span className="text-xs mt-1 text-gray-600">发货管理</span>
-                        </button>
-                      )}
-                      {has('instrument:maintain') && (
-                        <button onClick={() => navigate('/staff/receiving')} className="flex flex-col items-center p-2">
-                          <Package size={24} className="text-brand-primary" />
-                          <span className="text-xs mt-1 text-gray-600">收货管理</span>
                         </button>
                       )}
                     </>

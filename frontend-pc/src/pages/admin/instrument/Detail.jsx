@@ -153,12 +153,10 @@ export default function InstrumentDetail() {
 
   const statusMap = {
     available: { color: 'green', text: '可租' },
-    reserved: { color: 'blue', text: '已预约' },
-    shipping: { color: 'cyan', text: '物流中' },
     rented: { color: 'orange', text: '租赁中' },
-    returning: { color: 'orange', text: '归还中' },
     maintenance: { color: 'red', text: '维修中' },
-    archived: { color: 'default', text: '已下架' }
+    archived: { color: 'default', text: '已下架' },
+    lost: { color: 'default', text: '已丢失' }
   }
   const statusConfig = statusMap[instrument.stock_status] || { color: 'default', text: '未知' }
 
@@ -172,7 +170,7 @@ export default function InstrumentDetail() {
   const pricing = parsePricing(instrument.pricing)
   const overdueDailyFee = pricing?.overdue_daily_fee || 0
 
-  const activeStatuses = ['reserved', 'shipping', 'rented', 'returning']
+  const activeStatuses = ['rented']
 
   return (
     <div className="p-6">
@@ -418,7 +416,7 @@ export default function InstrumentDetail() {
                     <Descriptions.Item label="租期结束">
                       {leaseData.order?.end_date || '-'}
                     </Descriptions.Item>
-                    {(instrument.stock_status === 'shipping' || instrument.stock_status === 'returning') && (
+                    {leaseData.order?.courier_company && (
                       <>
                         <Descriptions.Item label="物流公司">
                           <Space>

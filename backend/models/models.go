@@ -73,23 +73,26 @@ type Instrument struct {
 
 const (
 	StockStatusAvailable   = "available"
-	StockStatusReserved    = "reserved"
-	StockStatusShipping    = "shipping"
 	StockStatusRented      = "rented"
-	StockStatusReturning   = "returning"
 	StockStatusMaintenance = "maintenance"
-	StockStatusLost       = "lost"
-	StockStatusArchived   = "archived"
+	StockStatusArchived    = "archived"
+	StockStatusLost        = "lost"
+	StockStatusSold        = "sold"
 )
 
 const (
-	OrderStatusInStore      = "in_store"
-	OrderStatusReserved     = "reserved"
-	OrderStatusPaid         = "paid"
-	OrderStatusShipped      = "shipped"
-	OrderStatusInLease      = "in_lease"
-	OrderStatusReturning    = "returning"
-	OrderStatusMaintenance  = "maintenance"
+	OrderStatusReserved         = "reserved"
+	OrderStatusPaid             = "paid"
+	OrderStatusPendingShipment  = "pending_shipment"
+	OrderStatusInTransit        = "in_transit"
+	OrderStatusShipped          = "shipped"
+	OrderStatusInLease          = "in_lease"
+	OrderStatusReturning        = "returning"
+	OrderStatusReturned         = "returned"
+	OrderStatusCompleted        = "completed"
+	OrderStatusCancelled        = "cancelled"
+	OrderStatusExpired          = "expired"
+	OrderStatusTransferred      = "transferred"
 )
 
 const (
@@ -97,17 +100,6 @@ const (
 	LeaseStatusReturnRequested = "return_requested"
 	LeaseStatusCompleted      = "completed"
 	LeaseStatusCancelled      = "cancelled"
-)
-
-const (
-	InstrumentStatusAvailable   = "available"
-	InstrumentStatusReserved    = "reserved"
-	InstrumentStatusShipping    = "shipping"
-	InstrumentStatusRented      = "rented"
-	InstrumentStatusReturning   = "returning"
-	InstrumentStatusMaintenance = "maintenance"
-	InstrumentStatusLost        = "lost"
-	InstrumentStatusArchived    = "archived"
 )
 
 const (

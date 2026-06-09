@@ -41,13 +41,13 @@ func (e *OwnershipEngine) CheckAndTransfer(orderID string) error {
 		return err
 	}
 	
-	if order.AccumulatedMonths < 12 || order.Status != "active" {
+	if order.AccumulatedMonths < 12 || order.Status != models.OrderStatusInLease {
 		return nil
 	}
 	
 	tx := db.Begin()
 	
-	order.Status = "transferred"
+	order.Status = models.OrderStatusTransferred
 	order.UpdatedAt = time.Now()
 	if err := tx.Save(&order).Error; err != nil {
 		tx.Rollback()
@@ -60,7 +60,7 @@ func (e *OwnershipEngine) CheckAndTransfer(orderID string) error {
 		return err
 	}
 	
-	instrument.StockStatus = "sold"
+	instrument.StockStatus = models.StockStatusSold
 	instrument.UpdatedAt = time.Now()
 	if err := tx.Save(&instrument).Error; err != nil {
 		tx.Rollback()

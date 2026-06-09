@@ -291,7 +291,7 @@ func TestLeaseFlow_GetOrdersWithStatusFilter(t *testing.T) {
 	router.GET("/orders", GetOrders)
 
 	now := time.Now()
-	for i, status := range []string{models.OrderStatusReserved, models.OrderStatusPaid, models.OrderStatusInLease, models.OrderStatusInStore} {
+	for i, status := range []string{models.OrderStatusReserved, models.OrderStatusPaid, models.OrderStatusInLease, models.OrderStatusCompleted} {
 		orderID := uuid.New().String()
 		db.Exec(`INSERT INTO orders (id, tenant_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, created_at) 
 			VALUES (?, ?, ?, ?, 'standard', 3, 100, 500, ?, ?)`,

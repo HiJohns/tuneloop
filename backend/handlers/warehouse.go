@@ -111,8 +111,8 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		return
 	}
 
-	// 同步更新乐器状态为 shipping（对应 cases.md §0.3 状态机）
-	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusShipping).Error; err != nil {
+	// Instrument remains rented during shipment
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusRented).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument: " + err.Error()})
 		return
 	}
@@ -314,10 +314,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	// Update order status
-	newStatus := models.OrderStatusInStore
-	if req.Condition == "damaged" {
-		newStatus = models.OrderStatusMaintenance
-	}
+	newStatus := models.OrderStatusCompleted
 	updateFields := map[string]interface{}{
 		"status": newStatus,
 	}
@@ -430,8 +427,8 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
-	// Update order status to maintenance
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusMaintenance).Error; err != nil {
+	// Update order status to completed (damage assessment finalized)
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
 	}
@@ -450,7 +447,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		TenantID:   tenantID,
 		OrderID:    orderID,
 		StatusFrom: order.Status,
-		StatusTo:   models.OrderStatusMaintenance,
+		StatusTo:   models.OrderStatusCompleted,
 		Notes:      "开始定损评估",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
@@ -500,7 +497,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 			"message": "success",
 			"data": gin.H{
 				"order_id":      orderID,
-				"status":        models.OrderStatusMaintenance,
+				"status":        models.OrderStatusCompleted,
 				"damage_amount": req.DamageAmount,
 			},
 		})
