@@ -581,14 +581,15 @@ func main() {
 						log.Printf("[Bootstrap] Synced sys_perm for role %s: bits=%v", code, template.SysPermBits)
 					}
 				}
-				if len(template.CusPermCodes) > 0 {
-					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, permRegistry.GetCusPermBit)
-					if err := iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt); err != nil {
-						log.Printf("[Bootstrap] Warning: failed to sync cus_perm for role %s: %v", code, err)
-					} else {
-						log.Printf("[Bootstrap] Synced cus_perm for role %s: codes=%v", code, template.CusPermCodes)
-					}
+			if len(template.CusPermCodes) > 0 {
+				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, permRegistry.GetCusPermBit)
+				log.Printf("[Bootstrap] Computing cus_perm for %s: codes=%v → value=%d", code, template.CusPermCodes, cusPerm)
+				if err := iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt); err != nil {
+					log.Printf("[Bootstrap] Warning: failed to sync cus_perm for role %s: %v", code, err)
+				} else {
+					log.Printf("[Bootstrap] Synced cus_perm for role %s: value=%d, codes=%v", code, cusPerm, template.CusPermCodes)
 				}
+			}
 			}
 		} else {
 			log.Printf("[Bootstrap] Skipping sys_perm sync: namespace not resolvable (nsErr=%v)", nsErr)
