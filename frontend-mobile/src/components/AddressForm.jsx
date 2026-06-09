@@ -10,6 +10,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
     city: address?.city || '',
     district: address?.district || '',
     detail: address?.detail || '',
+    postal_code: address?.postal_code || '',
     is_default: address?.is_default || false,
   })
   const [saving, setSaving] = useState(false)
@@ -65,6 +66,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
             <input className={inputClass} value={form.district} onChange={e => setForm(prev => ({ ...prev, district: e.target.value }))} placeholder="区" />
           </div>
           <input className={inputClass} value={form.detail} onChange={e => setForm(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
+          <input className={inputClass} value={form.postal_code} onChange={e => setForm(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
           <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
             <input type="checkbox" checked={form.is_default} onChange={e => setForm(prev => ({ ...prev, is_default: e.target.checked }))} />
             设为默认地址

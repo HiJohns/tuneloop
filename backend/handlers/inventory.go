@@ -311,7 +311,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	for _, inst := range instruments {
 		// Parse pricing JSONB
-		var pricing []map[string]interface{}
+		var pricing map[string]interface{}
 		if inst.Pricing != "" {
 			json.Unmarshal([]byte(inst.Pricing), &pricing)
 		}
@@ -320,26 +320,39 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		deposit := 0.0
 		shippingFee := 0.0
 		overdueDailyFee := 0.0
-		if len(pricing) > 0 {
-			if dailyRentVal, ok := pricing[0]["daily_rent"].(float64); ok {
-				dailyRent = dailyRentVal
-			}
-			if depositVal, ok := pricing[0]["deposit"].(float64); ok {
-				deposit = depositVal
-			}
-			if shippingFeeVal, ok := pricing[0]["shipping_fee"].(float64); ok {
-				shippingFee = shippingFeeVal
-			}
-			if overdueDailyFeeVal, ok := pricing[0]["overdue_daily_fee"].(float64); ok {
-				overdueDailyFee = overdueDailyFeeVal
-			} else {
-				overdueDailyFee = dailyRent
+		if v, ok := pricing["daily_rent"].(float64); ok {
+			dailyRent = v
+		} else {
+			// Fallback: try array format (legacy data)
+			var arr []map[string]interface{}
+			if json.Unmarshal([]byte(inst.Pricing), &arr) == nil && len(arr) > 0 {
+				if v, ok := arr[0]["daily_rent"].(float64); ok {
+					dailyRent = v
+				}
+				if v, ok := arr[0]["deposit"].(float64); ok {
+					deposit = v
+				}
+				if v, ok := arr[0]["shipping_fee"].(float64); ok {
+					shippingFee = v
+				}
+				if v, ok := arr[0]["overdue_daily_fee"].(float64); ok {
+					overdueDailyFee = v
+				} else if dailyRent > 0 {
+					overdueDailyFee = dailyRent
+				}
 			}
 		}
-
-		// Get brand and model from instrument_properties (simplified for now)
-		brand := ""
-		model := ""
+		if v, ok := pricing["deposit"].(float64); ok {
+			deposit = v
+		}
+		if v, ok := pricing["shipping_fee"].(float64); ok {
+			shippingFee = v
+		}
+		if v, ok := pricing["overdue_daily_fee"].(float64); ok {
+			overdueDailyFee = v
+		} else if dailyRent > 0 {
+			overdueDailyFee = dailyRent
+		}
 
 		// Get site name
 		siteName := ""
@@ -415,28 +428,26 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		}
 
 		// Parse current pricing
-		var pricing []map[string]interface{}
+		var pricing map[string]interface{}
 		if instrument.Pricing != "" {
 			json.Unmarshal([]byte(instrument.Pricing), &pricing)
 		}
 
-		// Ensure pricing array exists
-		if len(pricing) == 0 {
-			pricing = []map[string]interface{}{
-				{"name": "standard"},
-			}
+		// Ensure pricing map exists
+		if pricing == nil {
+			pricing = map[string]interface{}{}
 		}
 
 		// Update pricing fields
 		if item.DailyRent > 0 {
-			pricing[0]["daily_rent"] = item.DailyRent
+			pricing["daily_rent"] = item.DailyRent
 		}
-		pricing[0]["deposit"] = item.Deposit
-		pricing[0]["shipping_fee"] = item.ShippingFee
+		pricing["deposit"] = item.Deposit
+		pricing["shipping_fee"] = item.ShippingFee
 		if item.OverdueDailyFee > 0 {
-			pricing[0]["overdue_daily_fee"] = item.OverdueDailyFee
+			pricing["overdue_daily_fee"] = item.OverdueDailyFee
 		} else if item.DailyRent > 0 {
-			pricing[0]["overdue_daily_fee"] = item.DailyRent
+			pricing["overdue_daily_fee"] = item.DailyRent
 		}
 
 		// Marshal back to JSON

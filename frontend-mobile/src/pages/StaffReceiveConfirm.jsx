@@ -83,7 +83,16 @@ export default function StaffReceiveConfirm() {
     </div>
   }
 
-  const images = instrument?.images ? (Array.isArray(instrument.images) ? instrument.images : []) : []
+  const parseImages = (images) => {
+    if (!images) return []
+    if (Array.isArray(images)) return images
+    if (typeof images === 'string') {
+      try { return JSON.parse(images) } catch { return [] }
+    }
+    return []
+  }
+
+  const images = parseImages(instrument?.images)
 
   return (
     <div className="min-h-screen bg-brand-bg pb-24">
@@ -114,7 +123,7 @@ export default function StaffReceiveConfirm() {
             <h3 className="font-medium mb-3">租赁信息</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">租期</span><span>{order.start_date || '-'} 至 {order.end_date || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">押金</span><span>¥{order.deposit || 0}</span></div>
+              {order.deposit > 0 && <div className="flex justify-between"><span className="text-gray-500">押金</span><span>¥{order.deposit}</span></div>}
               <div className="flex justify-between"><span className="text-gray-500">租赁人</span><span>{order.user_name || '-'}</span></div>
             </div>
           </div>

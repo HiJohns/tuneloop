@@ -1,284 +1,234 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, Camera, Scan, Plus, X } from 'lucide-react'
-import ImageUploader from '../components/ImageUploader'
+import { ArrowLeft, Camera, User, MapPin, Package } from 'lucide-react'
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [snInput, setSnInput] = useState('')
-  const [items, setItems] = useState([])
+  const [order, setOrder] = useState(null)
+  const [instrument, setInstrument] = useState(null)
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
+  const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 
-  // Auto-fetch instrument(s) from URL params on mount
+  const orderId = searchParams.get('order_id')
+
   useEffect(() => {
-    const ids = searchParams.get('instrument')
-    if (ids) {
-      ids.split(',').forEach(id => {
-        fetchInstrumentById(id.trim())
-      })
+    if (orderId) {
+      fetchOrder(orderId)
+    } else {
+      // Legacy support: ?instrument=:id
+      const instId = searchParams.get('instrument')
+      if (instId) {
+        fetchInstrumentById(instId).then(inst => {
+          if (!inst) return
+          apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+            .then(r => r.json())
+            .then(r => {
+              if (r.code === 20000 && r.data) fetchOrder(r.data.order_id)
+            })
+        })
+      }
     }
   }, [])
 
-  const fetchInstrumentById = async (instrumentId) => {
+  const fetchOrder = async (orderId) => {
     try {
-      const resp = await apiFetch(`${baseUrl}/instruments/${instrumentId}`)
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}`)
       const result = await resp.json()
-      if (result.code === 20000 && result.data) {
-        const inst = result.data
-        if (inst.stock_status !== 'rented') {
-          alert(`乐器 ${inst.sn} 未处于租赁状态（当前: ${inst.stock_status}）`)
-          return
-        }
-        const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
-        const orderResult = await orderResp.json()
-        const orderID = orderResult.code === 20000 ? orderResult.data?.order_id : null
-        setItems(prev => [...prev.filter(i => i.sn !== inst.sn), {
-          sn: inst.sn,
-          images: inst.images,
-          pricing: inst.pricing,
-          category_name: inst.category_name,
-          level_name: inst.level_name,
-          category_id: inst.category_id,
-          order_id: orderID,
-          photos: [],
-        }])
+      if (result.code === 20000) {
+        setOrder(result.data)
+        const inst = await fetchInstrumentById(result.data.instrument_id)
+        if (inst) setInstrument(inst)
       }
+    } catch (err) {
+      console.error('Failed to fetch order:', err)
+    }
+  }
+
+  const fetchInstrumentById = async (id) => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/instruments/${id}`)
+      const result = await resp.json()
+      if (result.code === 20000 && result.data) return result.data
     } catch (err) {
       console.error('Failed to fetch instrument:', err)
     }
+    return null
   }
 
-  const checkInstrument = async (sn) => {
-    try {
-      const resp = await apiFetch(`${baseUrl}/instruments/check?sn=${encodeURIComponent(sn)}`)
-      const result = await resp.json()
-      if (result.code === 20000 && result.data?.exists) {
-        const inst = result.data.info
-        if (inst.stock_status !== 'rented') {
-          alert(`乐器 ${sn} 未处于租赁状态（当前: ${inst.stock_status}）`)
-          return
-        }
-
-        const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(sn)}`)
-        const orderResult = await orderResp.json()
-        const orderID = orderResult.code === 20000 ? orderResult.data?.order_id : null
-
-        setItems(prev => [...prev.filter(i => i.sn !== sn), {
-          sn,
-          images: inst.images,
-          pricing: inst.pricing,
-          category_name: inst.category_name,
-          level_name: inst.level_name,
-          category_id: inst.category_id,
-          order_id: orderID,
-          photos: [],
-        }])
-        setSnInput('')
-      } else {
-        alert('未找到该乐器')
-      }
-    } catch (err) {
-      console.error('Failed to check instrument:', err)
-    }
+  const handlePhotoCapture = (e) => {
+    const files = Array.from(e.target.files || [])
+    setPhotos(prev => [...prev, ...files].slice(0, 10))
   }
 
-  const updateItemPhotos = (sn, files) => {
-    setItems(prev => prev.map(i => i.sn === sn ? { ...i, photos: files } : i))
+  const removePhoto = (idx) => {
+    setPhotos(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const removeItem = (sn) => {
-    setItems(prev => prev.filter(i => i.sn !== sn))
-  }
+  const canSubmit = logistics.company.trim() && logistics.trackingNumber.trim() && photos.length > 0 && orderId && !submitting
 
   const handleSubmit = async () => {
-    if (items.length === 0) return
-    for (const item of items) {
-      if (item.photos.length === 0) {
-        alert(`请为乐器 ${item.sn} 拍摄或选择照片`)
-        return
-      }
-    }
+    if (!canSubmit || !orderId) return
 
     setSubmitting(true)
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
-    for (const item of items) {
-      if (!item.order_id) {
-        alert(`乐器 ${item.sn} 没有活跃的订单`)
-        setSubmitting(false)
-        return
-      }
-
-      // Upload photos for this item
+    try {
+      // Upload photos
       const photoUrls = []
-      try {
-        for (const file of item.photos) {
-          const formData = new FormData()
-          formData.append('file', file)
-          const resp = await fetch(`${baseUrl}/upload`, {
-            method: 'POST',
-            headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-            body: formData,
-          })
-          const result = await resp.json()
-          if (result.code === 20000 && result.data?.url) {
-            photoUrls.push(result.data.url)
-          } else {
-            alert(`照片上传失败 ${item.sn}: ${result.message || '未知错误'}`)
-            setSubmitting(false)
-            return
-          }
-        }
-      } catch (err) {
-        alert(`照片上传失败 ${item.sn}: ${err.message}`)
-        setSubmitting(false)
-        return
-      }
-
-      // Submit shipping for this item
-      try {
-        const resp = await apiFetch(`${baseUrl}/warehouse/orders/${item.order_id}/shipping`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            tracking_number: logistics.trackingNumber,
-            company: logistics.company,
-            shipped_at: new Date().toISOString(),
-            photos: photoUrls,
-          }),
+      for (const file of photos) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const resp = await fetch(`${baseUrl}/upload`, {
+          method: 'POST',
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+          body: fd,
         })
         const result = await resp.json()
-        if (result.code !== 20000) {
-          alert(`发货失败 ${item.sn}: ${result.message}`)
-          setSubmitting(false)
-          return
+        if (result.code === 20000 && result.data?.url) {
+          photoUrls.push(result.data.url)
         }
-      } catch (err) {
-        alert(`发货失败 ${item.sn}: ${err.message}`)
-        setSubmitting(false)
-        return
       }
-    }
 
-    alert('全部发货成功')
-    navigate('/staff/instruments', { replace: true })
+      // Submit shipping
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/shipping`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          tracking_number: logistics.trackingNumber,
+          company: logistics.company,
+          shipped_at: new Date().toISOString(),
+          photos: photoUrls,
+        }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        alert('发货成功')
+        navigate(-1)
+      } else {
+        alert('发货失败: ' + result.message)
+      }
+    } catch (err) {
+      alert('发货失败: ' + err.message)
+    }
     setSubmitting(false)
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
+    <div className="min-h-screen bg-brand-bg pb-24">
       <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
         <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
         <h1 className="text-lg font-bold">发货</h1>
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Customer Info */}
+        {order && (
+          <div className="bg-white rounded-xl p-4">
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <User size={16} className="text-brand-primary" />
+              收货人信息
+            </h3>
+            {order.user_name && (
+              <p className="text-sm font-medium">{order.user_name}</p>
+            )}
+            {order.delivery_address && (
+              <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
+                <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                <span>{order.delivery_address}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Instrument Info */}
+        {instrument && (
+          <div className="bg-white rounded-xl p-4">
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Package size={16} className="text-brand-primary" />
+              乐器信息
+            </h3>
+            <div className="flex gap-3">
+              {(() => {
+                try {
+                  const imgs = JSON.parse(instrument.images || '[]')
+                  if (imgs[0]) return <img src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                } catch {}
+                return null
+              })()}
+              <div>
+                <p className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</p>
+                <p className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Logistics Info */}
         <div className="bg-white rounded-xl p-4 space-y-3">
-          <h3 className="font-medium">物流信息</h3>
+          <h3 className="font-medium text-gray-900 flex items-center gap-2">
+            <span className="w-2 h-2 bg-red-500 rounded-full inline-block" />
+            物流信息
+            <span className="text-xs text-gray-400 font-normal">（必填）</span>
+          </h3>
           <input
             type="text"
             value={logistics.company}
             onChange={e => setLogistics({ ...logistics, company: e.target.value })}
             placeholder="承运公司"
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           />
           <input
             type="text"
             value={logistics.trackingNumber}
             onChange={e => setLogistics({ ...logistics, trackingNumber: e.target.value })}
             placeholder="快递单号"
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           />
         </div>
 
-        {/* Items List */}
-        {items.length > 0 && (
-          <div>
-            <h3 className="font-medium mb-2">货品列表</h3>
-            <div className="space-y-3">
-              {items.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-xl p-3">
-                  <div className="flex gap-3 items-start mb-3">
-                    <img
-                      src={(() => { try { const imgs = JSON.parse(item.images || '[]'); return imgs[0] || '' } catch { return '' } })()}
-                      alt={item.sn}
-                      className="w-14 h-14 object-cover rounded-lg flex-shrink-0 bg-gray-100"
-                      onError={(e) => { (e.target).src = ''; (e.target).style.display = 'none' }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">SN: {item.sn}</p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {[item.category_name, item.level_name].filter(Boolean).join(' | ') || '-'}
-                      </p>
-                      {(() => {
-                        try {
-                          const pricing = JSON.parse(item.pricing || '[]')
-                          const p = pricing[0] || {}
-                          const dailyRent = p.daily_rent || item.base_daily_rate || 0
-                          const monthlyRent = p.monthly_rent || Math.round(dailyRent * 25) || 0
-                          if (dailyRent > 0 || monthlyRent > 0) {
-                            return <p className="text-xs text-blue-600 font-medium mt-0.5">¥{dailyRent}/天 · ¥{monthlyRent}/月</p>
-                          }
-                        } catch {}
-                        return null
-                      })()}
-                    </div>
-                    <button onClick={() => removeItem(item.sn)} className="text-red-500 flex-shrink-0">
-                      <X size={18} />
-                    </button>
-                  </div>
-                  <div className="border-t pt-3">
-                    <p className="text-xs text-gray-500 mb-2">拍摄乐器照片作为发货留档</p>
-                    <ImageUploader
-                      maxImages={5}
-                      onChange={(files) => updateItemPhotos(item.sn, files)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Add Instrument */}
+        {/* Photo Capture */}
         <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">添加乐器</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={snInput}
-              onChange={e => setSnInput(e.target.value)}
-              placeholder="输入识别码或扫描二维码"
-              className="flex-1 border rounded-lg px-3 py-2"
-              onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
-            />
-            <button
-              onClick={() => snInput && checkInstrument(snInput)}
-              className="px-4 py-2 bg-brand-primary text-white rounded-lg"
-            >
-              <Plus size={18} />
-            </button>
-            <button
-              onClick={() => alert('扫码功能暂不可用')}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <Scan size={18} />
-            </button>
+          <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <Camera size={16} className="text-brand-primary" />
+            拍照留档
+            <span className="text-xs text-gray-400 font-normal">（至少 1 张）</span>
+          </h3>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {photos.map((file, i) => (
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border">
+                <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => removePhoto(i)}
+                  className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
+                >
+                  <span className="text-white text-xs">✕</span>
+                </button>
+              </div>
+            ))}
+            {photos.length < 10 && (
+              <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:text-brand-primary">
+                <Camera size={24} />
+                <span className="text-xs mt-1">拍摄</span>
+                <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+              </label>
+            )}
           </div>
+          <p className="text-xs text-gray-400">已拍摄 {photos.length} 张，最多 10 张</p>
         </div>
+      </div>
 
-        {/* Submit Button */}
+      {/* Submit Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         <button
           onClick={handleSubmit}
-          disabled={items.length === 0 || submitting}
-          className="w-full py-3 bg-brand-primary text-white rounded-xl disabled:opacity-50 font-medium"
+          disabled={!canSubmit}
+          className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50 text-lg"
         >
-          {submitting ? '提交中...' : `提交（${items.length} 件）`}
+          {submitting ? '提交中...' : '提交'}
         </button>
       </div>
     </div>

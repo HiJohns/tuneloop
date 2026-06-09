@@ -6,13 +6,13 @@ import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History,
 import AddressForm from '../components/AddressForm'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
-  const [form, setForm] = useState({ phone: '', email: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '' })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
     if (user) {
-      setForm({ phone: user.phone || '', email: user.email || '' })
+      setForm({ name: user.name || '', phone: user.phone || '', email: user.email || '' })
     }
   }, [user, visible])
 
@@ -27,6 +27,7 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
       const resp = await apiFetch(`${baseUrl}/users/me`, {
         method: 'PUT',
         body: JSON.stringify({
+          name: form.name,
           phone: form.phone,
           email: form.email,
         }),
@@ -53,6 +54,16 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
       <div className="bg-white rounded-t-2xl w-full max-w-[480px] p-6">
         <h3 className="text-lg font-bold mb-4">Edit Profile</h3>
         <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-500">Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              className="w-full border rounded-lg px-3 py-2 mt-1"
+              placeholder="Enter your name"
+            />
+          </div>
           <div>
             <label className="text-sm text-gray-500">Phone</label>
             <input
@@ -334,7 +345,7 @@ export default function Profile() {
                 {addresses.filter(a => a.is_default).slice(0, 1).map(addr => (
                   <div key={addr.id} className="text-sm text-gray-600">
                     <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
-                    <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}</p>
+                    <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}{addr.postal_code ? ` ${addr.postal_code}` : ''}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
                       <button onClick={() => { setEditingAddress(addr); setShowAddressForm(true) }} className="text-xs text-brand-primary">编辑</button>

@@ -687,6 +687,7 @@ type UserAddress struct {
 	City          string    `gorm:"type:varchar(50)" json:"city"`
 	District      string    `gorm:"type:varchar(50)" json:"district"`
 	Detail        string    `gorm:"type:varchar(500)" json:"detail"`
+	PostalCode    string    `gorm:"type:varchar(20)" json:"postal_code"`
 	IsDefault     bool      `gorm:"default:false" json:"is_default"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`

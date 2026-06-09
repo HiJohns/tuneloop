@@ -17,7 +17,7 @@ export default function Checkout() {
   const [days, setDays] = useState(30)
   const [selectedAddressId, setSelectedAddressId] = useState('')
   const [useNewAddress, setUseNewAddress] = useState(false)
-  const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '' })
+  const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
 
   useEffect(() => {
@@ -122,12 +122,12 @@ export default function Checkout() {
           } catch {}
         }
         if (!addressId) {
-          deliveryAddress = `${newAddress.recipient_name} ${newAddress.phone} ${newAddress.province}${newAddress.city}${newAddress.district} ${newAddress.detail}`
+          deliveryAddress = `${newAddress.recipient_name} ${newAddress.phone} ${newAddress.province}${newAddress.city}${newAddress.district} ${newAddress.detail}${newAddress.postal_code ? ' ' + newAddress.postal_code : ''}`
         }
       } else {
         const addr = addresses.find(a => a.id === selectedAddressId)
         if (addr) {
-          deliveryAddress = `${addr.recipient_name} ${addr.phone} ${addr.province}${addr.city}${addr.district} ${addr.detail}`
+          deliveryAddress = `${addr.recipient_name} ${addr.phone} ${addr.province}${addr.city}${addr.district} ${addr.detail}${addr.postal_code ? ' ' + addr.postal_code : ''}`
         }
       }
 
@@ -300,6 +300,9 @@ export default function Checkout() {
               </div>
               <div>
                 <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
+              </div>
+              <div>
+                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
               </div>
               <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
                 <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />

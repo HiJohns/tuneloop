@@ -2196,6 +2196,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
         "city": "北京市",
         "district": "朝阳区",
         "detail": "xxx路123号",
+        "postal_code": "100000",
         "is_default": true,
         "created_at": "2026-06-01T10:00:00Z",
         "updated_at": "2026-06-01T10:00:00Z"
@@ -2220,6 +2221,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "city": "上海市",
   "district": "浦东新区",
   "detail": "xxx路456号",
+  "postal_code": "200000",
   "is_default": false
 }
 ```
@@ -2238,6 +2240,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
     "city": "上海市",
     "district": "浦东新区",
     "detail": "xxx路456号",
+    "postal_code": "200000",
     "is_default": false,
     "created_at": "2026-06-01T10:00:00Z",
     "updated_at": "2026-06-01T10:00:00Z"

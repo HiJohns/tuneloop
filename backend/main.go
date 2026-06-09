@@ -243,7 +243,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
 		authRequired.GET("/instruments/import/template", handlers.DownloadCSVTemplate)
-		authRequired.POST("/upload", handlers.HandleUpload)
 		authRequired.POST("/instruments/batch-import", handlers.ExecuteBatchImport)
 		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
@@ -415,7 +414,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// Issue #306: Warehouse Routes
 			authRequired.GET("/warehouse/orders", warehouseHandler.ListOrders)
 			authRequired.PUT("/warehouse/orders/:id/shipping", warehouseHandler.UpdateShipping)
-			authRequired.PUT("/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)
 			authRequired.PUT("/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
 			authRequired.PUT("/warehouse/orders/:id/damage", warehouseHandler.AssessDamage)
 
@@ -439,6 +437,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
 			userOptionalAuth.GET("/orders/:id", middleware.RequireCusPerm("order:read"), handlers.GetOrder)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
+				userOptionalAuth.POST("/upload", handlers.HandleUpload)
+				userOptionalAuth.PUT("/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)
 				userOptionalAuth.GET("/user/addresses", userAddressHandler.ListAddresses)
 				userOptionalAuth.POST("/user/addresses", userAddressHandler.CreateAddress)
 				userOptionalAuth.PUT("/user/addresses/:id", userAddressHandler.UpdateAddress)

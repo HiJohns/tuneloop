@@ -475,5 +475,24 @@ done
 
 ---
 
-*Last updated: 2026-05-30*
+> *Last updated: 2026-06-09*
+
+---
+
+## 🚨 IAM 问题处理原则
+
+### 如果问题可能出在 IAM 侧，不要在 Tuneloop 侧硬改
+
+当遇到以下情况时，**应先在 beaconiam 仓库创建 Issue 要求协助调查**，而非在 tuneloop 侧做 workaround：
+
+- IAM API 返回 `access denied`、`unauthorized` 等权限/认证错误
+- JWT token 签发或验证相关问题
+- IAM 用户数据（name/email/phone）与实际不符或无法获取
+- OAuth 流程异常（code exchange、redirect_uri 等）
+
+**操作步骤**：
+1. 在 `https://github.com/HiJohns/beaconiam` 创建 Issue，描述调用方（tuneloop）的请求详情（URL、token、响应）
+2. 附上对应的 tuneloop Issue 链接
+3. 等待 beaconiam 侧分析后给出结论或修复方案
+4. 在 tuneloop 侧仅配合调整调用方式，不做逻辑替代
 

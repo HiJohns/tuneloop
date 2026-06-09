@@ -368,11 +368,6 @@ export default function Detail() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         {isRentable ? (
           <>
-            <div className="mb-2 p-3 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-center font-bold text-lg text-brand-primary">
-                合计：¥{totalAmount.toFixed(0)}
-              </p>
-            </div>
             <div className="flex gap-2">
               <button 
                 onClick={handleAddToCart}

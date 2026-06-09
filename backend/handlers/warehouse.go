@@ -90,6 +90,15 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
+	// Determine target status based on merchant type
+	targetStatus := models.OrderStatusShipped
+	var merchant models.Merchant
+	if err := db.Where("tenant_id = ?", tenantID).First(&merchant).Error; err == nil {
+		if merchant.MerchantType == models.MerchantTypeControlled {
+			targetStatus = models.OrderStatusInTransit
+		}
+	}
+
 	// Update order logistics info (must be in paid status)
 	shippedAt := req.ShippedAt
 	company := req.Company
@@ -98,7 +107,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		"tracking_number": trackingNumber,
 		"courier_company": company,
 		"shipped_at":      shippedAt,
-		"status":          models.OrderStatusShipped,
+		"status":          targetStatus,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})
 		return
@@ -124,7 +133,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		OrgID:      stringPtr(order.OrgID),
 		OrderID:    orderID,
 		StatusFrom: models.OrderStatusPaid,
-		StatusTo:   models.OrderStatusShipped,
+		StatusTo:   targetStatus,
 		Notes:      "物流信息已录入",
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
