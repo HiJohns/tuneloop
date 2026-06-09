@@ -203,7 +203,7 @@ export default function StaffManagement() {
         } else {
           message.success('创建用户成功')
         }
-        setCreateModalVisible(false)
+        setInlineFormVisible(false)
         createUserForm.resetFields()
         fetchStaffList()
       } else if (result.code === 40900) {
@@ -687,6 +687,13 @@ export default function StaffManagement() {
                   <Select>
                     <Option value="site_admin">管理员</Option>
                     <Option value="site_member">成员</Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item name="user_type" label="用户类型" initialValue="staff">
+                  <Select>
+                    <Option value="staff">员工</Option>
+                    <Option value="admin">管理员</Option>
+                    <Option value="manager">网点经理</Option>
                   </Select>
                 </Form.Item>
                 <Space>
