@@ -66,13 +66,7 @@ export default function ReceivingInterface() {
 
   const handlePhotoCapture = (e) => {
     const files = Array.from(e.target.files || [])
-    files.forEach(f => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setCapturedPhotos(prev => [...prev, reader.result])
-      }
-      reader.readAsDataURL(f)
-    })
+    setCapturedPhotos(prev => [...prev, ...files].slice(0, 10))
   }
 
   const checkInstrument = async (sn) => {
@@ -109,7 +103,25 @@ export default function ReceivingInterface() {
       return
     }
     setSubmitting(true)
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
     try {
+      // Upload photos
+      const photoUrls = []
+      for (const file of capturedPhotos) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const uploadResp = await fetch(`${baseUrl}/upload`, {
+          method: 'POST',
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+          body: fd,
+        })
+        const uploadResult = await uploadResp.json()
+        if (uploadResult.code === 20000 && uploadResult.data?.url) {
+          photoUrls.push(uploadResult.data.url)
+        }
+      }
+
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderID}/return-inspect`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -117,7 +129,7 @@ export default function ReceivingInterface() {
           scan_time: new Date().toISOString(),
           condition: condition,
           notes: condition === 'damaged' ? damageDesc : '',
-          photos: capturedPhotos,
+          photos: photoUrls,
         }),
       })
       const result = await resp.json()
@@ -132,12 +144,14 @@ export default function ReceivingInterface() {
         })
         const damageResult = await damageResp.json()
         if (damageResult.code === 20000) {
-          alert('定损评估已记录，通知已发送给用户')
+          navigate('/staff/orders')
+          return
         } else {
           alert('定损评估失败: ' + damageResult.message)
         }
       } else if (result.code === 20000) {
-        alert('验收成功，押金退还已发起')
+        navigate('/staff/orders')
+        return
       } else {
         alert('失败: ' + result.message)
       }
@@ -282,9 +296,9 @@ export default function ReceivingInterface() {
               </label>
               {capturedPhotos.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  {capturedPhotos.map((url, i) => (
+                  {capturedPhotos.map((file, i) => (
                     <div key={i} className="relative">
-                      <img src={url} alt="captured" className="w-full rounded border object-cover h-20" />
+                      <img src={URL.createObjectURL(file)} alt="captured" className="w-full rounded border object-cover h-20" />
                     </div>
                   ))}
                 </div>

@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert } from 'antd'
+import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Tabs, Radio, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
 import { staffApi, sitesApi, iamApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
-import UserCreateDialog from '../components/UserCreateDialog'
 import UserEditDialog from '../components/UserEditDialog'
 
 const { Option } = Select
@@ -16,10 +15,14 @@ export default function StaffManagement() {
   const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
   const [siteTree, setSiteTree] = useState([])
   const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [inlineFormVisible, setInlineFormVisible] = useState(false)
+  const [createTab, setCreateTab] = useState('search')
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [userForm] = Form.useForm()
   const [createUserForm] = Form.useForm()
+  const [autoGenerate, setAutoGenerate] = useState(true)
+  const [lockedSiteId, setLockedSiteId] = useState(null)
 
   const [conflictModalVisible, setConflictModalVisible] = useState(false)
   const [conflictUsers, setConflictUsers] = useState([])
@@ -30,6 +33,18 @@ export default function StaffManagement() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [batchLoading, setBatchLoading] = useState(false)
   const location = useLocation()
+
+  useEffect(() => {
+    staffApi.getMe().then(res => {
+      if (res.code === 20000 && res.data && res.data.site_id) {
+        const businessRole = (res.data.business_role || '').toLowerCase()
+        if (businessRole === 'site_admin' || businessRole === 'site_member') {
+          createUserForm.setFieldsValue({ site_id: res.data.site_id })
+          setLockedSiteId(res.data.site_id)
+        }
+      }
+    }).catch(() => {})
+  }, [createUserForm])
 
   useEffect(() => {
     const userInfo = localStorage.getItem('user_info')
@@ -529,7 +544,7 @@ export default function StaffManagement() {
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
-              onClick={() => setCreateModalVisible(true)}
+              onClick={() => setInlineFormVisible(!inlineFormVisible)}
             >
               创建用户
             </Button>
@@ -615,26 +630,74 @@ export default function StaffManagement() {
       </Card>
 
       {/* 创建用户对话框 */}
-      <Modal
-        title="创建用户"
-        visible={createModalVisible}
-        onCancel={() => {
-          setCreateModalVisible(false)
-          createUserForm.resetFields()
-        }}
-        footer={null}
-        width={600}
-      >
-        <UserCreateDialog
-          form={createUserForm}
-          onSubmit={handleCreateUser}
-          onCancel={() => {
-            setCreateModalVisible(false)
-            createUserForm.resetFields()
-          }}
-           siteOptions={siteOptions}
-        />
-      </Modal>
+      {/* 内嵌创建用户表单 */}
+      {inlineFormVisible && (
+        <Card className="mb-4" size="small">
+          <Tabs activeKey={createTab} onChange={setCreateTab}>
+            <Tabs.TabPane tab="搜索用户" key="search">
+              <Form layout="inline" className="mb-3">
+                <Form.Item style={{ flex: 1 }}>
+                  <Input placeholder="输入用户名/邮箱/手机搜索" />
+                </Form.Item>
+                <Button type="primary">搜索</Button>
+              </Form>
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="创建用户" key="create">
+              <Form
+                form={createUserForm}
+                layout="vertical"
+                onFinish={handleCreateUser}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+                    <Input placeholder="姓名" />
+                  </Form.Item>
+                  <Form.Item name="username" label="用户名">
+                    <Input placeholder="用户名" />
+                  </Form.Item>
+                  <Form.Item name="email" label="邮箱">
+                    <Input placeholder="邮箱（选填）" />
+                  </Form.Item>
+                  <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+                    <Input placeholder="手机号" />
+                  </Form.Item>
+                  <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
+                    <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
+                      <Radio value={true}>自动生成</Radio>
+                      <Radio value={false}>手动设置</Radio>
+                    </Radio.Group>
+                  </Form.Item>
+                  {!autoGenerate && (
+                    <Form.Item name="password" label="密码">
+                      <Input.Password placeholder="8位+大写+小写+数字" />
+                    </Form.Item>
+                  )}
+                </div>
+                <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
+                  <Checkbox>首次登录时强制修改密码</Checkbox>
+                </Form.Item>
+                <Form.Item name="site_id" label="归属网点" rules={[{ required: true }]}>
+                  <Select placeholder="选择网点" disabled={!!lockedSiteId}>
+                    {siteOptions.map(o => (
+                      <Option key={o.key} value={o.value}>{o.label}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item name="role" label="角色" initialValue="site_member">
+                  <Select>
+                    <Option value="site_admin">管理员</Option>
+                    <Option value="site_member">成员</Option>
+                  </Select>
+                </Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit">创建用户</Button>
+                  <Button onClick={() => { setInlineFormVisible(false); createUserForm.resetFields() }}>取消</Button>
+                </Space>
+              </Form>
+            </Tabs.TabPane>
+          </Tabs>
+        </Card>
+      )}
 
       {/* 编辑用户对话框 */}
       <Modal

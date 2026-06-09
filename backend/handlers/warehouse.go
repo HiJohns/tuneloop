@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -292,6 +293,11 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		Status:       assessmentStatus,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
+	}
+	if req.Photos != nil {
+		if b, err := json.Marshal(req.Photos); err == nil {
+			assessment.Photos = string(b)
+		}
 	}
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})

@@ -74,7 +74,25 @@ export default function StaffReceiveConfirm() {
       return
     }
     setSubmitting(true)
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
     try {
+      // Upload photos first
+      const photoUrls = []
+      for (const file of photoFiles) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const uploadResp = await fetch(`${baseUrl}/upload`, {
+          method: 'POST',
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+          body: fd,
+        })
+        const uploadResult = await uploadResp.json()
+        if (uploadResult.code === 20000 && uploadResult.data?.url) {
+          photoUrls.push(uploadResult.data.url)
+        }
+      }
+
       const condition = hasDamage ? 'damaged' : 'good'
 
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/return-inspect`, {
@@ -84,12 +102,13 @@ export default function StaffReceiveConfirm() {
           scan_time: new Date().toISOString(),
           condition: condition,
           notes: hasDamage ? damageReason.trim() : '验收通过',
+          photos: photoUrls,
         }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         alert('接收确认成功')
-        navigate(`/staff/instrument/${instrumentId}`)
+        navigate('/staff/orders')
       } else {
         alert('接收失败: ' + (result.message || ''))
       }
