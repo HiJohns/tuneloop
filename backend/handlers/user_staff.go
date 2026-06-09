@@ -62,9 +62,6 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 	if email := c.Query("email"); email != "" {
 		query = query.Where("email = ?", email)
 	}
-	if userType := c.Query("user_type"); userType != "" {
-		query = query.Where("user_type = ?", userType)
-	}
 	if siteID := c.Query("site_id"); siteID != "" {
 		query = query.Where("site_id = ?", siteID)
 	}
@@ -118,7 +115,6 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 			"phone":      user.Phone,
 			"email":      user.Email,
 			"position":   user.Position,
-			"user_type":  user.UserType,
 			"role":       user.Role, // fallback if no site_member record
 			"status":     user.Status,
 			"iam_sub":    user.IAMSub,
@@ -158,7 +154,6 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		Phone              string    `json:"phone" binding:"required"`
 		Email              string    `json:"email"`
 		Position           string    `json:"position"`
-		UserType           string    `json:"user_type"`
 		SiteID             uuid.UUID `json:"site_id"`
 		Role               string    `json:"role"`
 		Password           string    `json:"password"`
@@ -234,7 +229,6 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		Phone:     req.Phone,
 		Email:     req.Email,
 		Position:  req.Position,
-		UserType:  req.UserType,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -404,7 +398,6 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		"phone":      user.Phone,
 		"email":      user.Email,
 		"position":   user.Position,
-		"user_type":  user.UserType,
 		"created_at": user.CreatedAt,
 		"updated_at": user.UpdatedAt,
 	}
@@ -544,7 +537,6 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		Phone    string     `json:"phone"`
 		Email    string     `json:"email"`
 		Position string     `json:"position"`
-		UserType string     `json:"user_type"`
 		SiteID   *uuid.UUID `json:"site_id"`
 	}
 
@@ -608,9 +600,6 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	}
 	if req.Position != "" {
 		updates["position"] = req.Position
-	}
-	if req.UserType != "" {
-		updates["user_type"] = req.UserType
 	}
 	if req.SiteID != nil {
 		newSiteIDStr := req.SiteID.String()
@@ -750,7 +739,6 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"phone":         user.Phone,
 		"email":         user.Email,
 		"position":      user.Position,
-		"user_type":     user.UserType,
 		"force_password_change": user.ForcePasswordChange,
 		"role":          middleware.GetRole(ctx),
 		"business_role": middleware.GetBusinessRole(ctx),

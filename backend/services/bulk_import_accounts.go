@@ -230,7 +230,6 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 			Phone:    acc.Phone,
 			Role:     acc.Role,
 			Status:   "pending",
-			UserType: "员工",
 			IsShadow: false,
 		}
 		if tagsStr != "" {

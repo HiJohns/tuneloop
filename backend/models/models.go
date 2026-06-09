@@ -20,8 +20,7 @@ type User struct {
 	IsShadow      bool       `gorm:"default:true" json:"is_shadow"`
 	IsSystemAdmin bool       `gorm:"default:false" json:"is_system_admin"`
 	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	Position      string     `gorm:"type:varchar(100)" json:"position"`
-	UserType      string     `gorm:"type:varchar(20);default:'员工'" json:"user_type"`
+	Position             string     `gorm:"type:varchar(100)" json:"position"`
 	Role                 string     `gorm:"type:varchar(50)" json:"role"`
 	ForcePasswordChange  bool       `gorm:"default:false" json:"force_password_change"`
 	DeletedAt            *time.Time `gorm:"index" json:"deleted_at"`

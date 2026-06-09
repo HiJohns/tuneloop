@@ -257,7 +257,7 @@ export default function Profile() {
             <User size={32} />
           </div>
           <div className="flex-1">
-            <h1 className="text-lg font-bold">{user?.name || user?.user_type || 'User'}</h1>
+            <h1 className="text-lg font-bold">{user?.name || 'User'}</h1>
             <p className="text-sm opacity-90">{user?.phone || user?.email || ''}</p>
           </div>
           <button onClick={handleLogout} className="text-white/80 hover:text-white">

@@ -64,17 +64,6 @@ export default function UserEditDialog({ form, onSubmit, onCancel, siteOptions, 
         </Select>
       </Form.Item>
 
-      <Form.Item
-        name="user_type"
-        label="用户类型"
-        rules={[{ required: true, message: '请选择用户类型' }]}
-      >
-        <Select placeholder="请选择用户类型">
-          <Option value="admin">管理员</Option>
-          <Option value="member">成员</Option>
-        </Select>
-      </Form.Item>
-
       <Form.Item>
         <Space>
           <Button type="primary" htmlType="submit">

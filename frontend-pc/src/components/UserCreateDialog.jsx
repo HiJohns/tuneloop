@@ -185,18 +185,6 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
         </Select>
       </Form.Item>
 
-      <Form.Item
-        name="user_type"
-        label="用户类型"
-        initialValue="员工"
-        rules={[{ required: true, message: '请选择用户类型' }]}
-      >
-        <Select placeholder="请选择用户类型">
-          <Option value="员工">员工</Option>
-          <Option value="维修技师">维修技师</Option>
-        </Select>
-      </Form.Item>
-
       <Form.Item>
         <Space>
           <Button type="primary" htmlType="submit">

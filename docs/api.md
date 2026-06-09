@@ -3339,7 +3339,6 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
   "email": "zhangsan@example.com",
   "username": "zhangsan",
   "position": "销售",
-  "user_type": "员工",
   "site_id": "uuid-here",
   "role": "site_member",
   "password": "MyPwd123",
@@ -3357,7 +3356,6 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 | email | string | 否 | 邮箱（改选填） |
 | username | string | 否 | 用户名（不传时自动使用 email 前缀） |
 | position | string | 否 | 职位 |
-| user_type | string | 否 | 用户类型（员工/维修技师） |
 | site_id | string | 否 | 归属网点 ID |
 | role | string | 否 | 角色：site_member / site_admin / worker |
 | password | string | 否 | 管理员设置的初始密码（8位+大写+小写+数字） |
@@ -3395,7 +3393,6 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
     "phone": "13800000000",
     "email": "zhangsan@example.com",
     "position": "销售",
-    "user_type": "员工",
     "created_at": "2026-01-01T00:00:00Z",
     "updated_at": "2026-01-01T00:00:00Z",
     "initial_password": "aB3xK9mQ2pL7"

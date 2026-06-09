@@ -280,8 +280,7 @@ export default function StaffManagement() {
       email: user.email,
       phone: user.phone,
       site_id: user.site_id,
-      position: user.position,
-      user_type: user.user_type || 'staff'
+      position: user.position
     })
     setEditModalVisible(true)
   }
@@ -420,18 +419,13 @@ export default function StaffManagement() {
       render: (siteName) => siteName || '-'
     },
     {
-      title: '用户类型',
-      dataIndex: 'user_type',
-      key: 'user_type',
+      title: '角色',
+      dataIndex: 'role',
+      key: 'role',
       width: 100,
-      render: (userType) => {
-        const typeMap = {
-          'staff': '员工',
-          'admin': '管理员',
-          'manager': '网点经理',
-          'owner': '所有者'
-        }
-        return typeMap[userType] || '员工'
+      render: (role) => {
+        const roleMap = { 'site_admin': '管理员', 'site_member': '成员' }
+        return roleMap[role] || role || '-'
       }
     },
     {
@@ -687,13 +681,6 @@ export default function StaffManagement() {
                   <Select>
                     <Option value="site_admin">管理员</Option>
                     <Option value="site_member">成员</Option>
-                  </Select>
-                </Form.Item>
-                <Form.Item name="user_type" label="用户类型" initialValue="staff">
-                  <Select>
-                    <Option value="staff">员工</Option>
-                    <Option value="admin">管理员</Option>
-                    <Option value="manager">网点经理</Option>
                   </Select>
                 </Form.Item>
                 <Space>

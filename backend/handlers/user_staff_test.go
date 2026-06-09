@@ -54,7 +54,6 @@ func createTestUser(t *testing.T, db *gorm.DB, tenantID string) string {
 		Email:     fmt.Sprintf("test%d@example.com", testUserSeq),
 		Status:    "active",
 		Position:  "staff",
-		UserType:  "员工",
 		Role:      "staff",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -63,7 +62,6 @@ func createTestUser(t *testing.T, db *gorm.DB, tenantID string) string {
 	require.NoError(t, err)
 	return userID
 }
-
 func TestUpdateUser_SiteIDNoChange(t *testing.T) {
 	_, handler, tenantID, _ := setupUserStaffTest(t)
 	createdUserID := createTestUser(t, database.GetDB(), tenantID)
@@ -143,7 +141,6 @@ func TestUpdateUser_SiteIDClear(t *testing.T) {
 		Phone:     "13800000002",
 		Status:    "active",
 		Position:  "staff",
-		UserType:  "员工",
 		Role:      "staff",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -264,7 +261,6 @@ func TestUpdateUser_SiteIDChange_UnbindFails_NoDbUpdate(t *testing.T) {
 		Phone:    "13800000003",
 		Status:   "active",
 		Position: "staff",
-		UserType: "员工",
 		Role:     "staff",
 	}
 	err = db.Create(&user).Error
