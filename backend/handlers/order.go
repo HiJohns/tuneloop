@@ -22,12 +22,156 @@ func GetOrders(c *gin.Context) {
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
-
-	var req struct {
-		PaymentMethod   string `json:"payment_method"`
-		DeliveryAddress string `json:"delivery_address"`
+	userID := middleware.GetUserID(c.Request.Context())
+	query := db.Model(&models.Order{})
+	if tenantID != "" {
+		// 员工：按所属网点过滤（从 site_members 获取用户关联的所有网点）
+		var currentUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.ID != "" {
+			var memberSiteIDs []string
+			db.Table("site_members").
+				Where("user_id = ?", currentUser.ID).
+				Pluck("site_id", &memberSiteIDs)
+			if len(memberSiteIDs) > 0 {
+				query = query.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
+					Where("instruments.site_id IN ?", memberSiteIDs)
+			}
+		}
+	} else {
+		// 顾客无租户：只看自己的订单
+		if userID != "" {
+			query = query.Where("user_id = ?", userID)
+		}
 	}
-	_ = c.ShouldBindJSON(&req)
+
+	// Filter by status if provided
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Get total count
+	var total int64
+	query.Count(&total)
+
+	// Get orders with pagination
+	var orders []models.Order
+	offset := (page - 1) * pageSize
+	query.Offset(offset).Limit(pageSize).Find(&orders)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list":  orders,
+			"total": total,
+			"page":  page,
+		},
+	})
+}
+
+// GetOrder retrieves a single order by ID
+func GetOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	userID := middleware.GetUserID(c.Request.Context())
+	var order models.Order
+	query := db.Where("id = ?", orderID)
+	if tenantID != "" {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	if middleware.GetRole(c.Request.Context()) == "USER" && userID != "" {
+		query = query.Where("user_id = ?", userID)
+	}
+	if err := query.First(&order).Error; err != nil {
+		if err.Error() == "record not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"code":    40400,
+				"message": "order not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to fetch order: " + err.Error(),
+		})
+		return
+	}
+
+	// Fetch user name (graceful fallback)
+	userName := ""
+	var user models.User
+	if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {
+		userName = user.Name
+	}
+
+	// Fetch delivery address from lease_session
+	deliveryAddress := ""
+	var leaseSession struct{ DeliveryAddress string }
+	if err := db.Raw("SELECT COALESCE(delivery_address::text, '') as delivery_address FROM lease_sessions WHERE order_id = ? LIMIT 1", orderID).Scan(&leaseSession).Error; err == nil {
+		deliveryAddress = leaseSession.DeliveryAddress
+	}
+
+	orderData := map[string]interface{}{
+		"id":                 order.ID,
+		"tenant_id":          order.TenantID,
+		"user_id":            order.UserID,
+		"user_name":          userName,
+		"instrument_id":      order.InstrumentID,
+		"level":              order.Level,
+		"lease_term":         order.LeaseTerm,
+		"deposit_mode":       order.DepositMode,
+		"monthly_rent":       order.MonthlyRent,
+		"deposit":            order.Deposit,
+		"shipping_fee":       order.ShippingFee,
+		"accumulated_months": order.AccumulatedMonths,
+		"status":             order.Status,
+		"start_date":         order.StartDate,
+		"end_date":           order.EndDate,
+		"tracking_number":    order.TrackingNumber,
+		"courier_company":    order.CourierCompany,
+		"shipped_at":         order.ShippedAt,
+		"delivered_at":       order.DeliveredAt,
+		"delivery_address":   deliveryAddress,
+		"created_at":         order.CreatedAt,
+		"updated_at":         order.UpdatedAt,
+	}
+
+	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
+	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
+		orderData["transit_info"] = map[string]string{
+			"address": transitInfo.Address,
+			"phone":   transitInfo.Phone,
+			"contact": transitInfo.ContactName,
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": orderData,
+	})
+}
+
+// PayOrder handles order payment (pending -> paid)
+func PayOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "order_id is required",
+		})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
 
 	// Find order and check status
 	var order models.Order
@@ -61,17 +205,6 @@ func GetOrders(c *gin.Context) {
 			"message": "failed to update order status: " + err.Error(),
 		})
 		return
-	}
-
-	// Update delivery_address if provided
-	if req.DeliveryAddress != "" {
-		if err := db.Table("lease_sessions").Where("order_id = ?", orderID).Update("delivery_address", req.DeliveryAddress).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "failed to update delivery address: " + err.Error(),
-			})
-			return
-		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
