@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
+import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
 
 const STATUS_LABELS = {
@@ -200,7 +201,7 @@ export default function OrderDetail() {
               <MapPin size={18} className="text-gray-400 mt-0.5" />
               <div>
                 <p className="text-xs text-gray-400">收货地址</p>
-                <p className="text-sm font-medium">{order.delivery_address}</p>
+                <p className="text-sm font-medium">{formatDeliveryAddress(order.delivery_address)}</p>
               </div>
             </div>
           )}

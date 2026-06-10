@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
+import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -290,7 +291,7 @@ export default function StaffInstrumentDetail() {
             {instrument.delivery_address && (
               <div className="text-sm">
                 <span className="text-gray-500">收货地址：</span>
-                <span className="text-gray-800">{instrument.delivery_address}</span>
+                <span className="text-gray-800">{formatDeliveryAddress(instrument.delivery_address)}</span>
               </div>
             )}
           </div>

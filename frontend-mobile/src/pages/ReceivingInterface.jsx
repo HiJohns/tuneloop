@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
+import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload, User, MapPin, Package } from 'lucide-react'
 
 export default function ReceivingInterface() {
@@ -190,7 +191,7 @@ export default function ReceivingInterface() {
               {orderData.delivery_address && (
                 <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
                   <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                  <span>{orderData.delivery_address}</span>
+                  <span>{formatDeliveryAddress(orderData.delivery_address)}</span>
                 </div>
               )}
             </div>
