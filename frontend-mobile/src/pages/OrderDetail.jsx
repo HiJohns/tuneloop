@@ -66,7 +66,7 @@ export default function OrderDetail() {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/pay`, { method: 'POST' })
       const result = await resp.json()
       if (result.code === 20000) {
-        setOrder(prev => ({ ...prev, status: 'paid' }))
+        navigate('/profile')
       } else {
         alert('支付失败: ' + result.message)
       }
