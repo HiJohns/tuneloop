@@ -107,7 +107,7 @@ export default function ShippingInterface() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('发货成功')
-        navigate(-1)
+        navigate('/staff/orders')
       } else {
         dialog.alert('发货失败: ' + result.message)
       }
