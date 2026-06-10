@@ -14,6 +14,7 @@ import ReceiveConfirm from './pages/ReceiveConfirm'
 import ReturnConfirm from './pages/ReturnConfirm'
 import MyService from './pages/MyService'
 import MyLeases from './pages/MyLeases'
+import LeaseHistory from './pages/LeaseHistory'
 import Messages from './pages/Messages'
 import StaffInstruments from './pages/StaffInstruments'
 import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
@@ -229,6 +230,7 @@ function App() {
         <Route path="/return/:orderId" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
+        <Route path="/lease-history" element={<ProtectedRoute><LeaseHistory /></ProtectedRoute>} />
         <Route path="/my-contracts" element={<ProtectedRoute><MyContracts /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
 <Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />

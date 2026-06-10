@@ -403,37 +403,12 @@ export default function Profile() {
         )}
 
         {/* Rental History */}
-        {businessRole !== 'site_admin' && businessRole !== 'site_member' && leaseHistory.length > 0 && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="font-medium mb-3 flex items-center gap-2">
+        {businessRole !== 'site_admin' && businessRole !== 'site_member' && (
+          <div className="bg-white rounded-xl p-4 cursor-pointer" onClick={() => navigate('/lease-history')}>
+            <div className="flex items-center gap-3">
               <History size={18} className="text-gray-400" />
-              租赁历史
-            </h3>
-            <div className="space-y-2">
-              {leaseHistory
-                .sort((a, b) => new Date(b.end_date || b.updated_at) - new Date(a.end_date || a.updated_at))
-                .map(order => (
-                <div
-                  key={order.id}
-                  className="border rounded-lg p-3 cursor-pointer"
-                  onClick={() => navigate(`/order/${order.id}`)}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-sm font-medium">Order #{order.id?.slice(0, 8)}</span>
-                    <span className="text-xs text-gray-500">{statusLabel[order.status]}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 space-y-1">
-                    {order.start_date && <p>开始: {formatDisplayDate(order.start_date)}</p>}
-                    {order.end_date && <p>归还: {formatDisplayDate(order.end_date)}</p>}
-                    <p>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</p>
-                    {(order.status === 'returned' || order.status === 'completed') && (
-                      <p className={order.deposit_refunded ? 'text-green-600' : 'text-yellow-600'}>
-                        {order.deposit_refunded ? '押金已退还' : '押金退还中'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
+              <span className="flex-1 text-sm">租赁历史</span>
+              <ChevronRight size={16} className="text-gray-300" />
             </div>
           </div>
         )}
