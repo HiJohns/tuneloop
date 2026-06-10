@@ -741,6 +741,7 @@ function OAuthCallback() {
 }
 
 function App() {
+  const [configReady, setConfigReady] = useState(false)
   useEffect(() => {
     api.get('/config')
       .then(data => {
@@ -749,7 +750,10 @@ function App() {
         }
       })
       .catch(err => console.error('Failed to load config:', err))
+      .finally(() => setConfigReady(true))
   }, [])
+  
+  if (!configReady) return <Spin fullscreen tip="正在加载配置..." />
   
   return (
     <BrowserRouter>
