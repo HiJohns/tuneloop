@@ -13,6 +13,7 @@ import (
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-contrib/cors"
@@ -588,6 +589,23 @@ func main() {
 					log.Printf("[Bootstrap] Warning: failed to sync cus_perm for role %s: %v", code, err)
 				} else {
 					log.Printf("[Bootstrap] Synced cus_perm for role %s: value=%d, codes=%v", code, cusPerm, template.CusPermCodes)
+					// Sync cus_perm for existing users of this default role
+					var roleUsers []models.User
+					if err := db.Where("role = ? AND status = ?", code, "active").Find(&roleUsers).Error; err != nil {
+						log.Printf("[Bootstrap] Warning: failed to query users for role %s: %v", code, err)
+					} else {
+						for _, u := range roleUsers {
+							nilUUID := "00000000-0000-0000-0000-000000000000"
+							if u.OrgID == nilUUID || u.OrgID == "" {
+								continue
+							}
+							if err := iamClient.SetUserCustomerPermissions(u.OrgID, u.IAMSub, cusPerm, cusPermExt); err != nil {
+								log.Printf("[Bootstrap] Warning: failed to sync cus_perm for user %s (role %s): %v", u.IAMSub, code, err)
+							} else {
+								log.Printf("[Bootstrap] Synced cus_perm for user %s (role %s): value=%d", u.IAMSub, code, cusPerm)
+							}
+						}
+					}
 				}
 			}
 			}
