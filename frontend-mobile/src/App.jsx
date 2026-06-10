@@ -68,10 +68,15 @@ function ProtectedRoute({ children, requireAuth = true }) {
   const location = navigation.getCurrentPath()
 
   if (!requireAuth) {
+    session.removeItem('guest_degradation')
     return children
   }
 
   if (!token && !publicRoutes.includes(location)) {
+    if (session.getItem('guest_degradation')) {
+      navigation.redirect('/')
+      return null
+    }
     session.setItem('post_auth_redirect', location)
     const config = getWXConfig()
     const redirectUri = encodeURIComponent(`${navigation.getOrigin()}/callback`)

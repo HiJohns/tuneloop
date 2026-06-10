@@ -93,6 +93,7 @@ export function redirectToLogin(reason) {
 }
 
 export function degradeToGuest() {
+  session.setItem('guest_degradation', '1')
   storage.removeItem('token')
   storage.removeItem('token_expiry')
   storage.removeItem('user_sys_perm')
