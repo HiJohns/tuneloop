@@ -539,6 +539,7 @@ export default function StaffManagement() {
 
   return (
     <div className="p-6">
+      {viewMode === 'list' ? (
       <Card 
         title="人员管理" 
         extra={
@@ -562,7 +563,7 @@ export default function StaffManagement() {
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
-              onClick={() => setViewMode(viewMode === 'create' ? 'list' : 'create')}
+              onClick={() => setViewMode('create')}
             >
               创建用户
             </Button>
@@ -646,143 +647,169 @@ export default function StaffManagement() {
           scroll={{ x: 1400 }}
         />
       </Card>
-
-      {/* 创建/编辑面板 — 替换列表面板 */}
-      {viewMode === 'create' && (
-        <Card className="mb-4" size="small">
-          <Tabs activeKey={createTab} onChange={setCreateTab}>
-            <Tabs.TabPane tab="搜索用户" key="search">
-              <div className="mb-3">
-                <Input.Search
-                  placeholder="输入用户名/邮箱/手机搜索"
-                  value={searchKeyword}
-                  onChange={e => handleSearchInput(e.target.value)}
-                  loading={searchLoading}
-                  enterButton
-                />
-                {searchKeyword.trim() && !searchLoading && (
-                  <div className="mt-2" style={{ maxHeight: 240, overflow: 'auto' }}>
-                    {searchResults.length > 0 ? (
-                      searchResults.map(u => (
-                        <div
-                          key={u.id}
-                          className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
-                        >
-                          <div>
-                            <span className="font-medium">{u.name}</span>
-                            <span className="text-gray-400 ml-2">{u.phone}</span>
-                            {u.email && <span className="text-gray-400 ml-2">{u.email}</span>}
+      ) : viewMode === 'create' ? (
+      <Card 
+        title="创建用户" 
+        extra={
+          <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>
+            返回列表
+          </Button>
+        }
+        className="mb-4" 
+        size="small"
+      >
+        <Tabs 
+          activeKey={createTab} 
+          onChange={setCreateTab}
+          items={[
+            {
+              key: 'search',
+              label: '搜索用户',
+              children: (
+                <div className="mb-3">
+                  <Input.Search
+                    placeholder="输入用户名/邮箱/手机搜索"
+                    value={searchKeyword}
+                    onChange={e => handleSearchInput(e.target.value)}
+                    loading={searchLoading}
+                    enterButton
+                  />
+                  {searchKeyword.trim() && !searchLoading && (
+                    <div className="mt-2" style={{ maxHeight: 240, overflow: 'auto' }}>
+                      {searchResults.length > 0 ? (
+                        searchResults.map(u => (
+                          <div
+                            key={u.id}
+                            className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
+                          >
+                            <div>
+                              <span className="font-medium">{u.name}</span>
+                              <span className="text-gray-400 ml-2">{u.phone}</span>
+                              {u.email && <span className="text-gray-400 ml-2">{u.email}</span>}
+                            </div>
+                            <Tag color={u.iam_sub ? 'green' : 'orange'}>{u.iam_sub ? '已注册' : '未激活'}</Tag>
                           </div>
-                          <Tag color={u.iam_sub ? 'green' : 'orange'}>{u.iam_sub ? '已注册' : '未激活'}</Tag>
+                        ))
+                      ) : (
+                        <div
+                          className="text-center py-4 text-blue-500 cursor-pointer hover:text-blue-700"
+                          onClick={() => setCreateTab('create')}
+                        >
+                          未找到匹配用户 → 创建新用户
                         </div>
-                      ))
-                    ) : (
-                      <div
-                        className="text-center py-4 text-blue-500 cursor-pointer hover:text-blue-700"
-                        onClick={() => setCreateTab('create')}
-                      >
-                        未找到匹配用户 → 创建新用户
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="创建用户" key="create">
-              <Form
-                form={createUserForm}
-                layout="vertical"
-                onFinish={handleCreateUser}
-              >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-                    <Input placeholder="姓名" />
-                  </Form.Item>
-                  <Form.Item name="username" label="用户名">
-                    <Input placeholder="用户名" />
-                  </Form.Item>
-                  <Form.Item name="email" label="邮箱">
-                    <Input placeholder="邮箱（选填）" />
-                  </Form.Item>
-                  <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
-                    <Input placeholder="手机号" />
-                  </Form.Item>
-                  <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
-                    <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
-                      <Radio value={true}>自动生成</Radio>
-                      <Radio value={false}>手动设置</Radio>
-                    </Radio.Group>
-                  </Form.Item>
-                  {!autoGenerate && (
-                    <Form.Item name="password" label="密码">
-                      <Input.Password placeholder="8位+大写+小写+数字" />
-                    </Form.Item>
+                      )}
+                    </div>
                   )}
                 </div>
-                <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
-                  <Checkbox>首次登录时强制修改密码</Checkbox>
-                </Form.Item>
-                <Form.Item name="site_id" label="归属网点" rules={[{ required: true }]}>
-                  <Select placeholder="选择网点" disabled={!!lockedSiteId}>
-                    {siteOptions.map(o => (
-                      <Option key={o.key} value={o.value}>{o.label}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item name="role" label="角色" initialValue="site_member">
-                  <Select>
-                    <Option value="site_admin">管理员</Option>
-                    <Option value="site_member">成员</Option>
-                  </Select>
-                </Form.Item>
-                <Space>
-                  <Button type="primary" htmlType="submit">创建用户</Button>
-                  <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>取消</Button>
-                </Space>
-              </Form>
-            </Tabs.TabPane>
-          </Tabs>
-        </Card>
-      )}
-
-      {viewMode === 'edit' && (
-        <Card className="mb-4" size="small" title="编辑用户">
-          <Form
-            form={userForm}
-            layout="vertical"
-            onFinish={handleUpdateUser}
-          >
-            <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-              <Input placeholder="请输入姓名" />
-            </Form.Item>
-            <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '请输入有效的邮箱地址' }, { required: true, message: '请输入邮箱' }]}>
-              <Input placeholder="请输入邮箱" />
-            </Form.Item>
-            {editingUser?.email && (
-              <Alert message="修改邮箱后，系统将发送确认邮件到新邮箱地址，需确认后方可生效。" type="info" showIcon style={{ marginBottom: 16 }} />
-            )}
-            <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
-              <Input placeholder="请输入手机号" />
-            </Form.Item>
-            <Form.Item name="site_id" label="归属网点" rules={[{ required: true, message: '请选择归属网点' }]}>
-              <Select placeholder="请选择归属网点" style={{ width: '100%' }} dropdownStyle={{ maxHeight: 300, overflow: 'auto' }}>
-                {siteOptions.map(option => (
-                  <Option key={option.key} value={option.value}>{option.label}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item name="role" label="角色">
-              <Select>
-                <Option value="site_admin">管理员</Option>
-                <Option value="site_member">成员</Option>
-              </Select>
-            </Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">保存</Button>
-              <Button onClick={() => { setViewMode('list'); userForm.resetFields(); setEditingUser(null) }}>取消</Button>
-            </Space>
-          </Form>
-        </Card>
+              ),
+            },
+            {
+              key: 'create',
+              label: '创建用户',
+              children: (
+                <Form
+                  form={createUserForm}
+                  layout="vertical"
+                  onFinish={handleCreateUser}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+                      <Input placeholder="姓名" />
+                    </Form.Item>
+                    <Form.Item name="username" label="用户名">
+                      <Input placeholder="用户名" />
+                    </Form.Item>
+                    <Form.Item name="email" label="邮箱">
+                      <Input placeholder="邮箱（选填）" />
+                    </Form.Item>
+                    <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+                      <Input placeholder="手机号" />
+                    </Form.Item>
+                    <Form.Item name="auto_generate" label="密码设置" initialValue={true}>
+                      <Radio.Group onChange={e => setAutoGenerate(e.target.value)}>
+                        <Radio value={true}>自动生成</Radio>
+                        <Radio value={false}>手动设置</Radio>
+                      </Radio.Group>
+                    </Form.Item>
+                    {!autoGenerate && (
+                      <Form.Item name="password" label="密码">
+                        <Input.Password placeholder="8位+大写+小写+数字" />
+                      </Form.Item>
+                    )}
+                  </div>
+                  <Form.Item name="force_password_change" valuePropName="checked" initialValue={true}>
+                    <Checkbox>首次登录时强制修改密码</Checkbox>
+                  </Form.Item>
+                  <Form.Item name="site_id" label="归属网点" rules={[{ required: true }]}>
+                    <Select placeholder="选择网点" disabled={!!lockedSiteId}>
+                      {siteOptions.map(o => (
+                        <Option key={o.key} value={o.value}>{o.label}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="role" label="角色" initialValue="site_member">
+                    <Select>
+                      <Option value="site_admin">管理员</Option>
+                      <Option value="site_member">成员</Option>
+                    </Select>
+                  </Form.Item>
+                  <Space>
+                    <Button type="primary" htmlType="submit">创建用户</Button>
+                    <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>取消</Button>
+                  </Space>
+                </Form>
+              ),
+            },
+          ]}
+        />
+      </Card>
+      ) : (
+      <Card 
+        title="编辑用户" 
+        extra={
+          <Button onClick={() => { setViewMode('list'); userForm.resetFields(); setEditingUser(null) }}>
+            返回列表
+          </Button>
+        }
+        className="mb-4" 
+        size="small"
+      >
+        <Form
+          form={userForm}
+          layout="vertical"
+          onFinish={handleUpdateUser}
+        >
+          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input placeholder="请输入姓名" />
+          </Form.Item>
+          <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '请输入有效的邮箱地址' }, { required: true, message: '请输入邮箱' }]}>
+            <Input placeholder="请输入邮箱" />
+          </Form.Item>
+          {editingUser?.email && (
+            <Alert message="修改邮箱后，系统将发送确认邮件到新邮箱地址，需确认后方可生效。" type="info" showIcon style={{ marginBottom: 16 }} />
+          )}
+          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+            <Input placeholder="请输入手机号" />
+          </Form.Item>
+          <Form.Item name="site_id" label="归属网点" rules={[{ required: true, message: '请选择归属网点' }]}>
+            <Select placeholder="请选择归属网点" style={{ width: '100%' }} dropdownStyle={{ maxHeight: 300, overflow: 'auto' }}>
+              {siteOptions.map(option => (
+                <Option key={option.key} value={option.value}>{option.label}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="role" label="角色">
+            <Select>
+              <Option value="site_admin">管理员</Option>
+              <Option value="site_member">成员</Option>
+            </Select>
+          </Form.Item>
+          <Space>
+            <Button type="primary" htmlType="submit">保存</Button>
+            <Button onClick={() => { setViewMode('list'); userForm.resetFields(); setEditingUser(null) }}>取消</Button>
+          </Space>
+        </Form>
+      </Card>
       )}
 
       {/* 冲突选择对话框 */}
