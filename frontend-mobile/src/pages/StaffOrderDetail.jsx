@@ -130,7 +130,7 @@ export default function StaffOrderDetail() {
             <User size={18} className="text-gray-400" />
             <div>
               <p className="text-xs text-gray-400">下单人</p>
-              <p className="text-sm font-medium">{order.user_name || order.user_id?.slice(0, 8) || '-'}</p>
+              <p className="text-sm font-medium">{order.user_name || '未实名用户'}</p>
             </div>
           </div>
           {order.delivery_address && (
