@@ -248,7 +248,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
 		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
-		authRequired.POST("/orders/:id/pay", middleware.RequireCusPerm("order:update"), handlers.PayOrder)
 		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
 
@@ -436,6 +435,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/orders", middleware.RequireCusPerm("order:read"), handlers.GetOrders)
 			userOptionalAuth.GET("/orders/:id", middleware.RequireCusPerm("order:read"), handlers.GetOrder)
 				userOptionalAuth.POST("/orders/:id/return", middleware.RequireCusPerm("order:update"), handlers.ReturnOrder)
+				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
 				userOptionalAuth.POST("/upload", handlers.HandleUpload)
 				userOptionalAuth.PUT("/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)

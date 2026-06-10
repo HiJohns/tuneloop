@@ -196,6 +196,11 @@ func PayOrder(c *gin.Context) {
 		return
 	}
 
+	// Guest (tid empty): derive tenant/org from order (which inherited from instrument)
+	if tenantID == "" {
+		tenantID = order.TenantID
+	}
+
 	if order.Status != models.OrderStatusReserved {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
