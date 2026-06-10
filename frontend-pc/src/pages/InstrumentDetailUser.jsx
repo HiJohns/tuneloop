@@ -54,7 +54,7 @@ export default function InstrumentDetailUser() {
       message.success('订单创建成功，跳转到支付页面...')
       
       // Navigate to payment page
-      navigate(`/orders/${response.order_id}/payment`)
+      navigate(`/orders/${response.data.order_id}/payment`)
     } catch (error) {
       console.error('Failed to create order:', error)
       message.error('创建订单失败')
