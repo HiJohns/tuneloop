@@ -2,8 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
 import { getToken, initPermissionMapping, publicRoutes } from './services/api'
+import { storage, session, request, navigation, env } from './platform'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 import Home from './pages/Home'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
@@ -35,9 +35,9 @@ const getWXConfig = () => {
 
 function storeToken(accessToken, expiresIn = 3600, refreshToken) {
   const expiry = new Date().getTime() + (expiresIn * 1000)
-  localStorage.setItem('token', accessToken)
-  localStorage.setItem('token_expiry', expiry.toString())
-  if (refreshToken) localStorage.setItem('refresh_token', refreshToken)
+  storage.setItem('token', accessToken)
+  storage.setItem('token_expiry', expiry.toString())
+  if (refreshToken) storage.setItem('refresh_token', refreshToken)
 }
 
 function parseJWT(token) {
@@ -52,36 +52,34 @@ function parseJWT(token) {
 function cachePermissions(claims) {
   const sysPerm = parseInt(claims.sys_perm) || 0
   const cusPerm = parseInt(claims.cus_perm) || 0
-  localStorage.setItem('user_sys_perm', sysPerm.toString())
-  localStorage.setItem('user_cus_perm', cusPerm.toString())
-  localStorage.setItem('user_cus_perm_ext', claims.cus_perm_ext || '')
+  storage.setItem('user_sys_perm', sysPerm.toString())
+  storage.setItem('user_cus_perm', cusPerm.toString())
+  storage.setItem('user_cus_perm_ext', claims.cus_perm_ext || '')
 }
 
 function isNamespaceAdmin() {
-  const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
-  const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+  const sysPerm = parseInt(storage.getItem('user_sys_perm') || '0')
+  const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
   return sysPerm > 0 && cusPerm === 0
 }
 
-
-
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
-  const location = window.location.pathname
-  
+  const location = navigation.getCurrentPath()
+
   if (!requireAuth) {
     return children
   }
-  
+
   if (!token && !publicRoutes.includes(location)) {
-    sessionStorage.setItem('post_auth_redirect', location)
+    session.setItem('post_auth_redirect', location)
     const config = getWXConfig()
-    const redirectUri = encodeURIComponent(`${window.location.origin}/callback`)
+    const redirectUri = encodeURIComponent(`${navigation.getOrigin()}/callback`)
     const authUrl = `${config.iamExternalUrl}/oauth/authorize?client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code`
-    window.location.href = authUrl
+    navigation.redirect(authUrl)
     return null
   }
-  
+
   return children
 }
 
@@ -94,24 +92,24 @@ function OAuthCallback() {
     if (oauthCallbackExecuted) return
     oauthCallbackExecuted = true
 
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    const error = params.get('error')
+    const params = navigation.getQueryParams()
+    const code = params.code
+    const error = params.error
 
     if (error) {
       console.error('OAuth error:', error)
-      window.location.href = '/'
+      navigation.redirect('/')
       return
     }
 
     if (!code) {
-      window.location.href = '/'
+      navigation.redirect('/')
       return
     }
 
     const exchangeCodeForToken = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/callback`, {
+        const response = await request(`${env.apiBaseUrl}/auth/callback`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -124,33 +122,33 @@ function OAuthCallback() {
         }
 
         const data = await response.json()
-        
+
         const tokenData = data.data || data
-        
+
         if (tokenData.access_token) {
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
 
           if (tokenData.user_info) {
-            localStorage.setItem('user_info', JSON.stringify(tokenData.user_info))
+            storage.setJSON('user_info', tokenData.user_info)
           }
 
           cachePermissions(parseJWT(tokenData.access_token))
 
-          const reason = sessionStorage.getItem('login_reason')
+          const reason = session.getItem('login_reason')
           if (reason) {
-            sessionStorage.removeItem('login_reason')
-            sessionStorage.setItem('show_login_reason', reason)
+            session.removeItem('login_reason')
+            session.setItem('show_login_reason', reason)
           }
 
-          const redirectTo = sessionStorage.getItem('post_auth_redirect') || '/'
-          sessionStorage.removeItem('post_auth_redirect')
-          window.location.href = redirectTo
+          const redirectTo = session.getItem('post_auth_redirect') || '/'
+          session.removeItem('post_auth_redirect')
+          navigation.redirect(redirectTo)
         } else {
           throw new Error('No access token received')
         }
       } catch (error) {
         console.error('Token exchange failed:', error)
-        window.location.href = '/'
+        navigation.redirect('/')
       }
     }
 
@@ -175,7 +173,7 @@ function App() {
     const fetchConfig = async (retries = 3) => {
       for (let i = 0; i < retries; i++) {
         try {
-          const res = await fetch('/api/config')
+          const res = await request('/api/config')
           const data = await res.json()
           if (data.code === 20000) {
             window.APP_CONFIG = data.data
@@ -188,20 +186,19 @@ function App() {
     fetchConfig()
     initPermissionMapping()
     const token = getToken()
-    const location = window.location.pathname
-    
+    const location = navigation.getCurrentPath()
+
     if (!token && !publicRoutes.includes(location)) {
-      sessionStorage.setItem('post_auth_redirect', location)
+      session.setItem('post_auth_redirect', location)
     }
-    
-    // Cache permissions from existing JWT on app start
+
     if (token) {
       cachePermissions(parseJWT(token))
     }
 
-    const showReason = sessionStorage.getItem('show_login_reason')
+    const showReason = session.getItem('show_login_reason')
     if (showReason) {
-      sessionStorage.removeItem('show_login_reason')
+      session.removeItem('show_login_reason')
       if (showReason === 'session_expired') {
         message.info('登录已过期，请重新登录')
       } else if (showReason === 'token_missing') {
