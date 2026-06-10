@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { apiFetch } from '../services/api'
+import { dialog, env, storage, uploadFile } from '../platform'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+const BASE_URL = env.apiBaseUrl
 
 export default function StaffInstrumentForm() {
   const navigate = useNavigate()
@@ -92,8 +93,8 @@ export default function StaffInstrumentForm() {
   }
 
   const handleSubmit = async () => {
-    if (!form.sn) { alert('请输入识别码'); return }
-    if (!form.category_id) { alert('请选择分类'); return }
+    if (!form.sn) { dialog.alert('请输入识别码'); return }
+    if (!form.category_id) { dialog.alert('请选择分类'); return }
 
     setLoading(true)
     try {
@@ -101,12 +102,8 @@ export default function StaffInstrumentForm() {
 
       if (files.length > 0) {
         const uploaded = await Promise.all(files.map(async (file) => {
-          const fd = new FormData()
-          fd.append('file', file)
-          const resp = await fetch(`${BASE_URL}/upload`, {
-            method: 'POST',
-            headers: { Authorization: localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '' },
-            body: fd,
+          const resp = await uploadFile(`${BASE_URL}/upload`, file, {
+            headers: { Authorization: storage.getItem('token') ? `Bearer ${storage.getItem('token')}` : '' },
           })
           const result = await resp.json()
           return result?.data?.url || ''
@@ -141,10 +138,10 @@ export default function StaffInstrumentForm() {
       if (result.code === 20000 || result.code === 20100) {
         navigate('/staff/instruments')
       } else {
-        alert(result.message || '创建失败')
+        dialog.alert(result.message || '创建失败')
       }
     } catch (err) {
-      alert('提交失败: ' + err.message)
+      dialog.alert('提交失败: ' + err.message)
     } finally {
       setLoading(false)
     }

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
+import { dialog, env, storage } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -37,7 +38,7 @@ export default function StaffInstrumentDetail() {
   const [actionLoading, setActionLoading] = useState(false)
   const [activeOrder, setActiveOrder] = useState(null)
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
     const fetchInstrument = async () => {
@@ -84,7 +85,7 @@ export default function StaffInstrumentDetail() {
 
   const handleShip = async () => {
     if (instrument.stock_status !== 'rented') {
-      alert('乐器不在租赁中状态，无法发货')
+      dialog.alert('乐器不在租赁中状态，无法发货')
       return
     }
     navigate(`/staff/shipping?instrument=${instrument.id}`)
@@ -92,19 +93,19 @@ export default function StaffInstrumentDetail() {
 
   const handleReceive = async () => {
     if (instrument.stock_status !== 'rented') {
-      alert('乐器不在租赁状态')
+      dialog.alert('乐器不在租赁状态')
       return
     }
     if (activeOrder) {
       navigate(`/staff/receiving/${activeOrder.order_id}?instrument=${instrument.id}`)
     } else {
-      alert('未找到关联订单')
+      dialog.alert('未找到关联订单')
     }
   }
 
   const handleCompleteMaintenance = async () => {
     if (instrument.stock_status !== 'maintenance') {
-      alert('乐器不在维修中状态')
+      dialog.alert('乐器不在维修中状态')
       return
     }
     try {
@@ -115,13 +116,13 @@ export default function StaffInstrumentDetail() {
       })
       const maintResult = await maintResp.json()
       if (maintResult.code === 20000) {
-        alert('维修完成')
+        dialog.alert('维修完成')
         navigate('/staff/instruments')
       } else {
-        alert('操作失败: ' + maintResult.message)
+        dialog.alert('操作失败: ' + maintResult.message)
       }
     } catch (err) {
-      alert('操作失败: ' + err.message)
+      dialog.alert('操作失败: ' + err.message)
     }
     setActionLoading(false)
   }
@@ -135,13 +136,13 @@ export default function StaffInstrumentDetail() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        alert('已下架')
+        dialog.alert('已下架')
         navigate('/staff/instruments')
       } else {
-        alert('操作失败: ' + result.message)
+        dialog.alert('操作失败: ' + result.message)
       }
     } catch (err) {
-      alert('操作失败: ' + err.message)
+      dialog.alert('操作失败: ' + err.message)
     }
     setActionLoading(false)
   }
@@ -301,8 +302,8 @@ export default function StaffInstrumentDetail() {
       {/* Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         {(() => {
-          const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
-          const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+          const mapping = storage.getJSON('permission_mapping', {})
+          const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
           const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
           return (
             <div className="grid grid-cols-3 gap-3">

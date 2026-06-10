@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken } from '../services/api'
 import { ArrowLeft, Search, Truck } from 'lucide-react'
+import { env, storage } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -33,7 +34,7 @@ export default function StaffInstruments() {
     const fetchInstruments = async () => {
       try {
         setLoading(true)
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+        const baseUrl = env.apiBaseUrl
         let url = `${baseUrl}/instruments?page=${page}&pageSize=${pageSize}`
         if (activeCategory !== '全部') {
           url += `&category_id=${activeCategory}`
@@ -153,8 +154,8 @@ export default function StaffInstruments() {
 
       <div className="fixed bottom-6 right-6">
         {(() => {
-          const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
-          const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+          const mapping = storage.getJSON('permission_mapping', {})
+          const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
           const bit = mapping['instrument:create']
           const ok = bit !== undefined && (cusPerm & (1 << bit)) !== 0
           return ok ? (

@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+import { dialog, env, session } from '../platform'
 
 export default function Checkout() {
   const { id } = useParams()
@@ -23,7 +22,7 @@ export default function Checkout() {
   useEffect(() => {
     const token = getToken()
     if (!token) {
-      sessionStorage.setItem('post_auth_redirect', `/checkout/${id}`)
+      session.setItem('post_auth_redirect', `/checkout/${id}`)
       redirectToLogin()
       return
     }
@@ -32,7 +31,7 @@ export default function Checkout() {
       setLoading(true)
       try {
         const [instRes, addrRes] = await Promise.all([
-          apiFetch(`${BASE_URL}/public/instruments/${id}`),
+          apiFetch(`${env.apiBaseUrl}/public/instruments/${id}`),
           addressesApi.list(),
         ])
         const instResult = await instRes.json()
@@ -54,7 +53,7 @@ export default function Checkout() {
           setUseNewAddress(true)
         }
 
-        const pv2Res = await apiFetch(`${BASE_URL}/public/instruments/${id}/pricing-v2`)
+        const pv2Res = await apiFetch(`${env.apiBaseUrl}/public/instruments/${id}/pricing-v2`)
         const pv2Result = await pv2Res.json()
         if (pv2Result.code === 20000) {
           setPricingV2(pv2Result.data)
@@ -98,11 +97,11 @@ export default function Checkout() {
 
   const handleSubmit = async () => {
     if (!useNewAddress && !selectedAddressId) {
-      alert('请选择收货地址')
+      dialog.alert('请选择收货地址')
       return
     }
     if (useNewAddress && !newAddress.recipient_name) {
-      alert('请填写收货人')
+      dialog.alert('请填写收货人')
       return
     }
 
@@ -143,10 +142,10 @@ export default function Checkout() {
       if (resp.code === 20000 || resp.code === 20100) {
         navigate(`/order/${resp.data.order_id}`)
       } else {
-        alert('下单失败: ' + (resp.message || '未知错误'))
+        dialog.alert('下单失败: ' + (resp.message || '未知错误'))
       }
     } catch (err) {
-      alert('下单失败: ' + (err?.message || '网络错误'))
+      dialog.alert('下单失败: ' + (err?.message || '网络错误'))
     }
     setSubmitting(false)
   }

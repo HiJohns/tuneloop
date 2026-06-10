@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
 import { getToken, redirectToLogin, ordersApi, addressesApi } from '../services/api'
 import dayjs from 'dayjs'
+import { dialog, env, storage, session } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -56,12 +57,12 @@ export default function Cart() {
   const navigate = useNavigate()
   const [cart, setCart] = useState({ items: [] })
   const [grouped, setGrouped] = useState({})
-  const [address, setAddress] = useState(localStorage.getItem('user_address') || '')
+  const [address, setAddress] = useState(storage.getItem('user_address') || '')
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [tempAddress, setTempAddress] = useState('')
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+    const data = storage.getJSON('cart', { items: [] })
     setCart(data)
     const groups = {}
     for (const item of data.items) {
@@ -89,14 +90,13 @@ export default function Cart() {
           if (defaultAddr) {
             const addrStr = `${defaultAddr.recipient_name} ${defaultAddr.phone} ${defaultAddr.province}${defaultAddr.city}${defaultAddr.district}${defaultAddr.detail}`
             setAddress(addrStr)
-            localStorage.setItem('user_address', addrStr)
+            storage.setItem('user_address', addrStr)
           }
         } else if (resp.code === 20000 && resp.data?.list) {
           const defaultAddr = resp.data.list.find(a => a.is_default)
           if (defaultAddr) {
             const addrStr = `${defaultAddr.recipient_name} ${defaultAddr.phone} ${defaultAddr.province}${defaultAddr.city}${defaultAddr.district}${defaultAddr.detail}`
-            setAddress(addrStr)
-            localStorage.setItem('user_address', addrStr)
+            storage.setItem('user_address', addrStr)
           }
         }
       } catch (err) {
@@ -111,9 +111,9 @@ export default function Cart() {
 
   useEffect(() => {
     const token = getToken()
-    const pending = sessionStorage.getItem('pending_order')
+    const pending = session.getItem('pending_order')
     if (token && pending && cart.items.length === 1) {
-      sessionStorage.removeItem('pending_order')
+      session.removeItem('pending_order')
       const item = cart.items[0]
       const amount = calculateItemAmount(item)
       const returnDate = calculateDeadline(item)
@@ -132,7 +132,7 @@ export default function Cart() {
         },
       })
     } else if (token && pending) {
-      sessionStorage.removeItem('pending_order')
+      session.removeItem('pending_order')
     }
   }, [cart.items.length])
 
@@ -156,7 +156,7 @@ export default function Cart() {
   const removeItem = (instrumentId) => {
     const updated = cart.items.filter(i => i.instrument_id !== instrumentId)
     const newCart = { items: updated }
-    localStorage.setItem('cart', JSON.stringify(newCart))
+    storage.setJSON('cart', { items: updated })
     setCart(newCart)
     setGrouped(recalculateGroups(updated))
     window.dispatchEvent(new Event('cartUpdated'))
@@ -165,14 +165,14 @@ export default function Cart() {
   const clearInvalidItems = () => {
     const updated = cart.items.filter(i => i.stock_status === 'available')
     const newCart = { items: updated }
-    localStorage.setItem('cart', JSON.stringify(newCart))
+    storage.setJSON('cart', { items: updated })
     setCart(newCart)
     setGrouped(recalculateGroups(updated))
   }
 
   const updateAddress = () => {
     setAddress(tempAddress)
-    localStorage.setItem('user_address', tempAddress)
+    storage.setItem('user_address', tempAddress)
     setShowAddressModal(false)
   }
 
@@ -201,15 +201,15 @@ export default function Cart() {
   const totals = calculateTotals()
 
   const clearCart = () => {
-    localStorage.setItem('cart', JSON.stringify({ items: [] }))
+    storage.setJSON('cart', { items: [] })
     window.dispatchEvent(new Event('cartUpdated'))
   }
 
   const handleOrder = async () => {
     const token = getToken()
     if (!token) {
-      sessionStorage.setItem('post_auth_redirect', '/cart')
-      sessionStorage.setItem('pending_order', 'true')
+      session.setItem('post_auth_redirect', '/cart')
+      session.setItem('pending_order', 'true')
       redirectToLogin()
       return
     }
@@ -217,16 +217,16 @@ export default function Cart() {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]))
         if (!payload.tid && !payload.oid) {
-          sessionStorage.setItem('post_auth_redirect', '/cart')
-          sessionStorage.setItem('pending_order', 'true')
+          session.setItem('post_auth_redirect', '/cart')
+          session.setItem('pending_order', 'true')
           redirectToLogin()
           return
         }
       } catch {}
     }
-    sessionStorage.removeItem('pending_order')
+    session.removeItem('pending_order')
     if (!address.trim()) {
-      alert('请先填写收货地址')
+      dialog.alert('请先填写收货地址')
       return
     }
     if (cart.items.length === 1) {
@@ -259,11 +259,11 @@ export default function Cart() {
             },
           })
         } else {
-          alert(resp.data?.message || '下单失败')
+          dialog.alert(resp.data?.message || '下单失败')
         }
       } catch (err) {
         console.error('Order failed:', err)
-        alert('下单失败: ' + (err.message || '未知错误'))
+        dialog.alert('下单失败: ' + (err.message || '未知错误'))
       }
     } else {
       const items = cart.items.map(item => ({
@@ -280,10 +280,10 @@ export default function Cart() {
             state: { orders: resp.data.orders, total_amount: resp.data.total_amount },
           })
         } else {
-          alert(resp.data?.message || '批量下单失败')
+          dialog.alert(resp.data?.message || '批量下单失败')
         }
       } catch (err) {
-        alert('批量下单失败: ' + (err.message || '未知错误'))
+        dialog.alert('批量下单失败: ' + (err.message || '未知错误'))
       }
     }
   }

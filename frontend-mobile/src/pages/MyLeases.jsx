@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken } from '../services/api'
+import { env } from '../platform'
 import { ArrowLeft, Package } from 'lucide-react'
 
 export default function MyLeases() {
@@ -12,7 +13,7 @@ export default function MyLeases() {
     const fetchOrders = async () => {
       try {
         const token = getToken()
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+        const baseUrl = env.apiBaseUrl
         const resp = await apiFetch(`${baseUrl}/orders`)
         const result = await resp.json()
         if (result.code === 20000) {

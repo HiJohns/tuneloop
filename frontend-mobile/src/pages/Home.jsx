@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { instrumentsApi, apiFetch, getToken, redirectToLogin } from '../services/api'
 import { ChevronRight, Search, Heart, ShoppingCart } from 'lucide-react'
+import { env, storage } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -112,7 +113,7 @@ export default function Home() {
       if (!append) setLoading(true)
       else setLoadingMore(true)
       
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+      const baseUrl = env.apiBaseUrl
       const endpoint = '/public/instruments'
       const response = await apiFetch(`${baseUrl}${endpoint}?page=${pageNum}&pageSize=20${tenant ? `&tenant=${tenant}` : ''}`)
       const result = await response.json()
@@ -336,7 +337,7 @@ export default function Home() {
       {/* Floating Cart Icon */}
       {(() => {
         try {
-          const cartData = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+          const cartData = storage.getJSON('cart', {items: []})
           const cartCount = cartData.items?.length || 0
           if (cartCount > 0) {
             return (

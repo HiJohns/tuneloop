@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, User, MapPin, Package } from 'lucide-react'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
@@ -13,7 +14,7 @@ export default function ShippingInterface() {
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   const orderId = searchParams.get('order_id')
 
@@ -76,7 +77,7 @@ export default function ShippingInterface() {
     if (!canSubmit || !orderId) return
 
     setSubmitting(true)
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const token = storage.getItem('token') || session.getItem('token')
 
     try {
       // Upload photos
@@ -84,10 +85,8 @@ export default function ShippingInterface() {
       for (const file of photos) {
         const fd = new FormData()
         fd.append('file', file)
-        const resp = await fetch(`${baseUrl}/upload`, {
-          method: 'POST',
+        const resp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-          body: fd,
         })
         const result = await resp.json()
         if (result.code === 20000 && result.data?.url) {
@@ -107,13 +106,13 @@ export default function ShippingInterface() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        alert('发货成功')
+        dialog.alert('发货成功')
         navigate(-1)
       } else {
-        alert('发货失败: ' + result.message)
+        dialog.alert('发货失败: ' + result.message)
       }
     } catch (err) {
-      alert('发货失败: ' + err.message)
+      dialog.alert('发货失败: ' + err.message)
     }
     setSubmitting(false)
   }

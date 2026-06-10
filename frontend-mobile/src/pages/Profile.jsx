@@ -4,6 +4,7 @@ import { message } from 'antd'
 import { api, apiFetch, getToken, redirectToLogin, addressesApi, resendEmailConfirmation } from '../services/api'
 import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2, CheckCircle, Send, AlertCircle } from 'lucide-react'
 import AddressForm from '../components/AddressForm'
+import { dialog, env, storage, session, cookie } from '../platform'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '' })
@@ -23,7 +24,7 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
     setMessage('')
     try {
       const token = getToken()
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+      const baseUrl = env.apiBaseUrl
       const resp = await apiFetch(`${baseUrl}/users/me`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -125,7 +126,7 @@ export default function Profile() {
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [editingAddress, setEditingAddress] = useState(null)
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -181,20 +182,20 @@ export default function Profile() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('token_expiry')
-    localStorage.removeItem('user_info')
-    localStorage.removeItem('user_sys_perm')
-    localStorage.removeItem('user_cus_perm')
-    localStorage.removeItem('user_cus_perm_ext')
-    sessionStorage.removeItem('token')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    storage.removeItem('token')
+    storage.removeItem('token_expiry')
+    storage.removeItem('user_info')
+    storage.removeItem('user_sys_perm')
+    storage.removeItem('user_cus_perm')
+    storage.removeItem('user_cus_perm_ext')
+    session.removeItem('token')
+    cookie.remove('token')
     navigate('/')
   }
 
   const handlePasswordSetup = () => {
     const iamUrl = window.APP_CONFIG?.wx?.iamExternalUrl ||
-                   import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+                   env.iamExternalUrl
     if (iamUrl) {
       window.open(`${iamUrl}/auth/setup-password`, '_blank')
     }
@@ -349,7 +350,7 @@ export default function Profile() {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
                       <button onClick={() => { setEditingAddress(addr); setShowAddressForm(true) }} className="text-xs text-brand-primary">编辑</button>
-                      <button onClick={async () => { if (confirm('确认删除？')) { await addressesApi.delete(addr.id); loadAddresses() } }} className="text-xs text-red-500">删除</button>
+                      <button onClick={async () => { if (dialog.confirm('确认删除？')) { await addressesApi.delete(addr.id); loadAddresses() } }} className="text-xs text-red-500">删除</button>
                     </div>
                   </div>
                 ))}
@@ -443,8 +444,8 @@ export default function Profile() {
               <h3 className="font-medium mb-3">员工功能</h3>
               <div className="grid grid-cols-2 gap-4">
                 {(() => {
-                  const mapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
-                  const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
+                  const mapping = storage.getJSON('permission_mapping', {})
+                  const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
                   const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
                   return (
                     <>

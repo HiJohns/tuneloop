@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch } from '../services/api'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -16,7 +17,7 @@ export default function StaffReceiveConfirm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const instrumentId = searchParams.get('instrument')
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
   const [order, setOrder] = useState(null)
@@ -70,11 +71,11 @@ export default function StaffReceiveConfirm() {
 
   const handleConfirmReceive = async () => {
     if (hasDamage && (!damageReason.trim() || !damageAmount.trim())) {
-      alert('请填写定损理由和金额')
+      dialog.alert('请填写定损理由和金额')
       return
     }
     setSubmitting(true)
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const token = storage.getItem('token') || session.getItem('token')
 
     try {
       // Upload photos first
@@ -82,10 +83,8 @@ export default function StaffReceiveConfirm() {
       for (const file of photoFiles) {
         const fd = new FormData()
         fd.append('file', file)
-        const uploadResp = await fetch(`${baseUrl}/upload`, {
-          method: 'POST',
+        const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-          body: fd,
         })
         const uploadResult = await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) {
@@ -107,13 +106,13 @@ export default function StaffReceiveConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        alert('接收确认成功')
+        dialog.alert('接收确认成功')
         navigate('/staff/orders')
       } else {
-        alert('接收失败: ' + (result.message || ''))
+        dialog.alert('接收失败: ' + (result.message || ''))
       }
     } catch (err) {
-      alert('操作失败: ' + err.message)
+      dialog.alert('操作失败: ' + err.message)
     }
     setSubmitting(false)
   }

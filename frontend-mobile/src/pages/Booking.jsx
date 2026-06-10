@@ -4,6 +4,7 @@ import { api, sitesApi, maintenanceApi } from '../services/api'
 import ImageUploader from '../components/ImageUploader'
 import SiteSelector from '../components/SiteSelector'
 import { ArrowLeft, Clock, Calendar } from 'lucide-react'
+import { dialog } from '../platform'
 
 export default function Booking() {
   const navigate = useNavigate()
@@ -59,7 +60,7 @@ export default function Booking() {
 
   const handleSubmit = async () => {
     if (!selectedPackage || !selectedSite || !selectedDate || !selectedTime) {
-      alert("请填写完整信息")
+      dialog.alert("请填写完整信息")
       return
     }
     
@@ -70,11 +71,11 @@ export default function Booking() {
         date: selectedDate,
         time: selectedTime
       })
-      alert("预约成功！")
+      dialog.alert("预约成功！")
       navigate('/')
     } catch (error) {
       console.error('Failed to submit maintenance:', error)
-      alert("预约失败，请重试")
+      dialog.alert("预约失败，请重试")
     }
   }
 

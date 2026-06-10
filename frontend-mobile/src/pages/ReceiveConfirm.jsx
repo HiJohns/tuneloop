@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { ArrowLeft, CheckCircle, Camera } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -16,7 +17,7 @@ export default function ReceiveConfirm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const instrumentId = searchParams.get('instrument')
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
   const [order, setOrder] = useState(null)
@@ -27,7 +28,7 @@ export default function ReceiveConfirm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+        const token = storage.getItem('token') || session.getItem('token')
         const headers = { 'Authorization': `Bearer ${token}` }
 
         const [orderResp, instResp] = await Promise.all([
@@ -51,17 +52,15 @@ export default function ReceiveConfirm() {
   const handleConfirmReceive = async () => {
     setSubmitting(true)
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const token = storage.getItem('token') || session.getItem('token')
 
       // 1. Upload photos first
       const photoUrls = []
       for (const file of photoFiles) {
         const fd = new FormData()
         fd.append('file', file)
-        const upResp = await fetch(`${baseUrl}/upload`, {
-          method: 'POST',
+        const upResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-          body: fd,
         })
         const upResult = await upResp.json()
         if (upResult.code === 20000 && upResult.data?.url) {
@@ -83,13 +82,13 @@ export default function ReceiveConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        alert('确认收货成功')
+        dialog.alert('确认收货成功')
         navigate(instrumentId ? `/instrument/${instrumentId}` : '/')
       } else {
-        alert('确认收货失败: ' + (result.message || ''))
+        dialog.alert('确认收货失败: ' + (result.message || ''))
       }
     } catch (err) {
-      alert('操作失败: ' + err.message)
+      dialog.alert('操作失败: ' + err.message)
     }
     setSubmitting(false)
   }

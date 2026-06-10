@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
+import { env } from '../platform'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Package, Truck, RotateCcw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
@@ -39,7 +40,7 @@ export default function StaffOrderDetail() {
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
     const fetchOrder = async () => {

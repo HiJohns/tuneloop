@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
+import { dialog, env } from '../platform'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
 
 const STATUS_LABELS = {
@@ -40,7 +41,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -60,7 +61,7 @@ export default function OrderDetail() {
   }, [id])
 
   const handlePay = async () => {
-    if (!confirm('确认支付该订单？')) return
+    if (!dialog.confirm('确认支付该订单？')) return
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/pay`, { method: 'POST' })
@@ -68,16 +69,16 @@ export default function OrderDetail() {
       if (result.code === 20000) {
         navigate('/profile')
       } else {
-        alert('支付失败: ' + result.message)
+        dialog.alert('支付失败: ' + result.message)
       }
     } catch (err) {
-      alert('支付失败: ' + err.message)
+      dialog.alert('支付失败: ' + err.message)
     }
     setActionLoading(false)
   }
 
   const handleCancel = async () => {
-    if (!confirm('确认取消该订单？取消后不可恢复。')) return
+    if (!dialog.confirm('确认取消该订单？取消后不可恢复。')) return
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel`, {
@@ -87,10 +88,10 @@ export default function OrderDetail() {
       if (result.code === 20000) {
         setOrder(prev => ({ ...prev, status: 'cancelled' }))
       } else {
-        alert('取消失败: ' + result.message)
+        dialog.alert('取消失败: ' + result.message)
       }
     } catch (err) {
-      alert('取消失败: ' + err.message)
+      dialog.alert('取消失败: ' + err.message)
     }
     setActionLoading(false)
   }

@@ -4,6 +4,7 @@ import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
 import { Switch, Tag, Modal, Button } from 'antd'
 import dayjs from 'dayjs'
+import { env, storage } from '../platform'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -60,7 +61,7 @@ export default function Detail() {
   const [cartToast, setCartToast] = useState(false)
   const cartItemCount = (() => {
     try {
-      const cartData = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+      const cartData = storage.getJSON('cart', {items: []})
       return cartData.items?.length || 0
     } catch { return 0 }
   })()
@@ -69,7 +70,7 @@ export default function Detail() {
   useEffect(() => {
     if (!instrument?.id) return
     try {
-      const cart = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+      const cart = storage.getJSON('cart', {items: []})
       const item = cart.items?.find(i => i.instrument_id === instrument.id)
       if (item?.days) {
         setDays(item.days)
@@ -81,14 +82,14 @@ export default function Detail() {
   const isInCart = (() => {
     if (!instrument) return false
     try {
-      const cartData = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+      const cartData = storage.getJSON('cart', {items: []})
       return cartData.items?.some(i => i.instrument_id === instrument.id) || false
     } catch { return false }
   })()
 
   const handleAddToCart = () => {
     if (!instrument) return
-    const existing = JSON.parse(localStorage.getItem('cart') || '{"items":[]}')
+    const existing = storage.getJSON('cart', {items: []})
     
     // Remove existing item for this instrument if present
     const filtered = existing.items.filter(i => i.instrument_id !== instrument.id)
@@ -118,7 +119,7 @@ export default function Detail() {
       calculated_rent: totalRent,
     })
     
-    localStorage.setItem('cart', JSON.stringify({ items: filtered }))
+    storage.setJSON('cart', { items: filtered })
     setCartToast(true)
     window.dispatchEvent(new Event('cartUpdated'))
   }
@@ -130,7 +131,7 @@ export default function Detail() {
     const fetchInstrument = async () => {
       try {
         setLoading(true)
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+        const baseUrl = env.apiBaseUrl
         const endpoint = `/public/instruments/${id}`
         const response = await apiFetch(`${baseUrl}${endpoint}`)
         const result = await response.json()
@@ -164,7 +165,7 @@ export default function Detail() {
 
   useEffect(() => {
     if (!id) return
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseUrl = env.apiBaseUrl
     setPricingV2Loading(true)
     apiFetch(`${baseUrl}/public/instruments/${id}/pricing-v2`)
       .then(r => r.json())
@@ -181,7 +182,7 @@ export default function Detail() {
 
   useEffect(() => {
     if (!id) return
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseUrl = env.apiBaseUrl
     apiFetch(`${baseUrl}/public/instruments/${id}/media`)
       .then(r => r.json())
       .then(res => {

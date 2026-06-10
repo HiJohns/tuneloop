@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload, User, MapPin, Package } from 'lucide-react'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
@@ -21,7 +22,7 @@ export default function ReceivingInterface() {
   const [outboundPhotos, setOutboundPhotos] = useState([])
   const [capturedPhotos, setCapturedPhotos] = useState([])
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   // Auto-load order when order_id is provided via URL
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function ReceivingInterface() {
         const orderResult = await orderResp.json()
         setOrderID(orderResult.code === 20000 ? orderResult.data?.order_id : null)
       } else {
-        alert('未找到该乐器')
+        dialog.alert('未找到该乐器')
       }
     } catch (err) {
       console.error('Failed to check instrument:', err)
@@ -100,11 +101,11 @@ export default function ReceivingInterface() {
   const handleSubmit = async () => {
     if (!currentItem) return
     if (!orderID) {
-      alert('未找到该乐器的活跃订单')
+      dialog.alert('未找到该乐器的活跃订单')
       return
     }
     setSubmitting(true)
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    const token = storage.getItem('token') || session.getItem('token')
 
     try {
       // Upload photos
@@ -112,10 +113,8 @@ export default function ReceivingInterface() {
       for (const file of capturedPhotos) {
         const fd = new FormData()
         fd.append('file', file)
-        const uploadResp = await fetch(`${baseUrl}/upload`, {
-          method: 'POST',
+        const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-          body: fd,
         })
         const uploadResult = await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) {
@@ -148,13 +147,13 @@ export default function ReceivingInterface() {
           navigate('/staff/orders')
           return
         } else {
-          alert('定损评估失败: ' + damageResult.message)
+          dialog.alert('定损评估失败: ' + damageResult.message)
         }
       } else if (result.code === 20000) {
         navigate('/staff/orders')
         return
       } else {
-        alert('失败: ' + result.message)
+        dialog.alert('失败: ' + result.message)
       }
 
       setCurrentItem(null)
@@ -166,7 +165,7 @@ export default function ReceivingInterface() {
       setOutboundPhotos([])
       setCapturedPhotos([])
     } catch (err) {
-      alert('错误: ' + err.message)
+      dialog.alert('错误: ' + err.message)
     }
     setSubmitting(false)
   }
@@ -242,7 +241,7 @@ export default function ReceivingInterface() {
               onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
             />
             <button
-              onClick={() => alert('扫码功能暂不可用')}
+              onClick={() => dialog.alert('扫码功能暂不可用')}
               className="px-4 py-2 border rounded-lg"
             >
               <Scan size={18} />

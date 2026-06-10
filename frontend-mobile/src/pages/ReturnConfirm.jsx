@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { getToken, redirectToLogin } from '../services/api'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -16,7 +17,7 @@ export default function ReturnConfirm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const instrumentId = searchParams.get('instrument')
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
   const [order, setOrder] = useState(null)
@@ -52,7 +53,7 @@ export default function ReturnConfirm() {
 
   const handleSubmitReturn = async () => {
     if (!courierCompany.trim() || !trackingNumber.trim()) {
-      alert('请填写物流信息')
+      dialog.alert('请填写物流信息')
       return
     }
     setSubmitting(true)
@@ -65,10 +66,8 @@ export default function ReturnConfirm() {
       for (const file of photoFiles) {
         const fd = new FormData()
         fd.append('file', file)
-        const upResp = await fetch(`${baseUrl}/upload`, {
-          method: 'POST',
+        const upResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-          body: fd,
         })
         const upResult = await upResp.json()
         if (upResult.code === 20000 && upResult.data?.url) {
@@ -90,13 +89,13 @@ export default function ReturnConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        alert('已提交归还申请')
+        dialog.alert('已提交归还申请')
         navigate(`/instrument/${instrumentId}`)
       } else {
-        alert('归还失败: ' + (result.message || ''))
+        dialog.alert('归还失败: ' + (result.message || ''))
       }
     } catch (err) {
-      alert('操作失败: ' + err.message)
+      dialog.alert('操作失败: ' + err.message)
     }
     setSubmitting(false)
   }

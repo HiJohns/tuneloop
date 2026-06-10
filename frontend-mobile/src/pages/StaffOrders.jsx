@@ -48,7 +48,7 @@ export default function StaffOrders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchInput, setSearchInput] = useState('')
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+  const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
     const fetchOrders = async () => {
