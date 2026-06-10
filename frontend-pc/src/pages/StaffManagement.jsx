@@ -14,10 +14,12 @@ export default function StaffManagement() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
   const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
   const [siteTree, setSiteTree] = useState([])
-  const [createModalVisible, setCreateModalVisible] = useState(false)
-  const [inlineFormVisible, setInlineFormVisible] = useState(false)
+  const [viewMode, setViewMode] = useState('list') // 'list' | 'create' | 'edit'
   const [createTab, setCreateTab] = useState('search')
-  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [debounceTimeout, setDebounceTimeout] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
   const [userForm] = Form.useForm()
   const [createUserForm] = Form.useForm()
@@ -166,7 +168,6 @@ export default function StaffManagement() {
         setConflictUsers(checkResult.data.users || [])
         setCurrentNewUser(values)
         setConflictModalVisible(true)
-        setCreateModalVisible(false)
         return
       }
 
@@ -203,7 +204,7 @@ export default function StaffManagement() {
         } else {
           message.success('创建用户成功')
         }
-        setInlineFormVisible(false)
+        setViewMode('list')
         createUserForm.resetFields()
         fetchStaffList()
       } else if (result.code === 40900) {
@@ -241,7 +242,6 @@ export default function StaffManagement() {
   const handleCancelCreate = () => {
     setConflictModalVisible(false)
     setCurrentNewUser(null)
-    setCreateModalVisible(true)
   }
 
   const handleUpdateUser = async (values) => {
@@ -263,7 +263,7 @@ export default function StaffManagement() {
         } else {
           message.success('更新用户成功')
         }
-        setEditModalVisible(false)
+        setViewMode('list')
         setEditingUser(null)
         userForm.resetFields()
         fetchStaffList()
@@ -280,9 +280,33 @@ export default function StaffManagement() {
       email: user.email,
       phone: user.phone,
       site_id: user.site_id,
+      role: user.role,
       position: user.position
     })
-    setEditModalVisible(true)
+    setViewMode('edit')
+  }
+
+  const handleSearchInput = (value) => {
+    setSearchKeyword(value)
+    if (debounceTimeout) clearTimeout(debounceTimeout)
+    if (!value.trim()) { setSearchResults([]); return }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const res = await staffApi.list({ name: value, page_size: 20 })
+        if (res.code === 20000) {
+          setSearchResults(res.data?.list || [])
+        } else {
+          setSearchResults([])
+        }
+      } catch {
+        setSearchResults([])
+      } finally {
+        setSearchLoading(false)
+      }
+    }, 300)
+    setDebounceTimeout(timer)
   }
 
   const handleDeleteUser = (user) => {
@@ -538,7 +562,7 @@ export default function StaffManagement() {
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
-              onClick={() => setInlineFormVisible(!inlineFormVisible)}
+              onClick={() => setViewMode(viewMode === 'create' ? 'list' : 'create')}
             >
               创建用户
             </Button>
@@ -623,18 +647,46 @@ export default function StaffManagement() {
         />
       </Card>
 
-      {/* 创建用户对话框 */}
-      {/* 内嵌创建用户表单 */}
-      {inlineFormVisible && (
+      {/* 创建/编辑面板 — 替换列表面板 */}
+      {viewMode === 'create' && (
         <Card className="mb-4" size="small">
           <Tabs activeKey={createTab} onChange={setCreateTab}>
             <Tabs.TabPane tab="搜索用户" key="search">
-              <Form layout="inline" className="mb-3">
-                <Form.Item style={{ flex: 1 }}>
-                  <Input placeholder="输入用户名/邮箱/手机搜索" />
-                </Form.Item>
-                <Button type="primary">搜索</Button>
-              </Form>
+              <div className="mb-3">
+                <Input.Search
+                  placeholder="输入用户名/邮箱/手机搜索"
+                  value={searchKeyword}
+                  onChange={e => handleSearchInput(e.target.value)}
+                  loading={searchLoading}
+                  enterButton
+                />
+                {searchKeyword.trim() && !searchLoading && (
+                  <div className="mt-2" style={{ maxHeight: 240, overflow: 'auto' }}>
+                    {searchResults.length > 0 ? (
+                      searchResults.map(u => (
+                        <div
+                          key={u.id}
+                          className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          <div>
+                            <span className="font-medium">{u.name}</span>
+                            <span className="text-gray-400 ml-2">{u.phone}</span>
+                            {u.email && <span className="text-gray-400 ml-2">{u.email}</span>}
+                          </div>
+                          <Tag color={u.iam_sub ? 'green' : 'orange'}>{u.iam_sub ? '已注册' : '未激活'}</Tag>
+                        </div>
+                      ))
+                    ) : (
+                      <div
+                        className="text-center py-4 text-blue-500 cursor-pointer hover:text-blue-700"
+                        onClick={() => setCreateTab('create')}
+                      >
+                        未找到匹配用户 → 创建新用户
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </Tabs.TabPane>
             <Tabs.TabPane tab="创建用户" key="create">
               <Form
@@ -685,7 +737,7 @@ export default function StaffManagement() {
                 </Form.Item>
                 <Space>
                   <Button type="primary" htmlType="submit">创建用户</Button>
-                  <Button onClick={() => { setInlineFormVisible(false); createUserForm.resetFields() }}>取消</Button>
+                  <Button onClick={() => { setViewMode('list'); createUserForm.resetFields() }}>取消</Button>
                 </Space>
               </Form>
             </Tabs.TabPane>
@@ -693,30 +745,45 @@ export default function StaffManagement() {
         </Card>
       )}
 
-      {/* 编辑用户对话框 */}
-      <Modal
-        title="编辑用户"
-        visible={editModalVisible}
-        onCancel={() => {
-          setEditModalVisible(false)
-          setEditingUser(null)
-          userForm.resetFields()
-        }}
-        footer={null}
-        width={600}
-      >
-        <UserEditDialog
-          form={userForm}
-          onSubmit={handleUpdateUser}
-          onCancel={() => {
-            setEditModalVisible(false)
-            setEditingUser(null)
-            userForm.resetFields()
-          }}
-          siteOptions={siteOptions}
-          initialValues={editingUser}
-        />
-      </Modal>
+      {viewMode === 'edit' && (
+        <Card className="mb-4" size="small" title="编辑用户">
+          <Form
+            form={userForm}
+            layout="vertical"
+            onFinish={handleUpdateUser}
+          >
+            <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+              <Input placeholder="请输入姓名" />
+            </Form.Item>
+            <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '请输入有效的邮箱地址' }, { required: true, message: '请输入邮箱' }]}>
+              <Input placeholder="请输入邮箱" />
+            </Form.Item>
+            {editingUser?.email && (
+              <Alert message="修改邮箱后，系统将发送确认邮件到新邮箱地址，需确认后方可生效。" type="info" showIcon style={{ marginBottom: 16 }} />
+            )}
+            <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+              <Input placeholder="请输入手机号" />
+            </Form.Item>
+            <Form.Item name="site_id" label="归属网点" rules={[{ required: true, message: '请选择归属网点' }]}>
+              <Select placeholder="请选择归属网点" style={{ width: '100%' }} dropdownStyle={{ maxHeight: 300, overflow: 'auto' }}>
+                {siteOptions.map(option => (
+                  <Option key={option.key} value={option.value}>{option.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item name="role" label="角色">
+              <Select>
+                <Option value="site_admin">管理员</Option>
+                <Option value="site_member">成员</Option>
+              </Select>
+            </Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">保存</Button>
+              <Button onClick={() => { setViewMode('list'); userForm.resetFields(); setEditingUser(null) }}>取消</Button>
+            </Space>
+          </Form>
+        </Card>
+      )}
 
       {/* 冲突选择对话框 */}
       <Modal
