@@ -3,7 +3,6 @@ import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, 
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
 import { staffApi, sitesApi, iamApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
-import UserEditDialog from '../components/UserEditDialog'
 
 const { Option } = Select
 
@@ -14,14 +13,12 @@ export default function StaffManagement() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 })
   const [searchParams, setSearchParams] = useState({ name: '', siteId: null })
   const [siteTree, setSiteTree] = useState([])
-  const [viewMode, setViewMode] = useState('list') // 'list' | 'create' | 'edit'
+  const [viewMode, setViewMode] = useState('list') // 'list' | 'create'
   const [createTab, setCreateTab] = useState('search')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [debounceTimeout, setDebounceTimeout] = useState(null)
-  const [editingUser, setEditingUser] = useState(null)
-  const [userForm] = Form.useForm()
   const [createUserForm] = Form.useForm()
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [lockedSiteId, setLockedSiteId] = useState(null)
@@ -244,127 +241,6 @@ export default function StaffManagement() {
     setCurrentNewUser(null)
   }
 
-  const handleUpdateUser = async (values) => {
-    try {
-      const emailChanged = editingUser.email && values.email && values.email !== editingUser.email
-      const result = await staffApi.updateUser(editingUser.id, values)
-      if (result.code === 20000) {
-        if (emailChanged) {
-          try {
-            await staffApi.updateIAMUser(editingUser.iam_sub || editingUser.id, {
-              name: values.name,
-              email: values.email,
-              phone: values.phone,
-            })
-            message.success('用户更新成功，邮箱变更需确认后生效')
-          } catch (iamError) {
-            message.warning('用户更新成功，但邮箱变更请求发送失败')
-          }
-        } else {
-          message.success('更新用户成功')
-        }
-        setViewMode('list')
-        setEditingUser(null)
-        userForm.resetFields()
-        fetchStaffList()
-      }
-    } catch (error) {
-      message.error('更新用户失败: ' + error.message)
-    }
-  }
-
-  const handleEditUser = (user) => {
-    setEditingUser(user)
-    userForm.setFieldsValue({
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      site_id: user.site_id,
-      role: user.role,
-      position: user.position
-    })
-    setViewMode('edit')
-  }
-
-  const handleSearchInput = (value) => {
-    setSearchKeyword(value)
-    if (debounceTimeout) clearTimeout(debounceTimeout)
-    if (!value.trim()) { setSearchResults([]); return }
-
-    const timer = setTimeout(async () => {
-      setSearchLoading(true)
-      try {
-        const res = await staffApi.list({ name: value, page_size: 20 })
-        if (res.code === 20000) {
-          setSearchResults(res.data?.list || [])
-        } else {
-          setSearchResults([])
-        }
-      } catch {
-        setSearchResults([])
-      } finally {
-        setSearchLoading(false)
-      }
-    }, 300)
-    setDebounceTimeout(timer)
-  }
-
-  const handleDeleteUser = (user) => {
-    Modal.confirm({
-      title: '删除确认',
-      content: `确定要删除用户「${user.name}」吗？此操作不可恢复。`,
-      okText: '确定删除',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        try {
-          const result = await staffApi.batchDelete([user.id])
-          if (result.code === 20000) {
-            message.success('删除成功')
-            fetchStaffList()
-          } else {
-            throw new Error(result.message || '删除失败')
-          }
-        } catch (error) {
-          message.error('删除失败: ' + error.message)
-        }
-      }
-    })
-  }
-
-  const handleResetPassword = async (userIds) => {
-    try {
-      const redirectUrl = window.location.origin
-      const result = await staffApi.resetPassword(userIds, redirectUrl)
-      if (result.code === 20000) {
-        const { sent, skipped } = result.data
-        if (skipped > 0) {
-          message.success(`已发送 ${sent} 封重设密码邮件，${skipped} 个用户被跳过`)
-        } else {
-          message.success(`已成功发送 ${sent} 封重设密码邮件`)
-        }
-      } else {
-        throw new Error(result.message || '发送失败')
-      }
-    } catch (error) {
-      message.error('重设密码邮件发送失败: ' + error.message)
-    }
-  }
-
-  const handleActivateUser = async (user) => {
-    try {
-      const result = await staffApi.activateUser(user.id)
-      if (result.code === 20000) {
-        message.success(`用户「${user.name}」激活成功`)
-        handleSearch()
-      } else {
-        throw new Error(result.message || '激活失败')
-      }
-    } catch (error) {
-      message.error('激活失败: ' + error.message)
-    }
-  }
-
   const handleBatchDelete = () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请先选择要删除的用户')
@@ -492,7 +368,7 @@ export default function StaffManagement() {
             type="link"
             size="small"
             icon={<MailOutlined />}
-            onClick={() => handleResetPassword([record.id])}
+              onClick={() => navigate(`/staff/${record.id}/reset-password`, { state: { user: record } })}
           >
             重设密码
           </Button>
@@ -647,7 +523,7 @@ export default function StaffManagement() {
           scroll={{ x: 1400 }}
         />
       </Card>
-      ) : viewMode === 'create' ? (
+      ) : (
       <Card 
         title="创建用户" 
         extra={
@@ -762,53 +638,6 @@ export default function StaffManagement() {
             },
           ]}
         />
-      </Card>
-      ) : (
-      <Card 
-        title="编辑用户" 
-        extra={
-          <Button onClick={() => { setViewMode('list'); userForm.resetFields(); setEditingUser(null) }}>
-            返回列表
-          </Button>
-        }
-        className="mb-4" 
-        size="small"
-      >
-        <Form
-          form={userForm}
-          layout="vertical"
-          onFinish={handleUpdateUser}
-        >
-          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input placeholder="请输入姓名" />
-          </Form.Item>
-          <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '请输入有效的邮箱地址' }, { required: true, message: '请输入邮箱' }]}>
-            <Input placeholder="请输入邮箱" />
-          </Form.Item>
-          {editingUser?.email && (
-            <Alert message="修改邮箱后，系统将发送确认邮件到新邮箱地址，需确认后方可生效。" type="info" showIcon style={{ marginBottom: 16 }} />
-          )}
-          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
-            <Input placeholder="请输入手机号" />
-          </Form.Item>
-          <Form.Item name="site_id" label="归属网点" rules={[{ required: true, message: '请选择归属网点' }]}>
-            <Select placeholder="请选择归属网点" style={{ width: '100%' }} dropdownStyle={{ maxHeight: 300, overflow: 'auto' }}>
-              {siteOptions.map(option => (
-                <Option key={option.key} value={option.value}>{option.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="role" label="角色">
-            <Select>
-              <Option value="site_admin">管理员</Option>
-              <Option value="site_member">成员</Option>
-            </Select>
-          </Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit">保存</Button>
-            <Button onClick={() => { setViewMode('list'); userForm.resetFields(); setEditingUser(null) }}>取消</Button>
-          </Space>
-        </Form>
       </Card>
       )}
 
