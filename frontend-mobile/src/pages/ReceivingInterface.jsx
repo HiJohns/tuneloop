@@ -148,6 +148,8 @@ export default function ReceivingInterface() {
           return
         } else {
           dialog.alert('定损评估失败: ' + damageResult.message)
+          setSubmitting(false)
+          return
         }
       } else if (result.code === 20000) {
         navigate('/staff/orders')

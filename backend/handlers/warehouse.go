@@ -330,6 +330,9 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 
 	// Update order status
 	newStatus := models.OrderStatusCompleted
+	if req.Condition == "damaged" {
+		newStatus = models.OrderStatusReturning
+	}
 	updateFields := map[string]interface{}{
 		"status": newStatus,
 	}
