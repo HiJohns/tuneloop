@@ -185,7 +185,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		InstrumentID    string                 `json:"instrument_id" binding:"required"`
 		StartDate       string                 `json:"start_date" binding:"required"`
 		EndDate         string                 `json:"end_date" binding:"required"`
-		DeliveryAddress map[string]interface{} `json:"delivery_address"`
+		DeliveryAddress interface{}            `json:"delivery_address"`
 		Notes           string                 `json:"notes"`
 	}
 
