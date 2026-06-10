@@ -83,7 +83,7 @@ export default function MyLeases() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/return/${order.id}`)
+                      navigate(`/return/${order.id}?instrument=${order.instrument_id}`)
                     }}
                     className="mt-3 bg-brand-primary text-white py-2 px-4 rounded-lg text-sm"
                   >

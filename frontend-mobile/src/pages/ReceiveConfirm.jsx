@@ -83,7 +83,7 @@ export default function ReceiveConfirm() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('确认收货成功')
-        navigate(instrumentId ? `/instrument/${instrumentId}` : '/')
+        navigate('/profile')
       } else {
         dialog.alert('确认收货失败: ' + (result.message || ''))
       }

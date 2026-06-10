@@ -310,7 +310,7 @@ export default function OrderDetail() {
           )}
           {showReceiveButton && (
             <button
-              onClick={() => navigate(`/receive/${id}`)}
+              onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
               className="w-full py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
             >
               <CheckCircle size={20} />
@@ -319,7 +319,7 @@ export default function OrderDetail() {
           )}
           {showReturnButton && (
             <button
-              onClick={() => navigate(`/return/${id}`)}
+              onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
               className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
             >
               <RotateCcw size={20} />
