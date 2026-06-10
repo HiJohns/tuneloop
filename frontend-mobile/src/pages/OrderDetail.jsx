@@ -41,6 +41,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [instrument, setInstrument] = useState(null)
   const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
@@ -59,6 +60,16 @@ export default function OrderDetail() {
     }
     fetchOrder()
   }, [id])
+
+  useEffect(() => {
+    if (!order?.instrument_id) return
+    apiFetch(`${baseUrl}/public/instruments/${order.instrument_id}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.code === 20000) setInstrument(res.data)
+      })
+      .catch(() => {})
+  }, [order?.instrument_id])
 
   const handlePay = async () => {
     if (!dialog.confirm('确认支付该订单？')) return
@@ -179,6 +190,29 @@ export default function OrderDetail() {
                 超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{overdueFee}
                 <span className="block mt-0.5">（¥{(monthlyRent / 30).toFixed(2)}/天）</span>
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {instrument && (
+        <div className="mt-3 bg-white px-4 py-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-3">乐器信息</h3>
+          <div className="flex gap-3">
+            {instrument.images && (() => {
+              try {
+                const imgs = typeof instrument.images === 'string'
+                  ? JSON.parse(instrument.images)
+                  : instrument.images
+                if (imgs[0]) return <img src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+              } catch {}
+              return null
+            })()}
+            <div>
+              <p className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</p>
+              <p className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</p>
+              {instrument.tenant_name && <p className="text-xs text-gray-400 mt-1">{instrument.tenant_name}</p>}
+              {instrument.site_name && <p className="text-xs text-gray-400">网点: {instrument.site_name}</p>}
             </div>
           </div>
         </div>
