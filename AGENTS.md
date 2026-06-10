@@ -451,6 +451,7 @@ done
 | site_admin | 本网点 + 下级网点 | JWT `oid` 过滤 |
 | site_member | 本网点 | JWT `oid` 过滤 |
 | worker | 本网点 | JWT `oid` 过滤 |
+| customer (USER) | 无组织/网点边界 | JWT 中 `oid`/`tid` 为空；操作订单时从 instrument 推导 merchant/site |
 
 **审查新增 Handler 时必须检查**：
 
@@ -461,8 +462,14 @@ done
 5. [ ] Update 操作是否显式加了 `WHERE tenant_id = ?`？（GORM Update 回调未注册自动 scoping）
 6. [ ] 是否依赖本地 `users` 表的 `SiteID`/`Role` 做 scoping 决策？（**禁止** — 必须用 JWT claims）
 7. [ ] 如果处理 instrument，operate 后是否保持了 `tenant_id`/`org_id` 不变？
+8. [ ] 是否允许 customer 角色访问？若是，路由是否在 `userOptionalAuth` 组？handler 是否从 instrument/order 推导 tenant/org？（#833 教训）
 
 **公共路由豁免**：`/api/public/*` 路由有意跨租户暴露数据——如需限制，需在 Issue 中独立提出。
+
+**Customer 路由规则（强制）**：Customer (USER) 角色没有组织/租户绑定（JWT 中 `oid`/`tid` 为空字符串）。任何 customer 可调用的订单操作接口（支付、取消、确认收货等）必须：
+1. 注册在 `userOptionalAuth` 路由组（使用 `OptionalIAMInterceptor`，不强制要求 tid）
+2. Handler 中通过 order → instrument 推导 `tenant_id`/`org_id`（参考 `user_rental.go:214-224` 模式）
+3. **严禁**注册在 `authRequired` 组 — 该组使用 `IAMInterceptor`，空 tid 会触发 40104（#833 教训）
 
 ---
 
@@ -475,7 +482,7 @@ done
 
 ---
 
-> *Last updated: 2026-06-09*
+> *Last updated: 2026-06-10*
 
 ---
 
@@ -498,7 +505,7 @@ done
 
 ---
 
-> *Last updated: 2026-06-09*
+> *Last updated: 2026-06-10*
 
 ---
 
