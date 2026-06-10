@@ -106,7 +106,14 @@ export default function ReturnConfirm() {
     </div>
   }
 
-  const images = instrument?.images ? (Array.isArray(instrument.images) ? instrument.images : []) : []
+  const images = (() => {
+    if (!instrument?.images) return []
+    if (Array.isArray(instrument.images)) return instrument.images
+    if (typeof instrument.images === 'string') {
+      try { return JSON.parse(instrument.images) } catch { return [] }
+    }
+    return []
+  })()
 
   return (
     <div className="min-h-screen bg-brand-bg pb-24">
@@ -127,6 +134,7 @@ export default function ReturnConfirm() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-gray-500">识别码</span><span>{instrument?.sn || '-'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">类别</span><span>{instrument?.category_name || '-'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">商户</span><span>{instrument?.tenant_name || '-'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">所属网点</span><span>{instrument?.site_name || '-'}</span></div>
           </div>
         </div>
