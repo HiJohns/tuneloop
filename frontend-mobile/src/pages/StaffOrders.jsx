@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { warehouseApi, apiFetch } from '../services/api'
+import { env } from '../platform'
 import { ArrowLeft, Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
 
 const STATUS_TABS = [
@@ -139,13 +140,15 @@ export default function StaffOrders() {
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
             />
           </div>
-          <button
-            onClick={handleQRScan}
-            className="px-3 py-2 border rounded-lg text-gray-600 hover:text-brand-primary flex items-center gap-1"
-          >
-            <Scan size={18} />
-            <span className="text-xs">扫码</span>
-          </button>
+          {env.isWechatBrowser && (
+            <button
+              onClick={handleQRScan}
+              className="px-3 py-2 border rounded-lg text-gray-600 hover:text-brand-primary flex items-center gap-1"
+            >
+              <Scan size={18} />
+              <span className="text-xs">扫码</span>
+            </button>
+          )}
         </div>
       </div>
 
