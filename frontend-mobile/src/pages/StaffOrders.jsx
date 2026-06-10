@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { warehouseApi, apiFetch } from '../services/api'
 import { env } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 import { ArrowLeft, Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
 
 const STATUS_TABS = [
@@ -210,7 +211,7 @@ export default function StaffOrders() {
                 {order.end_date && (
                   <div className="flex items-center gap-1">
                     <Clock size={12} />
-                    <span>到期 {order.end_date}</span>
+                    <span>到期 {formatDisplayDate(order.end_date)}</span>
                   </div>
                 )}
               </div>

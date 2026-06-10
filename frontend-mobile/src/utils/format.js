@@ -1,3 +1,11 @@
+export function formatDisplayDate(dateStr) {
+  if (!dateStr) return '-'
+  const clean = dateStr.slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return dateStr
+  if (clean.startsWith(`${new Date().getFullYear()}-`)) return clean.slice(5)
+  return clean
+}
+
 export function formatDeliveryAddress(raw) {
   if (!raw) return ''
   try {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../services/api'
-import { formatDeliveryAddress } from '../utils/format'
+import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
 
@@ -138,8 +138,8 @@ export default function OrderDetail() {
   const statusLabel = STATUS_LABELS[status] || status
   const statusColor = STATUS_COLORS[status] || 'bg-gray-100'
 
-  const startDate = order.start_date || '-'
-  const endDate = order.end_date || '-'
+  const startDate = formatDisplayDate(order.start_date)
+  const endDate = formatDisplayDate(order.end_date)
   const leaseTerm = order.lease_term || 0
   const rentalDays = leaseTerm * 30
   const deposit = order.deposit || 0

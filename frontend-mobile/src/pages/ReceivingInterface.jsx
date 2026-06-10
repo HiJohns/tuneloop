@@ -4,6 +4,7 @@ import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload, User, MapPin, Package } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
@@ -222,7 +223,7 @@ export default function ReceivingInterface() {
             <div className="bg-white rounded-xl p-4">
               <h3 className="font-medium text-gray-900 mb-2">租赁信息</h3>
               <div className="text-sm space-y-1 text-gray-600">
-                <p>租期: {orderData.start_date || '-'} 至 {orderData.end_date || '-'}</p>
+                <p>租期: {formatDisplayDate(orderData.start_date)} 至 {formatDisplayDate(orderData.end_date)}</p>
                 {orderData.deposit > 0 && <p>押金: ¥{orderData.deposit}</p>}
               </div>
             </div>

@@ -4,6 +4,7 @@ import { apiFetch } from '../services/api'
 import { ArrowLeft, CheckCircle, Camera } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { dialog, env, storage, session, uploadFile } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -139,7 +140,7 @@ export default function ReceiveConfirm() {
           <div className="bg-white rounded-xl p-4">
             <h3 className="font-medium mb-3">租赁信息</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">租期</span><span>{order.start_date ? order.start_date.slice(0, 10) : '-'} 至 {order.end_date ? order.end_date.slice(0, 10) : '-'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">租期</span><span>{formatDisplayDate(order.start_date)} 至 {formatDisplayDate(order.end_date)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">月租金</span><span>¥{order.monthly_rent || 0}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">押金</span><span>¥{order.deposit || 0}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">租赁人</span><span>{order.user_name || '-'}</span></div>

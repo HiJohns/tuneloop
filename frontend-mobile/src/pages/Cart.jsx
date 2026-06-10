@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-reac
 import { getToken, redirectToLogin, ordersApi, addressesApi } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, storage, session } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -334,7 +335,7 @@ export default function Cart() {
                             <p className="font-medium text-sm text-gray-800">{item.name}</p>
                             <p className="text-xs text-gray-500">{item.brand} {item.model}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              {item.start_date} → {item.end_date || calculateDeadline(item)}
+                              {formatDisplayDate(item.start_date)} → {formatDisplayDate(item.end_date || calculateDeadline(item))}
                             </div>
                             <p className="text-orange-600 font-bold text-sm mt-1">
                               ¥{amount.rent.toFixed(0)} + ¥{amount.deposit} 押{(parsePricing(item.pricing)[0]?.shipping_fee || 0) > 0 ? ` + ¥${parsePricing(item.pricing)[0].shipping_fee} 运` : ''}

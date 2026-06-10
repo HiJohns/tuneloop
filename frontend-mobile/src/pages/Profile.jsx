@@ -5,6 +5,7 @@ import { api, apiFetch, getToken, redirectToLogin, addressesApi, resendEmailConf
 import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2, CheckCircle, Send, AlertCircle } from 'lucide-react'
 import AddressForm from '../components/AddressForm'
 import { dialog, env, storage, session, cookie } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '' })
@@ -380,8 +381,8 @@ export default function Profile() {
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 space-y-1">
-                    {order.start_date && <p>开始: {order.start_date}</p>}
-                    {order.end_date && <p>结束: {order.end_date}</p>}
+                    {order.start_date && <p>开始: {formatDisplayDate(order.start_date)}</p>}
+                    {order.end_date && <p>结束: {formatDisplayDate(order.end_date)}</p>}
                     {isOverdue(order) && (
                       <p className="text-red-500 font-medium">
                         超期 {overdueDays(order)} 天 · 超期费 ¥{((order.monthly_rent || 0) / 30 * overdueDays(order)).toFixed(0)}
@@ -422,8 +423,8 @@ export default function Profile() {
                     <span className="text-xs text-gray-500">{statusLabel[order.status]}</span>
                   </div>
                   <div className="text-xs text-gray-500 space-y-1">
-                    {order.start_date && <p>开始: {order.start_date}</p>}
-                    {order.end_date && <p>归还: {order.end_date}</p>}
+                    {order.start_date && <p>开始: {formatDisplayDate(order.start_date)}</p>}
+                    {order.end_date && <p>归还: {formatDisplayDate(order.end_date)}</p>}
                     <p>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</p>
                     {(order.status === 'returned' || order.status === 'completed') && (
                       <p className={order.deposit_refunded ? 'text-green-600' : 'text-yellow-600'}>

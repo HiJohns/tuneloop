@@ -5,6 +5,7 @@ import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, Sh
 import { Switch, Tag, Modal, Button } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -390,7 +391,7 @@ export default function Detail() {
             <div className="p-3 bg-green-50 rounded-lg space-y-2">
               <p className="text-green-700 font-medium">租赁中</p>
               <p className="text-gray-500 text-sm">
-                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
               </p>
               {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
                 <p className="text-red-600 font-bold">
@@ -409,7 +410,7 @@ export default function Detail() {
               <p className="text-orange-700 font-medium">归还中</p>
               <p className="text-gray-500 text-sm">该乐器正在归还流程中</p>
               <p className="text-gray-500 text-sm">
-                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
               </p>
               {activeOrder.deposit_refunded && (
                 <p className="text-green-600 text-sm mt-1">押金已退还</p>
@@ -419,7 +420,7 @@ export default function Detail() {
             <div className="p-3 bg-blue-50 rounded-lg space-y-2">
               <p className="text-blue-700 font-medium">已预约</p>
               <p className="text-gray-500 text-sm">
-                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
               </p>
             </div>
           ) : ['in_transit', 'shipped'].includes(activeOrder.order_status) ? (
@@ -438,7 +439,7 @@ export default function Detail() {
             <div className="p-3 bg-red-50 rounded-lg space-y-2">
               <p className="text-red-700 font-medium">已超期</p>
               <p className="text-gray-500 text-sm">
-                租期：{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}
+                租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
               </p>
               {activeOrder.end_date && (
                 <p className="text-red-600 font-bold">

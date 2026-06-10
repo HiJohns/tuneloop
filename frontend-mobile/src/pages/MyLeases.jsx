@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 import { ArrowLeft, Package } from 'lucide-react'
 
 export default function MyLeases() {
@@ -76,8 +77,8 @@ export default function MyLeases() {
                 <div className="text-sm text-gray-500 space-y-1">
                   <p>月租: ¥{order.monthly_rent}</p>
                   <p>押金: ¥{order.deposit}</p>
-                  {order.start_date && <p>起: {order.start_date}</p>}
-                  {order.end_date && <p>止: {order.end_date}</p>}
+                  {order.start_date && <p>起: {formatDisplayDate(order.start_date)}</p>}
+                  {order.end_date && <p>止: {formatDisplayDate(order.end_date)}</p>}
                 </div>
                 {order.status === 'in_lease' && (
                   <button

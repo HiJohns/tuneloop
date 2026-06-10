@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { CheckCircle, Calendar, Package, Hash, MapPin, User } from 'lucide-react'
+import { formatDisplayDate } from '../utils/format'
 
 export default function Success() {
   const navigate = useNavigate()
@@ -106,7 +107,7 @@ export default function Success() {
               <div>
                 <p className="text-gray-500 text-xs">租赁期间</p>
                 <p className="font-medium">{orderData.lease_term || '-'}</p>
-                <p className="text-xs text-gray-400">预期归还: {orderData.return_date || '待确定'}</p>
+                <p className="text-xs text-gray-400">预期归还: {formatDisplayDate(orderData.return_date) || '待确定'}</p>
               </div>
             </div>
             

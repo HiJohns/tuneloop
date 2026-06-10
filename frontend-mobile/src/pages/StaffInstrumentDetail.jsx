@@ -4,6 +4,7 @@ import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
 import { dialog, env, storage } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -225,7 +226,7 @@ export default function StaffInstrumentDetail() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">租期</span>
-                <span>{activeOrder.start_date || '-'} 至 {activeOrder.end_date || '-'}</span>
+                <span>{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">状态</span>
