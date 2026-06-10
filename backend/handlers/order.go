@@ -173,6 +173,12 @@ func PayOrder(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 
+	var req struct {
+		PaymentMethod   string `json:"payment_method"`
+		DeliveryAddress string `json:"delivery_address"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
 	// Find order and check status
 	var order models.Order
 	query := db.Where("id = ?", orderID)
@@ -205,6 +211,17 @@ func PayOrder(c *gin.Context) {
 			"message": "failed to update order status: " + err.Error(),
 		})
 		return
+	}
+
+	// Update delivery_address if provided
+	if req.DeliveryAddress != "" {
+		if err := db.Table("lease_sessions").Where("order_id = ?", orderID).Update("delivery_address", req.DeliveryAddress).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to update delivery address: " + err.Error(),
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
