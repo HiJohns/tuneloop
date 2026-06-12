@@ -79,9 +79,65 @@
 
 ---
 
-### 2.1a React Mobile App 路由表
+### 2.1a React Mobile App 路由表（Vite 模式）
 
 **组件**: `frontend-mobile/src/App.jsx`
+
+### 2.1b Taro 小程序路由表（Taro 模式）
+
+**框架**: Taro v4.2.0，页面注册在 `src/app.config.ts`。
+
+**已注册的 Taro 专有页面**（带独立 `index.tsx` 入口，`app.config.ts` 中注册）：
+
+| 路由 | Taro 页面组件 | 对应 Vite JSX 组件 |
+|------|--------------|-------------------|
+| `pages/home/index` | `src/pages/home/index.tsx` | `Home.jsx` |
+| `pages/detail/index` | `src/pages/detail/index.tsx` | `Detail.jsx` |
+
+**双端兼容页面**（`.jsx` 文件使用 `@tarojs/components`，Vite 通过 taro-shim 映射，Taro 原生编译）：
+
+| 文件 | 对应路由 | 说明 |
+|------|---------|------|
+| `Booking.jsx` | `/booking/:instrumentId` | 预约 |
+| `Cart.jsx` | `/cart` | 购物车 |
+| `Checkout.jsx` | `/checkout/:instrumentId` | 确认订单 |
+| `Home.jsx` | `/` | 首页 |
+| `Detail.jsx` | `/instrument/:id` | 乐器详情 |
+| `LeaseHistory.jsx` | `/leases` | 租赁历史 |
+| `MaintenanceProgress.jsx` | `/staff/maintenance/:id` | 维修进度 |
+| `MessageDetail.jsx` | `/messages/:id` | 消息详情 |
+| `Messages.jsx` | `/messages` | 消息列表 |
+| `MyContracts.jsx` | `/contracts` | 我的合同 |
+| `MyLeases.jsx` | `/my-leases` | 我的租赁 |
+| `MyService.jsx` | `/my-service` | 我的售后 |
+| `OrderDetail.jsx` | `/order/:id` | 订单详情 |
+| `PaymentComplete.jsx` | `/payment/complete` | 支付完成 |
+| `Profile.jsx` | `/profile` | 个人中心 |
+| `ReceiveConfirm.jsx` | `/receive/:orderId` | 确认收货 |
+| `ReceivingInterface.jsx` | `/staff/receiving` | 收货界面 |
+| `RepairScan.jsx` | `/staff/repair-scan` | 维修扫码 |
+| `ReturnConfirm.jsx` | `/return/:orderId` | 归还确认 |
+| `ShippingInterface.jsx` | `/staff/shipping` | 发货界面 |
+| `SiteDetail.jsx` | `/site/:id` | 网点详情 |
+| `StaffInstrumentDetail.jsx` | `/staff/instrument/:id` | 员工乐器详情 |
+| `StaffInstrumentForm.jsx` | `/staff/instrument/new` | 员工乐器表单 |
+| `StaffInstruments.jsx` | `/staff/instruments` | 员工乐器管理 |
+| `StaffOrderDetail.jsx` | `/staff/orders/:id` | 员工订单详情 |
+| `StaffOrders.jsx` | `/staff/orders` | 员工订单管理 |
+| `StaffReceiveConfirm.jsx` | `/staff/receiving/:orderId` | 员工收货确认 |
+| `Success.jsx` | `/success` | 成功页 |
+
+**迁移状态**: 所有 29 个 `.jsx` 页面已完成 HTML 标签迁移（`<div>`→`<View>`等），可通过 Vite（taro-shim 映射）和 Taro（原生编译）双构建。Taro 专有页面（`index.tsx`）与 Vite 页面（`*.jsx`）共存。
+
+**详细架构说明**: `docs/weapp.md`
+
+#### antd-mobile 兼容性说明
+
+`package.json` 中依赖 `antd-mobile@^5.42.3`，但该库基于 DOM API（`document.createElement`、CSS-in-JS 等），在 Taro 小程序环境不可用。
+
+- **当前状态**: 源码中无页面直接 `import` antd-mobile 组件，该依赖仅保留供 Vite H5 模式使用
+- **小程序策略**: 如需移动端 UI 组件，应使用 Taro 兼容方案（如 `taro-ui`、`@antmjs/vantui` 或自定义组件）
+- **Vite H5 策略**: antd-mobile 正常可用（依赖 DOM API，Vite 构建为浏览器环境）
 
 | 路由 | 组件 | 认证 | 说明 |
 |------|------|------|------|
@@ -2511,3 +2567,63 @@ cd frontend-pc && npm run build  # 应该成功
 | 状态枚举值 (如 stock_status) | — | ✅ |
 
 **注意**: 状态枚举值在底层使用英文（如 `"pending"`, `"rented"`），但在渲染时必须映射为中文显示（如 `"待支付"`, `"在租"`）。
+
+---
+
+### 3.26 订单对象页展示规范
+
+**背景**: 所有涉及订单的对象页应统一展示乐器信息和订单信息，确保用户体验一致。
+
+**规则**:
+- **乐器信息**：缩略图、SN、类别、所属商户、所属网点，可点击跳转乐器详情页 (`/instrument/:id`)
+- **订单信息**：下单人、地址、起止日期、状态
+
+**统一模板**:
+```jsx
+{instrument && (
+  <div className="cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
+    <h3>乐器信息</h3>
+    <div className="flex gap-3">
+      <img src={images[0] || PLACEHOLDER_IMAGE} className="w-16 h-16 object-cover rounded" />
+      <div>
+        <p className="font-mono">SN: {instrument.sn}</p>
+        <p className="text-xs text-gray-500">{instrument.category_name}</p>
+        {instrument.tenant_name && <p className="text-xs text-gray-400">{instrument.tenant_name}</p>}
+        {instrument.site_name && <p className="text-xs text-gray-400">网点: {instrument.site_name}</p>}
+      </div>
+    </div>
+  </div>
+)}
+```
+
+**适用页面**:
+| 页面 | 完成状态 |
+|------|---------|
+| StaffOrderDetail | 新增乐器信息卡片 + 跳转 |
+| OrderDetail（顾客） | 已有卡片，新增跳转 |
+| ReceiveConfirm | 已有卡片，新增商户名 + 跳转 |
+| ReturnConfirm | 已有卡片，新增跳转 |
+| StaffReceiveConfirm | 已有卡片，新增商户名 + 跳转 |
+| ShippingInterface | 已有卡片，新增商户/网点 + 跳转 |
+| ReceivingInterface | 已有卡片，新增商户/网点 + 跳转 |
+
+---
+
+### 3.27 PC 乐器详情页 (`/instruments/detail/:id`)
+
+**组件**: `frontend-pc/src/pages/admin/instrument/Detail.jsx`
+
+**布局**: Tab 分页（3 个 Tab）
+
+**Tab 1 — 基本信息**:
+- 左侧: 乐器信息 (SN/分类/级别/状态/评分/创建时间/描述)
+- 右侧: 价格配置（分段租金表 + 底价/押金/物流费/逾期费）+ 当前租赁信息
+
+**Tab 2 — 多媒体**:
+- 左侧: 展示图像（当前展示图 + 上传/替换按钮，单幅，宽度≤1920px）+ 视频（显示/删除）
+- 右侧: 操作记录图像（按 batch_type 分组的操作阶段图像列表，可设为展示或删除）
+
+**Tab 3 — 日志**:
+- 按租借会话分组（每笔订单为一个会话）
+- 每个会话内按时间排序显示操作事件（发货/接收/归还/定损等）
+- 每事件显示：事件名称、时间、操作人、关联图像（≤3 张缩略图）
