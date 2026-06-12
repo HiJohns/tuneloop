@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -242,6 +243,87 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 			"code":         authCode,
 			"redirect_uri": req.RedirectURI,
 		},
+	})
+}
+
+func (h *AuthHandler) WxLogin(c *gin.Context) {
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "missing required parameter: code",
+		})
+		return
+	}
+
+	tokenResp, err := h.iamService.WxLogin(req.Code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "wx-login failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Sync IAM user to local users table
+	if tokenResp != nil && tokenResp.AccessToken != "" {
+		claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
+		if parseErr == nil && claims.UserID != "" {
+			var user models.User
+			result := h.db.Where("iam_sub = ?", claims.UserID).First(&user)
+			if result.Error != nil {
+				newUser := models.User{
+					IAMSub:   claims.UserID,
+					TenantID: claims.TenantID,
+					OrgID:    claims.OrgID,
+					Name:     claims.Name,
+					Role:     "USER",
+					Status:   "active",
+				}
+				if err := h.db.Create(&newUser).Error; err != nil {
+					log.Printf("[WxLogin] Failed to create local user for iam_sub %s: %v", claims.UserID, err)
+				}
+			}
+		} else if parseErr != nil {
+			log.Printf("[WxLogin] Failed to parse JWT for local sync: %v", parseErr)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": tokenResp,
+	})
+}
+
+func (h *AuthHandler) WxPhone(c *gin.Context) {
+	var req struct {
+		EncryptedData string `json:"encrypted_data" binding:"required"`
+		IV            string `json:"iv" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "missing required parameters: encrypted_data, iv",
+		})
+		return
+	}
+
+	resp, err := h.iamService.WxPhone(req.EncryptedData, req.IV)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "wx-phone failed: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": resp,
 	})
 }
 

@@ -23,6 +23,7 @@ type User struct {
 	Position             string     `gorm:"type:varchar(100)" json:"position"`
 	Role                 string     `gorm:"type:varchar(50)" json:"role"`
 	ForcePasswordChange  bool       `gorm:"default:false" json:"force_password_change"`
+	WxOpenid             string     `gorm:"type:varchar(128);index" json:"wx_openid"`
 	DeletedAt            *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
@@ -87,9 +88,11 @@ const (
 	OrderStatusShipped          = "shipped"
 	OrderStatusInLease          = "in_lease"
 	OrderStatusReturning        = "returning"
-	OrderStatusReturned         = "returned"
-	OrderStatusCompleted        = "completed"
-	OrderStatusCancelled        = "cancelled"
+	OrderStatusReturned          = "returned"
+	OrderStatusCompleted         = "completed"
+	OrderStatusCancelled         = "cancelled"
+	OrderStatusDepositRefunding  = "deposit_refunding"
+	OrderStatusDamageAppealing   = "damage_appealing"
 	OrderStatusExpired          = "expired"
 	OrderStatusTransferred      = "transferred"
 )
@@ -126,18 +129,20 @@ const (
 
 // Notification 通知消息表
 type Notification struct {
-	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID     string    `gorm:"type:uuid;index" json:"org_id"`
-	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
-	Type      string    `gorm:"type:varchar(20);not null;index" json:"type"`
-	Title     string    `gorm:"type:varchar(255);not null" json:"title"`
-	Content   string    `gorm:"type:text" json:"content"`
-	RefID     string    `gorm:"type:uuid;index" json:"ref_id"`
-	RefType   string    `gorm:"type:varchar(50)" json:"ref_type"`
-	Status    string    `gorm:"type:varchar(20);default:'unread';index" json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID      string    `gorm:"type:uuid;index" json:"org_id"`
+	UserID     string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	Type       string    `gorm:"type:varchar(20);not null;index" json:"type"`
+	Title      string    `gorm:"type:varchar(255);not null" json:"title"`
+	Content    string    `gorm:"type:text" json:"content"`
+	RefID      string    `gorm:"type:uuid;index" json:"ref_id"`
+	RefType    string    `gorm:"type:varchar(50)" json:"ref_type"`
+	ActionType string    `gorm:"type:varchar(20);default:'info'" json:"action_type"`
+	ActionData string    `gorm:"type:jsonb" json:"action_data,omitempty"`
+	Status     string    `gorm:"type:varchar(20);default:'unread';index" json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // InstrumentPhotoSpec 乐器拍照要求规范表

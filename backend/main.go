@@ -175,6 +175,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/auth/oidc/authorization-url", authHandler.GetOIDCAuthorizationURL)
 	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/refresh", authHandler.Refresh)
+	api.POST("/wx/login", authHandler.WxLogin)
+	api.POST("/wx/phone", authHandler.WxPhone)
 	// Setup routes (public, no auth required)
 	api.GET("/setup/status", setupHandler.GetSetupStatus)
 	api.POST("/setup/init", setupHandler.InitializeSystem)
@@ -240,6 +242,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.PUT("/instruments/:id/media/display", middleware.RequireCusPerm("instrument:media_display"), handlers.SetMediaDisplay)
 		authRequired.DELETE("/instruments/:id/media/:batch_id", middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteMediaBatch)
 		authRequired.GET("/instruments/:id/media", handlers.GetInstrumentMedia)
+		authRequired.POST("/instruments/:id/display-image", middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadDisplayImage)
+		authRequired.GET("/instruments/:id/activity-log", handlers.GetInstrumentActivityLog)
 		authRequired.GET("/instruments/:id/pricing", handlers.GetInstrumentPricing)
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
@@ -301,6 +305,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Notification routes
 			authRequired.GET("/notifications", handlers.GetNotifications)
+			authRequired.GET("/notifications/unread-count", handlers.GetUnreadCount)
+			authRequired.POST("/notifications/mark-all-read", handlers.MarkAllNotificationsRead)
+			authRequired.GET("/notifications/:id", handlers.GetNotificationDetail)
 			authRequired.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 			authRequired.GET("/instrument-photo-specs/:category_id", handlers.GetInstrumentPhotoSpecs)
 		}
@@ -701,6 +708,10 @@ func main() {
 	autoConfirmSvc := handlers.NewAutoConfirmService()
 	autoConfirmSvc.Start()
 	defer autoConfirmSvc.Stop()
+
+	depositRefundScheduler := services.NewDepositRefundScheduler()
+	depositRefundScheduler.Start()
+	defer depositRefundScheduler.Stop()
 
 	logisticsMonitor := handlers.NewLogisticsMonitor()
 	logisticsMonitor.Start()

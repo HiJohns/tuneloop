@@ -277,6 +277,34 @@ func (s *IAMService) ExchangeCodeWithRedirect(code string, redirectURI string) (
 	return &tokenResp, nil
 }
 
+func (s *IAMService) WxLogin(code string) (*TokenResponse, error) {
+	payload := map[string]string{
+		"code": code,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/wx-login", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-login endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IAM wx-login returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResp TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-login response: %w", err)
+	}
+	return &tokenResp, nil
+}
+
 func (s *IAMService) GetPublicKeyInfo() (*PublicKeyResponse, error) {
 	resp, err := s.httpClient.Get(
 		fmt.Sprintf("%s/api/v1/auth/public-key", s.baseURL),
@@ -328,6 +356,35 @@ func GetSMTPHost() string {
 	// TODO: Implement actual SMTP configuration retrieval
 	// For now, return empty string to indicate not configured
 	return ""
+}
+
+func (s *IAMService) WxPhone(encryptedData, iv string) (map[string]interface{}, error) {
+	payload := map[string]string{
+		"encrypted_data": encryptedData,
+		"iv":             iv,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/wx-phone", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-phone endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IAM wx-phone returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-phone response: %w", err)
+	}
+	return result, nil
 }
 
 // GetSMSGateway returns the SMS gateway configuration (stub implementation)
