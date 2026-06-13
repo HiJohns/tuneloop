@@ -96,7 +96,7 @@ clean-prerelease:
 	@echo "Cleaning build cache..."
 	rm -rf $(RELEASE_BUILD)
 
-release: clean-prerelease
+release: weapp-check clean-prerelease
 	@echo "=========================================="
 	@echo "Release: $(PKG_NAME)"
 	@echo "=========================================="
