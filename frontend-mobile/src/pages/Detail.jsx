@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
-import { Switch, Tag, Modal, Button } from 'antd'
+import { Switch, Tag, Modal, Button as AntButton } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
+import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -238,264 +239,258 @@ export default function Detail() {
   }, [calculatePrice])
 
   if (loading) {
-    return <div className="p-4">加载中...</div>
+    return <View className="p-4">加载中...</View>
   }
 
   if (!instrument) {
-    return <div className="p-4">乐器不存在</div>
+    return <View className="p-4">乐器不存在</View>
   }
 
   const publicImages = mediaPublic?.images?.length > 0 ? mediaPublic.images.map(i => i.url) : null
   const images = publicImages || parseImages(instrument.images)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="relative">
-         <img 
-           src={images[0] || PLACEHOLDER_IMAGE} 
-           alt={instrument.name}
+    <View className="min-h-screen bg-gray-50 pb-24">
+      <View className="relative">
+         <Image 
+           src={images[0] || PLACEHOLDER_IMAGE}
            className="w-full h-64 object-contain bg-gray-100"
-           onError={(e) => {
-             e.target.onerror = null
-             e.target.src = PLACEHOLDER_IMAGE
-           }}
          />
         {mediaPublic?.video && (
-          <div className="mt-2 px-4">
-            <video
+          <View className="mt-2 px-4">
+            <Video
               src={mediaPublic.video.url}
               poster={mediaPublic.video.thumb_url}
               controls
-              preload="metadata"
               className="w-full rounded-lg"
               style={{ maxHeight: 240 }}
             />
-          </div>
+          </View>
         )}
-        <button 
+        <Button 
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 bg-black/30 text-white p-2 rounded-full"
         >
           <ArrowLeft size={20} />
-        </button>
-      </div>
+        </Button>
+      </View>
 
-      <div className="bg-white p-4 pb-24">
-        <h1 className="text-xl font-bold text-gray-800">{instrument.name || instrument.category_name}</h1>
-        {instrument.sn && <p className="text-sm text-gray-400 mt-1">编号: {instrument.sn}</p>}
-        <p className="text-gray-500 mt-1">{instrument.description}</p>
+      <View className="bg-white p-4 pb-24">
+        <Text className="text-xl font-bold text-gray-800">{instrument.name || instrument.category_name}</Text>
+        {instrument.sn && <Text className="text-sm text-gray-400 mt-1">编号: {instrument.sn}</Text>}
+        <Text className="text-gray-500 mt-1">{instrument.description}</Text>
 
         {/* Site/Merchant Info */}
         {(instrument.tenant_name || instrument.site_name) && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+          <View className="mt-3 p-3 bg-gray-50 rounded-lg">
             {instrument.tenant_name && (
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">商户:</span> {instrument.tenant_name}
-              </p>
+              <Text className="text-sm text-gray-600">
+                <Text className="font-medium">商户:</Text> {instrument.tenant_name}
+              </Text>
             )}
             {instrument.site_name && (
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium">网点:</span> {instrument.site_name}
-                {instrument.site_address && <span className="text-gray-400"> ({instrument.site_address})</span>}
-              </p>
+              <Text className="text-sm text-gray-600 mt-1">
+                <Text className="font-medium">网点:</Text> {instrument.site_name}
+                {instrument.site_address && <Text className="text-gray-400"> ({instrument.site_address})</Text>}
+              </Text>
             )}
-          </div>
+          </View>
         )}
 
         {/* Dynamic Properties */}
         {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-500 text-xs block mb-1">动态属性</span>
+          <View className="mt-3 p-3 bg-gray-50 rounded-lg">
+            <Text className="text-gray-500 text-xs block mb-1">动态属性</Text>
             {Object.entries(instrument.properties).map(([key, vals]) => (
-              <div key={key} className="flex justify-between text-xs mt-1">
-                <span className="text-gray-400">{key}</span>
-                <span>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</span>
-              </div>
+              <View key={key} className="flex justify-between text-xs mt-1">
+                <Text className="text-gray-400">{key}</Text>
+                <Text>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
+              </View>
             ))}
-          </div>
+          </View>
         )}
 
         {isRentable && pricingV2?.tiers?.length > 0 && (
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="font-medium text-sm text-blue-800 mb-1">定价策略</p>
-          <div className="text-xs text-gray-500 space-y-0.5">
+        <View className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+          <Text className="font-medium text-sm text-blue-800 mb-1">定价策略</Text>
+          <View className="text-xs text-gray-500 space-y-0.5">
             {pricingV2.tiers.map((t, i) => {
               const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
               const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-              return <p key={i}>{range}: ¥{t.daily_rate}/天</p>
+              return <Text key={i} className="block">{range}: ¥{t.daily_rate}/天</Text>
             })}
-            {pricingV2.deposit > 0 && <p className="mt-1">押金: ¥{pricingV2.deposit}</p>}
-            {pricingV2.shipping_fee > 0 && <p>物流费: ¥{pricingV2.shipping_fee}</p>}
-          </div>
-        </div>
+            {pricingV2.deposit > 0 && <Text className="mt-1 block">押金: ¥{pricingV2.deposit}</Text>}
+            {pricingV2.shipping_fee > 0 && <Text className="block">物流费: ¥{pricingV2.shipping_fee}</Text>}
+          </View>
+        </View>
         )}
 
         {isRentable && (
-        <div className="mt-3 p-2 bg-orange-50 rounded-lg text-sm">
-          <p className="text-orange-800">
+        <View className="mt-3 p-2 bg-orange-50 rounded-lg text-sm">
+          <Text className="text-orange-800">
             ⚠️ 逾期后将每日自动扣款，按 ¥{overdueDailyFee}/日 计算
-          </p>
-          <p className="text-orange-700 mt-1">
+          </Text>
+          <Text className="text-orange-700 mt-1">
             💰 押金将在乐器归还、质检通过后原路退还。如乐器损坏，将在定损后从押金中抵扣
-          </p>
-        </div>
+          </Text>
+        </View>
         )}
 
         {isRentable && (
-        <div className="mt-3 p-3 bg-purple-50 rounded-lg mb-24">
-          <p className="font-medium text-sm text-purple-800 flex items-center gap-1">
-            <span>🎁</span>
-            <span className="font-bold">租购转化</span>
-          </p>
-          <p className="text-purple-600 text-sm mt-0.5 font-bold">
+        <View className="mt-3 p-3 bg-purple-50 rounded-lg mb-24">
+          <Text className="font-medium text-sm text-purple-800 flex items-center gap-1">
+            <Text>🎁</Text>
+            <Text className="font-bold">租购转化</Text>
+          </Text>
+          <Text className="text-purple-600 text-sm mt-0.5 font-bold">
             租满12个月可直接获得所有权
-          </p>
-        </div>
+          </Text>
+        </View>
         )}
-      </div>
+      </View>
 
       {/* Floating Cart Icon */}
       {(cartItemCount > 0) && (
-        <button
+        <Button
           onClick={() => navigate('/cart')}
           className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-lg z-50"
         >
           <ShoppingCart size={24} />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+          <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
             {cartItemCount}
-          </span>
-        </button>
+          </Text>
+        </Button>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         {isRentable ? (
           <>
-            <div className="flex gap-2">
-              <button 
+            <View className="flex gap-2">
+              <Button 
                 onClick={handleAddToCart}
                 className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-100 text-orange-600"
               >
                 <ShoppingCart size={18} />
                 加入购物车
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => navigate(`/checkout/${id}`)}
                 className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-500 text-white"
               >
                 立即租赁
-              </button>
-            </div>
+              </Button>
+            </View>
           </>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
-            <div className="p-3 bg-green-50 rounded-lg space-y-2">
-              <p className="text-green-700 font-medium">租赁中</p>
-              <p className="text-gray-500 text-sm">
+            <View className="p-3 bg-green-50 rounded-lg space-y-2">
+              <Text className="text-green-700 font-medium">租赁中</Text>
+              <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
-              </p>
+              </Text>
               {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
-                <p className="text-red-600 font-bold">
+                <Text className="text-red-600 font-bold">
                   超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
-                </p>
+                </Text>
               )}
-              <button
+              <Button
                 onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
                 className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
               >
                 归还乐器
-              </button>
-            </div>
+              </Button>
+            </View>
           ) : activeOrder.order_status === 'returning' ? (
-            <div className="p-3 bg-orange-50 rounded-lg space-y-2">
-              <p className="text-orange-700 font-medium">归还中</p>
-              <p className="text-gray-500 text-sm">该乐器正在归还流程中</p>
-              <p className="text-gray-500 text-sm">
+            <View className="p-3 bg-orange-50 rounded-lg space-y-2">
+              <Text className="text-orange-700 font-medium">归还中</Text>
+              <Text className="text-gray-500 text-sm">该乐器正在归还流程中</Text>
+              <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
-              </p>
+              </Text>
               {activeOrder.deposit_refunded && (
-                <p className="text-green-600 text-sm mt-1">押金已退还</p>
+                <Text className="text-green-600 text-sm mt-1">押金已退还</Text>
               )}
-            </div>
+            </View>
           ) : ['reserved', 'pending', 'paid', 'pending_shipment'].includes(activeOrder.order_status) ? (
-            <div className="p-3 bg-blue-50 rounded-lg space-y-2">
-              <p className="text-blue-700 font-medium">已预约</p>
-              <p className="text-gray-500 text-sm">
+            <View className="p-3 bg-blue-50 rounded-lg space-y-2">
+              <Text className="text-blue-700 font-medium">已预约</Text>
+              <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
-              </p>
-            </div>
+              </Text>
+            </View>
           ) : ['in_transit', 'shipped'].includes(activeOrder.order_status) ? (
-            <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
-              <p className="text-cyan-700 font-medium">乐器物流中</p>
-              <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
-              <button
+            <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+              <Text className="text-cyan-700 font-medium">乐器物流中</Text>
+              <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
+              <Button
                 onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
                 className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
               >
                 <CheckCircle size={18} className="inline mr-1" />
                 确认收货
-              </button>
-            </div>
+              </Button>
+            </View>
           ) : activeOrder.order_status === 'expired' ? (
-            <div className="p-3 bg-red-50 rounded-lg space-y-2">
-              <p className="text-red-700 font-medium">已超期</p>
-              <p className="text-gray-500 text-sm">
+            <View className="p-3 bg-red-50 rounded-lg space-y-2">
+              <Text className="text-red-700 font-medium">已超期</Text>
+              <Text className="text-gray-500 text-sm">
                 租期：{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}
-              </p>
+              </Text>
               {activeOrder.end_date && (
-                <p className="text-red-600 font-bold">
+                <Text className="text-red-600 font-bold">
                   超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
-                </p>
+                </Text>
               )}
-              <button
+              <Button
                 onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
                 className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
               >
                 归还乐器
-              </button>
-            </div>
+              </Button>
+            </View>
           ) : (
-            <div className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
-              <p className="text-cyan-700 font-medium">乐器物流中</p>
-              <p className="text-gray-500 text-sm">该乐器正在运输途中</p>
-              <button
+            <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
+              <Text className="text-cyan-700 font-medium">乐器物流中</Text>
+              <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
+              <Button
                 onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
                 className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
               >
                 <CheckCircle size={18} className="inline mr-1" />
                 确认收货
-              </button>
-            </div>
+              </Button>
+            </View>
           )
         ) : (
-          <div className="p-3 bg-gray-100 rounded-lg text-center">
-            <p className="text-gray-500 font-medium">该乐器目前不可租赁</p>
-            <p className="text-gray-400 text-sm mt-1">乐器已被预约，暂时无法租赁</p>
-          </div>
+          <View className="p-3 bg-gray-100 rounded-lg text-center">
+            <Text className="text-gray-500 font-medium">该乐器目前不可租赁</Text>
+            <Text className="text-gray-400 text-sm mt-1">乐器已被预约，暂时无法租赁</Text>
+          </View>
         )}
-      </div>
+      </View>
 
       {cartToast && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setCartToast(false)}>
-          <div className="bg-white rounded-xl p-6 mx-8 text-center" onClick={e => e.stopPropagation()}>
+        <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setCartToast(false)}>
+          <View className="bg-white rounded-xl p-6 mx-8 text-center" onClick={e => e.stopPropagation()}>
             <CheckCircle size={48} className="text-green-500 mx-auto mb-3" />
-            <p className="text-lg font-bold mb-1">加入成功</p>
-            <p className="text-gray-500 text-sm mb-4">该乐器已添加到购物车</p>
-            <div className="flex gap-3">
-              <button 
+            <Text className="text-lg font-bold mb-1">加入成功</Text>
+            <Text className="text-gray-500 text-sm mb-4">该乐器已添加到购物车</Text>
+            <View className="flex gap-3">
+              <Button 
                 onClick={() => { setCartToast(false); navigate('/') }}
                 className="flex-1 py-3 px-6 border rounded-lg text-gray-600 min-w-[100px]"
               >
                 继续浏览
-              </button>
-              <button 
+              </Button>
+              <Button 
                 onClick={() => { setCartToast(false); navigate('/cart') }}
                 className="flex-1 py-3 px-6 bg-brand-primary text-white rounded-lg min-w-[100px]"
               >
                 提交订单
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </View>
+          </View>
+        </View>
       )}
 
       <Modal
@@ -505,38 +500,34 @@ export default function Detail() {
         footer={null}
         width={600}
       >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 text-left font-medium">权益项</th>
-                <th className="p-2 text-center font-medium">入门级</th>
-                <th className="p-2 text-center font-medium">专业级</th>
-                <th className="p-2 text-center font-medium text-purple-600">大师级</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SERVICE_ITEMS.map((item, idx) => (
-                <tr key={idx} className="border-b">
-                  <td className="p-2">{item.name}</td>
-                  <td className={`p-2 text-center ${item.entry === '✓' ? 'text-green-600' : 'text-gray-400'}`}>
-                    {item.entry}
-                  </td>
-                  <td className={`p-2 text-center ${item.professional === '✓' ? 'text-green-600' : 'text-gray-400'}`}>
-                    {item.professional}
-                  </td>
-                  <td className={`p-2 text-center font-medium ${item.master === '✓' ? 'text-purple-600' : 'text-gray-400'}`}>
-                    {item.master}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button onClick={() => setShowComparison(false)}>关闭</Button>
-        </div>
+        <View className="overflow-x-auto">
+          <View className="w-full text-sm">
+            <View className="bg-gray-100 flex">
+              <Text className="p-2 flex-1 font-medium">权益项</Text>
+              <Text className="p-2 flex-1 text-center font-medium">入门级</Text>
+              <Text className="p-2 flex-1 text-center font-medium">专业级</Text>
+              <Text className="p-2 flex-1 text-center font-medium text-purple-600">大师级</Text>
+            </View>
+            {SERVICE_ITEMS.map((item, idx) => (
+              <View key={idx} className="flex border-b">
+                <Text className="p-2 flex-1">{item.name}</Text>
+                <Text className={`p-2 flex-1 text-center ${item.entry === '✓' ? 'text-green-600' : 'text-gray-400'}`}>
+                  {item.entry}
+                </Text>
+                <Text className={`p-2 flex-1 text-center ${item.professional === '✓' ? 'text-green-600' : 'text-gray-400'}`}>
+                  {item.professional}
+                </Text>
+                <Text className={`p-2 flex-1 text-center font-medium ${item.master === '✓' ? 'text-purple-600' : 'text-gray-400'}`}>
+                  {item.master}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        <View className="mt-4 flex justify-end">
+          <AntButton onClick={() => setShowComparison(false)}>关闭</AntButton>
+        </View>
       </Modal>
-    </div>
+    </View>
   )
 }

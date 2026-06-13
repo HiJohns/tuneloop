@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { apiFetch } from '../services/api'
 import { dialog, env, storage, uploadFile } from '../platform'
@@ -151,29 +152,29 @@ export default function StaffInstrumentForm() {
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
+    <View className="min-h-screen bg-gray-50 pb-24">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-lg font-bold">新建乐器</h1>
-      </div>
+        </Button>
+        <Text className="text-lg font-bold">新建乐器</Text>
+      </View>
 
-      <div className="p-4 space-y-4">
-        <div className="bg-white rounded-xl p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-600">基本信息</h2>
+      <View className="p-4 space-y-4">
+        <View className="bg-white rounded-xl p-4 space-y-4">
+          <Text className="text-sm font-semibold text-gray-600">基本信息</Text>
 
-          <div>
+          <View>
             <label className={labelClass}>识别码 *</label>
-            <div className="relative">
+            <View className="relative">
               <input className={inputClass} value={form.sn} onChange={e => handleSnChange(e.target.value)} placeholder="请输入识别码" />
-              {snChecking && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">检查中...</span>}
-              {!snChecking && snExists && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-500">已存在</span>}
-              {!snChecking && form.sn && !snExists && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-500">可用</span>}
-            </div>
-          </div>
+              {snChecking && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">检查中...</Text>}
+              {!snChecking && snExists && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-500">已存在</Text>}
+              {!snChecking && form.sn && !snExists && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-500">可用</Text>}
+            </View>
+          </View>
 
-          <div>
+          <View>
             <label className={labelClass}>分类 *</label>
             <select className={inputClass} value={form.category_id} onChange={e => handleChange('category_id', e.target.value)}>
               <option value="">请选择分类</option>
@@ -181,9 +182,9 @@ export default function StaffInstrumentForm() {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-          </div>
+          </View>
 
-          <div>
+          <View>
             <label className={labelClass}>所属网点</label>
             <select className={inputClass} value={form.site_id} onChange={e => handleChange('site_id', e.target.value)}>
               <option value="">请选择网点</option>
@@ -191,9 +192,9 @@ export default function StaffInstrumentForm() {
                 <option key={site.id} value={site.id}>{site.name}</option>
               ))}
             </select>
-          </div>
+          </View>
 
-          <div>
+          <View>
             <label className={labelClass}>乐器分级</label>
             <select className={inputClass} value={form.level_id} onChange={e => handleChange('level_id', e.target.value)}>
               <option value="">请选择分级</option>
@@ -201,42 +202,42 @@ export default function StaffInstrumentForm() {
                 <option key={lv.id} value={lv.id}>{lv.caption || lv.name}</option>
               ))}
             </select>
-          </div>
+          </View>
 
-          <div>
+          <View>
             <label className={labelClass}>描述</label>
             <textarea className={inputClass} rows={3} value={form.description} onChange={e => handleChange('description', e.target.value)} placeholder="可选描述" />
-          </div>
-        </div>
+          </View>
+        </View>
 
-        <div className="bg-white rounded-xl p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-600">租金设置</h2>
+        <View className="bg-white rounded-xl p-4 space-y-4">
+          <Text className="text-sm font-semibold text-gray-600">租金设置</Text>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <View className="grid grid-cols-2 gap-3">
+            <View>
               <label className={labelClass}>第一阶梯日均价(¥)</label>
               <input className={inputClass} type="number" min="0" step="1" value={form.base_daily_rate} onChange={e => handleChange('base_daily_rate', e.target.value)} placeholder="0" />
-            </div>
-            <div>
+            </View>
+            <View>
               <label className={labelClass}>物流费(¥)</label>
               <input className={inputClass} type="number" min="0" step="1" value={form.shipping_fee} onChange={e => handleChange('shipping_fee', e.target.value)} placeholder="0" />
-            </div>
-            <div>
+            </View>
+            <View>
               <label className={labelClass}>押金(¥)</label>
               <input className={inputClass} type="number" min="0" step="1" value={form.deposit} onChange={e => handleChange('deposit', e.target.value)} placeholder="0" />
-            </div>
-            <div>
+            </View>
+            <View>
               <label className={labelClass}>逾期日费(¥/天)</label>
               <input className={inputClass} type="number" min="0" step="1" value={form.overdue_daily_fee} onChange={e => handleChange('overdue_daily_fee', e.target.value)} placeholder="0" />
-            </div>
-          </div>
-        </div>
+            </View>
+          </View>
+        </View>
 
         {properties.length > 0 && (
-          <div className="bg-white rounded-xl p-4 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-600">乐器属性</h2>
+          <View className="bg-white rounded-xl p-4 space-y-4">
+            <Text className="text-sm font-semibold text-gray-600">乐器属性</Text>
             {properties.map(prop => (
-              <div key={prop.id}>
+              <View key={prop.id}>
                 <label className={labelClass}>{prop.caption || prop.name}</label>
                 {prop.property_type === 'select' ? (
                   <select className={inputClass} value={propValues[prop.name] || ''} onChange={e => setPropValues(prev => ({ ...prev, [prop.name]: e.target.value }))}>
@@ -248,21 +249,21 @@ export default function StaffInstrumentForm() {
                 ) : (
                   <input className={inputClass} value={propValues[prop.name] || ''} onChange={e => setPropValues(prev => ({ ...prev, [prop.name]: e.target.value }))} placeholder={`请输入${prop.caption || prop.name}`} />
                 )}
-              </div>
+              </View>
             ))}
-          </div>
+          </View>
         )}
 
-        <div className="bg-white rounded-xl p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-600">图片上传</h2>
-          <div className="flex gap-2 flex-wrap">
+        <View className="bg-white rounded-xl p-4 space-y-4">
+          <Text className="text-sm font-semibold text-gray-600">图片上传</Text>
+          <View className="flex gap-2 flex-wrap">
             {files.map((file, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border">
-                <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                <button onClick={() => removeFile(i)} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
+              <View key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                <Image src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                <Button onClick={() => removeFile(i)} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
                   <X size={12} className="text-white" />
-                </button>
-              </div>
+                </Button>
+              </View>
             ))}
             {files.length < 5 && (
               <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer">
@@ -270,19 +271,19 @@ export default function StaffInstrumentForm() {
                 <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
               </label>
             )}
-          </div>
-        </div>
-      </div>
+          </View>
+        </View>
+      </View>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
-        <button
+      <View className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
+        <Button
           onClick={handleSubmit}
           disabled={loading || snExists}
           className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50"
         >
           {loading ? '提交中...' : '创建乐器'}
-        </button>
-      </div>
-    </div>
+        </Button>
+      </View>
+    </View>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import { dialog, env, session } from '../platform'
@@ -45,6 +46,14 @@ export default function Checkout() {
         } else if (addrRes?.code === 20000) {
           addrList = addrRes.data?.list || []
         }
+        // Deduplicate by content
+        const seen = new Set()
+        addrList = addrList.filter(addr => {
+          const key = JSON.stringify({ n: addr.recipient_name, p: addr.phone, d: addr.detail })
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
         setAddresses(addrList)
         const defaultAddr = addrList.find(a => a.is_default)
         if (defaultAddr) {
@@ -153,47 +162,47 @@ export default function Checkout() {
   const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">加载中...</p></div>
-  if (!instrument) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">乐器不存在</p></div>
+  if (loading) return <View className="min-h-screen bg-gray-50 flex items-center justify-center"><Text className="text-gray-500">加载中...</Text></View>
+  if (!instrument) return <View className="min-h-screen bg-gray-50 flex items-center justify-center"><Text className="text-gray-500">乐器不存在</Text></View>
 
   const selectedAddr = addresses.find(a => a.id === selectedAddressId)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
-      <div className="bg-white border-b px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">确认订单</h1>
-      </div>
+    <View className="min-h-screen bg-gray-50 pb-28">
+      <View className="bg-white border-b px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Text className="text-lg font-bold">确认订单</Text>
+      </View>
 
-      <div className="p-4 space-y-4">
+      <View className="p-4 space-y-4">
         {/* Instrument Summary */}
-        <div className="bg-white rounded-xl p-4">
-          <h2 className="text-sm font-medium text-gray-900 mb-2">租赁乐器</h2>
-          <div className="flex gap-3">
-            <img
+        <View className="bg-white rounded-xl p-4">
+          <Text className="text-sm font-medium text-gray-900 mb-2">租赁乐器</Text>
+          <View className="flex gap-3">
+            <Image
               src={instrument.images?.[0] || ''}
               alt=""
               className="w-16 h-16 object-cover rounded-lg bg-gray-100"
               onError={(e) => { e.target.style.display = 'none' }}
             />
-            <div>
-              <p className="font-medium text-sm">SN: {instrument.sn || id?.slice(0, 8)}</p>
-              <p className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</p>
-            </div>
-          </div>
-        </div>
+            <View>
+              <Text className="font-medium text-sm">SN: {instrument.sn || id?.slice(0, 8)}</Text>
+              <Text className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Rental Period */}
-        <div className="bg-white rounded-xl p-4">
-          <h2 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+        <View className="bg-white rounded-xl p-4">
+          <Text className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
             <Calendar size={16} className="text-brand-primary" />
             租期选择
-          </h2>
-          <div className="flex items-center gap-3">
-            <button
+          </Text>
+          <View className="flex items-center gap-3">
+            <Button
               onClick={() => handleDaysChange(days - 1)}
               className="w-10 h-10 border rounded-lg text-lg font-medium text-gray-500"
-            >−</button>
+            >−</Button>
             <input
               type="number"
               min={1}
@@ -202,60 +211,60 @@ export default function Checkout() {
               onChange={e => handleDaysChange(e.target.value)}
               className="flex-1 text-center text-xl font-bold border rounded-lg py-2"
             />
-            <button
+            <Button
               onClick={() => handleDaysChange(days + 1)}
               className="w-10 h-10 border rounded-lg text-lg font-medium text-gray-500"
-            >+</button>
-            <span className="text-sm text-gray-500">天</span>
-          </div>
-          <div className="mt-2 text-xs text-gray-400 flex items-center gap-1">
+            >+</Button>
+            <Text className="text-sm text-gray-500">天</Text>
+          </View>
+          <View className="mt-2 text-xs text-gray-400 flex items-center gap-1">
             <Clock size={12} />
             预计归还: {returnDate}
-            {pricingV2?.tiers?.length > 0 && <span className="ml-1">· 阶梯计价</span>}
-          </div>
-        </div>
+            {pricingV2?.tiers?.length > 0 && <Text className="ml-1">· 阶梯计价</Text>}
+          </View>
+        </View>
 
         {/* Cost Breakdown */}
-        <div className="bg-white rounded-xl p-4">
-          <h2 className="text-sm font-medium text-gray-900 mb-3">费用明细</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">租金 ({days}天)</span>
-              <span className="font-medium">¥{totalRent.toFixed(0)}</span>
-            </div>
+        <View className="bg-white rounded-xl p-4">
+          <Text className="text-sm font-medium text-gray-900 mb-3">费用明细</Text>
+          <View className="space-y-2 text-sm">
+            <View className="flex justify-between">
+              <Text className="text-gray-500">租金 ({days}天)</Text>
+              <Text className="font-medium">¥{totalRent.toFixed(0)}</Text>
+            </View>
             {pricingV2?.tiers?.length > 0 && (
-              <div className="text-xs text-gray-400 pl-2 pb-1 border-b border-dashed">
+              <View className="text-xs text-gray-400 pl-2 pb-1 border-b border-dashed">
                 {pricingV2.tiers.map((t, i) => {
                   const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                   const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <span key={i} className="mr-3">{range}: ¥{t.daily_rate}/天</span>
+                  return <Text key={i} className="mr-3">{range}: ¥{t.daily_rate}/天</Text>
                 })}
-              </div>
+              </View>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-500">押金</span>
-              <span className="font-medium">¥{deposit}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">物流费</span>
-              <span className="font-medium">¥{shippingFee}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between font-bold text-base">
-              <span className="text-gray-900">合计</span>
-              <span className="text-brand-primary">¥{totalAmount.toFixed(0)}</span>
-            </div>
-          </div>
-        </div>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">押金</Text>
+              <Text className="font-medium">¥{deposit}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">物流费</Text>
+              <Text className="font-medium">¥{shippingFee}</Text>
+            </View>
+            <View className="border-t pt-2 flex justify-between font-bold text-base">
+              <Text className="text-gray-900">合计</Text>
+              <Text className="text-brand-primary">¥{totalAmount.toFixed(0)}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Address Selector */}
-        <div className="bg-white rounded-xl p-4">
-          <h2 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+        <View className="bg-white rounded-xl p-4">
+          <Text className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
             <MapPin size={16} className="text-brand-primary" />
             收货地址
-          </h2>
+          </Text>
 
           {addresses.length > 0 && !useNewAddress && (
-            <div className="space-y-2 mb-3">
+            <View className="space-y-2 mb-3">
               {addresses.map(addr => (
                 <label
                   key={addr.id}
@@ -270,90 +279,90 @@ export default function Checkout() {
                     onChange={() => { setSelectedAddressId(addr.id); setUseNewAddress(false) }}
                     className="mt-1"
                   />
-                  <div className="flex-1 text-sm">
-                    <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
-                    <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district} {addr.detail}</p>
-                    {addr.is_default && <span className="text-xs text-brand-primary">默认</span>}
-                  </div>
+                  <View className="flex-1 text-sm">
+                    <Text className="font-medium">{addr.recipient_name} · {addr.phone}</Text>
+                    <Text className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district} {addr.detail}</Text>
+                    {addr.is_default && <Text className="text-xs text-brand-primary">默认</Text>}
+                  </View>
                 </label>
               ))}
-            </div>
+            </View>
           )}
 
           {(addresses.length === 0 || useNewAddress) && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
+            <View className="space-y-3">
+              <View className="grid grid-cols-2 gap-2">
+                <View>
                   <label className={labelClass}>收货人</label>
                   <input className={inputClass} value={newAddress.recipient_name} onChange={e => setNewAddress(prev => ({ ...prev, recipient_name: e.target.value }))} placeholder="姓名" />
-                </div>
-                <div>
+                </View>
+                <View>
                   <label className={labelClass}>电话</label>
                   <input className={inputClass} value={newAddress.phone} onChange={e => setNewAddress(prev => ({ ...prev, phone: e.target.value }))} placeholder="手机号" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+                </View>
+              </View>
+              <View className="grid grid-cols-3 gap-2">
                 <input className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value }))} placeholder="省" />
                 <input className={inputClass} value={newAddress.city} onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value }))} placeholder="市" />
                 <input className={inputClass} value={newAddress.district} onChange={e => setNewAddress(prev => ({ ...prev, district: e.target.value }))} placeholder="区" />
-              </div>
-              <div>
+              </View>
+              <View>
                 <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
-              </div>
-              <div>
+              </View>
+              <View>
                 <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
-              </div>
+              </View>
               <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
                 <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
                 设置为我的收货地址
               </label>
-            </div>
+            </View>
           )}
 
           {addresses.length > 0 && !useNewAddress && (
-            <button
+            <Button
               onClick={() => setUseNewAddress(true)}
               className="mt-3 text-sm text-brand-primary flex items-center gap-1"
             >
               <Plus size={14} /> 使用新地址
-            </button>
+            </Button>
           )}
           {useNewAddress && addresses.length > 0 && (
-            <button
+            <Button
               onClick={() => setUseNewAddress(false)}
               className="mt-3 text-sm text-gray-400"
             >
               选择已有地址
-            </button>
+            </Button>
           )}
-        </div>
+        </View>
 
         {/* Rental Agreement Note */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
-          <p className="font-medium mb-1">租赁须知</p>
+        <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+          <Text className="font-medium mb-1">租赁须知</Text>
           <ul className="text-xs space-y-1 text-blue-600">
             <li>· 提交即生成订单，需在10分钟内完成支付</li>
             <li>· 超时未支付订单将自动取消</li>
             <li>· 发货前可取消订单免手续费</li>
             <li>· 押金在归还验收后原路退还</li>
           </ul>
-        </div>
-      </div>
+        </View>
+      </View>
 
       {/* Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-500">应付总额</span>
-          <span className="text-xl font-bold text-brand-primary">¥{totalAmount.toFixed(0)}</span>
-        </div>
-        <button
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+        <View className="flex items-center justify-between mb-2">
+          <Text className="text-sm text-gray-500">应付总额</Text>
+          <Text className="text-xl font-bold text-brand-primary">¥{totalAmount.toFixed(0)}</Text>
+        </View>
+        <Button
           onClick={handleSubmit}
           disabled={submitting}
           className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {submitting ? '提交中...' : '提交订单'}
-        </button>
-      </div>
-    </div>
+        </Button>
+      </View>
+    </View>
   )
 }

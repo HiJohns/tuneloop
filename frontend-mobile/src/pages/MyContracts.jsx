@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { contractsApi } from '../services/api'
 import { ArrowLeft, FileText, ChevronRight, ExternalLink, Calendar } from 'lucide-react'
 
@@ -27,27 +28,27 @@ export default function MyContracts() {
   }, [])
 
   if (loading) {
-    return <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-      <div className="text-gray-500">加载中...</div>
-    </div>
+    return <View className="min-h-screen bg-brand-bg flex items-center justify-center">
+      <View className="text-gray-500">加载中...</View>
+    </View>
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">我的合同</h1>
-      </div>
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Text className="text-lg font-bold">我的合同</Text>
+      </View>
 
-      <div className="p-4 space-y-3">
+      <View className="p-4 space-y-3">
         {contracts.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center text-gray-400">
+          <View className="bg-white rounded-xl p-8 text-center text-gray-400">
             <FileText size={48} className="mx-auto mb-3 opacity-50" />
-            <p>暂无合同</p>
-          </div>
+            <Text>暂无合同</Text>
+          </View>
         ) : (
           contracts.map(contract => (
-            <div
+            <View
               key={contract.id}
               className="bg-white rounded-xl p-4 cursor-pointer"
               onClick={() => {
@@ -56,29 +57,29 @@ export default function MyContracts() {
                 }
               }}
             >
-              <div className="flex justify-between items-start">
-                <span className="text-sm font-medium">{contract.contract_number || '合同'}</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+              <View className="flex justify-between items-start">
+                <Text className="text-sm font-medium">{contract.contract_number || '合同'}</Text>
+                <Text className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
                   {contract.status === 'active' ? '有效' : contract.status}
-                </span>
-              </div>
-              <div className="mt-2 text-xs text-gray-500 space-y-1">
-                <p className="flex items-center gap-1">
+                </Text>
+              </View>
+              <View className="mt-2 text-xs text-gray-500 space-y-1">
+                <Text className="flex items-center gap-1">
                   <Calendar size={12} />
                   {contract.generated_at ? new Date(contract.generated_at).toLocaleDateString() : '-'}
-                </p>
-              </div>
+                </Text>
+              </View>
               {contract.contract_url ? (
-                <div className="mt-2 flex items-center gap-1 text-xs text-brand-primary">
+                <View className="mt-2 flex items-center gap-1 text-xs text-brand-primary">
                   <ExternalLink size={12} /> 查看/下载 PDF
-                </div>
+                </View>
               ) : (
-                <p className="mt-2 text-xs text-yellow-600">PDF 待生成</p>
+                <Text className="mt-2 text-xs text-yellow-600">PDF 待生成</Text>
               )}
-            </div>
+            </View>
           ))
         )}
-      </div>
-    </div>
+      </View>
+    </View>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { instrumentsApi, apiFetch, getToken, redirectToLogin } from '../services/api'
 import { ChevronRight, Search, Heart, ShoppingCart } from 'lucide-react'
 import { env, storage } from '../platform'
@@ -47,47 +48,42 @@ function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
   }
   
   return (
-    <div 
+    <View 
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
       onClick={onClick}
     >
-        <div className="relative">
-          <img 
+        <View className="relative">
+          <Image 
             src={images[0] || PLACEHOLDER_IMAGE}
-            alt={instrument.name}
             className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-            onError={(e) => {
-              e.target.onerror = null
-              e.target.src = PLACEHOLDER_IMAGE
-            }}
           />
-          <div className="absolute top-2 left-2 flex gap-1">
+          <View className="absolute top-2 left-2 flex gap-1">
             {isAvailable ? (
-              <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">可租</span>
+              <Text className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">可租</Text>
             ) : (
-              <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">已租</span>
+              <Text className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">已租</Text>
             )}
             {dailyRent > 0 && (
-              <span className="bg-brand-primary text-white text-xs px-2 py-0.5 rounded">特惠</span>
+              <Text className="bg-brand-primary text-white text-xs px-2 py-0.5 rounded">特惠</Text>
             )}
-          </div>
-         <button
+          </View>
+         <Button
            onClick={handleFavoriteClick}
            className="absolute top-2 right-2 text-white bg-black/30 rounded-full p-1"
          >
            <Heart size={16} fill={isFavorite ? "red" : "none"} color={isFavorite ? "red" : "white"} />
-         </button>
-       </div>
-       <div className="p-3">
-         <h3 className="font-bold text-base text-brand-text truncate">{instrument.name}</h3>
-         <p className="text-brand-primary text-lg font-bold">
-           ¥{monthlyRent}<span className="text-brand-unit text-sm">/月</span>
-         </p>
-         <p className="text-gray-500 text-sm">
+         </Button>
+       </View>
+       <View className="p-3">
+         <Text className="font-bold text-base text-brand-text truncate">{instrument.name}</Text>
+         <Text className="text-brand-primary text-lg font-bold">
+           ¥{monthlyRent}<Text className="text-brand-unit text-sm">/月</Text>
+         </Text>
+         <Text className="text-gray-500 text-sm">
             押金: ¥{displayDeposit}
-         </p>
-       </div>
-    </div>
+         </Text>
+       </View>
+    </View>
   )
 }
 
@@ -243,21 +239,21 @@ export default function Home() {
     : instruments.filter(i => (i.category_name || i.category) === activeCategory)
 
   return (
-    <div className="min-h-screen bg-brand-bg">
+    <View className="min-h-screen bg-brand-bg">
       {/* Header */}
-      <div className="bg-brand-primary text-white px-4 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-lg font-bold">乐器租赁</h1>
-          <p className="text-sm opacity-90">精品乐器 轻松租回家</p>
-        </div>
-        <button className="text-white">
+      <View className="bg-brand-primary text-white px-4 py-4 flex justify-between items-center">
+        <View>
+          <Text className="text-lg font-bold">乐器租赁</Text>
+          <Text className="text-sm opacity-90">精品乐器 轻松租回家</Text>
+        </View>
+        <Button className="text-white">
           <Search size={20} />
-        </button>
-      </div>
+        </Button>
+      </View>
 
       {/* Category Tabs */}
-      <div className="bg-white border-b overflow-x-auto">
-        <div className="flex px-4 py-3 gap-4">
+      <ScrollView className="bg-white border-b" scrollX>
+        <View className="flex px-4 py-3 gap-4">
           {categories.map((cat, index) => {
             const icons = {
               "钢琴": "🎹",
@@ -267,7 +263,7 @@ export default function Home() {
               "全部": "全部"
             }
             return (
-              <button
+              <Button
                 key={cat || `category-${index}`}
                 onClick={() => {
                   setActiveCategory(cat)
@@ -281,29 +277,29 @@ export default function Home() {
                 }`}
               >
                 {icons[cat] || ""} {cat}
-              </button>
+              </Button>
             )
           })}
-        </div>
-      </div>
+        </View>
+      </ScrollView>
 
       {/* Instrument Grid */}
-      <div className="p-4">
+      <View className="p-4">
         {loading ? (
-          <div className="grid grid-cols-2 gap-4">
+          <View className="grid grid-cols-2 gap-4">
             {Array(6).fill(0).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl overflow-hidden">
-                <div className="w-full h-40 bg-gray-200 animate-pulse"></div>
-                <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-                </div>
-              </div>
+              <View key={i} className="bg-white rounded-xl overflow-hidden">
+                <View className="w-full h-40 bg-gray-200 animate-pulse"></View>
+                <View className="p-3 space-y-2">
+                  <View className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></View>
+                  <View className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></View>
+                </View>
+              </View>
             ))}
-          </div>
+          </View>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <View className="grid grid-cols-2 gap-4">
               {filteredInstruments.map(instrument => (
                 <InstrumentCard
                   key={instrument.id}
@@ -313,25 +309,25 @@ export default function Home() {
                   onToggleFavorite={toggleFavorite}
                 />
               ))}
-            </div>
+            </View>
             
             {/* Loading indicator or sentinel for infinite scroll */}
             {loadingMore ? (
-              <div className="text-center py-4 text-gray-500 col-span-2">加载中...</div>
+              <View className="text-center py-4 text-gray-500 col-span-2">加载中...</View>
             ) : hasMore ? (
-              <div id="scroll-sentinel" className="h-40 col-span-2"></div>
+              <View id="scroll-sentinel" className="h-40 col-span-2"></View>
             ) : (
-              <div className="text-center py-4 text-gray-500 col-span-2">暂无更多乐器</div>
+              <View className="text-center py-4 text-gray-500 col-span-2">暂无更多乐器</View>
             )}
           </>
         )}
-      </div>
+      </View>
 
       {/* Toast */}
       {toast.visible && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-4 py-2 rounded">
+        <View className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-4 py-2 rounded">
           {toast.message}
-        </div>
+        </View>
       )}
 
       {/* Floating Cart Icon */}
@@ -341,15 +337,15 @@ export default function Home() {
           const cartCount = cartData.items?.length || 0
           if (cartCount > 0) {
             return (
-              <button
+              <Button
                 onClick={() => navigate('/cart')}
                 className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-lg z-50"
               >
                 <ShoppingCart size={24} />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                   {cartCount}
-                </span>
-              </button>
+                </Text>
+              </Button>
             )
           }
           return null
@@ -359,41 +355,41 @@ export default function Home() {
       })()}
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
-        <div className="flex justify-around py-3 max-w-[480px] mx-auto">
-          <div 
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
+        <View className="flex justify-around py-3 max-w-[480px] mx-auto">
+          <View 
             className="flex flex-col items-center text-brand-primary cursor-pointer"
             onClick={() => navigate('/')}
           >
-            <span className="text-xl">🏠</span>
-            <span className="text-xs mt-1">首页</span>
-          </div>
-          <div 
+            <Text className="text-xl">🏠</Text>
+            <Text className="text-xs mt-1">首页</Text>
+          </View>
+          <View 
             className="flex flex-col items-center text-gray-400 cursor-pointer"
             onClick={() => navigate('/service')}
           >
-            <span className="text-xl">🔧</span>
-            <span className="text-xs mt-1">维修</span>
-          </div>
+            <Text className="text-xl">🔧</Text>
+            <Text className="text-xs mt-1">维修</Text>
+          </View>
           {getToken() ? (
-            <div 
+            <View 
               className="flex flex-col items-center text-gray-400 cursor-pointer"
               onClick={() => navigate('/profile')}
             >
-              <span className="text-xl">👤</span>
-              <span className="text-xs mt-1">我的</span>
-            </div>
+              <Text className="text-xl">👤</Text>
+              <Text className="text-xs mt-1">我的</Text>
+            </View>
           ) : (
-            <div 
+            <View 
               className="flex flex-col items-center text-brand-primary cursor-pointer"
               onClick={() => redirectToLogin()}
             >
-              <span className="text-xl">🔑</span>
-              <span className="text-xs mt-1">登录</span>
-            </div>
+              <Text className="text-xl">🔑</Text>
+              <Text className="text-xs mt-1">登录</Text>
+            </View>
           )}
-        </div>
-      </div>
-    </div>
+        </View>
+      </View>
+    </View>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { ArrowLeft, Search, Truck } from 'lucide-react'
 import { env, storage } from '../platform'
@@ -74,18 +75,18 @@ export default function StaffInstruments() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-lg font-bold">乐器管理</h1>
-      </div>
+        </Button>
+        <Text className="text-lg font-bold">乐器管理</Text>
+      </View>
 
-      <div className="bg-white border-b overflow-x-auto">
-        <div className="flex px-4 py-3 gap-2">
+      <View className="bg-white border-b overflow-x-auto">
+        <View className="flex px-4 py-3 gap-2">
           {categories.map(cat => (
-            <button
+            <Button
               key={cat}
               onClick={() => { setActiveCategory(cat); setPage(1) }}
               className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
@@ -95,18 +96,18 @@ export default function StaffInstruments() {
               }`}
             >
               {cat}
-            </button>
+            </Button>
           ))}
-        </div>
-      </div>
+        </View>
+      </View>
 
-      <div className="p-4">
+      <View className="p-4">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading...</div>
+          <View className="text-center py-8 text-gray-500">Loading...</View>
         ) : (
-          <div className="space-y-3">
+          <View className="space-y-3">
             {instruments.map(inst => (
-              <div
+              <View
                 key={inst.id}
                 className="bg-white rounded-xl p-3 shadow-sm flex gap-3"
                 onClick={() => navigate(`/staff/instrument/${inst.id}`)}
@@ -114,60 +115,60 @@ export default function StaffInstruments() {
                 {(() => {
                   const instImages = parseImages(inst.images)
                   return (
-                  <img
+                  <Image
                   src={instImages[0] || PLACEHOLDER_IMAGE}
                   alt={inst.sn}
                   className="w-20 h-20 object-cover rounded-lg bg-gray-100"
                   onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE }}
                 />
                 )})()}
-                <div className="flex-1">
-                  <h3 className="font-medium text-sm">SN: {inst.sn}</h3>
-                  <p className="text-xs text-gray-500">{inst.category_name || inst.level_name || '-'}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[inst.stock_status] || 'bg-gray-100'}`}>
+                <View className="flex-1">
+                  <Text className="font-medium text-sm">SN: {inst.sn}</Text>
+                  <Text className="text-xs text-gray-500">{inst.category_name || inst.level_name || '-'}</Text>
+                  <View className="flex items-center gap-2 mt-1">
+                    <Text className={`text-xs px-2 py-0.5 rounded-full ${statusColor[inst.stock_status] || 'bg-gray-100'}`}>
                       {statusLabel[inst.stock_status] || inst.stock_status}
-                    </span>
-                    <span className="text-xs text-gray-400">{inst.site_name}</span>
-                  </div>
+                    </Text>
+                    <Text className="text-xs text-gray-400">{inst.site_name}</Text>
+                  </View>
                   {inst.stock_status === 'rented' && inst.tracking_number && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                    <View className="flex items-center gap-1 mt-1 text-xs text-gray-500">
                       <Truck size={12} />
-                      <span>{inst.tracking_number}</span>
-                    </div>
+                      <Text>{inst.tracking_number}</Text>
+                    </View>
                   )}
-                </div>
-              </div>
+                </View>
+              </View>
             ))}
-          </div>
+          </View>
         )}
 
         {total > page * pageSize && (
-          <button
+          <Button
             onClick={() => setPage(p => p + 1)}
             className="w-full mt-4 py-3 bg-white rounded-lg text-brand-primary text-sm"
           >
             Load More
-          </button>
+          </Button>
         )}
-      </div>
+      </View>
 
-      <div className="fixed bottom-6 right-6">
+      <View className="fixed bottom-6 right-6">
         {(() => {
           const mapping = storage.getJSON('permission_mapping', {})
           const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
           const bit = mapping['instrument:create']
           const ok = bit !== undefined && (cusPerm & (1 << bit)) !== 0
           return ok ? (
-            <button
+            <Button
               onClick={() => navigate('/staff/instrument/new')}
               className="w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
             >
               +
-            </button>
+            </Button>
           ) : null
         })()}
-      </div>
-    </div>
+      </View>
+    </View>
   )
 }

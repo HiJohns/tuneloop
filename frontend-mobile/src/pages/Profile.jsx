@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { message } from 'antd'
-import { api, apiFetch, getToken, redirectToLogin, addressesApi, resendEmailConfirmation } from '../services/api'
+import { api, apiFetch, getToken, redirectToLogin, addressesApi, notificationApi, resendEmailConfirmation } from '../services/api'
 import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2, CheckCircle, Send, AlertCircle } from 'lucide-react'
 import AddressForm from '../components/AddressForm'
 import { dialog, env, storage, session, cookie } from '../platform'
@@ -52,11 +53,11 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-      <div className="bg-white rounded-t-2xl w-full max-w-[480px] p-6">
-        <h3 className="text-lg font-bold mb-4">Edit Profile</h3>
-        <div className="space-y-4">
-          <div>
+    <View className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+      <View className="bg-white rounded-t-2xl w-full max-w-[480px] p-6">
+        <Text className="text-lg font-bold mb-4">Edit Profile</Text>
+        <View className="space-y-4">
+          <View>
             <label className="text-sm text-gray-500">Name</label>
             <input
               type="text"
@@ -65,8 +66,8 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
               className="w-full border rounded-lg px-3 py-2 mt-1"
               placeholder="Enter your name"
             />
-          </div>
-          <div>
+          </View>
+          <View>
             <label className="text-sm text-gray-500">Phone</label>
             <input
               type="text"
@@ -75,8 +76,8 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
               className="w-full border rounded-lg px-3 py-2 mt-1"
               placeholder="Enter phone number"
             />
-          </div>
-          <div>
+          </View>
+          <View>
             <label className="text-sm text-gray-500">Email</label>
             <input
               type="email"
@@ -85,25 +86,25 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
               className="w-full border rounded-lg px-3 py-2 mt-1"
               placeholder="Enter email"
             />
-          </div>
+          </View>
           {message && (
-            <div className="text-sm text-brand-primary bg-blue-50 p-2 rounded">{message}</div>
+            <View className="text-sm text-brand-primary bg-blue-50 p-2 rounded">{message}</View>
           )}
-        </div>
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-2 border rounded-lg text-gray-600">
+        </View>
+        <View className="flex gap-3 mt-6">
+          <Button onClick={onClose} className="flex-1 py-2 border rounded-lg text-gray-600">
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving}
             className="flex-1 py-2 bg-brand-primary text-white rounded-lg disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </View>
+      </View>
+    </View>
   )
 }
 
@@ -126,6 +127,7 @@ export default function Profile() {
   const [addresses, setAddresses] = useState([])
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [editingAddress, setEditingAddress] = useState(null)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const baseUrl = env.apiBaseUrl
 
@@ -146,6 +148,7 @@ export default function Profile() {
   }, [])
 
   const loadAddresses = async () => {
+    if (!getToken()) return
     try {
       const resp = await addressesApi.list()
       if (Array.isArray(resp)) {
@@ -164,6 +167,19 @@ export default function Profile() {
 
   useEffect(() => {
     fetchOrders()
+  }, [])
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const resp = await notificationApi.unreadCount()
+        const count = resp?.data?.count ?? 0
+        setUnreadCount(count)
+      } catch {}
+    }
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchOrders = async () => {
@@ -216,6 +232,8 @@ export default function Profile() {
     completed: '已完成',
     cancelled: '已取消',
     expired: '超期',
+    deposit_refunding: '押金退还中',
+    damage_appealing: '定损申诉中',
   }
 
   const statusColor = {
@@ -230,6 +248,8 @@ export default function Profile() {
     completed: 'bg-gray-100 text-gray-600',
     cancelled: 'bg-red-100 text-red-700',
     expired: 'bg-red-100 text-red-700',
+    deposit_refunding: 'bg-blue-100 text-blue-700',
+    damage_appealing: 'bg-orange-100 text-orange-700',
   }
 
   const isOverdue = (order) => {
@@ -245,45 +265,45 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
-      </div>
+      <View className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <View className="text-gray-500">Loading...</View>
+      </View>
     )
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
-      <div className="bg-brand-primary text-white px-4 py-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-6">
+        <View className="flex items-center gap-4">
+          <View className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
             <User size={32} />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">{user?.name || 'User'}</h1>
-            <p className="text-sm opacity-90">{user?.phone || user?.email || ''}</p>
-          </div>
-          <button onClick={handleLogout} className="text-white/80 hover:text-white">
+          </View>
+          <View className="flex-1">
+            <Text className="text-lg font-bold">{user?.name || 'User'}</Text>
+            <Text className="text-sm opacity-90">{user?.phone || user?.email || ''}</Text>
+          </View>
+          <Button onClick={handleLogout} className="text-white/80 hover:text-white">
             <LogOut size={20} />
-          </button>
-        </div>
-      </div>
+          </Button>
+        </View>
+      </View>
 
-      <div className="p-4 space-y-3">
+      <View className="p-4 space-y-3">
         {/* Personal Info - localized */}
-        <div className="bg-white rounded-xl p-4">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium">个人信息</h3>
-            <button onClick={() => setShowEdit(true)} className="text-brand-primary">
+        <View className="bg-white rounded-xl p-4">
+          <View className="flex justify-between items-center mb-3">
+            <Text className="font-medium">个人信息</Text>
+            <Button onClick={() => setShowEdit(true)} className="text-brand-primary">
               <Edit3 size={18} />
-            </button>
-          </div>
-          <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex justify-between"><span>姓名</span><span>{user?.name || '-'}</span></div>
-            <div className="flex justify-between"><span>电话</span><span>{user?.phone || '-'}</span></div>
-            <div className="flex justify-between items-start">
-              <span>邮箱</span>
-              <div className="text-right">
-                <span>{user?.email || '-'}</span>
+            </Button>
+          </View>
+          <View className="space-y-2 text-sm text-gray-600">
+            <View className="flex justify-between"><Text>姓名</Text><Text>{user?.name || '-'}</Text></View>
+            <View className="flex justify-between"><Text>电话</Text><Text>{user?.phone || '-'}</Text></View>
+            <View className="flex justify-between items-start">
+              <Text>邮箱</Text>
+              <View className="text-right">
+                <Text>{user?.email || '-'}</Text>
                 {user?.email && (() => {
                   const sent = user.email_sent_at ? new Date(user.email_sent_at) : null
                   const confirmed = user.email_confirmed_at ? new Date(user.email_confirmed_at) : null
@@ -291,12 +311,12 @@ export default function Profile() {
                   const expired = sent && (Date.now() - sent.getTime() > 24 * 60 * 60 * 1000)
 
                   if (isConfirmed) {
-                    return <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5 justify-end"><CheckCircle size={12} /> 已确认</p>
+                    return <Text className="text-xs text-green-600 flex items-center gap-1 mt-0.5 justify-end"><CheckCircle size={12} /> 已确认</Text>
                   } else if (sent && !expired) {
-                    return <p className="text-xs text-orange-500 mt-0.5">确认邮件已发送，请检查邮箱及垃圾箱</p>
+                    return <Text className="text-xs text-orange-500 mt-0.5">确认邮件已发送，请检查邮箱及垃圾箱</Text>
                   } else if (sent && expired) {
                     return (
-                      <button
+                      <Button
                         onClick={async () => {
                           try {
                             await resendEmailConfirmation()
@@ -306,119 +326,119 @@ export default function Profile() {
                         className="text-xs text-red-500 underline mt-0.5"
                       >
                         确认邮件已失效，点击重发
-                      </button>
+                      </Button>
                     )
                   }
                   return null
                 })()}
-              </div>
-            </div>
-          </div>
-        </div>
+              </View>
+            </View>
+          </View>
+        </View>
 
         {/* 设置密码 */}
-        <div className="bg-white rounded-xl p-4">
-          <button
+        <View className="bg-white rounded-xl p-4">
+          <Button
             onClick={handlePasswordSetup}
             className="flex items-center gap-3 w-full py-2"
           >
             <Key size={18} className="text-gray-400" />
-            <span className="flex-1 text-left text-sm">设置密码</span>
+            <Text className="flex-1 text-left text-sm">设置密码</Text>
             <ChevronRight size={16} className="text-gray-300" />
-          </button>
-        </div>
+          </Button>
+        </View>
 
         {/* 收货地址 — 仅对顾客显示 */}
         {businessRole !== 'site_admin' && businessRole !== 'site_member' && (
-          <div className="bg-white rounded-xl p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium flex items-center gap-2">
+          <View className="bg-white rounded-xl p-4">
+            <View className="flex justify-between items-center mb-3">
+              <Text className="font-medium flex items-center gap-2">
                 <MapPin size={18} className="text-brand-primary" />
                 收货地址
-              </h3>
-              <button onClick={() => { setEditingAddress(null); setShowAddressForm(true) }} className="text-brand-primary">
+              </Text>
+              <Button onClick={() => { setEditingAddress(null); setShowAddressForm(true) }} className="text-brand-primary">
                 <Plus size={18} />
-              </button>
-            </div>
+              </Button>
+            </View>
             {addresses.length === 0 ? (
-              <p className="text-sm text-red-500">请设置默认收货地址</p>
+              <Text className="text-sm text-red-500">请设置默认收货地址</Text>
             ) : (
-              <div className="space-y-2">
+              <View className="space-y-2">
                 {addresses.filter(a => a.is_default).slice(0, 1).map(addr => (
-                  <div key={addr.id} className="text-sm text-gray-600">
-                    <p className="font-medium">{addr.recipient_name} · {addr.phone}</p>
-                    <p className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}{addr.postal_code ? ` ${addr.postal_code}` : ''}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</span>
-                      <button onClick={() => { setEditingAddress(addr); setShowAddressForm(true) }} className="text-xs text-brand-primary">编辑</button>
-                      <button onClick={async () => { if (dialog.confirm('确认删除？')) { await addressesApi.delete(addr.id); loadAddresses() } }} className="text-xs text-red-500">删除</button>
-                    </div>
-                  </div>
+                  <View key={addr.id} className="text-sm text-gray-600">
+                    <Text className="font-medium">{addr.recipient_name} · {addr.phone}</Text>
+                    <Text className="text-xs text-gray-400">{addr.province}{addr.city}{addr.district}{addr.detail}{addr.postal_code ? ` ${addr.postal_code}` : ''}</Text>
+                    <View className="flex items-center gap-2 mt-1">
+                      <Text className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">默认</Text>
+                      <Button onClick={() => { setEditingAddress(addr); setShowAddressForm(true) }} className="text-xs text-brand-primary">编辑</Button>
+                      <Button onClick={async () => { if (dialog.confirm('确认删除？')) { await addressesApi.delete(addr.id); loadAddresses() } }} className="text-xs text-red-500">删除</Button>
+                    </View>
+                  </View>
                 ))}
-              </div>
+              </View>
             )}
-          </div>
+          </View>
         )}
 
         {/* Current Rentals */}
         {businessRole !== 'site_admin' && businessRole !== 'site_member' && activeLeases.length > 0 && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="font-medium mb-3 flex items-center gap-2">
+          <View className="bg-white rounded-xl p-4">
+            <Text className="font-medium mb-3 flex items-center gap-2">
               <Package size={18} className="text-brand-primary" />
               当前租赁
-            </h3>
-            <div className="space-y-3">
+            </Text>
+            <View className="space-y-3">
               {activeLeases.map(order => (
-                <div
+                <View
                   key={order.id}
                   className="border rounded-lg p-3 cursor-pointer"
                   onClick={() => navigate(`/order/${order.id}`)}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="font-medium text-sm">Order #{order.id?.slice(0, 8)}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${statusColor[order.status] || 'bg-gray-100'}`}>
+                  <View className="flex justify-between items-start mb-2">
+                    <Text className="font-medium text-sm">Order #{order.id?.slice(0, 8)}</Text>
+                    <Text className={`text-xs px-2 py-1 rounded-full ${statusColor[order.status] || 'bg-gray-100'}`}>
                       {statusLabel[order.status] || order.status}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 space-y-1">
-                    {order.start_date && <p>开始: {formatDisplayDate(order.start_date)}</p>}
-                    {order.end_date && <p>结束: {formatDisplayDate(order.end_date)}</p>}
+                    </Text>
+                  </View>
+                  <View className="text-xs text-gray-500 space-y-1">
+                    {order.start_date && <Text>开始: {formatDisplayDate(order.start_date)}</Text>}
+                    {order.end_date && <Text>结束: {formatDisplayDate(order.end_date)}</Text>}
                     {isOverdue(order) && (
-                      <p className="text-red-500 font-medium">
+                      <Text className="text-red-500 font-medium">
                         超期 {overdueDays(order)} 天 · 超期费 ¥{((order.monthly_rent || 0) / 30 * overdueDays(order)).toFixed(0)}
-                      </p>
+                      </Text>
                     )}
                     {(order.status === 'in_transit' || order.status === 'shipped') && order.tracking_number && (
-                      <p>物流: {order.courier_company || ''} {order.tracking_number}</p>
+                      <Text>物流: {order.courier_company || ''} {order.tracking_number}</Text>
                     )}
                     {order.status === 'returning' && order.tracking_number && (
-                      <p>归还物流: {order.courier_company || ''} {order.tracking_number}</p>
+                      <Text>归还物流: {order.courier_company || ''} {order.tracking_number}</Text>
                     )}
-                    <p>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</p>
-                  </div>
-                </div>
+                    <Text>月租: ¥{order.monthly_rent} · 押金: ¥{order.deposit}</Text>
+                  </View>
+                </View>
               ))}
-            </div>
-          </div>
+            </View>
+          </View>
         )}
 
         {/* Rental History */}
         {businessRole !== 'site_admin' && businessRole !== 'site_member' && (
-          <div className="bg-white rounded-xl p-4 cursor-pointer" onClick={() => navigate('/lease-history')}>
-            <div className="flex items-center gap-3">
+          <View className="bg-white rounded-xl p-4 cursor-pointer" onClick={() => navigate('/lease-history')}>
+            <View className="flex items-center gap-3">
               <History size={18} className="text-gray-400" />
-              <span className="flex-1 text-sm">租赁历史</span>
+              <Text className="flex-1 text-sm">租赁历史</Text>
               <ChevronRight size={16} className="text-gray-300" />
-            </div>
-          </div>
+            </View>
+          </View>
         )}
 
         {/* My Account (customer) or Staff Functions */}
         {(businessRole === 'site_admin' || businessRole === 'site_member') && (
-          <div className="space-y-3">
-            <div className="bg-white rounded-xl p-4">
-              <h3 className="font-medium mb-3">员工功能</h3>
-              <div className="grid grid-cols-2 gap-4">
+          <View className="space-y-3">
+            <View className="bg-white rounded-xl p-4">
+              <Text className="font-medium mb-3">员工功能</Text>
+              <View className="grid grid-cols-2 gap-4">
                 {(() => {
                   const mapping = storage.getJSON('permission_mapping', {})
                   const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
@@ -426,48 +446,58 @@ export default function Profile() {
                   return (
                     <>
                       {has('instrument:read') && (
-                        <button onClick={() => navigate('/staff/instruments')} className="flex flex-col items-center p-2">
+                        <Button onClick={() => navigate('/staff/instruments')} className="flex flex-col items-center p-2">
                           <MapPin size={24} className="text-brand-primary" />
-                          <span className="text-xs mt-1 text-gray-600">乐器管理</span>
-                        </button>
+                          <Text className="text-xs mt-1 text-gray-600">乐器管理</Text>
+                        </Button>
                       )}
                       {has('order:read') && (
-                        <button onClick={() => navigate('/staff/orders')} className="flex flex-col items-center p-2">
+                        <Button onClick={() => navigate('/staff/orders')} className="flex flex-col items-center p-2">
                           <ClipboardList size={24} className="text-brand-primary" />
-                          <span className="text-xs mt-1 text-gray-600">订单管理</span>
-                        </button>
+                          <Text className="text-xs mt-1 text-gray-600">订单管理</Text>
+                        </Button>
                       )}
                     </>
                   )
                 })()}
-              </div>
-            </div>
-          </div>
+              </View>
+            </View>
+          </View>
         )}
         {!(businessRole === 'site_admin' || businessRole === 'site_member') && (
-          <div className="space-y-3">
-            <div className="bg-white rounded-xl p-4">
-              <h3 className="font-medium mb-3">My Account</h3>
-              <button
+          <View className="space-y-3">
+            <View className="bg-white rounded-xl p-4">
+              <Text className="font-medium mb-3">My Account</Text>
+              <Button
                 onClick={() => navigate('/my-contracts')}
                 className="flex items-center gap-3 w-full py-2"
               >
                 <FileText size={18} className="text-gray-400" />
-                <span className="flex-1 text-left text-sm">我的合同</span>
+                <Text className="flex-1 text-left text-sm">我的合同</Text>
                 <ChevronRight size={16} className="text-gray-300" />
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => navigate('/messages')}
-                className="flex items-center gap-3 w-full py-2"
+                className="flex items-center gap-3 w-full py-2 relative"
               >
-                <Bell size={18} className="text-gray-400" />
-                <span className="flex-1 text-left text-sm">Messages</span>
+                <View className="relative">
+                  <Bell size={18} className="text-gray-400" />
+                  {unreadCount > 0 && (
+                    <Text className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Text>
+                  )}
+                </View>
+                <Text className="flex-1 text-left text-sm">消息</Text>
+                {unreadCount > 0 && (
+                  <Text className="text-xs text-brand-primary">{unreadCount} 条未读</Text>
+                )}
                 <ChevronRight size={16} className="text-gray-300" />
-              </button>
-            </div>
-          </div>
+              </Button>
+            </View>
+          </View>
         )}
-      </div>
+      </View>
 
       <EditProfileModal
         visible={showEdit}
@@ -476,41 +506,41 @@ export default function Profile() {
         onSave={(updated) => setUser({ ...user, ...updated })}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
-        <div className="flex justify-around py-3 max-w-[480px] mx-auto">
-          <div
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
+        <View className="flex justify-around py-3 max-w-[480px] mx-auto">
+          <View
             className="flex flex-col items-center text-gray-400 cursor-pointer"
             onClick={() => navigate('/')}
           >
-            <span className="text-xl">🏠</span>
-            <span className="text-xs mt-1">Home</span>
-          </div>
-          <div
+            <Text className="text-xl">🏠</Text>
+            <Text className="text-xs mt-1">Home</Text>
+          </View>
+          <View
             className="flex flex-col items-center text-gray-400 cursor-pointer"
             onClick={() => navigate('/service')}
           >
-            <span className="text-xl">🔧</span>
-            <span className="text-xs mt-1">Service</span>
-          </div>
+            <Text className="text-xl">🔧</Text>
+            <Text className="text-xs mt-1">Service</Text>
+          </View>
           {getToken() ? (
-            <div
+            <View
               className="flex flex-col items-center text-brand-primary cursor-pointer"
               onClick={() => navigate('/profile')}
             >
-              <span className="text-xl">👤</span>
-              <span className="text-xs mt-1">Me</span>
-            </div>
+              <Text className="text-xl">👤</Text>
+              <Text className="text-xs mt-1">Me</Text>
+            </View>
           ) : (
-            <div
+            <View
               className="flex flex-col items-center text-brand-primary cursor-pointer"
               onClick={() => redirectToLogin()}
             >
-              <span className="text-xl">👤</span>
-              <span className="text-xs mt-1">登录</span>
-            </div>
+              <Text className="text-xl">👤</Text>
+              <Text className="text-xs mt-1">登录</Text>
+            </View>
           )}
-        </div>
-      </div>
+        </View>
+      </View>
       {showAddressForm && (
         <AddressForm
           address={editingAddress}
@@ -518,6 +548,6 @@ export default function Profile() {
           onSaved={() => loadAddresses()}
         />
       )}
-    </div>
+    </View>
   )
 }

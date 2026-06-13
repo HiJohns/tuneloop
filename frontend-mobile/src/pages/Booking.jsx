@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { api, sitesApi, maintenanceApi } from '../services/api'
 import ImageUploader from '../components/ImageUploader'
 import SiteSelector from '../components/SiteSelector'
@@ -80,24 +81,24 @@ export default function Booking() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <View className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
+      <View className="bg-white border-b px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-lg font-bold">维修预约</h1>
-      </div>
+        </Button>
+        <Text className="text-lg font-bold">维修预约</Text>
+      </View>
 
-      <div className="p-4 space-y-4">
-        {loading && <div className="text-center py-8 text-gray-500">加载中...</div>}
+      <View className="p-4 space-y-4">
+        {loading && <View className="text-center py-8 text-gray-500">加载中...</View>}
         
         {/* Package Selection */}
-        <div className="bg-white rounded-lg p-4">
-          <h2 className="font-medium text-gray-800 mb-3">选择服务</h2>
-          <div className="space-y-2">
+        <View className="bg-white rounded-lg p-4">
+          <Text className="font-medium text-gray-800 mb-3">选择服务</Text>
+          <View className="space-y-2">
             {maintenancePackages.map(pkg => (
-              <div
+              <View
                 key={pkg.id}
                 onClick={() => setSelectedPackage(pkg)}
                 className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
@@ -106,47 +107,47 @@ export default function Booking() {
                     : 'border-gray-200'
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{pkg.icon}</span>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-medium">{pkg.name}</h3>
-                      <span className="text-orange-500 font-bold">¥{pkg.price}</span>
-                    </div>
-                    <p className="text-gray-500 text-sm mt-1">{pkg.description}</p>
-                    <div className="flex items-center gap-1 text-gray-400 text-xs mt-2">
+                <View className="flex items-start gap-3">
+                  <Text className="text-2xl">{pkg.icon}</Text>
+                  <View className="flex-1">
+                    <View className="flex justify-between items-center">
+                      <Text className="font-medium">{pkg.name}</Text>
+                      <Text className="text-orange-500 font-bold">¥{pkg.price}</Text>
+                    </View>
+                    <Text className="text-gray-500 text-sm mt-1">{pkg.description}</Text>
+                    <View className="flex items-center gap-1 text-gray-400 text-xs mt-2">
                       <Clock size={12} />
-                      <span>{pkg.duration}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                      <Text>{pkg.duration}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
             ))}
-          </div>
-        </div>
+          </View>
+        </View>
 
         {/* Image Upload */}
-        <div className="bg-white rounded-lg p-4">
-          <h2 className="font-medium text-gray-800 mb-3">故障描述（可选）</h2>
-          <p className="text-gray-500 text-sm mb-3">上传故障图片或视频，帮助我们更好地了解情况</p>
+        <View className="bg-white rounded-lg p-4">
+          <Text className="font-medium text-gray-800 mb-3">故障描述（可选）</Text>
+          <Text className="text-gray-500 text-sm mb-3">上传故障图片或视频，帮助我们更好地了解情况</Text>
           <ImageUploader onUpload={(url) => console.log("Uploaded:", url)} />
-        </div>
+        </View>
 
         {/* Site Selection */}
-        <div className="bg-white rounded-lg p-4">
-          <h2 className="font-medium text-gray-800 mb-3">选择网点</h2>
+        <View className="bg-white rounded-lg p-4">
+          <Text className="font-medium text-gray-800 mb-3">选择网点</Text>
           <SiteSelector 
             sites={nearbySites} 
             selectedSite={selectedSite}
             onSelect={setSelectedSite}
           />
-        </div>
+        </View>
 
         {/* Date & Time */}
-        <div className="bg-white rounded-lg p-4">
-          <h2 className="font-medium text-gray-800 mb-3">预约时间</h2>
-          <div className="space-y-3">
-            <div>
+        <View className="bg-white rounded-lg p-4">
+          <Text className="font-medium text-gray-800 mb-3">预约时间</Text>
+          <View className="space-y-3">
+            <View>
               <label className="text-gray-500 text-sm mb-1 block">选择日期</label>
               <input
                 type="date"
@@ -155,12 +156,12 @@ export default function Booking() {
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="w-full p-3 border rounded-lg"
               />
-            </div>
-            <div>
+            </View>
+            <View>
               <label className="text-gray-500 text-sm mb-1 block">选择时段</label>
-              <div className="flex gap-2">
+              <View className="flex gap-2">
                 {timeSlots.map(slot => (
-                  <button
+                  <Button
                     key={slot.value}
                     onClick={() => setSelectedTime(slot.value)}
                     className={`flex-1 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors ${
@@ -170,23 +171,23 @@ export default function Booking() {
                     }`}
                   >
                     {slot.label}
-                  </button>
+                  </Button>
                 ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
 
       {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <button 
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+        <Button 
           onClick={handleSubmit}
           className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium"
         >
           提交预约
-        </button>
-      </div>
-    </div>
+        </Button>
+      </View>
+    </View>
   )
 }

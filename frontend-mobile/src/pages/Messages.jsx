@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { message } from 'antd'
-import { apiFetch, getToken, appealsApi } from '../services/api'
+import { notificationApi } from '../services/api'
 import { ArrowLeft, Bell } from 'lucide-react'
+import { View, Text, Button, ScrollView } from '@tarojs/components'
+
+const typeConfig = {
+  damage: { bg: 'bg-red-100', text: 'text-red-600', label: '定损通知' },
+  appeal: { bg: 'bg-orange-100', text: 'text-orange-600', label: '申诉通知' },
+  refund: { bg: 'bg-green-100', text: 'text-green-600', label: '退款通知' },
+  payment: { bg: 'bg-blue-100', text: 'text-blue-600', label: '支付通知' },
+  order: { bg: 'bg-gray-100', text: 'text-gray-600', label: '系统通知' },
+}
 
 export default function Messages() {
   const navigate = useNavigate()
@@ -10,122 +19,98 @@ export default function Messages() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-        const resp = await apiFetch(`${baseUrl}/notifications`)
-        const result = await resp.json()
-        if (result.code === 20000) {
-          setNotifications(result.data?.list || [])
-        }
-      } catch (err) {
-        console.error('Failed to fetch notifications:', err)
-      }
-      setLoading(false)
-    }
     fetchNotifications()
   }, [])
 
+  const fetchNotifications = async () => {
+    try {
+      const resp = await notificationApi.list()
+      setNotifications(resp?.data?.list || [])
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err)
+    }
+    setLoading(false)
+  }
+
   const markRead = async (id) => {
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-      await apiFetch(`${baseUrl}/notifications/${id}/read`, { method: 'POST' })
+      await notificationApi.markRead(id)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'read' } : n))
     } catch (err) {
       console.error('Failed to mark read:', err)
     }
   }
 
-  const typeLabel = {
-    damage: '定损通知',
-    appeal: '申诉通知',
-    refund: '退款通知',
-    general: '系统通知',
+  const markAllRead = async () => {
+    try {
+      await notificationApi.markAllRead()
+      setNotifications(prev => prev.map(n => ({ ...n, status: 'read' })))
+      message.success('已全部标记为已读')
+    } catch (err) {
+      console.error('Failed to mark all read:', err)
+    }
   }
 
+  const handleClick = (notif) => {
+    navigate(`/messages/${notif.id}`)
+  }
+
+  const unreadCount = notifications.filter(n => n.status === 'unread').length
+
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-lg font-bold">消息</h1>
-      </div>
-
-      <div className="p-4">
-        {loading ? (
-          <div className="text-center py-8 text-gray-500">加载中...</div>
-        ) : notifications.length === 0 ? (
-          <div className="text-center py-16">
-            <Bell size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">暂无消息</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {notifications.map(notif => (
-              <div
-                key={notif.id}
-                className={`bg-white rounded-xl p-4 shadow-sm ${notif.status === 'unread' ? 'border-l-4 border-brand-primary' : ''}`}
-                onClick={() => notif.status === 'unread' && markRead(notif.id)}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <span className={`text-xs px-2 py-0.5 rounded ${
-                    notif.type === 'damage' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-                  }`}>
-                    {typeLabel[notif.type] || notif.type}
-                  </span>
-                  {notif.status === 'unread' && (
-                    <span className="w-2 h-2 rounded-full bg-brand-primary"></span>
-                  )}
-                </div>
-                <h3 className="font-medium text-sm mt-1">{notif.title}</h3>
-                <p className="text-gray-500 text-sm mt-1">{notif.content}</p>
-                <p className="text-gray-400 text-xs mt-2">{new Date(notif.created_at).toLocaleString()}</p>
-
-                {notif.type === 'damage' && (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        try {
-                          const damageReportId = notif.ref_id
-                          await appealsApi.agree(damageReportId)
-                          message.success('已同意定损，退款流程将开始')
-                        } catch (err) {
-                          alert('操作失败: ' + (err.message || '未知错误'))
-                        }
-                      }}
-                      className="flex-1 py-1.5 bg-green-500 text-white rounded text-sm"
-                    >
-                      同意
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        const reason = prompt('申诉原因：')
-                        if (reason) {
-                          try {
-                            await appealsApi.submit({
-                              damage_report_id: notif.ref_id,
-                              appeal_reason: reason,
-                            })
-                            message.success('申诉已提交')
-                          } catch (err) {
-                            alert('提交失败: ' + (err.message || '未知错误'))
-                          }
-                        }
-                      }}
-                      className="flex-1 py-1.5 bg-red-500 text-white rounded text-sm"
-                    >
-                      拒绝
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+        </Button>
+        <Text className="text-lg font-bold flex-1">消息</Text>
+        {unreadCount > 0 && (
+          <Button onClick={markAllRead} className="text-sm text-white/80">全部已读</Button>
         )}
-      </div>
-    </div>
+      </View>
+
+      <ScrollView className="p-4">
+        {loading ? (
+          <Text className="text-center py-8 text-gray-500 block">加载中...</Text>
+        ) : notifications.length === 0 ? (
+          <View className="text-center py-16">
+            <Bell size={48} className="mx-auto text-gray-300 mb-4" />
+            <Text className="text-gray-500">暂无消息</Text>
+          </View>
+        ) : (
+          <View>
+            {unreadCount > 0 && (
+              <Text className="text-sm text-gray-500 mb-2">{unreadCount} 条未读</Text>
+            )}
+            <View className="space-y-3">
+              {notifications.map(notif => {
+                const type = typeConfig[notif.type] || typeConfig.order
+                return (
+                  <View
+                    key={notif.id}
+                    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer ${
+                      notif.status === 'unread' ? 'border-l-4 border-brand-primary' : ''
+                    }`}
+                    onClick={() => handleClick(notif)}
+                  >
+                    <View className="flex justify-between items-start mb-1">
+                      <Text className={`text-xs px-2 py-0.5 rounded ${type.bg} ${type.text}`}>
+                        {type.label}
+                      </Text>
+                      {notif.status === 'unread' && (
+                        <Text className="w-2 h-2 rounded-full bg-brand-primary" />
+                      )}
+                    </View>
+                    <Text className="font-medium text-sm mt-1">{notif.title}</Text>
+                    <Text className="text-gray-500 text-sm mt-1 line-clamp-2">{notif.content}</Text>
+                    <Text className="text-gray-400 text-xs mt-2">{new Date(notif.created_at).toLocaleString()}</Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   )
 }

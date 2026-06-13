@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
 import { getToken, redirectToLogin, ordersApi, addressesApi } from '../services/api'
 import dayjs from 'dayjs'
@@ -290,120 +291,120 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-24">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">购物车 ({cart.items.length})</h1>
+    <View className="min-h-screen bg-brand-bg pb-24">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Text className="text-lg font-bold">购物车 ({cart.items.length})</Text>
         {cart.items.length > 0 && (
-          <button onClick={clearInvalidItems} className="ml-auto text-sm text-white/70">
+          <Button onClick={clearInvalidItems} className="ml-auto text-sm text-white/70">
             清理失效
-          </button>
+          </Button>
         )}
-      </div>
+      </View>
 
-      <div className="p-4 space-y-4">
+      <View className="p-4 space-y-4">
         {cart.items.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center">
+          <View className="bg-white rounded-xl p-8 text-center">
             <Package size={48} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-400">购物车为空</p>
-            <button
+            <Text className="text-gray-400">购物车为空</Text>
+            <Button
               onClick={() => navigate('/')}
               className="mt-4 px-6 py-2 bg-brand-primary text-white rounded-lg"
             >
               去逛逛
-            </button>
-          </div>
+            </Button>
+          </View>
         ) : (
           <>
             {Object.entries(grouped).map(([tenantId, tenantData]) => (
-              <div key={tenantId} className="bg-white rounded-xl p-4">
-                <h2 className="font-bold text-lg text-gray-800 mb-3">{tenantData.name}</h2>
+              <View key={tenantId} className="bg-white rounded-xl p-4">
+                <Text className="font-bold text-lg text-gray-800 mb-3">{tenantData.name}</Text>
                 {Object.entries(tenantData.sites).map(([siteId, siteData]) => (
-                  <div key={siteId} className="ml-2 border-l-2 border-orange-200 pl-3 mb-4">
-                    <p className="text-sm text-orange-600 font-medium mb-2">📍 {siteData.name}</p>
+                  <View key={siteId} className="ml-2 border-l-2 border-orange-200 pl-3 mb-4">
+                    <Text className="text-sm text-orange-600 font-medium mb-2">📍 {siteData.name}</Text>
                     {siteData.items.map((item) => {
                       const images = parseImages(item.images)
                       const amount = calculateItemAmount(item)
                       return (
-                        <div key={item.instrument_id} className="flex gap-3 py-2 border-b border-gray-100">
+                        <View key={item.instrument_id} className="flex gap-3 py-2 border-b border-gray-100">
                           <img
                             src={images[0] || PLACEHOLDER_IMAGE}
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-lg bg-gray-100"
                           />
-                          <div className="flex-1">
-                            <p className="font-medium text-sm text-gray-800">{item.name}</p>
-                            <p className="text-xs text-gray-500">{item.brand} {item.model}</p>
-                            <div className="flex items-center gap-2 mt-1">
+                          <View className="flex-1">
+                            <Text className="font-medium text-sm text-gray-800">{item.name}</Text>
+                            <Text className="text-xs text-gray-500">{item.brand} {item.model}</Text>
+                            <View className="flex items-center gap-2 mt-1">
                               {formatDisplayDate(item.start_date)} → {formatDisplayDate(item.end_date || calculateDeadline(item))}
-                            </div>
-                            <p className="text-orange-600 font-bold text-sm mt-1">
+                            </View>
+                            <Text className="text-orange-600 font-bold text-sm mt-1">
                               ¥{amount.rent.toFixed(0)} + ¥{amount.deposit} 押{(parsePricing(item.pricing)[0]?.shipping_fee || 0) > 0 ? ` + ¥${parsePricing(item.pricing)[0].shipping_fee} 运` : ''}
-                            </p>
-                          </div>
-                          <button onClick={() => removeItem(item.instrument_id)}>
+                            </Text>
+                          </View>
+                          <Button onClick={() => removeItem(item.instrument_id)}>
                             <Trash2 size={18} className="text-gray-400" />
-                          </button>
-                        </div>
+                          </Button>
+                        </View>
                       )
                     })}
-                  </div>
+                  </View>
                 ))}
-              </div>
+              </View>
             ))}
 
-            <div className="bg-white rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
+            <View className="bg-white rounded-xl p-4">
+              <View className="flex items-center justify-between mb-2">
+                <View className="flex items-center gap-2">
                   <MapPin size={18} className="text-gray-400" />
-                  <span className="font-medium">收货地址</span>
-                </div>
-                <button onClick={() => setShowAddressModal(true)} className="text-brand-primary text-sm flex items-center gap-1">
+                  <Text className="font-medium">收货地址</Text>
+                </View>
+                <Button onClick={() => setShowAddressModal(true)} className="text-brand-primary text-sm flex items-center gap-1">
                   <Edit2 size={14} /> 修改
-                </button>
-              </div>
-              <p className="text-gray-600 text-sm">{address || '请添加收货地址'}</p>
-            </div>
+                </Button>
+              </View>
+              <Text className="text-gray-600 text-sm">{address || '请添加收货地址'}</Text>
+            </View>
 
-            <div className="bg-white rounded-xl p-4">
-              <h3 className="font-bold mb-3">费用明细</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">租金</span>
-                  <span className="font-medium">¥{totals.totalRent.toFixed(0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">押金</span>
-                  <span className="font-medium">¥{totals.totalDeposit}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">物流费</span>
-                  <span className="font-medium">¥{totals.totalShipping}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                  <span>合计</span>
-                  <span className="text-orange-600">¥{totals.grandTotal.toFixed(0)}</span>
-                </div>
-              </div>
-            </div>
+            <View className="bg-white rounded-xl p-4">
+              <Text className="font-bold mb-3">费用明细</Text>
+              <View className="space-y-2 text-sm">
+                <View className="flex justify-between">
+                  <Text className="text-gray-600">租金</Text>
+                  <Text className="font-medium">¥{totals.totalRent.toFixed(0)}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-gray-600">押金</Text>
+                  <Text className="font-medium">¥{totals.totalDeposit}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-gray-600">物流费</Text>
+                  <Text className="font-medium">¥{totals.totalShipping}</Text>
+                </View>
+                <View className="border-t pt-2 flex justify-between font-bold text-lg">
+                  <Text>合计</Text>
+                  <Text className="text-orange-600">¥{totals.grandTotal.toFixed(0)}</Text>
+                </View>
+              </View>
+            </View>
           </>
         )}
-      </div>
+      </View>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <button
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+        <Button
           onClick={handleOrder}
           disabled={cart.items.length === 0}
           className="w-full bg-brand-primary text-white py-3 rounded-lg font-bold disabled:opacity-50"
         >
           支付 ¥{totals.grandTotal.toFixed(0)}
-        </button>
-      </div>
+        </Button>
+      </View>
 
       {showAddressModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 mx-4 w-full max-w-sm">
-            <h3 className="font-bold text-lg mb-4">修改收货地址</h3>
+        <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <View className="bg-white rounded-xl p-6 mx-4 w-full max-w-sm">
+            <Text className="font-bold text-lg mb-4">修改收货地址</Text>
             <textarea
               value={tempAddress}
               onChange={(e) => setTempAddress(e.target.value)}
@@ -411,20 +412,20 @@ export default function Cart() {
               className="w-full border rounded-lg p-3 text-sm mb-4"
               rows={3}
             />
-            <div className="flex gap-3">
-              <button
+            <View className="flex gap-3">
+              <Button
                 onClick={() => setShowAddressModal(false)}
                 className="flex-1 py-2 border rounded-lg"
               >
                 取消
-              </button>
-              <button onClick={updateAddress} className="flex-1 py-2 bg-brand-primary text-white rounded-lg">
+              </Button>
+              <Button onClick={updateAddress} className="flex-1 py-2 bg-brand-primary text-white rounded-lg">
                 确认
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </View>
+          </View>
+        </View>
       )}
-    </div>
+    </View>
   )
 }

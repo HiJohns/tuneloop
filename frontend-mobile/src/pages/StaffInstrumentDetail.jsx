@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
@@ -149,11 +150,11 @@ export default function StaffInstrumentDetail() {
   }
 
   if (loading) {
-    return <div className="p-4">加载中...</div>
+    return <View className="p-4">加载中...</View>
   }
 
   if (!instrument) {
-    return <div className="p-4">乐器不存在</div>
+    return <View className="p-4">乐器不存在</View>
   }
 
   const images = parseImages(instrument.images)
@@ -161,177 +162,177 @@ export default function StaffInstrumentDetail() {
   const pricingInfo = pricing[0] || {}
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-24">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
+    <View className="min-h-screen bg-brand-bg pb-24">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-lg font-bold">乐器详情</h1>
-      </div>
+        </Button>
+        <Text className="text-lg font-bold">乐器详情</Text>
+      </View>
 
-      <div className="p-4 space-y-4">
+      <View className="p-4 space-y-4">
         {/* Image */}
-        <div className="bg-white rounded-xl overflow-hidden">
-          <img
+        <View className="bg-white rounded-xl overflow-hidden">
+          <Image
             src={images[0] || PLACEHOLDER_IMAGE}
             alt={instrument.name}
             className="w-full h-48 object-contain bg-gray-100"
             onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE }}
           />
-        </div>
+        </View>
 
         {/* Basic Info */}
-        <div className="bg-white rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold">{instrument.name}</h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor[instrument.stock_status] || 'bg-gray-100'}`}>
+        <View className="bg-white rounded-xl p-4">
+          <View className="flex items-center justify-between mb-3">
+            <Text className="text-lg font-bold">{instrument.name}</Text>
+            <Text className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor[instrument.stock_status] || 'bg-gray-100'}`}>
               {statusLabel[instrument.stock_status] || instrument.stock_status}
-            </span>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">SN</span>
-              <span className="font-mono">{instrument.sn || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">分类</span>
-              <span>{instrument.category_name || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">分级</span>
-              <span>{instrument.level_name || instrument.level || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">网点</span>
-              <span>{instrument.site_name || '-'}</span>
-            </div>
+            </Text>
+          </View>
+          <View className="space-y-2 text-sm">
+            <View className="flex justify-between">
+              <Text className="text-gray-500">SN</Text>
+              <Text className="font-mono">{instrument.sn || '-'}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">分类</Text>
+              <Text>{instrument.category_name || '-'}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">分级</Text>
+              <Text>{instrument.level_name || instrument.level || '-'}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">网点</Text>
+              <Text>{instrument.site_name || '-'}</Text>
+            </View>
             {instrument.properties && Object.keys(instrument.properties).length > 0 && (
-              <div className="pt-2 border-t">
-                <span className="text-gray-500 text-xs block mb-1">动态属性</span>
+              <View className="pt-2 border-t">
+                <Text className="text-gray-500 text-xs block mb-1">动态属性</Text>
                 {Object.entries(instrument.properties).map(([key, vals]) => (
-                  <div key={key} className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-400">{key}</span>
-                    <span>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</span>
-                  </div>
+                  <View key={key} className="flex justify-between text-xs mt-1">
+                    <Text className="text-gray-400">{key}</Text>
+                    <Text>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
+                  </View>
                 ))}
-              </div>
+              </View>
             )}
-          </div>
-        </div>
+          </View>
+        </View>
 
         {/* Lease Info - Only for reserved/returning */}
         {activeOrder && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="font-medium mb-3">租期信息</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">租期</span>
-                <span>{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">状态</span>
-                <span className="font-medium">{statusLabel[instrument.stock_status] || instrument.stock_status}</span>
-              </div>
+          <View className="bg-white rounded-xl p-4">
+            <Text className="font-medium mb-3">租期信息</Text>
+            <View className="space-y-2 text-sm">
+              <View className="flex justify-between">
+                <Text className="text-gray-500">租期</Text>
+                <Text>{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}</Text>
+              </View>
+              <View className="flex justify-between">
+                <Text className="text-gray-500">状态</Text>
+                <Text className="font-medium">{statusLabel[instrument.stock_status] || instrument.stock_status}</Text>
+              </View>
               {activeOrder.monthly_rent && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">月租金</span>
-                  <span>¥{activeOrder.monthly_rent}</span>
-                </div>
+                <View className="flex justify-between">
+                  <Text className="text-gray-500">月租金</Text>
+                  <Text>¥{activeOrder.monthly_rent}</Text>
+                </View>
               )}
-            </div>
-          </div>
+            </View>
+          </View>
         )}
 
         {/* Pricing Info */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">租赁设置</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">日租金</span>
-              <span>¥{pricingInfo.daily_rent || instrument.base_daily_rate || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">押金</span>
-              <span>¥{pricingInfo.deposit || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">物流费</span>
-              <span>¥{pricingInfo.shipping_fee || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">逾期日费</span>
-              <span>¥{pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0}</span>
-            </div>
-          </div>
-        </div>
+        <View className="bg-white rounded-xl p-4">
+          <Text className="font-medium mb-3">租赁设置</Text>
+          <View className="space-y-2 text-sm">
+            <View className="flex justify-between">
+              <Text className="text-gray-500">日租金</Text>
+              <Text>¥{pricingInfo.daily_rent || instrument.base_daily_rate || 0}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">押金</Text>
+              <Text>¥{pricingInfo.deposit || 0}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">物流费</Text>
+              <Text>¥{pricingInfo.shipping_fee || 0}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-gray-500">逾期日费</Text>
+              <Text>¥{pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Booker Info Card - Only show for reserved status */}
         {instrument.stock_status === 'rented' && (instrument.booker_name || instrument.booker_phone) && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-3">
+          <View className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <View className="flex items-center gap-2 mb-3">
               <User size={18} className="text-yellow-600" />
-              <span className="font-medium text-yellow-800">预约人信息</span>
-            </div>
+              <Text className="font-medium text-yellow-800">预约人信息</Text>
+            </View>
             {instrument.booker_name && (
-              <div className="mb-2 text-sm">
-                <span className="text-gray-500">姓名：</span>
-                <span className="text-gray-800">{instrument.booker_name}</span>
-              </div>
+              <View className="mb-2 text-sm">
+                <Text className="text-gray-500">姓名：</Text>
+                <Text className="text-gray-800">{instrument.booker_name}</Text>
+              </View>
             )}
             {instrument.booker_phone && (
-              <div className="mb-2 text-sm">
-                <span className="text-gray-500">电话：</span>
-                <span className="text-gray-800">{instrument.booker_phone}</span>
-              </div>
+              <View className="mb-2 text-sm">
+                <Text className="text-gray-500">电话：</Text>
+                <Text className="text-gray-800">{instrument.booker_phone}</Text>
+              </View>
             )}
             {instrument.booker_email && (
-              <div className="mb-2 text-sm">
-                <span className="text-gray-500">邮箱：</span>
-                <span className="text-gray-800">{instrument.booker_email}</span>
-              </div>
+              <View className="mb-2 text-sm">
+                <Text className="text-gray-500">邮箱：</Text>
+                <Text className="text-gray-800">{instrument.booker_email}</Text>
+              </View>
             )}
             {instrument.delivery_address && (
-              <div className="text-sm">
-                <span className="text-gray-500">收货地址：</span>
-                <span className="text-gray-800">{formatDeliveryAddress(instrument.delivery_address)}</span>
-              </div>
+              <View className="text-sm">
+                <Text className="text-gray-500">收货地址：</Text>
+                <Text className="text-gray-800">{formatDeliveryAddress(instrument.delivery_address)}</Text>
+              </View>
             )}
-          </div>
+          </View>
         )}
-      </div>
+      </View>
 
       {/* Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
         {(() => {
           const mapping = storage.getJSON('permission_mapping', {})
           const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
           const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
           return (
-            <div className="grid grid-cols-3 gap-3">
+            <View className="grid grid-cols-3 gap-3">
               {instrument.stock_status === 'available' && has('instrument:edit') && (
-                <button onClick={handleArchive} disabled={actionLoading} className="py-3 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button onClick={handleArchive} disabled={actionLoading} className="py-3 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <Archive size={18} />下架
-                </button>
+                </Button>
               )}
               {instrument.stock_status === 'rented' && has('order:update') && (
-                <button onClick={handleShip} className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button onClick={handleShip} className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <Truck size={18} />发货
-                </button>
+                </Button>
               )}
               {instrument.stock_status === 'rented' && has('inventory:manage') && (
-                <button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <RotateCcw size={18} />接收确认
-                </button>
+                </Button>
               )}
               {instrument.stock_status === 'maintenance' && has('maintenance:complete') && (
-                <button onClick={handleCompleteMaintenance} disabled={actionLoading} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button onClick={handleCompleteMaintenance} disabled={actionLoading} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                   <CheckCircle size={18} />维修完成
-                </button>
+                </Button>
               )}
-            </div>
+            </View>
           )
         })()}
-      </div>
-    </div>
+      </View>
+    </View>
   )
 }

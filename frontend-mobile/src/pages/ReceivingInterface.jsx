@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, Upload, User, MapPin, Package } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
+
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect fill="#f3f4f6" width="200" height="200"/><text x="100" y="100" text-anchor="middle" dominant-baseline="middle" fill="#9ca3af" font-size="14">暂无图片</text></svg>')
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
@@ -174,67 +177,69 @@ export default function ReceivingInterface() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">收货确认</h1>
-      </div>
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Text className="text-lg font-bold">收货确认</Text>
+      </View>
 
-      <div className="p-4 space-y-4">
+      <View className="p-4 space-y-4">
         {/* Customer & Instrument Info (preloaded from order) */}
         {orderData && (
           <>
-            <div className="bg-white rounded-xl p-4">
-              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <View className="bg-white rounded-xl p-4">
+              <Text className="font-medium text-gray-900 mb-3 flex items-center gap-2">
                 <User size={16} className="text-brand-primary" />
                 租赁人信息
-              </h3>
-              <p className="text-sm font-medium">{orderData.user_name || '-'}</p>
+              </Text>
+              <Text className="text-sm font-medium">{orderData.user_name || '-'}</Text>
               {orderData.delivery_address && (
-                <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
+                <View className="flex items-start gap-2 mt-2 text-sm text-gray-600">
                   <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                  <span>{formatDeliveryAddress(orderData.delivery_address)}</span>
-                </div>
+                  <Text>{formatDeliveryAddress(orderData.delivery_address)}</Text>
+                </View>
               )}
-            </div>
+            </View>
 
             {currentItem && (
-              <div className="bg-white rounded-xl p-4">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <View className="bg-white rounded-xl p-4 cursor-pointer" onClick={() => navigate(`/instrument/${currentItem.id}`)}>
+                <Text className="font-medium text-gray-900 mb-3 flex items-center gap-2">
                   <Package size={16} className="text-brand-primary" />
                   乐器信息
-                </h3>
-                <div className="flex gap-3">
+                </Text>
+                <View className="flex gap-3">
                   {(() => {
                     try {
                       const imgs = JSON.parse(currentItem.images || '[]')
-                      if (imgs[0]) return <img src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                      if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
                     } catch {}
-                    return null
+                    return <Image src={PLACEHOLDER_IMAGE} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
                   })()}
-                  <div>
-                    <p className="text-sm font-mono font-medium">SN: {currentItem.sn || '-'}</p>
-                    <p className="text-xs text-gray-500">{currentItem.category_name}{currentItem.level_name ? ` · ${currentItem.level_name}` : ''}</p>
-                  </div>
-                </div>
-              </div>
+                  <View>
+                    <Text className="text-sm font-mono font-medium">SN: {currentItem.sn || '-'}</Text>
+                    <Text className="text-xs text-gray-500">{currentItem.category_name}{currentItem.level_name ? ` · ${currentItem.level_name}` : ''}</Text>
+                    {currentItem.tenant_name && <Text className="text-xs text-gray-400 mt-0.5">{currentItem.tenant_name}</Text>}
+                    {currentItem.site_name && <Text className="text-xs text-gray-400">网点: {currentItem.site_name}</Text>}
+                  </View>
+                </View>
+              </View>
             )}
 
-            <div className="bg-white rounded-xl p-4">
-              <h3 className="font-medium text-gray-900 mb-2">租赁信息</h3>
-              <div className="text-sm space-y-1 text-gray-600">
-                <p>租期: {formatDisplayDate(orderData.start_date)} 至 {formatDisplayDate(orderData.end_date)}</p>
-                {orderData.deposit > 0 && <p>押金: ¥{orderData.deposit}</p>}
-              </div>
-            </div>
+            <View className="bg-white rounded-xl p-4">
+              <Text className="font-medium text-gray-900 mb-2">租赁信息</Text>
+              <View className="text-sm space-y-1 text-gray-600">
+                <Text>租期: {formatDisplayDate(orderData.start_date)} 至 {formatDisplayDate(orderData.end_date)}</Text>
+                {orderData.deposit > 0 && <Text>押金: ¥{orderData.deposit}</Text>}
+              </View>
+            </View>
           </>
         )}
 
         {/* QR Scan / SN Entry — only when not preloaded */}
         {!preloadedOrderId && (
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium mb-3">扫码或输入识别码</h3>
-          <div className="flex gap-2">
+        <View className="bg-white rounded-xl p-4">
+          <Text className="font-medium mb-3">扫码或输入识别码</Text>
+          <View className="flex gap-2">
             <input
               type="text"
               value={snInput}
@@ -243,93 +248,95 @@ export default function ReceivingInterface() {
               className="flex-1 border rounded-lg px-3 py-2"
               onKeyDown={e => e.key === 'Enter' && snInput && checkInstrument(snInput)}
             />
-            <button
+            <Button
               onClick={() => dialog.alert('扫码功能暂不可用')}
               className="px-4 py-2 border rounded-lg"
             >
               <Scan size={18} />
-            </button>
-          </div>
-        </div>
+            </Button>
+          </View>
+        </View>
         )}
 
         {currentItem && (
-          <div className="bg-white rounded-xl p-4">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <p className="font-medium">{currentItem.name}</p>
-                <p className="text-sm text-gray-500">{currentItem.brand} {currentItem.model}</p>
-              </div>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+          <View className="bg-white rounded-xl p-4">
+            <View className="flex justify-between items-start mb-3 cursor-pointer" onClick={() => navigate(`/instrument/${currentItem.id}`)}>
+              <View>
+                <Text className="font-medium">{currentItem.name}</Text>
+                <Text className="text-sm text-gray-500">{currentItem.brand} {currentItem.model}</Text>
+                {currentItem.tenant_name && <Text className="text-xs text-gray-400 mt-0.5">{currentItem.tenant_name}</Text>}
+                {currentItem.site_name && <Text className="text-xs text-gray-400">网点: {currentItem.site_name}</Text>}
+              </View>
+              <Text className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                 {currentItem.stock_status}
-              </span>
-            </div>
+              </Text>
+            </View>
 
             {photoSpecs.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium flex items-center gap-1 mb-1">
+              <View className="mb-4">
+                <Text className="text-sm font-medium flex items-center gap-1 mb-1">
                   <Camera size={14} className="text-brand-primary" />
                   拍照要求
-                </h4>
+                </Text>
                 <ul className="text-xs text-gray-500 space-y-0.5">
                   {photoSpecs.map((spec, idx) => (
                     <li key={idx}>• {spec.position}: {spec.description}</li>
                   ))}
                 </ul>
-              </div>
+              </View>
             )}
 
             {outboundPhotos.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">出库照片（供对比）</h4>
-                <div className="grid grid-cols-2 gap-2">
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">出库照片（供对比）</Text>
+                <View className="grid grid-cols-2 gap-2">
                   {outboundPhotos.map((p, i) => (
-                    <img key={i} src={p.url} alt="outbound" className="w-full rounded border object-cover h-24" />
+                    <Image key={i} src={p.url} alt="outbound" className="w-full rounded border object-cover h-24" />
                   ))}
-                </div>
-              </div>
+                </View>
+              </View>
             )}
 
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">归还拍照</h4>
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 mb-2">归还拍照</Text>
               <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer text-gray-500 hover:text-brand-primary">
                 <Upload size={18} />
-                <span className="text-sm">拍照上传</span>
+                <Text className="text-sm">拍照上传</Text>
                 <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
               </label>
               {capturedPhotos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <View className="grid grid-cols-3 gap-2 mt-2">
                   {capturedPhotos.map((file, i) => (
-                    <div key={i} className="relative">
-                      <img src={URL.createObjectURL(file)} alt="captured" className="w-full rounded border object-cover h-20" />
-                    </div>
+                    <View key={i} className="relative">
+                      <Image src={URL.createObjectURL(file)} alt="captured" className="w-full rounded border object-cover h-20" />
+                    </View>
                   ))}
-                </div>
+                </View>
               )}
-            </div>
+            </View>
 
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <button
+            <View className="space-y-3">
+              <View className="flex gap-2">
+                <Button
                   onClick={() => setCondition('good')}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
                     condition === 'good' ? 'bg-green-500 text-white' : 'border text-gray-600'
                   }`}
                 >
                   <CheckCircle size={16} /> 无损坏
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setCondition('damaged')}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 ${
                     condition === 'damaged' ? 'bg-red-500 text-white' : 'border text-gray-600'
                   }`}
                 >
                   <AlertTriangle size={16} /> 有损坏
-                </button>
-              </div>
+                </Button>
+              </View>
 
               {condition === 'damaged' && (
-                <div className="space-y-2">
+                <View className="space-y-2">
                   <textarea
                     value={damageDesc}
                     onChange={e => setDamageDesc(e.target.value)}
@@ -344,22 +351,22 @@ export default function ReceivingInterface() {
                     placeholder="定损金额"
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                   />
-                </div>
+                </View>
               )}
 
               {condition && (
-                <button
+                <Button
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="w-full py-3 bg-brand-primary text-white rounded-lg disabled:opacity-50 font-medium"
                 >
                   {submitting ? '提交中...' : '提交'}
-                </button>
+                </Button>
               )}
-            </div>
-          </div>
+            </View>
+          </View>
         )}
-      </div>
-    </div>
+      </View>
+    </View>
   )
 }

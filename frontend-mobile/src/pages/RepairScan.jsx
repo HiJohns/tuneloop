@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { apiFetch } from '../services/api';
-import { Button, Input, TextArea, ImageUploader, Card, message } from 'antd-mobile';
-import { CameraOutline, Scanline } from 'antd-mobile-icons';
-
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5553';
+import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components';
+import { apiFetch, api } from '../services/api';
+import { env } from '../platform';
+import { ArrowLeft, Camera, Scan } from 'lucide-react';
+import { message } from 'antd';
 
 export default function RepairScan() {
+  const navigate = useNavigate()
   const [snCode, setSnCode] = useState('');
   const [instrument, setInstrument] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [problem, setProblem] = useState('');
   const [images, setImages] = useState([]);
+  const baseUrl = env.apiBaseUrl;
 
   const handleScan = async () => {
     if (typeof wx !== 'undefined' && wx.scanQRCode) {
@@ -33,7 +36,7 @@ export default function RepairScan() {
 
   const fetchInstrument = async (sn) => {
     try {
-      const response = await apiFetch(`${API_BASE}/api/instruments?sn=${sn}`);
+      const response = await apiFetch(`${baseUrl}/instruments?sn=${sn}`);
       const result = await response.json();
       
       if (result.code === 20000 && result.data.list?.length > 0) {
@@ -55,7 +58,7 @@ export default function RepairScan() {
 
     setSubmitting(true);
     try {
-      const response = await apiFetch(`${API_BASE}/api/maintenance`, {
+      const response = await apiFetch(`${baseUrl}/maintenance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -84,66 +87,79 @@ export default function RepairScan() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-20">
-      <Card>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2">SN码</label>
-          <div className="flex gap-2">
-            <Input
-              className="flex-1"
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Text className="text-lg font-bold">报修扫码</Text>
+      </View>
+
+      <View className="p-4 space-y-4">
+        {/* SN Code Input */}
+        <View className="bg-white rounded-xl p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">SN码</label>
+          <View className="flex gap-2">
+            <input
+              className="flex-1 border rounded-lg px-3 py-2 text-sm"
               placeholder="扫描或输入SN码"
               value={snCode}
-              onChange={setSnCode}
+              onChange={(e) => setSnCode(e.target.value)}
             />
-            <Button onClick={handleScan} icon={<Scanline />}>
-              扫码
+            <Button
+              onClick={handleScan}
+              className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm flex items-center gap-1"
+            >
+              <Scan size={16} /> 扫码
             </Button>
-          </div>
-        </div>
+          </View>
+        </View>
 
+        {/* Instrument Info */}
         {instrument && (
-          <Card className="bg-blue-50 mb-4">
-            <p className="font-medium text-lg">{instrument.name}</p>
-            <p className="text-gray-500 text-sm mt-1">品牌: {instrument.brand}</p>
-            <p className="text-gray-500 text-sm">级别: {instrument.level_name}</p>
-          </Card>
+          <View className="bg-white rounded-xl p-4">
+            <Text className="text-sm font-medium text-gray-900 mb-2">乐器信息</Text>
+            <Text className="font-medium">{instrument.name}</Text>
+            {instrument.brand && <Text className="text-sm text-gray-500 mt-1">品牌: {instrument.brand}</Text>}
+            {instrument.level_name && <Text className="text-sm text-gray-500">级别: {instrument.level_name}</Text>}
+            <Text className="text-sm text-gray-500">SN: {instrument.sn}</Text>
+          </View>
         )}
 
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2">故障描述</label>
+        {/* Problem Description */}
+        <View className="bg-white rounded-xl p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">故障描述</label>
           <textarea
-            className="w-full p-3 border rounded-lg"
+            className="w-full p-3 border rounded-lg text-sm"
             rows={4}
             placeholder="请详细描述故障情况..."
             value={problem}
             onChange={(e) => setProblem(e.target.value)}
           />
-        </div>
+        </View>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2">故障部位照片</label>
-          <div className="flex flex-wrap gap-2">
+        {/* Photo Upload */}
+        <View className="bg-white rounded-xl p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">故障部位照片</label>
+          <View className="flex flex-wrap gap-2">
             {images.map((img, idx) => (
-              <div key={idx} className="w-20 h-20 bg-gray-200 rounded">
-                <img src={img} alt="" className="w-full h-full object-cover rounded" />
-              </div>
+              <View key={idx} className="w-20 h-20 bg-gray-200 rounded overflow-hidden">
+                <Image src={img} alt="" className="w-full h-full object-cover" />
+              </View>
             ))}
-            <button className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400">
-              <CameraOutline size={24} />
-            </button>
-          </div>
-        </div>
+            <View className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400">
+              <Camera size={24} />
+            </View>
+          </View>
+        </View>
 
+        {/* Submit Button */}
         <Button
-          type="primary"
-          block
-          loading={submitting}
-          disabled={!instrument || !problem}
           onClick={handleSubmit}
+          disabled={!instrument || !problem || submitting}
+          className="w-full py-3 bg-brand-primary text-white rounded-lg font-medium disabled:opacity-50"
         >
-          提交报修
+          {submitting ? '提交中...' : '提交报修'}
         </Button>
-      </Card>
-    </div>
+      </View>
+    </View>
   );
 }

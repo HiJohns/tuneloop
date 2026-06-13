@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
@@ -40,48 +41,48 @@ export default function MyLeases() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
+    <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-lg font-bold">我的租约</h1>
-      </div>
+        </Button>
+        <Text className="text-lg font-bold">我的租约</Text>
+      </View>
 
-      <div className="p-4">
+      <View className="p-4">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">加载中...</div>
+          <View className="text-center py-8 text-gray-500">加载中...</View>
         ) : orders.length === 0 ? (
-          <div className="text-center py-16">
+          <View className="text-center py-16">
             <Package size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">暂无租约</p>
-          </div>
+            <Text className="text-gray-500">暂无租约</Text>
+          </View>
         ) : (
-          <div className="space-y-3">
+          <View className="space-y-3">
             {orders.map(order => (
-              <div
+              <View
                 key={order.id}
                 className="bg-white rounded-xl p-4 shadow-sm"
                 onClick={() => navigate(`/instrument/${order.instrument_id}`)}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium">订单 #{order.id?.slice(0, 8)}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
+                <View className="flex justify-between items-start mb-2">
+                  <Text className="font-medium">订单 #{order.id?.slice(0, 8)}</Text>
+                  <Text className={`text-xs px-2 py-1 rounded-full ${
                     order.status === 'in_lease' ? 'bg-green-100 text-green-700' :
                     order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                     'bg-gray-100 text-gray-600'
                   }`}>
                     {statusLabel[order.status] || order.status}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500 space-y-1">
-                  <p>月租: ¥{order.monthly_rent}</p>
-                  <p>押金: ¥{order.deposit}</p>
-                  {order.start_date && <p>起: {formatDisplayDate(order.start_date)}</p>}
-                  {order.end_date && <p>止: {formatDisplayDate(order.end_date)}</p>}
-                </div>
+                  </Text>
+                </View>
+                <View className="text-sm text-gray-500 space-y-1">
+                  <Text>月租: ¥{order.monthly_rent}</Text>
+                  <Text>押金: ¥{order.deposit}</Text>
+                  {order.start_date && <Text>起: {formatDisplayDate(order.start_date)}</Text>}
+                  {order.end_date && <Text>止: {formatDisplayDate(order.end_date)}</Text>}
+                </View>
                 {order.status === 'in_lease' && (
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation()
                       navigate(`/return/${order.id}?instrument=${order.instrument_id}`)
@@ -89,13 +90,13 @@ export default function MyLeases() {
                     className="mt-3 bg-brand-primary text-white py-2 px-4 rounded-lg text-sm"
                   >
                     归还乐器
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </View>
             ))}
-          </div>
+          </View>
         )}
-      </div>
-    </div>
+      </View>
+    </View>
   )
 }

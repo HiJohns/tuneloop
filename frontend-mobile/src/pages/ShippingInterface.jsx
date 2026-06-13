@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, User, MapPin, Package } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile } from '../platform'
+
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect fill="#f3f4f6" width="200" height="200"/><text x="100" y="100" text-anchor="middle" dominant-baseline="middle" fill="#9ca3af" font-size="14">暂无图片</text></svg>')
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
@@ -118,62 +121,64 @@ export default function ShippingInterface() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-24">
-      <div className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>
-        <h1 className="text-lg font-bold">发货</h1>
-      </div>
+    <View className="min-h-screen bg-brand-bg pb-24">
+      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Text className="text-lg font-bold">发货</Text>
+      </View>
 
-      <div className="p-4 space-y-4">
+      <View className="p-4 space-y-4">
         {/* Customer Info */}
         {order && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+          <View className="bg-white rounded-xl p-4">
+            <Text className="font-medium text-gray-900 mb-3 flex items-center gap-2">
               <User size={16} className="text-brand-primary" />
               收货人信息
-            </h3>
+            </Text>
             {order.user_name && (
-              <p className="text-sm font-medium">{order.user_name}</p>
+              <Text className="text-sm font-medium">{order.user_name}</Text>
             )}
             {order.delivery_address && (
-              <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
+              <View className="flex items-start gap-2 mt-2 text-sm text-gray-600">
                 <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                <span>{formatDeliveryAddress(order.delivery_address)}</span>
-              </div>
+                <Text>{formatDeliveryAddress(order.delivery_address)}</Text>
+              </View>
             )}
-          </div>
+          </View>
         )}
 
         {/* Instrument Info */}
         {instrument && (
-          <div className="bg-white rounded-xl p-4">
-            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+          <View className="bg-white rounded-xl p-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
+            <Text className="font-medium text-gray-900 mb-3 flex items-center gap-2">
               <Package size={16} className="text-brand-primary" />
               乐器信息
-            </h3>
-            <div className="flex gap-3">
+            </Text>
+            <View className="flex gap-3">
               {(() => {
                 try {
                   const imgs = JSON.parse(instrument.images || '[]')
-                  if (imgs[0]) return <img src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                  if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
                 } catch {}
-                return null
+                return <Image src={PLACEHOLDER_IMAGE} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
               })()}
-              <div>
-                <p className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</p>
-                <p className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</p>
-              </div>
-            </div>
-          </div>
+              <View>
+                <Text className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</Text>
+                <Text className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
+                {instrument.tenant_name && <Text className="text-xs text-gray-400 mt-0.5">{instrument.tenant_name}</Text>}
+                {instrument.site_name && <Text className="text-xs text-gray-400">网点: {instrument.site_name}</Text>}
+              </View>
+            </View>
+          </View>
         )}
 
         {/* Logistics Info */}
-        <div className="bg-white rounded-xl p-4 space-y-3">
-          <h3 className="font-medium text-gray-900 flex items-center gap-2">
-            <span className="w-2 h-2 bg-red-500 rounded-full inline-block" />
+        <View className="bg-white rounded-xl p-4 space-y-3">
+          <Text className="font-medium text-gray-900 flex items-center gap-2">
+            <Text className="w-2 h-2 bg-red-500 rounded-full inline-block" />
             物流信息
-            <span className="text-xs text-gray-400 font-normal">（必填）</span>
-          </h3>
+            <Text className="text-xs text-gray-400 font-normal">（必填）</Text>
+          </Text>
           <input
             type="text"
             value={logistics.company}
@@ -188,49 +193,49 @@ export default function ShippingInterface() {
             placeholder="快递单号"
             className="w-full border rounded-lg px-3 py-2 text-sm"
           />
-        </div>
+        </View>
 
         {/* Photo Capture */}
-        <div className="bg-white rounded-xl p-4">
-          <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+        <View className="bg-white rounded-xl p-4">
+          <Text className="font-medium text-gray-900 mb-3 flex items-center gap-2">
             <Camera size={16} className="text-brand-primary" />
             拍照留档
-            <span className="text-xs text-gray-400 font-normal">（至少 1 张）</span>
-          </h3>
-          <div className="grid grid-cols-3 gap-2 mb-3">
+            <Text className="text-xs text-gray-400 font-normal">（至少 1 张）</Text>
+          </Text>
+          <View className="grid grid-cols-3 gap-2 mb-3">
             {photos.map((file, i) => (
-              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border">
-                <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                <button
+              <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
+                <Image src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                <Button
                   onClick={() => removePhoto(i)}
                   className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
                 >
-                  <span className="text-white text-xs">✕</span>
-                </button>
-              </div>
+                  <Text className="text-white text-xs">✕</Text>
+                </Button>
+              </View>
             ))}
             {photos.length < 10 && (
               <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:text-brand-primary">
                 <Camera size={24} />
-                <span className="text-xs mt-1">拍摄</span>
+                <Text className="text-xs mt-1">拍摄</Text>
                 <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
               </label>
             )}
-          </div>
-          <p className="text-xs text-gray-400">已拍摄 {photos.length} 张，最多 10 张</p>
-        </div>
-      </div>
+          </View>
+          <Text className="text-xs text-gray-400">已拍摄 {photos.length} 张，最多 10 张</Text>
+        </View>
+      </View>
 
       {/* Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <button
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+        <Button
           onClick={handleSubmit}
           disabled={!canSubmit}
           className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50 text-lg"
         >
           {submitting ? '提交中...' : '提交'}
-        </button>
-      </div>
-    </div>
+        </Button>
+      </View>
+    </View>
   )
 }
