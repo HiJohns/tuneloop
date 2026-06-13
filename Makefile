@@ -1,4 +1,13 @@
-.PHONY: web-dev mobile-dev web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+
+NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
+
+weapp-check:
+	@if [ "$(NODE_MAJOR)" != "22" ]; then \
+		echo "ERROR: Taro weapp requires Node.js v22 (current: v$(NODE_MAJOR))"; \
+		echo "Run: nvm use 22"; \
+		exit 1; \
+	fi
 
 kill-port:
 	@fuser -k 5556/tcp 2>/dev/null || true
@@ -38,6 +47,20 @@ mobile-dev:
 	@echo "Starting Mobile frontend development server..."
 	@echo "Mobile Frontend: http://localhost:5553"
 	@cd frontend-mobile && npm run dev
+
+mobile-weapp-dev: weapp-check
+	@echo "Starting Taro weapp build (watch)..."
+	@echo "Open WeChat Developer Tool -> import dist-weapp/"
+	@cd frontend-mobile && npm run dev:weapp
+
+weapp-upload: weapp-check
+	@cd frontend-mobile && \
+	node_modules/.bin/miniprogram-ci upload \
+		--pp dist-weapp \
+		--pkp private*.key \
+		--appid wxcb44a1be70e356ed \
+		--uv $(or $(VERSION),1.0.0) \
+		--ud "$(or $(DESC),auto deploy)"
 
 run: run-backend
 
@@ -82,9 +105,12 @@ release: clean-prerelease
 	# PC frontend
 	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
 	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop/www/
-	# Mobile frontend
+	# Mobile frontend (Vite H5)
 	cd frontend-mobile && npm run build -- --mode prerelease
 	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop/mobile/
+	# Mobile weapp (Taro)
+	cd frontend-mobile && npm run build:weapp
+	cp -r frontend-mobile/dist-weapp $(RELEASE_BUILD)/tuneloop/weapp/
 	# Backend
 	cd backend && go build -o $(RELEASE_BUILD)/tuneloop/service/tuneloop .
 	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop/database/

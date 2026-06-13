@@ -17,6 +17,7 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/iam-notes.md` - tuneloop 侧对 IAM 的补充说明和过渡期记录
 - `docs/permissions.md` - 权限-人员矩阵
 - `docs/account-lifecycle.md` - 账户生命周期与数据完整性
+- `docs/weapp.md` - 微信小程序架构与部署（Taro 构建策略、三端架构、登录流程、发布流程）
 
 ## Environment Guide
 
@@ -24,14 +25,42 @@ See `prompts/instructions.md` for full port mapping. Key rule:
 
 **默认上下文是开发环境 (Dev)，不是预生产 (Prerelease)。**
 
-| 环境 | beaconiam | tuneloop PC | tuneloop Backend |
-|------|-----------|-------------|------------------|
-| Dev | 5552 (Vite) / 5561 (API) | 5554 (Vite) / 5557 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5561` |
-| Prerelease | 5560 (NGINX) | 5558 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5560` |
+| 环境 | beaconiam | tuneloop PC | tuneloop Backend | tuneloop Mobile |
+|------|-----------|-------------|------------------|-----------------|
+| Dev | 5552 (Vite) / 5561 (API) | 5554 (Vite) / 5557 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5561` | 5553 (Vite/Taro H5) |
+| Prerelease | 5560 (NGINX) | 5558 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5560` | — |
 
 - 除非用户明确指明"预生产"，否则所有讨论、调试、Issue 都指 Dev 环境
 - 两套环境有独立的 beaconiam 实例、独立的 RSA 密钥对、独立的数据库
 - Never mix: 预生产的 token 在开发环境验证必报 `crypto/rsa: verification error`
+
+## Node.js 版本要求
+
+**Taro v4 在 Node.js v24 下存在兼容性问题**（`module is not defined in ES module scope`）。`frontend-mobile` 构建必须使用 **Node.js v22 LTS**（当前: v22.22.3）。
+
+```bash
+# 使用 nvm 切换
+nvm use 22
+```
+
+### Weapp 构建与部署
+
+```bash
+# 开发期监听构建
+make mobile-weapp-dev
+# 或手动：nvm use 22 && cd frontend-mobile && npm run dev:weapp
+
+# 生产构建
+cd frontend-mobile && npm run build:weapp   # → dist-weapp/
+
+# 上传到微信服务器（需私钥）
+make weapp-upload VERSION=1.0.0 DESC="release note"
+
+# 全量打包（含 weapp 产物）
+make release
+```
+
+**注意**：`make weapp-upload` 依赖 `frontend-mobile/private.APPID.key` 私钥文件（已 gitignore）。
 
 ---
 
