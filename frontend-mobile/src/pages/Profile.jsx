@@ -5,7 +5,7 @@ import { message } from 'antd'
 import { api, apiFetch, getToken, redirectToLogin, addressesApi, notificationApi, resendEmailConfirmation } from '../services/api'
 import { User, MapPin, Bell, ChevronRight, LogOut, Edit3, Key, Package, History, Clock, FileText, ClipboardList, Plus, Trash2, CheckCircle, Send, AlertCircle } from 'lucide-react'
 import AddressForm from '../components/AddressForm'
-import { dialog, env, storage, session, cookie } from '../platform'
+import { dialog, env, storage, session, cookie, openLink } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
@@ -211,10 +211,10 @@ export default function Profile() {
   }
 
   const handlePasswordSetup = () => {
-    const iamUrl = window.APP_CONFIG?.wx?.iamExternalUrl ||
-                   env.iamExternalUrl
+    const appConfig = storage.getJSON('app_config', {})
+    const iamUrl = appConfig?.wx?.iamExternalUrl || env.iamExternalUrl
     if (iamUrl) {
-      window.open(`${iamUrl}/auth/setup-password`, '_blank')
+      openLink(`${iamUrl}/auth/setup-password`)
     }
   }
 

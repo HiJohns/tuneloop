@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { instrumentsApi, apiFetch, getToken, redirectToLogin } from '../services/api'
 import { ChevronRight, Search, Heart, ShoppingCart } from 'lucide-react'
-import { env, storage } from '../platform'
+import { env, storage, eventBus, onPageScroll } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -159,8 +159,8 @@ export default function Home() {
   // Listen for cart updates to refresh floating icon
   useEffect(() => {
     const handleCartUpdate = () => forceUpdate(prev => prev + 1)
-    window.addEventListener('cartUpdated', handleCartUpdate)
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+    eventBus.on('cartUpdated', handleCartUpdate)
+    return () => eventBus.off('cartUpdated', handleCartUpdate)
   }, [])
 
   // Intersection Observer for infinite scroll
@@ -178,7 +178,7 @@ export default function Home() {
       }
     )
 
-    const sentinel = document.getElementById('scroll-sentinel')
+    const sentinel = typeof document !== 'undefined' ? document.getElementById('scroll-sentinel') : null
     if (sentinel) {
       console.log('[Infinite Scroll] Observer attached to sentinel, hasMore:', hasMore)
       observer.observe(sentinel)
@@ -199,12 +199,12 @@ export default function Home() {
 
   // Scroll event fallback for mobile/WeChat
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = (e) => {
       if (!hasMore || loadingMore) return
       
-      const scrollTop = window.scrollY || document.documentElement.scrollTop
-      const scrollHeight = document.documentElement.scrollHeight
-      const clientHeight = window.innerHeight
+      const scrollTop = e?.scrollTop ?? window.scrollY ?? document.documentElement?.scrollTop ?? 0
+      const scrollHeight = document.documentElement?.scrollHeight ?? 0
+      const clientHeight = window.innerHeight ?? 0
       
       if (scrollTop + clientHeight >= scrollHeight - 200) {
         console.log('[Infinite Scroll] Scroll event triggered')
@@ -212,8 +212,7 @@ export default function Home() {
       }
     }
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    return onPageScroll(handleScroll)
   }, [hasMore, loadingMore])
 
   const toggleFavorite = (instrumentId) => {

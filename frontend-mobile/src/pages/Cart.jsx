@@ -4,7 +4,7 @@ import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components
 import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
 import { getToken, redirectToLogin, ordersApi, addressesApi } from '../services/api'
 import dayjs from 'dayjs'
-import { dialog, env, storage, session } from '../platform'
+import { dialog, env, storage, session, eventBus } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -161,7 +161,7 @@ export default function Cart() {
     storage.setJSON('cart', { items: updated })
     setCart(newCart)
     setGrouped(recalculateGroups(updated))
-    window.dispatchEvent(new Event('cartUpdated'))
+    eventBus.emit('cartUpdated')
   }
 
   const clearInvalidItems = () => {
@@ -204,7 +204,7 @@ export default function Cart() {
 
   const clearCart = () => {
     storage.setJSON('cart', { items: [] })
-    window.dispatchEvent(new Event('cartUpdated'))
+    eventBus.emit('cartUpdated')
   }
 
   const handleOrder = async () => {

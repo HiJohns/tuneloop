@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { warehouseApi, apiFetch } from '../services/api'
-import { env } from '../platform'
+import { env, scanQRCode } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { ArrowLeft, Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
 
@@ -120,34 +120,13 @@ export default function StaffOrders() {
     navigate(`/staff/orders/${id}`)
   }
 
-  const handleQRScan = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.capture = 'environment'
-    input.onchange = async (e) => {
-      const file = e.target.files[0]
-      if (!file) return
-      try {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        const img = new Image()
-        img.onload = async () => {
-          canvas.width = img.width; canvas.height = img.height
-          ctx.drawImage(img, 0, 0)
-          try {
-            const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
-            const bitmap = await createImageBitmap(blob)
-            const detector = new BarcodeDetector({ formats: ['qr_code'] })
-            const codes = await detector.detect(bitmap)
-            if (codes.length > 0) navigate(`/staff/orders/${codes[0].rawValue}`)
-            else alert('未识别到二维码')
-          } catch { alert('二维码识别失败，请手动输入订单号') }
-        }
-        img.src = URL.createObjectURL(file)
-      } catch { alert('扫码功能不可用，请手动输入订单号') }
+  const handleQRScan = async () => {
+    try {
+      const result = await scanQRCode()
+      navigate(`/staff/orders/${result}`)
+    } catch {
+      alert('扫码失败，请手动输入订单号')
     }
-    input.click()
   }
 
   return (

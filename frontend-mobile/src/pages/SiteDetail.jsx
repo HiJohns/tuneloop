@@ -4,6 +4,7 @@ import { apiFetch } from '../services/api';
 import { Card, Button as AntButton, Image, Tag, Divider } from 'antd';
 import { EnvironmentOutlined, PhoneOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { View, Text, Button } from '@tarojs/components';
+import { phone } from '../platform';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -47,7 +48,7 @@ export default function SiteDetail() {
 
   const handleCall = () => {
     if (site && site.phone) {
-      window.location.href = `tel:${site.phone}`;
+      phone.call(site.phone);
     }
   };
 

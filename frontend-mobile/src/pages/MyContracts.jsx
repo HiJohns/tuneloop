@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { contractsApi } from '../services/api'
 import { ArrowLeft, FileText, ChevronRight, ExternalLink, Calendar } from 'lucide-react'
+import { openLink } from '../platform'
 
 export default function MyContracts() {
   const navigate = useNavigate()
@@ -53,7 +54,7 @@ export default function MyContracts() {
               className="bg-white rounded-xl p-4 cursor-pointer"
               onClick={() => {
                 if (contract.contract_url) {
-                  window.open(contract.contract_url, '_blank')
+                  openLink(contract.contract_url)
                 }
               }}
             >

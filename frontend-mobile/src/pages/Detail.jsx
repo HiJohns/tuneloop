@@ -4,7 +4,7 @@ import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
 import { Switch, Tag, Modal, Button as AntButton } from 'antd'
 import dayjs from 'dayjs'
-import { env, storage } from '../platform'
+import { env, storage, eventBus } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 
@@ -123,7 +123,7 @@ export default function Detail() {
     
     storage.setJSON('cart', { items: filtered })
     setCartToast(true)
-    window.dispatchEvent(new Event('cartUpdated'))
+    eventBus.emit('cartUpdated')
   }
 
   const isRentable = instrument?.stock_status === 'available'

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { View, Text, Button } from '@tarojs/components'
 import { CheckCircle, Calendar, Package, Hash, MapPin, User } from 'lucide-react'
 import { formatDisplayDate } from '../utils/format'
+import { storage, eventBus } from '../platform'
 
 export default function Success() {
   const navigate = useNavigate()
@@ -11,8 +12,8 @@ export default function Success() {
   const isBatch = Array.isArray(orderData.orders)
 
   useEffect(() => {
-    localStorage.removeItem('cart')
-    window.dispatchEvent(new Event('cartUpdated'))
+    storage.removeItem('cart')
+    eventBus.emit('cartUpdated')
   }, [])
 
   const handleDone = () => {

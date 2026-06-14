@@ -54,6 +54,53 @@ export const navigation = {
   getQueryParams: () => Object.fromEntries(new URLSearchParams(window.location.search)),
 }
 
+export const eventBus = {
+  on: (event, handler) => window.addEventListener(event, handler),
+  off: (event, handler) => window.removeEventListener(event, handler),
+  emit: (event) => window.dispatchEvent(new Event(event)),
+}
+
+export const phone = {
+  call: (number) => { window.location.href = `tel:${number}` },
+}
+
+export const openLink = (url) => { window.open(url, '_blank') }
+
+export const scanQRCode = () => new Promise((resolve, reject) => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.capture = 'environment'
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    try {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      img.onload = async () => {
+        canvas.width = img.width
+        canvas.height = img.height
+        ctx.drawImage(img, 0, 0)
+        try {
+          const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+          const bitmap = await createImageBitmap(blob)
+          const detector = new BarcodeDetector({ formats: ['qr_code'] })
+          const codes = await detector.detect(bitmap)
+          resolve(codes[0].rawValue)
+        } catch { reject(new Error('未识别到二维码')) }
+      }
+      img.src = URL.createObjectURL(file)
+    } catch { reject(new Error('扫码功能不可用')) }
+  }
+  input.click()
+})
+
+export const onPageScroll = (handler) => {
+  window.addEventListener('scroll', handler)
+  return () => window.removeEventListener('scroll', handler)
+}
+
 const isWechatBrowser = typeof window !== 'undefined' && /micromessenger/i.test(navigator.userAgent)
 const isMiniProgram = typeof window !== 'undefined' && window.__wxjs_environment === 'miniprogram'
 export const env = {
