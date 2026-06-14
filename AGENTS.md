@@ -82,14 +82,66 @@ tuneloop/
 │       ├── components/      # Shared components (ProtectedRoute, etc.)
 │       ├── services/api.js  # Axios API client + auth interceptors
 │       └── config/          # menuPermissions.js — permission rules
-├── frontend-mobile/         # WeChat mini-program / mobile web (Vite)
+├── frontend-mobile/         # WeChat mini-program / mobile web (Vite + Taro)
 │   └── src/
+│       ├── platform/         # 跨端适配层（浏览器 ↔ 小程序）
+│       │   ├── browser.js    # 浏览器实现（localStorage, fetch, lucide-react）
+│       │   ├── index.js      # 条件导出（TARO_ENV → weapp/browser）
+│       │   └── index.weapp.js # 小程序实现（Taro Storage, Taro.request, text-icon）
+│       ├── taro-shim.js      # Vite 模式：@tarojs/components → HTML 元素映射
+│       ├── pages/            # 页面组件（.jsx，多端共用唯一业务逻辑源）
+│       └── utils/            # 通用工具
 ├── docs/                    # Core documentation (bilingual: zh + en)
 └── scripts/                 # Build & CI helper scripts
 ```
 
-## Repository Status
-**Note**: This repository is currently empty. The guidelines below represent standard best practices for modern web development. Update them as the project structure becomes established.
+## 跨端代码复用架构（强制工程原则）
+
+> **来源**: #882 — 前端双代码库问题分析与架构决策。
+
+`frontend-mobile` 必须在**一套 `.jsx` 代码**上同时支撑 Vite H5（浏览器）和 Taro weapp（微信小程序）两端的编译运行。**禁止**为两端创建独立的业务逻辑副本。
+
+### 架构模式
+
+```
+.jsx 文件 (唯一业务逻辑源)
+   │
+   ├── 平台 API               → import { storage, navigation, env } from '../platform'
+   ├── 图标组件               → import { ArrowLeft, ChevronRight } from '../platform'
+   ├── Taro 组件 (<View>等)   → import from '@tarojs/components'
+   │                              ├─ Vite mode: taro-shim.js → HTML 元素
+   │                              └─ Taro mode: 原生小程序组件
+   │
+   └── 平台抽象层 (src/platform/)
+        ├── browser.js          → localStorage, fetch, lucide-react, window.location
+        ├── index.weapp.js      → Taro.getStorageSync, Taro.request, text图标, Taro.navigateTo
+        └── index.js            → 条件导出 (process.env.TARO_ENV)
+```
+
+### 强制规则
+
+| 规则 | 说明 |
+|------|------|
+| **禁止** `import ... from 'react-router-dom'` | 用 `import { navigation } from '../platform'` 替代 |
+| **禁止** `import ... from 'lucide-react'` | 用 `import { IconName } from '../platform'` 替代 |
+| **禁止** 直接 `localStorage` / `fetch` | 用 `import { storage, request } from '../platform'` 替代 |
+| `.tsx` 只能做薄壳 | `.tsx` = `export { default } from '../../Xxx'` —— 任何业务逻辑必须写在 `.jsx` 中 |
+
+### 页面入口架构
+
+```
+src/pages/
+├── Home.jsx                    ← 唯一业务逻辑 (两端共用)
+├── home/
+│   └── index.tsx               ← 薄壳: export { default } from '../../Home'
+├── Profile.jsx                 ← 唯一业务逻辑
+├── profile/
+│   └── index.tsx               ← 薄壳: export { default } from '../../Profile'
+...
+
+app.config.ts                   ← Taro 页面注册 (指向 .tsx 薄壳)
+```
+---
 
 ## Build & Development Commands
 
