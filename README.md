@@ -1,6 +1,6 @@
 # TuneLoop - 乐器租赁系统
 
-> 版本: 2.0 | 最后更新: 2026-03-21
+> 版本: 2.1 | 最后更新: 2026-06-13
 
 基于 **12-Factor App** 和 **Lin-IAM** 身份底座的乐器租赁平台，支持 **租转售 (Rent-to-Own)** 模式。
 
@@ -56,8 +56,10 @@ TuneLoop 是一个面向乐器租赁业务的 SaaS 平台，提供：
 
 ### 前端
 - **PC端**: React 18 + TypeScript + Ant Design 5.x + Tailwind CSS
-- **移动端**: 微信小程序原生框架
+- **移动端**: Taro 4.x（一套 React 代码同时输出 **H5** 和 **微信小程序**）
 - **地图**: 高德地图 AMap
+
+> **架构要点**：移动端通过 `src/platform/` 抽象层实现跨端适配。同一份 `.jsx` 代码经 Vite 编译为 H5（浏览器），经 Taro 编译为微信小程序。`.tsx` 文件仅为 Taro 页面注册所需的薄壳（`export { default } from '../../Xxx'`），业务逻辑全在 `.jsx` 中。详见 `docs/weapp.md` 和 `AGENTS.md §跨端代码复用架构`。
 
 ### 核心依赖
 ```
@@ -73,6 +75,14 @@ frontend-pc:
   - antd: ^5.12.0
   - react-router-dom: ^6.20.0
   - tailwindcss: ^3.3.5
+
+frontend-mobile:
+  - react: ^18.2.0
+  - @tarojs/cli: ^4.2.0
+  - @tarojs/components: ^4.2.0
+  - @tarojs/taro: ^4.2.0
+  - tailwindcss: ^3.3.5
+  - vite: ^5.0.0
 ```
 
 ---
@@ -108,9 +118,9 @@ frontend-pc:
 
 ### 环境要求
 - Go 1.21+
-- Node.js 18+
+- Node.js 22 LTS（Taro 4.x 不兼容 Node.js v24）
 - PostgreSQL 14+
-- 微信开发者工具
+- 微信开发者工具（用于 weapp 预览和调试）
 
 ### 后端启动
 ```bash
@@ -128,9 +138,7 @@ go run cmd/migrate/main.go
 
 # 4. 启动服务
 go run main.go
-
-# PC端服务: http://localhost:5554
-# 移动端服务: http://localhost:5553
+# 后端 API: http://localhost:5557
 ```
 
 ### PC端前端启动
@@ -151,17 +159,29 @@ npm run dev
 npm run build
 ```
 
-### 小程序端
+### 移动端 (H5 + 微信小程序)
+
 ```bash
 cd frontend-mobile
 
 # 1. 安装依赖
 npm install
 
-# 2. 配置 app.config.js
+# 2. H5 开发模式 (浏览器)
+npm run dev
+# → http://localhost:5553
 
-# 3. 微信开发者工具打开项目
+# 3. 微信小程序开发模式 (需 Node.js v22)
+nvm use 22
+npm run dev:weapp
+# → 微信开发者工具 → 导入 dist-weapp/ 目录
+
+# 4. 构建生产包
+npm run build      # H5
+npm run build:weapp # 小程序
 ```
+
+> **架构说明**：同一套 `.jsx` 代码同时编译为 H5（Vite）和微信小程序（Taro）。`src/platform/` 层根据编译目标自动切换浏览器 API ↔ Taro API。详见 `docs/weapp.md`。
 
 ---
 
@@ -178,14 +198,25 @@ make run
 # 启动 PC 前端 Vite 服务
 make web-dev
 
-# 启动微信前端 Vite 服务
+# 启动移动端 H5 Vite 服务
 make mobile-dev
+
+# 启动移动端小程序开发编译 (watch)
+make mobile-weapp-dev
+
+# 构建全量发布包 (H5 + PC + 小程序 + 后端)
+make release
+
+# 上传小程序 (需私钥)
+make weapp-upload VERSION=1.0.0 DESC="release note"
 ```
 
 ### 访问地址
-- https://opencode.linxdeep.com:5552 => IAM 服务
-- https://opencode.linxdeep.com:5553 => Vite (wx) => :5556 (service/wx)
-- https://opencode.linxdeep.com:5552 => Vite (web) => :5557 (service/web)
+- https://opencode.linxdeep.com:5552 → IAM (Vite)
+- https://opencode.linxdeep.com:5553 → Mobile H5 (Vite)
+- https://opencode.linxdeep.com:5554 → PC Web (Vite)
+- https://opencode.linxdeep.com:5557 → 后端 API
+- https://opencode.linxdeep.com:5561 → IAM API
 
 ### 配置
 在根目录的 `.env` 中完成 IAM 相关跳转配置
