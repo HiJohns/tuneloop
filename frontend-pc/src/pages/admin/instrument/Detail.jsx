@@ -234,8 +234,99 @@ export default function InstrumentDetail() {
               </Col>
               
               <Col span={8}>
-                <Card title="多媒体">
-                  {mediaLoading ? <Spin /> : (() => {
+                <Card title="价格配置">
+                  {pricingV2Loading ? (
+                    <Spin />
+                  ) : pricingV2?.tiers?.length > 0 ? (
+                    <>
+                      <Table
+                        dataSource={pricingV2.tiers.map((t, i) => ({ ...t, _key: i }))}
+                        rowKey="_key"
+                        pagination={false}
+                        columns={[
+                          {
+                            title: '阶段',
+                            key: 'name',
+                            width: 80,
+                            render: (_, __, i) => `第${i + 1}阶`,
+                          },
+                          {
+                            title: '天数范围',
+                            key: 'range',
+                            width: 150,
+                            render: (_, r, i) => {
+                              const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
+                              const daysMax = r.days_max > 0 ? r.days_max : '以上'
+                              return `${prevMax + 1}-${daysMax}天`
+                            },
+                          },
+                          {
+                            title: '日租金',
+                            dataIndex: 'daily_rate',
+                            key: 'daily',
+                            width: 100,
+                            render: (v) => `¥${(v || 0).toFixed(2)}`,
+                          },
+                        ]}
+                      />
+                      <Divider />
+                      <Descriptions column={2} size="small" bordered>
+                        <Descriptions.Item label="日均底价">
+                          ¥{(pricingV2?.base_daily_rate || 0).toFixed(2)}/天
+                        </Descriptions.Item>
+                        <Descriptions.Item label="押金">
+                          ¥{(pricingV2?.deposit || 0).toFixed(2)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="物流费">
+                          ¥{(pricingV2?.shipping_fee ?? 0).toFixed(2)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="逾期日费">
+                          ¥{(overdueDailyFee || 0).toFixed(2)}/天
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </>
+                  ) : (
+                    <Empty description="暂未配置分阶段定价" />
+                  )}
+                </Card>
+
+                <Card title="当前租赁" className="mt-4">
+                  {leaseLoading ? (
+                    <Spin />
+                  ) : !activeStatuses.includes(instrument.stock_status) ? (
+                    <Empty description="当前无租赁信息" />
+                  ) : !leaseData ? (
+                    <Empty description="未找到关联订单" />
+                  ) : (
+                    <div className="space-y-4">
+                      <Descriptions column={1} bordered size="small">
+                        <Descriptions.Item label="租赁人">
+                          <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="租期">
+                          <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
+                        </Descriptions.Item>
+                      </Descriptions>
+                      <div className="text-sm text-gray-500 space-y-1">
+                        <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
+                        <p>押金: ¥{leaseData.order?.deposit || 0}</p>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+          )
+        },
+        {
+          label: '多媒体',
+          key: 'media',
+          children: (
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card title="展示图像">
+                  {(() => {
                     const media = instrument.media
                     const displayImages = media?.display?.filter(m => m.file_type === 'image') || []
                     const images = displayImages.length > 0
@@ -248,7 +339,31 @@ export default function InstrumentDetail() {
                     return (
                       <>
                         <div className="mb-4">
-                          <h4 className="text-sm font-medium text-gray-600 mb-2">当前展示</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="text-sm font-medium text-gray-600">当前展示</h4>
+                            <label className="text-xs text-brand-primary cursor-pointer hover:underline">
+                              上传/替换
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0]
+                                  if (!file) return
+                                  try {
+                                    const res = await instrumentsApi.displayImageUpload(id, file)
+                                    if (res.code === 20000) {
+                                      message.success('展示图上传成功')
+                                      fetchInstrument()
+                                    }
+                                  } catch (err) {
+                                    message.error('上传失败: ' + (err.message || ''))
+                                  }
+                                  e.target.value = ''
+                                }}
+                              />
+                            </label>
+                          </div>
                           {images.length > 0 ? (
                             <Image.PreviewGroup>
                               {images.map((item, index) => (
@@ -256,8 +371,8 @@ export default function InstrumentDetail() {
                                   key={index}
                                   src={item.url || item}
                                   alt={`${instrument.sn}-${index}`}
-                                  width={80}
-                                  height={80}
+                                  width={120}
+                                  height={120}
                                   className="mr-2 mb-2 object-cover rounded"
                                 />
                               ))}
@@ -269,7 +384,7 @@ export default function InstrumentDetail() {
 
                         {video && (
                           <div className="mb-4">
-                            <h4 className="text-sm font-medium text-gray-600 mb-2">当前视频</h4>
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">视频</h4>
                             <div className="flex items-start gap-4">
                               <video src={video.url} controls width="240" className="rounded" />
                               <Popconfirm title="确定删除此视频？" onConfirm={() => handleDeleteVideo(video.batch_id)}>
@@ -278,170 +393,114 @@ export default function InstrumentDetail() {
                             </div>
                           </div>
                         )}
-
-                        {mediaDetail?.groups?.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-600 mb-2">历史批次</h4>
-                            {mediaDetail.groups.map(group => (
-                              <Card key={group.batch_id} size="small" className="mb-2"
-                                title={
-                                  <Space>
-                                    <Tag>{group.batch_type}</Tag>
-                                    <span className="text-xs text-gray-400">{new Date(group.created_at).toLocaleString()}</span>
-                                    {group.batch_id === (mediaDetail.display?.[0]?.batch_id) && <Tag color="green">当前展示</Tag>}
-                                  </Space>
-                                }
-                                extra={
-                                  <Space>
-                                    <Button size="small" onClick={() => handleSetDisplay(group.batch_id)}>设为展示</Button>
-                                    <Popconfirm title="删除此批次将同时删除批次内所有文件，确定？" onConfirm={() => handleDeleteBatch(group.batch_id)}>
-                                      <Button danger size="small">删除</Button>
-                                    </Popconfirm>
-                                  </Space>
-                                }
-                              >
-                                <Image.PreviewGroup>
-                                  {group.items.filter(i => i.file_type === 'image').map((item, idx) => (
-                                    <Image key={idx} src={item.url} width={60} height={60} className="mr-1 mb-1 object-cover rounded" />
-                                  ))}
-                                </Image.PreviewGroup>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
                       </>
                     )
                   })()}
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card title="操作记录图像">
+                  {mediaLoading ? <Spin /> : mediaDetail?.groups?.length > 0 ? (
+                    <div>
+                      {mediaDetail.groups.filter(g => g.batch_type !== 'display').map(group => (
+                        <Card key={group.batch_id} size="small" className="mb-2"
+                          title={
+                            <Space>
+                              <Tag>{group.batch_type}</Tag>
+                              <span className="text-xs text-gray-400">{new Date(group.created_at).toLocaleString()}</span>
+                              {group.batch_id === (mediaDetail.display?.[0]?.batch_id) && <Tag color="green">当前展示</Tag>}
+                            </Space>
+                          }
+                          extra={
+                            <Space>
+                              <Button size="small" onClick={() => handleSetDisplay(group.batch_id)}>设为展示</Button>
+                              <Popconfirm title="删除此批次？" onConfirm={() => handleDeleteBatch(group.batch_id)}>
+                                <Button danger size="small">删除</Button>
+                              </Popconfirm>
+                            </Space>
+                          }
+                        >
+                          <Image.PreviewGroup>
+                            {group.items.filter(i => i.file_type === 'image').map((item, idx) => (
+                              <Image key={idx} src={item.url} width={60} height={60} className="mr-1 mb-1 object-cover rounded" />
+                            ))}
+                          </Image.PreviewGroup>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Empty description="暂无操作记录图像" />
+                  )}
                 </Card>
               </Col>
             </Row>
           )
         },
         {
-          label: '价格配置',
-          key: 'pricing',
+          label: '日志',
+          key: 'log',
           children: (
-            <Card title="分段租金策略">
-              {pricingV2Loading ? (
-                <Spin />
-              ) : pricingV2?.tiers?.length > 0 ? (
-                <>
-                  <Table
-                    dataSource={pricingV2.tiers.map((t, i) => ({ ...t, _key: i }))}
-                    rowKey="_key"
-                    pagination={false}
-                    columns={[
-                      {
-                        title: '阶段',
-                        key: 'name',
-                        width: 80,
-                        render: (_, __, i) => `第${i + 1}阶`,
-                      },
-                      {
-                        title: '天数范围',
-                        key: 'range',
-                        width: 150,
-                        render: (_, r, i) => {
-                          const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                          const daysMax = r.days_max > 0 ? r.days_max : '以上'
-                          return `${prevMax + 1}-${daysMax}天`
-                        },
-                      },
-                      {
-                        title: '日租金',
-                        dataIndex: 'daily_rate',
-                        key: 'daily',
-                        width: 100,
-                        render: (v) => `¥${(v || 0).toFixed(2)}`,
-                      },
-                    ]}
-                  />
-                  <Divider />
-                  <Descriptions column={2} size="small" bordered>
-                    <Descriptions.Item label="日均底价">
-                      ¥{(pricingV2?.base_daily_rate || 0).toFixed(2)}/天
-                    </Descriptions.Item>
-                    <Descriptions.Item label="押金">
-                      ¥{(pricingV2?.deposit || 0).toFixed(2)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="物流费">
-                      ¥{(pricingV2?.shipping_fee ?? 0).toFixed(2)}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="逾期日费">
-                      ¥{(overdueDailyFee || 0).toFixed(2)}/天
-                    </Descriptions.Item>
-                  </Descriptions>
-                </>
-              ) : (
-                <Empty description="暂未配置分阶段定价" />
-              )}
-            </Card>
-          )
-        },
-        {
-          label: '租赁状态',
-          key: 'lease',
-          children: (
-            <Card title="当前租赁信息">
-              {leaseLoading ? (
-                <Spin />
-              ) : !activeStatuses.includes(instrument.stock_status) ? (
-                <Empty description="当前无租赁信息" />
-              ) : !leaseData ? (
-                <Empty description="未找到关联订单" />
-              ) : (
-                <div className="space-y-4">
-                  <Descriptions column={2} bordered size="small">
-                    <Descriptions.Item label="租赁人">
-                      <Space>
-                        <UserOutlined />
-                        {leaseData.user?.name || '-'}
-                      </Space>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="电话">
-                      {leaseData.user?.phone || '-'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="地址" span={2}>
-                      <Space>
-                        <EnvironmentOutlined />
-                        {leaseData.user?.address || '-'}
-                      </Space>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="租期开始">
-                      <Space>
-                        <CalendarOutlined />
-                        {leaseData.order?.start_date || '-'}
-                      </Space>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="租期结束">
-                      {leaseData.order?.end_date || '-'}
-                    </Descriptions.Item>
-                    {leaseData.order?.courier_company && (
-                      <>
-                        <Descriptions.Item label="物流公司">
-                          <Space>
-                            <TruckOutlined />
-                            {leaseData.order?.courier_company || '-'}
-                          </Space>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="物流单号">
-                          {leaseData.order?.tracking_number || '-'}
-                        </Descriptions.Item>
-                      </>
-                    )}
-                  </Descriptions>
-
-                  <div className="text-sm text-gray-500 space-y-1">
-                    <p>日租金: ¥{leaseData.order?.monthly_rent ? (leaseData.order.monthly_rent / 30).toFixed(0) : 0}</p>
-                    <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
-                    <p>押金: ¥{leaseData.order?.deposit || 0}</p>
-                  </div>
-                </div>
-              )}
-            </Card>
+            <ActivityLogTab instrumentId={id} />
           )
         }
       ]} />
+    </div>
+  )
+}
+
+function ActivityLogTab({ instrumentId }) {
+  const [sessions, setSessions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!instrumentId) return
+    setLoading(true)
+    instrumentsApi.getActivityLog(instrumentId).then(res => {
+      if (res.code === 20000) setSessions(res.data?.sessions || [])
+    }).catch(err => {
+      console.warn('Failed to load activity log:', err)
+    }).finally(() => setLoading(false))
+  }, [instrumentId])
+
+  if (loading) return <Spin />
+  if (sessions.length === 0) return <Empty description="暂无租借记录" />
+
+  return (
+    <div className="space-y-4">
+      {sessions.map(session => (
+        <Card key={session.order_id} size="small"
+          title={
+            <Space>
+              <span className="font-mono text-xs">#{session.order_id.slice(0, 8)}</span>
+              <Tag>{session.status}</Tag>
+              <span className="text-xs text-gray-400">{session.start_date} ~ {session.end_date || '进行中'}</span>
+            </Space>
+          }
+        >
+          {session.events.length === 0 ? (
+            <Empty description="暂无操作记录" />
+          ) : (
+            <div className="space-y-2">
+              {session.events.map((event, idx) => (
+                <div key={idx} className="flex gap-3 p-2 bg-gray-50 rounded">
+                  <div className="w-20 flex-shrink-0 text-xs text-gray-400">{new Date(event.time).toLocaleString()}</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{event.event}</p>
+                    {event.operator && <p className="text-xs text-gray-400">操作人: {event.operator}</p>}
+                    {event.media?.length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        {event.media.filter(m => m.url).slice(0, 3).map((m, mi) => (
+                          <Image key={mi} src={m.url} width={40} height={40} className="object-cover rounded" preview={{ mask: null }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      ))}
     </div>
   )
 }

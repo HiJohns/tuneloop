@@ -356,6 +356,16 @@ export const instrumentsApi = {
   setMediaDisplay: (id, data) => api.put(`/instruments/${id}/media/display`, data),
   deleteMediaBatch: (id, batchId) => api.delete(`/instruments/${id}/media/${batchId}`),
   getMedia: (id) => api.get(`/instruments/${id}/media`),
+  displayImageUpload: (id, file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return request(`/instruments/${id}/display-image`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+  getActivityLog: (id) => api.get(`/instruments/${id}/activity-log`),
 }
 
 export const ordersApi = {
