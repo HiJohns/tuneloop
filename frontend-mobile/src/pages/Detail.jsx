@@ -314,7 +314,7 @@ export default function Detail() {
             <View className="border-t border-zinc-100 pt-3 flex justify-between items-center text-xs text-zinc-500 font-bold">
               <View className="flex items-center space-x-1"><Text>🏠</Text><Text>{instrument.site_name || '暂无网点'}</Text></View>
               <View className="flex items-center space-x-1"><Text>📍</Text><Text>{instrument.site_address || '暂无地址'}</Text></View>
-              <View className="flex items-center space-x-1 text-zinc-800"><Text>💬</Text><Text>网点详情</Text></View>
+              <View className="flex items-center space-x-1"><Text>📞</Text><Text>{instrument.site_phone || ''}</Text></View>
             </View>
           </View>
 

@@ -98,12 +98,16 @@ func GetPublicInstruments(c *gin.Context) {
 	for _, instrument := range instruments {
 		siteName := "-"
 		siteAddress := "-"
+		sitePhone := "-"
 		if instrument.SiteID != nil {
 			var site models.Site
 			if err := db.First(&site, "id = ?", instrument.SiteID).Error; err == nil {
 				siteName = site.Name
 				if site.Address != "" {
 					siteAddress = site.Address
+				}
+				if site.Phone != "" {
+					sitePhone = site.Phone
 				}
 			}
 		}
@@ -139,6 +143,7 @@ func GetPublicInstruments(c *gin.Context) {
 			"site_id":        instrument.SiteID,
 			"site_name":      siteName,
 			"site_address":   siteAddress,
+			"site_phone":     sitePhone,
 			"description":    instrument.Description,
 		})
 	}
@@ -167,9 +172,10 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		return
 	}
 
-	// Get site info (name and address) - fallback to CurrentSiteID if SiteID is nil
+	// Get site info (name, address, phone) - fallback to CurrentSiteID if SiteID is nil
 	siteName := "-"
 	siteAddress := "-"
+	sitePhone := "-"
 	lookupSiteID := instrument.SiteID
 	if lookupSiteID == nil {
 		lookupSiteID = instrument.CurrentSiteID
@@ -180,6 +186,9 @@ func GetPublicInstrumentByID(c *gin.Context) {
 			siteName = site.Name
 			if site.Address != "" {
 				siteAddress = site.Address
+			}
+			if site.Phone != "" {
+				sitePhone = site.Phone
 			}
 		}
 	}
@@ -210,6 +219,7 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		"site_id":         instrument.SiteID,
 		"site_name":       siteName,
 		"site_address":    siteAddress,
+		"site_phone":      sitePhone,
 		"description":     instrument.Description,
 	}
 
