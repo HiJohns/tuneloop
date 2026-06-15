@@ -445,11 +445,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
-	// Update order status to completed (damage assessment finalized)
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
-		return
-	}
+	orgID := middleware.GetOrgID(ctx)
 
 	// Update instrument status to maintenance
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
@@ -457,25 +453,6 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}
-
-	// Record status history
-	userID := middleware.GetUserID(ctx)
-	history := models.OrderStatusHistory{
-		ID:         uuid.New().String(),
-		TenantID:   tenantID,
-		OrderID:    orderID,
-		StatusFrom: order.Status,
-		StatusTo:   models.OrderStatusCompleted,
-		Notes:      "开始定损评估",
-		ChangedBy:  stringPtr(userID),
-		ChangedAt:  time.Now(),
-	}
-	if err := db.Create(&history).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record status history: " + err.Error()})
-		return
-	}
-
-	orgID := middleware.GetOrgID(ctx)
 
 	// Create damage report
 	damageReport := models.DamageReport{
@@ -496,27 +473,29 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 
 	notification := models.Notification{
-		TenantID: tenantID,
-		OrgID:    orgID,
-		UserID:   order.UserID,
-		Type:     "damage",
-		Title:    "定损通知",
-		Content:  fmt.Sprintf("您的乐器租赁订单已被定损评估，定损金额：%.2f，说明：%s", req.DamageAmount, req.DamageDescription),
-		RefID:    damageReport.ID,
-		RefType:  "damage_report",
-		Status:   "unread",
+		TenantID:   tenantID,
+		OrgID:      orgID,
+		UserID:     order.UserID,
+		Type:       "damage",
+		Title:      "定损通知",
+		Content:    fmt.Sprintf("您的乐器租赁订单已被定损评估，定损金额：%.2f，说明：%s", req.DamageAmount, req.DamageDescription),
+		RefID:      damageReport.ID,
+		RefType:    "damage_report",
+		ActionType: "damage_accept_reject",
+		ActionData: fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit, orderID),
+		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {
 		log.Printf("[AssessDamage] Failed to create notification: %v", err)
 	}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code":    20000,
-			"message": "success",
-			"data": gin.H{
-				"order_id":      orderID,
-				"status":        models.OrderStatusCompleted,
-				"damage_amount": req.DamageAmount,
-			},
-		})
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"order_id":      orderID,
+			"status":        models.OrderStatusReturning,
+			"damage_amount": req.DamageAmount,
+		},
+	})
 }

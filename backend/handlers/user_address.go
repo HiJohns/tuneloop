@@ -60,6 +60,17 @@ func (h *UserAddressHandler) CreateAddress(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
+	// Check for duplicate address
+	var existingCount int64
+	db.Model(&models.UserAddress{}).
+		Where("user_id = ? AND recipient_name = ? AND phone = ? AND detail = ?",
+			userID, req.RecipientName, req.Phone, req.Detail).
+		Count(&existingCount)
+	if existingCount > 0 {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "address already exists"})
+		return
+	}
+
 	tx := db.Begin()
 
 	if req.IsDefault {

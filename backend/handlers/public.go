@@ -86,7 +86,7 @@ func GetPublicInstruments(c *gin.Context) {
 	}
 
 	var instruments []models.Instrument
-	if err := query.Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
+	if err := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&instruments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch instruments",

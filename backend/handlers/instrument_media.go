@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"log"
 	"net/http"
 	"os/exec"
@@ -17,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/image/draw"
 	"gorm.io/gorm"
 )
 
@@ -414,6 +418,135 @@ func GetInstrumentMedia(c *gin.Context) {
 			"batches": batches,
 			"video":   videoItem,
 			"groups":  groups,
+		},
+	})
+}
+
+// UploadDisplayImage uploads/replaces the display image for an instrument
+// Resizes to max 1920px width, clears previous display flags
+func UploadDisplayImage(c *gin.Context) {
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	var instrument models.Instrument
+	if err := db.Where("id = ? AND tenant_id = ?", instrumentID, tenantID).First(&instrument).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "image file is required"})
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "unsupported image format, use jpg/png/webp"})
+		return
+	}
+
+	// Decode image
+	src, _, err := image.Decode(file)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "failed to decode image: " + err.Error()})
+		return
+	}
+
+	// Resize if width > 1920px
+	bounds := src.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	var final image.Image
+	if width > 1920 {
+		ratio := float64(1920) / float64(width)
+		newWidth := 1920
+		newHeight := int(float64(height) * ratio)
+		dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
+		draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+		final = dst
+	} else {
+		final = src
+	}
+
+	// Encode to JPEG buffer
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, final, &jpeg.Options{Quality: 90}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode image"})
+		return
+	}
+
+	// Upload to storage
+	storage := services.MediaStorageFromContext(c)
+	storageKey := buildStructuredKey(ctx, fmt.Sprintf("%s%s", uuid.New().String()[:8], ".jpg"), "display", 1)
+	if err := storage.Upload(ctx, storageKey, &buf, "image/jpeg"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50001, "message": "failed to upload image"})
+		return
+	}
+
+	orgID := middleware.GetOrgID(ctx)
+	now := time.Now()
+
+	tx := db.Begin()
+
+	// Clear existing display flags for this instrument
+	if err := tx.Model(&models.InstrumentMedia{}).
+		Where("instrument_id = ? AND tenant_id = ?", instrumentID, tenantID).
+		Update("is_display", false).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50002, "message": "failed to reset display flags"})
+		return
+	}
+
+	// Create new display image record
+	displayMedia := models.InstrumentMedia{
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrgID:        orgID,
+		InstrumentID: instrumentID,
+		BatchID:      uuid.New().String(),
+		BatchType:    "display",
+		FileName:     header.Filename,
+		FileType:     "image",
+		FileSize:     int64(buf.Len()),
+		StorageKey:   storageKey,
+		IsDisplay:    true,
+		SortOrder:    0,
+		CreatedAt:    now,
+	}
+	if err := tx.Create(&displayMedia).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50003, "message": "failed to create media record"})
+		return
+	}
+
+	tx.Commit()
+
+	// Get URL for response
+	url, _ := storage.GetURL(ctx, storageKey)
+	if url == "" {
+		url = "/uploads/media/" + storageKey
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"id":         displayMedia.ID,
+			"url":        url,
+			"width":      width,
+			"height":     height,
+			"file_size":  displayMedia.FileSize,
 		},
 	})
 }
