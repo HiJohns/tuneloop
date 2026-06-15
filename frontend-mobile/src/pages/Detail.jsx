@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
@@ -61,6 +61,8 @@ export default function Detail() {
   const [calculatedRent, setCalculatedRent] = useState(0)
   const [totalAmount, setTotalAmount] = useState(0)
   const [cartToast, setCartToast] = useState(false)
+  const [fullscreenImage, setFullscreenImage] = useState(null)
+  const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
       const cartData = storage.getJSON('cart', {items: []})
@@ -316,36 +318,43 @@ export default function Detail() {
             </View>
           </View>
 
-          {/* Card B: Site description + media strip */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-            <View className="flex justify-between items-center">
-              <Text className="text-lg font-black text-black">网点描述</Text>
-              <Text className="text-xs text-zinc-400 font-medium">更多网点实境 ❯</Text>
+          {/* Card B: Instrument description + media strip */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View className="flex justify-between items-center mb-2">
+              <Text className="text-lg font-black text-black">{instrument.name || instrument.sn || '乐器'}</Text>
+              <Text className="text-xs text-zinc-400 font-medium">更多实境 ❯</Text>
             </View>
-            <Text className="block text-sm text-zinc-500 font-medium leading-relaxed">
-              {instrument.description || '暂无描述'}
-            </Text>
-            <ScrollView className="w-full whitespace-nowrap pt-1" scrollX showScrollbar={false}>
-              <View className="inline-flex space-x-3 pr-4 items-center">
-                {swiperImages.slice(0, 3).map((img, i) => (
-                  <Image key={i} src={img.url || img} className="w-20 h-20 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" />
-                ))}
-                {mediaPublic?.video && (
-                  <View className="w-20 h-20 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200">
-                    <Text className="text-lg">▶</Text>
-                    <Text className="text-[10px] font-black text-zinc-500 mt-0.5">视频 ❯</Text>
-                  </View>
-                )}
+            <View className="flex flex-row">
+              <View className="flex-1 min-w-0">
+                <Text className="block text-sm text-zinc-500 font-medium leading-relaxed">
+                  {instrument.description || '暂无描述'}
+                </Text>
               </View>
-            </ScrollView>
+              <View className="relative flex-shrink-0 ml-3">
+                <ScrollView className="w-20 overflow-hidden" scrollX showScrollbar={false}>
+                  <View className="inline-flex flex-col space-y-2">
+                    {swiperImages.slice(0, 3).map((img, i) => (
+                      <Image key={i} src={img.url || img} className="w-20 h-20 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
+                    ))}
+                    {mediaPublic?.video && (
+                      <View className="w-20 h-20 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(mediaPublic.video.url)}>
+                        <Text className="text-lg">▶</Text>
+                        <Text className="text-[10px] font-black text-zinc-500 mt-0.5">视频 ❯</Text>
+                      </View>
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
           </View>
 
           {/* Card C: Dynamic properties */}
           {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 && (
-            <View className="bg-white rounded-2xl shadow-sm divide-y divide-zinc-100">
-              {Object.entries(instrument.properties).map(([key, vals], i) => (
-                <View key={key} className="flex justify-between items-center py-3 px-4">
-                  <Text className="text-base font-bold text-black">{key}</Text>
+            <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
+              <Text className="text-base font-black text-black">属性</Text>
+              {Object.entries(instrument.properties).map(([key, vals]) => (
+                <View key={key} className="flex justify-between items-center">
+                  <Text className="text-sm font-bold text-zinc-600">{key}</Text>
                   <Text className="text-sm text-zinc-400">{(Array.isArray(vals) ? vals : [vals]).join(', ')} ❯</Text>
                 </View>
               ))}
@@ -565,6 +574,17 @@ export default function Detail() {
               </View>
             </View>
           </View>
+        </View>
+      )}
+
+      {/* Fullscreen image/video overlay */}
+      {fullscreenImage && (
+        <View className="fixed inset-0 bg-black z-50 flex items-center justify-center" onClick={() => setFullscreenImage(null)}>
+          {mediaPublic?.video && fullscreenImage === mediaPublic.video.url ? (
+            <Video src={mediaPublic.video.url} poster={mediaPublic.video.thumb_url} controls className="w-full" style={{ maxHeight: '100%' }} />
+          ) : (
+            <Image src={fullscreenImage} className="max-w-full max-h-full object-contain" />
+          )}
         </View>
       )}
 
