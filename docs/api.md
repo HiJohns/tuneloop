@@ -108,7 +108,46 @@
 
 ---
 
-### 2.2 Token 刷新
+### 2.2 微信小程序登录
+
+> 小程序使用 `wx.login()` 获取 code，调 `POST /api/wx/login` 代理到 IAM 换取 JWT。详见 `docs/weapp.md`。
+
+**接口**: `POST /api/wx/login`
+
+**请求 Body**:
+```json
+{
+  "code": "0b3eZklFpWsHmq4kIbjFpUVg"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc...",
+    "expires_in": 86400,
+    "token_type": "Bearer"
+  }
+}
+```
+
+**错误响应**:
+| code | 说明 |
+|------|------|
+| 40002 | 缺少必填参数 code |
+| 50000 | IAM 服务调用失败 |
+
+**流程说明**:
+1. 前端 `wx.login()` → 获取临时 code
+2. `POST /api/wx/login { code }` → tuneloop 后端代理 → BeaconIAM
+3. IAM 调用 jscode2session → 获取 openid → 查/建用户 → 返回 JWT
+
+---
+
+### 2.3 Token 刷新
 
 **接口**: `POST /api/auth/refresh`
 
@@ -1283,7 +1322,66 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 `images`: 当前展示的图片列表。`video`: 当前视频（含缩略图封面）。无视频时 `video` 为 `null`。
 
-#### 5.9.7 上传大小限制
+#### 5.9.7 上传/替换展示图像
+
+**接口**: `POST /api/instruments/:id/display-image`
+
+**权限**: `instrument:media_upload`
+
+**请求**: multipart/form-data
+- `image`: 图片文件 (jpg/png/webp, 自动缩放到最大宽度 1920px)
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "id": "uuid",
+    "url": "/uploads/media/...",
+    "width": 1920,
+    "height": 1080,
+    "file_size": 245000
+  }
+}
+```
+
+**行为**: 上传后自动清除此乐器的所有 `is_display` 标记，新图像设为当前展示。
+
+#### 5.9.8 乐器活动日志
+
+**接口**: `GET /api/instruments/:id/activity-log`
+
+**权限**: 认证用户
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "sessions": [
+      {
+        "order_id": "uuid",
+        "status": "completed",
+        "start_date": "2026-01-01",
+        "end_date": "2026-06-01",
+        "events": [
+          {
+            "event": "发货",
+            "time": "2026-01-05T10:30:00Z",
+            "operator": "张三",
+            "media": [{ "url": "/uploads/media/...", "batch_type": "shipping" }]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**数据来源**: `order_status_history` + `instrument_media`，按订单分组，按时间排序。
+
+#### 5.9.9 上传大小限制
 
 全站点设置，存储于 `system_settings` 表：
 

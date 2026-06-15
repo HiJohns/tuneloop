@@ -17,6 +17,7 @@ backend/handlers.test
 # Frontend build output
 frontend-pc/dist/
 frontend-mobile/dist/
+frontend-mobile/dist-weapp/
 
 # Prerelease environment
 prerelease/
