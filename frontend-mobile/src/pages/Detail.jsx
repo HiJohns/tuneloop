@@ -6,7 +6,7 @@ import { Switch, Tag, Modal, Button as AntButton } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage, eventBus } from '../platform'
 import { formatDisplayDate } from '../utils/format'
-import { View, Text, Image, Button, Video, ScrollView, Swiper, SwiperItem } from '@tarojs/components'
+import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 import instrBanner1 from '../assets/instrument/banner_1.png'
 import instrBanner2 from '../assets/instrument/banner_2.png'
 import instrBanner3 from '../assets/instrument/banner_3.png'
@@ -65,6 +65,7 @@ export default function Detail() {
   const [totalAmount, setTotalAmount] = useState(0)
   const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
+  const [currentBanner, setCurrentBanner] = useState(0)
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
@@ -243,6 +244,13 @@ export default function Detail() {
     calculatePrice()
   }, [calculatePrice])
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBanner(prev => (prev + 1) % swiperImages.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [])
+
   if (loading) {
     return <View className="p-4">加载中...</View>
   }
@@ -271,17 +279,28 @@ export default function Detail() {
         <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
       </View>
 
-      {/* Swiper carousel */}
+      {/* Banner carousel */}
       <View className="w-full py-4 bg-[#FDFBF7]">
-        <Swiper className="w-full h-[200px]" circular indicatorDots indicatorActiveColor="#915F38" indicatorColor="rgba(0,0,0,0.15)" previousMargin="36px" nextMargin="36px">
-          {swiperImages.map((img, index) => (
-            <SwiperItem key={index} className="px-2 box-border">
-              <View className="w-full h-full bg-zinc-100 rounded-xl overflow-hidden shadow-sm">
-                <Image src={img.url || img} className="w-full h-full object-cover" />
+        <View className="w-full h-[200px] overflow-hidden">
+          <View className="flex flex-row h-full" style={{
+            width: `${swiperImages.length * 100}%`,
+            transform: `translateX(-${currentBanner * (100 / swiperImages.length)}%)`,
+            transition: 'transform 0.5s ease-in-out'
+          }}>
+            {swiperImages.map((img, i) => (
+              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / swiperImages.length}%` }}>
+                <View className="w-full h-full bg-zinc-100 rounded-xl overflow-hidden shadow-sm">
+                  <Image src={img.url || img} className="w-full h-full object-cover" />
+                </View>
               </View>
-            </SwiperItem>
+            ))}
+          </View>
+        </View>
+        <View className="flex items-center justify-center space-x-1.5 mt-2">
+          {swiperImages.map((_, i) => (
+            <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
           ))}
-        </Swiper>
+        </View>
         {mediaPublic?.video && (
           <View className="px-4 mt-2">
             <Video src={mediaPublic.video.url} poster={mediaPublic.video.thumb_url} controls className="w-full rounded-lg" style={{ maxHeight: 240 }} />
