@@ -688,3 +688,100 @@ done
 - 分析完成后应提供明确的建议："是否将此差距创建为 Issue？"
 - 如果 ui.md 完全缺失某页面，应在报告中明确标注"设计缺失"而非"实现缺失"。
 
+
+## 🎨 移动端 UI 开发方法论 (Mobile UI Development Methodology)
+
+> 来源：首页 UI 多轮迭代（Home.jsx），横跨字体尺寸、搜索框、走马灯、Z 轴布局、配色。
+
+### 方法论 1：精确值 → 视觉反馈闭环 (Exact-Spec → Visual Feedback Loop)
+
+**模式**：用户给出像素级规格 → 实现 → 视觉对比 → 逐轮微调。
+
+**适用场景**：字体尺寸、间距、边框等 UI 精调。
+
+**操作原则**：
+1. 先落地用户给出的精确值（如 `w-[300px]`、`text-[42px]`）
+2. 在真实渲染环境中对比后，再按"相对变化"微调（如 +2px、再大一个字号、`py-2` → `py-[3px]`）
+3. **禁止**在首轮就做"看起来更好"的主观调整 —— 先按规格来，再迭代
+
+**反面案例**：用户给 `text-[42px]`，先落地，再改为 `text-2xl +2px` → `text-[26px]` → `text-3xl`。
+
+### 方法论 2：根因分析法（不修补表象）(Root Cause Over Patchwork)
+
+**模式**：标准方案失败 → 不换组件参数 → 先检查数据/尺寸/层叠关系。
+
+**典型案例** — 分类菜单水平拖动失效：
+1. ❌ 先试 `catchMove` on ScrollView → 无效
+2. ❌ 将菜单移出外层 ScrollView → 破坏垂直滚动
+3. ✅ **发现根因：菜单内容超宽，导致页面级水平滚动** → 用 `overflow-hidden` + touch 手动 `translateX` 解决
+
+**检查清单**（Taro/微信小程序 ScrollView 问题排查）：
+- [ ] 数据是否超出容器宽度？用 `overflow-hidden` 剪裁
+- [ ] 是否嵌套 ScrollView？优先用 touch 事件 + `transform` 替代内层 ScrollView
+- [ ] `catchMove` 是否真的在运行时生效？（可能被平台忽略）
+
+### 方法论 3：Z 轴图层分解 (Z-Axis Layer Decomposition)
+
+**模式**：将页面从"垂直堆叠"改为"背景层 + 透明内容层"。
+
+**要点**：
+
+| 层 | 定位 | 职责 | 背景 |
+|-----|------|------|------|
+| Z=0 | `fixed` 全屏 | 走马灯/背景装饰 | 有颜色/图片 |
+| Z=10 | `relative` 可滚动 | 交互内容 | **透明** |
+| (局部) | 卡片/菜单 | 信息容器 | 保留原有底色 |
+
+**适用信号**：
+- 设计意图是"背景变化 + 内容独立滚动"
+- 多个 section 共享同一个背景图/色
+- 需要走马灯覆盖全屏而非仅某个区域
+
+**实现模板**：
+```jsx
+<View className="relative">
+  {/* Z=0: fixed full-screen background */}
+  <View className="fixed inset-0 z-0">{carousel}</View>
+  {/* Z=10: scrollable transparent content */}
+  <ScrollView className="relative z-10">{content}</ScrollView>
+</View>
+```
+
+### 方法论 4：平台约束显式化 (Platform Constraint Awareness)
+
+**原则**：在写小程序 UI 变更前，明确了解以下组件原生行为边界：
+
+| 平台行为 | 影响 | 应对 |
+|---------|------|------|
+| `ScrollView scrollY` 不裁切水平溢出 | 超宽内容必拖页 | 外层加 `overflow-hidden` |
+| `fixed` 定位在 ScrollView 内可能异常 | 不能依赖嵌套 fixed | 将 fixed 层放到 ScrollView 外层 |
+| `catchMove` 可能被运行时忽略 | 不能作为唯一防线 | 配合 `overflow-hidden` + 手动 scroll |
+
+### 方法论 5：配色增量迭代 (Incremental Color Palette Design)
+
+**流程**：同色系（保守）→ 视觉对比判断 → 不够 → 跨色系（激进）。
+
+**案例**：
+1. 首轮：`#915F38`（赭石）/ `#A6794E`（琥珀）→ 太接近
+2. 第二轮：放大差异，引入跨色系的 `#4A6B7C`（钢蓝）→ 对比明确
+
+**原则**：先在同 hue 内调整 saturation/lightness，视觉对比不足时再换 hue。
+
+### 方法论 6：Record Keeper 模式 (Record Keeper Pattern)
+
+**原则**：多轮交互完成后，立即用 Record Keeper 流程将修改正式记录为 GitHub Issue + Commit 绑定。
+
+**触发条件**：满足以下即应创建 Record Issue：
+- 与 AI 多轮交互后问题已解决但未事先创建 Issue
+- 进行的修改跨越多个独立 topic（如字体调整、布局重构、配色迭代）
+- 需要与一个 Issue 绑定以通过审计流程
+
+**流程**：
+1. 收集工作摘要（改动范围 + 调查过程 + 解决方案）
+2. 创建 Issue（`opencode_gh.sh record`，`status:ready`）
+3. Commit + Push（绑定 `Closes #N`）
+4. Comment commit hash 到 Issue
+
+
+> *Last updated: 2026-06-15*
+
