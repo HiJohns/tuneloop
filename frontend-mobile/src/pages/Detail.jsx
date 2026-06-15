@@ -255,9 +255,7 @@ export default function Detail() {
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
-  const swiperImages = mediaPublic?.images?.length > 0 ? mediaPublic.images
-    : parseImages(instrument.images).length > 0 ? parseImages(instrument.images).map(url => ({ url }))
-    : [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
+  const swiperImages = [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
 
   const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
     : levelName.includes('专业') ? 'bg-[#0084FF]'
