@@ -360,6 +360,7 @@ func GetInstruments(c *gin.Context) {
 
 		instrumentMap := map[string]interface{}{
 			"id":             instrument.ID,
+			"name":           instrument.Name,
 			"tenant_id":      instrument.TenantID,
 			"org_id":         instrument.OrgID,
 			"sn":             instrument.SN,

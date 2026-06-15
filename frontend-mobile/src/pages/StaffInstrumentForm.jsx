@@ -18,6 +18,7 @@ export default function StaffInstrumentForm() {
   const [snChecking, setSnChecking] = useState(false)
 
   const [form, setForm] = useState({
+    name: '',
     sn: '',
     category_id: '',
     site_id: '',
@@ -120,6 +121,7 @@ export default function StaffInstrumentForm() {
 
       const body = {
         sn: form.sn,
+        name: form.name || '',
         category_id: form.category_id,
         site_id: form.site_id || undefined,
         level_id: form.level_id || undefined,
@@ -172,6 +174,11 @@ export default function StaffInstrumentForm() {
               {!snChecking && snExists && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-500">已存在</Text>}
               {!snChecking && form.sn && !snExists && <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-500">可用</Text>}
             </View>
+          </View>
+
+          <View>
+            <label className={labelClass}>乐器名</label>
+            <input className={inputClass} value={form.name} onChange={e => { setForm(prev => ({ ...prev, name: e.target.value })) }} placeholder="请输入乐器名称" />
           </View>
 
           <View>

@@ -48,6 +48,7 @@ type Instrument struct {
 	CategoryID      *string          `gorm:"type:uuid;index" json:"category_id"`
 	CategoryName    string           `gorm:"type:varchar(100)" json:"category_name"`
 	// Name 字段已删除 - 乐器无名称，完全靠 SN 识别
+	Name            string           `gorm:"type:varchar(255)" json:"name"`
 	// Brand 字段已删除 - 遗留字段
 	Level           string           `gorm:"type:varchar(20)" json:"level"`      // deprecated, use LevelID instead
 	LevelName       string           `gorm:"type:varchar(50)" json:"level_name"` // deprecated

@@ -19,6 +19,7 @@ import (
 var pricingService = service.NewPricingService()
 
 type CreateInstrumentRequest struct {
+	Name           string                   `json:"name"`
 	LevelID        string                   `json:"level_id"` // UUID reference to instrument_levels
 	CategoryID     string                   `json:"category_id" binding:"required"`
 	SN             string                   `json:"sn"`
@@ -253,6 +254,7 @@ func CreateInstrument(c *gin.Context) {
 
 	instrument := models.Instrument{
 		TenantID:     tenantID,
+		Name:         req.Name,
 		SN:           req.SN,
 		LevelName:    levelName,
 		LevelID:      levelID,
