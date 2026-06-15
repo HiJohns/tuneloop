@@ -6,7 +6,7 @@ import { Switch, Tag, Modal, Button as AntButton } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage, eventBus } from '../platform'
 import { formatDisplayDate } from '../utils/format'
-import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
+import { View, Text, Image, Button, Video, ScrollView, Swiper, SwiperItem } from '@tarojs/components'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -248,138 +248,214 @@ export default function Detail() {
 
   const publicImages = mediaPublic?.images?.length > 0 ? mediaPublic.images.map(i => i.url) : null
   const images = publicImages || parseImages(instrument.images)
+  const levelName = instrument.level_name || ''
+
+  const swiperImages = mediaPublic?.images?.length > 0 ? mediaPublic.images : parseImages(instrument.images).map(url => ({ url }))
+
+  const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
+    : levelName.includes('专业') ? 'bg-[#0084FF]'
+    : levelName.includes('入门') ? 'bg-[#FF6B00]'
+    : 'bg-zinc-500'
 
   return (
-    <View className="min-h-screen bg-gray-50 pb-24">
-      <View className="relative">
-         <Image 
-           src={images[0] || PLACEHOLDER_IMAGE}
-           className="w-full h-64 object-contain bg-gray-100"
-         />
-        {mediaPublic?.video && (
-          <View className="mt-2 px-4">
-            <Video
-              src={mediaPublic.video.url}
-              poster={mediaPublic.video.thumb_url}
-              controls
-              className="w-full rounded-lg"
-              style={{ maxHeight: 240 }}
-            />
-          </View>
-        )}
-        <Button 
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 bg-black/30 text-white p-2 rounded-full"
-        >
-          <ArrowLeft size={20} />
-        </Button>
+    <View className="min-h-screen bg-[#915F38] pb-[140px] flex flex-col relative antialiased">
+      {/* Nav bar */}
+      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-[#FDFBF7] border-b border-zinc-100">
+        <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
+        <Text className="text-lg font-black text-black">乐器详情</Text>
+        <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
       </View>
 
-      <View className="bg-white p-4 pb-24">
-        <Text className="text-xl font-bold text-gray-800">{instrument.name || instrument.category_name}</Text>
-        {instrument.sn && <Text className="text-sm text-gray-400 mt-1">编号: {instrument.sn}</Text>}
-        <Text className="text-gray-500 mt-1">{instrument.description}</Text>
-
-        {/* Site/Merchant Info */}
-        {(instrument.tenant_name || instrument.site_name) && (
-          <View className="mt-3 p-3 bg-gray-50 rounded-lg">
-            {instrument.tenant_name && (
-              <Text className="text-sm text-gray-600">
-                <Text className="font-medium">商户:</Text> {instrument.tenant_name}
-              </Text>
-            )}
-            {instrument.site_name && (
-              <Text className="text-sm text-gray-600 mt-1">
-                <Text className="font-medium">网点:</Text> {instrument.site_name}
-                {instrument.site_address && <Text className="text-gray-400"> ({instrument.site_address})</Text>}
-              </Text>
-            )}
-          </View>
-        )}
-
-        {/* Dynamic Properties */}
-        {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 && (
-          <View className="mt-3 p-3 bg-gray-50 rounded-lg">
-            <Text className="text-gray-500 text-xs block mb-1">动态属性</Text>
-            {Object.entries(instrument.properties).map(([key, vals]) => (
-              <View key={key} className="flex justify-between text-xs mt-1">
-                <Text className="text-gray-400">{key}</Text>
-                <Text>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
+      {/* Swiper carousel */}
+      <View className="w-full py-4 bg-[#FDFBF7]">
+        <Swiper className="w-full h-[200px]" circular indicatorDots indicatorActiveColor="#915F38" indicatorColor="rgba(0,0,0,0.15)" previousMargin="36px" nextMargin="36px">
+          {swiperImages.map((img, index) => (
+            <SwiperItem key={index} className="px-2 box-border">
+              <View className="w-full h-full bg-zinc-100 rounded-xl overflow-hidden shadow-sm">
+                <Image src={img.url || img} className="w-full h-full object-cover" />
               </View>
-            ))}
+            </SwiperItem>
+          ))}
+        </Swiper>
+        {mediaPublic?.video && (
+          <View className="px-4 mt-2">
+            <Video src={mediaPublic.video.url} poster={mediaPublic.video.thumb_url} controls className="w-full rounded-lg" style={{ maxHeight: 240 }} />
           </View>
-        )}
-
-        {isRentable && pricingV2?.tiers?.length > 0 && (
-        <View className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <Text className="font-medium text-sm text-blue-800 mb-1">定价策略</Text>
-          <View className="text-xs text-gray-500 space-y-0.5">
-            {pricingV2.tiers.map((t, i) => {
-              const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-              const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-              return <Text key={i} className="block">{range}: ¥{t.daily_rate}/天</Text>
-            })}
-            {pricingV2.deposit > 0 && <Text className="mt-1 block">押金: ¥{pricingV2.deposit}</Text>}
-            {pricingV2.shipping_fee > 0 && <Text className="block">物流费: ¥{pricingV2.shipping_fee}</Text>}
-          </View>
-        </View>
-        )}
-
-        {isRentable && (
-        <View className="mt-3 p-2 bg-orange-50 rounded-lg text-sm">
-          <Text className="text-orange-800">
-            ⚠️ 逾期后将每日自动扣款，按 ¥{overdueDailyFee}/日 计算
-          </Text>
-          <Text className="text-orange-700 mt-1">
-            💰 押金将在乐器归还、质检通过后原路退还。如乐器损坏，将在定损后从押金中抵扣
-          </Text>
-        </View>
-        )}
-
-        {isRentable && (
-        <View className="mt-3 p-3 bg-purple-50 rounded-lg mb-24">
-          <Text className="font-medium text-sm text-purple-800 flex items-center gap-1">
-            <Text>🎁</Text>
-            <Text className="font-bold">租购转化</Text>
-          </Text>
-          <Text className="text-purple-600 text-sm mt-0.5 font-bold">
-            租满12个月可直接获得所有权
-          </Text>
-        </View>
         )}
       </View>
 
-      {/* Floating Cart Icon */}
-      {(cartItemCount > 0) && (
-        <Button
-          onClick={() => navigate('/cart')}
-          className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-lg z-50"
-        >
-          <ShoppingCart size={24} />
+      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false}>
+        <View className="px-4 mt-4 space-y-3 pb-4">
+
+          {/* Card A: Instrument info + deposit */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm flex flex-col space-y-3">
+            <View className="flex justify-between items-start w-full">
+              <View className="flex-1 min-w-0 pr-4">
+                <Text className="block text-2xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
+              </View>
+              <View className="flex-shrink-0 whitespace-nowrap text-right">
+                <Text className="text-[#C21838] font-bold text-base tracking-tight">
+                  押金 ¥{deposit} <Text className="text-zinc-400 font-normal">❯</Text>
+                </Text>
+              </View>
+            </View>
+            <View className="flex items-center space-x-3">
+              {levelName && (
+                <View className={`inline-block ${levelBg} text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm`}>
+                  {levelName}
+                </View>
+              )}
+              <Text className="text-[#C21838] font-black text-xl tracking-tight">
+                月租 ¥{Math.round((dailyRent || instrument?.base_daily_rate || 0) * 25)}/月
+              </Text>
+            </View>
+            <View className="border-t border-zinc-100 pt-3 flex justify-between items-center text-xs text-zinc-500 font-bold">
+              <View className="flex items-center space-x-1"><Text>🏠</Text><Text>{instrument.site_name || '暂无网点'}</Text></View>
+              <View className="flex items-center space-x-1"><Text>📍</Text><Text>{instrument.site_address || '暂无地址'}</Text></View>
+              <View className="flex items-center space-x-1 text-zinc-800"><Text>💬</Text><Text>网点详情</Text></View>
+            </View>
+          </View>
+
+          {/* Card B: Site description + media strip */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+            <View className="flex justify-between items-center">
+              <Text className="text-lg font-black text-black">网点描述</Text>
+              <Text className="text-xs text-zinc-400 font-medium">更多网点实境 ❯</Text>
+            </View>
+            <Text className="block text-sm text-zinc-500 font-medium leading-relaxed">
+              {instrument.description || '暂无描述'}
+            </Text>
+            <ScrollView className="w-full whitespace-nowrap pt-1" scrollX showScrollbar={false}>
+              <View className="inline-flex space-x-3 pr-4 items-center">
+                {swiperImages.slice(0, 3).map((img, i) => (
+                  <Image key={i} src={img.url || img} className="w-20 h-20 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" />
+                ))}
+                {mediaPublic?.video && (
+                  <View className="w-20 h-20 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200">
+                    <Text className="text-lg">▶</Text>
+                    <Text className="text-[10px] font-black text-zinc-500 mt-0.5">视频 ❯</Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Card C: Dynamic properties */}
+          {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 && (
+            <View className="bg-white rounded-2xl shadow-sm divide-y divide-zinc-100">
+              {Object.entries(instrument.properties).map(([key, vals], i) => (
+                <View key={key} className="flex justify-between items-center py-3 px-4">
+                  <Text className="text-base font-bold text-black">{key}</Text>
+                  <Text className="text-sm text-zinc-400">{(Array.isArray(vals) ? vals : [vals]).join(', ')} ❯</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Pricing V2 tiers */}
+          {isRentable && pricingV2?.tiers?.length > 0 && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
+              <Text className="text-lg font-black text-black">定价策略</Text>
+              {pricingV2.tiers.map((t, i) => {
+                const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
+                const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+                return (
+                  <View key={i} className="flex justify-between text-sm">
+                    <Text className="text-zinc-500">{range}</Text>
+                    <Text className="font-bold text-black">¥{t.daily_rate}/天</Text>
+                  </View>
+                )
+              })}
+              {(pricingV2.deposit > 0 || pricingV2.shipping_fee > 0) && (
+                <View className="border-t border-zinc-100 pt-2 space-y-1">
+                  {pricingV2.deposit > 0 && (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500">押金</Text>
+                      <Text className="font-bold text-black">¥{pricingV2.deposit}</Text>
+                    </View>
+                  )}
+                  {pricingV2.shipping_fee > 0 && (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500">物流费</Text>
+                      <Text className="font-bold text-black">¥{pricingV2.shipping_fee}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Overdue warning */}
+          {isRentable && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm">
+              <Text className="text-sm text-orange-700 font-medium">
+                ⚠️ 逾期后将每日自动扣款，按 ¥{overdueDailyFee}/日 计算
+              </Text>
+              <Text className="text-sm text-orange-600 mt-1">
+                💰 押金将在乐器归还、质检通过后原路退还。如乐器损坏，将在定损后从押金中抵扣
+              </Text>
+            </View>
+          )}
+
+          {/* Rent-to-own */}
+          {isRentable && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm">
+              <View className="flex items-center">
+                <Text>🎁</Text>
+                <Text className="font-bold text-sm text-purple-800 ml-1">租购转化</Text>
+              </View>
+              <Text className="text-purple-600 text-sm mt-1 font-bold">
+                租满12个月可直接获得所有权
+              </Text>
+            </View>
+          )}
+
+          {/* Service comparison */}
+          {isRentable && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm" onClick={() => setShowComparison(true)}>
+              <View className="flex justify-between items-center">
+                <Text className="text-base font-bold text-black">服务权益对比</Text>
+                <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
+              </View>
+            </View>
+          )}
+
+        </View>
+      </ScrollView>
+
+      {/* Floating cart icon */}
+      {cartItemCount > 0 && (
+        <View onClick={() => navigate('/cart')} className="fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg z-50">
+          <Text className="text-xl">🛒</Text>
           <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
             {cartItemCount}
           </Text>
-        </Button>
+        </View>
       )}
 
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+      {/* Bottom panel */}
+      <View className="fixed bottom-0 left-0 right-0 bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
         {isRentable ? (
           <>
-            <View className="flex gap-2">
-              <Button 
+            <View className="flex w-full space-x-3">
+              <View
                 onClick={handleAddToCart}
-                className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-100 text-orange-600"
+                className="flex-1 h-12 rounded-full shadow-sm flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #E2B07E, #C98E54)' }}
               >
-                <ShoppingCart size={18} />
-                加入购物车
-              </Button>
-              <Button
+                <Text className="text-white font-black text-base">加入购物车</Text>
+              </View>
+              <View
                 onClick={() => navigate(`/checkout/${id}`)}
-                className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-1 bg-orange-500 text-white"
+                className="flex-1 h-12 rounded-full shadow-sm flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #FA5E3C, #E63917)' }}
               >
-                立即租赁
-              </Button>
+                <Text className="text-white font-black text-base">立即租赁</Text>
+              </View>
             </View>
+            <Text className="block text-center text-xs font-bold text-zinc-400 tracking-wide">
+              合计金额：预付全款租金 + 固定押金 + 往返运费
+            </Text>
           </>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
@@ -393,12 +469,12 @@ export default function Detail() {
                   超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
                 </Text>
               )}
-              <Button
+              <View
                 onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
-                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
+                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
               >
-                归还乐器
-              </Button>
+                <Text>归还乐器</Text>
+              </View>
             </View>
           ) : activeOrder.order_status === 'returning' ? (
             <View className="p-3 bg-orange-50 rounded-lg space-y-2">
@@ -422,13 +498,12 @@ export default function Detail() {
             <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
               <Text className="text-cyan-700 font-medium">乐器物流中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
-              <Button
+              <View
                 onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
-                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
+                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
               >
-                <CheckCircle size={18} className="inline mr-1" />
-                确认收货
-              </Button>
+                <Text>确认收货</Text>
+              </View>
             </View>
           ) : activeOrder.order_status === 'expired' ? (
             <View className="p-3 bg-red-50 rounded-lg space-y-2">
@@ -441,24 +516,23 @@ export default function Detail() {
                   超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
                 </Text>
               )}
-              <Button
+              <View
                 onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
-                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium"
+                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
               >
-                归还乐器
-              </Button>
+                <Text>归还乐器</Text>
+              </View>
             </View>
           ) : (
             <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
               <Text className="text-cyan-700 font-medium">乐器物流中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
-              <Button
+              <View
                 onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
-                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2"
+                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
               >
-                <CheckCircle size={18} className="inline mr-1" />
-                确认收货
-              </Button>
+                <Text>确认收货</Text>
+              </View>
             </View>
           )
         ) : (
@@ -469,37 +543,33 @@ export default function Detail() {
         )}
       </View>
 
+      {/* Cart toast modal */}
       {cartToast && (
         <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setCartToast(false)}>
           <View className="bg-white rounded-xl p-6 mx-8 text-center" onClick={e => e.stopPropagation()}>
-            <CheckCircle size={48} className="text-green-500 mx-auto mb-3" />
+            <Text className="text-green-500 text-5xl mb-3">✓</Text>
             <Text className="text-lg font-bold mb-1">加入成功</Text>
             <Text className="text-gray-500 text-sm mb-4">该乐器已添加到购物车</Text>
             <View className="flex gap-3">
-              <Button 
+              <View
                 onClick={() => { setCartToast(false); navigate('/') }}
-                className="flex-1 py-3 px-6 border rounded-lg text-gray-600 min-w-[100px]"
+                className="flex-1 py-3 px-6 border rounded-lg text-gray-600 text-center"
               >
-                继续浏览
-              </Button>
-              <Button 
+                <Text>继续浏览</Text>
+              </View>
+              <View
                 onClick={() => { setCartToast(false); navigate('/cart') }}
-                className="flex-1 py-3 px-6 bg-brand-primary text-white rounded-lg min-w-[100px]"
+                className="flex-1 py-3 px-6 bg-[#002140] text-white rounded-lg text-center"
               >
-                提交订单
-              </Button>
+                <Text>提交订单</Text>
+              </View>
             </View>
           </View>
         </View>
       )}
 
-      <Modal
-        title="📊 服务权益对比"
-        open={showComparison}
-        onCancel={() => setShowComparison(false)}
-        footer={null}
-        width={600}
-      >
+      {/* Service comparison modal */}
+      <Modal title="📊 服务权益对比" open={showComparison} onCancel={() => setShowComparison(false)} footer={null} width={600}>
         <View className="overflow-x-auto">
           <View className="w-full text-sm">
             <View className="bg-gray-100 flex">
@@ -511,15 +581,9 @@ export default function Detail() {
             {SERVICE_ITEMS.map((item, idx) => (
               <View key={idx} className="flex border-b">
                 <Text className="p-2 flex-1">{item.name}</Text>
-                <Text className={`p-2 flex-1 text-center ${item.entry === '✓' ? 'text-green-600' : 'text-gray-400'}`}>
-                  {item.entry}
-                </Text>
-                <Text className={`p-2 flex-1 text-center ${item.professional === '✓' ? 'text-green-600' : 'text-gray-400'}`}>
-                  {item.professional}
-                </Text>
-                <Text className={`p-2 flex-1 text-center font-medium ${item.master === '✓' ? 'text-purple-600' : 'text-gray-400'}`}>
-                  {item.master}
-                </Text>
+                <Text className={`p-2 flex-1 text-center ${item.entry === '✓' ? 'text-green-600' : 'text-gray-400'}`}>{item.entry}</Text>
+                <Text className={`p-2 flex-1 text-center ${item.professional === '✓' ? 'text-green-600' : 'text-gray-400'}`}>{item.professional}</Text>
+                <Text className={`p-2 flex-1 text-center font-medium ${item.master === '✓' ? 'text-purple-600' : 'text-gray-400'}`}>{item.master}</Text>
               </View>
             ))}
           </View>
