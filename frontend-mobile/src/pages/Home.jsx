@@ -8,6 +8,7 @@ import banner2 from '../assets/banners/banner_2.png'
 import banner3 from '../assets/banners/banner_3.png'
 
 const banners = [banner1, banner2, banner3]
+const bannerBgColors = ['#915F38', '#7D553D', '#4A6B7C']
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
@@ -136,24 +137,29 @@ export default function Home() {
   }
 
   return (
-    <View className="h-screen w-screen bg-[#915F38] overflow-hidden flex flex-col relative antialiased">
-      <ScrollView className="w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}>
-        {/* A. Banner */}
-        <View className="relative w-full h-[240px] bg-[#784A2B] flex flex-col items-center justify-center overflow-hidden">
-          <View className="absolute inset-0 w-full h-full">
-            <View style={{
-              display: 'flex',
-              flexDirection: 'row',
-              width: '300%',
-              height: '100%',
-              transform: `translateX(-${currentBanner * 33.3333}%)`,
-              transition: 'transform 0.5s ease-in-out'
-            }}>
-              {banners.map((src, i) => (
-                <Image key={i} src={src} className="h-full object-cover flex-shrink-0" style={{ width: '33.3333%' }} />
-              ))}
+    <View className="h-screen w-screen overflow-hidden flex flex-col relative antialiased">
+      {/* Z=0: Full-screen carousel background */}
+      <View className="fixed inset-0 w-full h-full z-0">
+        <View className="flex flex-row h-full" style={{
+          width: '300%',
+          transform: `translateX(-${currentBanner * 33.3333}%)`,
+          transition: 'transform 0.5s ease-in-out'
+        }}>
+          {banners.map((src, i) => (
+            <View key={i} className="h-full flex flex-col" style={{ width: '33.3333%' }}>
+              <View className="w-full h-[240px] flex-shrink-0">
+                <Image src={src} className="w-full h-full object-cover" />
+              </View>
+              <View className="flex-1" style={{ backgroundColor: bannerBgColors[i] }} />
             </View>
-          </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Z=10: Scrollable content */}
+      <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}>
+        {/* Search box spacer - pushes dots to banner bottom */}
+        <View className="h-[240px]">
           <View className="absolute top-4 left-0 right-0 px-6 flex justify-center">
             <View className="w-[250px] h-[42px] bg-transparent rounded-full flex items-center px-4 border border-[#FFF]">
               <Text className="text-white/70 text-base mr-2">🔍</Text>
@@ -172,7 +178,7 @@ export default function Home() {
         </View>
 
         {/* B. Category Menu */}
-        <View className="sticky top-0 z-40 bg-[#FDFBF7] py-2 shadow-sm border-b border-zinc-100">
+        <View className="sticky top-0 z-40 bg-[#FDFBF7] py-[3px] shadow-sm border-b border-zinc-100">
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -201,7 +207,7 @@ export default function Home() {
         </View>
 
         {/* C. Instrument List */}
-        <View className="pl-7 pr-0 pt-4 pb-20 space-y-4 bg-[#915F38]">
+        <View className="pl-7 pr-0 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
