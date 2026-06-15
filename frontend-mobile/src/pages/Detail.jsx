@@ -290,7 +290,7 @@ export default function Detail() {
         <View className="px-4 mt-4 space-y-3 pb-4">
 
           {/* Card A: Instrument info + deposit */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm flex flex-col space-y-3">
+          <View className="bg-white rounded-2xl p-4 shadow-sm flex flex-col space-y-2">
             <View className="flex justify-between items-start w-full">
               <View className="flex-1 min-w-0 pr-4">
                 <Text className="block text-2xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
@@ -307,7 +307,7 @@ export default function Detail() {
                   {levelName}
                 </View>
               )}
-              <Text className="text-[#C21838] font-black text-xl tracking-tight">
+              <Text className="text-[#C21838] font-black text-base tracking-tight">
                 月租 ¥{Math.round((dailyRent || instrument?.base_daily_rate || 0) * 25)}/月
               </Text>
             </View>
