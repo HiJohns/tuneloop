@@ -7,6 +7,9 @@ import dayjs from 'dayjs'
 import { env, storage, eventBus } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { View, Text, Image, Button, Video, ScrollView, Swiper, SwiperItem } from '@tarojs/components'
+import instrBanner1 from '../assets/instrument/banner_1.png'
+import instrBanner2 from '../assets/instrument/banner_2.png'
+import instrBanner3 from '../assets/instrument/banner_3.png'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -252,7 +255,9 @@ export default function Detail() {
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
-  const swiperImages = mediaPublic?.images?.length > 0 ? mediaPublic.images : parseImages(instrument.images).map(url => ({ url }))
+  const swiperImages = mediaPublic?.images?.length > 0 ? mediaPublic.images
+    : parseImages(instrument.images).length > 0 ? parseImages(instrument.images).map(url => ({ url }))
+    : [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
 
   const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
     : levelName.includes('专业') ? 'bg-[#0084FF]'

@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
-import banner1 from '../assets/banners/banner_1.png'
-import banner2 from '../assets/banners/banner_2.png'
-import banner3 from '../assets/banners/banner_3.png'
+import banner1 from '../assets/home/banner_1.png'
+import banner2 from '../assets/home/banner_2.png'
+import banner3 from '../assets/home/banner_3.png'
 
 const banners = [banner1, banner2, banner3]
 const bannerBgColors = ['#915F38', '#7D553D', '#4A6B7C']
