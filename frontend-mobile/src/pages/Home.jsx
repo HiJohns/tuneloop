@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
-import bannerImg from '../assets/banner.png'
+import banner1 from '../assets/banners/banner_1.png'
+import banner2 from '../assets/banners/banner_2.png'
+import banner3 from '../assets/banners/banner_3.png'
+
+const banners = [banner1, banner2, banner3]
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
@@ -82,6 +86,9 @@ export default function Home() {
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [currentBanner, setCurrentBanner] = useState(0)
+  const [catOffsetX, setCatOffsetX] = useState(0)
+  const catTouchStartRef = useRef({ x: 0, offset: 0 })
 
   const baseUrl = env.apiBaseUrl
 
@@ -111,6 +118,13 @@ export default function Home() {
     fetchInstruments().finally(() => setLoading(false))
   }, [fetchCategories, fetchInstruments])
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBanner(prev => (prev + 1) % 3)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [])
+
   const navigateToCategory = (catId) => {
     const url = tenant ? `/instruments?category_id=${catId}&tenant=${tenant}` : `/instruments?category_id=${catId}`
     navigate(url)
@@ -126,11 +140,19 @@ export default function Home() {
       <ScrollView className="w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}>
         {/* A. Banner */}
         <View className="relative w-full h-[240px] bg-[#784A2B] flex flex-col items-center justify-center overflow-hidden">
-          <Image src={bannerImg} className="absolute inset-0 w-full h-full object-cover" />
-          <View className="absolute bottom-3 flex items-center space-x-1.5 justify-center w-full">
-            <View className="w-1.5 h-1.5 rounded-full bg-white/40"></View>
-            <View className="w-1.5 h-1.5 rounded-full bg-white/40"></View>
-            <View className="w-3 h-1.5 rounded-full bg-white"></View>
+          <View className="absolute inset-0 w-full h-full">
+            <View style={{
+              display: 'flex',
+              flexDirection: 'row',
+              width: '300%',
+              height: '100%',
+              transform: `translateX(-${currentBanner * 33.3333}%)`,
+              transition: 'transform 0.5s ease-in-out'
+            }}>
+              {banners.map((src, i) => (
+                <Image key={i} src={src} className="h-full object-cover flex-shrink-0" style={{ width: '33.3333%' }} />
+              ))}
+            </View>
           </View>
           <View className="absolute top-4 left-0 right-0 px-6 flex justify-center">
             <View className="w-[250px] h-[42px] bg-transparent rounded-full flex items-center px-4 border border-[#FFF]">
@@ -140,10 +162,31 @@ export default function Home() {
           </View>
         </View>
 
-        {/* B. Sticky Category Menu */}
+        {/* Dot separator */}
+        <View className="w-full h-[25px] flex items-center justify-center">
+          <View className="flex items-center space-x-1.5">
+            {[0, 1, 2].map(i => (
+              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
+            ))}
+          </View>
+        </View>
+
+        {/* B. Category Menu */}
         <View className="sticky top-0 z-40 bg-[#FDFBF7] py-2 shadow-sm border-b border-zinc-100">
-          <ScrollView className="w-full whitespace-nowrap pl-7" scrollX showScrollbar={false}>
-            <View className="inline-flex items-center space-x-8 pr-4">
+          <View className="w-full overflow-hidden pl-7"
+            onTouchStart={e => {
+              catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
+            }}
+            onTouchMove={e => {
+              const dx = e.touches[0].clientX - catTouchStartRef.current.x
+              if (Math.abs(dx) > 5) {
+                setCatOffsetX(Math.min(0, Math.max(catTouchStartRef.current.offset + dx, -(categories.length * 120 - 375))))
+              }
+            }}
+          >
+            <View className="inline-flex items-center space-x-8 pr-4"
+              style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap' }}
+            >
               {categories.map(item => (
                 <Text
                   key={item.id}
@@ -154,7 +197,7 @@ export default function Home() {
                 </Text>
               ))}
             </View>
-          </ScrollView>
+          </View>
         </View>
 
         {/* C. Instrument List */}
