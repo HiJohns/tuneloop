@@ -149,6 +149,14 @@ export const scanQRCode = () => new Promise((resolve, reject) => {
   })
 })
 
+export const getLocation = () => new Promise((resolve, reject) => {
+  Taro.getLocation({
+    type: 'gcj02',
+    success: (res) => resolve({ latitude: res.latitude, longitude: res.longitude }),
+    fail: (err) => reject(err),
+  })
+})
+
 export const onPageScroll = (handler) => {
   Taro.onPageScroll(handler)
   return () => Taro.offPageScroll(handler)

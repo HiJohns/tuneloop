@@ -2,7 +2,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
 import { getToken, initPermissionMapping, publicRoutes } from './services/api'
-import { storage, session, request, navigation, env } from './platform'
+import { storage, session, navigation, env } from './platform'
+import { initializeApp, storeToken, parseJWT, cachePermissions, getWXConfig, showLoginReason, setInitDeps } from './platform/init'
+
+setInitDeps(initPermissionMapping, publicRoutes)
 
 import Home from './pages/Home'
 import Detail from './pages/Detail'
@@ -16,6 +19,8 @@ import MyService from './pages/MyService'
 import MyLeases from './pages/MyLeases'
 import LeaseHistory from './pages/LeaseHistory'
 import Messages from './pages/Messages'
+import MessageDetail from './pages/MessageDetail'
+import PaymentComplete from './pages/PaymentComplete'
 import StaffInstruments from './pages/StaffInstruments'
 import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
 import StaffInstrumentForm from './pages/StaffInstrumentForm'
@@ -28,41 +33,8 @@ import SiteDetail from './pages/SiteDetail'
 import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
 import StaffOrderDetail from './pages/StaffOrderDetail'
+import RepairScan from './pages/RepairScan'
 import OrderDetail from './pages/OrderDetail'
-
-const getWXConfig = () => {
-  return window.APP_CONFIG?.wx || null
-}
-
-function storeToken(accessToken, expiresIn = 3600, refreshToken) {
-  const expiry = new Date().getTime() + (expiresIn * 1000)
-  storage.setItem('token', accessToken)
-  storage.setItem('token_expiry', expiry.toString())
-  if (refreshToken) storage.setItem('refresh_token', refreshToken)
-}
-
-function parseJWT(token) {
-  if (!token || !token.includes('.')) return {}
-  try {
-    return JSON.parse(atob(token.split('.')[1]))
-  } catch (e) {
-    return {}
-  }
-}
-
-function cachePermissions(claims) {
-  const sysPerm = parseInt(claims.sys_perm) || 0
-  const cusPerm = parseInt(claims.cus_perm) || 0
-  storage.setItem('user_sys_perm', sysPerm.toString())
-  storage.setItem('user_cus_perm', cusPerm.toString())
-  storage.setItem('user_cus_perm_ext', claims.cus_perm_ext || '')
-}
-
-function isNamespaceAdmin() {
-  const sysPerm = parseInt(storage.getItem('user_sys_perm') || '0')
-  const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
-  return sysPerm > 0 && cusPerm === 0
-}
 
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
@@ -176,42 +148,11 @@ function OAuthCallback() {
 
 function App() {
   useEffect(() => {
-    const fetchConfig = async (retries = 3) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const res = await request('/api/config')
-          const data = await res.json()
-          if (data.code === 20000) {
-            window.APP_CONFIG = data.data
-            return
-          }
-        } catch {}
-        if (i < retries - 1) await new Promise(r => setTimeout(r, 1000))
-      }
-    }
-    fetchConfig()
-    initPermissionMapping()
-    const token = getToken()
-    const location = navigation.getCurrentPath()
+    initializeApp()
 
-    if (!token && !publicRoutes.includes(location)) {
-      session.setItem('post_auth_redirect', location)
-    }
-
-    if (token) {
-      cachePermissions(parseJWT(token))
-    }
-
-    const showReason = session.getItem('show_login_reason')
-    if (showReason) {
-      session.removeItem('show_login_reason')
-      if (showReason === 'session_expired') {
-        message.info('登录已过期，请重新登录')
-      } else if (showReason === 'token_missing') {
-        message.info('请先登录')
-      } else {
-        message.info('请先登录')
-      }
+    const reason = showLoginReason()
+    if (reason) {
+      message.info(reason)
     }
   }, [])
 
@@ -233,6 +174,8 @@ function App() {
         <Route path="/lease-history" element={<ProtectedRoute><LeaseHistory /></ProtectedRoute>} />
         <Route path="/my-contracts" element={<ProtectedRoute><MyContracts /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
+        <Route path="/payment-complete" element={<ProtectedRoute><PaymentComplete /></ProtectedRoute>} />
 <Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />
 <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
 <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
@@ -241,6 +184,7 @@ function App() {
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
         <Route path="/staff/orders" element={<ProtectedRoute><StaffOrders /></ProtectedRoute>} />
         <Route path="/staff/orders/:id" element={<ProtectedRoute><StaffOrderDetail /></ProtectedRoute>} />
+        <Route path="/staff/repair-scan" element={<ProtectedRoute><RepairScan /></ProtectedRoute>} />
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
         <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />

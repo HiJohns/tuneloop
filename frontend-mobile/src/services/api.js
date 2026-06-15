@@ -57,6 +57,43 @@ function isWeChatMiniProgram() {
          window.__wxjs_environment === 'miniprogram'
 }
 
+export async function wxLogin() {
+  return new Promise((resolve, reject) => {
+    if (typeof wx === 'undefined' || !wx.login) {
+      reject(new Error('Not in WeChat mini-program'))
+      return
+    }
+    wx.login({
+      success: async (res) => {
+        try {
+          const response = await platformRequest(`${env.apiBaseUrl}/wx/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: res.code }),
+          })
+          const data = await response.json()
+          if (data.code === 20000 && data.data?.access_token) {
+            storage.setItem('token', data.data.access_token)
+            if (data.data.expires_in) {
+              storage.setItem('token_expiry', (new Date().getTime() + data.data.expires_in * 1000).toString())
+            }
+            if (data.data.user) {
+              storage.setJSON('user_info', data.data.user)
+            }
+            cachePermissions(parseJWT(data.data.access_token))
+            resolve(data.data)
+          } else {
+            reject(new Error(data.message || 'Login failed'))
+          }
+        } catch (err) {
+          reject(err)
+        }
+      },
+      fail: (err) => reject(err),
+    })
+  })
+}
+
 export function redirectToLogin(reason) {
   if (reason) {
     session.setItem('login_reason', reason)
@@ -103,6 +140,23 @@ export function degradeToGuest() {
   cookie.remove('token')
   session.setItem('logged_out_due_expiry', '1')
   navigation.redirect('/')
+}
+
+function parseJWT(token) {
+  if (!token || !token.includes('.')) return {}
+  try {
+    return JSON.parse(atob(token.split('.')[1]))
+  } catch {
+    return {}
+  }
+}
+
+function cachePermissions(claims) {
+  const sysPerm = parseInt(claims.sys_perm) || 0
+  const cusPerm = parseInt(claims.cus_perm) || 0
+  storage.setItem('user_sys_perm', sysPerm.toString())
+  storage.setItem('user_cus_perm', cusPerm.toString())
+  storage.setItem('user_cus_perm_ext', claims.cus_perm_ext || '')
 }
 
 export function getToken() {
@@ -345,6 +399,14 @@ export const appealsApi = {
   agree: (damageReportId) => api.post(`/appeals/${damageReportId}/agree`),
   list: () => api.get('/user/appeals'),
   get: (id) => api.get(`/appeals/${id}`),
+}
+
+export const notificationApi = {
+  list: () => api.get('/notifications'),
+  detail: (id) => api.get(`/notifications/${id}`),
+  unreadCount: () => api.get('/notifications/unread-count'),
+  markRead: (id) => api.post(`/notifications/${id}/read`),
+  markAllRead: () => api.post('/notifications/mark-all-read'),
 }
 
 export const contractsApi = {
