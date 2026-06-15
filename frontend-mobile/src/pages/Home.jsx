@@ -1,16 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
-import { instrumentsApi, apiFetch, getToken, redirectToLogin } from '../services/api'
-import { ChevronRight, Search, Heart, ShoppingCart } from 'lucide-react'
-import { env, storage, eventBus, onPageScroll } from '../platform'
+import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
+import { apiFetch } from '../services/api'
+import { env } from '../platform'
+import bannerImg from '../assets/banner.png'
 
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
-    <rect fill="#f3f4f6" width="200" height="160"/>
-    <text x="100" y="80" text-anchor="middle" fill="#9ca3af" font-size="14">暂无图片</text>
-  </svg>
-`)
+const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
+)
 
 function parseImages(images) {
   if (!images) return []
@@ -21,68 +18,57 @@ function parseImages(images) {
   return []
 }
 
-function parsePricing(pricing) {
-  if (!pricing) return {}
-  if (typeof pricing === 'object') return pricing
-  if (typeof pricing === 'string') {
-    try { return JSON.parse(pricing) } catch { return {} }
+function getDailyRate(instrument) {
+  const pricing = instrument.pricing
+  if (!pricing) return instrument.base_daily_rate || 0
+  if (typeof pricing === 'object' && !Array.isArray(pricing)) {
+    return pricing.daily_rent || instrument.base_daily_rate || 0
   }
-  return {}
+  if (typeof pricing === 'string') {
+    try {
+      const parsed = JSON.parse(pricing)
+      if (Array.isArray(parsed)) return parsed[0]?.daily_rent || instrument.base_daily_rate || 0
+      return parsed.daily_rent || instrument.base_daily_rate || 0
+    } catch { return instrument.base_daily_rate || 0 }
+  }
+  return instrument.base_daily_rate || 0
 }
 
-function InstrumentCard({ instrument, onClick, isFavorite, onToggleFavorite }) {
-  // Safe parse JSON images and pricing
+function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
-  const pricing = parsePricing(instrument.pricing)
-  const dailyRent = (Array.isArray(pricing) ? pricing[0]?.daily_rent : pricing.daily_rent) || instrument.base_daily_rate || 0
-  const monthlyRent = Math.round(dailyRent * 25)
-  const weeklyRent = Math.round(dailyRent * 6)
-  const rawDeposit = Array.isArray(pricing) ? pricing[0]?.deposit : pricing?.deposit
-  const fallbackDeposit = dailyRent * 2
-  const displayDeposit = rawDeposit || fallbackDeposit || 0
-  const isAvailable = instrument.stock_status === 'available'
+  const dailyRate = getDailyRate(instrument)
+  const monthlyRent = Math.round(dailyRate * 25)
+  const levelName = instrument.level_name || ''
+  const thumb = images[0] || INSTRUMENT_PLACEHOLDER
 
-  const handleFavoriteClick = (e) => {
-    e.stopPropagation()
-    onToggleFavorite(instrument.id)
-  }
-  
+  const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
+    : levelName.includes('专业') ? 'bg-[#0084FF]'
+    : levelName.includes('入门') ? 'bg-[#FF6B00]'
+    : 'bg-zinc-500'
+
   return (
-    <View 
-      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition-transform"
-      onClick={onClick}
-    >
-        <View className="relative">
-          <Image 
-            src={images[0] || PLACEHOLDER_IMAGE}
-            className="w-full h-40 object-contain bg-gray-100 rounded-xl"
-          />
-          <View className="absolute top-2 left-2 flex gap-1">
-            {isAvailable ? (
-              <Text className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">可租</Text>
-            ) : (
-              <Text className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded">已租</Text>
-            )}
-            {dailyRent > 0 && (
-              <Text className="bg-brand-primary text-white text-xs px-2 py-0.5 rounded">特惠</Text>
-            )}
+    <View className="bg-white rounded-l-2xl p-3 flex items-center shadow-md w-full" onClick={onClick}>
+      <View className="w-28 h-28 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+        <Image src={thumb} className="w-24 h-24 object-contain" />
+      </View>
+      <View className="flex-1 ml-3 h-28 flex justify-between items-start pr-4 overflow-hidden">
+        <View className="flex flex-col space-y-1 h-full justify-between py-0.5 min-w-0 flex-1">
+          <View className="w-full min-w-0">
+            <Text className="block text-3xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
+            <Text className="block text-sm text-zinc-500 font-bold truncate">{instrument.category_name}</Text>
           </View>
-         <Button
-           onClick={handleFavoriteClick}
-           className="absolute top-2 right-2 text-white bg-black/30 rounded-full p-1"
-         >
-           <Heart size={16} fill={isFavorite ? "red" : "none"} color={isFavorite ? "red" : "white"} />
-         </Button>
-       </View>
-       <View className="p-3">
-         <Text className="font-bold text-base text-brand-text truncate">{instrument.name}</Text>
-         <Text className="text-brand-primary text-lg font-bold">
-           ¥{monthlyRent}<Text className="text-brand-unit text-sm">/月</Text>
-         </Text>
-         <Text className="text-gray-500 text-sm">
-            押金: ¥{displayDeposit}
-         </Text>
-       </View>
+          {levelName && (
+            <View className={`inline-block ${levelBg} text-white text-sm px-2.5 py-0.5 rounded-full font-black self-start shadow-sm -mt-0.5`}>
+              {levelName}
+            </View>
+          )}
+        </View>
+        <View className="h-full flex flex-col justify-end text-right self-end ml-2 flex-shrink-0 whitespace-nowrap">
+          <Text className="text-[#C21838] font-black text-[26px] tracking-tight">
+            ¥{monthlyRent}<Text className="text-base font-bold text-[#C21838]/70"> / 月</Text>
+          </Text>
+        </View>
+      </View>
     </View>
   )
 }
@@ -91,302 +77,133 @@ export default function Home() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const tenant = searchParams.get('tenant')
-  const [activeCategory, setActiveCategory] = useState("全部")
-  const [loading, setLoading] = useState(true)
-  const [favorites, setFavorites] = useState([])
-  const [, setForceUpdate] = useState(0)
-  const [toast, setToast] = useState({ visible: false, message: "" })
+
+  const [categories, setCategories] = useState([])
   const [instruments, setInstruments] = useState([])
-  const [categories, setCategories] = useState(["全部"])
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState(null)
 
-  const fetchInstruments = useCallback(async (pageNum = 1, append = false) => {
-    console.log('[Infinite Scroll] Fetching page:', pageNum, 'append:', append)
-    
+  const baseUrl = env.apiBaseUrl
+
+  const fetchCategories = useCallback(async () => {
     try {
-      if (!append) setLoading(true)
-      else setLoadingMore(true)
-      
-      const baseUrl = env.apiBaseUrl
-      const endpoint = '/public/instruments'
-      const response = await apiFetch(`${baseUrl}${endpoint}?page=${pageNum}&pageSize=20${tenant ? `&tenant=${tenant}` : ''}`)
-      const result = await response.json()
-      
-       if (result.code === 20000) {
-        let newData = (result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost')
-        console.log('[Infinite Scroll] Received', newData.length, 'items')
-        console.log('[Infinite Scroll] Pagination:', result.data?.pagination)
-        
-        if (append) {
-          setInstruments(prev => [...prev, ...newData])
-        } else {
-          setInstruments(newData)
-        }
-        
-        const pagination = result.data?.pagination
-        if (pagination) {
-          console.log('[Infinite Scroll] Total pages:', pagination.totalPages, 'Current page:', pageNum)
-          setHasMore(pageNum < pagination.totalPages)
-        } else if (newData.length < 20) {
-          console.log('[Infinite Scroll] Less than 20 items, no more data')
-          setHasMore(false)
-        }
+      const res = await apiFetch(`${baseUrl}/public/categories${tenant ? `?tenant=${tenant}` : ''}`)
+      const result = await res.json()
+      if (result.code === 20000) {
+        setCategories(result.data?.list || [])
+        if (result.data?.list?.length > 0) setSelectedCategory(result.data.list[0].id)
       }
-      
-      // Update categories only on initial load
-      if (pageNum === 1) {
-        const uniqueCategories = ["全部", ...new Set(
-          (result.data?.list || []).map(i => i.category_name || i.category).filter(cat => cat)
-        )]
-        setCategories(uniqueCategories)
+    } catch {}
+  }, [baseUrl, tenant])
+
+  const fetchInstruments = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${baseUrl}/public/instruments?page=1&pageSize=10${tenant ? `&tenant=${tenant}` : ''}`)
+      const result = await res.json()
+      if (result.code === 20000) {
+        setInstruments((result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost'))
       }
-      
-      if (!append) setLoading(false)
-      else setLoadingMore(false)
-    } catch (error) {
-      console.error('[Infinite Scroll] Failed to fetch instruments:', error)
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }, [tenant])
+    } catch {}
+  }, [baseUrl, tenant])
 
   useEffect(() => {
-    fetchInstruments(1, false)
-  }, [fetchInstruments])
+    fetchCategories()
+    fetchInstruments().finally(() => setLoading(false))
+  }, [fetchCategories, fetchInstruments])
 
-  // Listen for cart updates to refresh floating icon
-  useEffect(() => {
-    const handleCartUpdate = () => forceUpdate(prev => prev + 1)
-    eventBus.on('cartUpdated', handleCartUpdate)
-    return () => eventBus.off('cartUpdated', handleCartUpdate)
-  }, [])
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          console.log('[Infinite Scroll] Sentinel intersected, loading page:', page + 1)
-          setPage(prev => prev + 1)
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '200px'
-      }
-    )
-
-    const sentinel = typeof document !== 'undefined' ? document.getElementById('scroll-sentinel') : null
-    if (sentinel) {
-      console.log('[Infinite Scroll] Observer attached to sentinel, hasMore:', hasMore)
-      observer.observe(sentinel)
-    } else {
-      console.log('[Infinite Scroll] Sentinel not found')
-    }
-
-    return () => observer.disconnect()
-  }, [hasMore, loadingMore, page])
-
-  // Load more when page changes
-  useEffect(() => {
-    if (page > 1) {
-      console.log('[Infinite Scroll] Page changed to:', page, 'fetching more...')
-      fetchInstruments(page, true)
-    }
-  }, [page, fetchInstruments])
-
-  // Scroll event fallback for mobile/WeChat
-  useEffect(() => {
-    const handleScroll = (e) => {
-      if (!hasMore || loadingMore) return
-      
-      const scrollTop = e?.scrollTop ?? window.scrollY ?? document.documentElement?.scrollTop ?? 0
-      const scrollHeight = document.documentElement?.scrollHeight ?? 0
-      const clientHeight = window.innerHeight ?? 0
-      
-      if (scrollTop + clientHeight >= scrollHeight - 200) {
-        console.log('[Infinite Scroll] Scroll event triggered')
-        setPage(prev => prev + 1)
-      }
-    }
-
-    return onPageScroll(handleScroll)
-  }, [hasMore, loadingMore])
-
-  const toggleFavorite = (instrumentId) => {
-    setFavorites(prev => {
-      const newFavorites = prev.includes(instrumentId)
-        ? prev.filter(id => id !== instrumentId)
-        : [...prev, instrumentId]
-      
-      setToast({
-        visible: true,
-        message: newFavorites.includes(instrumentId) ? "已加入我的收藏" : "已取消收藏"
-      })
-      
-      // Auto hide toast
-      setTimeout(() => setToast({ visible: false, message: "" }), 2000)
-      
-      return newFavorites
-    })
+  const navigateToCategory = (catId) => {
+    const url = tenant ? `/instruments?category_id=${catId}&tenant=${tenant}` : `/instruments?category_id=${catId}`
+    navigate(url)
   }
 
-  const filteredInstruments = activeCategory === "全部" 
-    ? instruments 
-    : instruments.filter(i => (i.category_name || i.category) === activeCategory)
+  const navigateToList = () => {
+    const url = tenant ? `/instruments?tenant=${tenant}` : '/instruments'
+    navigate(url)
+  }
 
   return (
-    <View className="min-h-screen bg-brand-bg">
-      {/* Header */}
-      <View className="bg-brand-primary text-white px-4 py-4 flex justify-between items-center">
-        <View>
-          <Text className="text-lg font-bold">乐器租赁</Text>
-          <Text className="text-sm opacity-90">精品乐器 轻松租回家</Text>
+    <View className="h-screen w-screen bg-[#915F38] overflow-hidden flex flex-col relative antialiased">
+      <ScrollView className="w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}>
+        {/* A. Banner */}
+        <View className="relative w-full h-[240px] bg-[#784A2B] flex flex-col items-center justify-center overflow-hidden">
+          <Image src={bannerImg} className="absolute inset-0 w-full h-full object-cover" />
+          <View className="absolute bottom-3 flex items-center space-x-1.5 justify-center w-full">
+            <View className="w-1.5 h-1.5 rounded-full bg-white/40"></View>
+            <View className="w-1.5 h-1.5 rounded-full bg-white/40"></View>
+            <View className="w-3 h-1.5 rounded-full bg-white"></View>
+          </View>
+          <View className="absolute top-4 left-0 right-0 px-6 flex justify-center">
+            <View className="w-[250px] h-[42px] bg-transparent rounded-full flex items-center px-4 border border-[#FFF]">
+              <Text className="text-white/70 text-base mr-2">🔍</Text>
+              <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-white text-sm flex-1 bg-transparent" />
+            </View>
+          </View>
         </View>
-        <Button className="text-white">
-          <Search size={20} />
-        </Button>
-      </View>
 
-      {/* Category Tabs */}
-      <ScrollView className="bg-white border-b" scrollX>
-        <View className="flex px-4 py-3 gap-4">
-          {categories.map((cat, index) => {
-            const icons = {
-              "钢琴": "🎹",
-              "吉他": "🎸", 
-              "古筝": "🎻",
-              "提琴": "🎻",
-              "全部": "全部"
-            }
-            return (
-              <Button
-                key={cat || `category-${index}`}
-                onClick={() => {
-                  setActiveCategory(cat)
-                  setPage(1)
-                  setHasMore(true)
-                }}
-                className={`flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  activeCategory === cat
-                    ? 'bg-brand-primary text-white transform scale-105 border-b-2 border-brand-primary'
-                    : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {icons[cat] || ""} {cat}
-              </Button>
-            )
-          })}
+        {/* B. Sticky Category Menu */}
+        <View className="sticky top-0 z-40 bg-[#FDFBF7] py-2 shadow-sm border-b border-zinc-100">
+          <ScrollView className="w-full whitespace-nowrap pl-7" scrollX showScrollbar={false}>
+            <View className="inline-flex items-center space-x-8 pr-4">
+              {categories.map(item => (
+                <Text
+                  key={item.id}
+                  className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? 'font-black text-black border-b-2 border-black pb-0.5' : 'font-bold text-zinc-500/90'}`}
+                  onClick={() => { setSelectedCategory(item.id); navigateToCategory(item.id) }}
+                >
+                  {item.name}
+                </Text>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* C. Instrument List */}
+        <View className="pl-7 pr-0 pt-4 pb-20 space-y-4 bg-[#915F38]">
+          {loading ? (
+            Array(3).fill(0).map((_, i) => (
+              <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
+                <View className="w-28 h-28 bg-zinc-200 rounded-xl animate-pulse flex-shrink-0" />
+                <View className="flex-1 ml-3 pr-4 space-y-3">
+                  <View className="h-5 bg-zinc-200 rounded w-3/4 animate-pulse" />
+                  <View className="h-4 bg-zinc-200 rounded w-1/2 animate-pulse" />
+                  <View className="h-6 bg-zinc-200 rounded w-1/3 animate-pulse" />
+                </View>
+              </View>
+            ))
+          ) : instruments.length > 0 ? (
+            instruments.map(instrument => (
+              <InstrumentCard
+                key={instrument.id}
+                instrument={instrument}
+                onClick={() => { const url = tenant ? `/instrument/${instrument.id}?tenant=${tenant}` : `/instrument/${instrument.id}`; navigate(url) }}
+              />
+            ))
+          ) : (
+            <View className="text-center py-16 text-white/60">
+              <Text className="text-5xl block mb-4">🎵</Text>
+              <Text className="text-lg">暂无乐器</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* Instrument Grid */}
-      <View className="p-4">
-        {loading ? (
-          <View className="grid grid-cols-2 gap-4">
-            {Array(6).fill(0).map((_, i) => (
-              <View key={i} className="bg-white rounded-xl overflow-hidden">
-                <View className="w-full h-40 bg-gray-200 animate-pulse"></View>
-                <View className="p-3 space-y-2">
-                  <View className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></View>
-                  <View className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></View>
-                </View>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <>
-            <View className="grid grid-cols-2 gap-4">
-              {filteredInstruments.map(instrument => (
-                <InstrumentCard
-                  key={instrument.id}
-                  instrument={instrument}
-                  onClick={() => navigate(`/instrument/${instrument.id}`)}
-                  isFavorite={favorites.includes(instrument.id)}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
-            </View>
-            
-            {/* Loading indicator or sentinel for infinite scroll */}
-            {loadingMore ? (
-              <View className="text-center py-4 text-gray-500 col-span-2">加载中...</View>
-            ) : hasMore ? (
-              <View id="scroll-sentinel" className="h-40 col-span-2"></View>
-            ) : (
-              <View className="text-center py-4 text-gray-500 col-span-2">暂无更多乐器</View>
-            )}
-          </>
-        )}
-      </View>
-
-      {/* Toast */}
-      {toast.visible && (
-        <View className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-4 py-2 rounded">
-          {toast.message}
+      {/* D. Bottom Tabbar */}
+      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-50 shadow-2xl">
+        <View className="flex flex-col items-center justify-center text-white" onClick={() => navigate('/')}>
+          <Text className="text-xl mb-0.5">🏪</Text>
+          <Text className="text-[10px] font-bold text-white">首页</Text>
         </View>
-      )}
-
-      {/* Floating Cart Icon */}
-      {(() => {
-        try {
-          const cartData = storage.getJSON('cart', {items: []})
-          const cartCount = cartData.items?.length || 0
-          if (cartCount > 0) {
-            return (
-              <Button
-                onClick={() => navigate('/cart')}
-                className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-lg z-50"
-              >
-                <ShoppingCart size={24} />
-                <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {cartCount}
-                </Text>
-              </Button>
-            )
-          }
-          return null
-        } catch {
-          return null
-        }
-      })()}
-
-      {/* Bottom Navigation */}
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t safe-area-pb">
-        <View className="flex justify-around py-3 max-w-[480px] mx-auto">
-          <View 
-            className="flex flex-col items-center text-brand-primary cursor-pointer"
-            onClick={() => navigate('/')}
-          >
-            <Text className="text-xl">🏠</Text>
-            <Text className="text-xs mt-1">首页</Text>
-          </View>
-          <View 
-            className="flex flex-col items-center text-gray-400 cursor-pointer"
-            onClick={() => navigate('/service')}
-          >
-            <Text className="text-xl">🔧</Text>
-            <Text className="text-xs mt-1">维修</Text>
-          </View>
-          {getToken() ? (
-            <View 
-              className="flex flex-col items-center text-gray-400 cursor-pointer"
-              onClick={() => navigate('/profile')}
-            >
-              <Text className="text-xl">👤</Text>
-              <Text className="text-xs mt-1">我的</Text>
-            </View>
-          ) : (
-            <View 
-              className="flex flex-col items-center text-brand-primary cursor-pointer"
-              onClick={() => redirectToLogin()}
-            >
-              <Text className="text-xl">🔑</Text>
-              <Text className="text-xs mt-1">登录</Text>
-            </View>
-          )}
+        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => navigateToList()}>
+          <Text className="text-xl mb-0.5">🪕</Text>
+          <Text className="text-[10px] font-medium text-white/50">租赁</Text>
+        </View>
+        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => { const url = tenant ? `/my-service?tenant=${tenant}` : '/my-service'; navigate(url) }}>
+          <Text className="text-xl mb-0.5">🛠️</Text>
+          <Text className="text-[10px] font-medium text-white/50">维修</Text>
+        </View>
+        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) }}>
+          <Text className="text-xl mb-0.5">👤</Text>
+          <Text className="text-[10px] font-medium text-white/50">我的</Text>
         </View>
       </View>
     </View>
