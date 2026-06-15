@@ -66,6 +66,7 @@ export default function Detail() {
   const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
+  const swiperImages = [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
@@ -262,8 +263,6 @@ export default function Detail() {
   const publicImages = mediaPublic?.images?.length > 0 ? mediaPublic.images.map(i => i.url) : null
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
-
-  const swiperImages = [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
 
   const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
     : levelName.includes('专业') ? 'bg-[#0084FF]'
