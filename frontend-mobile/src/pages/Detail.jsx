@@ -196,6 +196,7 @@ export default function Detail() {
   // computed values — must be after all state declarations
   const liveImages = displayMedia?.images?.length > 0 ? displayMedia.images : swiperImages
   const liveVideo = displayMedia?.video || null
+  const hasDisplayMedia = displayMedia?.images?.length > 0
   const totalMedia = liveImages.length + (liveVideo ? 1 : 0)
   const displayTrack = liveImages.length > 4 ? [...liveImages, ...liveImages.slice(0, 4)] : liveImages
   const maxMediaOffset = displayTrack.length - 4
@@ -353,49 +354,55 @@ export default function Detail() {
                 <Text className="block text-base font-black text-black truncate">{instrument.category_name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
-              <View className="flex items-center flex-1 ml-2">
-                {totalMedia > 4 && (
-                  <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
-                    if (mediaOffset <= 0) {
-                      setNoTransition(true)
-                      setMediaOffset(maxMediaOffset + 1)
-                      requestAnimationFrame(() => {
-                        setNoTransition(false)
-                        setMediaOffset(maxMediaOffset)
-                      })
-                    } else {
-                      setMediaOffset(prev => prev - 1)
-                    }
-                  }}>
-                    <Text className="text-sm font-black text-zinc-400">❮</Text>
+              {hasDisplayMedia ? (
+                <View className="flex items-center flex-1 ml-2">
+                  {totalMedia > 4 && (
+                    <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
+                      if (mediaOffset <= 0) {
+                        setNoTransition(true)
+                        setMediaOffset(maxMediaOffset + 1)
+                        requestAnimationFrame(() => {
+                          setNoTransition(false)
+                          setMediaOffset(maxMediaOffset)
+                        })
+                      } else {
+                        setMediaOffset(prev => prev - 1)
+                      }
+                    }}>
+                      <Text className="text-sm font-black text-zinc-400">❮</Text>
+                    </View>
+                  )}
+                  <View className="overflow-hidden flex-1">
+                    <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: noTransition ? 'none' : 'transform 0.3s ease' }}>
+                      {displayTrack.map((img, i) => (
+                        <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
+                      ))}
+                      {liveVideo && (
+                        <View className="w-14 h-14 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(liveVideo.url)}>
+                          <Text className="text-sm">▶</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                )}
-                <View className="overflow-hidden flex-1">
-                  <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: noTransition ? 'none' : 'transform 0.3s ease' }}>
-                    {displayTrack.map((img, i) => (
-                      <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
-                    ))}
-                    {liveVideo && (
-                      <View className="w-14 h-14 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(liveVideo.url)}>
-                        <Text className="text-sm">▶</Text>
-                      </View>
-                    )}
-                  </View>
+                  {totalMedia > 4 && (
+                    <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
+                      if (mediaOffset >= maxMediaOffset) {
+                        setNoTransition(true)
+                        setMediaOffset(0)
+                        requestAnimationFrame(() => setNoTransition(false))
+                      } else {
+                        setMediaOffset(prev => prev + 1)
+                      }
+                    }}>
+                      <Text className="text-sm font-black text-zinc-600">❯</Text>
+                    </View>
+                  )}
                 </View>
-                {totalMedia > 4 && (
-                  <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
-                    if (mediaOffset >= maxMediaOffset) {
-                      setNoTransition(true)
-                      setMediaOffset(0)
-                      requestAnimationFrame(() => setNoTransition(false))
-                    } else {
-                      setMediaOffset(prev => prev + 1)
-                    }
-                  }}>
-                    <Text className="text-sm font-black text-zinc-600">❯</Text>
-                  </View>
-                )}
-              </View>
+              ) : (
+                <View className="flex items-center flex-1 ml-2">
+                  <Text className="text-xs text-zinc-400">暂无图片</Text>
+                </View>
+              )}
             </View>
           </View>
 
