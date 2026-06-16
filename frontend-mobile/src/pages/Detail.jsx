@@ -282,7 +282,7 @@ export default function Detail() {
   return (
     <View className="min-h-screen bg-zinc-100 pb-[140px] flex flex-col relative antialiased">
       {/* Nav bar */}
-      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-[#FDFBF7] border-b border-zinc-100">
+      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-zinc-100">
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">乐器详情</Text>
         <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
@@ -298,9 +298,7 @@ export default function Detail() {
           }}>
             {swiperImages.map((img, i) => (
               <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / swiperImages.length}%` }}>
-                <View className="w-full h-full bg-zinc-100 rounded-xl overflow-hidden shadow-sm">
-                  <Image src={img.url || img} className="w-full h-full object-contain" />
-                </View>
+                <Image src={img.url || img} className="w-full h-full object-contain" />
               </View>
             ))}
           </View>
