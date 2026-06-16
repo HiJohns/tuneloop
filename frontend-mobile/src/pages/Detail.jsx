@@ -305,7 +305,7 @@ export default function Detail() {
             ))}
           </View>
         </View>
-        <View className="flex items-center justify-center space-x-1.5 pb-3 bg-white">
+        <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
           {swiperImages.map((_, i) => (
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
           ))}
@@ -413,7 +413,7 @@ export default function Detail() {
                 </View>
               ))
             ) : (
-              <Text className="text-sm text-zinc-400">暂无规格参数</Text>
+              <Text className="block text-sm text-zinc-400">暂无规格参数</Text>
             )}
           </View>
 
