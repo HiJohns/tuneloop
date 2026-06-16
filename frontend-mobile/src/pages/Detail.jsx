@@ -70,7 +70,6 @@ export default function Detail() {
   const [noTransition, setNoTransition] = useState(false)
   const swiperImages = [
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
-    { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
   ]
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
@@ -192,23 +191,23 @@ export default function Detail() {
       })
   }, [id])
 
-  const [mediaPublic, setMediaPublic] = useState(null)
+  const [displayMedia, setDisplayMedia] = useState(null)
 
   // computed values — must be after all state declarations
-  const totalMedia = swiperImages.length + (mediaPublic?.video ? 1 : 0)
-  const displayTrack = swiperImages.length > 4 ? [...swiperImages, ...swiperImages.slice(0, 4)] : swiperImages
+  const liveImages = displayMedia?.images?.length > 0 ? displayMedia.images : swiperImages
+  const liveVideo = displayMedia?.video || null
+  const totalMedia = liveImages.length + (liveVideo ? 1 : 0)
+  const displayTrack = liveImages.length > 4 ? [...liveImages, ...liveImages.slice(0, 4)] : liveImages
   const maxMediaOffset = displayTrack.length - 4
 
   useEffect(() => {
     if (!id) return
     const baseUrl = env.apiBaseUrl
-    apiFetch(`${baseUrl}/public/instruments/${id}/media`)
+    apiFetch(`${baseUrl}/public/instruments/${id}/display-media`)
       .then(r => r.json())
       .then(res => {
-        if (res.code === 20000) setMediaPublic(res.data)
-      }).catch(() => {
-        // fallback to old instrument.images/video fields
-      })
+        if (res.code === 20000) setDisplayMedia(res.data)
+      }).catch(() => {})
   }, [id])
 
   useEffect(() => {
@@ -257,7 +256,7 @@ export default function Detail() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentBanner(prev => (prev + 1) % swiperImages.length)
+      setCurrentBanner(prev => (prev + 1) % liveImages.length)
     }, 4000)
     return () => clearInterval(timer)
   }, [])
@@ -270,7 +269,7 @@ export default function Detail() {
     return <View className="p-4">乐器不存在</View>
   }
 
-  const publicImages = mediaPublic?.images?.length > 0 ? mediaPublic.images.map(i => i.url) : null
+  const publicImages = liveImages.length > 0 && displayMedia?.images ? liveImages.map(i => i.url || i) : null
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
@@ -292,25 +291,25 @@ export default function Detail() {
       <View className="w-full overflow-hidden">
         <View className="w-full h-[150px]">
           <View className="flex flex-row h-full" style={{
-            width: `${swiperImages.length * 100}%`,
-            transform: `translateX(-${currentBanner * (100 / swiperImages.length)}%)`,
+            width: `${liveImages.length * 100}%`,
+            transform: `translateX(-${currentBanner * (100 / liveImages.length)}%)`,
             transition: 'transform 0.5s ease-in-out'
           }}>
-            {swiperImages.map((img, i) => (
-              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / swiperImages.length}%` }}>
+            {liveImages.map((img, i) => (
+              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / liveImages.length}%` }}>
                 <Image src={img.url || img} className="w-full h-full object-contain" />
               </View>
             ))}
           </View>
         </View>
         <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
-          {swiperImages.map((_, i) => (
+          {liveImages.map((_, i) => (
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
           ))}
         </View>
-        {mediaPublic?.video && (
+        {liveVideo && (
           <View className="px-4 mt-2">
-            <Video src={mediaPublic.video.url} poster={mediaPublic.video.thumb_url} controls className="w-full rounded-lg" style={{ maxHeight: 240 }} />
+            <Video src={liveVideo.url} poster={liveVideo.thumb_url} controls className="w-full rounded-lg" style={{ maxHeight: 240 }} />
           </View>
         )}
       </View>
@@ -376,8 +375,8 @@ export default function Detail() {
                     {displayTrack.map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
                     ))}
-                    {mediaPublic?.video && (
-                      <View className="w-14 h-14 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(mediaPublic.video.url)}>
+                    {liveVideo && (
+                      <View className="w-14 h-14 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(liveVideo.url)}>
                         <Text className="text-sm">▶</Text>
                       </View>
                     )}
@@ -634,8 +633,8 @@ export default function Detail() {
       {/* Fullscreen image/video overlay */}
       {fullscreenImage && (
         <View className="fixed inset-0 bg-black z-50 flex items-center justify-center" onClick={() => setFullscreenImage(null)}>
-          {mediaPublic?.video && fullscreenImage === mediaPublic.video.url ? (
-            <Video src={mediaPublic.video.url} poster={mediaPublic.video.thumb_url} controls className="w-full" style={{ maxHeight: '100%' }} />
+          {liveVideo && fullscreenImage === liveVideo.url ? (
+            <Video src={liveVideo.url} poster={liveVideo.thumb_url} controls className="w-full" style={{ maxHeight: '100%' }} />
           ) : (
             <Image src={fullscreenImage} className="max-w-full max-h-full object-contain" />
           )}
