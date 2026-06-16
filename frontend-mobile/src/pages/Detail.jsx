@@ -351,8 +351,11 @@ export default function Detail() {
                 {instrument.description || '暂无描述'}
               </Text>
               <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
-                {mediaOffset > 0 && (
-                  <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
+                  <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
+                    const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
+                    return prev <= 0 ? max : prev - 1
+                  })}>
                     <Text className="text-sm font-black text-zinc-400">❮</Text>
                   </View>
                 )}
