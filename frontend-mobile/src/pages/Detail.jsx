@@ -417,7 +417,7 @@ export default function Detail() {
           {/* Pricing V2 tiers */}
           {isRentable && pricingV2?.tiers?.length > 0 && (
             <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
-              <Text className="text-lg font-black text-black">定价策略</Text>
+              <Text className="text-base font-black text-black">定价策略</Text>
               {pricingV2.tiers.map((t, i) => {
                 const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                 const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
@@ -444,18 +444,11 @@ export default function Detail() {
                   )}
                 </View>
               )}
-            </View>
-          )}
-
-          {/* Overdue warning */}
-          {isRentable && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm">
-              <Text className="text-sm text-orange-700 font-medium">
-                ⚠️ 逾期后将每日自动扣款，按 ¥{overdueDailyFee}/日 计算
-              </Text>
-              <Text className="text-sm text-orange-600 mt-1">
-                💰 押金将在乐器归还、质检通过后原路退还。如乐器损坏，将在定损后从押金中抵扣
-              </Text>
+              <View className="border-t border-zinc-100 pt-2 mt-1">
+                <Text className="text-xs text-orange-600 font-medium">
+                  ⚠️ 逾期后每日自动扣款 ¥{overdueDailyFee}/日；押金归还质检通过后退还
+                </Text>
+              </View>
             </View>
           )}
 
@@ -476,7 +469,7 @@ export default function Detail() {
           {isRentable && (
             <View className="bg-white rounded-2xl p-4 shadow-sm" onClick={() => setShowComparison(true)}>
               <View className="flex justify-between items-center">
-                <Text className="text-base font-bold text-black">服务权益对比</Text>
+                <Text className="text-base font-black text-black">服务权益对比</Text>
                 <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
               </View>
             </View>
