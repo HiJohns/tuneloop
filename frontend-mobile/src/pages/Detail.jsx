@@ -347,36 +347,34 @@ export default function Detail() {
           <View className="bg-white rounded-2xl p-4 shadow-sm">
             <View className="flex justify-between items-center mb-2">
               <Text className="text-lg font-black text-black">{instrument.name || instrument.sn || '乐器'}</Text>
-              <Text className="text-xs text-zinc-400 font-medium">更多实境 ❯</Text>
             </View>
             <View className="flex flex-row items-start">
-              <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: `calc(100% - ${Math.min(swiperImages.length + (mediaPublic?.video ? 1 : 0), 4) * 92 + 24}px)` }}>
+              <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '25%' }}>
                 {instrument.description || '暂无描述'}
               </Text>
-              <View className="relative flex items-center flex-shrink-0 ml-2" style={{ width: `${Math.min(swiperImages.length + (mediaPublic?.video ? 1 : 0), 4) * 92}px` }}>
-                {(mediaOffset > 0) && (
-                  <View className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-black/10 rounded-l flex items-center justify-center" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
-                    <Text className="text-sm font-black text-white">❮</Text>
+              <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
+                {mediaOffset > 0 && (
+                  <View className="w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                    <Text className="text-sm font-black text-zinc-600">❮</Text>
                   </View>
                 )}
-                <View className="overflow-hidden w-full">
-                  <View className="inline-flex flex-row space-x-3 items-center" style={{ transform: `translateX(-${mediaOffset * 92}px)`, transition: 'transform 0.3s ease' }}>
+                <View className="overflow-hidden" style={{ width: mediaOffset > 0 ? 'calc(100% - 20px)' : '100%' }}>
+                  <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: 'transform 0.3s ease' }}>
                     {swiperImages.map((img, i) => (
-                      <Image key={i} src={img.url || img} className="w-20 h-20 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
+                      <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
                     ))}
                     {mediaPublic?.video && (
-                      <View className="w-20 h-20 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(mediaPublic.video.url)}>
-                        <Text className="text-lg">▶</Text>
-                        <Text className="text-[10px] font-black text-zinc-500 mt-0.5">视频 ❯</Text>
+                      <View className="w-14 h-14 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(mediaPublic.video.url)}>
+                        <Text className="text-sm">▶</Text>
+                      </View>
+                    )}
+                    {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (mediaOffset < (swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4)) && (
+                      <View className="w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={e => { e.stopPropagation(); setMediaOffset(prev => prev + 1) }}>
+                        <Text className="text-sm font-black text-zinc-600">❯</Text>
                       </View>
                     )}
                   </View>
                 </View>
-                {(mediaOffset < Math.max(0, (swiperImages.length + (mediaPublic?.video ? 1 : 0)) - 4)) && (
-                  <View className="absolute -right-6 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-black/10 rounded-r flex items-center justify-center" onClick={() => setMediaOffset(prev => prev + 1)}>
-                    <Text className="text-sm font-black text-white">❯</Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
