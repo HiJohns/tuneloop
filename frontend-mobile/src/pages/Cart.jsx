@@ -1,11 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
-import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { ArrowLeft, Trash2, Package, MapPin, Edit2, Calendar } from 'lucide-react'
-import { getToken, redirectToLogin, ordersApi, addressesApi } from '../services/api'
 import dayjs from 'dayjs'
-import { dialog, env, storage, session, eventBus } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { dialog, storage, eventBus } from '../platform'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -32,398 +29,267 @@ function parsePricing(pricing) {
   return []
 }
 
-function calculateItemAmount(item) {
-  if (item.calculated_rent !== undefined) {
-    const pricing = parsePricing(item.pricing)
-    const deposit = pricing[0]?.deposit || 0
-    const shippingFee = pricing[0]?.shipping_fee || 0
-    return { rent: item.calculated_rent, deposit: deposit, shippingFee: shippingFee, total: item.calculated_rent + deposit + shippingFee }
-  }
+function getItemPricing(item) {
   const pricing = parsePricing(item.pricing)
   const dailyRent = pricing[0]?.daily_rent || item.base_daily_rate || 0
   const deposit = pricing[0]?.deposit || 0
-  const shippingFee = pricing[0]?.shipping_fee || 0
-  const startDate = item.start_date ? dayjs(item.start_date) : dayjs()
-  const endDate = item.end_date ? dayjs(item.end_date) : startDate.add(1, 'month')
-  const days = endDate.diff(startDate, 'day') || 1
-  const rent = dailyRent * days
-  return { rent, deposit, shippingFee, total: rent + deposit + shippingFee }
-}
-
-function calculateDeadline(item) {
-  if (item.end_date) return item.end_date
-  return dayjs().add(1, 'month').format('YYYY-MM-DD')
+  const rentQty = item.rent_qty || 1
+  const rent = item.calculated_rent !== undefined ? item.calculated_rent : dailyRent * rentQty
+  return { dailyRent, deposit, rent, shippingFee: pricing[0]?.shipping_fee || 0 }
 }
 
 export default function Cart() {
   const navigate = useNavigate()
-  const [cart, setCart] = useState({ items: [] })
-  const [grouped, setGrouped] = useState({})
-  const [address, setAddress] = useState(storage.getItem('user_address') || '')
-  const [showAddressModal, setShowAddressModal] = useState(false)
-  const [tempAddress, setTempAddress] = useState('')
+  const [cartItems, setCartItems] = useState([])
+  const [previewImages, setPreviewImages] = useState([])
+  const [previewIndex, setPreviewIndex] = useState(-1)
+  const previewTouchStartX = useRef(0)
 
   useEffect(() => {
-    const data = storage.getJSON('cart', { items: [] })
-    setCart(data)
-    const groups = {}
-    for (const item of data.items) {
-      const tid = item.tenant_id || 'unknown'
-      const siteId = item.site_id || 'unknown'
-      const siteName = item.site_name || '未知网点'
-      if (!groups[tid]) {
-        groups[tid] = { name: item.tenant_name || item.tenant_id || '', sites: {} }
-      }
-      if (!groups[tid].sites[siteId]) {
-        groups[tid].sites[siteId] = { name: siteName, items: [] }
-      }
-      groups[tid].sites[siteId].items.push(item)
-    }
-    setGrouped(groups)
-    setTempAddress(address)
+    const data = storage.getJSON('cart', { items: [] }) || { items: [] }
+    setCartItems(data.items)
   }, [])
 
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      try {
-        const resp = await addressesApi.list()
-        if (Array.isArray(resp)) {
-          const defaultAddr = resp.find(a => a.is_default)
-          if (defaultAddr) {
-            const addrStr = `${defaultAddr.recipient_name} ${defaultAddr.phone} ${defaultAddr.province}${defaultAddr.city}${defaultAddr.district}${defaultAddr.detail}`
-            setAddress(addrStr)
-            storage.setItem('user_address', addrStr)
-          }
-        } else if (resp.code === 20000 && resp.data?.list) {
-          const defaultAddr = resp.data.list.find(a => a.is_default)
-          if (defaultAddr) {
-            const addrStr = `${defaultAddr.recipient_name} ${defaultAddr.phone} ${defaultAddr.province}${defaultAddr.city}${defaultAddr.district}${defaultAddr.detail}`
-            storage.setItem('user_address', addrStr)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch addresses:', err)
-      }
-    }
-    const token = getToken()
-    if (token) {
-      fetchAddresses()
-    }
-  }, [])
-
-  useEffect(() => {
-    const token = getToken()
-    const pending = session.getItem('pending_order')
-    if (token && pending && cart.items.length === 1) {
-      session.removeItem('pending_order')
-      const item = cart.items[0]
-      const amount = calculateItemAmount(item)
-      const returnDate = calculateDeadline(item)
-      navigate('/success', {
-        state: {
-          order_id: 'TL' + Date.now(),
-          instrument_name: item.name,
-          instrument_sn: item.sn,
-          category_name: item.category_name,
-          site_name: item.site_name,
-          site_address: item.site_address,
-          tenant_name: item.tenant_name,
-          lease_term: `${dayjs(returnDate).diff(dayjs(item.start_date || dayjs()), 'day') || 1}天`,
-          return_date: returnDate,
-          total_amount: amount.total,
-        },
-      })
-    } else if (token && pending) {
-      session.removeItem('pending_order')
-    }
-  }, [cart.items.length])
-
-  const recalculateGroups = (items) => {
-    const groups = {}
-    for (const item of items) {
-      const tid = item.tenant_id || 'unknown'
-      const siteId = item.site_id || 'unknown'
-      const siteName = item.site_name || '未知网点'
-      if (!groups[tid]) {
-        groups[tid] = { name: item.tenant_name || item.tenant_id || '', sites: {} }
-      }
-      if (!groups[tid].sites[siteId]) {
-        groups[tid].sites[siteId] = { name: siteName, items: [] }
-      }
-      groups[tid].sites[siteId].items.push(item)
-    }
-    return groups
-  }
-
-  const removeItem = (instrumentId) => {
-    const updated = cart.items.filter(i => i.instrument_id !== instrumentId)
-    const newCart = { items: updated }
-    storage.setJSON('cart', { items: updated })
-    setCart(newCart)
-    setGrouped(recalculateGroups(updated))
-    eventBus.emit('cartUpdated')
-  }
-
-  const clearInvalidItems = () => {
-    const updated = cart.items.filter(i => i.stock_status === 'available')
-    const newCart = { items: updated }
-    storage.setJSON('cart', { items: updated })
-    setCart(newCart)
-    setGrouped(recalculateGroups(updated))
-  }
-
-  const updateAddress = () => {
-    setAddress(tempAddress)
-    storage.setItem('user_address', tempAddress)
-    setShowAddressModal(false)
-  }
-
-  const calculateTotals = () => {
-    let totalRent = 0
-    let totalDeposit = 0
-    let shippingFeePerSite = {}
-    for (const tenantData of Object.values(grouped)) {
-      for (const siteData of Object.values(tenantData.sites)) {
-        const siteKey = Object.keys(tenantData.sites).find(k => tenantData.sites[k] === siteData)
-        shippingFeePerSite[siteKey] = shippingFeePerSite[siteKey] || 0
-        for (const item of siteData.items) {
-          const amount = calculateItemAmount(item)
-          totalRent += amount.rent
-          totalDeposit += amount.deposit
-          const pricing = parsePricing(item.pricing)
-          const shippingFee = pricing[0]?.shipping_fee || 0
-          shippingFeePerSite[siteKey] += shippingFee
+  const groups = useMemo(() => {
+    const map = {}
+    cartItems.forEach(item => {
+      const key = `${item.tenant_id || 'unknown'}-${item.site_id || 'unknown'}`
+      if (!map[key]) {
+        const itemShipping = parsePricing(item.pricing)[0]?.shipping_fee || 0
+        map[key] = {
+          tenant_id: item.tenant_id,
+          tenant_name: item.tenant_name || '',
+          site_name: item.site_name || '',
+          site_address: item.site_address || '',
+          site_phone: item.site_phone || '',
+          shippingFee: itemShipping,
+          items: [],
         }
       }
+      map[key].items.push(item)
+    })
+    return Object.values(map)
+  }, [cartItems])
+
+  const grandTotal = useMemo(() => {
+    let total = 0
+    for (const group of groups) {
+      let groupRent = 0
+      let groupDeposit = 0
+      for (const item of group.items) {
+        const p = getItemPricing(item)
+        groupRent += p.rent
+        groupDeposit += p.deposit
+      }
+      total += groupRent + groupDeposit + (group.shippingFee || 0)
     }
-    const totalShipping = Object.values(shippingFeePerSite).reduce((a, b) => a + b, 0)
-    return { totalRent, totalDeposit, totalShipping, grandTotal: totalRent + totalDeposit + totalShipping }
+    return total
+  }, [groups])
+
+  const getItemId = (item) => item.instrument_id || item.id
+
+  const handleRemove = (itemId) => {
+    if (dialog.confirm('确定要删除该乐器吗？')) {
+      const updated = cartItems.filter(item => getItemId(item) !== itemId)
+      setCartItems(updated)
+      storage.setJSON('cart', { items: updated })
+      eventBus.emit('cartUpdated')
+    }
   }
 
-  const totals = calculateTotals()
-
-  const clearCart = () => {
-    storage.setJSON('cart', { items: [] })
-    eventBus.emit('cartUpdated')
+  const openPreview = (images, index) => {
+    setPreviewImages(images)
+    setPreviewIndex(index)
   }
 
-  const handleOrder = async () => {
-    const token = getToken()
-    if (!token) {
-      session.setItem('post_auth_redirect', '/cart')
-      session.setItem('pending_order', 'true')
-      redirectToLogin()
-      return
-    }
-    if (token.includes('.')) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        if (!payload.tid && !payload.oid) {
-          session.setItem('post_auth_redirect', '/cart')
-          session.setItem('pending_order', 'true')
-          redirectToLogin()
-          return
-        }
-      } catch {}
-    }
-    session.removeItem('pending_order')
-    if (!address.trim()) {
-      dialog.alert('请先填写收货地址')
-      return
-    }
-    if (cart.items.length === 1) {
-      const item = cart.items[0]
-      const amount = calculateItemAmount(item)
-      const returnDate = calculateDeadline(item)
-      const startDate = item.start_date || dayjs().format('YYYY-MM-DD')
+  const closePreview = () => {
+    setPreviewIndex(-1)
+    setPreviewImages([])
+  }
 
-      try {
-        const resp = await ordersApi.create({
-          instrument_id: item.instrument_id,
-          start_date: startDate,
-          end_date: returnDate,
-        })
-
-        if (resp.code === 20000 || resp.code === 20100) {
-          clearCart()
-          navigate('/success', {
-            state: {
-              order_id: resp.data?.order_id || 'TL' + Date.now(),
-              instrument_name: item.name,
-              instrument_sn: item.sn,
-              category_name: item.category_name,
-              site_name: item.site_name,
-              site_address: item.site_address,
-              tenant_name: item.tenant_name,
-              lease_term: `${dayjs(returnDate).diff(dayjs(startDate), 'day') || 1}天`,
-              return_date: returnDate,
-              total_amount: amount.total,
-            },
-          })
-        } else {
-          dialog.alert(resp.data?.message || '下单失败')
-        }
-      } catch (err) {
-        console.error('Order failed:', err)
-        dialog.alert('下单失败: ' + (err.message || '未知错误'))
+  const increaseRentQty = (itemId) => {
+    setCartItems(prev => prev.map(item => {
+      if (getItemId(item) === itemId) {
+        return { ...item, rent_qty: (item.rent_qty || 1) + 1 }
       }
-    } else {
-      const items = cart.items.map(item => ({
-        instrument_id: item.instrument_id,
-        start_date: item.start_date || dayjs().format('YYYY-MM-DD'),
-        end_date: item.end_date || dayjs().add(30, 'day').format('YYYY-MM-DD'),
-      }))
+      return item
+    }))
+  }
 
-      try {
-        const resp = await ordersApi.batchCreate({ items })
-        if (resp.code === 20000) {
-          clearCart()
-          navigate('/success', {
-            state: { orders: resp.data.orders, total_amount: resp.data.total_amount },
-          })
-        } else {
-          dialog.alert(resp.data?.message || '批量下单失败')
-        }
-      } catch (err) {
-        dialog.alert('批量下单失败: ' + (err.message || '未知错误'))
+  const decreaseRentQty = (itemId) => {
+    setCartItems(prev => prev.map(item => {
+      if (getItemId(item) === itemId) {
+        return { ...item, rent_qty: Math.max(1, (item.rent_qty || 1) - 1) }
       }
-    }
+      return item
+    }))
+  }
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) return
+    navigate('/success', {
+      state: { debug: true, total_amount: grandTotal },
+    })
+  }
+
+  const handleGoHome = () => {
+    navigate('/')
   }
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-24">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-bold">购物车 ({cart.items.length})</Text>
-        {cart.items.length > 0 && (
-          <Button onClick={clearInvalidItems} className="ml-auto text-sm text-white/70">
-            清理失效
-          </Button>
-        )}
+    <View className="container h-screen w-screen bg-zinc-100 overflow-hidden flex flex-col relative antialiased">
+      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0">
+        <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
+        <Text className="text-lg font-black text-black">购物车</Text>
+        <View className="w-6"></View>
       </View>
 
-      <View className="p-4 space-y-4">
-        {cart.items.length === 0 ? (
-          <View className="bg-white rounded-xl p-8 text-center">
-            <Package size={48} className="text-gray-300 mx-auto mb-3" />
-            <Text className="text-gray-400">购物车为空</Text>
-            <Button
-              onClick={() => navigate('/')}
-              className="mt-4 px-6 py-2 bg-brand-primary text-white rounded-lg"
-            >
-              去逛逛
-            </Button>
+      <ScrollView className="w-full flex-1 pb-24" scrollY showScrollbar={false}>
+        {cartItems.length === 0 ? (
+          <View className="w-full flex flex-col items-center justify-center pt-24 px-6 space-y-4">
+            <View className="w-48 h-48 bg-transparent flex items-center justify-center relative">
+              <Text className="text-9xl opacity-20">🛒</Text>
+              <Text className="text-4xl absolute bottom-6 right-8">🎸</Text>
+            </View>
+            <Text className="text-zinc-500 text-lg font-medium tracking-wide">购物车还是空的</Text>
+            <Text className="text-blue-600 font-bold text-sm border-b border-blue-600 pb-0.5" onClick={handleGoHome}>去逛逛</Text>
           </View>
         ) : (
-          <>
-            {Object.entries(grouped).map(([tenantId, tenantData]) => (
-              <View key={tenantId} className="bg-white rounded-xl p-4">
-                <Text className="font-bold text-lg text-gray-800 mb-3">{tenantData.name}</Text>
-                {Object.entries(tenantData.sites).map(([siteId, siteData]) => (
-                  <View key={siteId} className="ml-2 border-l-2 border-orange-200 pl-3 mb-4">
-                    <Text className="text-sm text-orange-600 font-medium mb-2">📍 {siteData.name}</Text>
-                    {siteData.items.map((item) => {
+          <View className="p-4 space-y-4">
+            {groups.map((group) => {
+              let totalRent = 0
+              let totalDeposit = 0
+              group.items.forEach(item => {
+                const p = getItemPricing(item)
+                totalRent += p.rent
+                totalDeposit += p.deposit
+              })
+              const groupSubtotal = totalRent + totalDeposit + (group.shippingFee || 0)
+
+              return (
+                <View key={group.tenant_id || 'unknown'} className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                  <View className="bg-zinc-50/80 px-4 py-2.5 flex items-center justify-between border-b border-zinc-100 text-[11px] text-zinc-400 font-bold">
+                    <View className="flex items-center space-x-1">
+                      <Text>🏢</Text>
+                      <Text className="text-zinc-700 font-black">{group.tenant_name}</Text>
+                      <Text className="mx-1 text-zinc-300">|</Text>
+                      <Text>📍</Text>
+                      <Text className="text-zinc-600">{group.site_name}</Text>
+                    </View>
+                    <Text className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded scale-90">合并打包</Text>
+                  </View>
+
+                  <View className="divide-y divide-zinc-50 px-4">
+                    {group.items.map((item) => {
                       const images = parseImages(item.images)
-                      const amount = calculateItemAmount(item)
+                      const imgSrc = images[0] || item.cover || PLACEHOLDER_IMAGE
+                      const itemId = getItemId(item)
+                      const pricing = getItemPricing(item)
                       return (
-                        <View key={item.instrument_id} className="flex gap-3 py-2 border-b border-gray-100">
-                          <img
-                            src={images[0] || PLACEHOLDER_IMAGE}
-                            alt={item.name}
-                            className="w-16 h-16 object-cover rounded-lg bg-gray-100"
-                          />
-                          <View className="flex-1">
-                            <Text className="font-medium text-sm text-gray-800">{item.name}</Text>
-                            <Text className="text-xs text-gray-500">{item.brand} {item.model}</Text>
-                            <View className="flex items-center gap-2 mt-1">
-                              {formatDisplayDate(item.start_date)} → {formatDisplayDate(item.end_date || calculateDeadline(item))}
+                        <View key={itemId} className="py-4 flex flex-col space-y-3">
+                          <View className="flex items-center justify-between w-full">
+                            <View
+                              className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center"
+                              onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)}
+                            >
+                              <Image src={imgSrc} className="w-16 h-16 object-contain" />
                             </View>
-                            <Text className="text-orange-600 font-bold text-sm mt-1">
-                              ¥{amount.rent.toFixed(0)} + ¥{amount.deposit} 押{(parsePricing(item.pricing)[0]?.shipping_fee || 0) > 0 ? ` + ¥${parsePricing(item.pricing)[0].shipping_fee} 运` : ''}
-                            </Text>
+
+                            <View className="flex-1 ml-3 flex flex-col space-y-1 min-w-0">
+                              <View className="flex items-center space-x-1.5 min-w-0">
+                                <Text className="text-xl font-black text-black tracking-wide truncate max-w-[140px]">{item.sn || item.name || '未知乐器'}</Text>
+                                <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">
+                                  {item.level_name || '标准'}
+                                </Text>
+                              </View>
+                              <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold self-start">
+                                🔶 {item.category_name || item.brand || '乐器'}
+                              </Text>
+                              <Text className="text-[10px] text-zinc-400 font-medium">租金: ¥{pricing.rent}/期 · 押金: ¥{pricing.deposit}</Text>
+                            </View>
+
+                            <View className="flex-shrink-0 items-end ml-2">
+                              <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
+                                <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
+                                <Text className="px-2 text-black font-black text-xs">{item.rent_qty || 1}天</Text>
+                                <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
+                              </View>
+                            </View>
                           </View>
-                          <Button onClick={() => removeItem(item.instrument_id)}>
-                            <Trash2 size={18} className="text-gray-400" />
-                          </Button>
+
+                          <View className="flex justify-start">
+                            <Button
+                              className="m-0 bg-white border border-red-100 text-red-500 rounded-full px-3 h-6 text-[10px] font-bold flex items-center space-x-1 shadow-sm"
+                              onClick={() => handleRemove(itemId)}
+                            >
+                              <Text className="text-red-600 font-black">🔴</Text>
+                              <Text>删除</Text>
+                            </Button>
+                          </View>
                         </View>
                       )
                     })}
                   </View>
-                ))}
-              </View>
-            ))}
 
-            <View className="bg-white rounded-xl p-4">
-              <View className="flex items-center justify-between mb-2">
-                <View className="flex items-center gap-2">
-                  <MapPin size={18} className="text-gray-400" />
-                  <Text className="font-medium">收货地址</Text>
-                </View>
-                <Button onClick={() => setShowAddressModal(true)} className="text-brand-primary text-sm flex items-center gap-1">
-                  <Edit2 size={14} /> 修改
-                </Button>
-              </View>
-              <Text className="text-gray-600 text-sm">{address || '请添加收货地址'}</Text>
-            </View>
+                  <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end w-full mt-auto">
+                    <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold max-w-[60%]">
+                      <Text className="truncate">🗺️ 发货仓: {group.site_address || '地址待确认'}</Text>
+                      {group.site_phone && <Text>📞 电话: {group.site_phone}</Text>}
+                      <View className="text-[10px] text-zinc-400/80 mt-1 pt-1 border-t border-zinc-200/60">
+                        含租金全款 ¥{totalRent} + 累计押金 ¥{totalDeposit} + 运费 ¥{group.shippingFee || 0}
+                      </View>
+                    </View>
 
-            <View className="bg-white rounded-xl p-4">
-              <Text className="font-bold mb-3">费用明细</Text>
-              <View className="space-y-2 text-sm">
-                <View className="flex justify-between">
-                  <Text className="text-gray-600">租金</Text>
-                  <Text className="font-medium">¥{totals.totalRent.toFixed(0)}</Text>
+                    <View className="text-right flex-shrink-0 whitespace-nowrap">
+                      <Text className="text-[10px] text-zinc-400 font-bold block mb-0.5">网点合并小计</Text>
+                      <Text className="text-black font-black text-2xl tracking-tight">
+                        ¥{groupSubtotal}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View className="flex justify-between">
-                  <Text className="text-gray-600">押金</Text>
-                  <Text className="font-medium">¥{totals.totalDeposit}</Text>
-                </View>
-                <View className="flex justify-between">
-                  <Text className="text-gray-600">物流费</Text>
-                  <Text className="font-medium">¥{totals.totalShipping}</Text>
-                </View>
-                <View className="border-t pt-2 flex justify-between font-bold text-lg">
-                  <Text>合计</Text>
-                  <Text className="text-orange-600">¥{totals.grandTotal.toFixed(0)}</Text>
-                </View>
-              </View>
-            </View>
-          </>
+              )
+            })}
+          </View>
         )}
-      </View>
+      </ScrollView>
 
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 pb-6 flex justify-between items-center z-50 shadow-2xl flex-shrink-0">
+        <View>
+          <Text className="text-sm text-zinc-400">合计总额</Text>
+          <Text className="text-xl font-black text-black tracking-wide">¥{grandTotal.toFixed(0)}</Text>
+        </View>
         <Button
-          onClick={handleOrder}
-          disabled={cart.items.length === 0}
-          className="w-full bg-brand-primary text-white py-3 rounded-lg font-bold disabled:opacity-50"
+          className="m-0 bg-[#B98E5F] text-white font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"
+          onClick={handleCheckout}
         >
-          支付 ¥{totals.grandTotal.toFixed(0)}
+          去结算
         </Button>
       </View>
 
-      {showAddressModal && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <View className="bg-white rounded-xl p-6 mx-4 w-full max-w-sm">
-            <Text className="font-bold text-lg mb-4">修改收货地址</Text>
-            <textarea
-              value={tempAddress}
-              onChange={(e) => setTempAddress(e.target.value)}
-              placeholder="请输入详细收货地址"
-              className="w-full border rounded-lg p-3 text-sm mb-4"
-              rows={3}
-            />
-            <View className="flex gap-3">
-              <Button
-                onClick={() => setShowAddressModal(false)}
-                className="flex-1 py-2 border rounded-lg"
-              >
-                取消
-              </Button>
-              <Button onClick={updateAddress} className="flex-1 py-2 bg-brand-primary text-white rounded-lg">
-                确认
-              </Button>
-            </View>
-          </View>
+      {previewIndex >= 0 && previewImages.length > 0 && (
+        <View
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+          onClick={closePreview}
+        >
+          <Image
+            src={previewImages[previewIndex]}
+            className="max-w-[90%] max-h-[80%] object-contain"
+            mode="aspectFit"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => { previewTouchStartX.current = e.touches[0].clientX }}
+            onTouchEnd={(e) => {
+              const diff = e.changedTouches[0].clientX - previewTouchStartX.current
+              if (Math.abs(diff) > 50) {
+                if (diff < 0 && previewIndex < previewImages.length - 1) {
+                  setPreviewIndex(prev => prev + 1)
+                } else if (diff > 0 && previewIndex > 0) {
+                  setPreviewIndex(prev => prev - 1)
+                }
+              }
+            }}
+          />
+          <Text className="absolute bottom-12 text-white/60 text-sm">点击空白区域关闭</Text>
         </View>
       )}
     </View>

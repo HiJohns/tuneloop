@@ -83,7 +83,7 @@ export default function Detail() {
   useEffect(() => {
     if (!instrument?.id) return
     try {
-      const cart = storage.getJSON('cart', {items: []})
+      const cart = storage.getJSON('cart', {items: []}) || {items: []}
       const item = cart.items?.find(i => i.instrument_id === instrument.id)
       if (item?.days) {
         setDays(item.days)
@@ -95,14 +95,14 @@ export default function Detail() {
   const isInCart = (() => {
     if (!instrument) return false
     try {
-      const cartData = storage.getJSON('cart', {items: []})
+      const cartData = storage.getJSON('cart', {items: []}) || {items: []}
       return cartData.items?.some(i => i.instrument_id === instrument.id) || false
     } catch { return false }
   })()
 
   const handleAddToCart = () => {
     if (!instrument) return
-    const existing = storage.getJSON('cart', {items: []})
+    const existing = storage.getJSON('cart', {items: []}) || {items: []}
     
     // Remove existing item for this instrument if present
     const filtered = existing.items.filter(i => i.instrument_id !== instrument.id)
@@ -122,9 +122,12 @@ export default function Detail() {
       site_id: instrument.site_id,
       site_name: instrument.site_name,
       site_address: instrument.site_address || '',
+      site_phone: instrument.site_phone || '',
       images: instrument.images,
       pricing: instrument.pricing,
       base_daily_rate: instrument.base_daily_rate,
+      level_name: instrument.level_name || '',
+      term_type: '月租',
       days: days,
       start_date: startDate,
       end_date: returnDate,
