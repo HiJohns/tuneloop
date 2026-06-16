@@ -350,13 +350,13 @@ export default function Detail() {
                 <Text className="block text-sm font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
-              <View className="relative flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
+              <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
                 {mediaOffset > 0 && (
-                  <View className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                  <View className="w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center flex-shrink-0" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
                     <Text className="text-sm font-black text-zinc-600">❮</Text>
                   </View>
                 )}
-                <View className="overflow-hidden w-full">
+                <View className="overflow-hidden flex-1">
                   <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: 'transform 0.3s ease' }}>
                     {swiperImages.map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
@@ -369,7 +369,7 @@ export default function Detail() {
                   </View>
                 </View>
                 {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
-                  <View className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center" onClick={() => setMediaOffset(prev => {
+                  <View className="w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center flex-shrink-0" onClick={() => setMediaOffset(prev => {
                     const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
                     return prev >= max ? 0 : prev + 1
                   })}>
