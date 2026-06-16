@@ -346,7 +346,7 @@ export default function Detail() {
           {/* Card B: Instrument description + media strip */}
           <View className="bg-white rounded-2xl p-3 shadow-sm">
             <View className="flex flex-row items-start">
-              <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '25%' }}>
+              <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '20%' }}>
                 <Text className="block text-sm font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
