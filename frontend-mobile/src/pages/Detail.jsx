@@ -67,6 +67,7 @@ export default function Detail() {
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
   const [mediaOffset, setMediaOffset] = useState(0)
+  const [noTransition, setNoTransition] = useState(false)
   const swiperImages = [
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
@@ -195,7 +196,7 @@ export default function Detail() {
 
   // computed values — must be after all state declarations
   const totalMedia = swiperImages.length + (mediaPublic?.video ? 1 : 0)
-  const displayTrack = swiperImages.length > 4 ? [...swiperImages, ...swiperImages.slice(0, 3)] : swiperImages
+  const displayTrack = swiperImages.length > 4 ? [...swiperImages, ...swiperImages.slice(0, 4)] : swiperImages
   const maxMediaOffset = displayTrack.length - 4
 
   useEffect(() => {
@@ -364,7 +365,7 @@ export default function Detail() {
                   </View>
                 )}
                 <View className="overflow-hidden flex-1">
-                  <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: 'transform 0.3s ease' }}>
+                  <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: noTransition ? 'none' : 'transform 0.3s ease' }}>
                     {displayTrack.map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
                     ))}
@@ -376,9 +377,15 @@ export default function Detail() {
                   </View>
                 </View>
                 {totalMedia > 4 && (
-                  <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
-                    return prev >= maxMediaOffset ? 0 : prev + 1
-                  })}>
+                  <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
+                    if (mediaOffset >= maxMediaOffset) {
+                      setNoTransition(true)
+                      setMediaOffset(0)
+                      requestAnimationFrame(() => setNoTransition(false))
+                    } else {
+                      setMediaOffset(prev => prev + 1)
+                    }
+                  }}>
                     <Text className="text-sm font-black text-zinc-600">❯</Text>
                   </View>
                 )}
