@@ -350,7 +350,7 @@ export default function Detail() {
           <View className="bg-white rounded-2xl p-4 shadow-sm">
             <View className="flex flex-row items-start">
               <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '20%' }}>
-                <Text className="block text-base font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
+                <Text className="block text-base font-black text-black truncate">{instrument.category_name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
               <View className="flex items-center flex-1 ml-2">
