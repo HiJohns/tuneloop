@@ -71,9 +71,6 @@ export default function Detail() {
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
   ]
-  const displayTrack = swiperImages.length > 4 ? [...swiperImages, ...swiperImages.slice(0, 3)] : swiperImages
-  const totalMedia = swiperImages.length + (mediaPublic?.video ? 1 : 0)
-  const maxMediaOffset = displayTrack.length - 4
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
@@ -195,6 +192,11 @@ export default function Detail() {
   }, [id])
 
   const [mediaPublic, setMediaPublic] = useState(null)
+
+  // computed values — must be after all state declarations
+  const totalMedia = swiperImages.length + (mediaPublic?.video ? 1 : 0)
+  const displayTrack = swiperImages.length > 4 ? [...swiperImages, ...swiperImages.slice(0, 3)] : swiperImages
+  const maxMediaOffset = displayTrack.length - 4
 
   useEffect(() => {
     if (!id) return
