@@ -67,7 +67,10 @@ export default function Detail() {
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
   const [mediaOffset, setMediaOffset] = useState(0)
-  const swiperImages = [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
+  const swiperImages = [
+    { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
+    { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
+  ]
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
@@ -358,7 +361,7 @@ export default function Detail() {
                 )}
                 <View className="overflow-hidden w-full">
                   <View className="inline-flex flex-row space-x-3 items-center" style={{ transform: `translateX(-${mediaOffset * 92}px)`, transition: 'transform 0.3s ease' }}>
-                    {swiperImages.slice(0, 4).map((img, i) => (
+                    {swiperImages.map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-20 h-20 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
                     ))}
                     {mediaPublic?.video && (
