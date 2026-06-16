@@ -194,11 +194,12 @@ export default function Detail() {
   const [displayMedia, setDisplayMedia] = useState(null)
 
   // computed values — must be after all state declarations
-  const liveImages = displayMedia?.images?.length > 0 ? displayMedia.images : swiperImages
+  const bannerImages = swiperImages
+  const cardImages = displayMedia?.images?.length > 0 ? displayMedia.images : []
   const liveVideo = displayMedia?.video || null
-  const hasDisplayMedia = displayMedia?.images?.length > 0
-  const totalMedia = liveImages.length + (liveVideo ? 1 : 0)
-  const displayTrack = liveImages.length > 4 ? [...liveImages, ...liveImages.slice(0, 4)] : liveImages
+  const hasDisplayMedia = cardImages.length > 0
+  const totalMedia = cardImages.length + (liveVideo ? 1 : 0)
+  const displayTrack = cardImages.length > 4 ? [...cardImages, ...cardImages.slice(0, 4)] : cardImages
   const maxMediaOffset = displayTrack.length - 4
 
   useEffect(() => {
@@ -257,7 +258,7 @@ export default function Detail() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentBanner(prev => (prev + 1) % liveImages.length)
+      setCurrentBanner(prev => (prev + 1) % bannerImages.length)
     }, 4000)
     return () => clearInterval(timer)
   }, [])
@@ -270,7 +271,7 @@ export default function Detail() {
     return <View className="p-4">乐器不存在</View>
   }
 
-  const publicImages = liveImages.length > 0 && displayMedia?.images ? liveImages.map(i => i.url || i) : null
+  const publicImages = bannerImages.length > 0 && displayMedia?.images ? bannerImages.map(i => i.url || i) : null
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
@@ -292,19 +293,19 @@ export default function Detail() {
       <View className="w-full overflow-hidden">
         <View className="w-full h-[150px]">
           <View className="flex flex-row h-full" style={{
-            width: `${liveImages.length * 100}%`,
-            transform: `translateX(-${currentBanner * (100 / liveImages.length)}%)`,
+            width: `${bannerImages.length * 100}%`,
+            transform: `translateX(-${currentBanner * (100 / bannerImages.length)}%)`,
             transition: 'transform 0.5s ease-in-out'
           }}>
-            {liveImages.map((img, i) => (
-              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / liveImages.length}%` }}>
+            {bannerImages.map((img, i) => (
+              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / bannerImages.length}%` }}>
                 <Image src={img.url || img} className="w-full h-full object-contain" />
               </View>
             ))}
           </View>
         </View>
         <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
-          {liveImages.map((_, i) => (
+          {bannerImages.map((_, i) => (
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
           ))}
         </View>
