@@ -127,9 +127,7 @@ export default function Cart() {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return
-    navigate('/success', {
-      state: { debug: true, total_amount: grandTotal },
-    })
+    navigate('/success')
   }
 
   const handleGoHome = () => {
