@@ -321,7 +321,7 @@ export default function Detail() {
                 <Text className="block text-2xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
               </View>
               <View className="flex-shrink-0 whitespace-nowrap text-right">
-                <Text className="text-[#C21838] font-bold text-base tracking-tight">
+                <Text className="text-[#C21838] text-base tracking-tight">
                   押金 ¥{deposit} <Text className="text-zinc-400 font-normal">❯</Text>
                 </Text>
               </View>
@@ -332,7 +332,7 @@ export default function Detail() {
                   {levelName}
                 </View>
               )}
-              <Text className="text-[#C21838] font-black text-base tracking-tight">
+              <Text className="text-[#C21838] text-base tracking-tight">
                 月租 ¥{Math.round((dailyRent || instrument?.base_daily_rate || 0) * 25)}/月
               </Text>
             </View>
@@ -350,13 +350,13 @@ export default function Detail() {
                 <Text className="block text-sm font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
-              <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
+              <View className="relative flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
                 {mediaOffset > 0 && (
-                  <View className="w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center flex-shrink-0" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                  <View className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
                     <Text className="text-sm font-black text-zinc-600">❮</Text>
                   </View>
                 )}
-                <View className="overflow-hidden" style={{ width: mediaOffset > 0 ? 'calc(100% - 20px)' : '100%' }}>
+                <View className="overflow-hidden w-full">
                   <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: 'transform 0.3s ease' }}>
                     {swiperImages.map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
@@ -366,13 +366,16 @@ export default function Detail() {
                         <Text className="text-sm">▶</Text>
                       </View>
                     )}
-                    {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (mediaOffset < (swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4)) && (
-                      <View className="w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center flex-shrink-0" onClick={e => { e.stopPropagation(); setMediaOffset(prev => prev + 1) }}>
-                        <Text className="text-sm font-black text-zinc-600">❯</Text>
-                      </View>
-                    )}
                   </View>
                 </View>
+                {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
+                  <View className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center" onClick={() => setMediaOffset(prev => {
+                    const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
+                    return prev >= max ? 0 : prev + 1
+                  })}>
+                    <Text className="text-sm font-black text-zinc-600">❯</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -411,7 +414,7 @@ export default function Detail() {
                   {pricingV2.deposit > 0 && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500">押金</Text>
-                      <Text className="font-bold text-black">¥{pricingV2.deposit}</Text>
+                      <Text className="text-black">¥{pricingV2.deposit}</Text>
                     </View>
                   )}
                   {pricingV2.shipping_fee > 0 && (
