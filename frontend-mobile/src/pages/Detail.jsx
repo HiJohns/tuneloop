@@ -280,7 +280,7 @@ export default function Detail() {
     : 'bg-zinc-500'
 
   return (
-    <View className="min-h-screen bg-[#915F38] pb-[140px] flex flex-col relative antialiased">
+    <View className="min-h-screen bg-zinc-100 pb-[140px] flex flex-col relative antialiased">
       {/* Nav bar */}
       <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-[#FDFBF7] border-b border-zinc-100">
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
@@ -289,8 +289,8 @@ export default function Detail() {
       </View>
 
       {/* Banner carousel */}
-      <View className="w-full py-4 bg-[#FDFBF7]">
-        <View className="w-full h-[150px] overflow-hidden">
+      <View className="w-full overflow-hidden">
+        <View className="w-full h-[150px]">
           <View className="flex flex-row h-full" style={{
             width: `${swiperImages.length * 100}%`,
             transform: `translateX(-${currentBanner * (100 / swiperImages.length)}%)`,
@@ -305,7 +305,7 @@ export default function Detail() {
             ))}
           </View>
         </View>
-        <View className="flex items-center justify-center space-x-1.5 mt-2">
+        <View className="flex items-center justify-center space-x-1.5 pb-3 bg-white">
           {swiperImages.map((_, i) => (
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
           ))}
