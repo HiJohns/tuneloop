@@ -66,6 +66,7 @@ export default function Detail() {
   const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
+  const [mediaOffset, setMediaOffset] = useState(0)
   const swiperImages = [{ url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 }]
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
@@ -345,16 +346,19 @@ export default function Detail() {
               <Text className="text-lg font-black text-black">{instrument.name || instrument.sn || '乐器'}</Text>
               <Text className="text-xs text-zinc-400 font-medium">更多实境 ❯</Text>
             </View>
-            <View className="flex flex-row">
-              <View className="flex-1 min-w-0">
-                <Text className="block text-sm text-zinc-500 font-medium leading-relaxed">
-                  {instrument.description || '暂无描述'}
-                </Text>
-              </View>
-              <View className="relative flex-shrink-0 ml-3">
-                <ScrollView className="w-20 overflow-hidden" scrollX showScrollbar={false}>
-                  <View className="inline-flex flex-col space-y-2">
-                    {swiperImages.slice(0, 3).map((img, i) => (
+            <View className="flex flex-row items-start">
+              <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: `calc(100% - ${Math.min(swiperImages.length + (mediaPublic?.video ? 1 : 0), 4) * 92 + 24}px)` }}>
+                {instrument.description || '暂无描述'}
+              </Text>
+              <View className="relative flex items-center flex-shrink-0 ml-2" style={{ width: `${Math.min(swiperImages.length + (mediaPublic?.video ? 1 : 0), 4) * 92}px` }}>
+                {(mediaOffset > 0) && (
+                  <View className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-black/10 rounded-l flex items-center justify-center" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                    <Text className="text-sm font-black text-white">❮</Text>
+                  </View>
+                )}
+                <View className="overflow-hidden w-full">
+                  <View className="inline-flex flex-row space-x-3 items-center" style={{ transform: `translateX(-${mediaOffset * 92}px)`, transition: 'transform 0.3s ease' }}>
+                    {swiperImages.slice(0, 4).map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-20 h-20 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
                     ))}
                     {mediaPublic?.video && (
@@ -364,7 +368,12 @@ export default function Detail() {
                       </View>
                     )}
                   </View>
-                </ScrollView>
+                </View>
+                {(mediaOffset < Math.max(0, (swiperImages.length + (mediaPublic?.video ? 1 : 0)) - 4)) && (
+                  <View className="absolute -right-6 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-black/10 rounded-r flex items-center justify-center" onClick={() => setMediaOffset(prev => prev + 1)}>
+                    <Text className="text-sm font-black text-white">❯</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
