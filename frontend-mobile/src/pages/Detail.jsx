@@ -358,9 +358,18 @@ export default function Detail() {
               </Text>
               <View className="flex items-center flex-1 ml-2">
                 {totalMedia > 4 && (
-                  <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
-                    return prev <= 0 ? maxMediaOffset : prev - 1
-                  })}>
+                  <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
+                    if (mediaOffset <= 0) {
+                      setNoTransition(true)
+                      setMediaOffset(maxMediaOffset + 1)
+                      requestAnimationFrame(() => {
+                        setNoTransition(false)
+                        setMediaOffset(maxMediaOffset)
+                      })
+                    } else {
+                      setMediaOffset(prev => prev - 1)
+                    }
+                  }}>
                     <Text className="text-sm font-black text-zinc-400">❮</Text>
                   </View>
                 )}
