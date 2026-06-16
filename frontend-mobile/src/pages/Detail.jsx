@@ -347,10 +347,10 @@ export default function Detail() {
           </View>
 
           {/* Card B: Instrument description + media strip */}
-          <View className="bg-white rounded-2xl p-3 shadow-sm">
+          <View className="bg-white rounded-2xl p-4 shadow-sm">
             <View className="flex flex-row items-start">
               <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '20%' }}>
-                <Text className="block text-sm font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
+                <Text className="block text-base font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
               <View className="flex items-center flex-1 ml-2">
@@ -400,7 +400,7 @@ export default function Detail() {
           </View>
 
           {/* Card C: Specifications & properties */}
-          <View className="bg-white rounded-2xl p-3 shadow-sm space-y-2">
+          <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
             <Text className="text-base font-black text-black">规格参数</Text>
             {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 ? (
               Object.entries(instrument.properties).map(([key, vals]) => (
