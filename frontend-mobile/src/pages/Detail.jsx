@@ -344,13 +344,13 @@ export default function Detail() {
           </View>
 
           {/* Card B: Instrument description + media strip */}
-          <View className="bg-white rounded-2xl p-2 shadow-sm">
+          <View className="bg-white rounded-2xl p-3 shadow-sm">
             <View className="flex flex-row items-start">
               <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '25%' }}>
                 <Text className="block text-sm font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
-              <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
+              <View className="flex items-center flex-1 ml-2">
                 {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
                   <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
                     const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
