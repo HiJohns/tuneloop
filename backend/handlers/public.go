@@ -221,6 +221,7 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		"site_address":    siteAddress,
 		"site_phone":      sitePhone,
 		"description":     instrument.Description,
+		"specifications":  instrument.Specifications,
 	}
 
 	// Fetch dynamic properties from instrument_properties table

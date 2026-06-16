@@ -284,7 +284,7 @@ export default function Detail() {
 
       {/* Banner carousel */}
       <View className="w-full py-4 bg-[#FDFBF7]">
-        <View className="w-full h-[200px] overflow-hidden">
+        <View className="w-full h-[150px] overflow-hidden">
           <View className="flex flex-row h-full" style={{
             width: `${swiperImages.length * 100}%`,
             transform: `translateX(-${currentBanner * (100 / swiperImages.length)}%)`,
@@ -293,7 +293,7 @@ export default function Detail() {
             {swiperImages.map((img, i) => (
               <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / swiperImages.length}%` }}>
                 <View className="w-full h-full bg-zinc-100 rounded-xl overflow-hidden shadow-sm">
-                  <Image src={img.url || img} className="w-full h-full object-cover" />
+                  <Image src={img.url || img} className="w-full h-full object-contain" />
                 </View>
               </View>
             ))}
@@ -344,17 +344,15 @@ export default function Detail() {
           </View>
 
           {/* Card B: Instrument description + media strip */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm">
-            <View className="flex justify-between items-center mb-2">
-              <Text className="text-lg font-black text-black">{instrument.name || instrument.sn || '乐器'}</Text>
-            </View>
+          <View className="bg-white rounded-2xl p-2 shadow-sm">
             <View className="flex flex-row items-start">
               <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '25%' }}>
+                <Text className="block text-sm font-black text-black truncate">{instrument.name || instrument.sn || '乐器'}</Text>
                 {instrument.description || '暂无描述'}
               </Text>
               <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
                 {mediaOffset > 0 && (
-                  <View className="w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                  <View className="w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center flex-shrink-0" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
                     <Text className="text-sm font-black text-zinc-600">❮</Text>
                   </View>
                 )}
@@ -369,7 +367,7 @@ export default function Detail() {
                       </View>
                     )}
                     {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (mediaOffset < (swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4)) && (
-                      <View className="w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={e => { e.stopPropagation(); setMediaOffset(prev => prev + 1) }}>
+                      <View className="w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center flex-shrink-0" onClick={e => { e.stopPropagation(); setMediaOffset(prev => prev + 1) }}>
                         <Text className="text-sm font-black text-zinc-600">❯</Text>
                       </View>
                     )}
@@ -379,18 +377,20 @@ export default function Detail() {
             </View>
           </View>
 
-          {/* Card C: Dynamic properties */}
-          {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
-              <Text className="text-base font-black text-black">属性</Text>
-              {Object.entries(instrument.properties).map(([key, vals]) => (
+          {/* Card C: Specifications & properties */}
+          <View className="bg-white rounded-2xl p-3 shadow-sm space-y-2">
+            <Text className="text-base font-black text-black">规格参数</Text>
+            {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 ? (
+              Object.entries(instrument.properties).map(([key, vals]) => (
                 <View key={key} className="flex justify-between items-center">
                   <Text className="text-sm font-bold text-zinc-600">{key}</Text>
-                  <Text className="text-sm text-zinc-400">{(Array.isArray(vals) ? vals : [vals]).join(', ')} ❯</Text>
+                  <Text className="text-sm text-zinc-400">{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
                 </View>
-              ))}
-            </View>
-          )}
+              ))
+            ) : (
+              <Text className="text-sm text-zinc-400">暂无规格参数</Text>
+            )}
+          </View>
 
           {/* Pricing V2 tiers */}
           {isRentable && pricingV2?.tiers?.length > 0 && (
