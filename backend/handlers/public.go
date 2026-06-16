@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
@@ -398,7 +399,7 @@ func GetPublicInstrumentMedia(c *gin.Context) {
 	for _, m := range mediaList {
 		url, _ := storage.GetURL(c.Request.Context(), m.StorageKey)
 		if url == "" {
-			url = "/uploads/media/" + m.StorageKey
+			url = normalizeMediaURL(m.StorageKey)
 		}
 
 		item := mediaItem{URL: url, FileType: m.FileType}
@@ -470,7 +471,7 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	for _, m := range displayMedia {
 		url, _ := storage.GetURL(c.Request.Context(), m.StorageKey)
 		if url == "" {
-			url = "/uploads/media/" + m.StorageKey
+			url = normalizeMediaURL(m.StorageKey)
 		}
 
 		item := mediaItem{URL: url, FileType: m.FileType}
@@ -496,4 +497,11 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 			"video":  video,
 		},
 	})
+}
+
+func normalizeMediaURL(storageKey string) string {
+	if strings.HasPrefix(storageKey, "/uploads/media/") {
+		return storageKey
+	}
+	return "/uploads/media/" + storageKey
 }
