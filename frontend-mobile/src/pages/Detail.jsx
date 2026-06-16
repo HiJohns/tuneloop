@@ -352,8 +352,8 @@ export default function Detail() {
               </Text>
               <View className="flex items-center flex-shrink-0 ml-2" style={{ width: '70%' }}>
                 {mediaOffset > 0 && (
-                  <View className="w-5 h-10 bg-zinc-200/80 rounded-l flex items-center justify-center flex-shrink-0" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
-                    <Text className="text-sm font-black text-zinc-600">❮</Text>
+                  <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => Math.max(0, prev - 1))}>
+                    <Text className="text-sm font-black text-zinc-400">❮</Text>
                   </View>
                 )}
                 <View className="overflow-hidden flex-1">
@@ -369,7 +369,7 @@ export default function Detail() {
                   </View>
                 </View>
                 {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
-                  <View className="w-5 h-10 bg-zinc-200/80 rounded-r flex items-center justify-center flex-shrink-0" onClick={() => setMediaOffset(prev => {
+                  <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
                     const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
                     return prev >= max ? 0 : prev + 1
                   })}>
