@@ -71,6 +71,9 @@ export default function Detail() {
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
   ]
+  const displayTrack = swiperImages.length > 4 ? [...swiperImages, ...swiperImages.slice(0, 3)] : swiperImages
+  const totalMedia = swiperImages.length + (mediaPublic?.video ? 1 : 0)
+  const maxMediaOffset = displayTrack.length - 4
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
@@ -351,17 +354,16 @@ export default function Detail() {
                 {instrument.description || '暂无描述'}
               </Text>
               <View className="flex items-center flex-1 ml-2">
-                {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
+                {totalMedia > 4 && (
                   <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
-                    const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
-                    return prev <= 0 ? max : prev - 1
+                    return prev <= 0 ? maxMediaOffset : prev - 1
                   })}>
                     <Text className="text-sm font-black text-zinc-400">❮</Text>
                   </View>
                 )}
                 <View className="overflow-hidden flex-1">
                   <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: 'transform 0.3s ease' }}>
-                    {swiperImages.map((img, i) => (
+                    {displayTrack.map((img, i) => (
                       <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
                     ))}
                     {mediaPublic?.video && (
@@ -371,10 +373,9 @@ export default function Detail() {
                     )}
                   </View>
                 </View>
-                {(swiperImages.length + (mediaPublic?.video ? 1 : 0) > 4) && (
+                {totalMedia > 4 && (
                   <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => setMediaOffset(prev => {
-                    const max = swiperImages.length + (mediaPublic?.video ? 1 : 0) - 4
-                    return prev >= max ? 0 : prev + 1
+                    return prev >= maxMediaOffset ? 0 : prev + 1
                   })}>
                     <Text className="text-sm font-black text-zinc-600">❯</Text>
                   </View>
