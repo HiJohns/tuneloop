@@ -397,9 +397,10 @@ func GetPublicInstrumentMedia(c *gin.Context) {
 	var video *mediaItem
 
 	for _, m := range mediaList {
-		url, _ := storage.GetURL(c.Request.Context(), m.StorageKey)
+		key := normalizeMediaKey(m.StorageKey)
+		url, _ := storage.GetURL(c.Request.Context(), key)
 		if url == "" {
-			url = normalizeMediaURL(m.StorageKey)
+			url = "/uploads/media/" + key
 		}
 
 		item := mediaItem{URL: url, FileType: m.FileType}
@@ -469,9 +470,10 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	var video *mediaItem
 
 	for _, m := range displayMedia {
-		url, _ := storage.GetURL(c.Request.Context(), m.StorageKey)
+		key := normalizeMediaKey(m.StorageKey)
+		url, _ := storage.GetURL(c.Request.Context(), key)
 		if url == "" {
-			url = normalizeMediaURL(m.StorageKey)
+			url = "/uploads/media/" + key
 		}
 
 		item := mediaItem{URL: url, FileType: m.FileType}
@@ -499,9 +501,12 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	})
 }
 
-func normalizeMediaURL(storageKey string) string {
+func normalizeMediaKey(storageKey string) string {
 	if strings.HasPrefix(storageKey, "/uploads/media/") {
-		return storageKey
+		return strings.TrimPrefix(storageKey, "/uploads/media/")
 	}
-	return "/uploads/media/" + storageKey
+	if strings.HasPrefix(storageKey, "uploads/media/") {
+		return strings.TrimPrefix(storageKey, "uploads/media/")
+	}
+	return storageKey
 }
