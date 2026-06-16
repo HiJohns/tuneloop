@@ -398,9 +398,12 @@ func GetPublicInstrumentMedia(c *gin.Context) {
 
 	for _, m := range mediaList {
 		key := normalizeMediaKey(m.StorageKey)
+		log.Printf("[DEBUG GetPublicInstrumentMedia] raw: %q → clean: %q", m.StorageKey, key)
 		url, _ := storage.GetURL(c.Request.Context(), key)
+		log.Printf("[DEBUG GetPublicInstrumentMedia] GetURL result: %q (clean key: %q)", url, key)
 		if url == "" {
 			url = "/uploads/media/" + key
+			log.Printf("[DEBUG GetPublicInstrumentMedia] fallback URL: %q", url)
 		}
 
 		item := mediaItem{URL: url, FileType: m.FileType}
@@ -471,9 +474,12 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 
 	for _, m := range displayMedia {
 		key := normalizeMediaKey(m.StorageKey)
+		log.Printf("[DEBUG GetPublicInstrumentDisplayMedia] raw: %q → clean: %q", m.StorageKey, key)
 		url, _ := storage.GetURL(c.Request.Context(), key)
+		log.Printf("[DEBUG GetPublicInstrumentDisplayMedia] GetURL result: %q (clean key: %q)", url, key)
 		if url == "" {
 			url = "/uploads/media/" + key
+			log.Printf("[DEBUG GetPublicInstrumentDisplayMedia] fallback URL: %q", url)
 		}
 
 		item := mediaItem{URL: url, FileType: m.FileType}
