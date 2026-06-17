@@ -186,7 +186,7 @@ export default function Home() {
         </View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
-        <View className={`sticky top-[62px] z-50 py-[3px] shadow-sm border-b border-zinc-100 transition-colors duration-300 ${scrolled ? 'bg-white' : 'bg-[#FDFBF7]'}`}>
+        <View className={`sticky top-[62px] z-[9999] py-[3px] shadow-sm border-b border-zinc-100 transition-colors duration-300 ${scrolled ? 'bg-white' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -215,7 +215,7 @@ export default function Home() {
         </View>
 
         {/* C. Instrument List — frosted glass background on scroll */}
-        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/15 backdrop-blur-md' : ''}`}>
+        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/15' : ''}`}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
