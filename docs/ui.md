@@ -226,15 +226,20 @@
 **布局结构**:
 ```html
 <view class="instrument-detail">
-  <!-- 多图轮播 + 视频 (数据来源: GET /api/public/instruments/:id/media，含缩略图封面) -->
+  <!-- Banner 轮播图 -->
   <swiper class="image-swiper">
-    <swiper-item wx:for="{{images}}">
+    <swiper-item wx:for="{{bannerImages}}">
       <image src="{{item}}" mode="aspectFill" />
     </swiper-item>
-    <swiper-item wx:if="{{video}}">
-      <video src="{{video}}" poster="{{thumbUrl}}" />
-    </swiper-item>
   </swiper>
+
+  <!-- 视频播放器 (数据来源: GET /api/public/instruments/:id/display-media → data.video) -->
+  <view wx:if="{{video}}" class="video-section">
+    <video src="{{video.url}}" poster="{{video.thumb_url}}" controls />
+  </view>
+
+  <!-- 海报图片 (数据来源: instrument.poster，宽度限制 750px 适配微信) -->
+  <image wx:if="{{instrument.poster}}" src="{{instrument.poster}}" mode="widthFix" style="max-width:750px" />
 
   <!-- 基础信息 -->
   <view class="info-section">

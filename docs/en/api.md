@@ -116,6 +116,7 @@ POST /api/instruments
   "description": "Description",
   "images": ["url1", "url2"],
   "video": "url",
+  "poster": "url",
   "properties": {
     "Brand": "Yamaha",
     "Model": "U1",

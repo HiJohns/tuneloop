@@ -723,6 +723,7 @@
     "description": "专业级立式钢琴，适合进阶学习...",
     "images": ["img1.jpg", "img2.jpg", "img3.jpg"],
     "video": "intro.mp4",
+    "poster": "https://example.com/poster.jpg",
     "specifications": {
       "material": "实木",
       "size": "121cm",
