@@ -174,6 +174,15 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Carousel dots — fixed at bottom of banner */}
+      <View className="absolute left-0 right-0 z-[9998] flex items-center justify-center" style={{ top: '218px' }}>
+        <View className="flex items-center space-x-1.5">
+          {[0, 1, 2].map(i => (
+            <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
+          ))}
+        </View>
+      </View>
+
       {/* Fixed search bar — transparent initially, frosted on scroll */}
       <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`}>
         <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-[#5A3B24]/20' : 'border border-white/30'}`}>
@@ -187,15 +196,6 @@ export default function Home() {
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
         <View className="h-[210px]"></View>
-
-        {/* Dot separator */}
-        <View className="w-full h-[25px] flex items-center justify-center">
-          <View className="flex items-center space-x-1.5">
-            {[0, 1, 2].map(i => (
-              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
-            ))}
-          </View>
-        </View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
         <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
