@@ -93,7 +93,10 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
   const [catOffsetX, setCatOffsetX] = useState(0)
-  const [scrolled, setScrolled] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+  const scrolled = scrollY > 0
+  const CAT_BASE_TOP = 235 // 210px spacer + 25px dots
+  const SEARCH_BAR_BOTTOM = 62
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
 
   const baseUrl = env.apiBaseUrl
@@ -169,23 +172,10 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Z=10: Scrollable content */}
-      <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
-        onScroll={e => setScrolled(e.target.scrollTop > 0)}>
-        {/* Push content below fixed search bar */}
-        <View className="h-[210px]"></View>
-
-        {/* Dot separator */}
-        <View className="w-full h-[25px] flex items-center justify-center">
-          <View className="flex items-center space-x-1.5">
-            {[0, 1, 2].map(i => (
-              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
-            ))}
-          </View>
-        </View>
-
-        {/* B. Category Menu — sticks below search bar, frosted glass on scroll */}
-        <View className={`sticky top-[62px] z-40 py-[3px] shadow-sm border-b border-zinc-100 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#FDFBF7]'}`}>
+      {/* Category menu — outside ScrollView to avoid sticky+overflow z-index bug */}
+      <View className="absolute left-0 right-0 z-44 shadow-sm border-b border-zinc-100"
+        style={{ top: `${Math.max(SEARCH_BAR_BOTTOM, CAT_BASE_TOP - scrollY)}px` }}>
+        <View className={`py-[3px] transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -212,6 +202,25 @@ export default function Home() {
             </View>
           </View>
         </View>
+      </View>
+
+      {/* Z=10: Scrollable content */}
+      <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
+        onScroll={e => setScrollY(e.target.scrollTop)}>
+        {/* Push content below fixed search bar */}
+        <View className="h-[210px]"></View>
+
+        {/* Dot separator */}
+        <View className="w-full h-[25px] flex items-center justify-center">
+          <View className="flex items-center space-x-1.5">
+            {[0, 1, 2].map(i => (
+              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
+            ))}
+          </View>
+        </View>
+
+        {/* Spacer for menu (moved outside ScrollView) */}
+        <View className="h-[42px]"></View>
 
         {/* C. Instrument List — frosted glass background on scroll */}
         <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/15 backdrop-blur-md' : ''}`}>
