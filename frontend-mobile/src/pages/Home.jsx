@@ -204,10 +204,10 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Z=10: Scrollable content */}
+      {/* Z=50: ScrollView */}
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
-        {/* Push content below fixed search bar */}
+        {/* Push content below banner + search bar */}
         <View className="h-[210px]"></View>
 
         {/* Dot separator */}
