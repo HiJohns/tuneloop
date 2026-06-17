@@ -162,7 +162,7 @@ export default function Home() {
       </View>
 
       {/* Fixed search bar — transparent initially, frosted on scroll */}
-      <View className={`absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 transition-all duration-300 ${scrolled ? 'bg-white/65 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
+      <View className={`absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
         <View className="w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 border border-zinc-300/50 shadow-sm">
           <Text className="text-zinc-400 text-base mr-2">🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(0,0,0,0.3)" className="text-zinc-700 text-sm flex-1 bg-transparent" />
@@ -185,7 +185,7 @@ export default function Home() {
         </View>
 
         {/* B. Category Menu — sticks below search bar, frosted glass on scroll */}
-        <View className={`sticky top-[62px] z-40 py-[3px] shadow-sm border-b border-zinc-100 transition-all duration-300 ${scrolled ? 'bg-white/65 backdrop-blur-xl' : 'bg-[#FDFBF7]'}`}>
+        <View className={`sticky top-[62px] z-40 py-[3px] shadow-sm border-b border-zinc-100 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -213,8 +213,8 @@ export default function Home() {
           </View>
         </View>
 
-        {/* C. Instrument List */}
-        <View className="pl-7 pr-0 pt-4 pb-20 space-y-4">
+        {/* C. Instrument List — frosted glass background on scroll */}
+        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/15 backdrop-blur-md' : ''}`}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
