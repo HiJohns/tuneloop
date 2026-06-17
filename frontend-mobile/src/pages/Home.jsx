@@ -69,9 +69,13 @@ function InstrumentCard({ instrument, onClick }) {
           )}
         </View>
         <View className="h-full flex flex-col justify-end text-right self-end ml-2 flex-shrink-0 whitespace-nowrap">
-          <Text className="text-[#C21838] font-black text-[26px] tracking-tight">
-            ¥{monthlyRent}<Text className="text-base font-bold text-[#C21838]/70"> / 月</Text>
-          </Text>
+          {instrument.stock_status === 'available' ? (
+            <Text className="text-[#C21838] font-black text-[26px] tracking-tight">
+              ¥{monthlyRent}<Text className="text-base font-bold text-[#C21838]/70"> / 月</Text>
+            </Text>
+          ) : (
+            <Text className="text-zinc-400 font-bold text-base">租赁中</Text>
+          )}
         </View>
       </View>
     </View>
