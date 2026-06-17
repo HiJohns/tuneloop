@@ -162,6 +162,7 @@ function App() {
         <Route path="/callback" element={<OAuthCallback />} />
         <Route path="/" element={<ProtectedRoute requireAuth={false}><Home /></ProtectedRoute>} />
         <Route path="/instrument/:id" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute requireAuth={false}><Checkout /></ProtectedRoute>} />
         <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/success" element={<Success />} />
         <Route path="/booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
