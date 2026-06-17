@@ -198,7 +198,7 @@ export default function Home() {
         </View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
-        <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100'}`}>
+        <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -216,7 +216,7 @@ export default function Home() {
               {categories.map(item => (
                 <Text
                   key={item.id}
-                  className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? 'font-black text-black border-b-2 border-black pb-0.5' : 'font-bold text-zinc-500/90'}`}
+                  className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 ${scrolled ? 'text-white border-white' : 'text-black border-black'}` : `font-bold ${scrolled ? 'text-white/70' : 'text-zinc-500/90'}`}`}
                   onClick={() => { setSelectedCategory(item.id); navigateToCategory(item.id) }}
                 >
                   {item.name}
