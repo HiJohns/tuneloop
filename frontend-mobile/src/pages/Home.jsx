@@ -186,7 +186,7 @@ export default function Home() {
         </View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
-        <View className={`sticky top-[62px] z-[9999] py-[3px] shadow-sm border-b border-zinc-100 transition-colors duration-300 ${scrolled ? 'bg-white/70' : 'bg-[#FDFBF7]'}`}>
+        <View className={`sticky top-[62px] z-[9999] py-[3px] border-b border-zinc-100 transition-colors duration-300 ${scrolled ? 'bg-white/70' : 'bg-[#FDFBF7] shadow-sm'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
