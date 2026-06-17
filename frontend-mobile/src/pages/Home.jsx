@@ -171,7 +171,7 @@ export default function Home() {
 
       {/* Z=10: Scrollable content */}
       <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
-        onScroll={e => setScrolled(e.detail.scrollTop > 0)}>
+        onScroll={e => setScrolled(e.target.scrollTop > 0)}>
         {/* Push content below fixed search bar */}
         <View className="h-[210px]"></View>
 
