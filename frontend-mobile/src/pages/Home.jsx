@@ -215,7 +215,7 @@ export default function Home() {
         </View>
 
         {/* C. Instrument List — frosted glass background on scroll */}
-        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/40 backdrop-blur-md' : ''}`}>
+        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/70' : ''}`}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
