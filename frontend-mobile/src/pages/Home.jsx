@@ -245,7 +245,7 @@ export default function Home() {
       </ScrollView>
 
       {/* D. Bottom Tabbar */}
-      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-110 shadow-2xl">
+      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-[10000] shadow-2xl">
         <View className="flex flex-col items-center justify-center text-white" onClick={() => navigate('/')}>
           <Text className="text-xl mb-0.5">🏪</Text>
           <Text className="text-[10px] font-bold text-white">首页</Text>
