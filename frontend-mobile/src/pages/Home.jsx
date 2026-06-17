@@ -195,7 +195,7 @@ export default function Home() {
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
-        <View className="h-[210px]"></View>
+        <View className="h-[255px]"></View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
         <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
