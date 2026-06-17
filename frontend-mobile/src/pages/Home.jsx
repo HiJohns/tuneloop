@@ -165,17 +165,17 @@ export default function Home() {
       </View>
 
       {/* Fixed search bar — transparent initially, frosted on scroll */}
-      <View className={`absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
-        <View className="w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 border border-zinc-300/50 shadow-sm">
-          <Text className="text-zinc-400 text-base mr-2">🔍</Text>
-          <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(0,0,0,0.3)" className="text-zinc-700 text-sm flex-1 bg-transparent" />
+      <View className={`absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
+        <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-zinc-300/50' : 'border border-white/30'}`}>
+          <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-zinc-400' : 'text-white/60'}`}>🔍</Text>
+          <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-zinc-700' : 'text-white'}`} />
         </View>
       </View>
 
       {/* Category menu — outside ScrollView to avoid sticky+overflow z-index bug */}
       <View className="absolute left-0 right-0 z-44 shadow-sm border-b border-zinc-100"
         style={{ top: `${Math.max(SEARCH_BAR_BOTTOM, CAT_BASE_TOP - scrollY)}px` }}>
-        <View className={`py-[3px] transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-xl' : 'bg-[#FDFBF7]'}`}>
+        <View className={`py-[3px] transition-colors duration-300 ${scrolled ? 'bg-white' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
