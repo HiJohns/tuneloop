@@ -93,6 +93,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
   const [catOffsetX, setCatOffsetX] = useState(0)
+  const [scrolled, setScrolled] = useState(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
 
   const baseUrl = env.apiBaseUrl
@@ -160,8 +161,8 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Fixed search bar — stays visible on scroll */}
-      <View className="absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 bg-white/60 backdrop-blur-md">
+      {/* Fixed search bar — transparent initially, frosted on scroll */}
+      <View className={`absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 transition-all duration-300 ${scrolled ? 'bg-white/65 backdrop-blur-xl shadow-sm' : 'bg-transparent'}`}>
         <View className="w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 border border-zinc-300/50 shadow-sm">
           <Text className="text-zinc-400 text-base mr-2">🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(0,0,0,0.3)" className="text-zinc-700 text-sm flex-1 bg-transparent" />
@@ -169,7 +170,8 @@ export default function Home() {
       </View>
 
       {/* Z=10: Scrollable content */}
-      <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}>
+      <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
+        onScroll={e => setScrolled(e.detail.scrollTop > 0)}>
         {/* Push content below fixed search bar */}
         <View className="h-[210px]"></View>
 
@@ -182,8 +184,8 @@ export default function Home() {
           </View>
         </View>
 
-        {/* B. Category Menu */}
-        <View className="sticky top-0 z-40 bg-[#FDFBF7] py-[3px] shadow-sm border-b border-zinc-100">
+        {/* B. Category Menu — sticks below search bar, frosted glass on scroll */}
+        <View className={`sticky top-[62px] z-40 py-[3px] shadow-sm border-b border-zinc-100 transition-all duration-300 ${scrolled ? 'bg-white/65 backdrop-blur-xl' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
