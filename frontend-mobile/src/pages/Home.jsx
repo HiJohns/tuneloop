@@ -163,7 +163,7 @@ export default function Home() {
       </View>
 
       {/* Fixed search bar — transparent initially, frosted on scroll */}
-      <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-white' : 'bg-transparent'}`}>
+      <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-white/60 backdrop-blur-md' : 'bg-transparent'}`}>
         <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-zinc-300/50' : 'border border-white/30'}`}>
           <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-zinc-400' : 'text-white/60'}`}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-zinc-700' : 'text-white'}`} />
@@ -186,7 +186,7 @@ export default function Home() {
         </View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
-        <View className={`sticky top-[62px] z-[9999] py-[3px] shadow-sm border-b border-zinc-100 transition-colors duration-300 ${scrolled ? 'bg-white' : 'bg-[#FDFBF7]'}`}>
+        <View className={`sticky top-[62px] z-[9999] py-[3px] shadow-sm border-b border-zinc-100 transition-colors duration-300 ${scrolled ? 'bg-white/60 backdrop-blur-md' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -215,7 +215,7 @@ export default function Home() {
         </View>
 
         {/* C. Instrument List — frosted glass background on scroll */}
-        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/15' : ''}`}>
+        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/40 backdrop-blur-md' : ''}`}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
