@@ -96,6 +96,8 @@ export default function Home() {
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
+  const listRef = useRef(null)
+  const listOffsetRef = useRef(0)
 
   const baseUrl = env.apiBaseUrl
 
@@ -131,6 +133,16 @@ export default function Home() {
     }, 4000)
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (listRef.current) {
+      listOffsetRef.current = listRef.current.offsetTop
+    }
+  }, [loading])
+
+  const MENU_BOTTOM = 88
+  const clipTop = Math.max(0, scrollY - (listOffsetRef.current - MENU_BOTTOM))
+  const listClipStyle = clipTop > 0 ? { clipPath: `inset(${clipTop}px 0 0 0)` } : {}
 
   const navigateToCategory = (catId) => {
     const url = tenant ? `/instruments?category_id=${catId}&tenant=${tenant}` : `/instruments?category_id=${catId}`
@@ -215,7 +227,7 @@ export default function Home() {
         </View>
 
         {/* Instrument list area — sticky+overflow-hidden clips content above menu bottom */}
-        <View className={`sticky top-[88px] z-[1] overflow-hidden transition-colors duration-300 ${scrolled ? 'bg-white/70' : ''}`}>
+        <View ref={listRef} className={`transition-colors duration-300 ${scrolled ? 'bg-white/70' : ''}`} style={listClipStyle}>
           <View className="pl-7 pr-0 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
