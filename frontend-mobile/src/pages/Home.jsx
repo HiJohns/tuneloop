@@ -160,17 +160,18 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Fixed search bar — stays visible on scroll */}
+      <View className="absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 bg-white/60 backdrop-blur-md">
+        <View className="w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 border border-zinc-300/50 shadow-sm">
+          <Text className="text-zinc-400 text-base mr-2">🔍</Text>
+          <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(0,0,0,0.3)" className="text-zinc-700 text-sm flex-1 bg-transparent" />
+        </View>
+      </View>
+
       {/* Z=10: Scrollable content */}
       <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}>
-        {/* Search box spacer - pushes dots to banner bottom */}
-        <View className="h-[240px]">
-          <View className="absolute top-4 left-0 right-0 px-6 flex justify-center">
-            <View className="w-[250px] h-[42px] bg-transparent rounded-full flex items-center px-4 border border-[#FFF]">
-              <Text className="text-white/70 text-base mr-2">🔍</Text>
-              <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-white text-sm flex-1 bg-transparent" />
-            </View>
-          </View>
-        </View>
+        {/* Push content below fixed search bar */}
+        <View className="h-[210px]"></View>
 
         {/* Dot separator */}
         <View className="w-full h-[25px] flex items-center justify-center">
