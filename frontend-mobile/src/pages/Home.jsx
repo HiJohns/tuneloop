@@ -165,7 +165,7 @@ export default function Home() {
       </View>
 
       {/* Fixed search bar — transparent initially, frosted on scroll */}
-      <View className={`absolute top-0 left-0 right-0 z-45 pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
+      <View className={`absolute top-0 left-0 right-0 z-100 pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
         <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-zinc-300/50' : 'border border-white/30'}`}>
           <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-zinc-400' : 'text-white/60'}`}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-zinc-700' : 'text-white'}`} />
@@ -173,7 +173,7 @@ export default function Home() {
       </View>
 
       {/* Category menu — outside ScrollView to avoid sticky+overflow z-index bug */}
-      <View className="absolute left-0 right-0 z-44 shadow-sm border-b border-zinc-100"
+      <View className="absolute left-0 right-0 z-100 shadow-sm border-b border-zinc-100"
         style={{ top: `${Math.max(SEARCH_BAR_BOTTOM, CAT_BASE_TOP - scrollY)}px` }}>
         <View className={`py-[3px] transition-colors duration-300 ${scrolled ? 'bg-white' : 'bg-[#FDFBF7]'}`}>
           <View className="w-full overflow-hidden pl-7"
@@ -205,7 +205,7 @@ export default function Home() {
       </View>
 
       {/* Z=10: Scrollable content */}
-      <ScrollView className="relative z-10 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
+      <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below fixed search bar */}
         <View className="h-[210px]"></View>
@@ -253,7 +253,7 @@ export default function Home() {
       </ScrollView>
 
       {/* D. Bottom Tabbar */}
-      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-50 shadow-2xl">
+      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-110 shadow-2xl">
         <View className="flex flex-col items-center justify-center text-white" onClick={() => navigate('/')}>
           <Text className="text-xl mb-0.5">🏪</Text>
           <Text className="text-[10px] font-bold text-white">首页</Text>
