@@ -214,8 +214,9 @@ export default function Home() {
           </View>
         </View>
 
-        {/* C. Instrument List — frosted glass background on scroll */}
-        <View className={`pl-7 pr-0 pt-4 pb-20 space-y-4 transition-all duration-300 ${scrolled ? 'bg-white/70' : ''}`}>
+        {/* Instrument list area — sticky+overflow-hidden clips content above menu bottom */}
+        <View className={`sticky top-[88px] z-[1] overflow-hidden transition-colors duration-300 ${scrolled ? 'bg-white/70' : ''}`}>
+          <View className="pl-7 pr-0 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
@@ -241,8 +242,9 @@ export default function Home() {
               <Text className="text-lg">暂无乐器</Text>
             </View>
           )}
+          </View>
         </View>
-      </ScrollView>
+       </ScrollView>
 
       {/* D. Bottom Tabbar */}
       <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-[10000] shadow-2xl">
