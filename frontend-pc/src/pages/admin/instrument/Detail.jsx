@@ -393,6 +393,13 @@ export default function InstrumentDetail() {
                             </div>
                           </div>
                         )}
+
+                        {instrument.poster && (
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">海报</h4>
+                            <img src={instrument.poster} alt="海报" style={{ maxWidth: 400, borderRadius: 8 }} />
+                          </div>
+                        )}
                       </>
                     )
                   })()}

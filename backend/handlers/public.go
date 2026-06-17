@@ -212,6 +212,7 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		"level_id":        instrument.LevelID,
 		"images":          instrument.Images,
 		"video":           instrument.Video,
+		"poster":          instrument.Poster,
 		"pricing":         instrument.Pricing,
 		"base_daily_rate": instrument.BaseDailyRate,
 		"stock_status":    instrument.StockStatus,

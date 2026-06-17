@@ -15,6 +15,7 @@ export default function StaffInstrumentForm() {
   const [levels, setLevels] = useState([])
   const [properties, setProperties] = useState([])
   const [files, setFiles] = useState([])
+  const [posterFile, setPosterFile] = useState(null)
   const [snChecking, setSnChecking] = useState(false)
 
   const [form, setForm] = useState({
@@ -28,6 +29,7 @@ export default function StaffInstrumentForm() {
     shipping_fee: '',
     deposit: '',
     overdue_daily_fee: '',
+    poster: '',
   })
 
   const [propValues, setPropValues] = useState({})
@@ -94,6 +96,19 @@ export default function StaffInstrumentForm() {
     setFiles(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handlePosterUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const resp = await uploadFile(`${BASE_URL}/upload`, file, {
+      headers: { Authorization: storage.getItem('token') ? `Bearer ${storage.getItem('token')}` : '' },
+    })
+    const result = await resp.json()
+    if (result?.data?.url) {
+      setForm(prev => ({ ...prev, poster: result.data.url }))
+    }
+    setPosterFile(file)
+  }
+
   const handleSubmit = async () => {
     if (!form.sn) { dialog.alert('请输入识别码'); return }
     if (!form.category_id) { dialog.alert('请选择分类'); return }
@@ -128,6 +143,7 @@ export default function StaffInstrumentForm() {
         description: form.description || undefined,
         base_daily_rate: form.base_daily_rate ? parseFloat(form.base_daily_rate) : undefined,
         images,
+        poster: form.poster || undefined,
         pricing: Object.keys(pricing).length > 0 ? pricing : undefined,
         properties: Object.keys(propValues).length > 0 ? propValues : undefined,
       }
@@ -279,6 +295,25 @@ export default function StaffInstrumentForm() {
               </label>
             )}
           </View>
+        </View>
+
+        <View className="bg-white rounded-xl p-4 space-y-4">
+          <Text className="text-sm font-semibold text-gray-600">海报上传</Text>
+          <Text className="text-xs text-gray-400">建议宽度不超过 750px，适配手机阅读</Text>
+          {posterFile ? (
+            <View className="relative w-full">
+              <Image src={URL.createObjectURL(posterFile)} className="w-full rounded-lg" mode="widthFix" />
+              <Button onClick={() => { setPosterFile(null); setForm(prev => ({ ...prev, poster: '' })) }} className="absolute top-1 right-1 bg-black/50 rounded-full p-1">
+                <X size={14} className="text-white" />
+              </Button>
+            </View>
+          ) : (
+            <label className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer flex-col space-y-2">
+              <Upload size={24} className="text-gray-400" />
+              <Text className="text-sm text-gray-400">上传海报图片</Text>
+              <input type="file" accept="image/*" className="hidden" onChange={handlePosterUpload} />
+            </label>
+          )}
         </View>
       </View>
 

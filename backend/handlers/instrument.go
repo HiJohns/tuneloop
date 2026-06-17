@@ -30,6 +30,7 @@ type CreateInstrumentRequest struct {
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
+	Poster         string                   `json:"poster"`
 	Specifications []map[string]interface{} `json:"specifications"`
 	Properties     map[string]interface{}   `json:"properties"` // Accept frontend's properties field
 
@@ -335,6 +336,7 @@ func CreateInstrument(c *gin.Context) {
 
 	// Handle Video field
 	instrument.Video = req.Video
+	instrument.Poster = req.Poster
 
 	log.Printf("[DEBUG CreateInstrument] Before DB Create: tenantID=%s", instrument.TenantID)
 
@@ -405,6 +407,7 @@ func UpdateInstrument(c *gin.Context) {
 	}
 	instrument.Description = req.Description
 	instrument.Video = req.Video
+	instrument.Poster = req.Poster
 	log.Printf("[DEBUG] req.SN = '%s', req.Level = '%s', req.CategoryID = '%s'", req.SN, req.Level, req.CategoryID)
 	// SN 是乐器唯一标识，创建后不可修改 - 禁止覆盖
 

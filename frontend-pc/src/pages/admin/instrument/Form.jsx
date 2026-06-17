@@ -492,6 +492,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           level_id: instrumentData.level_id,
           description: instrumentData.description,
           video: instrumentData.video,
+          poster: instrumentData.poster,
           status: instrumentData.status || 'active',
           base_daily_rate: instrumentData.base_daily_rate,
         })
@@ -963,6 +964,7 @@ const loadCategoryChildren = async (node) => {
         },
         images: images,
         video: videoUrl,
+        poster: values.poster || '',
         status: initialData ? (values.status || loadedData?.status || 'available') : 'available',
       }
       
@@ -1355,6 +1357,14 @@ const loadCategoryChildren = async (node) => {
             <Button icon={<UploadOutlined />}>选择视频文件</Button>
           </Upload>
           {videoUploading && <Progress percent={100} status="active" size="small" style={{ width: 200, marginTop: 8 }} />}
+        </Form.Item>
+
+        <Form.Item
+          name="poster"
+          label="海报"
+          extra="建议宽度不超过 750px，适配手机阅读"
+        >
+          <Input placeholder="输入海报图片 URL 或上传" style={{ maxWidth: 400 }} />
         </Form.Item>
 
         <Form.Item>

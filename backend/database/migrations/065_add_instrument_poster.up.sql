@@ -1,0 +1,1 @@
+ALTER TABLE instruments ADD COLUMN IF NOT EXISTS poster TEXT;

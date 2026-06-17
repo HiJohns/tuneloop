@@ -66,8 +66,7 @@ export default function Detail() {
   const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
-  const [mediaOffset, setMediaOffset] = useState(0)
-  const [noTransition, setNoTransition] = useState(false)
+
   const swiperImages = [
     { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
   ]
@@ -198,12 +197,8 @@ export default function Detail() {
 
   // computed values — must be after all state declarations
   const bannerImages = swiperImages
-  const cardImages = displayMedia?.images?.length > 0 ? displayMedia.images : []
   const liveVideo = displayMedia?.video || null
-  const hasDisplayMedia = cardImages.length > 0
-  const totalMedia = cardImages.length + (liveVideo ? 1 : 0)
-  const displayTrack = cardImages.length > 4 ? [...cardImages, ...cardImages.slice(0, 4)] : cardImages
-  const maxMediaOffset = displayTrack.length - 4
+
 
   useEffect(() => {
     if (!id) return
@@ -351,64 +346,17 @@ export default function Detail() {
             </View>
           </View>
 
-          {/* Card B: Instrument description + media strip */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm">
-            <View className="flex flex-row items-start">
-              <Text className="text-sm text-zinc-500 font-medium leading-relaxed flex-shrink-0" style={{ width: '20%' }}>
-                <Text className="block text-base font-black text-black truncate">{instrument.category_name || instrument.sn || '乐器'}</Text>
-                {instrument.description || '暂无描述'}
-              </Text>
-              {hasDisplayMedia ? (
-                <View className="flex items-center flex-1 ml-2">
-                  {totalMedia > 4 && (
-                    <View className="w-5 h-14 bg-transparent rounded-l flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
-                      if (mediaOffset <= 0) {
-                        setNoTransition(true)
-                        setMediaOffset(maxMediaOffset + 1)
-                        requestAnimationFrame(() => {
-                          setNoTransition(false)
-                          setMediaOffset(maxMediaOffset)
-                        })
-                      } else {
-                        setMediaOffset(prev => prev - 1)
-                      }
-                    }}>
-                      <Text className="text-sm font-black text-zinc-400">❮</Text>
-                    </View>
-                  )}
-                  <View className="overflow-hidden flex-1">
-                    <View className="inline-flex flex-row space-x-1.5 items-center" style={{ transform: `translateX(-${mediaOffset * 62}px)`, transition: noTransition ? 'none' : 'transform 0.3s ease' }}>
-                      {displayTrack.map((img, i) => (
-                        <Image key={i} src={img.url || img} className="w-14 h-14 rounded-xl bg-zinc-50 flex-shrink-0 object-cover" onClick={() => setFullscreenImage(img.url || img)} />
-                      ))}
-                      {liveVideo && (
-                        <View className="w-14 h-14 rounded-xl bg-zinc-100 flex-shrink-0 flex flex-col items-center justify-center border border-zinc-200" onClick={() => setFullscreenImage(liveVideo.url)}>
-                          <Text className="text-sm">▶</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  {totalMedia > 4 && (
-                    <View className="w-5 h-14 bg-transparent rounded-r flex items-center justify-center flex-shrink-0 cursor-pointer" onClick={() => {
-                      if (mediaOffset >= maxMediaOffset) {
-                        setNoTransition(true)
-                        setMediaOffset(0)
-                        requestAnimationFrame(() => setNoTransition(false))
-                      } else {
-                        setMediaOffset(prev => prev + 1)
-                      }
-                    }}>
-                      <Text className="text-sm font-black text-zinc-600">❯</Text>
-                    </View>
-                  )}
-                </View>
-              ) : (
-                <View className="flex items-center flex-1 ml-2">
-                  <Text className="text-xs text-zinc-400">暂无图片</Text>
-                </View>
-              )}
+          {/* Poster image */}
+          {instrument?.poster && (
+            <View className="px-0">
+              <Image
+                src={instrument.poster}
+                className="w-full rounded-2xl object-contain"
+                style={{ maxWidth: 750 }}
+                mode="widthFix"
+              />
             </View>
-          </View>
+          )}
 
           {/* Card C: Specifications & properties */}
           <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
