@@ -175,7 +175,7 @@ export default function Home() {
       </View>
 
       {/* Carousel dots — fixed at bottom of banner */}
-      <View className="absolute left-0 right-0 z-[9998] flex items-center justify-center" style={{ top: '218px' }}>
+      <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ top: '246px' }}>
         <View className="flex items-center space-x-1.5">
           {[0, 1, 2].map(i => (
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
@@ -195,7 +195,7 @@ export default function Home() {
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
-        <View className="h-[255px]"></View>
+        <View className="h-[260px]"></View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
         <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
