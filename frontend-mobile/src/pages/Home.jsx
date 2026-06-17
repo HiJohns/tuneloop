@@ -140,7 +140,7 @@ export default function Home() {
     }
   }, [loading])
 
-  const MENU_BOTTOM = 88
+  const MENU_BOTTOM = 100
   const clipTop = Math.max(0, scrollY - (listOffsetRef.current - MENU_BOTTOM))
   const listClipStyle = clipTop > 0 ? { clipPath: `inset(${clipTop}px 0 0 0)` } : {}
 
@@ -175,10 +175,10 @@ export default function Home() {
       </View>
 
       {/* Fixed search bar — transparent initially, frosted on scroll */}
-      <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-white/70' : 'bg-transparent'}`}>
-        <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-zinc-300/50' : 'border border-white/30'}`}>
-          <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-zinc-400' : 'text-white/60'}`}>🔍</Text>
-          <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-zinc-700' : 'text-white'}`} />
+      <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`}>
+        <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-[#5A3B24]/20' : 'border border-white/30'}`}>
+          <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/50' : 'text-white/60'}`}>🔍</Text>
+          <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(90,59,36,0.35)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/80' : 'text-white'}`} />
         </View>
       </View>
 
@@ -198,7 +198,7 @@ export default function Home() {
         </View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
-        <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-white/70' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100'}`}>
+        <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100'}`}>
           <View className="w-full overflow-hidden pl-7"
             onTouchStart={e => {
               catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
@@ -227,7 +227,7 @@ export default function Home() {
         </View>
 
         {/* Instrument list area — sticky+overflow-hidden clips content above menu bottom */}
-        <View ref={listRef} className={`transition-colors duration-300 ${scrolled ? 'bg-white/70' : ''}`} style={listClipStyle}>
+        <View ref={listRef} className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`} style={listClipStyle}>
           <View className="pl-7 pr-0 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
