@@ -55,12 +55,44 @@ func BootstrapIAM(db *gorm.DB) error {
 		appCredentialsLock.Lock()
 		for _, app := range activateResp.Apps {
 			appCredentials[app.ClientID] = app.ClientSecret
+			if app.AppType == "web" && app.ClientID != "" && app.ClientSecret != "" {
+				appCredentials["_web_client_id"] = app.ClientID
+				appCredentials["_web_client_secret"] = app.ClientSecret
+			}
 		}
 		if activateResp.OrgID != "" {
 			appCredentials["_org_id"] = activateResp.OrgID
 		}
 		appCredentialsLock.Unlock()
 		log.Printf("[Bootstrap] Namespace activated: org_id=%s, apps=%d", activateResp.OrgID, len(activateResp.Apps))
+
+		// Persist UUID client credentials to DB for future restarts
+		webClientID := ""
+		webClientSecret := ""
+		appCredentialsLock.RLock()
+		if cid, ok := appCredentials["_web_client_id"]; ok {
+			webClientID = cid
+			webClientSecret = appCredentials["_web_client_secret"]
+		}
+		appCredentialsLock.RUnlock()
+		if webClientID != "" {
+			nilUUID := "00000000-0000-0000-0000-000000000000"
+			for _, pair := range [][2]string{{"iam_client_id", webClientID}, {"iam_client_secret", webClientSecret}} {
+				var existing models.SystemSetting
+				result := db.Where("tenant_id = ? AND setting_key = ?", nilUUID, pair[0]).First(&existing)
+				if result.Error != nil {
+					db.Create(&models.SystemSetting{
+						TenantID:     nilUUID,
+						SettingKey:   pair[0],
+						SettingValue: pair[1],
+					})
+				} else {
+					existing.SettingValue = pair[1]
+					db.Save(&existing)
+				}
+			}
+			log.Printf("[Bootstrap] Persisted UUID client credentials to DB (client_id=%s)", webClientID)
+		}
 	}
 
 	// Cold start: create admin user if no local users exist.
@@ -88,11 +120,18 @@ func BootstrapIAM(db *gorm.DB) error {
 				if adminUserID != "" {
 					appCredentialsLock.RLock()
 					orgID := appCredentials["_org_id"]
+					webClientID := appCredentials["_web_client_id"]
+					webClientSecret := appCredentials["_web_client_secret"]
 					appCredentialsLock.RUnlock()
 					if orgID != "" {
 						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage"}
 						nsAdminCusPerm, nsAdminCusPermExt := ComputeCusPermBitmapExt(nsAdminCusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
-						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
+						// Use web app's UUID credentials (from activation) for cus_perm operation
+						permClient := iamClient
+						if webClientID != "" {
+							permClient = NewIAMClientWithCredentials(webClientID, webClientSecret)
+						}
+						if err := permClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
 							log.Printf("[Bootstrap] Warning: failed to set admin cus_perm: %v", err)
 						} else {
 							log.Printf("[Bootstrap] Set admin cus_perm to namespace-admin codes: %v → %d", nsAdminCusPermCodes, nsAdminCusPerm)
@@ -307,4 +346,28 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 			}
 		}
 	}
+}
+
+// LoadIAMClientCredentials loads persisted UUID IAM client credentials from DB
+// and populates the appCredentials map so cold-start can use them.
+func LoadIAMClientCredentials(db *gorm.DB) {
+	nilUUID := "00000000-0000-0000-0000-000000000000"
+	var setting models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = 'iam_client_id'", nilUUID).First(&setting).Error; err != nil {
+		return
+	}
+	clientID := setting.SettingValue
+	if clientID == "" {
+		return
+	}
+	var sec models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = 'iam_client_secret'", nilUUID).First(&sec).Error; err != nil {
+		return
+	}
+	appCredentialsLock.Lock()
+	appCredentials[clientID] = sec.SettingValue
+	appCredentials["_web_client_id"] = clientID
+	appCredentials["_web_client_secret"] = sec.SettingValue
+	appCredentialsLock.Unlock()
+	log.Printf("[Bootstrap] Loaded UUID IAM client credentials from DB (client_id=%s)", clientID)
 }

@@ -74,6 +74,19 @@ func NewIAMClient() *IAMClient {
 	}
 }
 
+// NewIAMClientWithCredentials creates an IAM client using specific OAuth credentials.
+// Used for activating tenant-specific identities like the app's UUID client_id.
+func NewIAMClientWithCredentials(clientID, clientSecret string) *IAMClient {
+	return &IAMClient{
+		baseURL:      GetIAMInternalURL(),
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		namespace:    os.Getenv("IAM_NAMESPACE"),
+		httpClient:   &http.Client{Timeout: 15 * time.Second},
+		tokenCache:   &clientTokenCache{},
+	}
+}
+
 func (c *IAMClient) GetClientToken() (string, error) {
 	c.tokenCache.mu.RLock()
 	if c.tokenCache.accessToken != "" && time.Now().Before(c.tokenCache.expiresAt.Add(-30*time.Second)) {

@@ -537,6 +537,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Load persisted UUID IAM client credentials (from activation on previous restarts)
+	services.LoadIAMClientCredentials(db)
+
 	// Init permission registry BEFORE BootstrapIAM — it accesses GlobalPermissionRegistry
 	namespaceID := os.Getenv("IAM_NAMESPACE")
 	if namespaceID == "" {
