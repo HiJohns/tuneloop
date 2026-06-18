@@ -120,18 +120,11 @@ func BootstrapIAM(db *gorm.DB) error {
 				if adminUserID != "" {
 					appCredentialsLock.RLock()
 					orgID := appCredentials["_org_id"]
-					webClientID := appCredentials["_web_client_id"]
-					webClientSecret := appCredentials["_web_client_secret"]
 					appCredentialsLock.RUnlock()
 					if orgID != "" {
 						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage"}
 						nsAdminCusPerm, nsAdminCusPermExt := ComputeCusPermBitmapExt(nsAdminCusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
-						// Use web app's UUID credentials (from activation) for cus_perm operation
-						permClient := iamClient
-						if webClientID != "" {
-							permClient = NewIAMClientWithCredentials(webClientID, webClientSecret)
-						}
-						if err := permClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
+						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
 							log.Printf("[Bootstrap] Warning: failed to set admin cus_perm: %v", err)
 						} else {
 							log.Printf("[Bootstrap] Set admin cus_perm to namespace-admin codes: %v → %d", nsAdminCusPermCodes, nsAdminCusPerm)
@@ -372,4 +365,17 @@ func LoadIAMClientCredentials(db *gorm.DB) {
 	appCredentials["_web_client_secret"] = sec.SettingValue
 	appCredentialsLock.Unlock()
 	log.Printf("[Bootstrap] Loaded UUID IAM client credentials from DB (client_id=%s)", clientID)
+}
+
+// GetWebIAMClient returns an IAM client using the web app's UUID credentials.
+// Returns nil if no web credentials are available (cold start before activation).
+func GetWebIAMClient() *IAMClient {
+	appCredentialsLock.RLock()
+	defer appCredentialsLock.RUnlock()
+	cid := appCredentials["_web_client_id"]
+	secret := appCredentials["_web_client_secret"]
+	if cid == "" || secret == "" {
+		return nil
+	}
+	return NewIAMClientWithCredentials(cid, secret)
 }
