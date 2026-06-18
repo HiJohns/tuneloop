@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -403,27 +402,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 
-	// Set cus_perm for merchant admin using merchant_admin template
-	if adminIAMSub != "" && iamOrgID != "" {
-		if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
-			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-			var setErr error
-			for attempt := 0; attempt < 5; attempt++ {
-				setErr = iamClient.SetUserCustomerPermissionsWithToken(userToken, iamOrgID, adminIAMSub, cusPerm, cusPermExt)
-				if setErr == nil {
-					break
-				}
-				log.Printf("[CreateMerchant] set cus_perm attempt %d/5: %v", attempt+1, setErr)
-				time.Sleep(time.Duration(attempt+1) * 2 * time.Second)
-			}
-			if setErr != nil {
-				log.Printf("[CreateMerchant] Warning: failed to set admin cus_perm: %v", setErr)
-			} else {
-				log.Printf("[CreateMerchant] Set merchant_admin cus_perm for %s", adminIAMSub)
-			}
-		}
-	}
-
 	// Initialize system roles for the new tenant
 	if iamOrgID != "" {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
@@ -431,6 +409,8 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	}
 
 	// Assign merchant_admin role template to admin user in IAM
+	// Cus_perm comes from the role template (created by system during bootstrap),
+	// so namespace admin doesn't need to possess those bits directly.
 	var roleErrors []gin.H
 	if adminIAMSub != "" && iamOrgID != "" {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
