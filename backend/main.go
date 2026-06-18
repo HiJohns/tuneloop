@@ -537,11 +537,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := services.BootstrapIAM(db); err != nil {
-		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
-	}
-
-	// Bootstrap customer permissions with IAM (#414)
+	// Init permission registry BEFORE BootstrapIAM — it accesses GlobalPermissionRegistry
 	namespaceID := os.Getenv("IAM_NAMESPACE")
 	if namespaceID == "" {
 		namespaceID = "tuneloop"
@@ -554,6 +550,10 @@ func main() {
 	} else {
 		log.Printf("[INFO] Customer permissions registered and cached")
 		middleware.PermissionRegistry = permRegistry
+	}
+
+	if err := services.BootstrapIAM(db); err != nil {
+		fmt.Printf("Warning: IAM bootstrap failed: %v\n", err)
 	}
 
 	// Sync sys_perm to IAM role templates for each business role.
