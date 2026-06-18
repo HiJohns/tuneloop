@@ -152,11 +152,13 @@ func BootstrapIAM(db *gorm.DB) error {
 					}
 					tenantID := orgID
 					localUser := models.User{
-						IAMSub:   adminEmail,
+						IAMSub:   adminUserID,
 						Name:     "Administrator",
 						Email:    adminEmail,
 						TenantID: tenantID,
 						OrgID:    orgID,
+						Status:   "active",
+						Role:     "namespace_admin",
 					}
 					if err := db.Create(&localUser).Error; err != nil {
 						log.Printf("[Bootstrap] Warning: failed to save admin to local DB: %v", err)
