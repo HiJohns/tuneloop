@@ -525,24 +525,45 @@ export default function InstrumentDetail() {
 
 function ActivityLogTab({ instrumentId }) {
   const [sessions, setSessions] = useState([])
+  const [auditLogs, setAuditLogs] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!instrumentId) return
     setLoading(true)
-    instrumentsApi.getActivityLog(instrumentId).then(res => {
-      if (res.code === 20000) setSessions(res.data?.sessions || [])
-    }).catch(err => {
-      console.warn('Failed to load activity log:', err)
-    }).finally(() => setLoading(false))
+    Promise.all([
+      instrumentsApi.getActivityLog(instrumentId).then(res => {
+        if (res.code === 20000) setSessions(res.data?.sessions || [])
+      }).catch(() => {}),
+      api.get('/admin/audit-logs', { params: { resource_id: instrumentId, pageSize: 50 } }).then(res => {
+        if (res.code === 20000) setAuditLogs(res.data?.list || [])
+      }).catch(() => {}),
+    ]).finally(() => setLoading(false))
   }, [instrumentId])
 
   if (loading) return <Spin />
-  if (sessions.length === 0) return <Empty description="暂无租借记录" />
+
+  const actionMap = { CREATE: '创建', UPDATE: '编辑', DELETE: '删除' }
 
   return (
     <div className="space-y-4">
-      {sessions.map(session => (
+      {auditLogs.length > 0 && (
+        <Card title="操作记录" size="small">
+          <div className="max-h-60 overflow-y-auto space-y-1">
+            {auditLogs.map((log, i) => (
+              <div key={log.id || i} className="flex gap-3 items-center py-1.5 px-2 bg-gray-50 rounded text-xs">
+                <span className="text-gray-400 w-32 flex-shrink-0">{new Date(log.created_at).toLocaleString()}</span>
+                <Tag color={log.action === 'CREATE' ? 'green' : log.action === 'DELETE' ? 'red' : 'blue'}>
+                  {actionMap[log.action] || log.action}
+                </Tag>
+                <span className="text-gray-600">{log.ip_address}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {sessions.length > 0 && sessions.map(session => (
         <Card key={session.order_id} size="small"
           title={
             <Space>

@@ -12,6 +12,7 @@ import (
 
 type AuditLogQuery struct {
 	ResourceType string
+	ResourceID   string
 	Action       string
 	UserID       string
 	DateFrom     string
@@ -40,6 +41,9 @@ func QueryAuditLogs(q *AuditLogQuery) (*AuditLogResult, error) {
 
 	if q.ResourceType != "" {
 		query = query.Where("resource_type = ?", q.ResourceType)
+	}
+	if q.ResourceID != "" {
+		query = query.Where("resource_id = ?", q.ResourceID)
 	}
 	if q.Action != "" {
 		query = query.Where("action = ?", q.Action)
@@ -113,6 +117,9 @@ func ExportAuditLogs(q *AuditLogQuery) (string, error) {
 
 	if q.ResourceType != "" {
 		query = query.Where("resource_type = ?", q.ResourceType)
+	}
+	if q.ResourceID != "" {
+		query = query.Where("resource_id = ?", q.ResourceID)
 	}
 	if q.Action != "" {
 		query = query.Where("action = ?", q.Action)

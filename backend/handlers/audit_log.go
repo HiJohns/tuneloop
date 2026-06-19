@@ -17,6 +17,7 @@ func ListAuditLogs(c *gin.Context) {
 
 	q := &services.AuditLogQuery{
 		ResourceType: c.Query("resource_type"),
+		ResourceID:   c.Query("resource_id"),
 		Action:       c.Query("action"),
 		UserID:       c.Query("user_id"),
 		DateFrom:     c.Query("date_from"),
