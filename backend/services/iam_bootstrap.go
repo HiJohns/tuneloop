@@ -124,7 +124,11 @@ func BootstrapIAM(db *gorm.DB) error {
 					if orgID != "" {
 						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage"}
 						nsAdminCusPerm, nsAdminCusPermExt := ComputeCusPermBitmapExt(nsAdminCusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
-						if err := iamClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
+						permClient := iamClient
+						if webClient := GetWebIAMClient(); webClient != nil {
+							permClient = webClient
+						}
+						if err := permClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
 							log.Printf("[Bootstrap] Warning: failed to set admin cus_perm: %v", err)
 						} else {
 							log.Printf("[Bootstrap] Set admin cus_perm to namespace-admin codes: %v → %d", nsAdminCusPermCodes, nsAdminCusPerm)
