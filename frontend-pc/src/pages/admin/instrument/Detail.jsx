@@ -61,15 +61,6 @@ export default function InstrumentDetail() {
       setMediaLoading(false)
     })
   }, [id])
-
-  const handleSetDisplay = async (batchId) => {
-    try {
-      const res = await instrumentsApi.setMediaDisplay(id, { batch_id: batchId })
-      if (res.code === 20000) {
-        message.success('展示批次已更新')
-        fetchInstrument()
-        instrumentsApi.getMedia(id).then(r => { if (r.code === 20000) setMediaDetail(r.data) })
-      }
     } catch (e) {
       message.error('更新失败: ' + e.message)
     }
@@ -327,118 +318,100 @@ export default function InstrumentDetail() {
           children: (
             <Row gutter={16}>
               <Col span={12}>
-                <Card title="展示图像">
+                <Card title="展示图像"
+                  extra={
+                    <label className="text-xs text-brand-primary cursor-pointer hover:underline">
+                      + 新增
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const res = await instrumentsApi.displayImageUpload(id, file)
+                            if (res.code === 20000) {
+                              message.success('展示图上传成功')
+                              fetchInstrument()
+                            }
+                          } catch (err) {
+                            message.error('上传失败: ' + (err.message || ''))
+                          }
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                  }
+                >
                   {(() => {
                     const media = instrument.media
                     const displayImages = media?.display?.filter(m => m.file_type === 'image') || []
                     const images = displayImages.length > 0
                       ? displayImages
                       : (instrument.images?.length ? instrument.images.map(u => ({ url: u, file_type: 'image' })) : [])
-                    const video = (media?.video && media.video.url)
-                      ? media.video
-                      : (instrument.video ? { url: instrument.video } : null)
                     
-                    return (
-                      <>
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="text-sm font-medium text-gray-600">当前展示</h4>
-                            <label className="text-xs text-brand-primary cursor-pointer hover:underline">
-                              上传/替换
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0]
-                                  if (!file) return
-                                  try {
-                                    const res = await instrumentsApi.displayImageUpload(id, file)
-                                    if (res.code === 20000) {
-                                      message.success('展示图上传成功')
-                                      fetchInstrument()
-                                    }
-                                  } catch (err) {
-                                    message.error('上传失败: ' + (err.message || ''))
-                                  }
-                                  e.target.value = ''
-                                }}
-                              />
-                            </label>
-                          </div>
-                          {images.length > 0 ? (
-                            <Image.PreviewGroup>
-                              {images.map((item, index) => (
-                                <Image
-                                  key={index}
-                                  src={item.url || item}
-                                  alt={`${instrument.sn}-${index}`}
-                                  width={120}
-                                  height={120}
-                                  className="mr-2 mb-2 object-cover rounded"
-                                />
-                              ))}
-                            </Image.PreviewGroup>
-                          ) : (
-                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无展示图片" />
-                          )}
-                        </div>
-
-                        {video && (
-                          <div className="mb-4">
-                            <h4 className="text-sm font-medium text-gray-600 mb-2">视频</h4>
-                            <div className="flex items-start gap-4">
-                              <video src={video.url} controls width="240" className="rounded" />
-                              <Popconfirm title="确定删除此视频？" onConfirm={() => handleDeleteVideo(video.batch_id)}>
-                                <Button danger size="small">删除视频</Button>
+                    return images.length > 0 ? (
+                      <Image.PreviewGroup>
+                        {images.map((item, index) => (
+                          <div key={index} className="inline-block relative mr-2 mb-2 group">
+                            <Image
+                              src={item.url || item}
+                              alt={`${instrument.sn}-${index}`}
+                              width={120}
+                              height={120}
+                              className="object-cover rounded"
+                            />
+                            {item.batch_id && (
+                              <Popconfirm title="删除此图片？" onConfirm={() => handleDeleteBatch(item.batch_id)}>
+                                <Button
+                                  size="small"
+                                  danger
+                                  className="absolute top-0 right-0 opacity-0 group-hover:opacity-100"
+                                  style={{ borderRadius: '0 4px 0 4px' }}
+                                >×</Button>
                               </Popconfirm>
-                            </div>
+                            )}
                           </div>
-                        )}
-
-                        {instrument.poster && (
-                          <div className="mb-4">
-                            <h4 className="text-sm font-medium text-gray-600 mb-2">海报</h4>
-                            <img src={instrument.poster} alt="海报" style={{ maxWidth: 400, borderRadius: 8 }} />
-                          </div>
-                        )}
-                      </>
+                        ))}
+                      </Image.PreviewGroup>
+                    ) : (
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无展示图片" />
                     )
                   })()}
                 </Card>
-              </Col>
-              <Col span={12}>
-                <Card title="操作记录图像">
-                  {mediaLoading ? <Spin /> : mediaDetail?.groups?.length > 0 ? (
-                    <div>
-                      {mediaDetail.groups.filter(g => g.batch_type !== 'display').map(group => (
-                        <Card key={group.batch_id} size="small" className="mb-2"
-                          title={
-                            <Space>
-                              <Tag>{group.batch_type}</Tag>
-                              <span className="text-xs text-gray-400">{new Date(group.created_at).toLocaleString()}</span>
-                              {group.batch_id === (mediaDetail.display?.[0]?.batch_id) && <Tag color="green">当前展示</Tag>}
-                            </Space>
-                          }
-                          extra={
-                            <Space>
-                              <Button size="small" onClick={() => handleSetDisplay(group.batch_id)}>设为展示</Button>
-                              <Popconfirm title="删除此批次？" onConfirm={() => handleDeleteBatch(group.batch_id)}>
-                                <Button danger size="small">删除</Button>
-                              </Popconfirm>
-                            </Space>
-                          }
-                        >
-                          <Image.PreviewGroup>
-                            {group.items.filter(i => i.file_type === 'image').map((item, idx) => (
-                              <Image key={idx} src={item.url} width={60} height={60} className="mr-1 mb-1 object-cover rounded" />
-                            ))}
-                          </Image.PreviewGroup>
-                        </Card>
-                      ))}
+
+                {(instrument.video || displayMedia?.video) && (
+                  <Card title="视频" className="mt-4">
+                    <div className="flex items-start gap-4">
+                      <video
+                        src={instrument.video || displayMedia?.video?.url}
+                        controls
+                        width="240"
+                        className="rounded"
+                      />
+                      <Popconfirm title="确定删除此视频？" onConfirm={() => handleDeleteVideo(
+                        (instrument.media?.video?.batch_id || displayMedia?.video?.batch_id)
+                      )}>
+                        <Button danger size="small">删除</Button>
+                      </Popconfirm>
                     </div>
+                  </Card>
+                )}
+              </Col>
+
+              <Col span={12}>
+                <Card title="海报"
+                  extra={
+                    instrument.poster ? (
+                      <Button size="small" onClick={() => {/* future: replace poster UI */}}>替换</Button>
+                    ) : null
+                  }
+                >
+                  {instrument.poster ? (
+                    <img src={instrument.poster} alt="海报" style={{ maxWidth: '100%', borderRadius: 8 }} />
                   ) : (
-                    <Empty description="暂无操作记录图像" />
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无海报" />
                   )}
                 </Card>
               </Col>
