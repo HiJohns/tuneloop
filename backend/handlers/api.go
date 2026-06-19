@@ -354,7 +354,7 @@ func GetInstruments(c *gin.Context) {
 		var catName string
 		if instrument.CategoryID != nil {
 			var cat models.Category
-			if err := db.First(&cat, "id = ?", *instrument.CategoryID).Error; err == nil {
+			if err := database.GetDB().First(&cat, "id = ?", *instrument.CategoryID).Error; err == nil {
 				catName = cat.Name
 			}
 		}
@@ -374,6 +374,7 @@ func GetInstruments(c *gin.Context) {
 			"images":         json.RawMessage(instrument.Images),
 			"video":          instrument.Video,
 			"poster":         instrument.Poster,
+			"base_daily_rate": instrument.BaseDailyRate,
 			"stock_status":   instrument.StockStatus,
 			"status":         instrument.StockStatus,
 			"created_at":     instrument.CreatedAt,

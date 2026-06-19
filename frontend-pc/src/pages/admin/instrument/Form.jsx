@@ -302,8 +302,20 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   }, [categoryTree])
 
   useEffect(() => {
-    console.log('[DEBUG] properties state updated:', properties)
-  }, [properties])
+    // Re-populate property fields when both instrument data and properties are loaded
+    if (loadedData && loadedData.properties && properties.length > 0) {
+      const propFieldValues = {}
+      properties.forEach(prop => {
+        if (loadedData.properties[prop.name]) {
+          const values = loadedData.properties[prop.name]
+          propFieldValues[`prop_${prop.id}`] = Array.isArray(values) ? values[0] || '' : values
+        }
+      })
+      if (Object.keys(propFieldValues).length > 0) {
+        form.setFieldsValue(propFieldValues)
+      }
+    }
+  }, [loadedData, properties])
 
   const fetchCategoryTree = async () => {
     try {
@@ -341,6 +353,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         if (cat.parent_id) {
           const parent = categoryMap.get(cat.parent_id)
           if (parent) {
+            if (!parent.children) parent.children = []
             parent.children.push(node)
             console.log('[DEBUG] Added child:', cat.name, 'to parent:', parent.title)
           } else {
@@ -472,14 +485,9 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       console.log('[DEBUG] Loading instrument data for ID:', instrumentId)
       setLoading(true)
       
-      const response = await fetch(`${API_BASE_URL}/instruments/${instrumentId}`)
-      if (!response.ok) {
-        throw new Error('Failed to load instrument data')
-      }
-      
-      const result = await response.json()
-        if (result.code === 20000) {
-          const instrumentData = result.data
+      const response = await instrumentsApi.get(instrumentId)
+        if (response.code === 20000) {
+          const instrumentData = response.data
           console.log('[DEBUG] Instrument data loaded:', instrumentData)
           setLoadedData(instrumentData)
         
@@ -506,10 +514,13 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         }
 
         // Parse pricing JSONB and populate individual fields
-        if (instrumentData.pricing && typeof instrumentData.pricing === 'string') {
+        if (instrumentData.pricing) {
           try {
-            const pricingArr = JSON.parse(instrumentData.pricing)
-            if (Array.isArray(pricingArr) && pricingArr.length > 0) {
+            const pricingData = typeof instrumentData.pricing === 'string'
+              ? JSON.parse(instrumentData.pricing)
+              : instrumentData.pricing
+            const pricingArr = Array.isArray(pricingData) ? pricingData : [pricingData]
+            if (pricingArr.length > 0) {
               const p = pricingArr[0]
               form.setFieldsValue({
                 deposit: p.deposit || 0,
@@ -531,7 +542,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           properties.forEach(prop => {
             if (instrumentData.properties[prop.name]) {
               const values = instrumentData.properties[prop.name]
-              propFieldValues[`prop_${prop.id}`] = values
+              propFieldValues[`prop_${prop.id}`] = Array.isArray(values) ? values[0] || '' : values
             }
           })
           console.log('[DEBUG] Setting property fields:', propFieldValues)
@@ -550,7 +561,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         
         console.log('[DEBUG] Form populated with instrument data')
       } else {
-        throw new Error(result.message || 'Failed to load instrument data')
+        throw new Error(response.message || 'Failed to load instrument data')
       }
     } catch (error) {
       console.error('Error loading instrument:', error)
