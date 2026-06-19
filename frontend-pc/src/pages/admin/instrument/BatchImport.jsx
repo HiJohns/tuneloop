@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb } from 'antd'
-import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined } from '@ant-design/icons'
-import { instrumentsApi } from '../../../services/api'
+import { useState, useRef } from 'react'
+import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb, Image } from 'antd'
+import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons'
+import { instrumentsApi, api } from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
 
 const { Title, Text } = Typography
@@ -27,6 +27,8 @@ export default function BatchImport() {
   const [importResult, setImportResult] = useState(null)
   const [executing, setExecuting] = useState(false)
   const [validatedData, setValidatedData] = useState(null)
+  const [instrumentList, setInstrumentList] = useState([])
+  const [mediaDialog, setMediaDialog] = useState(null)
 
   const steps = [
     { title: '上传 CSV' },
@@ -64,6 +66,7 @@ export default function BatchImport() {
       const result = await instrumentsApi.batchImport(sessionId)
       if (result.code === 20000) {
         setImportResult(result.data)
+        setInstrumentList(result.data.results || [])
         setCurrentStep(2)
       } else {
         message.error(result.message || '提交失败')
@@ -191,23 +194,54 @@ export default function BatchImport() {
 
       case 2:
         return (
-          <Card title="上传图片">
-            <Text>（此步骤在后续更新中实现 — 参见 Issue #935）</Text>
-          </Card>
+          <>
+            <Card title="上传媒体文件">
+              <Table
+                dataSource={instrumentList}
+                rowKey="id"
+                pagination={false}
+                size="small"
+                columns={[
+                  { title: '识别码', dataIndex: 'sn', key: 'sn', width: 120 },
+                  { title: '分类', dataIndex: 'category_name', key: 'category_name', width: 100 },
+                  { title: '展示图片', key: 'images', width: 80,
+                    render: (_, r) => r._images?.length ? <Image src={r._images[0]} width={40} height={40} style={{ objectFit: 'cover' }} /> : '-'
+                  },
+                  { title: '海报', key: 'poster', width: 80,
+                    render: (_, r) => r._poster ? <Image src={r._poster} width={40} height={40} style={{ objectFit: 'cover' }} /> : '-'
+                  },
+                  { title: '视频', key: 'video', width: 80,
+                    render: (_, r) => r._video ? <video src={r._video} style={{ width: 40, height: 40, objectFit: 'cover' }} /> : '-'
+                  },
+                  { title: '操作', key: 'action', width: 80,
+                    render: (_, r) => <Button size="small" icon={<SettingOutlined />} onClick={() => setMediaDialog(r)}>设置</Button>
+                  },
+                ]}
+              />
+            </Card>
+            <div style={{ marginTop: 16 }}>
+              <Button onClick={() => setCurrentStep(3)}>完成</Button>
+            </div>
+
+            <Modal title={`媒体设置 - ${mediaDialog?.sn || ''}`} open={!!mediaDialog} onCancel={() => setMediaDialog(null)} footer={null} width={600} destroyOnClose>
+              {mediaDialog && (
+                <MediaUploader instrument={mediaDialog} onUpdate={(updates) => {
+                  setInstrumentList(prev => prev.map(r => r.id === mediaDialog.id ? { ...r, ...updates } : r))
+                }} />
+              )}
+            </Modal>
+          </>
         )
 
       case 3:
         return (
           <Card title="导入完成">
-            {importResult && (
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Alert
-                  message={`成功创建 ${importResult.success_count || 0} 部乐器`}
-                  type="success"
-                  showIcon
-                />
-              </Space>
-            )}
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Alert message={`成功创建 ${instrumentList.length} 部乐器`} type="success" showIcon style={{ marginBottom: 16 }} />
+              <Text>展示图片: {instrumentList.filter(r => r._images?.length > 0).length} 件</Text>
+              <Text>海报: {instrumentList.filter(r => r._poster).length} 件</Text>
+              <Text>视频: {instrumentList.filter(r => r._video).length} 件</Text>
+            </Space>
           </Card>
         )
 
@@ -240,5 +274,75 @@ export default function BatchImport() {
         </div>
       </Card>
     </div>
+  )
+}
+
+const uploadFile = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return res?.data?.url || res?.url || ''
+}
+
+function MediaUploader({ instrument, onUpdate }) {
+  const [saving, setSaving] = useState(false)
+  const [images, setImages] = useState(instrument._images || [])
+  const [poster, setPoster] = useState(instrument._poster || '')
+  const [video, setVideo] = useState(instrument._video || '')
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await api.put(`/instruments/${instrument.id}`, { images, poster, video })
+      message.success('保存成功')
+      onUpdate({ _images: images, _poster: poster, _video: video })
+    } catch (e) {
+      message.error('保存失败: ' + (e.message || ''))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Space direction="vertical" style={{ width: '100%' }}>
+      <div>
+        <Text strong>展示图片</Text>
+        <Upload multiple accept="image/*" showUploadList={false} beforeUpload={async (file) => {
+          const url = await uploadFile(file)
+          setImages(prev => [...prev, url])
+          return false
+        }}>
+          <Button size="small" icon={<UploadOutlined />} style={{ marginLeft: 8 }}>添加</Button>
+        </Upload>
+        <div style={{ marginTop: 8 }}>
+          {images.map((url, i) => (
+            <span key={i} className="inline-block relative mr-1 mb-1">
+              <Image src={url} width={60} height={60} style={{ objectFit: 'cover', borderRadius: 4 }} />
+              <a style={{ position: 'absolute', top: -4, right: -4, color: 'red', cursor: 'pointer', fontSize: 14 }}
+                onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}>×</a>
+            </span>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Text strong>海报</Text>
+        <Upload accept="image/*" showUploadList={false} beforeUpload={async (file) => {
+          const url = await uploadFile(file); setPoster(url); return false
+        }}>
+          <Button size="small" icon={<UploadOutlined />} style={{ marginLeft: 8 }}>上传</Button>
+        </Upload>
+        {poster && <Image src={poster} width={120} style={{ marginTop: 8, borderRadius: 4 }} />}
+      </div>
+      <div>
+        <Text strong>视频</Text>
+        <Upload accept="video/*" showUploadList={false} beforeUpload={async (file) => {
+          const url = await uploadFile(file); setVideo(url); return false
+        }}>
+          <Button size="small" icon={<UploadOutlined />} style={{ marginLeft: 8 }}>上传</Button>
+        </Upload>
+        {video && <video src={video} controls style={{ width: '100%', maxHeight: 200, marginTop: 8 }} />}
+      </div>
+      <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
+    </Space>
   )
 }
