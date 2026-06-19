@@ -37,10 +37,12 @@ export default function InstrumentDetail() {
     }).catch(() => {})
     api.get('/categories').then(res => {
       if (res.code === 20000) {
-        const buildTree = (cats, parentId) => cats.filter(c => c.parent_id === parentId).map(c => ({
-          value: c.id, title: c.name, children: buildTree(cats, c.id)
+        const mapTree = (nodes) => (nodes || []).map(n => ({
+          value: n.id,
+          title: n.name,
+          children: n.sub_categories?.length > 0 ? mapTree(n.sub_categories) : undefined
         }))
-        setCategoryTree(buildTree(res.data?.list || [], null))
+        setCategoryTree(mapTree(res.data?.list || []))
       }
     }).catch(() => {})
   }, [])
@@ -65,6 +67,7 @@ export default function InstrumentDetail() {
   const [mediaLoading, setMediaLoading] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
   const [savingCard, setSavingCard] = useState(false)
+  const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
 
@@ -240,7 +243,7 @@ export default function InstrumentDetail() {
             <Row gutter={16}>
               <Col span={16}>
                 <Card title="乐器信息"
-                  extra={editingCard === 'basic' ? null : <EditOutlined className="cursor-pointer" onClick={() => setEditingCard('basic')} />}
+                  extra={editingCard === 'basic' ? null : <EditOutlined className="cursor-pointer" onClick={() => { setEditingCard('basic'); setEditValues({}) }} />}
                 >
                   {editingCard === 'basic' ? (
                     <div className="space-y-3">
@@ -252,8 +255,8 @@ export default function InstrumentDetail() {
                         <label className="text-sm text-gray-500">分类</label>
                         <TreeSelect
                           treeData={categoryTree}
-                          value={instrument.category_id}
-                          id="edit-category-id"
+                          value={editValues.category_id !== undefined ? editValues.category_id : instrument.category_id}
+                          onChange={(val) => setEditValues(prev => ({ ...prev, category_id: val }))}
                           style={{ width: '100%' }}
                           placeholder="选择分类"
                         />
@@ -261,8 +264,8 @@ export default function InstrumentDetail() {
                       <div>
                         <label className="text-sm text-gray-500">级别</label>
                         <Select
-                          defaultValue={instrument.level_id}
-                          id="edit-level-id"
+                          value={editValues.level_id !== undefined ? editValues.level_id : instrument.level_id}
+                          onChange={(val) => setEditValues(prev => ({ ...prev, level_id: val }))}
                           style={{ width: '100%' }}
                           placeholder="选择级别"
                           options={levels.map(l => ({ value: l.id, label: l.caption }))}
@@ -271,8 +274,8 @@ export default function InstrumentDetail() {
                       <div className="flex gap-2">
                         <Button type="primary" loading={savingCard} onClick={() => {
                           handleSaveCard('basic', {
-                            category_id: document.getElementById('edit-category-id')?.getAttribute('value') || instrument.category_id,
-                            level_id: document.getElementById('edit-level-id')?.getAttribute('value') || instrument.level_id,
+                            category_id: editValues.category_id !== undefined ? editValues.category_id : instrument.category_id,
+                            level_id: editValues.level_id !== undefined ? editValues.level_id : instrument.level_id,
                           })
                         }}>保存</Button>
                         <Button onClick={() => setEditingCard(null)}>取消</Button>
