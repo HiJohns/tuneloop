@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm } from 'antd'
-import { ArrowLeftOutlined, DeleteOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select } from 'antd'
+import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
 import { api, pricingApi, instrumentsApi } from '../../../services/api'
 
 function parsePricing(pricing) {
@@ -49,6 +49,8 @@ export default function InstrumentDetail() {
 
   const [mediaDetail, setMediaDetail] = useState(null)
   const [mediaLoading, setMediaLoading] = useState(false)
+  const [editingCard, setEditingCard] = useState(null)
+  const [savingCard, setSavingCard] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -88,6 +90,24 @@ export default function InstrumentDetail() {
       }
     } catch (e) {
       message.error('删除失败: ' + (e.message || ''))
+    }
+  }
+
+  const handleSaveCard = async (card, fields) => {
+    setSavingCard(true)
+    try {
+      const result = await api.put(`/instruments/${id}`, fields)
+      if (result.code === 20000) {
+        message.success('保存成功')
+        setEditingCard(null)
+        fetchInstrument()
+      } else {
+        message.error(result.message || '保存失败')
+      }
+    } catch (e) {
+      message.error('保存失败: ' + (e.message || ''))
+    } finally {
+      setSavingCard(false)
     }
   }
 
@@ -203,7 +223,29 @@ export default function InstrumentDetail() {
           children: (
             <Row gutter={16}>
               <Col span={16}>
-                <Card title="乐器信息">
+                <Card title="乐器信息"
+                  extra={editingCard === 'basic' ? null : <EditOutlined className="cursor-pointer" onClick={() => setEditingCard('basic')} />}
+                >
+                  {editingCard === 'basic' ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm text-gray-500">识别码</label>
+                        <Input defaultValue={instrument.sn} id="edit-sn" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">分类</label>
+                        <Input defaultValue={instrument.category_name} id="edit-category" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="primary" loading={savingCard} onClick={() => {
+                          handleSaveCard('basic', {
+                            sn: document.getElementById('edit-sn')?.value || instrument.sn,
+                          })
+                        }}>保存</Button>
+                        <Button onClick={() => setEditingCard(null)}>取消</Button>
+                      </div>
+                    </div>
+                  ) : (
                   <Descriptions column={2}>
                     <Descriptions.Item label="识别码">{instrument.sn}</Descriptions.Item>
                     <Descriptions.Item label="分类">{instrument.category_name}</Descriptions.Item>
@@ -228,16 +270,61 @@ export default function InstrumentDetail() {
                       </Descriptions.Item>
                     ))}
                   </Descriptions>
+                  )}
                 </Card>
                 
-                <Card title="描述" className="mt-4">
-                  <p className="text-gray-700">{instrument.description}</p>
+                <Card title="描述" className="mt-4"
+                  extra={editingCard === 'desc' ? null : <EditOutlined className="cursor-pointer" onClick={() => setEditingCard('desc')} />}
+                >
+                  {editingCard === 'desc' ? (
+                    <div className="space-y-3">
+                      <Input.TextArea defaultValue={instrument.description} id="edit-desc" rows={4} />
+                      <div className="flex gap-2">
+                        <Button type="primary" loading={savingCard} onClick={() => {
+                          handleSaveCard('desc', {
+                            description: document.getElementById('edit-desc')?.value || ''
+                          })
+                        }}>保存</Button>
+                        <Button onClick={() => setEditingCard(null)}>取消</Button>
+                      </div>
+                    </div>
+                  ) : (
+                  <p className="text-gray-700">{instrument.description || '暂无描述'}</p>
+                  )}
                 </Card>
               </Col>
               
               <Col span={8}>
-                <Card title="价格配置">
-                  {pricingV2Loading ? (
+                <Card title="价格配置"
+                  extra={editingCard === 'pricing' ? null : <EditOutlined className="cursor-pointer" onClick={() => setEditingCard('pricing')} />}
+                >
+                  {editingCard === 'pricing' ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm text-gray-500">押金 (¥)</label>
+                        <InputNumber
+                          defaultValue={pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0}
+                          id="edit-deposit" min={0} className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">物流费 (¥)</label>
+                        <InputNumber
+                          defaultValue={pricingV2?.shipping_fee ?? parsePricing(instrument.pricing)?.shipping_fee ?? 0}
+                          id="edit-shipping" min={0} className="w-full"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="primary" loading={savingCard} onClick={() => {
+                          handleSaveCard('pricing', {
+                            shipping_fee: parseFloat(document.getElementById('edit-shipping')?.value || '0'),
+                            deposit: parseFloat(document.getElementById('edit-deposit')?.value || '0'),
+                          })
+                        }}>保存</Button>
+                        <Button onClick={() => setEditingCard(null)}>取消</Button>
+                      </div>
+                    </div>
+                  ) : pricingV2Loading ? (
                     <Spin />
                   ) : pricingV2?.tiers?.length > 0 ? (
                     <>
