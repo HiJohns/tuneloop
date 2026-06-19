@@ -90,7 +90,7 @@ export default function InstrumentDetailUser() {
               {images.length > 0 ? (
                 <Image
                   src={images[selectedImage]}
-                  alt={instrument.name}
+                  alt={instrument.sn}
                   className="w-full h-full object-cover"
                   preview={{
                     mask: <div className="text-white">点击查看大图</div>
@@ -135,7 +135,7 @@ export default function InstrumentDetailUser() {
           <Card>
             <div className="mb-4">
               <h1 className="text-3xl font-bold mb-2">
-                {instrument.brand} {instrument.name}
+                {instrument.brand || instrument.sn}
               </h1>
               <div className="text-gray-600">
                 {instrument.category_name} | {instrument.level_name}
@@ -214,7 +214,7 @@ export default function InstrumentDetailUser() {
         <div className="space-y-4">
           <div className="text-center">
             <div className="text-lg font-semibold">
-              {instrument.brand} {instrument.name}
+              {instrument.brand || instrument.sn}
             </div>
             <div className="text-gray-600">
               租赁 {rentalDays} 天

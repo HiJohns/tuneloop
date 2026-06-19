@@ -152,7 +152,7 @@ export default function InstrumentListUser() {
                 {instrument.images && instrument.images.length > 0 ? (
                   <Image
                     src={instrument.images[0]}
-                    alt={instrument.name}
+                    alt={instrument.sn}
                     className="h-48 w-full object-cover"
                     preview={false}
                     fallback="/placeholder-instrument.png"
@@ -194,7 +194,7 @@ export default function InstrumentListUser() {
             <Card.Meta
               title={
                 <div className="text-lg font-semibold">
-                  {instrument.brand} {instrument.name}
+                  {instrument.brand || instrument.sn}
                 </div>
               }
               description={
