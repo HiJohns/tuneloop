@@ -155,40 +155,49 @@ PUT /api/instruments/:id/status
 
 ## 4. Category Management APIs
 
+Category resources are **platform-level** — readable by all authenticated users, writable only by namespace_admin (`category:manage` cus_perm).
+
 ### 4.1 List Categories
 ```
 GET /api/categories
 ```
+**Auth**: logged in (any role)
 
 ### 4.2 Get Category
 ```
 GET /api/categories/:id
 ```
+**Auth**: logged in (any role)
 
 ### 4.3 Create Category
 ```
 POST /api/categories
 ```
+**Auth**: `category:manage` cus_perm required
 
 ### 4.4 Update Category
 ```
 PUT /api/categories/:id
 ```
+**Auth**: `category:manage` cus_perm required
 
 ### 4.5 Delete Category
 ```
 DELETE /api/categories/:id
 ```
+**Auth**: `category:manage` cus_perm required
 
 ### 4.6 Get Child Categories
 ```
 GET /api/categories/:id/children
 ```
+**Auth**: logged in (any role)
 
 ### 4.7 Batch Update Sort Order
 ```
 PUT /api/categories/sort
 ```
+**Auth**: `category:manage` cus_perm required
 
 ---
 

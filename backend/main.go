@@ -218,13 +218,18 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		// IAM confirmation callback (no auth required, IAM redirects here)
 		api.GET("/iam/confirmation-callback", confirmationHandler.IAMConfirmationCallback)
 
+		// Category reads — any authenticated user
 		authRequired.GET("/categories", handlers.GetCategories)
-		authRequired.POST("/categories", handlers.CreateCategory)
 		authRequired.GET("/categories/:id", handlers.GetCategoryByID)
-		authRequired.PUT("/categories/:id", handlers.UpdateCategory)
-		authRequired.DELETE("/categories/:id", handlers.DeleteCategory)
 		authRequired.GET("/categories/:id/children", handlers.GetCategoryChildren)
-		authRequired.PUT("/categories/sort", handlers.UpdateCategorySort)
+
+		// Category writes — namespace_admin only (category:manage cus_perm)
+		categoryAdmin := authRequired.Group("")
+		categoryAdmin.Use(middleware.RequireCusPerm("category:manage"))
+		categoryAdmin.POST("/categories", handlers.CreateCategory)
+		categoryAdmin.PUT("/categories/:id", handlers.UpdateCategory)
+		categoryAdmin.DELETE("/categories/:id", handlers.DeleteCategory)
+		categoryAdmin.PUT("/categories/sort", handlers.UpdateCategorySort)
 		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
 		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
 		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)

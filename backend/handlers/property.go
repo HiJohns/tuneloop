@@ -20,7 +20,7 @@ func NewPropertyHandler() *PropertyHandler {
 
 // GET /api/properties - List all properties
 func (h *PropertyHandler) ListProperties(c *gin.Context) {
-	db := database.GetDB().WithContext(c.Request.Context())
+	db := database.GetDB()
 
 	var properties []models.Property
 	if err := db.Find(&properties).Error; err != nil {
@@ -74,6 +74,7 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	db := database.GetDB().WithContext(c.Request.Context())
+	unscopedDB := database.GetDB()
 
 	var req struct {
 		Name         string   `json:"name" binding:"required"`
@@ -91,9 +92,9 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		return
 	}
 
-	// Check for duplicate name
+	// Check for duplicate name (platform-wide)
 	var existingProperty models.Property
-	if err := db.Where("tenant_id = ? AND name = ?", tenantID, req.Name).First(&existingProperty).Error; err == nil {
+	if err := unscopedDB.Where("name = ?", req.Name).First(&existingProperty).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
 			"message": "属性名称已存在",
@@ -148,7 +149,7 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 // PUT /api/property/:id - Update property
 func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	unscopedDB := database.GetDB()
 
 	propertyID := c.Param("id")
 
@@ -170,7 +171,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 
 	// Find the property
 	var property models.Property
-	if err := db.First(&property, "id = ? AND tenant_id = ?", propertyID, tenantID).Error; err != nil {
+	if err := unscopedDB.First(&property, "id = ?", propertyID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "property not found",
@@ -178,9 +179,9 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 		return
 	}
 
-	// Check for duplicate name (excluding current property)
+	// Check for duplicate name (platform-wide, excluding current property)
 	var existingProperty models.Property
-	if err := db.Where("tenant_id = ? AND name = ? AND id != ?", tenantID, req.Name, propertyID).First(&existingProperty).Error; err == nil {
+	if err := unscopedDB.Where("name = ? AND id != ?", req.Name, propertyID).First(&existingProperty).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
 			"message": "属性名称已存在",
@@ -200,7 +201,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 	property.Unit = req.Unit
 	property.Description = req.Description
 
-	if err := db.Save(&property).Error; err != nil {
+	if err := unscopedDB.Save(&property).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to update property: " + err.Error(),
@@ -211,7 +212,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 	// If options are provided, replace existing options
 	if len(req.Options) > 0 {
 		// Delete existing options for this property
-		db.Where("property_id = ? AND tenant_id = ?", propertyID, tenantID).Delete(&models.PropertyOption{})
+		unscopedDB.Where("property_name = ?", property.Name).Delete(&models.PropertyOption{})
 
 		// Create new options
 		for _, optionValue := range req.Options {
@@ -221,7 +222,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 				Status:       "confirmed",
 				TenantID:     tenantID,
 			}
-			if err := db.Create(&option).Error; err != nil {
+			if err := unscopedDB.Create(&option).Error; err != nil {
 				// Log error but don't fail the whole operation
 				fmt.Printf("Warning: failed to create option %s for property %s: %v\n", optionValue, property.ID, err)
 			}
@@ -253,7 +254,7 @@ func (h *PropertyHandler) CreatePropertyOption(c *gin.Context) {
 	}
 
 	var property models.Property
-	if err := db.First(&property, "id = ? AND tenant_id = ?", req.PropertyID, tenantID).Error; err != nil {
+	if err := database.GetDB().First(&property, "id = ?", req.PropertyID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "property not found",
@@ -284,8 +285,7 @@ func (h *PropertyHandler) CreatePropertyOption(c *gin.Context) {
 
 // PUT /api/property/confirm - Confirm property value
 func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
-	tenantID := middleware.GetTenantID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	unscopedDB := database.GetDB()
 
 	var req struct {
 		PropertyID string `json:"property_id" binding:"required"`
@@ -301,7 +301,7 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 	}
 
 	var option models.PropertyOption
-	if err := db.Where("property_id = ? AND value = ? AND tenant_id = ?", req.PropertyID, req.Value, tenantID).First(&option).Error; err != nil {
+	if err := unscopedDB.Where("property_name = ? AND value = ?", req.PropertyID, req.Value).First(&option).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
@@ -324,7 +324,7 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 		return
 	}
 
-	if err := db.Model(&option).Update("status", "confirmed").Error; err != nil {
+	if err := unscopedDB.Model(&option).Update("status", "confirmed").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to confirm option: " + err.Error(),
@@ -341,7 +341,7 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 // PUT /api/property/merge - Merge property values
 func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	tenantID := middleware.GetTenantID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	unscopedDB := database.GetDB()
 
 	var req struct {
 		PropertyID  string `json:"property_id" binding:"required"`
@@ -358,7 +358,7 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	}
 
 	var targetOption models.PropertyOption
-	if err := db.Where("property_id = ? AND value = ? AND status = 'confirmed' AND tenant_id = ?", req.PropertyID, req.TargetValue, tenantID).First(&targetOption).Error; err != nil {
+	if err := unscopedDB.Where("property_name = ? AND value = ? AND status = 'confirmed'", req.PropertyID, req.TargetValue).First(&targetOption).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
 			"message": "target value must be in confirmed status",
@@ -366,10 +366,10 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 		return
 	}
 
-	tx := db.Begin()
+	tx := unscopedDB.Begin()
 
 	var sourceOption models.PropertyOption
-	if err := tx.Where("property_id = ? AND value = ? AND tenant_id = ?", req.PropertyID, req.SourceValue, tenantID).First(&sourceOption).Error; err != nil {
+	if err := tx.Where("property_name = ? AND value = ?", req.PropertyID, req.SourceValue).First(&sourceOption).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
@@ -412,11 +412,11 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 // GET /api/properties/:id/options/search - Autocomplete property options with frequency sorting
 func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 	propertyID := c.Param("id")
-	query := c.Query("q")
+	searchQuery := c.Query("q")
 	limitStr := c.DefaultQuery("limit", "3")
 
 	tenantID := middleware.GetTenantID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	unscopedDB := database.GetDB()
 
 	var limit int
 	if _, err := fmt.Sscanf(limitStr, "%d", &limit); err != nil || limit <= 0 {
@@ -427,7 +427,7 @@ func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 	}
 
 	var prop models.Property
-	if err := db.Where("id = ?", propertyID).First(&prop).Error; err != nil {
+	if err := unscopedDB.Where("id = ?", propertyID).First(&prop).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
@@ -449,14 +449,14 @@ func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 	}
 
 	var results []SearchResult
-	q := db.Table("property_options po").
+	q := unscopedDB.Table("property_options po").
 		Select("po.value, po.status, COALESCE(ip_cnt.cnt, 0) AS frequency").
 		Joins("LEFT JOIN (SELECT property_name, value, tenant_id, COUNT(*) AS cnt FROM instrument_properties WHERE tenant_id = ? GROUP BY property_name, value, tenant_id) ip_cnt ON ip_cnt.property_name = po.property_name AND ip_cnt.value = po.value AND ip_cnt.tenant_id = po.tenant_id",
 			tenantID).
 		Where("po.property_name = ? AND po.status != ?", prop.Name, "obsolete")
 
-	if query != "" {
-		q = q.Where("po.value ILIKE ?", "%"+query+"%")
+	if searchQuery != "" {
+		q = q.Where("po.value ILIKE ?", "%"+searchQuery+"%")
 	}
 
 	if err := q.Order("frequency DESC, po.value ASC").Limit(limit).Find(&results).Error; err != nil {
@@ -476,12 +476,11 @@ func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 // DELETE /api/properties/:id - Delete a property (default properties protected)
 func (h *PropertyHandler) DeleteProperty(c *gin.Context) {
 	propertyID := c.Param("id")
-	tenantID := middleware.GetTenantID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	db := database.GetDB()
 
 	// Check if property exists
 	var prop models.Property
-	if err := db.Where("id = ? AND tenant_id = ?", propertyID, tenantID).First(&prop).Error; err != nil {
+	if err := db.Where("id = ?", propertyID).First(&prop).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,

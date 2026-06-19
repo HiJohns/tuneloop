@@ -476,9 +476,8 @@ func GetInstrumentFilterOptions(c *gin.Context) {
 		CategoryName string `json:"category_name"`
 	}
 	var categories []categoryOption
-	db.WithContext(ctx).Model(&models.Category{}).
+	database.GetDB().Model(&models.Category{}).
 		Select("id AS category_id, name AS category_name").
-		Where("tenant_id = ?", tenantID).
 		Find(&categories)
 
 	type levelOption struct {
@@ -519,8 +518,7 @@ func GetInstrumentFilterOptions(c *gin.Context) {
 }
 
 func GetCategories(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	db := database.GetDB()
 
 	var categories []models.Category
 	if err := db.Order("sort ASC").
@@ -578,13 +576,11 @@ func GetCategories(c *gin.Context) {
 
 // GetCategoryChildren retrieves direct children of a category for TreeSelect
 func GetCategoryChildren(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB()
 	parentID := c.Param("id")
 
 	var categories []models.Category
-	query := db.Where("tenant_id = ?", tenantID)
+	query := db.Model(&models.Category{})
 
 	if parentID == "0" || parentID == "" {
 		query = query.Where("parent_id IS NULL")
@@ -604,7 +600,7 @@ func GetCategoryChildren(c *gin.Context) {
 	for _, cat := range categories {
 		hasChildren := false
 		var count int64
-		db.Model(&models.Category{}).Where("parent_id = ? AND tenant_id = ?", cat.ID, tenantID).Count(&count)
+		db.Model(&models.Category{}).Where("parent_id = ?", cat.ID).Count(&count)
 		if count > 0 {
 			hasChildren = true
 		}
@@ -630,13 +626,11 @@ func GetCategoryChildren(c *gin.Context) {
 
 // GetCategoryByID gets a single category by ID
 func GetCategoryByID(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB()
 	categoryID := c.Param("id")
 
 	var category models.Category
-	if err := db.Where("id = ? AND tenant_id = ?", categoryID, tenantID).First(&category).Error; err != nil {
+	if err := db.Where("id = ?", categoryID).First(&category).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
@@ -661,6 +655,7 @@ func GetCategoryByID(c *gin.Context) {
 func CreateCategory(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
+	unscopedDB := database.GetDB()
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
@@ -681,9 +676,9 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
-	// Check name uniqueness
+	// Check name uniqueness (platform-wide)
 	var existingCategory models.Category
-	if err := db.Where("tenant_id = ? AND name = ?", tenantID, req.Name).First(&existingCategory).Error; err == nil {
+	if err := unscopedDB.Where("name = ?", req.Name).First(&existingCategory).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "分类名称已存在",
@@ -705,8 +700,8 @@ func CreateCategory(c *gin.Context) {
 		category.Level = 2
 		// Auto-set sort to max+1 for level 2 categories
 		var maxSort int
-		db.Model(&models.Category{}).
-			Where("tenant_id = ? AND parent_id = ?", tenantID, *req.ParentID).
+		unscopedDB.Model(&models.Category{}).
+			Where("parent_id = ?", *req.ParentID).
 			Select("COALESCE(MAX(sort), 0)").Scan(&maxSort)
 		category.Sort = maxSort + 1
 	} else {
@@ -731,9 +726,7 @@ func CreateCategory(c *gin.Context) {
 
 // UpdateCategory updates an existing category
 func UpdateCategory(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	unscopedDB := database.GetDB()
 	categoryID := c.Param("id")
 
 	var req struct {
@@ -753,9 +746,9 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	// Check name uniqueness (exclude self)
+	// Check name uniqueness (platform-wide, exclude self)
 	var existingCategory models.Category
-	if err := db.Where("tenant_id = ? AND name = ? AND id != ?", tenantID, req.Name, categoryID).First(&existingCategory).Error; err == nil {
+	if err := unscopedDB.Where("name = ? AND id != ?", req.Name, categoryID).First(&existingCategory).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "分类名称已存在",
@@ -784,7 +777,7 @@ func UpdateCategory(c *gin.Context) {
 		updates["sort"] = req.Sort
 	}
 
-	if err := db.Model(&models.Category{}).Where("id = ? AND tenant_id = ?", categoryID, tenantID).Updates(updates).Error; err != nil {
+	if err := unscopedDB.Model(&models.Category{}).Where("id = ?", categoryID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to update category",
@@ -794,7 +787,7 @@ func UpdateCategory(c *gin.Context) {
 
 	// Fetch updated category
 	var category models.Category
-	if err := db.Where("id = ?", categoryID).First(&category).Error; err != nil {
+	if err := unscopedDB.Where("id = ?", categoryID).First(&category).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
 			"message": "Category not found",
@@ -811,14 +804,12 @@ func UpdateCategory(c *gin.Context) {
 
 // DeleteCategory deletes a category
 func DeleteCategory(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	unscopedDB := database.GetDB()
 	categoryID := c.Param("id")
 
 	// Check if category has children
 	var childCount int64
-	db.Model(&models.Category{}).Where("parent_id = ? AND tenant_id = ?", categoryID, tenantID).Count(&childCount)
+	unscopedDB.Model(&models.Category{}).Where("parent_id = ?", categoryID).Count(&childCount)
 	if childCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
@@ -827,9 +818,9 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	// Check if any instruments use this category
+	// Check if any instruments use this category (cross-tenant check)
 	var instrumentCount int64
-	db.Model(&models.Instrument{}).Where("category_id = ? AND tenant_id = ?", categoryID, tenantID).Count(&instrumentCount)
+	unscopedDB.Model(&models.Instrument{}).Where("category_id = ?", categoryID).Count(&instrumentCount)
 	if instrumentCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
@@ -839,7 +830,7 @@ func DeleteCategory(c *gin.Context) {
 	}
 
 	// Delete category
-	if err := db.Where("id = ? AND tenant_id = ?", categoryID, tenantID).Delete(&models.Category{}).Error; err != nil {
+	if err := unscopedDB.Where("id = ?", categoryID).Delete(&models.Category{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to delete category",
@@ -855,9 +846,7 @@ func DeleteCategory(c *gin.Context) {
 
 // UpdateCategorySort batch updates category sort order
 func UpdateCategorySort(c *gin.Context) {
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
-	tenantID := middleware.GetTenantID(ctx)
+	db := database.GetDB()
 
 	var req struct {
 		Items []struct {
@@ -877,7 +866,7 @@ func UpdateCategorySort(c *gin.Context) {
 	tx := db.Begin()
 	for _, item := range req.Items {
 		if err := tx.Model(&models.Category{}).
-			Where("id = ? AND tenant_id = ?", item.ID, tenantID).
+			Where("id = ?", item.ID).
 			Update("sort", item.Sort).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{

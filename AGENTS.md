@@ -337,6 +337,8 @@ Add new pages must verify:
 
 ### Properties Data Model
 
+> **平台级资源声明**: Categories, Properties, and PropertyOptions are **platform-level shared resources** — readable by all authenticated users, writable only by namespace_admin (cus_perm: `category:manage`, `attribute:manage`). The `tenant_id` on these models stores creator metadata, NOT access scope.
+
 ```
 properties (属性定义)     property_options (属性选项)    instrument_properties (乐器属性)
 ├── id                   ├── id                        ├── id
