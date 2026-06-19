@@ -15,11 +15,11 @@ DELETE FROM properties WHERE name IN ('Brand', 'brand', 'Model', 'model');
 -- Pick an existing tenant_id as creator metadata (first available).
 DO $$
 DECLARE
-  first_tenant VARCHAR;
+  first_tenant UUID;
 BEGIN
   SELECT tenant_id INTO first_tenant FROM properties LIMIT 1;
   IF first_tenant IS NULL THEN
-    first_tenant := '00000000-0000-0000-0000-000000000000';
+    first_tenant := '00000000-0000-0000-0000-000000000000'::UUID;
   END IF;
 
   INSERT INTO properties (id, tenant_id, name, property_type, is_required, caption, status, created_at, updated_at)
