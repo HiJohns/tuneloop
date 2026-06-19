@@ -29,13 +29,31 @@ function parsePricing(pricing) {
   return []
 }
 
+function computeTieredRent(pricingV2, days, baseDailyRate) {
+  if (!pricingV2?.tiers?.length) {
+    return (pricingV2?.base_daily_rate || baseDailyRate || 0) * days
+  }
+  let remaining = days
+  let total = 0
+  let prevMax = 0
+  for (const tier of pricingV2.tiers) {
+    const tierDays = tier.days_max > 0 ? tier.days_max - prevMax : remaining
+    const segDays = Math.min(tierDays, remaining)
+    total += segDays * tier.daily_rate
+    remaining -= segDays
+    prevMax = tier.days_max
+    if (remaining <= 0) break
+  }
+  return total
+}
+
 function getItemPricing(item) {
-  const pricing = parsePricing(item.pricing)
-  const dailyRent = pricing[0]?.daily_rent || item.base_daily_rate || 0
-  const deposit = pricing[0]?.deposit || 0
-  const rentQty = item.rent_qty || 1
-  const rent = item.calculated_rent !== undefined ? item.calculated_rent : dailyRent * rentQty
-  return { dailyRent, deposit, rent, shippingFee: pricing[0]?.shipping_fee || 0 }
+  const days = item.rent_qty || item.days || 30
+  const baseDailyRate = parsePricing(item.pricing)[0]?.daily_rent || item.base_daily_rate || 0
+  const rent = computeTieredRent(item.pricing_v2, days, baseDailyRate)
+  const deposit = item.pricing_v2?.deposit ?? parsePricing(item.pricing)[0]?.deposit ?? 0
+  const shippingFee = item.pricing_v2?.shipping_fee ?? parsePricing(item.pricing)[0]?.shipping_fee ?? 0
+  return { dailyRent: baseDailyRate, deposit, rent, shippingFee }
 }
 
 export default function Cart() {
@@ -108,21 +126,29 @@ export default function Cart() {
   }
 
   const increaseRentQty = (itemId) => {
-    setCartItems(prev => prev.map(item => {
-      if (getItemId(item) === itemId) {
-        return { ...item, rent_qty: (item.rent_qty || 1) + 1 }
-      }
-      return item
-    }))
+    setCartItems(prev => {
+      const updated = prev.map(item => {
+        if (getItemId(item) === itemId) {
+          return { ...item, rent_qty: (item.rent_qty || item.days || 30) + 1 }
+        }
+        return item
+      })
+      storage.setJSON('cart', { items: updated })
+      return updated
+    })
   }
 
   const decreaseRentQty = (itemId) => {
-    setCartItems(prev => prev.map(item => {
-      if (getItemId(item) === itemId) {
-        return { ...item, rent_qty: Math.max(1, (item.rent_qty || 1) - 1) }
-      }
-      return item
-    }))
+    setCartItems(prev => {
+      const updated = prev.map(item => {
+        if (getItemId(item) === itemId) {
+          return { ...item, rent_qty: Math.max(1, (item.rent_qty || item.days || 30) - 1) }
+        }
+        return item
+      })
+      storage.setJSON('cart', { items: updated })
+      return updated
+    })
   }
 
   const handleCheckout = () => {
@@ -209,7 +235,7 @@ export default function Cart() {
                             <View className="flex-shrink-0 items-end ml-2">
                               <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
                                 <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
-                                <Text className="px-2 text-black font-black text-xs">{item.rent_qty || 1}天</Text>
+                                <Text className="px-2 text-black font-black text-xs">{item.rent_qty || item.days || 30}天</Text>
                                 <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
                               </View>
                             </View>
