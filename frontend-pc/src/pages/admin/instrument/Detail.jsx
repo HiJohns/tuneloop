@@ -375,32 +375,6 @@ export default function InstrumentDetail() {
                     <Empty description="暂未配置分阶段定价" />
                   )}
                 </Card>
-
-                <Card title="当前租赁" className="mt-4">
-                  {leaseLoading ? (
-                    <Spin />
-                  ) : !activeStatuses.includes(instrument.stock_status) ? (
-                    <Empty description="当前无租赁信息" />
-                  ) : !leaseData ? (
-                    <Empty description="未找到关联订单" />
-                  ) : (
-                    <div className="space-y-4">
-                      <Descriptions column={1} bordered size="small">
-                        <Descriptions.Item label="租赁人">
-                          <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="租期">
-                          <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
-                        </Descriptions.Item>
-                      </Descriptions>
-                      <div className="text-sm text-gray-500 space-y-1">
-                        <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
-                        <p>押金: ¥{leaseData.order?.deposit || 0}</p>
-                      </div>
-                    </div>
-                  )}
-                </Card>
               </Col>
             </Row>
           )
@@ -509,6 +483,37 @@ export default function InstrumentDetail() {
                 </Card>
               </Col>
             </Row>
+          )
+        },
+        {
+          label: '当前租赁',
+          key: 'lease',
+          children: (
+            <>
+              {leaseLoading ? (
+                <Spin />
+              ) : !activeStatuses.includes(instrument.stock_status) ? (
+                <Empty description="当前无租赁信息" />
+              ) : !leaseData ? (
+                <Empty description="未找到关联订单" />
+              ) : (
+                <div className="space-y-4">
+                  <Descriptions column={1} bordered size="small">
+                    <Descriptions.Item label="租赁人">
+                      <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="租期">
+                      <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
+                    </Descriptions.Item>
+                  </Descriptions>
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
+                    <p>押金: ¥{leaseData.order?.deposit || 0}</p>
+                  </div>
+                </div>
+              )}
+            </>
           )
         },
         {
