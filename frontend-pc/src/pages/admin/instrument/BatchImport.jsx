@@ -1,29 +1,37 @@
 import { useState } from 'react'
-import { Steps, Button, Upload, message, Card, Table, Alert, Progress, List, Typography, Space, Tag, Tooltip, Input, Modal } from 'antd'
-import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined } from '@ant-design/icons'
+import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb } from 'antd'
+import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined } from '@ant-design/icons'
 import { instrumentsApi } from '../../../services/api'
+import { useNavigate } from 'react-router-dom'
 
 const { Title, Text } = Typography
 
+function downloadTemplate() {
+  const headers = ['识别码', '分类', '品牌', '型号', '产地', '级别']
+  const BOM = '\uFEFF'
+  const csv = BOM + '\uFEFF' + headers.join(',') + '\n'
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = '乐器导入模板.csv'; a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function BatchImport() {
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const [csvFileList, setCsvFileList] = useState([])
-  const [zipFileList, setZipFileList] = useState([])
   const [loading, setLoading] = useState(false)
   const [previewData, setPreviewData] = useState(null)
   const [sessionId, setSessionId] = useState(null)
-  const [mediaResult, setMediaResult] = useState(null)
   const [importResult, setImportResult] = useState(null)
   const [executing, setExecuting] = useState(false)
-  const [editingCell, setEditingCell] = useState(null)
-  const [editValue, setEditValue] = useState('')
-  const [renameModal, setRenameModal] = useState({ visible: false, file: '', newName: '' })
+  const [validatedData, setValidatedData] = useState(null)
 
   const steps = [
     { title: '上传 CSV' },
-    { title: '数据校验' },
+    { title: '校验并提交' },
     { title: '上传图片' },
-    { title: '确认导入' },
     { title: '完成' },
   ]
 
@@ -38,6 +46,7 @@ export default function BatchImport() {
       if (result.code === 20000) {
         setPreviewData(result.data)
         setSessionId(result.data.session_id)
+        setValidatedData(result.data.rows)
         setCurrentStep(1)
       } else {
         message.error(result.message || '校验失败')
@@ -49,39 +58,18 @@ export default function BatchImport() {
     }
   }
 
-  const handleUploadMedia = async () => {
-    if (zipFileList.length === 0) {
-      setCurrentStep(3)
-      return
-    }
-    setLoading(true)
-    try {
-      const result = await instrumentsApi.batchImportMedia(zipFileList[0].originFileObj, sessionId)
-      if (result.code === 20000) {
-        setMediaResult(result.data)
-        setCurrentStep(3)
-      } else {
-        message.error(result.message || '图片上传失败')
-      }
-    } catch (err) {
-      message.error('图片上传失败: ' + err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleExecuteImport = async () => {
+  const handleSubmit = async () => {
     setExecuting(true)
-    setCurrentStep(4)
     try {
       const result = await instrumentsApi.batchImport(sessionId)
       if (result.code === 20000) {
         setImportResult(result.data)
+        setCurrentStep(2)
       } else {
-        message.error(result.message || '导入失败')
+        message.error(result.message || '提交失败')
       }
     } catch (err) {
-      message.error('导入失败: ' + err.message)
+      message.error('提交失败: ' + err.message)
     } finally {
       setExecuting(false)
     }
@@ -105,38 +93,7 @@ export default function BatchImport() {
           render: (_, record) => {
             const val = record.fields?.[key] || ''
             const hasError = record.errors?.some(e => e.includes(key))
-            const isEditing = editingCell?.row === record.row && editingCell?.field === key
-            return (
-              <div
-                className={hasError ? 'bg-red-50' : ''}
-                onDoubleClick={() => {
-                  setEditingCell({ row: record.row, field: key })
-                  setEditValue(val)
-                }}
-              >
-                {isEditing ? (
-                  <Input
-                    size="small"
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    onPressEnter={() => {
-                      if (record.fields) record.fields[key] = editValue
-                      setEditingCell(null)
-                    }}
-                    onBlur={() => {
-                      if (record.fields) record.fields[key] = editValue
-                      setEditingCell(null)
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <Tooltip title="双击编辑">
-                    <span>{val || '-'}</span>
-                    <EditOutlined style={{ marginLeft: 4, fontSize: 10, color: '#999' }} />
-                  </Tooltip>
-                )}
-              </div>
-            )
+            return <div className={hasError ? 'bg-red-50' : ''}>{val || '-'}</div>
           },
         })
       })
@@ -169,6 +126,18 @@ export default function BatchImport() {
         return (
           <Card title="上传 CSV 文件">
             <Space direction="vertical" style={{ width: '100%' }}>
+              <Alert
+                message="格式说明"
+                description={
+                  <div>
+                    <p>CSV 文件包含以下列：<strong>识别码、分类、品牌、型号、产地、级别</strong></p>
+                    <p>创建方式：在 Excel 中编辑数据后，另存为 CSV UTF-8（逗号分隔）格式。</p>
+                    <p><a onClick={downloadTemplate} style={{ cursor: 'pointer' }}>📄 下载模板文件</a></p>
+                  </div>
+                }
+                type="info"
+                showIcon
+              />
               <Upload
                 fileList={csvFileList}
                 onChange={({ fileList }) => setCsvFileList(fileList)}
@@ -195,7 +164,6 @@ export default function BatchImport() {
                 <Text>总数: <strong>{previewData?.total_count || 0}</strong></Text>
                 <Text>有效: <span style={{ color: '#52c41a' }}>{previewData?.valid_count || 0}</span></Text>
                 <Text>错误: <span style={{ color: '#ff4d4f' }}>{previewData?.error_count || 0}</span></Text>
-                <Text>状态: <strong>{previewData?.can_import ? '可导入' : '存在错误'}</strong></Text>
               </Space>
             </Card>
             {previewData?.rows && (
@@ -209,95 +177,36 @@ export default function BatchImport() {
                 rowClassName={(record) => !record.valid ? 'bg-red-50' : ''}
               />
             )}
+            <div style={{ marginTop: 16 }}>
+              {previewData?.error_count > 0 ? (
+                <Text type="danger">CSV 中存在错误，请修正后重新上传</Text>
+              ) : (
+                <Button type="primary" onClick={handleSubmit} loading={executing}>
+                  提交并创建乐器
+                </Button>
+              )}
+            </div>
           </>
         )
 
       case 2:
         return (
-          <Card title="上传图片 ZIP 包（可选）">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Alert message="图片命名规则：识别码_序号.jpg（如 SN001_1.jpg）" type="info" showIcon />
-              <Upload
-                fileList={zipFileList}
-                onChange={({ fileList }) => setZipFileList(fileList)}
-                beforeUpload={() => false}
-                accept=".zip"
-                maxCount={1}
-              >
-                <Button icon={<UploadOutlined />}>选择 ZIP 文件</Button>
-              </Upload>
-              <div style={{ marginTop: 16 }}>
-                <Button type="primary" onClick={handleUploadMedia} loading={loading}>
-                  上传并继续
-                </Button>
-              </div>
-            </Space>
+          <Card title="上传图片">
+            <Text>（此步骤在后续更新中实现 — 参见 Issue #935）</Text>
           </Card>
         )
 
       case 3:
         return (
-          <Card title="确认导入">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              {mediaResult && (
+          <Card title="导入完成">
+            {importResult && (
+              <Space direction="vertical" style={{ width: '100%' }}>
                 <Alert
-                  message={`图片匹配：${mediaResult.matched_count || 0} 匹配，${mediaResult.unmatched_count || 0} 未匹配`}
-                  type={mediaResult.unmatched_count > 0 ? 'warning' : 'success'}
+                  message={`成功创建 ${importResult.success_count || 0} 部乐器`}
+                  type="success"
                   showIcon
                 />
-              )}
-              {mediaResult?.unmatched_files?.length > 0 && (
-                <Card title="未匹配文件" type="inner" size="small">
-                  <List
-                    size="small"
-                    dataSource={mediaResult.unmatched_files}
-                    renderItem={f => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            size="small"
-                            icon={<SwapOutlined />}
-                            onClick={() => setRenameModal({ visible: true, file: f, newName: f })}
-                          >
-                            改名
-                          </Button>
-                        ]}
-                      >
-                        <Text type="secondary">{f}</Text>
-                      </List.Item>
-                    )}
-                  />
-                </Card>
-              )}
-              <Alert message={`即将导入 ${previewData?.valid_count || 0} 条有效记录`} type="info" />
-              <Button type="primary" onClick={handleExecuteImport} disabled={!previewData?.can_import}>
-                确认导入
-              </Button>
-            </Space>
-          </Card>
-        )
-
-      case 4:
-        return (
-          <Card title="导入结果">
-            {executing && <Progress percent={100} status="active" />}
-            {importResult && (
-              <>
-                <Alert
-                  message={`成功导入 ${importResult.success_count || 0} 个，失败 ${importResult.fail_count || 0} 个`}
-                  type={importResult.fail_count > 0 ? 'warning' : 'success'}
-                  style={{ marginBottom: 24 }}
-                />
-                {importResult.results?.filter(r => r.status === 'failed').length > 0 && (
-                  <Card title="失败项" type="inner">
-                    <List
-                      size="small"
-                      dataSource={importResult.results.filter(r => r.status === 'failed')}
-                      renderItem={item => <List.Item><Text type="danger">{item.sn}: {item.error}</Text></List.Item>}
-                    />
-                  </Card>
-                )}
-              </>
+              </Space>
             )}
           </Card>
         )
@@ -309,6 +218,11 @@ export default function BatchImport() {
 
   return (
     <div style={{ padding: 24 }}>
+      <Breadcrumb items={[
+        { title: <><HomeOutlined /> Tuneloop</> },
+        { title: <a onClick={() => navigate('/instruments')}>乐器管理</a> },
+        { title: '批量导入乐器' },
+      ]} style={{ marginBottom: 16 }} />
       <Card>
         <Title level={3}>批量导入乐器</Title>
         <Steps current={currentStep} style={{ marginBottom: 24 }}>
@@ -317,44 +231,13 @@ export default function BatchImport() {
         {renderStepContent()}
         <div style={{ marginTop: 24, textAlign: 'right' }}>
           <Space>
-            {currentStep === 1 && (
-              <Button type="primary" onClick={() => setCurrentStep(2)} disabled={!previewData?.can_import}>
-                下一步：上传图片
-              </Button>
-            )}
             {currentStep === 3 && (
-              <Button type="primary" onClick={handleExecuteImport} disabled={!previewData?.can_import}>
-                确认导入
-              </Button>
-            )}
-            {currentStep === 4 && !executing && (
-              <Button type="primary" onClick={() => window.location.href = '/instruments/list'}>
-                查看乐器列表
+              <Button type="primary" onClick={() => navigate('/instruments')}>
+                返回列表
               </Button>
             )}
           </Space>
         </div>
-        <Modal
-          title="重命名文件"
-          open={renameModal.visible}
-          onOk={() => {
-            if (mediaResult?.unmatched_files) {
-              const idx = mediaResult.unmatched_files.indexOf(renameModal.file)
-              if (idx >= 0) {
-                mediaResult.unmatched_files[idx] = renameModal.newName
-              }
-            }
-            setRenameModal({ visible: false, file: '', newName: '' })
-            message.success('已重命名，请重新上传 ZIP')
-          }}
-          onCancel={() => setRenameModal({ visible: false, file: '', newName: '' })}
-        >
-          <Input
-            value={renameModal.newName}
-            onChange={e => setRenameModal({ ...renameModal, newName: e.target.value })}
-            placeholder="新文件名（格式：识别码_序号.jpg）"
-          />
-        </Modal>
       </Card>
     </div>
   )
