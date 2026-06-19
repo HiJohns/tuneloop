@@ -246,13 +246,13 @@ export default function InstrumentDetail() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-sm text-gray-500">识别码</label>
-                        <Input defaultValue={instrument.sn} id="edit-sn" />
+                        <div className="text-sm font-medium py-1 px-2 bg-gray-50 rounded">{instrument.sn}</div>
                       </div>
                       <div>
                         <label className="text-sm text-gray-500">分类</label>
                         <TreeSelect
                           treeData={categoryTree}
-                          defaultValue={instrument.category_id}
+                          value={instrument.category_id}
                           id="edit-category-id"
                           style={{ width: '100%' }}
                           placeholder="选择分类"
@@ -271,7 +271,6 @@ export default function InstrumentDetail() {
                       <div className="flex gap-2">
                         <Button type="primary" loading={savingCard} onClick={() => {
                           handleSaveCard('basic', {
-                            sn: document.getElementById('edit-sn')?.value || instrument.sn,
                             category_id: document.getElementById('edit-category-id')?.getAttribute('value') || instrument.category_id,
                             level_id: document.getElementById('edit-level-id')?.getAttribute('value') || instrument.level_id,
                           })
