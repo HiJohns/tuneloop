@@ -36,7 +36,7 @@ run-backend: kill-port
 	@echo "Backend API (PC):     http://localhost:5557"
 	@echo "Log file:             backend/backend.log"
 	@echo "=========================================="
-	cd backend && go run main.go 2>&1 | tee backend.log &
+	cd backend && go run main.go 2>&1 | tee backend.log
 
 web-dev:
 	@echo "Starting PC frontend development server..."
