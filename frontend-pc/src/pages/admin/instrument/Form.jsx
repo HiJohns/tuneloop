@@ -486,7 +486,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
         // Populate form with existing data
         form.setFieldsValue({
           sn: instrumentData.sn,
-          name: instrumentData.name || '',
           category_id: instrumentData.category_id,
           site_id: instrumentData.site_id,
           level_id: instrumentData.level_id,
@@ -950,7 +949,6 @@ const loadCategoryChildren = async (node) => {
       // Prepare form data - add sn, category_id, site_id, level_id, properties
       const formData = {
         sn: values.sn,
-        name: values.name || '',
         category_id: values.category_id,
         site_id: values.site_id,
         level_id: values.level_id,
@@ -1069,15 +1067,6 @@ const loadCategoryChildren = async (node) => {
       <Divider orientation="left">基本信息</Divider>
         
         <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="name"
-              label="乐器名"
-            >
-              <Input placeholder="请输入乐器名称" />
-            </Form.Item>
-          </Col>
-          
           <Col span={12}>
             <Form.Item
               name="sn"

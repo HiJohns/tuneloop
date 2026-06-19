@@ -43,7 +43,7 @@ export default function InstrumentList() {
     instrumentsApi.getFilterOptions().then(res => {
       if (res.code === 20000) setFilterOptions(res.data)
     })
-    setSelectedExportFields(['name', 'brand', 'model', 'category_name', 'stock', 'status'])
+    setSelectedExportFields(['brand', 'model', 'category_name', 'stock', 'status'])
   }, [])
 
   useEffect(() => {
@@ -397,7 +397,6 @@ export default function InstrumentList() {
   }
 
   const fieldOptions = [
-    { label: '乐器名称', value: 'name' },
     { label: '品牌', value: 'brand' },
     { label: '型号', value: 'model' },
     { label: '分类', value: 'category_name' },
