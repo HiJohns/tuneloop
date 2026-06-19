@@ -11,6 +11,7 @@ type AuditRecord struct {
 	TenantID     string
 	OrgID        *string
 	UserID       string
+	ActorName    string
 	ActorRole    string
 	Action       string
 	ResourceType string
@@ -90,6 +91,7 @@ func (w *AuditWriter) save(rec *AuditRecord) error {
 		TenantID:     rec.TenantID,
 		OrgID:        rec.OrgID,
 		UserID:       rec.UserID,
+		ActorName:    rec.ActorName,
 		ActorRole:    rec.ActorRole,
 		Action:       rec.Action,
 		ResourceType: rec.ResourceType,

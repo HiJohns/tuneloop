@@ -387,6 +387,8 @@ func UpdateInstrument(c *gin.Context) {
 		return
 	}
 
+	oldInstrument := instrument
+
 	var req CreateInstrumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -582,6 +584,34 @@ func UpdateInstrument(c *gin.Context) {
 			"message": "instrument is missing tenant_id",
 		})
 		return
+	}
+
+	// Build field-level diff for audit log
+	diffFields := map[string]interface{}{}
+	for key, newVal := range updates {
+		oldVal := map[string]interface{}{}
+		switch key {
+		case "description":
+			oldVal["old"] = oldInstrument.Description
+		case "video":
+			oldVal["old"] = oldInstrument.Video
+		case "poster":
+			oldVal["old"] = oldInstrument.Poster
+		case "category_id":
+			oldVal["old"] = oldInstrument.CategoryID
+		case "level_id":
+			oldVal["old"] = oldInstrument.LevelID
+		case "base_daily_rate":
+			oldVal["old"] = oldInstrument.BaseDailyRate
+		default:
+			continue
+		}
+		oldVal["new"] = newVal
+		diffFields[key] = oldVal
+	}
+	if len(diffFields) > 0 {
+		diffJSON, _ := json.Marshal(diffFields)
+		log.Printf("[InstrumentUpdate] diff: %s", string(diffJSON))
 	}
 
 	// 只有当有字段需要更新时才执行更新

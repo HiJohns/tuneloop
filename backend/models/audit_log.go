@@ -7,6 +7,7 @@ type AuditLog struct {
 	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID        *string   `gorm:"type:uuid;index" json:"org_id"`
 	UserID       string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	ActorName    string    `gorm:"type:varchar(100)" json:"actor_name"`
 	ActorRole    string    `gorm:"type:varchar(50)" json:"actor_role"`
 	Action       string    `gorm:"type:varchar(50);not null" json:"action"`
 	ResourceType string    `gorm:"type:varchar(50);not null" json:"resource_type"`

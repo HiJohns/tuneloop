@@ -173,6 +173,15 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 			}
 		}
 
+		ipAddress := c.GetHeader("X-Forwarded-For")
+		if ipAddress == "" {
+			ipAddress = c.GetHeader("X-Real-IP")
+		}
+		if ipAddress == "" {
+			ipAddress = c.ClientIP()
+		}
+		actorName := GetName(ctx)
+
 		rec := &services.AuditRecord{
 			TenantID:     tenantID,
 			OrgID:        orgIDPtr,
@@ -186,7 +195,8 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 			ErrorMessage: errMsg,
 			Details:      "",
 			RequestBody:  bodyStr,
-			IPAddress:    c.ClientIP(),
+			ActorName:    actorName,
+			IPAddress:    ipAddress,
 			UserAgent:    c.GetHeader("User-Agent"),
 		}
 
