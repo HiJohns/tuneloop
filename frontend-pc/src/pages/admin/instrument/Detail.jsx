@@ -335,6 +335,13 @@ export default function InstrumentDetail() {
                   {editingCard === 'pricing' ? (
                     <div className="space-y-3">
                       <div>
+                        <label className="text-sm text-gray-500">基础日均价 (¥)</label>
+                        <InputNumber
+                          defaultValue={pricingV2?.base_daily_rate ?? instrument.base_daily_rate ?? 0}
+                          id="edit-daily-rate" min={0} className="w-full"
+                        />
+                      </div>
+                      <div>
                         <label className="text-sm text-gray-500">押金 (¥)</label>
                         <InputNumber
                           defaultValue={pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0}
@@ -348,11 +355,20 @@ export default function InstrumentDetail() {
                           id="edit-shipping" min={0} className="w-full"
                         />
                       </div>
+                      <div>
+                        <label className="text-sm text-gray-500">逾期日费 (¥/天)</label>
+                        <InputNumber
+                          defaultValue={overdueDailyFee || 0}
+                          id="edit-overdue" min={0} className="w-full"
+                        />
+                      </div>
                       <div className="flex gap-2">
                         <Button type="primary" loading={savingCard} onClick={() => {
                           handleSaveCard('pricing', {
-                            shipping_fee: parseFloat(document.getElementById('edit-shipping')?.value || '0'),
                             deposit: parseFloat(document.getElementById('edit-deposit')?.value || '0'),
+                            shipping_fee: parseFloat(document.getElementById('edit-shipping')?.value || '0'),
+                            base_daily_rate: parseFloat(document.getElementById('edit-daily-rate')?.value || '0'),
+                            overdue_daily_fee: parseFloat(document.getElementById('edit-overdue')?.value || '0'),
                           })
                         }}>保存</Button>
                         <Button onClick={() => setEditingCard(null)}>取消</Button>
