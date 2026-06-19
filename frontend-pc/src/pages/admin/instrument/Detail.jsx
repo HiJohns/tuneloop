@@ -479,14 +479,22 @@ export default function InstrumentDetail() {
                               height={120}
                               className="object-cover rounded"
                             />
-                            {item.batch_id && (
+                            {item.batch_id ? (
                               <Popconfirm title="删除此图片？" onConfirm={() => handleDeleteBatch(item.batch_id)}>
-                                <Button
-                                  size="small"
-                                  danger
-                                  className="absolute top-0 right-0 opacity-0 group-hover:opacity-100"
-                                  style={{ borderRadius: '0 4px 0 4px' }}
-                                >×</Button>
+                                <Button size="small" danger className="absolute top-0 right-0 opacity-0 group-hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
+                              </Popconfirm>
+                            ) : (
+                              <Popconfirm title="删除此图片？" onConfirm={async () => {
+                                try {
+                                  const updatedImages = (instrument.images || []).filter(u => u !== item.url)
+                                  await api.put(`/instruments/${id}`, { images: updatedImages })
+                                  message.success('图片已删除')
+                                  fetchInstrument()
+                                } catch (e) {
+                                  message.error('删除失败: ' + (e.message || ''))
+                                }
+                              }}>
+                                <Button size="small" danger className="absolute top-0 right-0 opacity-0 group-hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
                               </Popconfirm>
                             )}
                           </div>
@@ -507,9 +515,20 @@ export default function InstrumentDetail() {
                         width="240"
                         className="rounded"
                       />
-                      <Popconfirm title="确定删除此视频？" onConfirm={() => handleDeleteVideo(
-                        (instrument.media?.video?.batch_id || displayMedia?.video?.batch_id)
-                      )}>
+                      <Popconfirm title="确定删除此视频？" onConfirm={async () => {
+                        const batchId = instrument.media?.video?.batch_id || displayMedia?.video?.batch_id
+                        if (batchId) {
+                          handleDeleteVideo(batchId)
+                        } else {
+                          try {
+                            await api.put(`/instruments/${id}`, { video: '' })
+                            message.success('视频已删除')
+                            fetchInstrument()
+                          } catch (e) {
+                            message.error('删除失败: ' + (e.message || ''))
+                          }
+                        }
+                      }}>
                         <Button danger size="small">删除</Button>
                       </Popconfirm>
                     </div>
@@ -520,9 +539,32 @@ export default function InstrumentDetail() {
               <Col span={12}>
                 <Card title="海报"
                   extra={
-                    instrument.poster ? (
-                      <Button size="small" onClick={() => {/* future: replace poster UI */}}>替换</Button>
-                    ) : null
+                    <label className="text-xs text-brand-primary cursor-pointer hover:underline">
+                      {instrument.poster ? '替换' : '上传'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                            const url = res?.data?.url || res?.url || ''
+                            if (url) {
+                              await api.put(`/instruments/${id}`, { poster: url })
+                              message.success('海报更新成功')
+                              fetchInstrument()
+                            }
+                          } catch (err) {
+                            message.error('上传失败: ' + (err.message || ''))
+                          }
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
                   }
                 >
                   {instrument.poster ? (
