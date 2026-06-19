@@ -1346,6 +1346,13 @@ const loadCategoryChildren = async (node) => {
             <Button icon={<UploadOutlined />}>选择视频文件</Button>
           </Upload>
           {videoUploading && <Progress percent={100} status="active" size="small" style={{ width: 200, marginTop: 8 }} />}
+          {form.getFieldValue('video') && (
+            <video
+              src={form.getFieldValue('video')}
+              controls
+              style={{ maxWidth: '100%', maxHeight: 200, marginTop: 8 }}
+            />
+          )}
         </Form.Item>
 
         <Form.Item
@@ -1353,7 +1360,22 @@ const loadCategoryChildren = async (node) => {
           label="海报"
           extra="建议宽度不超过 750px，适配手机阅读"
         >
-          <Input placeholder="输入海报图片 URL 或上传" style={{ maxWidth: 400 }} />
+          <Input placeholder="输入海报图片 URL" style={{ maxWidth: 400 }} addonAfter={
+            <Upload
+              maxCount={1}
+              accept="image/*"
+              showUploadList={false}
+              action={`${API_BASE_URL}/upload`}
+              onChange={(info) => {
+                if (info.file.status === 'done') {
+                  const url = info.file.response?.data?.url || info.file.response?.url || ''
+                  form.setFieldsValue({ poster: url })
+                }
+              }}
+            >
+              <UploadOutlined style={{ cursor: 'pointer' }} />
+            </Upload>
+          } />
         </Form.Item>
 
         <Form.Item>
