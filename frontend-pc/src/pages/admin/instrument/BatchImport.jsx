@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 const { Title, Text } = Typography
 
 function downloadTemplate() {
-  const headers = ['识别码', '分类', '品牌', '型号', '产地', '级别']
+  const headers = ['识别码', '分类', '品牌', '型号', '产地', '级别', '日租金', '押金', '物流费', '逾期租金']
   const BOM = '\uFEFF'
   const csv = BOM + '\uFEFF' + headers.join(',') + '\n'
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -134,6 +134,7 @@ export default function BatchImport() {
                 description={
                   <div>
                     <p>CSV 文件包含以下列：<strong>识别码、分类、品牌、型号、产地、级别</strong></p>
+                    <p>可选列：日租金、押金、物流费、逾期租金（留空则不设置定价）</p>
                     <p>创建方式：在 Excel 中编辑数据后，另存为 CSV UTF-8（逗号分隔）格式。</p>
                     <p><a onClick={downloadTemplate} style={{ cursor: 'pointer' }}>📄 下载模板文件</a></p>
                     <p style={{ marginTop: 8 }}>分类列可填写：钢琴、立式钢琴、三角钢琴、小提琴、打击乐器等</p>

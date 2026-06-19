@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"tuneloop-backend/database"
@@ -179,6 +180,22 @@ func PreviewBatchImport(c *gin.Context) {
 				fields["level_name"] = val
 			case "描述", "备注", "description":
 				fields["description"] = val
+			case "日租金", "base_daily_rate", "daily_rate":
+				if val != "" {
+					fields["base_daily_rate"] = val
+				}
+			case "押金", "deposit":
+				if val != "" {
+					fields["deposit"] = val
+				}
+			case "物流费", "shipping_fee":
+				if val != "" {
+					fields["shipping_fee"] = val
+				}
+			case "逾期租金", "逾期日费", "overdue_daily_fee":
+				if val != "" {
+					fields["overdue_daily_fee"] = val
+				}
 			default:
 				if val != "" {
 					propName := propNameMap[headerLower]
@@ -473,6 +490,35 @@ func ExecuteBatchImport(c *gin.Context) {
 				instrument.Specifications = string(propsJSON)
 			}
 
+			// Handle optional pricing fields
+			if rateStr, ok := instData["base_daily_rate"].(string); ok && rateStr != "" {
+				if rate, err := strconv.ParseFloat(rateStr, 64); err == nil {
+					instrument.BaseDailyRate = &rate
+				}
+			}
+			pricingMap := map[string]float64{}
+			loadPricingField := func(key string) {
+				if valStr, ok := instData[key].(string); ok && valStr != "" {
+					if val, err := strconv.ParseFloat(valStr, 64); err == nil {
+						pricingMap[key] = val
+					}
+				}
+			}
+			loadPricingField("deposit")
+			loadPricingField("shipping_fee")
+			loadPricingField("overdue_daily_fee")
+			if len(pricingMap) > 0 {
+				existingPricing := map[string]interface{}{}
+				if instrument.Pricing != "" && instrument.Pricing != "{}" {
+					json.Unmarshal([]byte(instrument.Pricing), &existingPricing)
+				}
+				for k, v := range pricingMap {
+					existingPricing[k] = v
+				}
+				pricingJSON, _ := json.Marshal(existingPricing)
+				instrument.Pricing = string(pricingJSON)
+			}
+
 			if err := tx.Create(&instrument).Error; err != nil {
 				return fmt.Errorf("failed to create instrument: %w", err)
 			}
@@ -658,6 +704,26 @@ func BatchImportInstruments(c *gin.Context) {
 			}
 			if desc, ok := instData["description"].(string); ok {
 				instrument.Description = desc
+			}
+
+			// Handle optional pricing fields (legacy path)
+			if rateStr, ok := instData["base_daily_rate"].(string); ok && rateStr != "" {
+				if rate, err := strconv.ParseFloat(rateStr, 64); err == nil {
+					instrument.BaseDailyRate = &rate
+				}
+			}
+			pricingMap := map[string]float64{}
+			for _, key := range []string{"deposit", "shipping_fee", "overdue_daily_fee"} {
+				if valStr, ok := instData[key].(string); ok && valStr != "" {
+					if val, err := strconv.ParseFloat(valStr, 64); err == nil {
+						pricingMap[key] = val
+					}
+				}
+			}
+			if len(pricingMap) > 0 {
+				json.Unmarshal([]byte(instrument.Pricing), &pricingMap)
+				pricingJSON, _ := json.Marshal(pricingMap)
+				instrument.Pricing = string(pricingJSON)
 			}
 
 			if err := tx.Create(&instrument).Error; err != nil {
