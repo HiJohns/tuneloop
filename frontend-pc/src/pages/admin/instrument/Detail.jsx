@@ -61,10 +61,6 @@ export default function InstrumentDetail() {
       setMediaLoading(false)
     })
   }, [id])
-    } catch (e) {
-      message.error('更新失败: ' + e.message)
-    }
-  }
 
   const handleDeleteBatch = async (batchId) => {
     try {
