@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select } from 'antd'
+import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
 import { api, pricingApi, instrumentsApi } from '../../../services/api'
 
@@ -31,6 +31,20 @@ export default function InstrumentDetail() {
     if (instrument?.sn) fetchLeaseData()
   }, [instrument?.sn])
 
+  useEffect(() => {
+    instrumentsApi.getLevels().then(res => {
+      if (res.code === 20000) setLevels(res.data || [])
+    }).catch(() => {})
+    api.get('/categories').then(res => {
+      if (res.code === 20000) {
+        const buildTree = (cats, parentId) => cats.filter(c => c.parent_id === parentId).map(c => ({
+          value: c.id, title: c.name, children: buildTree(cats, c.id)
+        }))
+        setCategoryTree(buildTree(res.data?.list || [], null))
+      }
+    }).catch(() => {})
+  }, [])
+
   const [pricingV2, setPricingV2] = useState(null)
   const [pricingV2Loading, setPricingV2Loading] = useState(false)
 
@@ -51,6 +65,8 @@ export default function InstrumentDetail() {
   const [mediaLoading, setMediaLoading] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
   const [savingCard, setSavingCard] = useState(false)
+  const [levels, setLevels] = useState([])
+  const [categoryTree, setCategoryTree] = useState([])
 
   useEffect(() => {
     if (!id) return
@@ -234,12 +250,30 @@ export default function InstrumentDetail() {
                       </div>
                       <div>
                         <label className="text-sm text-gray-500">分类</label>
-                        <Input defaultValue={instrument.category_name} id="edit-category" />
+                        <TreeSelect
+                          treeData={categoryTree}
+                          defaultValue={instrument.category_id}
+                          id="edit-category-id"
+                          style={{ width: '100%' }}
+                          placeholder="选择分类"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">级别</label>
+                        <Select
+                          defaultValue={instrument.level_id}
+                          id="edit-level-id"
+                          style={{ width: '100%' }}
+                          placeholder="选择级别"
+                          options={levels.map(l => ({ value: l.id, label: l.caption }))}
+                        />
                       </div>
                       <div className="flex gap-2">
                         <Button type="primary" loading={savingCard} onClick={() => {
                           handleSaveCard('basic', {
                             sn: document.getElementById('edit-sn')?.value || instrument.sn,
+                            category_id: document.getElementById('edit-category-id')?.getAttribute('value') || instrument.category_id,
+                            level_id: document.getElementById('edit-level-id')?.getAttribute('value') || instrument.level_id,
                           })
                         }}>保存</Button>
                         <Button onClick={() => setEditingCard(null)}>取消</Button>
