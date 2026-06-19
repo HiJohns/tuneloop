@@ -1,0 +1,2 @@
+-- No-op: deleted records are historical migration artifacts (migrations 013, 021)
+-- and should not be restored.

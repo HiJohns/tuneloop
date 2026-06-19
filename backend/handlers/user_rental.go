@@ -857,10 +857,10 @@ func (h *UserRentalHandler) GetContract(c *gin.Context) {
 	}
 
 	var instrument struct {
-		Name string `json:"name"`
+		SN string `json:"sn"`
 	}
 	if err := db.Table("instruments").Where("id = ?", contract.InstrumentID).First(&instrument).Error; err == nil {
-		detail.InstrumentName = instrument.Name
+		detail.InstrumentName = instrument.SN
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -129,7 +129,6 @@ func GetPublicInstruments(c *gin.Context) {
 
 		responseInstruments = append(responseInstruments, map[string]interface{}{
 			"id":              instrument.ID,
-			"name":            instrument.Name,
 			"sn":              instrument.SN,
 			"category_id":    instrument.CategoryID,
 			"category_name":  instrument.CategoryName,
@@ -204,7 +203,6 @@ func GetPublicInstrumentByID(c *gin.Context) {
 
 	response := map[string]interface{}{
 		"id":              instrument.ID,
-		"name":            instrument.Name,
 		"sn":               instrument.SN,
 		"category_id":     instrument.CategoryID,
 		"category_name":   instrument.CategoryName,

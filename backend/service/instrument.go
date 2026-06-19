@@ -20,7 +20,6 @@ func NewInstrumentService(db *gorm.DB) *InstrumentService {
 }
 
 var headerMap = map[string]string{
-	"name":          "乐器名称",
 	"brand":         "品牌",
 	"model":         "型号",
 	"category_name": "分类名称",
@@ -34,7 +33,7 @@ var headerMap = map[string]string{
 	"images":        "图片URL",
 }
 
-var requiredFields = []string{"name", "category_name"}
+var requiredFields = []string{"category_name"}
 
 var validLevels = map[string]bool{
 	"entry":  true,
@@ -374,7 +373,7 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 	}
 
 	if len(opts.Fields) == 0 {
-		opts.Fields = []string{"name", "brand", "level", "daily_rate", "monthly_rate", "deposit", "stock_status"}
+		opts.Fields = []string{"brand", "level", "daily_rate", "monthly_rate", "deposit", "stock_status"}
 	}
 
 	headers := make([]string, len(opts.Fields))
