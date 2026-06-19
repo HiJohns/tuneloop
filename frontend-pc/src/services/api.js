@@ -56,6 +56,7 @@ function storeTokens(accessToken, refreshToken) {
       const payload = JSON.parse(atob(token.split('.')[1]))
       const expTime = payload.exp ? new Date(payload.exp * 1000) : null
       if (expTime) {
+        localStorage.setItem('token_expiry', String(expTime.getTime()))
         console.error(`%c🔑 Token 过期时间: ${expTime.toLocaleTimeString()}`, 'color: red; font-weight: bold')
       }
     } catch (e) {}
