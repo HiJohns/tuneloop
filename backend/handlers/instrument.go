@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
-	"regexp"
 	"tuneloop-backend/database"
 	"tuneloop-backend/internal/service"
 	"tuneloop-backend/middleware"
@@ -41,16 +40,13 @@ type CreateInstrumentRequest struct {
 // processProperties handles the properties association logic for instruments
 func processProperties(db *gorm.DB, instrumentID string, tenantID string, properties map[string]interface{}) error {
 	for propName, rawValues := range properties {
-		// 1. Validate property name format
-		if matched, _ := regexp.MatchString(`^[a-zA-Z0-9_]+$`, propName); !matched {
-			return fmt.Errorf("property name '%s' must contain only alphanumeric characters or underscore", propName)
-		}
 
-		// 2. Find property definition by name
+		// 1. Find property definition by name (platform-wide, unscoped)
 		var prop models.Property
-		if err := db.Where("name = ? AND tenant_id = ?", propName, tenantID).First(&prop).Error; err != nil {
+		if err := database.GetDB().Where("name = ?", propName).First(&prop).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return fmt.Errorf("property '%s' not defined in properties table", propName)
+				log.Printf("[processProperties] property '%s' not defined, skipping", propName)
+				continue
 			}
 			return err
 		}
@@ -68,8 +64,8 @@ func processProperties(db *gorm.DB, instrumentID string, tenantID string, proper
 
 			// 2. Check if property option exists (handle obsolete with alias)
 			var propOption models.PropertyOption
-			err := db.Where("property_name = ? AND value = ? AND tenant_id = ?",
-				prop.Name, value, tenantID).First(&propOption).Error
+			err := database.GetDB().Where("property_name = ? AND value = ?",
+				prop.Name, value).First(&propOption).Error
 
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 3. Create new property option with status=pending
