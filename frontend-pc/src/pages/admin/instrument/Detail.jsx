@@ -211,7 +211,7 @@ export default function InstrumentDetail() {
                     <Descriptions.Item label="识别码">{instrument.sn}</Descriptions.Item>
                     <Descriptions.Item label="分类">{instrument.category_name}</Descriptions.Item>
                     <Descriptions.Item label="级别">
-                      <Tag color="blue">{levelMap[instrument.level] || instrument.level}</Tag>
+                      <Tag color="blue">{instrument.level_name || levelMap[instrument.level] || '未设置'}</Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label="状态">
                       <Tag color={statusConfig.color}>{statusConfig.text}</Tag>
@@ -225,6 +225,11 @@ export default function InstrumentDetail() {
                     <Descriptions.Item label="更新时间" span={2}>
                       {new Date(instrument.updated_at).toLocaleString()}
                     </Descriptions.Item>
+                    {instrument.properties && Object.entries(instrument.properties).map(([key, vals]) => (
+                      <Descriptions.Item label={key} key={key}>
+                        {Array.isArray(vals) ? vals.join(', ') : vals}
+                      </Descriptions.Item>
+                    ))}
                   </Descriptions>
                 </Card>
                 
@@ -271,14 +276,11 @@ export default function InstrumentDetail() {
                       />
                       <Divider />
                       <Descriptions column={2} size="small" bordered>
-                        <Descriptions.Item label="日均底价">
-                          ¥{(pricingV2?.base_daily_rate || 0).toFixed(2)}/天
-                        </Descriptions.Item>
                         <Descriptions.Item label="押金">
-                          ¥{(pricingV2?.deposit || 0).toFixed(2)}
+                          ¥{(pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0).toFixed(2)}
                         </Descriptions.Item>
                         <Descriptions.Item label="物流费">
-                          ¥{(pricingV2?.shipping_fee ?? 0).toFixed(2)}
+                          ¥{(pricingV2?.shipping_fee ?? parsePricing(instrument.pricing)?.shipping_fee ?? 0).toFixed(2)}
                         </Descriptions.Item>
                         <Descriptions.Item label="逾期日费">
                           ¥{(overdueDailyFee || 0).toFixed(2)}/天
