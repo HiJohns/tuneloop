@@ -1222,22 +1222,6 @@ func (c *IAMClient) SetUserCustomerPermissions(orgID, userID string, cusPerm int
 	return nil
 }
 
-func (c *IAMClient) SetUserCustomerPermissionsWithToken(token, orgID, userID string, cusPerm int64, cusPermExt []byte) error {
-	req := setPermissionCodesReq{RawBits: true, CusPerm: cusPerm, CusPermExt: cusPermExt}
-	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
-
-	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
-	if err != nil {
-		return fmt.Errorf("SetUserCustomerPermissions request failed: %w", err)
-	}
-	if statusCode != http.StatusOK {
-		return fmt.Errorf("SetUserCustomerPermissions returned status %d: %s", statusCode, string(respBody))
-	}
-
-	c.IncrementPermVersion()
-	return nil
-}
-
 // GetUserCustomerPermissions retrieves a user's customer permissions in an org.
 func (c *IAMClient) GetUserCustomerPermissions(orgID, userID string) (map[string]interface{}, int64, error) {
 	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/customer-permissions", orgID, userID)
