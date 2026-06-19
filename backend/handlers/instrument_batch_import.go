@@ -204,7 +204,7 @@ func PreviewBatchImport(c *gin.Context) {
 		if categoryName == "" {
 			errors = append(errors, "分类名称不能为空")
 		} else {
-			catID, err := lookupCategoryID(categoryName, db, tenantID)
+			catID, err := lookupCategoryID(categoryName)
 			if err != nil {
 				errors = append(errors, fmt.Sprintf("分类 '%s' 不存在", categoryName))
 			} else {
@@ -805,9 +805,9 @@ func parseCSVFromZIP(zipFile *zip.File) ([]map[string]interface{}, error) {
 	return data, nil
 }
 
-func lookupCategoryID(name string, db *gorm.DB, tenantID string) (string, error) {
+func lookupCategoryID(name string) (string, error) {
 	var category struct{ ID string }
-	err := db.Table("categories").Where("name = ? AND tenant_id = ?", name, tenantID).Select("id").First(&category).Error
+	err := database.GetDB().Table("categories").Where("name = ?", name).Select("id").First(&category).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return "", fmt.Errorf("category not found: %s", name)
@@ -860,7 +860,7 @@ func mapNamesToIDs(instruments []map[string]interface{}, imageDirs []string, db 
 		}
 
 		if categoryName, ok := instrument["category_name"].(string); ok && categoryName != "" {
-			categoryID, err := lookupCategoryID(categoryName, db, tenantID)
+			categoryID, err := lookupCategoryID(categoryName)
 			if err != nil {
 				mappedInst["_error_category"] = fmt.Sprintf("分类不存在: %s", categoryName)
 			} else {
