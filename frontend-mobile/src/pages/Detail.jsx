@@ -7,9 +7,6 @@ import dayjs from 'dayjs'
 import { env, storage, eventBus } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
-import instrBanner1 from '../assets/instrument/banner_1.png'
-import instrBanner2 from '../assets/instrument/banner_2.png'
-import instrBanner3 from '../assets/instrument/banner_3.png'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -67,9 +64,6 @@ export default function Detail() {
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
 
-  const swiperImages = [
-    { url: instrBanner1 }, { url: instrBanner2 }, { url: instrBanner3 },
-  ]
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
     try {
@@ -196,7 +190,10 @@ export default function Detail() {
   const [displayMedia, setDisplayMedia] = useState(null)
 
   // computed values — must be after all state declarations
-  const bannerImages = swiperImages
+  const instrumentImages = parseImages(instrument?.images)
+  const bannerImages = instrumentImages.length > 0
+    ? instrumentImages.map(url => ({ url }))
+    : [{ url: PLACEHOLDER_IMAGE }]
   const liveVideo = displayMedia?.video || null
 
 
@@ -354,6 +351,19 @@ export default function Detail() {
                 className="w-full rounded-2xl object-contain"
                 style={{ maxWidth: 750 }}
                 mode="widthFix"
+              />
+            </View>
+          )}
+
+          {/* Video player */}
+          {instrument?.video && (
+            <View className="px-0">
+              <Video
+                src={instrument.video}
+                poster={instrument.poster || ''}
+                controls
+                className="w-full rounded-2xl"
+                style={{ maxHeight: 400 }}
               />
             </View>
           )}
