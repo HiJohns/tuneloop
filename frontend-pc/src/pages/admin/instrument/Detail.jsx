@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm } from 'antd'
-import { ArrowLeftOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
-import { pricingApi, instrumentsApi } from '../../../services/api'
+import { ArrowLeftOutlined, DeleteOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
+import { api, pricingApi, instrumentsApi } from '../../../services/api'
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -77,6 +77,18 @@ export default function InstrumentDetail() {
 
   const handleDeleteVideo = async (batchId) => {
     handleDeleteBatch(batchId)
+  }
+
+  const handleDelete = async () => {
+    try {
+      const result = await api.delete(`/instruments/${id}`)
+      if (result.code === 20000) {
+        message.success('删除成功')
+        navigate(-1)
+      }
+    } catch (e) {
+      message.error('删除失败: ' + (e.message || ''))
+    }
   }
 
   const fetchInstrument = async () => {
@@ -177,13 +189,11 @@ export default function InstrumentDetail() {
             {instrument.category_name}
           </p>
         </div>
-        <Button 
-          type="primary" 
-          icon={<EditOutlined />}
-          onClick={() => navigate(`/instruments/${instrument?.id || id}/edit`)}
-        >
-          编辑
-        </Button>
+        <Popconfirm title="确定要删除这个乐器吗？" onConfirm={handleDelete}>
+          <Button danger icon={<DeleteOutlined />}>
+            删除
+          </Button>
+        </Popconfirm>
       </div>
 
       <Tabs defaultActiveKey="basic" items={[

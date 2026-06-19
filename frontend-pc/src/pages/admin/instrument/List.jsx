@@ -186,15 +186,9 @@ export default function InstrumentList() {
       width: 120,
       render: (_, record) => (
         <Space>
-          <PermissionGate code="instrument:update">
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => navigate(`/instruments/${record.id}/edit`)}
-            >
-              编辑
-            </Button>
-          </PermissionGate>
+          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/instruments/detail/${record.id}`)}>
+            查看
+          </Button>
           <PermissionGate code="instrument:delete">
             <Popconfirm
               title="确定要删除这个乐器吗？"
