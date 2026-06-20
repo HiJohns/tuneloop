@@ -169,13 +169,13 @@ func PreviewBatchImport(c *gin.Context) {
 			case "识别码*", "识别码", "sn", "serial_number":
 				sn = val
 				fields["sn"] = val
-			case "分类名称*", "分类名称", "类别", "category_name":
+			case "分类名称*", "分类名称", "分类", "类别", "category_name":
 				categoryName = val
 				fields["category_name"] = val
 			case "网点名称*", "网点名称", "存放网点", "site_name":
 				siteName = val
 				fields["site_name"] = val
-			case "级别名称*", "级别名称", "等级", "level_name":
+			case "级别名称*", "级别名称", "级别", "等级", "level_name":
 				levelName = val
 				fields["level_name"] = val
 			case "描述", "备注", "description":
