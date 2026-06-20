@@ -133,14 +133,17 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      console.warn('[Profile] fetchUser start, token=' + (getToken() ? getToken().substring(0, 20) + '...' : 'NULL'))
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)
+        console.warn('[Profile] /users/me response status=' + resp.status)
         const result = await resp.json()
+        console.warn('[Profile] /users/me result code=' + result.code)
         if (result.code === 20000) {
           setUser(result.data)
         }
       } catch (err) {
-        console.error('Failed to fetch user:', err)
+        console.error('[Profile] fetchUser error:', err)
       }
       setLoading(false)
     }

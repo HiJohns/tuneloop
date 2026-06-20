@@ -130,6 +130,8 @@ export function redirectToLogin(reason) {
 }
 
 export function degradeToGuest() {
+  console.warn('[degradeToGuest] TRIGGERED, current token=' + (storage.getItem('token') ? 'EXISTS' : 'NULL'))
+  console.trace('[degradeToGuest] call stack')
   session.setItem('guest_degradation', '1')
   storage.removeItem('token')
   storage.removeItem('token_expiry')
