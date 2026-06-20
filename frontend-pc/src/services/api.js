@@ -351,7 +351,7 @@ export const instrumentsApi = {
       headers: {}
     })
   },
-  batchImport: (sessionId) => api.post('/instruments/batch-import', { session_id: sessionId }),
+  batchImport: (sessionId, propertyResolutions = []) => api.post('/instruments/batch-import', { session_id: sessionId, property_resolutions: propertyResolutions }),
   getFilterOptions: () => api.get('/instruments/filter-options'),
   createMedia: (id, data) => api.post(`/instruments/${id}/media`, data),
   setMediaDisplay: (id, data) => api.put(`/instruments/${id}/media/display`, data),
@@ -540,7 +540,12 @@ export const categoriesApi = {
 }
 
 export const propertiesApi = {
-  searchOptions: (propertyId, q, limit = 3) => api.get(`/properties/${propertyId}/options/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  searchOptions: (propertyId, q, limit = 6, scope = {}) => {
+    let url = `/properties/${propertyId}/options/search?q=${encodeURIComponent(q)}&limit=${limit}`
+    if (scope.categoryId) url += `&category_id=${scope.categoryId}`
+    if (scope.parentValue) url += `&parent_value=${encodeURIComponent(scope.parentValue)}`
+    return api.get(url)
+  },
 }
 
 // Permission API (#414)

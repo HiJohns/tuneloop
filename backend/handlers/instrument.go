@@ -39,6 +39,11 @@ type CreateInstrumentRequest struct {
 
 // processProperties handles the properties association logic for instruments
 func processProperties(db *gorm.DB, instrumentID string, tenantID string, properties map[string]interface{}) error {
+	return processPropertiesWithScope(db, instrumentID, tenantID, properties, "", nil)
+}
+
+func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID string,
+	properties map[string]interface{}, categoryID string, rowPropValues map[string]string) error {
 	for propName, rawValues := range properties {
 
 		// 1. Find property definition by name (platform-wide, unscoped)
@@ -49,6 +54,20 @@ func processProperties(db *gorm.DB, instrumentID string, tenantID string, proper
 				continue
 			}
 			return err
+		}
+
+		// Determine scope for this property
+		scopeCategoryID := ""
+		scopeParentValue := ""
+		if prop.ScopeType == "category" && prop.RelatedCategoryID != nil && categoryID != "" {
+			scopeCategoryID = categoryID
+		} else if prop.ScopeType == "property" && prop.RelatedPropertyID != nil && rowPropValues != nil {
+			var parentProp models.Property
+			if err := database.GetDB().Where("id = ?", *prop.RelatedPropertyID).First(&parentProp).Error; err == nil {
+				if pv, ok := rowPropValues[parentProp.Name]; ok {
+					scopeParentValue = pv
+				}
+			}
 		}
 
 		// Convert values to string slice
@@ -62,10 +81,20 @@ func processProperties(db *gorm.DB, instrumentID string, tenantID string, proper
 				continue
 			}
 
-			// 2. Check if property option exists (handle obsolete with alias)
+			// 2. Check if property option exists (handle scope and alias)
 			var propOption models.PropertyOption
-			err := database.GetDB().Where("property_name = ? AND value = ?",
-				prop.Name, value).First(&propOption).Error
+			q := database.GetDB().Where("property_name = ? AND value = ?", prop.Name, value)
+			if scopeCategoryID != "" {
+				q = q.Where("scope_category_id = ?", scopeCategoryID)
+			} else {
+				q = q.Where("scope_category_id IS NULL")
+			}
+			if scopeParentValue != "" {
+				q = q.Where("scope_parent_value = ?", scopeParentValue)
+			} else {
+				q = q.Where("scope_parent_value IS NULL")
+			}
+			err := q.First(&propOption).Error
 
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 3. Create new property option with status=pending
@@ -75,6 +104,12 @@ func processProperties(db *gorm.DB, instrumentID string, tenantID string, proper
 					PropertyName: prop.Name,
 					Value:        value,
 					Status:       "pending",
+				}
+				if scopeCategoryID != "" {
+					propOption.ScopeCategoryID = &scopeCategoryID
+				}
+				if scopeParentValue != "" {
+					propOption.ScopeParentValue = &scopeParentValue
 				}
 				if err := db.Create(&propOption).Error; err != nil {
 					return fmt.Errorf("failed to create property_option for '%s=%s': %w", propName, value, err)

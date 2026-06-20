@@ -24,6 +24,26 @@ import (
 
 var importSessions = make(map[string]*ImportSession)
 
+type PropertyResolution struct {
+	PropertyID       string `json:"property_id"`
+	PropertyName     string `json:"property_name"`
+	PropertyCaption  string `json:"property_caption"`
+	Value            string `json:"value"`
+	Status           string `json:"status"`
+	ResolvedValue    string `json:"resolved_value,omitempty"`
+	ScopeType        string `json:"scope_type"`
+	ScopeCategoryID  string `json:"scope_category_id,omitempty"`
+	ScopeCategoryName string `json:"scope_category_name,omitempty"`
+	ScopeParentValue string `json:"scope_parent_value,omitempty"`
+	ExistingOptions  []OptionItem `json:"existing_options,omitempty"`
+}
+
+type OptionItem struct {
+	Value     string `json:"value"`
+	Status    string `json:"status,omitempty"`
+	Frequency int    `json:"frequency,omitempty"`
+}
+
 type ImportSession struct {
 	ID          string
 	TenantID    string
@@ -39,6 +59,15 @@ type RowValidation struct {
 	Errors []string               `json:"errors,omitempty"`
 	Valid  bool                   `json:"valid"`
 	Images []string               `json:"images,omitempty"`
+}
+
+type PropertyResolutionReq struct {
+	PropertyName  string `json:"property_name" binding:"required"`
+	Value         string `json:"value" binding:"required"`
+	CategoryID    string `json:"category_id,omitempty"`
+	ParentValue   string `json:"parent_value,omitempty"`
+	Action        string `json:"action" binding:"required"`
+	ResolvedValue string `json:"resolved_value,omitempty"`
 }
 
 // DownloadCSVTemplate generates a CSV template with dynamic property columns
@@ -265,6 +294,8 @@ func PreviewBatchImport(c *gin.Context) {
 		})
 	}
 
+	resolutions := buildPropertyResolutions(validations, properties, db, tenantID)
+
 	sessionID := uuid.New().String()
 	importSessions[sessionID] = &ImportSession{
 		ID:          sessionID,
@@ -277,13 +308,14 @@ func PreviewBatchImport(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"session_id":  sessionID,
-			"total_count": len(validations),
-			"valid_count": validCount,
-			"error_count": errorCount,
-			"rows":        validations,
-			"can_import":  validCount > 0,
-			"csv_headers": csvHeaders,
+			"session_id":           sessionID,
+			"total_count":          len(validations),
+			"valid_count":          validCount,
+			"error_count":          errorCount,
+			"rows":                 validations,
+			"can_import":           validCount > 0,
+			"csv_headers":          csvHeaders,
+			"property_resolutions": resolutions,
 		},
 	})
 }
@@ -397,7 +429,8 @@ func UploadBatchMedia(c *gin.Context) {
 // POST /api/instruments/batch-import
 func ExecuteBatchImport(c *gin.Context) {
 	var req struct {
-		SessionID string `json:"session_id" binding:"required"`
+		SessionID           string                  `json:"session_id" binding:"required"`
+		PropertyResolutions []PropertyResolutionReq `json:"property_resolutions"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "session_id is required"})
@@ -416,12 +449,28 @@ func ExecuteBatchImport(c *gin.Context) {
 		return
 	}
 
+	// Build resolution lookup: key = property_name:value:category_id:parent_value -> action+resolved_value
+	resolutionMap := make(map[string]PropertyResolutionReq)
+	for _, r := range req.PropertyResolutions {
+		key := r.PropertyName + ":" + r.Value + ":" + r.CategoryID + ":" + r.ParentValue
+		resolutionMap[key] = r
+	}
+
 	db := database.GetDB().WithContext(c.Request.Context())
 
 	type ImportResult struct {
 		SN     string `json:"sn"`
 		Status string `json:"status"`
 		Error  string `json:"error,omitempty"`
+	}
+
+	var properties []models.Property
+	db.Where("tenant_id = ? AND status = ?", session.TenantID, "active").Find(&properties)
+	propByName := make(map[string]models.Property)
+	propByID := make(map[string]models.Property)
+	for _, p := range properties {
+		propByName[p.Name] = p
+		propByID[p.ID] = p
 	}
 
 	var results []ImportResult
@@ -431,6 +480,47 @@ func ExecuteBatchImport(c *gin.Context) {
 	for _, instData := range session.Instruments {
 		sn, _ := instData["sn"].(string)
 		result := ImportResult{SN: sn}
+		categoryID, _ := instData["category_id"].(string)
+
+		// Build row property values for scope matching
+		rowPropValues := make(map[string]string)
+		for k, v := range instData {
+			if strings.HasPrefix(k, "prop_") {
+				propName := strings.TrimPrefix(k, "prop_")
+				if val, ok := v.(string); ok && val != "" {
+					rowPropValues[propName] = val
+				}
+			}
+		}
+
+		type propScope struct {
+			categoryID string
+			parentVal  string
+		}
+		propScopeMap := make(map[string]propScope)
+		for propName := range rowPropValues {
+			if p, ok := propByName[propName]; ok {
+				var ps propScope
+				if p.ScopeType == "category" && p.RelatedCategoryID != nil && categoryID != "" {
+					ps.categoryID = categoryID
+				} else if p.ScopeType == "property" && p.RelatedPropertyID != nil {
+					if parentProp, ok2 := propByID[*p.RelatedPropertyID]; ok2 {
+						if pv, ok3 := rowPropValues[parentProp.Name]; ok3 {
+							ps.parentVal = pv
+						}
+					}
+				}
+				propScopeMap[propName] = ps
+			}
+		}
+
+		for propName := range rowPropValues {
+			ps := propScopeMap[propName]
+			key := propName + ":" + rowPropValues[propName] + ":" + ps.categoryID + ":" + ps.parentVal
+			if res, ok := resolutionMap[key]; ok && res.Action == "use_existing" && res.ResolvedValue != "" {
+				rowPropValues[propName] = res.ResolvedValue
+			}
+		}
 
 		err := db.Transaction(func(tx *gorm.DB) error {
 			instrument := models.Instrument{
@@ -476,12 +566,9 @@ func ExecuteBatchImport(c *gin.Context) {
 			}
 
 			props := make(map[string]interface{})
-			for k, v := range instData {
-				if strings.HasPrefix(k, "prop_") {
-					propName := strings.TrimPrefix(k, "prop_")
-					if val, ok := v.(string); ok && val != "" {
-						props[propName] = []string{val}
-					}
+			for propName, val := range rowPropValues {
+				if val != "" {
+					props[propName] = []string{val}
 				}
 			}
 
@@ -524,7 +611,7 @@ func ExecuteBatchImport(c *gin.Context) {
 			}
 
 			if len(props) > 0 {
-				if err := processProperties(tx, instrument.ID, session.TenantID, props); err != nil {
+				if err := processPropertiesWithScope(tx, instrument.ID, session.TenantID, props, categoryID, rowPropValues); err != nil {
 					log.Printf("[WARN] Properties processing failed for %s: %v", sn, err)
 				}
 			}
@@ -585,6 +672,164 @@ func convertValidationsToMaps(validations []RowValidation) []map[string]interfac
 		result = append(result, m)
 	}
 	return result
+}
+
+func buildPropertyResolutions(validations []RowValidation, properties []models.Property, db *gorm.DB, tenantID string) []PropertyResolution {
+	propByName := make(map[string]models.Property)
+	propByID := make(map[string]models.Property)
+	for _, p := range properties {
+		propByName[p.Name] = p
+		propByID[p.ID] = p
+	}
+
+	unscopedDB := database.GetDB()
+	categoryNames := make(map[string]string)
+
+	seen := make(map[string]bool)
+	var resolutions []PropertyResolution
+
+	for _, row := range validations {
+		categoryID, _ := row.Fields["category_id"].(string)
+
+		rowPropValues := make(map[string]string)
+		for k, v := range row.Fields {
+			if strings.HasPrefix(k, "prop_") {
+				propName := strings.TrimPrefix(k, "prop_")
+				if val, ok := v.(string); ok && val != "" {
+					rowPropValues[propName] = val
+				}
+			}
+		}
+
+		if len(rowPropValues) == 0 {
+			continue
+		}
+
+		for propName, value := range rowPropValues {
+			prop, ok := propByName[propName]
+			if !ok {
+				continue
+			}
+
+			scopeCategoryID := ""
+			scopeParentValue := ""
+			if prop.ScopeType == "category" && prop.RelatedCategoryID != nil && categoryID != "" {
+				scopeCategoryID = categoryID
+			} else if prop.ScopeType == "property" && prop.RelatedPropertyID != nil {
+				if parentProp, ok2 := propByID[*prop.RelatedPropertyID]; ok2 {
+					if pv, ok3 := rowPropValues[parentProp.Name]; ok3 {
+						scopeParentValue = pv
+					}
+				}
+			}
+
+			// Build unique key for dedup: if category/property scoped, same value under different scope
+			// is a separate record
+			resKey := propName + ":" + value + ":" + scopeCategoryID + ":" + scopeParentValue
+			if seen[resKey] {
+				continue
+			}
+			seen[resKey] = true
+
+			r := PropertyResolution{
+				PropertyID:      prop.ID,
+				PropertyName:    propName,
+				PropertyCaption: prop.Caption,
+				Value:           value,
+				ScopeType:       prop.ScopeType,
+			}
+			if scopeCategoryID != "" {
+				r.ScopeCategoryID = scopeCategoryID
+				if name, ok := categoryNames[scopeCategoryID]; ok {
+					r.ScopeCategoryName = name
+				} else {
+					var cat struct{ Name string }
+					if err := db.Table("categories").Select("name").Where("id = ?", scopeCategoryID).First(&cat).Error; err == nil {
+						r.ScopeCategoryName = cat.Name
+						categoryNames[scopeCategoryID] = cat.Name
+					}
+				}
+			}
+			if scopeParentValue != "" {
+				r.ScopeParentValue = scopeParentValue
+			}
+
+			// Query property_options with scope awareness
+			q := unscopedDB.Table("property_options").
+				Where("property_name = ? AND value = ?", propName, value)
+			if scopeCategoryID != "" {
+				q = q.Where("scope_category_id = ?", scopeCategoryID)
+			} else {
+				q = q.Where("scope_category_id IS NULL")
+			}
+			if scopeParentValue != "" {
+				q = q.Where("scope_parent_value = ?", scopeParentValue)
+			} else {
+				q = q.Where("scope_parent_value IS NULL")
+			}
+
+			var opt models.PropertyOption
+			err := q.First(&opt).Error
+			if err == nil {
+				if opt.Status == "confirmed" {
+					r.Status = "confirmed"
+				} else if opt.Alias != nil {
+					r.Status = "alias"
+					var aliasOption models.PropertyOption
+					if err := unscopedDB.Where("id = ?", *opt.Alias).First(&aliasOption).Error; err == nil {
+						r.ResolvedValue = aliasOption.Value
+					} else {
+						r.ResolvedValue = value
+					}
+				} else if opt.Status == "pending" {
+					r.Status = "pending"
+				} else {
+					r.Status = "pending"
+				}
+			} else {
+				r.Status = "new"
+			}
+
+			// For new/pending values, query existing confirmed options (scoped same way)
+			if r.Status == "new" || r.Status == "pending" {
+				existingQ := unscopedDB.Table("property_options po").
+					Select("po.value, po.status, COALESCE(ip_cnt.cnt, 0) AS frequency").
+					Joins("LEFT JOIN (SELECT property_name, value, tenant_id, COUNT(*) AS cnt FROM instrument_properties WHERE tenant_id = ? GROUP BY property_name, value, tenant_id) ip_cnt ON ip_cnt.property_name = po.property_name AND ip_cnt.value = po.value AND ip_cnt.tenant_id = po.tenant_id",
+						tenantID).
+					Where("po.property_name = ? AND po.status = 'confirmed'", propName)
+				if scopeCategoryID != "" {
+					existingQ = existingQ.Where("po.scope_category_id = ?", scopeCategoryID)
+				} else {
+					existingQ = existingQ.Where("po.scope_category_id IS NULL")
+				}
+				if scopeParentValue != "" {
+					existingQ = existingQ.Where("po.scope_parent_value = ?", scopeParentValue)
+				} else {
+					existingQ = existingQ.Where("po.scope_parent_value IS NULL")
+				}
+				existingQ = existingQ.Order("frequency DESC, po.value ASC").Limit(6)
+
+				var existingOpts []struct {
+					Value     string `json:"value"`
+					Status    string `json:"status"`
+					Frequency int    `json:"frequency"`
+				}
+				if err := existingQ.Find(&existingOpts).Error; err == nil {
+					for _, eo := range existingOpts {
+						r.ExistingOptions = append(r.ExistingOptions, OptionItem{
+							Value:     eo.Value,
+							Status:    eo.Status,
+							Frequency: eo.Frequency,
+						})
+					}
+				}
+			}
+
+			resolutions = append(resolutions, r)
+		}
+	}
+
+	return resolutions
 }
 
 func getKeys(m map[string][]string) []string {

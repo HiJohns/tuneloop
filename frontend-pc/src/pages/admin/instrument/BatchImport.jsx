@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
-import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb, Image } from 'antd'
+import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb, Image, Select } from 'antd'
 import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons'
-import { instrumentsApi, api } from '../../../services/api'
+import { instrumentsApi, propertiesApi, api } from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
 
 const { Title, Text } = Typography
@@ -27,6 +27,8 @@ export default function BatchImport() {
   const [importResult, setImportResult] = useState(null)
   const [executing, setExecuting] = useState(false)
   const [validatedData, setValidatedData] = useState(null)
+  const [propertyResolutions, setPropertyResolutions] = useState([])
+  const [propertyDecisions, setPropertyDecisions] = useState({})
   const [instrumentList, setInstrumentList] = useState([])
   const [mediaDialog, setMediaDialog] = useState(null)
 
@@ -49,7 +51,17 @@ export default function BatchImport() {
         setPreviewData(result.data)
         setSessionId(result.data.session_id)
         setValidatedData(result.data.rows)
+        setPropertyResolutions(result.data.property_resolutions || [])
         setCurrentStep(1)
+        // Initialize decisions: default to submit_application for new values
+        const defaults = {}
+        ;(result.data.property_resolutions || []).forEach(r => {
+          if (r.status === 'new') {
+            const key = `${r.property_name}:${r.value}:${r.scope_category_id || ''}:${r.scope_parent_value || ''}`
+            defaults[key] = { action: 'submit_application' }
+          }
+        })
+        setPropertyDecisions(defaults)
       } else {
         message.error(result.message || '校验失败')
       }
@@ -63,7 +75,20 @@ export default function BatchImport() {
   const handleSubmit = async () => {
     setExecuting(true)
     try {
-      const result = await instrumentsApi.batchImport(sessionId)
+      const resolutions = Object.entries(propertyDecisions)
+        .filter(([, decision]) => decision.action === 'use_existing')
+        .map(([key, decision]) => {
+          const [propertyName, value, categoryId, parentValue] = key.split(':')
+          return {
+            property_name: propertyName,
+            value,
+            category_id: categoryId || undefined,
+            parent_value: parentValue || undefined,
+            action: decision.action,
+            resolved_value: decision.resolved_value,
+          }
+        })
+      const result = await instrumentsApi.batchImport(sessionId, resolutions)
       if (result.code === 20000) {
         setImportResult(result.data)
         setInstrumentList(result.data.results || [])
@@ -178,6 +203,9 @@ export default function BatchImport() {
         )
 
       case 1:
+        const aliasResolutions = propertyResolutions.filter(r => r.status === 'alias')
+        const pendingResolutions = propertyResolutions.filter(r => r.status === 'pending')
+        const newResolutions = propertyResolutions.filter(r => r.status === 'new')
         return (
           <>
             <Card title="校验结果" style={{ marginBottom: 24 }}>
@@ -198,6 +226,104 @@ export default function BatchImport() {
                 rowClassName={(record) => !record.valid ? 'bg-red-50' : ''}
               />
             )}
+
+            {aliasResolutions.length > 0 && (
+              <Card title="已自动转换" size="small" style={{ marginTop: 16, borderLeft: '3px solid #52c41a' }}>
+                {aliasResolutions.map((r, i) => (
+                  <div key={i} style={{ color: '#52c41a', marginBottom: 4 }}>
+                    <CheckCircleOutlined style={{ marginRight: 6 }} />
+                    {r.property_caption}「{r.value}」→ {r.resolved_value}
+                    {r.scope_type === 'category' && r.scope_category_name && <Tag style={{ marginLeft: 8 }}>{r.scope_category_name}</Tag>}
+                    {r.scope_type === 'property' && r.scope_parent_value && <Tag style={{ marginLeft: 8 }}>{r.scope_parent_value}</Tag>}
+                  </div>
+                ))}
+              </Card>
+            )}
+
+            {pendingResolutions.length > 0 && (
+              <Card title="以下值已提交申请但尚未审核" size="small" style={{ marginTop: 16, borderLeft: '3px solid #faad14' }}>
+                {pendingResolutions.map((r, i) => (
+                  <div key={i} style={{ color: '#faad14', marginBottom: 4 }}>
+                    <WarningOutlined style={{ marginRight: 6 }} />
+                    {r.property_caption}「{r.value}」
+                    {r.scope_type === 'category' && r.scope_category_name && <Tag style={{ marginLeft: 8 }}>{r.scope_category_name}</Tag>}
+                    {r.scope_type === 'property' && r.scope_parent_value && <Tag style={{ marginLeft: 8 }}>{r.scope_parent_value}</Tag>}
+                  </div>
+                ))}
+              </Card>
+            )}
+
+            {newResolutions.length > 0 && (
+              <Card title="以下属性值尚未注册" size="small" style={{ marginTop: 16, borderLeft: '3px solid #52c41a' }}>
+                <Alert
+                  message="请确认要提交申请，或修改后再次审核"
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                />
+                <Table
+                  dataSource={newResolutions}
+                  rowKey={(r) => `${r.property_name}:${r.value}:${r.scope_category_id || ''}:${r.scope_parent_value || ''}`}
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: '属性', dataIndex: 'property_caption', key: 'property_caption', width: 100 },
+                    { title: '值', dataIndex: 'value', key: 'value', width: 130 },
+                    {
+                      title: '类别/关联', key: 'scope', width: 120,
+                      render: (_, r) => {
+                        if (r.scope_type === 'category' && r.scope_category_name) return r.scope_category_name
+                        if (r.scope_type === 'property' && r.scope_parent_value) return r.scope_parent_value
+                        return '-'
+                      }
+                    },
+                    {
+                      title: '处理方式', key: 'action', width: 260,
+                      render: (_, r) => {
+                        const key = `${r.property_name}:${r.value}:${r.scope_category_id || ''}:${r.scope_parent_value || ''}`
+                        const dec = propertyDecisions[key] || { action: 'submit_application' }
+                        return (
+                          <Select
+                            style={{ width: 240 }}
+                            value={dec.action === 'use_existing' ? dec.resolved_value : 'submit_application'}
+                            onChange={(val) => {
+                              if (val === 'submit_application') {
+                                setPropertyDecisions(prev => ({ ...prev, [key]: { action: 'submit_application' } }))
+                              } else {
+                                setPropertyDecisions(prev => ({ ...prev, [key]: { action: 'use_existing', resolved_value: val } }))
+                              }
+                            }}
+                            showSearch
+                            filterOption={false}
+                            onSearch={async (q) => {
+                              if (!q || q.length < 1) return
+                              try {
+                                const res = await propertiesApi.searchOptions(
+                                  r.property_id, q, 6,
+                                  { categoryId: r.scope_category_id, parentValue: r.scope_parent_value }
+                                )
+                                if (res.code === 20000 && res.data) {
+                                  r._searchOptions = res.data
+                                  setPropertyResolutions(prev => [...prev])
+                                }
+                              } catch (e) { /* ignore */ }
+                            }}
+                          >
+                            <Select.Option value="submit_application">⭐ 新申请（提交审批）</Select.Option>
+                            {(r._searchOptions || r.existing_options || []).map((opt, oi) => (
+                              <Select.Option key={oi} value={opt.value}>
+                                {opt.value}{opt.frequency > 0 ? ` (${opt.frequency})` : ''}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                        )
+                      }
+                    },
+                  ]}
+                />
+              </Card>
+            )}
+
             <div style={{ marginTop: 16 }}>
               {previewData?.error_count > 0 ? (
                 <Text type="danger">CSV 中存在错误，请修正后重新上传</Text>

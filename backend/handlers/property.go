@@ -426,14 +426,16 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 	propertyID := c.Param("id")
 	searchQuery := c.Query("q")
-	limitStr := c.DefaultQuery("limit", "3")
+	limitStr := c.DefaultQuery("limit", "6")
+	categoryID := c.Query("category_id")
+	parentValue := c.Query("parent_value")
 
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	unscopedDB := database.GetDB()
 
 	var limit int
 	if _, err := fmt.Sscanf(limitStr, "%d", &limit); err != nil || limit <= 0 {
-		limit = 3
+		limit = 6
 	}
 	if limit > 50 {
 		limit = 50
@@ -470,6 +472,17 @@ func (h *PropertyHandler) SearchPropertyOptions(c *gin.Context) {
 
 	if searchQuery != "" {
 		q = q.Where("po.value ILIKE ?", "%"+searchQuery+"%")
+	}
+
+	if categoryID != "" {
+		q = q.Where("po.scope_category_id = ?", categoryID)
+	} else {
+		q = q.Where("po.scope_category_id IS NULL")
+	}
+	if parentValue != "" {
+		q = q.Where("po.scope_parent_value = ?", parentValue)
+	} else {
+		q = q.Where("po.scope_parent_value IS NULL")
 	}
 
 	if err := q.Order("frequency DESC, po.value ASC").Limit(limit).Find(&results).Error; err != nil {
