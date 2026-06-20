@@ -81,11 +81,11 @@ func processProperties(db *gorm.DB, instrumentID string, tenantID string, proper
 				}
 			} else if err != nil {
 				return fmt.Errorf("failed to query property_option: %w", err)
-			} else if propOption.Status == "obsolete" && propOption.Alias != nil {
-				// 4. Auto-resolve alias for obsolete values
+			} else if propOption.Alias != nil {
+				// Auto-resolve alias: if this option has an alias, use the target option's value
 				var aliasOption models.PropertyOption
-				if err := db.Where("id = ? AND tenant_id = ?", *propOption.Alias, tenantID).First(&aliasOption).Error; err == nil {
-					value = aliasOption.Value // Use alias value
+				if err := database.GetDB().Where("id = ?", *propOption.Alias).First(&aliasOption).Error; err == nil {
+					value = aliasOption.Value
 				}
 			}
 
