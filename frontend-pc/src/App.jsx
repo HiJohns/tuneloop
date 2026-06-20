@@ -421,6 +421,23 @@ function onMenuClick(e) {
   } else if (location.pathname.startsWith('/site/stock/')) {
     pageTitle = '资产详情'
     breadcrumbItems.push({ title: '基础数据' }, { title: '乐器库存' }, { title: '资产详情' })
+  } else if (location.pathname.startsWith('/instruments/detail/')) {
+    pageTitle = '乐器详情'
+    breadcrumbItems.push(
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>乐器管理</a> },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/instruments/list'); }}>乐器列表</a> },
+      { title: '乐器详情' }
+    )
+  } else if (location.pathname.match(/^\/instruments\/[^/]+\/edit$/)) {
+    pageTitle = '编辑乐器'
+    breadcrumbItems.push(
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>乐器管理</a> },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/instruments/list'); }}>乐器列表</a> },
+      { title: '编辑乐器' }
+    )
+  } else if (location.pathname.match(/^\/instruments\/[^/]+$/) && location.pathname !== '/instruments/list') {
+    pageTitle = '乐器详情'
+    breadcrumbItems.push({ title: '乐器详情' })
   }
 
   const tokenBeforeRedirect = getToken()
