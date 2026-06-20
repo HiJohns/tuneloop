@@ -39,7 +39,6 @@ import OrderDetail from './pages/OrderDetail'
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
   const location = navigation.getCurrentPath()
-  console.warn('[ProtectedRoute] path=' + location + ', requireAuth=' + requireAuth + ', token=' + (token ? 'YES' : 'NULL') + ', guest_degradation=' + session.getItem('guest_degradation'))
 
   if (!requireAuth) {
     session.removeItem('guest_degradation')
@@ -51,6 +50,7 @@ function ProtectedRoute({ children, requireAuth = true }) {
       navigation.redirect('/')
       return null
     }
+    alert('[ProtectedRoute] 即将跳转登录\npath=' + location + '\ntoken=' + (token ? '存在' : 'NULL') + '\nguest_degradation=' + session.getItem('guest_degradation'))
     session.setItem('post_auth_redirect', location)
     const config = getWXConfig()
     const redirectUri = encodeURIComponent(`${navigation.getOrigin()}/callback`)

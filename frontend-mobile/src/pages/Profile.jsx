@@ -133,17 +133,18 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      console.warn('[Profile] fetchUser start, token=' + (getToken() ? getToken().substring(0, 20) + '...' : 'NULL'))
+      alert('[Profile] 开始请求用户信息\ntoken=' + (getToken() ? getToken().substring(0, 20) + '...' : 'NULL'))
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)
-        console.warn('[Profile] /users/me response status=' + resp.status)
         const result = await resp.json()
-        console.warn('[Profile] /users/me result code=' + result.code)
+        if (result.code !== 20000) {
+          alert('[Profile] /users/me 异常\nstatus=' + resp.status + '\ncode=' + result.code + '\nmsg=' + (result.message || ''))
+        }
         if (result.code === 20000) {
           setUser(result.data)
         }
       } catch (err) {
-        console.error('[Profile] fetchUser error:', err)
+        alert('[Profile] /users/me 错误: ' + err.message)
       }
       setLoading(false)
     }
