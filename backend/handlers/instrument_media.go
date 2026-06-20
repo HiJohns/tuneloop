@@ -499,15 +499,6 @@ func UploadDisplayImage(c *gin.Context) {
 
 	tx := db.Begin()
 
-	// Clear existing display flags for this instrument
-	if err := tx.Model(&models.InstrumentMedia{}).
-		Where("instrument_id = ? AND tenant_id = ?", instrumentID, tenantID).
-		Update("is_display", false).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50002, "message": "failed to reset display flags"})
-		return
-	}
-
 	// Create new display image record
 	displayMedia := models.InstrumentMedia{
 		ID:           uuid.New().String(),
