@@ -3,27 +3,29 @@ import Logger from '../utils/logger'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function getToken() {
-  // 优先级 1: 检查 localStorage（前端主动存储的，最可靠）
   const localToken = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
-  
+
   if (localToken && expiry) {
     const now = new Date().getTime()
     if (now < parseInt(expiry)) {
+      console.warn('[getToken] source=localStorage, token=' + localToken.substring(0, 20) + '...')
       return localToken
     } else {
-      // Token 过期，清理
+      console.warn('[getToken] localStorage token EXPIRED, removing')
       localStorage.removeItem('token')
       localStorage.removeItem('token_expiry')
     }
+  } else {
+    console.warn('[getToken] localStorage empty: token=' + !!localToken + ', expiry=' + !!expiry)
   }
-  
-  // 优先级 2: 检查 sessionStorage（临时会话）
+
   const sessionToken = sessionStorage.getItem('token')
-  if (sessionToken) return sessionToken
-  
-  // 优先级 3: 检查 cookie（后端设置的）- 作为后备方案
-  // 注意：由于 SameSite 和 domain 限制，前端可能无法读取
+  if (sessionToken) {
+    console.warn('[getToken] source=sessionStorage')
+    return sessionToken
+  }
+
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
     const trimmed = cookie.trim()
@@ -32,12 +34,13 @@ function getToken() {
       const name = trimmed.substring(0, eqPos)
       const value = trimmed.substring(eqPos + 1)
       if (name === 'token') {
-        Logger.log('AUTH', 'Token retrieved from cookie (fallback)')
+        console.warn('[getToken] source=cookie, value=' + value.substring(0, 20) + '...')
         return decodeURIComponent(value)
       }
     }
   }
-  
+
+  console.warn('[getToken] NO TOKEN FOUND from any source')
   return null
 }
 
@@ -181,7 +184,8 @@ async function request(endpoint, options = {}, retryCount = 0) {
   Logger.api(endpoint, method, { timestamp: new Date().toISOString() })
   
   let token = getToken()
-  
+  console.warn('[request] ' + method + ' ' + endpoint + ', token=' + (token ? token.substring(0, 20) + '...' : 'NULL'))
+
   // Step 2: 实现滑动窗口续期 - 在请求前检查 Token 状态
   if (token && isTokenExpiringSoon(token) && retryCount === 0) {
     try {
