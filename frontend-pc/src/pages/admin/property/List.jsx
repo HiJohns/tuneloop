@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space, Popconfirm, List } from 'antd'
+import { Card, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space, Popconfirm, List, TreeSelect } from 'antd'
 import { PlusOutlined, EditOutlined, CheckOutlined, MergeOutlined, DeleteOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 
@@ -17,9 +17,24 @@ export default function PropertyList() {
   const [mergeForm] = Form.useForm()
   const [optionsList, setOptionsList] = useState([])
   const [editingOptionIndex, setEditingOptionIndex] = useState(-1)
+  const [categoryTree, setCategoryTree] = useState([])
+  const [allProperties, setAllProperties] = useState([])
 
   useEffect(() => {
     fetchProperties()
+    api.get('/categories').then(res => {
+      if (res.code === 20000) {
+        const mapTree = (nodes) => (nodes || []).map(n => ({
+          value: n.id, title: n.name,
+          children: n.sub_categories?.length > 0 ? mapTree(n.sub_categories) : undefined
+        }))
+        setCategoryTree(mapTree(res.data?.list || []))
+      }
+    }).catch(() => {})
+    api.get('/properties').then(res => {
+      if (Array.isArray(res)) setAllProperties(res)
+      else if (res.code === 20000) setAllProperties(res.data || [])
+    }).catch(() => {})
   }, [])
 
   const fetchProperties = async () => {
@@ -75,8 +90,9 @@ export default function PropertyList() {
         property_type: values.property_type,
         unit: values.unit || '',
         description: values.description || '',
-        min_value: values.min_value || null,
-        max_value: values.max_value || null,
+        scope_type: values.scope_type || 'global',
+        related_category_id: values.related_category_id || '',
+        related_property_id: values.related_property_id || '',
         options: optionsList.length > 0 ? optionsList : [],
       }
 
@@ -326,6 +342,37 @@ export default function PropertyList() {
               rows={3} 
               placeholder="请输入该属性的填写说明（选填）"
             />
+          </Form.Item>
+          <Form.Item name="scope_type" label="作用域" initialValue="global">
+            <Select placeholder="请选择作用域">
+              <Option value="global">全局（与类别无关，如产地）</Option>
+              <Option value="category">按类别区分（如品牌，不同类别品牌值不同）</Option>
+              <Option value="property">按其他属性区分（如型号，不同品牌型号值不同）</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.scope_type !== cur.scope_type}>
+            {({ getFieldValue }) => {
+              const scopeType = getFieldValue('scope_type')
+              if (scopeType === 'category') {
+                return (
+                  <Form.Item name="related_category_id" label="关联类别" rules={[{ required: true, message: '请选择类别' }]}>
+                    <TreeSelect treeData={categoryTree} placeholder="选择关联类别" />
+                  </Form.Item>
+                )
+              }
+              if (scopeType === 'property') {
+                return (
+                  <Form.Item name="related_property_id" label="关联属性" rules={[{ required: true, message: '请选择关联属性' }]}>
+                    <Select placeholder="选择关联属性">
+                      {allProperties.filter(p => p.name !== (editingProperty?.name)).map(p => (
+                        <Option key={p.id} value={p.id}>{p.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )
+              }
+              return null
+            }}
           </Form.Item>
           <Form.Item shouldUpdate>
             {() => {
