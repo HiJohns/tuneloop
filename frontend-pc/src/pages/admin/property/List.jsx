@@ -11,10 +11,12 @@ export default function PropertyList() {
   const [loading, setLoading] = useState(true)
   const [propertyModalVisible, setPropertyModalVisible] = useState(false)
   const [mergeModalVisible, setMergeModalVisible] = useState(false)
+  const [renameModalVisible, setRenameModalVisible] = useState(false)
   const [editingProperty, setEditingProperty] = useState(null)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
   const [mergeForm] = Form.useForm()
+  const [renameForm] = Form.useForm()
   const [optionsList, setOptionsList] = useState([])
   const [editingOptionIndex, setEditingOptionIndex] = useState(-1)
   const [categoryTree, setCategoryTree] = useState([])
@@ -159,6 +161,29 @@ export default function PropertyList() {
     }
   }
 
+  const handleRename = (option) => {
+    setSelectedProperty({ ...option, propertyId: option.property_id })
+    renameForm.resetFields()
+    setRenameModalVisible(true)
+  }
+
+  const handleSubmitRename = async () => {
+    try {
+      const values = await renameForm.validateFields()
+      await api.put('/property/confirm', {
+        property_id: selectedProperty.propertyId,
+        value: selectedProperty.value,
+        new_value: values.new_value,
+      })
+      message.success('修正成功')
+      setRenameModalVisible(false)
+      fetchProperties()
+    } catch (err) {
+      if (err.errorFields) return
+      message.error('修正失败: ' + err.message)
+    }
+  }
+
   const propertyColumns = [
     {
       title: '属性名称',
@@ -245,6 +270,9 @@ export default function PropertyList() {
           <Space>
             <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => handleConfirm(record.property_id, record.value)}>
               核定
+            </Button>
+            <Button size="small" icon={<EditOutlined />} onClick={() => handleRename(record)}>
+              修正
             </Button>
             <Button size="small" icon={<MergeOutlined />} onClick={() => handleMerge(record)}>
               归并
@@ -488,6 +516,26 @@ export default function PropertyList() {
                 <Option key={opt.id} value={opt.value}>{opt.value}</Option>
               ))}
             </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="修正属性值"
+        open={renameModalVisible}
+        onCancel={() => setRenameModalVisible(false)}
+        onOk={handleSubmitRename}
+      >
+        <div className="mb-4">
+          <p>将属性值 <strong>{selectedProperty?.value}</strong> 修正为:</p>
+        </div>
+        <Form form={renameForm} layout="vertical">
+          <Form.Item
+            name="new_value"
+            label="修正后的名称"
+            rules={[{ required: true, message: '请输入修正后的名称' }]}
+          >
+            <Input placeholder="请输入修正后的属性值名称" />
           </Form.Item>
         </Form>
       </Modal>

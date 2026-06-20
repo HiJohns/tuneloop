@@ -340,22 +340,44 @@ Add new pages must verify:
 > **平台级资源声明**: Categories, Properties, and PropertyOptions are **platform-level shared resources** — readable by all authenticated users, writable only by namespace_admin (cus_perm: `category:manage`, `attribute:manage`). The `tenant_id` on these models stores creator metadata, NOT access scope.
 
 ```
-properties (属性定义)     property_options (属性选项)    instrument_properties (乐器属性)
-├── id                   ├── id                        ├── id
-├── name                 ├── property_id (FK)          ├── instrument_id (FK)
-├── property_type        ├── value                     ├── property_id (FK)
-├── is_required          ├── status                    └── ...
-├── unit                 └── alias
-└── ...
+properties (属性定义)              property_options (属性选项)         instrument_properties (乐器属性)
+├── id                            ├── id                             ├── id
+├── name                          ├── property_id (FK)               ├── instrument_id (FK)
+├── property_type                 ├── value                          ├── property_id (FK)
+├── is_required                   ├── status (pending/confirmed/abort) └── ...
+├── unit                          ├── alias (FK → property_options.id)
+├── scope_type (global/category/  ├── scope_category_id (FK → categories.id)
+│    property)                    └── scope_parent_value (varchar)
+├── related_category_id (FK)
+└── related_property_id (FK)
 ```
+
+**Scope Types**:
+- `global` — 与类别无关（如"产地"），所有乐器共享同一套属性值
+- `category` — 与类别相关（如"品牌"），属性值按 `scope_category_id` 隔离
+- `property` — 与父属性相关（如"型号"依赖"品牌"），属性值按 `scope_parent_value` 隔离
+
+### Property Value Approval Workflow
+
+属性值有三种状态：`pending`（待核定）→ `confirmed`（已核定）/ `abort`（已废弃/别名）
+
+**场景一：核定** — 新值合理，直接采用 → `PUT /api/property/confirm { property_id, value }` → status=confirmed
+
+**场景二：归并** — 应使用已有值（如 "yamaha" → "雅马哈"） → `PUT /api/property/merge { property_id, source_value, target_value }` → source.status=abort, source.alias=target.id，已使用该值的乐器自动更新
+
+**场景三：修正** — 接受但需改名（如 typo 修正） → `PUT /api/property/confirm { property_id, value, new_value }` → 创建 new_value(confirmed)，原值 status=abort, alias=new.id，已使用该值的乐器自动更新
+
+**别名自动映射**：当用户输入已知别名值时，后端 `processPropertiesWithScope` 自动解析为标准值（透明替换，无需再次审批）
 
 ### Create Instrument with Properties
 
 When POST /api/instruments includes `properties` field:
 1. Look up property definition by `key` in `properties` table (`name = key`)
-2. Match options by `property_id` and `value` in `property_options` table
-3. Auto-create missing options with `status = 'pending'`
-4. Create `instrument_properties` association records
+2. Determine scope: `scope_type=category` → use instrument's `category_id`; `scope_type=property` → use parent property's value
+3. Match options by `property_name`, `value`, `scope_category_id`, `scope_parent_value` in `property_options` table
+4. If option has `alias` → auto-resolve to target option's value (别名自动映射)
+5. Auto-create missing options with `status = 'pending'` (inheriting scope fields)
+6. Create `instrument_properties` association records
 
 ### Instrument Level Data Model
 

@@ -9,6 +9,7 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -296,13 +297,15 @@ func (h *PropertyHandler) CreatePropertyOption(c *gin.Context) {
 	})
 }
 
-// PUT /api/property/confirm - Confirm property value
+// PUT /api/property/confirm - Confirm property value (with optional rename)
 func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
+	tenantID := middleware.GetTenantID(c.Request.Context())
 	unscopedDB := database.GetDB()
 
 	var req struct {
 		PropertyID string `json:"property_id" binding:"required"`
 		Value      string `json:"value" binding:"required"`
+		NewValue   string `json:"new_value"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -333,6 +336,60 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{"message": "already confirmed"},
+		})
+		return
+	}
+
+	if req.NewValue != "" && req.NewValue != req.Value {
+		tx := unscopedDB.Begin()
+
+		newOption := models.PropertyOption{
+			ID:               uuid.New().String(),
+			TenantID:         option.TenantID,
+			PropertyName:     option.PropertyName,
+			Value:            req.NewValue,
+			Status:           "confirmed",
+			ScopeCategoryID:  option.ScopeCategoryID,
+			ScopeParentValue: option.ScopeParentValue,
+		}
+		if err := tx.Create(&newOption).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to create renamed option: " + err.Error(),
+			})
+			return
+		}
+
+		aliasID := newOption.ID
+		if err := tx.Model(&option).Updates(map[string]interface{}{
+			"status": "abort",
+			"alias":  aliasID,
+		}).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to update original option: " + err.Error(),
+			})
+			return
+		}
+
+		if err := tx.Model(&models.InstrumentProperty{}).
+			Where("property_id = ? AND value = ? AND tenant_id = ?", req.PropertyID, req.Value, tenantID).
+			Update("value", req.NewValue).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "failed to update instrument properties: " + err.Error(),
+			})
+			return
+		}
+
+		tx.Commit()
+
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{"confirmed": true, "renamed": true, "new_value": req.NewValue},
 		})
 		return
 	}
