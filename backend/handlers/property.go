@@ -77,11 +77,14 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	unscopedDB := database.GetDB()
 
 	var req struct {
-		Name         string   `json:"name" binding:"required"`
-		PropertyType string   `json:"property_type" binding:"required"`
-		Unit         string   `json:"unit"`
-		Description  string   `json:"description"`
-		Options      []string `json:"options"`
+		Name               string   `json:"name" binding:"required"`
+		PropertyType       string   `json:"property_type" binding:"required"`
+		Unit               string   `json:"unit"`
+		Description        string   `json:"description"`
+		Options            []string `json:"options"`
+		ScopeType          string   `json:"scope_type"`
+		RelatedCategoryID  string   `json:"related_category_id"`
+		RelatedPropertyID  string   `json:"related_property_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -114,6 +117,16 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		Unit:         req.Unit,
 		Description:  req.Description,
 		TenantID:     tenantID,
+		ScopeType:    req.ScopeType,
+	}
+	if property.ScopeType == "" {
+		property.ScopeType = "global"
+	}
+	if req.RelatedCategoryID != "" {
+		property.RelatedCategoryID = &req.RelatedCategoryID
+	}
+	if req.RelatedPropertyID != "" {
+		property.RelatedPropertyID = &req.RelatedPropertyID
 	}
 
 	if err := db.Create(&property).Error; err != nil {

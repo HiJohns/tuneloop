@@ -358,17 +358,20 @@ type InstrumentLevel struct {
 }
 
 type Property struct {
-	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	Name         string    `gorm:"type:varchar(100);not null" json:"name"`
-	PropertyType string    `gorm:"type:varchar(20);not null" json:"property_type"`
-	IsRequired   bool      `gorm:"default:false" json:"is_required"`
-	Unit         string    `gorm:"type:varchar(50)" json:"unit"`
-	Caption      string    `gorm:"type:varchar(100);not null" json:"caption"`
-	Description  string    `gorm:"type:text" json:"description"`
-	Status       string    `gorm:"type:varchar(20);default:'active';not null" json:"status"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID           string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Name               string    `gorm:"type:varchar(100);not null" json:"name"`
+	PropertyType       string    `gorm:"type:varchar(20);not null" json:"property_type"`
+	IsRequired         bool      `gorm:"default:false" json:"is_required"`
+	Unit               string    `gorm:"type:varchar(50)" json:"unit"`
+	Caption            string    `gorm:"type:varchar(100);not null" json:"caption"`
+	ScopeType          string    `gorm:"type:varchar(20);default:'global'" json:"scope_type"`
+	RelatedCategoryID  *string   `gorm:"type:uuid;index" json:"related_category_id"`
+	RelatedPropertyID  *string   `gorm:"type:uuid;index" json:"related_property_id"`
+	Description        string    `gorm:"type:text" json:"description"`
+	Status             string    `gorm:"type:varchar(20);default:'active';not null" json:"status"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type PropertyOption struct {
