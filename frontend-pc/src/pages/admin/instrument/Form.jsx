@@ -1197,7 +1197,13 @@ const loadCategoryChildren = async (node) => {
                       onSearch={async (value) => {
                         if (!value || value.length < 1) return
                         try {
-                          const result = await propertiesApi.searchOptions(prop.id, value, 3)
+                          const scope = {}
+                          if (prop.scope_type === 'category') {
+                            scope.categoryId = form.getFieldValue('category_id')
+                          } else if (prop.scope_type === 'property' && prop.related_property_id) {
+                            scope.parentValue = form.getFieldValue(`prop_${prop.related_property_id}`)
+                          }
+                          const result = await propertiesApi.searchOptions(prop.id, value, 3, scope)
                           if (result.code === 20000 && result.data) {
                             const updatedProps = properties.map(p => {
                               if (p.id === prop.id) {
