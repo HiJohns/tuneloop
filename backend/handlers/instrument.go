@@ -17,8 +17,9 @@ import (
 
 var pricingService = service.NewPricingService()
 
+// CreateInstrumentRequest is used for POST (create). Fields are optional except CategoryID.
 type CreateInstrumentRequest struct {
-	LevelID        string                   `json:"level_id"` // UUID reference to instrument_levels
+	LevelID        string                   `json:"level_id"`
 	CategoryID     string                   `json:"category_id" binding:"required"`
 	SN             string                   `json:"sn"`
 	SiteID         string                   `json:"site_id"`
@@ -30,11 +31,26 @@ type CreateInstrumentRequest struct {
 	Video          string                   `json:"video"`
 	Poster         string                   `json:"poster"`
 	Specifications []map[string]interface{} `json:"specifications"`
-	Properties     map[string]interface{}   `json:"properties"` // Accept frontend's properties field
+	Properties     map[string]interface{}   `json:"properties"`
+	Level          string                   `json:"level"`
+}
 
-	// Level - 保留用于向后兼容（旧版 API 可能使用 level 字符串）
-	Level string `json:"level"`
-	// Brand, Model 字段已删除 - 遗留字段
+// UpdateInstrumentRequest is used for PUT (partial update). Pointer fields distinguish
+// "not sent" (nil) from "explicitly cleared" (empty string).
+type UpdateInstrumentRequest struct {
+	CategoryID     *string                  `json:"category_id"`
+	LevelID        *string                  `json:"level_id"`
+	SiteID         *string                  `json:"site_id"`
+	Status         *string                  `json:"status"`
+	Description    *string                  `json:"description"`
+	Video          *string                  `json:"video"`
+	Poster         *string                  `json:"poster"`
+	Images         []string                 `json:"images"`
+	Pricing        map[string]interface{}   `json:"pricing"`
+	BaseDailyRate  *float64                 `json:"base_daily_rate"`
+	Specifications []map[string]interface{} `json:"specifications"`
+	Properties     map[string]interface{}   `json:"properties"`
+	Level          *string                  `json:"level"`
 }
 
 // processProperties handles the properties association logic for instruments
@@ -424,7 +440,7 @@ func UpdateInstrument(c *gin.Context) {
 
 	oldInstrument := instrument
 
-	var req CreateInstrumentRequest
+	var req UpdateInstrumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
@@ -433,33 +449,36 @@ func UpdateInstrument(c *gin.Context) {
 		return
 	}
 
-	if req.CategoryID != "" {
-		instrument.CategoryID = &req.CategoryID
+	if req.CategoryID != nil {
+		instrument.CategoryID = req.CategoryID
 	}
-	instrument.Description = req.Description
-	instrument.Video = req.Video
-	instrument.Poster = req.Poster
-	log.Printf("[DEBUG] req.SN = '%s', req.Level = '%s', req.CategoryID = '%s'", req.SN, req.Level, req.CategoryID)
-	// SN 是乐器唯一标识，创建后不可修改 - 禁止覆盖
+	if req.Description != nil {
+		instrument.Description = *req.Description
+	}
+	if req.Video != nil {
+		instrument.Video = *req.Video
+	}
+	if req.Poster != nil {
+		instrument.Poster = *req.Poster
+	}
+	log.Printf("[DEBUG] req.CategoryID = '%v', req.Level = '%v'", req.CategoryID, req.Level)
 
-	if req.SiteID != "" {
-		if siteUUID, err := uuid.Parse(req.SiteID); err == nil {
+	if req.SiteID != nil {
+		if siteUUID, err := uuid.Parse(*req.SiteID); err == nil {
 			instrument.SiteID = &siteUUID
 		}
 	}
 
-	if req.Status != "" {
-		instrument.StockStatus = req.Status
+	if req.Status != nil {
+		instrument.StockStatus = *req.Status
 	}
 
-	// Step 1: 添加空值校验 - 只有当 category_id 不为空且是有效 UUID 时才查询
-	if req.CategoryID != "" {
-		// 校验 UUID 格式
-		if _, err := uuid.Parse(req.CategoryID); err == nil {
+	if req.CategoryID != nil && *req.CategoryID != "" {
+		if _, err := uuid.Parse(*req.CategoryID); err == nil {
 			var cat struct {
 				Name string `json:"name"`
 			}
-			if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+			if err := db.Table("categories").Where("id = ?", *req.CategoryID).Select("name").First(&cat).Error; err == nil {
 				instrument.CategoryName = cat.Name
 			}
 		} else {
@@ -471,26 +490,22 @@ func UpdateInstrument(c *gin.Context) {
 		}
 	}
 
-	// Handle level_id and level_name (similar to CreateInstrument)
-	if req.LevelID != "" {
-		if parsedID, err := uuid.Parse(req.LevelID); err == nil {
+	if req.LevelID != nil && *req.LevelID != "" {
+		if parsedID, err := uuid.Parse(*req.LevelID); err == nil {
 			instrument.LevelID = &parsedID
-			// Get level_name from instrument_levels table
 			var level models.InstrumentLevel
 			if err := db.Where("id = ?", instrument.LevelID).First(&level).Error; err == nil {
 				instrument.LevelName = level.Caption
 			}
 		}
-	} else if req.Level != "" {
-		// Legacy: map level string to level_id
+	} else if req.Level != nil && *req.Level != "" {
 		var level models.InstrumentLevel
-		// Try to find by code or caption
-		if err := db.Where("code = ? OR caption = ?", req.Level, req.Level).First(&level).Error; err == nil {
+		if err := db.Where("code = ? OR caption = ?", *req.Level, *req.Level).First(&level).Error; err == nil {
 			instrument.LevelID = &level.ID
 			instrument.LevelName = level.Caption
 		} else {
 			// Fallback to old mapping for backward compatibility
-			switch req.Level {
+			switch *req.Level {
 			case "beginner":
 				instrument.LevelName = "入门级"
 			case "intermediate":
@@ -500,7 +515,7 @@ func UpdateInstrument(c *gin.Context) {
 			case "professional":
 				instrument.LevelName = "专业级"
 			}
-			log.Printf("[DEBUG] Level '%s' not found in instrument_levels, using legacy mapping: %s", req.Level, instrument.LevelName)
+			log.Printf("[DEBUG] Level '%s' not found in instrument_levels, using legacy mapping: %s", *req.Level, instrument.LevelName)
 		}
 	}
 
@@ -540,38 +555,36 @@ func UpdateInstrument(c *gin.Context) {
 		instrument.Pricing = string(pricingJSON)
 	}
 
-	// Step 2: 构建 updates map，只更新非空字段（避免零值覆盖）
+	// Step 2: 构建 updates map
 	updates := map[string]interface{}{}
 
-	// Description - 只有非空才更新
-	if req.Description != "" {
-		updates["description"] = req.Description
+	if req.Description != nil {
+		updates["description"] = *req.Description
 	}
 
-	// Video - 只有非空才更新
-	if req.Video != "" {
-		updates["video"] = req.Video
+	if req.Video != nil {
+		updates["video"] = *req.Video
 	}
 
-	// CategoryID - 必须是有效 UUID 才更新
-	if req.CategoryID != "" {
-		if _, err := uuid.Parse(req.CategoryID); err == nil {
-			updates["category_id"] = req.CategoryID
-			// 同时更新 category_name
+	if req.Poster != nil {
+		updates["poster"] = *req.Poster
+	}
+
+	if req.CategoryID != nil && *req.CategoryID != "" {
+		if _, err := uuid.Parse(*req.CategoryID); err == nil {
+			updates["category_id"] = *req.CategoryID
 			var cat struct {
 				Name string `json:"name"`
 			}
-			if err := db.Table("categories").Where("id = ?", req.CategoryID).Select("name").First(&cat).Error; err == nil {
+			if err := db.Table("categories").Where("id = ?", *req.CategoryID).Select("name").First(&cat).Error; err == nil {
 				updates["category_name"] = cat.Name
 			}
 		}
 	}
 
-	// LevelID - 必须是有效 UUID 才更新
-	if req.LevelID != "" {
-		if parsedID, err := uuid.Parse(req.LevelID); err == nil {
+	if req.LevelID != nil && *req.LevelID != "" {
+		if parsedID, err := uuid.Parse(*req.LevelID); err == nil {
 			updates["level_id"] = parsedID
-			// 同时更新 level_name
 			var level models.InstrumentLevel
 			if err := db.Where("id = ?", parsedID).First(&level).Error; err == nil {
 				updates["level_name"] = level.Caption
@@ -579,19 +592,16 @@ func UpdateInstrument(c *gin.Context) {
 		}
 	}
 
-	// SiteID - 必须是有效 UUID 才更新
-	if req.SiteID != "" {
-		if siteUUID, err := uuid.Parse(req.SiteID); err == nil {
+	if req.SiteID != nil && *req.SiteID != "" {
+		if siteUUID, err := uuid.Parse(*req.SiteID); err == nil {
 			updates["site_id"] = siteUUID
 		}
 	}
 
-	// StockStatus - 只有非空才更新
-	if req.Status != "" {
-		updates["stock_status"] = req.Status
+	if req.Status != nil {
+		updates["stock_status"] = *req.Status
 	}
 
-	// Images - 非空数组才更新
 	if req.Images != nil && len(req.Images) > 0 {
 		imagesJSON, _ := json.Marshal(req.Images)
 		updates["images"] = string(imagesJSON)
