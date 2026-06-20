@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typography, Space, Tag, Tooltip, Input, Modal, Breadcrumb, Image, Select } from 'antd'
 import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons'
-import { instrumentsApi, propertiesApi, api } from '../../../services/api'
+import { instrumentsApi, propertiesApi, api, request } from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
 
 const { Title, Text } = Typography
@@ -424,7 +424,7 @@ export default function BatchImport() {
 const uploadFile = async (file) => {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  const res = await request('/upload', { method: 'POST', body: formData })
   return res?.data?.url || res?.url || ''
 }
 

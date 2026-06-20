@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
-import { api, pricingApi, instrumentsApi } from '../../../services/api'
+import { api, pricingApi, instrumentsApi, request } from '../../../services/api'
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -453,6 +453,8 @@ export default function InstrumentDetail() {
                             if (res.code === 20000) {
                               message.success('展示图上传成功')
                               fetchInstrument()
+                            } else {
+                              message.error(res.message || '上传失败')
                             }
                           } catch (err) {
                             message.error('上传失败: ' + (err.message || ''))
@@ -508,17 +510,17 @@ export default function InstrumentDetail() {
                   })()}
                 </Card>
 
-                {(instrument.video || displayMedia?.video) && (
+                {(instrument.video || mediaDetail?.video) && (
                   <Card title="视频" className="mt-4">
                     <div className="flex items-start gap-4">
                       <video
-                        src={instrument.video || displayMedia?.video?.url}
+                        src={instrument.video || mediaDetail?.video?.url}
                         controls
                         width="240"
                         className="rounded"
                       />
                       <Popconfirm title="确定删除此视频？" onConfirm={async () => {
-                        const batchId = instrument.media?.video?.batch_id || displayMedia?.video?.batch_id
+                        const batchId = instrument.media?.video?.batch_id || mediaDetail?.video?.batch_id
                         if (batchId) {
                           handleDeleteVideo(batchId)
                         } else {
@@ -553,12 +555,14 @@ export default function InstrumentDetail() {
                           try {
                             const formData = new FormData()
                             formData.append('file', file)
-                            const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+                            const res = await request('/upload', { method: 'POST', body: formData })
                             const url = res?.data?.url || res?.url || ''
                             if (url) {
                               await api.put(`/instruments/${id}`, { poster: url })
                               message.success('海报更新成功')
                               fetchInstrument()
+                            } else {
+                              message.error(res?.message || '上传失败')
                             }
                           } catch (err) {
                             message.error('上传失败: ' + (err.message || ''))

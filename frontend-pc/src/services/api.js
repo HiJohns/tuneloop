@@ -585,4 +585,4 @@ export const auditLogApi = {
   },
 }
 
-export { getToken }
+export { getToken, request }
