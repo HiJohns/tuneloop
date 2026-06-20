@@ -124,10 +124,13 @@ export default function Home() {
 
   useEffect(() => {
     const t = getToken()
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem('token') : 'N/A'
+    const exp = typeof window !== 'undefined' ? window.localStorage.getItem('token_expiry') : 'N/A'
+    const now = new Date().getTime()
     if (t) {
-      alert('[Home] token 存在: ' + t.substring(0, 20) + '...')
+      alert('[Home] getToken 成功: ' + t.substring(0, 20) + '...')
     } else {
-      alert('[Home] token=NULL')
+      alert('[Home] getToken=NULL\nlocalStorage.token=' + (raw ? raw.substring(0, 20) + '...' : 'NULL') + '\ntoken_expiry=' + exp + '\nnow=' + now + '\n过期?' + (exp && parseInt(exp) < now ? '是' : '否'))
     }
   }, [])
 

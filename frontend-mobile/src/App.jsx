@@ -105,6 +105,7 @@ function OAuthCallback() {
         const tokenData = data.data || data
 
         if (tokenData.access_token) {
+          alert('[Callback] token 获取成功，即将保存并跳转\ntoken=' + tokenData.access_token.substring(0, 20) + '...')
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
 
           if (tokenData.user_info) {
