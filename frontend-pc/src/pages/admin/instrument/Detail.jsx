@@ -70,6 +70,7 @@ export default function InstrumentDetail() {
   const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
+  const [activeTab, setActiveTab] = useState('basic')
 
   useEffect(() => {
     if (!id) return
@@ -235,7 +236,7 @@ export default function InstrumentDetail() {
         </Popconfirm>
       </div>
 
-      <Tabs defaultActiveKey="basic" items={[
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
         {
           label: '基本信息',
           key: 'basic',
@@ -510,8 +511,39 @@ export default function InstrumentDetail() {
                   })()}
                 </Card>
 
-                {(instrument.video || mediaDetail?.video) && (
-                  <Card title="视频" className="mt-4">
+                <Card title="视频" className="mt-4"
+                  extra={
+                    <label className="text-xs text-brand-primary cursor-pointer hover:underline">
+                      {instrument.video || mediaDetail?.video ? '替换' : '上传'}
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            const res = await request('/upload', { method: 'POST', body: formData })
+                            const url = res?.data?.url || res?.url || ''
+                            if (url) {
+                              await api.put(`/instruments/${id}`, { video: url })
+                              message.success('视频更新成功')
+                              fetchInstrument()
+                            } else {
+                              message.error(res?.message || '上传失败')
+                            }
+                          } catch (err) {
+                            message.error('上传失败: ' + (err.message || ''))
+                          }
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                  }
+                >
+                  {(instrument.video || mediaDetail?.video) ? (
                     <div className="flex items-start gap-4">
                       <video
                         src={instrument.video || mediaDetail?.video?.url}
@@ -536,8 +568,10 @@ export default function InstrumentDetail() {
                         <Button danger size="small">删除</Button>
                       </Popconfirm>
                     </div>
-                  </Card>
-                )}
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无视频" />
+                  )}
+                </Card>
               </Col>
 
               <Col span={12}>
@@ -574,7 +608,7 @@ export default function InstrumentDetail() {
                   }
                 >
                   {instrument.poster ? (
-                    <img src={instrument.poster} alt="海报" style={{ maxWidth: '100%', borderRadius: 8 }} />
+                    <img src={instrument.poster} alt="海报" style={{ maxWidth: '100%', maxHeight: 400, objectFit: 'contain', borderRadius: 8 }} />
                   ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无海报" />
                   )}
