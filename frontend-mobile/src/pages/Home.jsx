@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import banner1 from '../assets/home/banner_1.png'
 import banner2 from '../assets/home/banner_2.png'
@@ -121,6 +121,15 @@ export default function Home() {
       }
     } catch {}
   }, [baseUrl, tenant])
+
+  useEffect(() => {
+    const t = getToken()
+    if (t) {
+      alert('[Home] token 存在: ' + t.substring(0, 20) + '...')
+    } else {
+      alert('[Home] token=NULL')
+    }
+  }, [])
 
   useEffect(() => {
     fetchCategories()
