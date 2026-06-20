@@ -134,9 +134,7 @@ export default function InstrumentDetail() {
   const fetchInstrument = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/instruments/${id}`)
-      if (!response.ok) throw new Error('Failed to fetch instrument')
-      const data = await response.json()
+      const data = await instrumentsApi.get(id)
       if (data.code === 20000) {
         setInstrument(data.data)
       }
