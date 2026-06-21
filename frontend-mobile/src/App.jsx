@@ -74,14 +74,17 @@ function OAuthCallback() {
     const params = navigation.getQueryParams()
     const code = params.code
     const error = params.error
+    alert('[OAuthCallback] params=' + JSON.stringify(params) + '\ncode=' + (code || 'NULL'))
 
     if (error) {
       console.error('OAuth error:', error)
+      alert('[OAuthCallback] error=' + error)
       navigation.redirect('/')
       return
     }
 
     if (!code) {
+      alert('[OAuthCallback] code 为空，URL=' + window.location.href)
       navigation.redirect('/')
       return
     }
