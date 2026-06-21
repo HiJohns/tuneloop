@@ -1627,9 +1627,10 @@ func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenRespo
 }
 
 type AppRegistration struct {
-	AppType      string   `json:"type"`
-	RedirectURIs []string `json:"redirect_uris"`
-	IsDefault    bool     `json:"is_default,omitempty"`
+	AppType            string   `json:"type"`
+	RedirectURIs       []string `json:"redirect_uris"`
+	IsDefault          bool     `json:"is_default,omitempty"`
+	AllowSelfRegister  bool     `json:"allow_self_register,omitempty"`
 }
 
 type ActivateNamespaceResponse struct {

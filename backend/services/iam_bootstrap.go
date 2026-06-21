@@ -43,7 +43,7 @@ func BootstrapIAM(db *gorm.DB) error {
 
 		apps := []AppRegistration{
 			{AppType: "web", RedirectURIs: []string{pcRedirect}, IsDefault: true},
-			{AppType: "wechat", RedirectURIs: []string{wxRedirect}},
+			{AppType: "wechat", RedirectURIs: []string{wxRedirect}, AllowSelfRegister: true},
 		}
 
 		// Try ActivateNamespace (beaconiam #177 — also creates org, returns org_id + apps)
