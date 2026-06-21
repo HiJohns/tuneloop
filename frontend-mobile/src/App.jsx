@@ -96,10 +96,13 @@ function OAuthCallback() {
           body: JSON.stringify({ code, client_type: 'wx' }),
         })
 
+        alert('[Callback] request 返回:\n' + JSON.stringify(result).substring(0, 200))
+
         const tokenData = result.data || result
 
         if (tokenData.access_token) {
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
+          alert('[Callback] token 已保存，即将跳转')
 
           if (tokenData.user_info) {
             storage.setJSON('user_info', tokenData.user_info)
@@ -117,10 +120,10 @@ function OAuthCallback() {
           session.removeItem('post_auth_redirect')
           navigation.redirect(redirectTo)
         } else {
-          throw new Error('No access token in response: ' + JSON.stringify(data))
+          throw new Error('No access token in response: ' + JSON.stringify(result).substring(0, 200))
         }
       } catch (error) {
-        console.error('Token exchange failed:', error)
+        alert('[Callback] 失败: ' + error.message)
         navigation.redirect('/')
       }
     }
