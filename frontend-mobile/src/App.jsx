@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { getToken, initPermissionMapping, publicRoutes } from './services/api'
+import { getToken, initPermissionMapping, publicRoutes, request } from './services/api'
 import { storage, session, navigation, env } from './platform'
 import { initializeApp, storeToken, parseJWT, cachePermissions, getWXConfig, showLoginReason, setInitDeps } from './platform/init'
 
@@ -74,24 +74,20 @@ function OAuthCallback() {
     const params = navigation.getQueryParams()
     const code = params.code
     const error = params.error
-    alert('[OAuthCallback] params=' + JSON.stringify(params) + '\ncode=' + (code || 'NULL'))
 
     if (error) {
       console.error('OAuth error:', error)
-      alert('[OAuthCallback] error=' + error)
       navigation.redirect('/')
       return
     }
 
     if (!code) {
-      alert('[OAuthCallback] code 为空，URL=' + window.location.href)
       navigation.redirect('/')
       return
     }
 
     const exchangeCodeForToken = async () => {
       try {
-        alert('[OAuthCallback] 即将发送 code 到后端\ncode=' + code + '\nurl=' + env.apiBaseUrl + '/auth/callback')
         const response = await request(`${env.apiBaseUrl}/auth/callback`, {
           method: 'POST',
           headers: {
@@ -110,12 +106,33 @@ function OAuthCallback() {
 
         if (tokenData.access_token) {
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
+
+          if (tokenData.user_info) {
+            storage.setJSON('user_info', tokenData.user_info)
+          }
+
+          cachePermissions(parseJWT(tokenData.access_token))
+
+          const reason = session.getItem('login_reason')
+          if (reason) {
+            session.removeItem('login_reason')
+            session.setItem('show_login_reason', reason)
+          }
+
+          const redirectTo = session.getItem('post_auth_redirect') || '/'
+          session.removeItem('post_auth_redirect')
+          navigation.redirect(redirectTo)
         } else {
           throw new Error('No access token in response: ' + JSON.stringify(data))
         }
       } catch (error) {
-        alert('[OAuthCallback] 请求失败: ' + error.message)
+        console.error('Token exchange failed:', error)
         navigation.redirect('/')
+      }
+    }
+
+    exchangeCodeForToken()
+  }, [])
       }
     }
 

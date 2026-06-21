@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch } from '../services/api'
 import { env } from '../platform'
 import banner1 from '../assets/home/banner_1.png'
 import banner2 from '../assets/home/banner_2.png'
@@ -122,17 +122,7 @@ export default function Home() {
     } catch {}
   }, [baseUrl, tenant])
 
-  useEffect(() => {
-    const t = getToken()
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem('token') : 'N/A'
-    const exp = typeof window !== 'undefined' ? window.localStorage.getItem('token_expiry') : 'N/A'
-    const now = new Date().getTime()
-    if (t) {
-      alert('[Home] getToken 成功: ' + t.substring(0, 20) + '...')
-    } else {
-      alert('[Home] getToken=NULL\nlocalStorage.token=' + (raw ? raw.substring(0, 20) + '...' : 'NULL') + '\ntoken_expiry=' + exp + '\nnow=' + now + '\n过期?' + (exp && parseInt(exp) < now ? '是' : '否'))
-    }
-  }, [])
+  // Diagnostic removed — see git history
 
   useEffect(() => {
     fetchCategories()

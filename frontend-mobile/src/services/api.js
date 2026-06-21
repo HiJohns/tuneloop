@@ -227,7 +227,7 @@ function processApiResponse(endpoint, data) {
   return data
 }
 
-async function request(endpoint, options = {}) {
+export async function request(endpoint, options = {}) {
   console.log('[API Debug] Making request to:', endpoint)
 
   const token = getToken()
