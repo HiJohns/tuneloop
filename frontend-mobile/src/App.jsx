@@ -133,11 +133,6 @@ function OAuthCallback() {
 
     exchangeCodeForToken()
   }, [])
-      }
-    }
-
-    exchangeCodeForToken()
-  }, [])
 
   if (loading) {
     return (
