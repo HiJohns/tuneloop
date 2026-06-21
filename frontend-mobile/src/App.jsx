@@ -88,7 +88,7 @@ function OAuthCallback() {
 
     const exchangeCodeForToken = async () => {
       try {
-        const response = await request(`${env.apiBaseUrl}/auth/callback`, {
+        const response = await request('/auth/callback', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
