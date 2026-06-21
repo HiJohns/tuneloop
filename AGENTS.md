@@ -425,6 +425,8 @@ Usage:
 tail -100 backend/backend.log
 ```
 
+**同时**，如果是前端问题，要求用户提供**浏览器 Console 的 JavaScript 错误截图**。大部分前端 Bug（如 `ReferenceError`、`TypeError`）在 Console 中有明确报错，比任何诊断日志都快。
+
 **理由**：
 - Go 后端错误（SQLSTATE、panic、nil dereference 等）只在日志中可见，前端只能看到 HTTP 状态码和通用错误信息
 - 本次 #699 事故：前端问题描述看似纯前端（40900 未提示 + 输入时去重缺 username），实际根因是后端 `column "username" does not exist` 导致 500 错误，而前端没有收到预期响应
