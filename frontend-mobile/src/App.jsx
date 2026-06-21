@@ -91,6 +91,7 @@ function OAuthCallback() {
 
     const exchangeCodeForToken = async () => {
       try {
+        alert('[OAuthCallback] 即将发送 code 到后端\ncode=' + code + '\nurl=' + env.apiBaseUrl + '/auth/callback')
         const response = await request(`${env.apiBaseUrl}/auth/callback`, {
           method: 'POST',
           headers: {
@@ -100,7 +101,7 @@ function OAuthCallback() {
         })
 
         if (!response.ok) {
-          throw new Error('Failed to exchange code for token')
+          throw new Error('HTTP ' + response.status)
         }
 
         const data = await response.json()
@@ -108,29 +109,12 @@ function OAuthCallback() {
         const tokenData = data.data || data
 
         if (tokenData.access_token) {
-          alert('[Callback] token 获取成功，即将保存并跳转\ntoken=' + tokenData.access_token.substring(0, 20) + '...')
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
-
-          if (tokenData.user_info) {
-            storage.setJSON('user_info', tokenData.user_info)
-          }
-
-          cachePermissions(parseJWT(tokenData.access_token))
-
-          const reason = session.getItem('login_reason')
-          if (reason) {
-            session.removeItem('login_reason')
-            session.setItem('show_login_reason', reason)
-          }
-
-          const redirectTo = session.getItem('post_auth_redirect') || '/'
-          session.removeItem('post_auth_redirect')
-          navigation.redirect(redirectTo)
         } else {
-          throw new Error('No access token received')
+          throw new Error('No access token in response: ' + JSON.stringify(data))
         }
       } catch (error) {
-        console.error('Token exchange failed:', error)
+        alert('[OAuthCallback] 请求失败: ' + error.message)
         navigation.redirect('/')
       }
     }
