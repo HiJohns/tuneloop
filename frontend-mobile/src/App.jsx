@@ -88,7 +88,7 @@ function OAuthCallback() {
 
     const exchangeCodeForToken = async () => {
       try {
-        const response = await request('/auth/callback', {
+        const result = await request('/auth/callback', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -96,13 +96,7 @@ function OAuthCallback() {
           body: JSON.stringify({ code, client_type: 'wx' }),
         })
 
-        if (!response.ok) {
-          throw new Error('HTTP ' + response.status)
-        }
-
-        const data = await response.json()
-
-        const tokenData = data.data || data
+        const tokenData = result.data || result
 
         if (tokenData.access_token) {
           storeToken(tokenData.access_token, tokenData.expires_in || 3600, tokenData.refresh_token)
