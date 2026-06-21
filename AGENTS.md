@@ -610,6 +610,7 @@ done
 3. 等待 beaconiam 侧分析后给出结论或修复方案
 4. 在 tuneloop 侧仅配合调整调用方式，不做逻辑替代
 5. **每次为其他仓库创建 Issue 后，必须将关联的 tuneloop Issue 标记为 `status:todo`**（表示阻塞等待外部修复，不做不必要的前端/后端 workaround）
+6. **为其他仓库创建的 Issue 本身必须打上 `status:todo` 标签**（如 `gh issue create --repo HiJohns/beaconiam --label "status:todo" ...`）
 
 ---
 
