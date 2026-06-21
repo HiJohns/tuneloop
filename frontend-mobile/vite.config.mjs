@@ -19,17 +19,17 @@ export default defineConfig({
     allowedHosts: ['opencode.linxdeep.com', 'localhost'],
     proxy: {
       '/api': {
-        target: 'http://localhost:5556',
+        target: 'http://localhost:5557',
         changeOrigin: true,
         secure: false,
       },
       '/auth': {
-        target: 'http://localhost:5556',
+        target: 'http://localhost:5557',
         changeOrigin: true,
         secure: false,
       },
       '/uploads': {
-        target: 'http://localhost:5556',
+        target: 'http://localhost:5557',
         changeOrigin: true,
         secure: false,
       },
