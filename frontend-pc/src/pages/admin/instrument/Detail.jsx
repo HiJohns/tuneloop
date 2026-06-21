@@ -21,7 +21,6 @@ export default function InstrumentDetail() {
   const [loading, setLoading] = useState(true)
   const [leaseData, setLeaseData] = useState(null)
   const [leaseLoading, setLeaseLoading] = useState(false)
-  const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
 
   useEffect(() => {
     fetchInstrument()
@@ -149,16 +148,14 @@ export default function InstrumentDetail() {
     if (!instrument?.sn) return
     setLeaseLoading(true)
     try {
-      const orderResp = await fetch(`${API_BASE_URL}/orders/by-instrument-sn?sn=${encodeURIComponent(instrument.sn)}`)
-      const orderResult = await orderResp.json()
+      const orderResult = await api.get(`/orders/by-instrument-sn?sn=${encodeURIComponent(instrument.sn)}`)
       if (orderResult.code !== 20000 || !orderResult.data?.order_id) {
         setLeaseData(null)
         setLeaseLoading(false)
         return
       }
 
-      const detailResp = await fetch(`${API_BASE_URL}/orders/${orderResult.data.order_id}`)
-      const detailResult = await detailResp.json()
+      const detailResult = await api.get(`/orders/${orderResult.data.order_id}`)
       if (detailResult.code !== 20000) {
         setLeaseData(null)
         setLeaseLoading(false)
@@ -168,8 +165,7 @@ export default function InstrumentDetail() {
       const order = detailResult.data
       let userData = null
       if (order.user_id) {
-        const userResp = await fetch(`${API_BASE_URL}/users/${order.user_id}`)
-        const userResult = await userResp.json()
+        const userResult = await api.get(`/users/${order.user_id}`)
         if (userResult.code === 20000) userData = userResult.data
       }
 
