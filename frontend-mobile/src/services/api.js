@@ -130,7 +130,6 @@ export function redirectToLogin(reason) {
 }
 
 export function degradeToGuest() {
-  alert('[degradeToGuest] Token 失效或 401，即将降级为游客\ntoken=' + (storage.getItem('token') ? '存在' : 'NULL'))
   session.setItem('guest_degradation', '1')
   storage.removeItem('token')
   storage.removeItem('token_expiry')

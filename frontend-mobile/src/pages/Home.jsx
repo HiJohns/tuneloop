@@ -122,8 +122,6 @@ export default function Home() {
     } catch {}
   }, [baseUrl, tenant])
 
-  // Diagnostic removed — see git history
-
   useEffect(() => {
     fetchCategories()
     fetchInstruments().finally(() => setLoading(false))

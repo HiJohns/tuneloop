@@ -147,7 +147,6 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		appClientID = iamNs + "_wechat"
 		appSecret = services.GetAppSecret(appClientID)
 	}
-	log.Printf("[Auth] Callback: clientType=%q appClientID=%q hasSecret=%v redirectURI=%q", clientType, appClientID, appSecret != "", redirectURI)
 
 	var tokenResp *services.TokenResponse
 	var err error

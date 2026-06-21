@@ -9,22 +9,15 @@ function getToken() {
   if (localToken && expiry) {
     const now = new Date().getTime()
     if (now < parseInt(expiry)) {
-      console.warn('[getToken] source=localStorage, token=' + localToken.substring(0, 20) + '...')
       return localToken
     } else {
-      console.warn('[getToken] localStorage token EXPIRED, removing')
       localStorage.removeItem('token')
       localStorage.removeItem('token_expiry')
     }
-  } else {
-    console.warn('[getToken] localStorage empty: token=' + !!localToken + ', expiry=' + !!expiry)
   }
 
   const sessionToken = sessionStorage.getItem('token')
-  if (sessionToken) {
-    console.warn('[getToken] source=sessionStorage')
-    return sessionToken
-  }
+  if (sessionToken) return sessionToken
 
   const cookies = document.cookie.split(';')
   for (const cookie of cookies) {
@@ -34,13 +27,11 @@ function getToken() {
       const name = trimmed.substring(0, eqPos)
       const value = trimmed.substring(eqPos + 1)
       if (name === 'token') {
-        console.warn('[getToken] source=cookie, value=' + value.substring(0, 20) + '...')
         return decodeURIComponent(value)
       }
     }
   }
 
-  console.warn('[getToken] NO TOKEN FOUND from any source')
   return null
 }
 
@@ -184,7 +175,6 @@ async function request(endpoint, options = {}, retryCount = 0) {
   Logger.api(endpoint, method, { timestamp: new Date().toISOString() })
   
   let token = getToken()
-  console.warn('[request] ' + method + ' ' + endpoint + ', token=' + (token ? token.substring(0, 20) + '...' : 'NULL'))
 
   // Step 2: 实现滑动窗口续期 - 在请求前检查 Token 状态
   if (token && isTokenExpiringSoon(token) && retryCount === 0) {
