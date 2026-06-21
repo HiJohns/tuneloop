@@ -270,13 +270,6 @@ export default function Detail() {
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
-  console.warn('[Detail] instrument.images raw:', JSON.stringify(instrument?.images))
-  console.warn('[Detail] parseImages result:', JSON.stringify(instrumentImages))
-  console.warn('[Detail] displayMedia:', JSON.stringify(displayMedia))
-  console.warn('[Detail] displayMedia.images:', JSON.stringify(displayMedia?.images))
-  console.warn('[Detail] bannerImages count:', bannerImages.length, JSON.stringify(bannerImages))
-  console.warn('[Detail] final images:', JSON.stringify(images))
-
   const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
     : levelName.includes('专业') ? 'bg-[#0084FF]'
     : levelName.includes('入门') ? 'bg-[#FF6B00]'
