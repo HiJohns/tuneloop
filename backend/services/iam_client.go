@@ -1627,10 +1627,10 @@ func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenRespo
 }
 
 type AppRegistration struct {
-	AppType            string   `json:"type"`
-	RedirectURIs       []string `json:"redirect_uris"`
-	IsDefault          bool     `json:"is_default,omitempty"`
-	AllowSelfRegister  bool     `json:"allow_self_register,omitempty"`
+	AppType        string   `json:"type"`
+	RedirectURIs   []string `json:"redirect_uris"`
+	IsDefault      bool     `json:"is_default,omitempty"`
+	AllowRegister  bool     `json:"allow_register,omitempty"`
 }
 
 type ActivateNamespaceResponse struct {
@@ -1642,13 +1642,17 @@ type ActivateNamespaceResponse struct {
 
 // ActivateNamespace activates a namespace and creates OAuth apps + same-name org.
 // Uses X-Namespace-Secret auth. Requires beaconiam #169 + #177.
-func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration) (*ActivateNamespaceResponse, error) {
+func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration, allowRegister bool) (*ActivateNamespaceResponse, error) {
 	nsSecret := os.Getenv("IAM_SECRET")
 	if nsSecret == "" {
 		return nil, fmt.Errorf("ActivateNamespace: IAM_SECRET not set")
 	}
 
-	body, err := json.Marshal(map[string]interface{}{"apps": apps})
+	reqBody := map[string]interface{}{"apps": apps}
+	if allowRegister {
+		reqBody["allow_register"] = true
+	}
+	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("ActivateNamespace: marshal failed: %w", err)
 	}
