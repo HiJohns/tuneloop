@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -96,6 +97,32 @@ func GetPublicInstruments(c *gin.Context) {
 		return
 	}
 
+	// Batch query first display image per instrument for thumbnails
+	instrumentIDs := make([]string, len(instruments))
+	for i, inst := range instruments {
+		instrumentIDs[i] = inst.ID
+	}
+	type thumbResult struct {
+		InstrumentID string
+		StorageKey   string
+	}
+	var thumbs []thumbResult
+	db.Raw("SELECT DISTINCT ON (instrument_id) instrument_id, storage_key "+
+		"FROM instrument_media WHERE instrument_id IN ? AND file_type = 'image' "+
+		"ORDER BY instrument_id, sort_order ASC, created_at DESC",
+		instrumentIDs).Scan(&thumbs)
+
+	storage := services.NewMediaStorage()
+	thumbMap := make(map[string]string)
+	for _, t := range thumbs {
+		key := normalizeMediaKey(t.StorageKey)
+		url, _ := storage.GetURL(context.Background(), key)
+		if url == "" {
+			url = "/uploads/media/" + key
+		}
+		thumbMap[t.InstrumentID] = url
+	}
+
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
 		siteName := "-"
@@ -146,6 +173,7 @@ func GetPublicInstruments(c *gin.Context) {
 			"site_address":   siteAddress,
 			"site_phone":     sitePhone,
 			"description":    instrument.Description,
+			"thumbnail":      thumbMap[instrument.ID],
 		})
 	}
 

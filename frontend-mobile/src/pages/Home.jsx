@@ -44,7 +44,7 @@ function InstrumentCard({ instrument, onClick }) {
   const dailyRate = getDailyRate(instrument)
   const monthlyRent = Math.round(dailyRate * 25)
   const levelName = instrument.level_name || ''
-  const thumb = images[0] || INSTRUMENT_PLACEHOLDER
+  const thumb = instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER
 
   const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
     : levelName.includes('专业') ? 'bg-[#0084FF]'
