@@ -253,6 +253,19 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		"specifications":  instrument.Specifications,
 	}
 
+	// Fetch first display image for thumbnail
+	var thumb models.InstrumentMedia
+	if db.Where("instrument_id = ? AND file_type = 'image'", id).
+		Order("sort_order asc, created_at desc").First(&thumb).Error == nil {
+		storage := services.NewMediaStorage()
+		key := normalizeMediaKey(thumb.StorageKey)
+		url, _ := storage.GetURL(c.Request.Context(), key)
+		if url == "" {
+			url = "/uploads/media/" + key
+		}
+		response["thumbnail"] = url
+	}
+
 	// Fetch dynamic properties from instrument_properties table
 	var instrumentProps []models.InstrumentProperty
 	if err := db.Where("instrument_id = ?", id).Find(&instrumentProps).Error; err == nil {

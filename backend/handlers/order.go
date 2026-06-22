@@ -107,9 +107,13 @@ func GetOrder(c *gin.Context) {
 
 	// Fetch user name (graceful fallback)
 	userName := ""
+	userEmail := ""
+	userPhone := ""
 	var user models.User
 	if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {
 		userName = user.Name
+		userEmail = user.Email
+		userPhone = user.Phone
 	}
 
 	// Fetch delivery address from lease_session
@@ -124,6 +128,8 @@ func GetOrder(c *gin.Context) {
 		"tenant_id":          order.TenantID,
 		"user_id":            order.UserID,
 		"user_name":          userName,
+		"user_email":         userEmail,
+		"user_phone":         userPhone,
 		"instrument_id":      order.InstrumentID,
 		"level":              order.Level,
 		"lease_term":         order.LeaseTerm,

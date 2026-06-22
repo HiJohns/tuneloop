@@ -140,13 +140,15 @@ export default function StaffOrderDetail() {
         <View className="mt-3 bg-white px-4 py-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
           <Text className="text-sm font-medium text-gray-900 mb-3">乐器信息</Text>
           <View className="flex gap-3">
-            {instrument.images && (() => {
+            {instrument.thumbnail ? (
+              <Image src={instrument.thumbnail} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+            ) : (instrument.images && (() => {
               try {
                 const imgs = typeof instrument.images === 'string' ? JSON.parse(instrument.images) : instrument.images
                 if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
               } catch {}
               return <View className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">暂无图片</View>
-            })()}
+            })())}
             <View>
               <Text className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</Text>
               <Text className="text-xs text-gray-500">{instrument.category_name || ''}</Text>
@@ -165,7 +167,7 @@ export default function StaffOrderDetail() {
             <User size={18} className="text-gray-400" />
             <View>
               <Text className="text-xs text-gray-400">下单人</Text>
-              <Text className="text-sm font-medium">{order.user_name || '未实名用户'}</Text>
+              <Text className="text-sm font-medium">{order.user_name || order.user_email || order.user_phone || '未实名用户'}</Text>
             </View>
           </View>
           {order.delivery_address && (
