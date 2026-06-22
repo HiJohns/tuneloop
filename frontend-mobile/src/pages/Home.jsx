@@ -95,6 +95,7 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
+  const initialized = useRef(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const listRef = useRef(null)
   const listOffsetRef = useRef(0)
@@ -107,7 +108,10 @@ export default function Home() {
       const result = await res.json()
       if (result.code === 20000) {
         setCategories(result.data?.list || [])
-        if (result.data?.list?.length > 0) setSelectedCategory(result.data.list[0].id)
+        if (result.data?.list?.length > 0 && !initialized.current) {
+          initialized.current = true
+          setSelectedCategory(result.data.list[0].id)
+        }
       }
     } catch {}
   }, [baseUrl, tenant])
