@@ -130,113 +130,105 @@ export default function StaffOrders() {
   }
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-20">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-bold">订单管理</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-3">
+        <View onClick={() => navigate(-1)} className="flex items-center gap-2">
+          <ArrowLeft size={20} className="text-black" />
+        </View>
+        <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
-      <View className="bg-white px-4 py-3 border-b">
-        <View className="flex gap-2 mb-2">
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <View className="flex gap-2 mb-3">
           {MAIN_TABS.map(tab => (
-            <Button
+            <View
               key={tab.key}
               onClick={() => { setMainTab(tab.key); setPage(1); setSubFilter('') }}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium ${
-                mainTab === tab.key ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-600'
+              className={`flex-1 py-2 rounded-lg text-sm font-black text-center ${
+                mainTab === tab.key ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-500'
               }`}
             >
               {tab.label}
-            </Button>
+            </View>
           ))}
         </View>
         <View className="flex gap-2 overflow-x-auto">
           {SUB_FILTERS[mainTab].map(f => (
-            <Button
+            <View
               key={f.key}
               onClick={() => { setSubFilter(f.key); setPage(1) }}
-              className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-                subFilter === f.key ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-600'
+              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${
+                subFilter === f.key ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-600'
               }`}
             >
               {f.label}
-            </Button>
+            </View>
           ))}
         </View>
       </View>
 
       {/* Search Bar */}
-      <View className="bg-white px-4 py-3 border-b">
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <View className="flex gap-2">
           <View className="flex-1 relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="text-zinc-400" style={{ position: 'absolute', left: 12, top: 12 }} />
             <input
               type="text"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               placeholder="输入订单号搜索"
-              className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-zinc-50 rounded-lg text-sm"
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
             />
           </View>
           {env.isWechatBrowser && (
-            <Button onClick={handleQRScan} className="px-3 py-2 border rounded-lg text-gray-600 hover:text-brand-primary flex items-center gap-1">
+            <View onClick={handleQRScan} className="px-3 py-2 bg-zinc-50 rounded-lg flex items-center gap-1">
               <Scan size={18} />
-              <Text className="text-xs">扫码</Text>
-            </Button>
+              <Text className="text-xs font-bold text-zinc-600">扫码</Text>
+            </View>
           )}
         </View>
       </View>
 
       {/* Order List */}
-      <View className="p-4 space-y-3">
+      <View className="px-4 mt-3 space-y-3">
         {loading ? (
-          <View className="text-center text-gray-500 py-8">加载中...</View>
+          <View className="text-center text-zinc-400 py-8 font-medium">加载中...</View>
         ) : orders.length === 0 ? (
-          <View className="text-center text-gray-400 py-12">
+          <View className="text-center text-zinc-400 py-12">
             <Package size={48} className="mx-auto mb-3 opacity-50" />
-            <Text>暂无订单</Text>
+            <Text className="font-medium">暂无订单</Text>
           </View>
         ) : (
           <>
             {orders.map(order => (
               <View
                 key={order.id}
-                className="bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow"
+                className="bg-white rounded-l-2xl shadow-sm pl-7 pr-0 py-4 cursor-pointer"
                 onClick={() => navigate(`/staff/orders/${order.id}`)}
               >
-                <View className="flex justify-between items-start mb-3">
-                  <View>
-                    <Text className="text-sm font-mono font-bold text-gray-900">#{order.id?.slice(0, 12)}</Text>
-                    <Text className="text-xs text-gray-400 mt-0.5">{order.id}</Text>
+                <View className="flex justify-between items-start mb-3 pr-4 min-w-0">
+                  <View className="flex-1 min-w-0 pr-2">
+                    <Text className="text-sm font-black text-black truncate">#{order.id?.slice(0, 8)}</Text>
                   </View>
-                  <Text className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[order.status] || 'bg-gray-100'}`}>
+                  <Text className={`text-xs px-2 py-1 rounded-full font-black flex-shrink-0 ${STATUS_COLORS[order.status] || 'bg-zinc-100 text-zinc-500'}`}>
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
-                <View className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <View className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 font-medium pr-4">
                   {order.user_name && (
-                    <View className="flex items-center gap-1">
-                      <User size={12} />
-                      <Text>{order.user_name}</Text>
-                    </View>
+                    <Text className="flex items-center gap-1"><User size={12} /> {order.user_name}</Text>
                   )}
                   {order.instrument?.sn && (
-                    <View className="flex items-center gap-1">
-                      <Package size={12} />
-                      <Text>{order.instrument.sn}</Text>
-                    </View>
+                    <Text className="flex items-center gap-1"><Package size={12} /> {order.instrument.sn}</Text>
                   )}
                   {order.end_date && (
-                    <View className="flex items-center gap-1">
-                      <Clock size={12} />
-                      <Text>到期 {formatDisplayDate(order.end_date)}</Text>
-                    </View>
+                    <Text className="flex items-center gap-1"><Clock size={12} /> 到期 {formatDisplayDate(order.end_date)}</Text>
                   )}
                 </View>
               </View>
             ))}
-            {loadingMore && <View className="text-center py-4 text-gray-500">加载中...</View>}
+            {loadingMore && <View className="text-center py-4 text-zinc-400 font-medium">加载中...</View>}
             {hasMore && <View ref={sentinelRef} className="h-20" />}
           </>
         )}
