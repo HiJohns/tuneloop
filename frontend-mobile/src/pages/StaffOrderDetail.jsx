@@ -113,23 +113,25 @@ export default function StaffOrderDetail() {
   const showReceiveButton = status === 'returning'
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-24">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-bold">订单详情</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View onClick={() => navigate(-1)}>
+          <ArrowLeft size={20} className="text-black" />
+        </View>
+        <Text className="text-lg font-black text-black">订单详情</Text>
       </View>
 
       {/* Order ID Banner */}
-      <View className="bg-white px-4 py-4 border-b">
-        <Text className="text-xs text-gray-400 mb-1">订单编号</Text>
-        <Text className="text-xl font-mono font-bold text-gray-900 tracking-wide">{id}</Text>
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-xs text-zinc-400 font-medium mb-1">订单编号</Text>
+        <Text className="text-base font-black text-black tracking-wide truncate">{id}</Text>
       </View>
 
       {/* Status */}
-      <View className="bg-white px-4 py-3 border-b">
-        <View className="flex items-center justify-between">
-          <Text className="text-sm text-gray-500">当前状态</Text>
-          <Text className={`text-sm px-3 py-1 rounded-full font-medium ${statusColor}`}>
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <View className="flex items-center justify-between min-w-0">
+          <Text className="text-sm font-bold text-zinc-500">当前状态</Text>
+          <Text className={`text-xs px-3 py-1 rounded-full font-black flex-shrink-0 ${statusColor}`}>
             {statusLabel}
           </Text>
         </View>
@@ -137,45 +139,45 @@ export default function StaffOrderDetail() {
 
       {/* Instrument Info */}
       {instrument && (
-        <View className="mt-3 bg-white px-4 py-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
-          <Text className="text-sm font-medium text-gray-900 mb-3">乐器信息</Text>
-          <View className="flex gap-3">
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm pl-7 pr-0 py-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
+          <Text className="text-base font-black text-black mb-3">乐器信息</Text>
+          <View className="flex gap-3 pr-4">
             {instrument.thumbnail ? (
-              <Image src={instrument.thumbnail} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+              <Image src={instrument.thumbnail} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100 flex-shrink-0" />
             ) : (instrument.images && (() => {
               try {
                 const imgs = typeof instrument.images === 'string' ? JSON.parse(instrument.images) : instrument.images
-                if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100 flex-shrink-0" />
               } catch {}
-              return <View className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">暂无图片</View>
+              return <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center"><Text className="text-xs text-zinc-400">暂无图片</Text></View>
             })())}
-            <View>
-              <Text className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</Text>
-              <Text className="text-xs text-gray-500">{instrument.category_name || ''}</Text>
-              {instrument.tenant_name && <Text className="text-xs text-gray-400 mt-1">{instrument.tenant_name}</Text>}
-              {instrument.site_name && <Text className="text-xs text-gray-400">网点: {instrument.site_name}</Text>}
+            <View className="flex-1 min-w-0">
+              <Text className="text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
+              <Text className="text-xs font-bold text-zinc-500">{instrument.category_name || ''}</Text>
+              {instrument.tenant_name && <Text className="text-xs text-zinc-400 font-medium mt-1">{instrument.tenant_name}</Text>}
+              {instrument.site_name && <Text className="text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
             </View>
           </View>
         </View>
       )}
 
       {/* Customer Info */}
-      <View className="mt-3 bg-white px-4 py-4">
-        <Text className="text-sm font-medium text-gray-900 mb-3">客户信息</Text>
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">客户信息</Text>
         <View className="space-y-3">
           <View className="flex items-center gap-3">
-            <User size={18} className="text-gray-400" />
-            <View>
-              <Text className="text-xs text-gray-400">下单人</Text>
-              <Text className="text-sm font-medium">{order.user_name || order.user_email || order.user_phone || '未实名用户'}</Text>
+            <User size={18} className="text-zinc-400" />
+            <View className="flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400">下单人</Text>
+              <Text className="text-sm font-black text-black truncate">{order.user_name || order.user_email || order.user_phone || '未实名用户'}</Text>
             </View>
           </View>
           {order.delivery_address && (
             <View className="flex items-start gap-3">
-              <MapPin size={18} className="text-gray-400 mt-0.5" />
-              <View>
-                <Text className="text-xs text-gray-400">收货地址</Text>
-                <Text className="text-sm font-medium">{formatDeliveryAddress(order.delivery_address)}</Text>
+              <MapPin size={18} className="text-zinc-400 mt-0.5" />
+              <View className="flex-1 min-w-0">
+                <Text className="text-xs font-bold text-zinc-400">收货地址</Text>
+                <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address)}</Text>
               </View>
             </View>
           )}
@@ -183,28 +185,28 @@ export default function StaffOrderDetail() {
       </View>
 
       {/* Lease Info */}
-      <View className="mt-3 bg-white px-4 py-4">
-        <Text className="text-sm font-medium text-gray-900 mb-3">租期信息</Text>
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">租期信息</Text>
         <View className="space-y-3">
           <View className="flex items-center gap-3">
-            <Calendar size={18} className="text-gray-400" />
+            <Calendar size={18} className="text-zinc-400" />
             <View>
-              <Text className="text-xs text-gray-400">租期起点</Text>
-              <Text className="text-sm font-medium">{startDate}</Text>
+              <Text className="text-xs font-bold text-zinc-400">租期起点</Text>
+              <Text className="text-sm font-black text-black">{startDate}</Text>
             </View>
           </View>
           <View className="flex items-center gap-3">
-            <Clock size={18} className="text-gray-400" />
+            <Clock size={18} className="text-zinc-400" />
             <View>
-              <Text className="text-xs text-gray-400">预计租期天数</Text>
-              <Text className="text-sm font-medium">{rentalDays} 天（{leaseTerm} 个月）</Text>
+              <Text className="text-xs font-bold text-zinc-400">预计租期天数</Text>
+              <Text className="text-sm font-black text-black">{rentalDays} 天（{leaseTerm} 个月）</Text>
             </View>
           </View>
           <View className="flex items-center gap-3">
-            <Calendar size={18} className="text-gray-400" />
+            <Calendar size={18} className="text-zinc-400" />
             <View>
-              <Text className="text-xs text-gray-400">预计到期日</Text>
-              <Text className="text-sm font-medium">{endDate}</Text>
+              <Text className="text-xs font-bold text-zinc-400">预计到期日</Text>
+              <Text className="text-sm font-black text-black">{endDate}</Text>
             </View>
           </View>
         </View>
@@ -212,24 +214,24 @@ export default function StaffOrderDetail() {
 
       {/* Logistics Info */}
       {(order.tracking_number || order.courier_company) && (
-        <View className="mt-3 bg-white px-4 py-4">
-          <Text className="text-sm font-medium text-gray-900 mb-3">物流信息</Text>
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+          <Text className="text-base font-black text-black mb-3">物流信息</Text>
           <View className="space-y-3">
             {order.courier_company && (
               <View className="flex items-center gap-3">
-                <Truck size={18} className="text-gray-400" />
+                <Truck size={18} className="text-zinc-400" />
                 <View>
-                  <Text className="text-xs text-gray-400">物流公司</Text>
-                  <Text className="text-sm font-medium">{order.courier_company}</Text>
+                  <Text className="text-xs font-bold text-zinc-400">物流公司</Text>
+                  <Text className="text-sm font-black text-black">{order.courier_company}</Text>
                 </View>
               </View>
             )}
             {order.tracking_number && (
               <View className="flex items-center gap-3">
-                <Package size={18} className="text-gray-400" />
+                <Package size={18} className="text-zinc-400" />
                 <View>
-                  <Text className="text-xs text-gray-400">物流单号</Text>
-                  <Text className="text-sm font-mono">{order.tracking_number}</Text>
+                  <Text className="text-xs font-bold text-zinc-400">物流单号</Text>
+                  <Text className="text-sm font-mono font-black text-black">{order.tracking_number}</Text>
                 </View>
               </View>
             )}
@@ -238,39 +240,39 @@ export default function StaffOrderDetail() {
       )}
 
       {/* Action Buttons */}
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <View className="space-y-3">
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
+        <View className="space-y-3 max-w-[480px] mx-auto">
           {showShipButton && (
-            <Button
+            <View
               onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
-              className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+              className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
             >
               <Truck size={20} />
-              发货
-            </Button>
+              <Text>发货</Text>
+            </View>
           )}
           {showTransitButton && (
-            <Button
+            <View
               onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
-              className="w-full py-3 bg-cyan-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+              className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
             >
               <Truck size={20} />
-              接收并转发
-            </Button>
+              <Text>接收并转发</Text>
+            </View>
           )}
           {showReceiveButton && (
-            <Button
-              onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
-              className="w-full py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+            <View
+              onClick={() => navigate(`/staff/receiving/${id}`)}
+              className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
             >
               <RotateCcw size={20} />
-              收货
-            </Button>
+              <Text>收货</Text>
+            </View>
           )}
           {(status === 'reserved' || status === 'cancelled' || status === 'shipped' ||
             status === 'in_lease' || status === 'expired' || status === 'returned' ||
             status === 'completed' || status === 'transferred') && (
-            <View className="text-center text-sm text-gray-400 py-2 flex items-center justify-center gap-2">
+            <View className="w-full py-3 rounded-2xl font-black text-zinc-500 flex items-center justify-center gap-2">
               {status === 'reserved' ? (
                 <><Clock size={16} /> 待发货</>
               ) : status === 'shipped' ? (
