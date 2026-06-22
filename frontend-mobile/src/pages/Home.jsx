@@ -53,10 +53,10 @@ function InstrumentCard({ instrument, onClick }) {
 
   return (
     <View className="bg-white rounded-l-2xl p-3 flex items-center shadow-md w-full" onClick={onClick}>
-      <View className="w-28 h-28 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-        <Image src={thumb} className="w-24 h-24 object-contain" />
+      <View className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+        <Image src={thumb} className="w-[72px] h-[72px] object-contain" />
       </View>
-      <View className="flex-1 ml-3 h-28 flex justify-between items-start pr-4 overflow-hidden">
+      <View className="flex-1 ml-3 h-20 flex justify-between items-start pr-4 overflow-hidden">
         <View className="flex flex-col space-y-1 h-full justify-between py-0.5 min-w-0 flex-1">
           <View className="w-full min-w-0">
             <Text className="block text-3xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
@@ -241,11 +241,10 @@ export default function Home() {
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
-                <View className="w-28 h-28 bg-zinc-200 rounded-xl animate-pulse flex-shrink-0" />
-                <View className="flex-1 ml-3 pr-4 space-y-3">
+                <View className="w-20 h-20 bg-zinc-200 rounded-xl animate-pulse flex-shrink-0" />
+                <View className="flex-1 ml-3 pr-4 space-y-2">
                   <View className="h-5 bg-zinc-200 rounded w-3/4 animate-pulse" />
                   <View className="h-4 bg-zinc-200 rounded w-1/2 animate-pulse" />
-                  <View className="h-6 bg-zinc-200 rounded w-1/3 animate-pulse" />
                 </View>
               </View>
             ))
