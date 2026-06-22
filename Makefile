@@ -1,13 +1,10 @@
 .PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
+NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
 
 weapp-check:
-	@if [ "$(NODE_MAJOR)" != "22" ]; then \
-		echo "ERROR: Taro weapp requires Node.js v22 (current: v$(NODE_MAJOR))"; \
-		echo "Run: nvm use 22"; \
-		exit 1; \
-	fi
+	@$(NVM22) echo "Node $$(node -v) ready" || (echo "ERROR: Node 22 not available via nvm"; exit 1)
 
 kill-port:
 	@fuser -k 5556/tcp 2>/dev/null || true
@@ -103,13 +100,13 @@ release: weapp-check clean-prerelease
 	mkdir -p $(RELEASE_BUILD)/tuneloop/www $(RELEASE_BUILD)/tuneloop/mobile \
 	         $(RELEASE_BUILD)/tuneloop/service $(RELEASE_BUILD)/tuneloop/database
 	# PC frontend
-	cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
+	$(NVM22) cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
 	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop/www/
 	# Mobile frontend (Vite H5)
-	cd frontend-mobile && npm run build -- --mode prerelease
+	$(NVM22) cd frontend-mobile && npm run build -- --mode prerelease
 	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop/mobile/
 	# Mobile weapp (Taro)
-	cd frontend-mobile && npm run build:weapp
+	$(NVM22) cd frontend-mobile && npm run build:weapp
 	cp -r frontend-mobile/dist-weapp $(RELEASE_BUILD)/tuneloop/weapp/
 	# Backend
 	cd backend && go build -o $(RELEASE_BUILD)/tuneloop/service/tuneloop .
