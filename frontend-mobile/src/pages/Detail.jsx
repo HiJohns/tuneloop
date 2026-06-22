@@ -194,7 +194,7 @@ export default function Detail() {
   const bannerImages = instrumentImages.length > 0
     ? instrumentImages.map(url => ({ url }))
     : [{ url: PLACEHOLDER_IMAGE }]
-  const liveVideo = displayMedia?.video || null
+  const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
 
 
   useEffect(() => {
@@ -266,7 +266,7 @@ export default function Detail() {
     return <View className="p-4">乐器不存在</View>
   }
 
-  const publicImages = bannerImages.length > 0 && displayMedia?.images ? bannerImages.map(i => i.url || i) : null
+  const publicImages = displayMedia?.images?.length > 0 ? displayMedia.images.map(i => i.url) : null
   const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
