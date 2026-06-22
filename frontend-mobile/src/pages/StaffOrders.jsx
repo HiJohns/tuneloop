@@ -31,7 +31,7 @@ const SUB_FILTERS = {
 const allStatusKeys = ['reserved', 'paid', 'pending_shipment', 'in_transit', 'shipped', 'in_lease', 'expired', 'returning', 'returned', 'completed', 'cancelled', 'transferred']
 
 const STATUS_LABELS = {
-  reserved: '已预约', paid: '待发货', pending_shipment: '待发货',
+  reserved: '待发货', paid: '待发货', pending_shipment: '待发货',
   in_transit: '运输中', shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
   cancelled: '已取消', expired: '超期', transferred: '已过户',

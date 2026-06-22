@@ -8,7 +8,7 @@ import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Package, Truck, RotateCcw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 const STATUS_LABELS = {
-  reserved: '已预约',
+  reserved: '待发货',
   paid: '待发货',
   pending_shipment: '待发货',
   in_transit: '运输中',
@@ -270,7 +270,7 @@ export default function StaffOrderDetail() {
             status === 'completed' || status === 'transferred') && (
             <View className="text-center text-sm text-gray-400 py-2 flex items-center justify-center gap-2">
               {status === 'reserved' ? (
-                <><Clock size={16} /> 等待用户支付</>
+                <><Clock size={16} /> 待发货</>
               ) : status === 'shipped' ? (
                 <><CheckCircle size={16} /> 乐器已发货，等待用户签收</>
               ) : status === 'in_lease' ? (
