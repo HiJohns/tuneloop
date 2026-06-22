@@ -190,9 +190,11 @@ export default function Detail() {
   const [displayMedia, setDisplayMedia] = useState(null)
 
   // computed values — must be after all state declarations
-  const instrumentImages = parseImages(instrument?.images)
-  const bannerImages = instrumentImages.length > 0
-    ? instrumentImages.map(url => ({ url }))
+  const bannerImagesSource = displayMedia?.images?.length > 0
+    ? displayMedia.images.map(i => ({ url: i.url }))
+    : parseImages(instrument?.images).map(url => ({ url }))
+  const bannerImages = bannerImagesSource.length > 0
+    ? bannerImagesSource
     : [{ url: PLACEHOLDER_IMAGE }]
   const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
 
@@ -266,8 +268,6 @@ export default function Detail() {
     return <View className="p-4">乐器不存在</View>
   }
 
-  const publicImages = displayMedia?.images?.length > 0 ? displayMedia.images.map(i => i.url) : null
-  const images = publicImages || parseImages(instrument.images)
   const levelName = instrument.level_name || ''
 
   const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
@@ -304,11 +304,6 @@ export default function Detail() {
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
           ))}
         </View>
-        {liveVideo && (
-          <View className="px-4 mt-2">
-            <Video src={liveVideo.url} poster={liveVideo.thumb_url} controls className="w-full rounded-lg" style={{ maxHeight: 240 }} />
-          </View>
-        )}
       </View>
 
       <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false}>
@@ -343,6 +338,19 @@ export default function Detail() {
             </View>
           </View>
 
+          {/* Video player */}
+          {liveVideo && (
+            <View className="px-0">
+              <Video
+                src={liveVideo.url}
+                poster={liveVideo.thumb_url || ''}
+                controls
+                className="w-full rounded-2xl"
+                style={{ maxHeight: 400 }}
+              />
+            </View>
+          )}
+
           {/* Poster image */}
           {instrument?.poster && (
             <View className="px-0">
@@ -351,19 +359,6 @@ export default function Detail() {
                 className="w-full rounded-2xl object-contain"
                 style={{ maxWidth: 750 }}
                 mode="widthFix"
-              />
-            </View>
-          )}
-
-          {/* Video player */}
-          {instrument?.video && (
-            <View className="px-0">
-              <Video
-                src={instrument.video}
-                poster={instrument.poster || ''}
-                controls
-                className="w-full rounded-2xl"
-                style={{ maxHeight: 400 }}
               />
             </View>
           )}
