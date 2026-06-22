@@ -443,7 +443,7 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	}
 
 	var displayMedia []models.InstrumentMedia
-	db.Where("instrument_id = ? AND is_display = ?", id, true).
+	db.Where("instrument_id = ?", id).
 		Order("sort_order asc, created_at desc").
 		Find(&displayMedia)
 
