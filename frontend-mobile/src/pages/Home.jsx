@@ -59,7 +59,7 @@ function InstrumentCard({ instrument, onClick }) {
       <View className="flex-1 ml-3 h-20 flex justify-between items-start pr-4 overflow-hidden">
         <View className="flex flex-col space-y-1 h-full justify-between py-0.5 min-w-0 flex-1">
           <View className="w-full min-w-0">
-            <Text className="block text-3xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
+            <Text className="block text-[1.4rem] leading-[1.6rem] font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
             <Text className="block text-sm text-zinc-500 font-bold truncate">{instrument.category_name}</Text>
           </View>
           {levelName && (
