@@ -68,7 +68,8 @@ func GetPublicInstruments(c *gin.Context) {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
 	if categoryID != "" {
-		query = query.Where("category_id = ?", categoryID)
+		catIDs := getDescendantCategoryIDs(db, categoryID)
+		query = query.Where("category_id IN ?", catIDs)
 	}
 	if siteID != "" {
 		query = query.Where("current_site_id = ?", siteID)
@@ -508,4 +509,15 @@ func normalizeMediaKey(storageKey string) string {
 		return strings.TrimPrefix(storageKey, "uploads/media/")
 	}
 	return storageKey
+}
+
+// getDescendantCategoryIDs returns the given category ID and all recursive descendant IDs.
+func getDescendantCategoryIDs(db *gorm.DB, parentID string) []string {
+	ids := []string{parentID}
+	var children []struct{ ID string }
+	db.Table("categories").Select("id").Where("parent_id = ?", parentID).Find(&children)
+	for _, child := range children {
+		ids = append(ids, getDescendantCategoryIDs(db, child.ID)...)
+	}
+	return ids
 }

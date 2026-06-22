@@ -114,13 +114,16 @@ export default function Home() {
 
   const fetchInstruments = useCallback(async () => {
     try {
-      const res = await apiFetch(`${baseUrl}/public/instruments?page=1&pageSize=10${tenant ? `&tenant=${tenant}` : ''}`)
+      let url = `${baseUrl}/public/instruments?page=1&pageSize=10`
+      if (selectedCategory) url += `&category_id=${selectedCategory}`
+      if (tenant) url += `&tenant=${tenant}`
+      const res = await apiFetch(url)
       const result = await res.json()
       if (result.code === 20000) {
         setInstruments((result.data?.list || []).filter(i => i.stock_status !== 'archived' && i.stock_status !== 'lost'))
       }
     } catch {}
-  }, [baseUrl, tenant])
+  }, [baseUrl, tenant, selectedCategory])
 
   useEffect(() => {
     fetchCategories()
@@ -213,11 +216,11 @@ export default function Home() {
             <View className="inline-flex items-center space-x-8 pr-4"
               style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap' }}
             >
-              {categories.map(item => (
+              {[{ id: null, name: '全部' }, ...categories].map(item => (
                 <Text
-                  key={item.id}
+                  key={item.id || 'all'}
                   className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 ${scrolled ? 'text-white border-white' : 'text-black border-black'}` : `font-bold ${scrolled ? 'text-white/70' : 'text-zinc-500/90'}`}`}
-                  onClick={() => { setSelectedCategory(item.id); navigateToCategory(item.id) }}
+                  onClick={() => setSelectedCategory(item.id)}
                 >
                   {item.name}
                 </Text>
