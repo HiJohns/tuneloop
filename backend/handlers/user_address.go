@@ -42,7 +42,13 @@ func (h *UserAddressHandler) ListAddresses(c *gin.Context) {
 // CreateAddress creates a new address for the current user
 func (h *UserAddressHandler) CreateAddress(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := middleware.GetUserID(ctx)
+	db := database.GetDB().WithContext(ctx)
+
+	userID, err := middleware.EnsureLocalUser(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "user sync failed: " + err.Error()})
+		return
+	}
 
 	var req struct {
 		RecipientName string `json:"recipient_name"`
@@ -58,7 +64,7 @@ func (h *UserAddressHandler) CreateAddress(c *gin.Context) {
 		return
 	}
 
-	db := database.GetDB().WithContext(ctx)
+	db = database.GetDB().WithContext(ctx)
 
 	// Check for duplicate address
 	var existingCount int64

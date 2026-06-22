@@ -196,13 +196,20 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
-	userID := middleware.GetUserID(ctx)
 	orgID := middleware.GetOrgID(ctx)
+
+	db := database.GetDB().WithContext(ctx)
+
+	userID, err := middleware.EnsureLocalUser(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "user sync failed"})
+		return
+	}
 
 	effectiveTenantID := tenantID
 	effectiveOrgID := orgID
 
-	db := database.GetDB().WithContext(ctx)
+	db = database.GetDB().WithContext(ctx)
 
 	// Look up instrument (no tenant_id filter — guest doesn't know it)
 	var instrument models.Instrument
@@ -444,13 +451,20 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
-	userID := middleware.GetUserID(ctx)
 	orgID := middleware.GetOrgID(ctx)
+
+	db := database.GetDB().WithContext(ctx)
+
+	userID, err := middleware.EnsureLocalUser(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "user sync failed"})
+		return
+	}
 
 	effectiveTenantID := tenantID
 	effectiveOrgID := orgID
 
-	db := database.GetDB().WithContext(ctx)
+	db = database.GetDB().WithContext(ctx)
 
 	// Verify all instruments are available (no tenant_id filter for guests)
 	for _, item := range req.Items {

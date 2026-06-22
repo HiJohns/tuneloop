@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -449,6 +451,37 @@ func GetName(ctx context.Context) string {
 		return name
 	}
 	return ""
+}
+
+// EnsureLocalUser ensures a local users record exists for the JWT-authenticated user.
+// Returns the local user ID. Creates a shadow user record if none exists.
+func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
+	iamSub := GetUserID(ctx)
+	if iamSub == "" {
+		return "", fmt.Errorf("no user ID in context")
+	}
+	var user models.User
+	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err == nil {
+		return user.ID, nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", fmt.Errorf("failed to query user: %w", err)
+	}
+
+	user = models.User{
+		IAMSub:   iamSub,
+		TenantID: GetTenantID(ctx),
+		OrgID:    GetOrgID(ctx),
+		Name:     GetName(ctx),
+		Status:   "active",
+		IsShadow: true,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		if err2 := db.Where("iam_sub = ?", iamSub).First(&user).Error; err2 == nil {
+			return user.ID, nil
+		}
+		return "", fmt.Errorf("failed to create user: %w", err)
+	}
+	return user.ID, nil
 }
 
 func GetBusinessRole(ctx context.Context) string {
