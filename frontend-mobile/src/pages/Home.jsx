@@ -95,6 +95,7 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
+  const topCategories = categories.filter(c => !c.parent_id)
   const initialized = useRef(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const listRef = useRef(null)
@@ -107,10 +108,11 @@ export default function Home() {
       const res = await apiFetch(`${baseUrl}/public/categories${tenant ? `?tenant=${tenant}` : ''}`)
       const result = await res.json()
       if (result.code === 20000) {
+        const topList = result.data?.list?.filter(c => !c.parent_id) || []
         setCategories(result.data?.list || [])
-        if (result.data?.list?.length > 0 && !initialized.current) {
+        if (topList.length > 0 && !initialized.current) {
           initialized.current = true
-          setSelectedCategory(result.data.list[0].id)
+          setSelectedCategory(topList[0].id)
         }
       }
     } catch {}
@@ -220,7 +222,7 @@ export default function Home() {
             <View className="inline-flex items-center space-x-8 pr-4"
               style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap' }}
             >
-              {[{ id: null, name: '全部' }, ...categories].map(item => (
+              {[{ id: null, name: '全部' }, ...topCategories].map(item => (
                 <Text
                   key={item.id || 'all'}
                   className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 ${scrolled ? 'text-white border-white' : 'text-black border-black'}` : `font-bold ${scrolled ? 'text-white/70' : 'text-zinc-500/90'}`}`}
