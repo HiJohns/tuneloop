@@ -69,7 +69,11 @@ export default function InstrumentDetailUser() {
     )
   }
 
-  const images = instrument.images || []
+  const images = (() => {
+    if (!instrument.images) return []
+    if (Array.isArray(instrument.images)) return instrument.images
+    try { return JSON.parse(instrument.images) } catch { return [] }
+  })()
 
   return (
     <div className="p-6">
