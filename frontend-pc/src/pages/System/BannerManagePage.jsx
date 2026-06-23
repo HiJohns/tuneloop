@@ -149,7 +149,7 @@ export default function BannerManagePage() {
           <Form.Item label="图片" extra="支持上传或输入图片URL">
             <Upload
               action={`${API_BASE_URL}/upload`}
-              name="image"
+              name="file"
               showUploadList={false}
               onChange={(info) => {
                 if (info.file.status === 'done') {
