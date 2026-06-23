@@ -206,18 +206,20 @@ export default function ShippingInterface() {
               </Text>
               <View className="flex gap-3">
                 {(() => {
-                  try {
-                    const imgs = JSON.parse(instrument.images || '[]')
-                    if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
-                  } catch {}
-                  return <Image src={PLACEHOLDER_IMAGE} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                  const thumbnail = instrument.thumbnail
+                  const imgs = (() => {
+                    try { return JSON.parse(instrument.images || '[]') } catch { return [] }
+                  })()
+                  if (thumbnail) return <Image src={thumbnail} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100 flex-shrink-0" />
+                  if (Array.isArray(imgs) && imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100 flex-shrink-0" />
+                  return <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center flex-shrink-0"><Text className="text-xs text-zinc-400">暂无图片</Text></View>
                 })()}
-                <View className="flex-1 min-w-0 space-y-1">
-                  <Text className="text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
-                  <Text className="text-xs font-bold text-zinc-500">{instrument.category_name || ''}</Text>
-                  {instrument.level_name && <Text className="text-xs font-bold text-zinc-500">级别: {instrument.level_name}</Text>}
-                  {instrument.tenant_name && <Text className="text-xs text-zinc-400 font-medium">商户: {instrument.tenant_name}</Text>}
-                  {instrument.site_name && <Text className="text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
+                <View className="flex-1 min-w-0">
+                  <Text className="block text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
+                  <Text className="block text-xs font-bold text-zinc-500">{instrument.category_name || ''}</Text>
+                  {instrument.level_name && <Text className="block text-xs font-bold text-zinc-500">级别: {instrument.level_name}</Text>}
+                  {instrument.tenant_name && <Text className="block text-xs text-zinc-400 font-medium mt-1">商户: {instrument.tenant_name}</Text>}
+                  {instrument.site_name && <Text className="block text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
                 </View>
               </View>
             </View>
