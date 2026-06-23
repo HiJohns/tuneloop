@@ -41,7 +41,12 @@ func GetOrders(c *gin.Context) {
 	} else {
 		// 顾客无租户：只看自己的订单
 		if userID != "" {
-			query = query.Where("user_id = ?", userID)
+			var localUser models.User
+			if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+				query = query.Where("user_id = ?", localUser.ID)
+			} else {
+				query = query.Where("user_id = ?", userID)
+			}
 		}
 	}
 
