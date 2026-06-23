@@ -89,7 +89,7 @@ export default function OrderDetail() {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/pay`, { method: 'POST' })
       const result = await resp.json()
       if (result.code === 20000) {
-        navigate('/profile')
+          navigate('/my-leases')
       } else {
         dialog.alert('支付失败: ' + result.message)
       }
