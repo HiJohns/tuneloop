@@ -148,7 +148,7 @@ export default function Profile() {
         </View>
 
         {/* 2. 金刚过滤区 — 员工 vs 顾客 */}
-        <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid grid-cols-4 gap-2 text-center">
+        <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 grid grid-cols-3 gap-2 text-center">
           {isStaff ? (
             <>
               <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/staff/instruments')}>
@@ -162,10 +162,6 @@ export default function Profile() {
               <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/staff/shipping')}>
                 <View className="text-2xl mb-1">📤</View>
                 <Text className="text-xs font-bold text-zinc-700">发货</Text>
-              </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/staff/orders')}>
-                <View className="text-2xl mb-1">📋</View>
-                <Text className="text-xs font-bold text-zinc-700">订单</Text>
               </View>
             </>
           ) : (
