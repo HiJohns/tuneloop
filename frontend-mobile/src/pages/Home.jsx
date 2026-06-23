@@ -121,7 +121,7 @@ export default function Home() {
 
   const fetchInstruments = useCallback(async () => {
     try {
-      let url = `${baseUrl}/public/instruments?page=1&pageSize=10`
+      let url = `${baseUrl}/public/instruments?page=1&pageSize=50`
       if (selectedCategory) url += `&category_id=${selectedCategory}`
       if (tenant) url += `&tenant=${tenant}`
       const res = await apiFetch(url)
