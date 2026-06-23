@@ -233,10 +233,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Ensure user exists locally (guest may not have a local record yet)
 	var existingUser models.User
 	if err := db.Where("id = ?", userID).First(&existingUser).Error; err != nil {
+		iamSub := middleware.GetUserID(ctx)
 		nilUUID := "00000000-0000-0000-0000-000000000000"
 		shadowUser := models.User{
 			ID:        userID,
-			IAMSub:    userID,
+			IAMSub:    iamSub,
 			TenantID:  nilUUID,
 			OrgID:     nilUUID,
 			IsShadow:  true,
@@ -494,10 +495,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	// Ensure user exists locally (guest may not have a local record yet)
 	var existingUser models.User
 	if err := db.Where("id = ?", userID).First(&existingUser).Error; err != nil {
+		iamSub := middleware.GetUserID(ctx)
 		nilUUID := "00000000-0000-0000-0000-000000000000"
 		shadowUser := models.User{
 			ID:        userID,
-			IAMSub:    userID,
+			IAMSub:    iamSub,
 			TenantID:  nilUUID,
 			OrgID:     nilUUID,
 			IsShadow:  true,

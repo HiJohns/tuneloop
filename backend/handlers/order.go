@@ -89,7 +89,14 @@ func GetOrder(c *gin.Context) {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
 	if middleware.GetRole(c.Request.Context()) == "USER" && userID != "" {
-		query = query.Where("user_id = ?", userID)
+		// Resolve local user ID from IAM sub (order stores local UUID, not IAM sub)
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+			query = query.Where("user_id = ?", localUser.ID)
+		} else {
+			// Fallback to direct IAM sub comparison (shadow user where ID == iam_sub)
+			query = query.Where("user_id = ?", userID)
+		}
 	}
 	if err := query.First(&order).Error; err != nil {
 		if err.Error() == "record not found" {
