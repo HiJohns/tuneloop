@@ -7,8 +7,8 @@ import banner1 from '../assets/home/banner_1.png'
 import banner2 from '../assets/home/banner_2.png'
 import banner3 from '../assets/home/banner_3.png'
 
-const banners = [banner1, banner2, banner3]
-const bannerBgColors = ['#915F38', '#7D553D', '#4A6B7C']
+const DEFAULT_BANNERS = [banner1, banner2, banner3]
+const DEFAULT_BG_COLORS = ['#915F38', '#7D553D', '#4A6B7C']
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
@@ -92,6 +92,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
+  const [banners, setBanners] = useState([])
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
@@ -131,17 +132,33 @@ export default function Home() {
     } catch {}
   }, [baseUrl, tenant, selectedCategory])
 
+  const fetchBanners = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${baseUrl}/public/banners`)
+      const result = await res.json()
+      if (result.code === 20000 && result.data?.list?.length > 0) {
+        setBanners(result.data.list)
+      } else {
+        setBanners(DEFAULT_BANNERS.map((src, i) => ({ image_url: src, bg_color: DEFAULT_BG_COLORS[i] })))
+      }
+    } catch {
+      setBanners(DEFAULT_BANNERS.map((src, i) => ({ image_url: src, bg_color: DEFAULT_BG_COLORS[i] })))
+    }
+  }, [baseUrl])
+
   useEffect(() => {
     fetchCategories()
     fetchInstruments().finally(() => setLoading(false))
-  }, [fetchCategories, fetchInstruments])
+    fetchBanners()
+  }, [fetchCategories, fetchInstruments, fetchBanners])
 
   useEffect(() => {
+    const bannerLen = banners.length > 0 ? banners.length : 3
     const timer = setInterval(() => {
-      setCurrentBanner(prev => (prev + 1) % 3)
+      setCurrentBanner(prev => (prev + 1) % bannerLen)
     }, 4000)
     return () => clearInterval(timer)
-  }, [])
+  }, [banners.length])
 
   useEffect(() => {
     if (listRef.current) {
@@ -167,26 +184,33 @@ export default function Home() {
     <View className="h-screen w-screen overflow-hidden flex flex-col relative antialiased">
       {/* Z=0: Full-screen carousel background */}
       <View className="fixed inset-0 w-full h-full z-0">
-        <View className="flex flex-row h-full" style={{
-          width: '300%',
-          transform: `translateX(-${currentBanner * 33.3333}%)`,
-          transition: 'transform 0.5s ease-in-out'
-        }}>
-          {banners.map((src, i) => (
-            <View key={i} className="h-full flex flex-col" style={{ width: '33.3333%' }}>
-              <View className="w-full h-[240px] flex-shrink-0">
-                <Image src={src} className="w-full h-full object-cover" />
+        {banners.length > 0 && (
+          <View className="flex flex-row h-full" style={{
+            width: `${banners.length * 100}%`,
+            transform: `translateX(-${currentBanner * (100 / banners.length)}%)`,
+            transition: 'transform 0.5s ease-in-out'
+          }}>
+            {banners.map((item, i) => (
+              <View
+                key={i}
+                className="h-full flex flex-col"
+                style={{ width: `${100 / banners.length}%` }}
+                onClick={() => item.link_url && navigate(item.link_url)}
+              >
+                <View className="w-full h-[240px] flex-shrink-0">
+                  <Image src={item.image_url} className="w-full h-full object-cover" />
+                </View>
+                <View className="flex-1" style={{ backgroundColor: item.bg_color || '#915F38' }} />
               </View>
-              <View className="flex-1" style={{ backgroundColor: bannerBgColors[i] }} />
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Carousel dots — fixed at bottom of banner */}
       <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ top: '246px' }}>
         <View className="flex items-center space-x-1.5">
-          {[0, 1, 2].map(i => (
+          {(banners.length > 0 ? banners : DEFAULT_BANNERS).map((_, i) => (
             <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
           ))}
         </View>
