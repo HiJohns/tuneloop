@@ -173,23 +173,20 @@ export default function OrderDetail() {
   const showStaffReceive = isStaff && status === 'returning'
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-24">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-bold">订单详情</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <Text className="text-lg font-black text-black">订单详情</Text>
       </View>
 
-      {/* Order ID */}
-      <View className="bg-white px-4 py-4 border-b">
-        <Text className="text-xs text-gray-400 mb-1">订单编号</Text>
-        <Text className="text-xl font-mono font-bold text-gray-900 tracking-wide">{id}</Text>
-      </View>
-
-      {/* Status */}
-      <View className="bg-white px-4 py-3 border-b">
-        <View className="flex items-center justify-between">
-          <Text className="text-sm text-gray-500">当前状态</Text>
-          <Text className={`text-sm px-3 py-1 rounded-full font-medium ${statusColor}`}>
+      <ScrollView>
+      {/* Order ID + Status */}
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-xs text-zinc-400 font-medium mb-1">订单编号</Text>
+        <Text className="text-xs font-black text-black tracking-wide truncate">{id}</Text>
+        <View className="flex items-center justify-between min-w-0 mt-3">
+          <Text className="text-sm font-bold text-zinc-500">当前状态</Text>
+          <Text className={`text-xs px-3 py-1 rounded-full font-black flex-shrink-0 ${statusColor}`}>
             {statusLabel}
           </Text>
         </View>
@@ -201,7 +198,7 @@ export default function OrderDetail() {
           <View className="flex items-start gap-3">
             <AlertTriangle size={20} className="text-red-500 mt-0.5" />
             <View>
-              <Text className="text-sm font-medium text-red-700">租约已超期</Text>
+              <Text className="text-sm font-black text-red-700">租约已超期</Text>
               <Text className="text-xs text-red-600 mt-1">
                 超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{overdueFee}
                 <Text className="block mt-0.5">（¥{(monthlyRent / 30).toFixed(2)}/天）</Text>
@@ -211,48 +208,47 @@ export default function OrderDetail() {
         </View>
       )}
 
+      {/* Instrument Info */}
       {instrument && (
-        <View className="mt-3 bg-white px-4 py-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
-          <Text className="text-sm font-medium text-gray-900 mb-3">乐器信息</Text>
-          <View className="flex gap-3">
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm pl-7 pr-0 py-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
+          <Text className="text-base font-black text-black mb-3">乐器信息</Text>
+          <View className="flex gap-3 pr-4">
             {instrument.images && (() => {
               try {
-                const imgs = typeof instrument.images === 'string'
-                  ? JSON.parse(instrument.images)
-                  : instrument.images
-                if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded bg-gray-100" />
+                const imgs = typeof instrument.images === 'string' ? JSON.parse(instrument.images) : instrument.images
+                if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100 flex-shrink-0" />
               } catch {}
-              return null
+              return <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center"><Text className="text-xs text-zinc-400">暂无图片</Text></View>
             })()}
-            <View>
-              <Text className="block text-sm font-mono font-medium">SN: {instrument.sn || '-'}</Text>
-              <Text className="block text-xs text-gray-500">{instrument.category_name}</Text>
-              {instrument.level_name && <Text className="block text-xs text-gray-500">级别: {instrument.level_name}</Text>}
-              {instrument.tenant_name && <Text className="block text-xs text-gray-400 mt-1">商户: {instrument.tenant_name}</Text>}
-              {instrument.site_name && <Text className="block text-xs text-gray-400">网点: {instrument.site_name}</Text>}
+            <View className="flex-1 min-w-0">
+              <Text className="block text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
+              <Text className="block text-xs font-bold text-zinc-500">{instrument.category_name}</Text>
+              {instrument.level_name && <Text className="block text-xs font-bold text-zinc-500">级别: {instrument.level_name}</Text>}
+              {instrument.tenant_name && <Text className="block text-xs text-zinc-400 font-medium mt-1">商户: {instrument.tenant_name}</Text>}
+              {instrument.site_name && <Text className="block text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
             </View>
           </View>
         </View>
       )}
 
-      {/* Contact Info */}
-      <View className="mt-3 bg-white px-4 py-4">
-        <Text className="text-sm font-medium text-gray-900 mb-3">配送信息</Text>
+      {/* Customer Info */}
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">配送信息</Text>
         <View className="space-y-3">
           {order.user_name && (
-            <View className="flex items-center gap-3">
-              <User size={18} className="text-gray-400" />
+            <View className="flex items-start gap-3">
+              <User size={18} className="text-zinc-400 mt-0.5" />
               <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs text-gray-400 w-14 flex-shrink-0">下单人</Text>
-                <Text className="text-sm font-medium text-black">{order.user_name}</Text>
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">下单人</Text>
+                <Text className="text-sm font-black text-black truncate">{order.user_name}</Text>
               </View>
             </View>
           )}
           {order.delivery_address && (
             <View className="flex items-start gap-3">
-              <MapPin size={18} className="text-gray-400 mt-0.5" />
+              <MapPin size={18} className="text-zinc-400 mt-0.5" />
               <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs text-gray-400 w-14 flex-shrink-0">收货地址</Text>
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">收货地址</Text>
                 <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address)}</Text>
               </View>
             </View>
@@ -261,100 +257,101 @@ export default function OrderDetail() {
       </View>
 
       {/* Lease Info */}
-      <View className="mt-3 bg-white px-4 py-4">
-        <Text className="text-sm font-medium text-gray-900 mb-3">租期信息</Text>
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">租期信息</Text>
         <View className="space-y-3">
           {startDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-gray-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs text-gray-400 w-14 flex-shrink-0">租期起点</Text>
-                <Text className="text-sm font-medium text-black">{startDate}</Text>
-              </View>
+          <View className="flex items-start gap-3">
+            <Calendar size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租期起点</Text>
+              <Text className="text-sm font-black text-black">{startDate}</Text>
             </View>
+          </View>
           )}
           {leaseTerm !== undefined && (
-            <View className="flex items-start gap-3">
-              <Clock size={18} className="text-gray-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs text-gray-400 w-14 flex-shrink-0">预计租期</Text>
-                <Text className="text-sm font-medium text-black">{rentalDays} 天（{leaseTerm} 个月）</Text>
-              </View>
+          <View className="flex items-start gap-3">
+            <Clock size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计租期</Text>
+              <Text className="text-sm font-black text-black">{rentalDays} 天（{leaseTerm} 个月）</Text>
             </View>
+          </View>
           )}
           {endDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-gray-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs text-gray-400 w-14 flex-shrink-0">预计到期</Text>
-                <Text className="text-sm font-medium text-black">{endDate}</Text>
-              </View>
+          <View className="flex items-start gap-3">
+            <Calendar size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计到期</Text>
+              <Text className="text-sm font-black text-black">{endDate}</Text>
             </View>
+          </View>
           )}
         </View>
       </View>
 
-      {/* Price Info */}
-      <View className="mt-3 bg-white px-4 py-4">
-        <Text className="text-sm font-medium text-gray-900 mb-3">费用信息</Text>
+      {/* Fee Info */}
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">费用信息</Text>
         <View className="space-y-2">
           <View className="flex justify-between text-sm">
-            <Text className="text-gray-500">租金</Text>
-            <Text className="font-medium">¥{monthlyRent}</Text>
+            <Text className="text-zinc-500 font-medium">租金</Text>
+            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{monthlyRent}</Text>
           </View>
           <View className="flex justify-between text-sm">
-            <Text className="text-gray-500">押金</Text>
-            <Text className="font-medium">¥{deposit}</Text>
+            <Text className="text-zinc-500 font-medium">押金</Text>
+            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
           </View>
           <View className="flex justify-between text-sm">
-            <Text className="text-gray-500">物流费</Text>
-            <Text className="font-medium">¥{shippingFee}</Text>
+            <Text className="text-zinc-500 font-medium">物流费</Text>
+            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{shippingFee}</Text>
           </View>
           {overdueFee > 0 && (
           <>
           <View className="flex justify-between text-sm">
-            <Text className="text-gray-500">逾期费用</Text>
-            <Text className="font-medium text-red-500">¥{overdueFee}</Text>
+            <Text className="text-zinc-500 font-medium">逾期费用</Text>
+            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{overdueFee}</Text>
           </View>
           <View className="flex justify-between text-sm">
-            <Text className="text-gray-400">  逾期日费</Text>
-            <Text className="font-normal text-gray-500">¥{(monthlyRent / 30).toFixed(2)}/天</Text>
+            <Text className="text-zinc-400">  逾期日费</Text>
+            <Text className="text-zinc-400 flex-shrink-0 ml-auto whitespace-nowrap">¥{(monthlyRent / 30).toFixed(2)}/天</Text>
           </View>
           </>
           )}
-          <View className="flex justify-between text-sm border-t border-gray-100 pt-2 mt-2">
-            <Text className="text-gray-900 font-medium">合计</Text>
-            <Text className="font-bold text-black">¥{totalAmount}</Text>
+          <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
+            <Text className="text-zinc-900 font-bold">合计</Text>
+            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount}</Text>
           </View>
         </View>
       </View>
 
       {/* Logistics */}
       {(order.tracking_number || order.courier_company) && (
-        <View className="mt-3 bg-white px-4 py-4">
-          <Text className="text-sm font-medium text-gray-900 mb-3">物流信息</Text>
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+          <Text className="text-base font-black text-black mb-3">物流信息</Text>
           <View className="space-y-3">
             {order.courier_company && (
-              <View className="flex items-center gap-3">
-                <Truck size={18} className="text-gray-400" />
-                <View>
-                  <Text className="text-xs text-gray-400">物流公司</Text>
-                  <Text className="text-sm font-medium">{order.courier_company}</Text>
-                </View>
+            <View className="flex items-start gap-3">
+              <Truck size={18} className="text-zinc-400 mt-0.5" />
+              <View className="flex items-start flex-1 min-w-0">
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">物流公司</Text>
+                <Text className="text-sm font-black text-black">{order.courier_company}</Text>
               </View>
+            </View>
             )}
             {order.tracking_number && (
-              <View className="flex items-center gap-3">
-                <Package size={18} className="text-gray-400" />
-                <View>
-                  <Text className="text-xs text-gray-400">物流单号</Text>
-                  <Text className="text-sm font-mono">{order.tracking_number}</Text>
-                </View>
+            <View className="flex items-start gap-3">
+              <Package size={18} className="text-zinc-400 mt-0.5" />
+              <View className="flex items-start flex-1 min-w-0">
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">物流单号</Text>
+                <Text className="text-sm font-mono font-black text-black">{order.tracking_number}</Text>
               </View>
+            </View>
             )}
           </View>
         </View>
       )}
+      </ScrollView>
 
       {/* Action Buttons */}
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
@@ -362,107 +359,70 @@ export default function OrderDetail() {
           {isStaff ? (
             <>
               {showStaffShip && (
-                <View
-                  onClick={() => navigate(`/staff/shipping?order=${id}`)}
-                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
-                >
-                  <Truck size={20} />
-                  <Text>发货</Text>
+                <View onClick={() => navigate(`/staff/shipping?order=${id}`)}
+                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <Truck size={20} /><Text>发货</Text>
                 </View>
               )}
               {showStaffTransit && (
-                <View
-                  onClick={() => navigate(`/staff/shipping?order=${id}`)}
-                  className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
-                >
-                  <Truck size={20} />
-                  <Text>接收并转发</Text>
+                <View onClick={() => navigate(`/staff/shipping?order=${id}`)}
+                  className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <Truck size={20} /><Text>接收并转发</Text>
                 </View>
               )}
               {showStaffReceive && (
-                <View
-                  onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
-                  className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
-                >
-                  <RotateCcw size={20} />
-                  <Text>收货</Text>
+                <View onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
+                  className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <RotateCcw size={20} /><Text>收货</Text>
                 </View>
               )}
               {(status === 'reserved' || status === 'cancelled' || status === 'shipped' ||
                 status === 'in_lease' || status === 'expired' || status === 'returned' ||
                 status === 'completed' || status === 'transferred') && (
                 <View className="w-full py-3 rounded-2xl font-black text-zinc-500 flex items-center justify-center gap-2">
-                  {status === 'reserved' ? (
-                    <><Clock size={16} /> 当前状态：{statusLabel}</>
-                  ) : status === 'shipped' ? (
-                    <><CheckCircle size={16} /> 乐器已发货，等待用户签收</>
-                  ) : status === 'in_lease' ? (
-                    <><CheckCircle size={16} /> 租赁中</>
-                  ) : status === 'expired' ? (
-                    <><AlertTriangle size={16} /> 租约已超期</>
-                  ) : status === 'returned' || status === 'completed' ? (
-                    <><CheckCircle size={16} /> 该订单已完成</>
-                  ) : status === 'cancelled' ? (
-                    <><XCircle size={16} /> 该订单已取消</>
-                  ) : status === 'transferred' ? (
-                    <><CheckCircle size={16} /> 已过户</>
-                  ) : null}
+                  {status === 'reserved' ? (<><Clock size={16} /> 未支付</>)
+                  : status === 'shipped' ? (<><CheckCircle size={16} /> 乐器已发货，等待用户签收</>)
+                  : status === 'in_lease' ? (<><CheckCircle size={16} /> 租赁中</>)
+                  : status === 'expired' ? (<><AlertTriangle size={16} /> 租约已超期</>)
+                  : status === 'returned' || status === 'completed' ? (<><CheckCircle size={16} /> 该订单已完成</>)
+                  : status === 'cancelled' ? (<><XCircle size={16} /> 该订单已取消</>)
+                  : status === 'transferred' ? (<><CheckCircle size={16} /> 已过户</>) : null}
                 </View>
               )}
             </>
           ) : (
             <>
               {showPayButton && (
-                <Button
-                  onClick={handlePay}
-                  disabled={actionLoading}
-                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <CreditCard size={20} />
-                  {actionLoading ? '处理中...' : '支付'}
+                <Button onClick={handlePay} disabled={actionLoading}
+                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
+                  <CreditCard size={20} />{actionLoading ? '处理中...' : '支付'}
                 </Button>
               )}
               {showCancelButton && (
-                <Button
-                  onClick={handleCancel}
-                  disabled={actionLoading}
-                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <XCircle size={20} />
-                  {actionLoading ? '处理中...' : '取消订单'}
+                <Button onClick={handleCancel} disabled={actionLoading}
+                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
+                  <XCircle size={20} />{actionLoading ? '处理中...' : '取消订单'}
                 </Button>
               )}
               {showReceiveButton && (
-                <View
-                  onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
-                  className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
-                >
-                  <CheckCircle size={20} />
-                  确认收货
+                <View onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
+                  className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <CheckCircle size={20} />确认收货
                 </View>
               )}
               {showReturnButton && (
-                <View
-                  onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
-                  className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
-                >
-                  <RotateCcw size={20} />
-                  归还
+                <View onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
+                  className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <RotateCcw size={20} />归还
                 </View>
               )}
               {isTerminal && (
                 <View className="w-full py-3 rounded-2xl font-black text-zinc-500 flex items-center justify-center gap-2">
-                  {status === 'completed' || status === 'returned' ? (
-                    <><CheckCircle size={16} /> 该订单已完成</>
-                  ) : status === 'cancelled' ? (
-                    <><XCircle size={16} /> 该订单已取消</>
-                  ) : status === 'returning' ? (
-                    <><RotateCcw size={16} /> 乐器归还中，等待验收</>
-                  ) : status === 'transferred' ? (
-                    <><CheckCircle size={16} /> 已过户</>
-                  ) : (
-                    <>{statusLabel}</>
-                  )}
+                  {status === 'completed' || status === 'returned' ? (<><CheckCircle size={16} /> 该订单已完成</>)
+                  : status === 'cancelled' ? (<><XCircle size={16} /> 该订单已取消</>)
+                  : status === 'returning' ? (<><RotateCcw size={16} /> 乐器归还中，等待验收</>)
+                  : status === 'transferred' ? (<><CheckCircle size={16} /> 已过户</>)
+                  : (<>{statusLabel}</>)}
                 </View>
               )}
             </>
