@@ -59,8 +59,8 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"customer": {
 		Name:         "顾客",
 		SysPermBits:  []int{},
-		CusPermCodes: []string{"order:create", "order:read", "order:cancel", "appeal:create"},
-		Description:  "顾客基础权限（下单/查看/取消/申诉）",
+		CusPermCodes: []string{},
+		Description:  "顾客基础权限（所有权模型，不依赖 cus_perm）",
 	},
 }
 

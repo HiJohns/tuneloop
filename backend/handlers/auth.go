@@ -180,6 +180,22 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	} else {
 		// Set tenant_id in context from claims
 		c.Set("tenant_id", claims.TenantID)
+
+		// Sync IAM user to local users table (same pattern as WxLogin)
+		var existing models.User
+		if err := h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error; err != nil {
+			newUser := models.User{
+				IAMSub:   claims.UserID,
+				TenantID: claims.TenantID,
+				OrgID:    claims.OrgID,
+				Name:     claims.Name,
+				Role:     "USER",
+				Status:   "active",
+			}
+			if createErr := h.db.Create(&newUser).Error; createErr != nil {
+				log.Printf("[Auth] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
+			}
+		}
 	}
 
 	// Set access_token and refresh_token cookies
