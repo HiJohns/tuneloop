@@ -417,6 +417,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.PricingTemplate{},
 		&models.MerchantPricingConfig{},
 		&models.UserAddress{},
+		&models.Banner{},
 	}
 
 	for _, m := range modelsToValidate {

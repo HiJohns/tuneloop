@@ -85,6 +85,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	warehouseHandler := handlers.NewWarehouseHandler()
 	userRentalHandler := handlers.NewUserRentalHandler()
 	userAddressHandler := handlers.NewUserAddressHandler()
+	bannerHandler := handlers.NewBannerHandler()
 
 	// Bulk import handler (Issue #423)
 	bulkImportHandler := handlers.NewBulkImportHandler(iamClient, permRegistry)
@@ -189,6 +190,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/instruments/:id/display-media", handlers.GetPublicInstrumentDisplayMedia)
 	api.GET("/public/categories", handlers.GetPublicCategories)
 	api.GET("/public/sites", handlers.GetPublicSites)
+	api.GET("/public/banners", bannerHandler.GetPublicBanners)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())
@@ -230,6 +232,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		categoryAdmin.PUT("/categories/:id", handlers.UpdateCategory)
 		categoryAdmin.DELETE("/categories/:id", handlers.DeleteCategory)
 		categoryAdmin.PUT("/categories/sort", handlers.UpdateCategorySort)
+
+		// Banner writes — namespace_admin only (banner:manage cus_perm)
+		bannerAdmin := authRequired.Group("")
+		bannerAdmin.Use(middleware.RequireCusPerm("banner:manage"))
+		bannerAdmin.GET("/admin/banners", bannerHandler.ListBanners)
+		bannerAdmin.POST("/admin/banners", bannerHandler.CreateBanner)
+		bannerAdmin.PUT("/admin/banners/:id", bannerHandler.UpdateBanner)
+		bannerAdmin.DELETE("/admin/banners/:id", bannerHandler.DeleteBanner)
+
 		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
 		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
 		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)

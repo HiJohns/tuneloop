@@ -710,3 +710,16 @@ type SystemSetting struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 	UpdatedBy    string    `gorm:"type:varchar(255)" json:"updated_by"`
 }
+
+// Banner stores WeChat homepage carousel images
+type Banner struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index" json:"tenant_id"`
+	ImageURL  string    `gorm:"type:varchar(500);not null" json:"image_url"`
+	LinkURL   string    `gorm:"type:varchar(500)" json:"link_url"`
+	Title     string    `gorm:"type:varchar(200)" json:"title"`
+	SortOrder int       `gorm:"default:0;index" json:"sort_order"`
+	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}

@@ -122,7 +122,7 @@ func BootstrapIAM(db *gorm.DB) error {
 					orgID := appCredentials["_org_id"]
 					appCredentialsLock.RUnlock()
 					if orgID != "" {
-						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage"}
+						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage", "banner:manage"}
 						nsAdminCusPerm, nsAdminCusPermExt := ComputeCusPermBitmapExt(nsAdminCusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
 						permClient := iamClient
 						if webClient := GetWebIAMClient(); webClient != nil {
