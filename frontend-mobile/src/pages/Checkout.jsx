@@ -489,15 +489,19 @@ function BatchCheckout({ navigate }) {
         end_date: dayjs().add(item.rent_qty || 30, 'day').format('YYYY-MM-DD'),
       }))
       const body = { items }
-      if (deliveryAddress) body.delivery_address = deliveryAddress
-      const resp = await ordersApi.batchCreate(body)
-      if (resp.code === 20000) {
-        storage.removeItem('cart')
-        eventBus.emit('cartUpdated')
-        navigate('/success')
-      } else {
-        dialog.alert('下单失败: ' + (resp.message || '未知错误'))
-      }
+        if (deliveryAddress) body.delivery_address = deliveryAddress
+        const orderResp = await ordersApi.create(body)
+        if (orderResp.code === 20000) {
+          const orderId = orderResp.data?.order_id
+          if (orderId) {
+            await apiFetch(`${baseUrl}/orders/${orderId}/pay`, { method: 'POST' })
+          }
+          storage.removeItem('cart')
+          eventBus.emit('cartUpdated')
+          navigate('/success')
+        } else {
+          dialog.alert('下单失败: ' + (orderResp.message || '未知错误'))
+        }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
     }

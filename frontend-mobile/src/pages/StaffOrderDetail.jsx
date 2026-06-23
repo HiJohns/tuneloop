@@ -8,7 +8,7 @@ import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Package, Truck, RotateCcw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 const STATUS_LABELS = {
-  reserved: '待发货',
+  reserved: '未支付',
   paid: '待发货',
   pending_shipment: '待发货',
   in_transit: '运输中',
@@ -124,7 +124,7 @@ export default function StaffOrderDetail() {
       {/* Order ID Banner */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-xs text-zinc-400 font-medium mb-1">订单编号</Text>
-        <Text className="text-base font-black text-black tracking-wide truncate">{id}</Text>
+        <Text className="text-xs font-black text-black tracking-wide truncate">{id}</Text>
       </View>
 
       {/* Status */}

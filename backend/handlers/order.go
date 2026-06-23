@@ -216,7 +216,13 @@ func PayOrder(c *gin.Context) {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
 	if middleware.GetRole(c.Request.Context()) == "USER" {
-		query = query.Where("user_id = ?", middleware.GetUserID(c.Request.Context()))
+		iamSub := middleware.GetUserID(c.Request.Context())
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
+			query = query.Where("user_id = ?", localUser.ID)
+		} else {
+			query = query.Where("user_id = ?", iamSub)
+		}
 	}
 	if err := query.First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -291,7 +297,13 @@ func PickupOrder(c *gin.Context) {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
 	if middleware.GetRole(c.Request.Context()) == "USER" {
-		query = query.Where("user_id = ?", middleware.GetUserID(c.Request.Context()))
+		iamSub := middleware.GetUserID(c.Request.Context())
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
+			query = query.Where("user_id = ?", localUser.ID)
+		} else {
+			query = query.Where("user_id = ?", iamSub)
+		}
 	}
 	if err := query.First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{

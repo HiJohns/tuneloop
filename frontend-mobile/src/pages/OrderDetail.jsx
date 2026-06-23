@@ -210,11 +210,11 @@ export default function OrderDetail() {
               return null
             })()}
             <View>
-              <Text className="text-sm font-mono font-medium">SN: {instrument.sn || '-'}</Text>
-              <Text className="text-xs text-gray-500">{instrument.category_name}</Text>
-              {instrument.level_name && <Text className="text-xs text-gray-500">级别: {instrument.level_name}</Text>}
-              {instrument.tenant_name && <Text className="text-xs text-gray-400 mt-1">商户: {instrument.tenant_name}</Text>}
-              {instrument.site_name && <Text className="text-xs text-gray-400">网点: {instrument.site_name}</Text>}
+              <Text className="block text-sm font-mono font-medium">SN: {instrument.sn || '-'}</Text>
+              <Text className="block text-xs text-gray-500">{instrument.category_name}</Text>
+              {instrument.level_name && <Text className="block text-xs text-gray-500">级别: {instrument.level_name}</Text>}
+              {instrument.tenant_name && <Text className="block text-xs text-gray-400 mt-1">商户: {instrument.tenant_name}</Text>}
+              {instrument.site_name && <Text className="block text-xs text-gray-400">网点: {instrument.site_name}</Text>}
             </View>
           </View>
         </View>
