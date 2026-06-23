@@ -10,6 +10,7 @@ export function formatDeliveryAddress(raw) {
   if (!raw) return ''
   try {
     const obj = JSON.parse(raw)
+    if (typeof obj === 'string') return obj
     if (typeof obj === 'object' && obj !== null) {
       if (obj.street) {
         return [obj.street, obj.phone ? `电话:${obj.phone}` : ''].filter(Boolean).join(' ')

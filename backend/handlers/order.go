@@ -6,6 +6,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -109,11 +110,27 @@ func GetOrder(c *gin.Context) {
 	userName := ""
 	userEmail := ""
 	userPhone := ""
+	userIAMSub := ""
 	var user models.User
 	if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {
 		userName = user.Name
 		userEmail = user.Email
 		userPhone = user.Phone
+		userIAMSub = user.IAMSub
+	}
+	// If local user has no name, try to fetch from IAM
+	if userName == "" && userIAMSub != "" {
+		iamClient := services.NewIAMClient()
+		if iamUser, iamErr := iamClient.GetUser(userIAMSub); iamErr == nil && iamUser.Name != "" {
+			userName = iamUser.Name
+			userEmail = iamUser.Email
+			userPhone = iamUser.Phone
+			db.Model(&user).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+				"name":  iamUser.Name,
+				"email": iamUser.Email,
+				"phone": iamUser.Phone,
+			})
+		}
 	}
 
 	// Fetch delivery address from lease_session

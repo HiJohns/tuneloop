@@ -169,7 +169,7 @@ export default function StaffOrderDetail() {
             <User size={18} className="text-zinc-400" />
             <View className="flex-1 min-w-0">
               <Text className="text-xs font-bold text-zinc-400">下单人</Text>
-              <Text className="text-sm font-black text-black truncate">{order.user_name || order.user_email || order.user_phone || '未实名用户'}</Text>
+              <Text className="text-sm font-black text-black truncate">{order.user_name || order.user_email || order.user_phone || ''}</Text>
             </View>
           </View>
           {order.delivery_address && (
