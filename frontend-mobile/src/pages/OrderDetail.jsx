@@ -5,7 +5,8 @@ import { apiFetch, getToken } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
-import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
+import LeaseInfo from '../components/LeaseInfo'
+import { ArrowLeft, User, MapPin, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 
 const STATUS_LABELS = {
   reserved: '未支付',
@@ -233,38 +234,7 @@ export default function OrderDetail() {
       </View>
 
       {/* Lease Info */}
-      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="text-base font-black text-black mb-3">租期信息</Text>
-        <View className="space-y-3">
-          {startDate && (
-          <View className="flex items-start gap-3">
-            <Calendar size={18} className="text-zinc-400 mt-0.5" />
-            <View className="flex items-start flex-1 min-w-0">
-              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租期起点</Text>
-              <Text className="text-sm font-black text-black">{startDate}</Text>
-            </View>
-          </View>
-          )}
-          {leaseTerm !== undefined && (
-          <View className="flex items-start gap-3">
-            <Clock size={18} className="text-zinc-400 mt-0.5" />
-            <View className="flex items-start flex-1 min-w-0">
-              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计租期</Text>
-              <Text className="text-sm font-black text-black">{rentalDays} 天（{leaseTerm} 个月）</Text>
-            </View>
-          </View>
-          )}
-          {endDate && (
-          <View className="flex items-start gap-3">
-            <Calendar size={18} className="text-zinc-400 mt-0.5" />
-            <View className="flex items-start flex-1 min-w-0">
-              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计到期</Text>
-              <Text className="text-sm font-black text-black">{endDate}</Text>
-            </View>
-          </View>
-          )}
-        </View>
-      </View>
+      <LeaseInfo startDate={startDate} endDate={endDate} leaseTerm={leaseTerm} rentalDays={rentalDays} />
 
       {/* Fee Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
