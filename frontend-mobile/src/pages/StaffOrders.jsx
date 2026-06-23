@@ -14,6 +14,7 @@ const MAIN_TABS = [
 const SUB_FILTERS = {
   active: [
     { key: '', label: '全部' },
+    { key: 'reserved', label: '未支付' },
     { key: 'paid', label: '待发货' },
     { key: 'shipped', label: '已发货' },
     { key: 'in_transit', label: '运输中' },
@@ -31,7 +32,7 @@ const SUB_FILTERS = {
 const allStatusKeys = ['reserved', 'paid', 'pending_shipment', 'in_transit', 'shipped', 'in_lease', 'expired', 'returning', 'returned', 'completed', 'cancelled', 'transferred']
 
 const STATUS_LABELS = {
-  reserved: '待发货', paid: '待发货', pending_shipment: '待发货',
+  reserved: '未支付', paid: '待发货', pending_shipment: '待发货',
   in_transit: '运输中', shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
   cancelled: '已取消', expired: '超期', transferred: '已过户',
