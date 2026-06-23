@@ -7,7 +7,7 @@ import { dialog, env } from '../platform'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
 
 const STATUS_LABELS = {
-  reserved: '已预约',
+  reserved: '未支付',
   paid: '待发货',
   pending_shipment: '待发货',
   in_transit: '运输中',

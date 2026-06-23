@@ -14,6 +14,7 @@ const MAIN_TABS = [
 const SUB_FILTERS = {
   active: [
     { key: '', label: '全部' },
+    { key: 'reserved', label: '未支付' },
     { key: 'paid', label: '待发货' },
     { key: 'shipped', label: '已发货' },
     { key: 'in_lease', label: '租赁中' },
@@ -28,23 +29,24 @@ const SUB_FILTERS = {
 }
 
 const STATUS_LABELS = {
-  reserved: '待发货', paid: '待发货', pending_shipment: '待发货',
+  reserved: '未支付', paid: '待发货', pending_shipment: '待发货',
   shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
   cancelled: '已取消', expired: '超期',
 }
 
 const STATUS_COLORS = {
+  reserved: 'bg-blue-100 text-blue-700',
   paid: 'bg-orange-100 text-orange-700', pending_shipment: 'bg-orange-100 text-orange-700',
   shipped: 'bg-green-100 text-green-700',
   in_lease: 'bg-indigo-100 text-indigo-700', returning: 'bg-yellow-100 text-yellow-700',
-  reserved: 'bg-blue-100 text-blue-700', returned: 'bg-gray-100 text-gray-600',
+  returned: 'bg-gray-100 text-gray-600',
   completed: 'bg-gray-100 text-gray-600', cancelled: 'bg-red-100 text-red-700',
   expired: 'bg-red-100 text-red-700',
 }
 
 const MAIN_INCLUDE = {
-  active: ['paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
+  active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
   completed: ['returned', 'completed', 'cancelled'],
 }
 
