@@ -85,7 +85,7 @@ func createTestOrder(t *testing.T, db *gorm.DB, tenantID, orgID, userID, instrum
 	db.Create(&models.LeaseSession{
 		ID:           uuid.New().String(),
 		TenantID:     tenantID,
-		OrgID:        orgID,
+		OrgID:        stringPtr(orgID),
 		OrderID:      orderID,
 		UserID:       userID,
 		InstrumentID: instrumentID,

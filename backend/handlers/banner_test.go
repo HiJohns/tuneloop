@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,12 +12,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
-func setupBannerTables(t *testing.T, db *database.DB) error {
+func setupBannerTables(t *testing.T, db *gorm.DB) error {
 	tables := []interface{}{
 		&models.Banner{},
 	}
@@ -63,11 +66,10 @@ func setupBannerRouter(t *testing.T) (*gin.Engine, string, string) {
 }
 
 func TestBanner_CRUD(t *testing.T) {
-	router, tenantID, _ := setupBannerRouter(t)
+	router, _, _ := setupBannerRouter(t)
 	if router == nil {
 		return
 	}
-	defer cleanupTestData(db, tenantID)
 
 	// Create
 	createBody := map[string]interface{}{

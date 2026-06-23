@@ -131,12 +131,21 @@ func TestUpdateUser_SiteIDClear(t *testing.T) {
 	db, handler, tenantID, _ := setupUserStaffTest(t)
 	db.Where("iam_sub = ''").Delete(&models.User{})
 	siteID := uuid.New().String()
+	site := models.Site{
+		ID:       siteID,
+		TenantID: tenantID,
+		OrgID:    tenantID,
+		Name:     "Test Site",
+		Status:   "active",
+	}
+	err := db.Create(&site).Error
+	require.NoError(t, err)
+
 	user := models.User{
 		ID:        uuid.New().String(),
 		IAMSub:    "",
 		TenantID:  tenantID,
 		OrgID:     tenantID,
-		SiteID:    &siteID,
 		Name:      "Site User",
 		Phone:     "13800000002",
 		Status:    "active",
@@ -145,7 +154,16 @@ func TestUpdateUser_SiteIDClear(t *testing.T) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err := db.Create(&user).Error
+	err = db.Create(&user).Error
+	require.NoError(t, err)
+
+	siteMember := models.SiteMember{
+		ID:     uuid.New().String(),
+		SiteID: siteID,
+		UserID: user.ID,
+		Role:   "staff",
+	}
+	err = db.Create(&siteMember).Error
 	require.NoError(t, err)
 
 	router := gin.New()
@@ -176,10 +194,9 @@ func TestUpdateUser_SiteIDClear(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 20000, resp.Code)
 
-	var updated models.User
-	err = db.Where("id = ?", user.ID).First(&updated).Error
-	require.NoError(t, err)
-	assert.Nil(t, updated.SiteID)
+	var memberCount int64
+	db.Model(&models.SiteMember{}).Where("user_id = ?", user.ID).Count(&memberCount)
+	assert.Equal(t, int64(0), memberCount)
 }
 
 func TestUpdateUser_SiteIDChanged_SiteNotFound(t *testing.T) {
@@ -250,13 +267,11 @@ func TestUpdateUser_SiteIDChange_UnbindFails_NoDbUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	userID := uuid.New().String()
-	siteIDStr := oldSiteID
 	user := models.User{
 		ID:       userID,
 		IAMSub:   uuid.New().String(),
 		TenantID: tenantID,
 		OrgID:    tenantID,
-		SiteID:   &siteIDStr,
 		Name:     "Unbind Test User",
 		Phone:    "13800000003",
 		Status:   "active",
@@ -264,6 +279,15 @@ func TestUpdateUser_SiteIDChange_UnbindFails_NoDbUpdate(t *testing.T) {
 		Role:     "staff",
 	}
 	err = db.Create(&user).Error
+	require.NoError(t, err)
+
+	siteMember := models.SiteMember{
+		ID:     uuid.New().String(),
+		SiteID: oldSiteID,
+		UserID: userID,
+		Role:   "staff",
+	}
+	err = db.Create(&siteMember).Error
 	require.NoError(t, err)
 
 	router := gin.New()
@@ -287,9 +311,10 @@ func TestUpdateUser_SiteIDChange_UnbindFails_NoDbUpdate(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-	var updated models.User
-	err = db.Where("id = ?", userID).First(&updated).Error
-	require.NoError(t, err)
-	require.NotNil(t, updated.SiteID)
-	assert.Equal(t, oldSiteID, *updated.SiteID)
+	var memberCount int64
+	db.Model(&models.SiteMember{}).Where("user_id = ?", userID).Count(&memberCount)
+	require.Equal(t, int64(1), memberCount)
+	var updatedMember models.SiteMember
+	db.Where("user_id = ?", userID).First(&updatedMember)
+	assert.Equal(t, oldSiteID, updatedMember.SiteID)
 }
