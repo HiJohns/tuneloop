@@ -55,6 +55,7 @@ import PropertyList from './pages/admin/property/List'
 import Setup from './pages/Setup'
 import MerchantManagement from './pages/MerchantManagement'
 import AuditLogPage from './pages/System/AuditLogPage'
+import BannerManagePage from './pages/System/BannerManagePage'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
 import MerchantPricingConfig from './pages/admin/pricing/MerchantPricingConfig'
@@ -328,7 +329,8 @@ function MainLayout() {
     children: [
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
       { key: '/system/audit-logs', label: '操作日志', permission: { cusPermCodes: ['audit_log:read'] } },
-      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } }
+      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
+      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } }
     ]
   },
   { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
@@ -401,6 +403,7 @@ function onMenuClick(e) {
     '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
+    '/system/banners': { title: '轮播图管理', parent: '系统管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
     '/user/profile': { title: '个人中心' },
@@ -554,6 +557,7 @@ function onMenuClick(e) {
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
+            <Route path="/system/banners" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['banner:manage'] }}><BannerManagePage /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />

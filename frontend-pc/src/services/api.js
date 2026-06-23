@@ -370,6 +370,18 @@ export const ordersApi = {
   getOverdue: () => api.get('/overdue-leases'),
 }
 
+export const bannerApi = {
+  list: () => api.get('/admin/banners'),
+  create: (data) => api.post('/admin/banners', data),
+  update: (id, data) => api.put(`/admin/banners/${id}`, data),
+  delete: (id) => api.delete(`/admin/banners/${id}`),
+  upload: (file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return request('/upload', { method: 'POST', body: formData, headers: {} })
+  },
+}
+
 export const sitesApi = {
   list: () => api.get('/common/sites'),
   nearby: (params) => api.get(`/common/sites/nearby?lat=${params.lat}&lng=${params.lng}`),
