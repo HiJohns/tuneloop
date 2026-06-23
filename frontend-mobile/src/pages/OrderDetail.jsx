@@ -4,7 +4,7 @@ import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
-import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const STATUS_LABELS = {
   reserved: '未支付',
@@ -43,6 +43,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [instrument, setInstrument] = useState(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
@@ -182,14 +183,13 @@ export default function OrderDetail() {
       <ScrollView>
       {/* Order ID + Status */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="text-xs text-zinc-400 font-medium mb-1">订单编号</Text>
-        <Text className="text-xs font-black text-black tracking-wide truncate">{id}</Text>
-        <View className="flex items-center justify-between min-w-0 mt-3">
-          <Text className="text-sm font-bold text-zinc-500">当前状态</Text>
+        <View className="flex items-center justify-between min-w-0 mb-2">
+          <Text className="text-base font-black text-black">订单编号</Text>
           <Text className={`text-xs px-3 py-1 rounded-full font-black flex-shrink-0 ${statusColor}`}>
             {statusLabel}
           </Text>
         </View>
+        <Text className="text-xs font-black text-black tracking-wide truncate">{id}</Text>
       </View>
 
       {/* Overdue warning */}
@@ -210,15 +210,46 @@ export default function OrderDetail() {
 
       {/* Instrument Info */}
       {instrument && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm pl-7 pr-0 py-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
           <Text className="text-base font-black text-black mb-3">乐器信息</Text>
-          <View className="flex gap-3 pr-4">
-            {instrument.images && (() => {
-              try {
-                const imgs = typeof instrument.images === 'string' ? JSON.parse(instrument.images) : instrument.images
-                if (imgs[0]) return <Image src={imgs[0]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100 flex-shrink-0" />
-              } catch {}
-              return <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center"><Text className="text-xs text-zinc-400">暂无图片</Text></View>
+          <View className="flex gap-3">
+            {(() => {
+              const imgs = (() => {
+                try {
+                  return typeof instrument.images === 'string' ? JSON.parse(instrument.images) : (instrument.images || [])
+                } catch { return [] }
+              })()
+              const hasImgs = Array.isArray(imgs) && imgs.length > 0
+              return (
+                <View className="relative flex-shrink-0">
+                  {hasImgs ? (
+                    <>
+                      <Image src={imgs[currentImageIndex % imgs.length]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
+                      {imgs.length > 1 && (
+                        <View className="absolute -bottom-1 -right-1 bg-black/70 rounded-full px-1.5 py-0.5">
+                          <Text className="text-white text-[10px] font-bold">{currentImageIndex % imgs.length + 1}/{imgs.length}</Text>
+                        </View>
+                      )}
+                      {imgs.length > 1 && (
+                        <>
+                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i - 1 + imgs.length) % imgs.length) }}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 -ml-3 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
+                            <ChevronLeft size={14} className="text-zinc-500" />
+                          </View>
+                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i + 1) % imgs.length) }}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 -mr-3 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
+                            <ChevronRight size={14} className="text-zinc-500" />
+                          </View>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center">
+                      <Text className="text-xs text-zinc-400">暂无图片</Text>
+                    </View>
+                  )}
+                </View>
+              )
             })()}
             <View className="flex-1 min-w-0">
               <Text className="block text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
@@ -235,24 +266,20 @@ export default function OrderDetail() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">配送信息</Text>
         <View className="space-y-3">
-          {order.user_name && (
-            <View className="flex items-start gap-3">
-              <User size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">下单人</Text>
-                <Text className="text-sm font-black text-black truncate">{order.user_name}</Text>
-              </View>
+          <View className="flex items-start gap-3">
+            <User size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">下单人</Text>
+              <Text className="text-sm font-black text-black truncate">{order.user_name || order.user_email || order.user_phone || '-'}</Text>
             </View>
-          )}
-          {order.delivery_address && (
-            <View className="flex items-start gap-3">
-              <MapPin size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">收货地址</Text>
-                <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address)}</Text>
-              </View>
+          </View>
+          <View className="flex items-start gap-3">
+            <MapPin size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">收货地址</Text>
+              <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address) || '-'}</Text>
             </View>
-          )}
+          </View>
         </View>
       </View>
 
