@@ -107,6 +107,13 @@ export default function StaffOrderDetail() {
   const endDate = formatDisplayDate(order.end_date)
   const leaseTerm = order.lease_term || 0
   const rentalDays = leaseTerm * 30
+  const monthlyRent = order.monthly_rent || 0
+  const deposit = order.deposit || 0
+  const shippingFee = order.shipping_fee || 0
+  const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(endDate) < new Date()
+  const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(endDate)) / (1000 * 60 * 60 * 24)) : 0
+  const overdueFee = isOverdue ? ((monthlyRent / 30) * overdueDaysCalc).toFixed(2) : 0
+  const totalAmount = monthlyRent + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
   const showShipButton = status === 'paid' || status === 'pending_shipment'
   const showTransitButton = status === 'in_transit'
@@ -216,6 +223,37 @@ export default function StaffOrderDetail() {
             </View>
           </View>
           )}
+        </View>
+      </View>
+
+      {/* Price Info */}
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">费用信息</Text>
+        <View className="space-y-2">
+          <View className="flex justify-between text-sm">
+            <Text className="text-zinc-500 font-medium">租金</Text>
+            <Text className="text-black font-black">¥{monthlyRent}</Text>
+          </View>
+          <View className="flex justify-between text-sm">
+            <Text className="text-zinc-500 font-medium">押金</Text>
+            <Text className="text-black font-black">¥{deposit}</Text>
+          </View>
+          {shippingFee > 0 && (
+          <View className="flex justify-between text-sm">
+            <Text className="text-zinc-500 font-medium">物流费</Text>
+            <Text className="text-black font-black">¥{shippingFee}</Text>
+          </View>
+          )}
+          {overdueFee > 0 && (
+          <View className="flex justify-between text-sm">
+            <Text className="text-red-500 font-medium">逾期费</Text>
+            <Text className="text-red-500 font-black">¥{overdueFee}</Text>
+          </View>
+          )}
+          <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
+            <Text className="text-zinc-900 font-bold">合计</Text>
+            <Text className="text-black font-black">¥{totalAmount}</Text>
+          </View>
         </View>
       </View>
 
