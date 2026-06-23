@@ -152,10 +152,11 @@ export default function StaffOrderDetail() {
               return <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center"><Text className="text-xs text-zinc-400">暂无图片</Text></View>
             })())}
             <View className="flex-1 min-w-0">
-              <Text className="text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
-              <Text className="text-xs font-bold text-zinc-500">{instrument.category_name || ''}</Text>
-              {instrument.tenant_name && <Text className="text-xs text-zinc-400 font-medium mt-1">{instrument.tenant_name}</Text>}
-              {instrument.site_name && <Text className="text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
+              <Text className="block text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
+              <Text className="block text-xs font-bold text-zinc-500">{instrument.category_name || ''}</Text>
+              {instrument.level_name && <Text className="block text-xs font-bold text-zinc-500">级别: {instrument.level_name}</Text>}
+              {instrument.tenant_name && <Text className="block text-xs text-zinc-400 font-medium mt-1">{instrument.tenant_name}</Text>}
+              {instrument.site_name && <Text className="block text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
             </View>
           </View>
         </View>
@@ -165,18 +166,18 @@ export default function StaffOrderDetail() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">客户信息</Text>
         <View className="space-y-3">
-          <View className="flex items-center gap-3">
-            <User size={18} className="text-zinc-400" />
-            <View className="flex-1 min-w-0">
-              <Text className="text-xs font-bold text-zinc-400">下单人</Text>
+          <View className="flex items-start gap-3">
+            <User size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">下单人</Text>
               <Text className="text-sm font-black text-black truncate">{order.user_name || order.user_email || order.user_phone || ''}</Text>
             </View>
           </View>
           {order.delivery_address && (
             <View className="flex items-start gap-3">
               <MapPin size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400">收货地址</Text>
+              <View className="flex items-start flex-1 min-w-0">
+                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">收货地址</Text>
                 <Text className="text-sm font-medium text-black">{formatDeliveryAddress(order.delivery_address)}</Text>
               </View>
             </View>
@@ -188,27 +189,33 @@ export default function StaffOrderDetail() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">租期信息</Text>
         <View className="space-y-3">
-          <View className="flex items-center gap-3">
-            <Calendar size={18} className="text-zinc-400" />
-            <View>
-              <Text className="text-xs font-bold text-zinc-400">租期起点</Text>
+          {startDate && (
+          <View className="flex items-start gap-3">
+            <Calendar size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租期起点</Text>
               <Text className="text-sm font-black text-black">{startDate}</Text>
             </View>
           </View>
-          <View className="flex items-center gap-3">
-            <Clock size={18} className="text-zinc-400" />
-            <View>
-              <Text className="text-xs font-bold text-zinc-400">预计租期天数</Text>
+          )}
+          {leaseTerm !== undefined && (
+          <View className="flex items-start gap-3">
+            <Clock size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计租期</Text>
               <Text className="text-sm font-black text-black">{rentalDays} 天（{leaseTerm} 个月）</Text>
             </View>
           </View>
-          <View className="flex items-center gap-3">
-            <Calendar size={18} className="text-zinc-400" />
-            <View>
-              <Text className="text-xs font-bold text-zinc-400">预计到期日</Text>
+          )}
+          {endDate && (
+          <View className="flex items-start gap-3">
+            <Calendar size={18} className="text-zinc-400 mt-0.5" />
+            <View className="flex items-start flex-1 min-w-0">
+              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计到期</Text>
               <Text className="text-sm font-black text-black">{endDate}</Text>
             </View>
           </View>
+          )}
         </View>
       </View>
 
@@ -217,20 +224,20 @@ export default function StaffOrderDetail() {
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
           <Text className="text-base font-black text-black mb-3">物流信息</Text>
           <View className="space-y-3">
-            {order.courier_company && (
-              <View className="flex items-center gap-3">
-                <Truck size={18} className="text-zinc-400" />
-                <View>
-                  <Text className="text-xs font-bold text-zinc-400">物流公司</Text>
+              {order.courier_company && (
+              <View className="flex items-start gap-3">
+                <Truck size={18} className="text-zinc-400 mt-0.5" />
+                <View className="flex items-start flex-1 min-w-0">
+                  <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">物流公司</Text>
                   <Text className="text-sm font-black text-black">{order.courier_company}</Text>
                 </View>
               </View>
             )}
             {order.tracking_number && (
-              <View className="flex items-center gap-3">
-                <Package size={18} className="text-zinc-400" />
-                <View>
-                  <Text className="text-xs font-bold text-zinc-400">物流单号</Text>
+              <View className="flex items-start gap-3">
+                <Package size={18} className="text-zinc-400 mt-0.5" />
+                <View className="flex items-start flex-1 min-w-0">
+                  <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">物流单号</Text>
                   <Text className="text-sm font-mono font-black text-black">{order.tracking_number}</Text>
                 </View>
               </View>
