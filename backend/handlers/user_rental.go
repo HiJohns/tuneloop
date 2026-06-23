@@ -611,7 +611,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			MonthlyRent:  monthlyRent,
 			Deposit:      deposit,
 			ShippingFee:  shippingFee,
-			Status:       models.OrderStatusReserved,
+			Status:       models.OrderStatusPaid,
 			StartDate:    &startDateStr,
 			EndDate:      &endDateStr,
 			CreatedAt:    time.Now(),
@@ -672,7 +672,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		results = append(results, orderResult{
 			OrderID: order.ID,
 			Amount:  orderAmount,
-			Status:  models.OrderStatusReserved,
+			Status:  models.OrderStatusPaid,
 		})
 		totalAmount += orderAmount
 	}

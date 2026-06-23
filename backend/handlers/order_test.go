@@ -511,6 +511,10 @@ func TestGuestBatchCreateOrder(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 	orders := data["orders"].([]interface{})
 	assert.Len(t, orders, 2)
+	for _, o := range orders {
+		order := o.(map[string]interface{})
+		assert.Equal(t, "paid", order["status"])
+	}
 }
 
 func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
