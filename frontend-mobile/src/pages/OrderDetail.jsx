@@ -4,7 +4,8 @@ import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
-import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import InstrumentInfo from '../components/InstrumentInfo'
+import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
 
 const STATUS_LABELS = {
   reserved: '未支付',
@@ -43,7 +44,6 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [instrument, setInstrument] = useState(null)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
@@ -209,61 +209,7 @@ export default function OrderDetail() {
       )}
 
       {/* Instrument Info */}
-      {instrument && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 cursor-pointer" onClick={() => navigate(`/instrument/${instrument.id}`)}>
-          <Text className="text-base font-black text-black mb-3">乐器信息</Text>
-          <View className="flex gap-3">
-            {(() => {
-              const thumbnail = instrument.thumbnail
-              const imgs = (() => {
-                try {
-                  return typeof instrument.images === 'string' ? JSON.parse(instrument.images) : (instrument.images || [])
-                } catch { return [] }
-              })()
-              const allImgs = thumbnail ? [thumbnail, ...(Array.isArray(imgs) ? imgs : [])] : (Array.isArray(imgs) ? imgs : [])
-              const hasImgs = allImgs.length > 0
-              const idx = currentImageIndex % Math.max(allImgs.length, 1)
-              return (
-                <View className="relative flex-shrink-0">
-                  {hasImgs ? (
-                    <>
-                      <Image src={allImgs[idx]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
-                      {allImgs.length > 1 && (
-                        <View className="absolute -bottom-1 -right-1 bg-black/70 rounded-full px-1.5 py-0.5">
-                          <Text className="text-white text-[10px] font-bold">{idx + 1}/{allImgs.length}</Text>
-                        </View>
-                      )}
-                      {allImgs.length > 1 && (
-                        <>
-                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 -ml-3 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
-                            <ChevronLeft size={14} className="text-zinc-500" />
-                          </View>
-                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i + 1) % allImgs.length) }}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 -mr-3 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
-                            <ChevronRight size={14} className="text-zinc-500" />
-                          </View>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <View className="w-16 h-16 bg-zinc-100 rounded-lg flex items-center justify-center">
-                      <Text className="text-xs text-zinc-400">暂无图片</Text>
-                    </View>
-                  )}
-                </View>
-              )
-            })()}
-            <View className="flex-1 min-w-0">
-              <Text className="block text-sm font-black text-black">SN: {instrument.sn || '-'}</Text>
-              <Text className="block text-xs font-bold text-zinc-500">{instrument.category_name}</Text>
-              {instrument.level_name && <Text className="block text-xs font-bold text-zinc-500">级别: {instrument.level_name}</Text>}
-              {instrument.tenant_name && <Text className="block text-xs text-zinc-400 font-medium mt-1">商户: {instrument.tenant_name}</Text>}
-              {instrument.site_name && <Text className="block text-xs text-zinc-400 font-medium">网点: {instrument.site_name}</Text>}
-            </View>
-          </View>
-        </View>
-      )}
+      {instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}
 
       {/* Customer Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
