@@ -306,17 +306,21 @@ export default function OrderDetail() {
             <Text className="text-gray-500">押金</Text>
             <Text className="font-medium">¥{deposit}</Text>
           </View>
-          {shippingFee > 0 && (
           <View className="flex justify-between text-sm">
             <Text className="text-gray-500">物流费</Text>
             <Text className="font-medium">¥{shippingFee}</Text>
           </View>
-          )}
           {overdueFee > 0 && (
+          <>
           <View className="flex justify-between text-sm">
-            <Text className="text-red-500">逾期费</Text>
+            <Text className="text-gray-500">逾期费用</Text>
             <Text className="font-medium text-red-500">¥{overdueFee}</Text>
           </View>
+          <View className="flex justify-between text-sm">
+            <Text className="text-gray-400">  逾期日费</Text>
+            <Text className="font-normal text-gray-500">¥{(monthlyRent / 30).toFixed(2)}/天</Text>
+          </View>
+          </>
           )}
           <View className="flex justify-between text-sm border-t border-gray-100 pt-2 mt-2">
             <Text className="text-gray-900 font-medium">合计</Text>
