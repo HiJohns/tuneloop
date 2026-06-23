@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch, getToken } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
 import { ArrowLeft, User, MapPin, Calendar, Clock, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle } from 'lucide-react'
@@ -44,6 +44,15 @@ export default function OrderDetail() {
   const [actionLoading, setActionLoading] = useState(false)
   const [instrument, setInstrument] = useState(null)
   const baseUrl = env.apiBaseUrl
+
+  const token = getToken()
+  const isStaff = (() => {
+    try {
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return payload?.role && payload.role !== 'USER'
+    } catch { return false }
+  })()
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -158,6 +167,10 @@ export default function OrderDetail() {
   const showReturnButton = status === 'in_lease' || status === 'expired'
   const terminal = ['returning', 'returned', 'completed', 'cancelled', 'transferred']
   const isTerminal = terminal.includes(status)
+
+  const showStaffShip = isStaff && (status === 'paid' || status === 'pending_shipment')
+  const showStaffTransit = isStaff && status === 'in_transit'
+  const showStaffReceive = isStaff && status === 'returning'
 
   return (
     <View className="min-h-screen bg-brand-bg pb-24">
@@ -340,60 +353,115 @@ export default function OrderDetail() {
       )}
 
       {/* Action Buttons */}
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
-        <View className="space-y-3">
-          {showPayButton && (
-            <Button
-              onClick={handlePay}
-              disabled={actionLoading}
-              className="w-full py-3 bg-brand-primary text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <CreditCard size={20} />
-              {actionLoading ? '处理中...' : '支付'}
-            </Button>
-          )}
-          {showCancelButton && (
-            <Button
-              onClick={handleCancel}
-              disabled={actionLoading}
-              className="w-full py-3 bg-red-500 text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <XCircle size={20} />
-              {actionLoading ? '处理中...' : '取消订单'}
-            </Button>
-          )}
-          {showReceiveButton && (
-            <Button
-              onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
-              className="w-full py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <CheckCircle size={20} />
-              确认收货
-            </Button>
-          )}
-          {showReturnButton && (
-            <Button
-              onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
-              className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-            >
-              <RotateCcw size={20} />
-              归还
-            </Button>
-          )}
-          {isTerminal && (
-            <View className="text-center text-sm text-gray-400 py-2 flex items-center justify-center gap-2">
-              {status === 'completed' || status === 'returned' ? (
-                <><CheckCircle size={16} /> 该订单已完成</>
-              ) : status === 'cancelled' ? (
-                <><XCircle size={16} /> 该订单已取消</>
-              ) : status === 'returning' ? (
-                <><Truck size={16} /> 乐器归还中，等待验收</>
-              ) : status === 'transferred' ? (
-                <><CheckCircle size={16} /> 已过户</>
-              ) : (
-                <><CheckCircle size={16} /> 当前状态无操作</>
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
+        <View className="space-y-3 max-w-[480px] mx-auto">
+          {isStaff ? (
+            <>
+              {showStaffShip && (
+                <View
+                  onClick={() => navigate(`/staff/shipping?order=${id}`)}
+                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                >
+                  <Truck size={20} />
+                  <Text>发货</Text>
+                </View>
               )}
-            </View>
+              {showStaffTransit && (
+                <View
+                  onClick={() => navigate(`/staff/shipping?order=${id}`)}
+                  className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                >
+                  <Truck size={20} />
+                  <Text>接收并转发</Text>
+                </View>
+              )}
+              {showStaffReceive && (
+                <View
+                  onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
+                  className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                >
+                  <RotateCcw size={20} />
+                  <Text>收货</Text>
+                </View>
+              )}
+              {(status === 'reserved' || status === 'cancelled' || status === 'shipped' ||
+                status === 'in_lease' || status === 'expired' || status === 'returned' ||
+                status === 'completed' || status === 'transferred') && (
+                <View className="w-full py-3 rounded-2xl font-black text-zinc-500 flex items-center justify-center gap-2">
+                  {status === 'reserved' ? (
+                    <><Clock size={16} /> 当前状态：{statusLabel}</>
+                  ) : status === 'shipped' ? (
+                    <><CheckCircle size={16} /> 乐器已发货，等待用户签收</>
+                  ) : status === 'in_lease' ? (
+                    <><CheckCircle size={16} /> 租赁中</>
+                  ) : status === 'expired' ? (
+                    <><AlertTriangle size={16} /> 租约已超期</>
+                  ) : status === 'returned' || status === 'completed' ? (
+                    <><CheckCircle size={16} /> 该订单已完成</>
+                  ) : status === 'cancelled' ? (
+                    <><XCircle size={16} /> 该订单已取消</>
+                  ) : status === 'transferred' ? (
+                    <><CheckCircle size={16} /> 已过户</>
+                  ) : null}
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              {showPayButton && (
+                <Button
+                  onClick={handlePay}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <CreditCard size={20} />
+                  {actionLoading ? '处理中...' : '支付'}
+                </Button>
+              )}
+              {showCancelButton && (
+                <Button
+                  onClick={handleCancel}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <XCircle size={20} />
+                  {actionLoading ? '处理中...' : '取消订单'}
+                </Button>
+              )}
+              {showReceiveButton && (
+                <View
+                  onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
+                  className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                >
+                  <CheckCircle size={20} />
+                  确认收货
+                </View>
+              )}
+              {showReturnButton && (
+                <View
+                  onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
+                  className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                >
+                  <RotateCcw size={20} />
+                  归还
+                </View>
+              )}
+              {isTerminal && (
+                <View className="w-full py-3 rounded-2xl font-black text-zinc-500 flex items-center justify-center gap-2">
+                  {status === 'completed' || status === 'returned' ? (
+                    <><CheckCircle size={16} /> 该订单已完成</>
+                  ) : status === 'cancelled' ? (
+                    <><XCircle size={16} /> 该订单已取消</>
+                  ) : status === 'returning' ? (
+                    <><RotateCcw size={16} /> 乐器归还中，等待验收</>
+                  ) : status === 'transferred' ? (
+                    <><CheckCircle size={16} /> 已过户</>
+                  ) : (
+                    <>{statusLabel}</>
+                  )}
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>
