@@ -4,7 +4,7 @@ import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/
 import { warehouseApi, apiFetch } from '../services/api'
 import { env, scanQRCode } from '../platform'
 import { formatDisplayDate } from '../utils/format'
-import { ArrowLeft, Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
+import { Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
 
 const MAIN_TABS = [
   { key: 'active', label: '进行中' },
@@ -132,10 +132,7 @@ export default function StaffOrders() {
 
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-20">
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-3">
-        <View onClick={() => navigate(-1)} className="flex items-center gap-2">
-          <ArrowLeft size={20} className="text-black" />
-        </View>
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
