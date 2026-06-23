@@ -262,7 +262,7 @@ export default function StaffOrderDetail() {
           )}
           {showReceiveButton && (
             <View
-              onClick={() => navigate(`/staff/receiving/${id}`)}
+              onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
               className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
             >
               <RotateCcw size={20} />
