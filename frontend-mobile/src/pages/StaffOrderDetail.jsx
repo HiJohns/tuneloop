@@ -244,7 +244,7 @@ export default function StaffOrderDetail() {
         <View className="space-y-3 max-w-[480px] mx-auto">
           {showShipButton && (
             <View
-              onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
+              onClick={() => navigate(`/staff/shipping?order=${id}`)}
               className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
             >
               <Truck size={20} />
@@ -253,7 +253,7 @@ export default function StaffOrderDetail() {
           )}
           {showTransitButton && (
             <View
-              onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
+              onClick={() => navigate(`/staff/shipping?order=${id}`)}
               className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
             >
               <Truck size={20} />

@@ -2372,6 +2372,45 @@ cd frontend-pc && npm run build  # 应该成功
 | `cancelled` | 无 | 该订单已取消 | — |
 | `transferred` | 无 | 已过户 | — |
 
+#### 发货界面 (`/staff/shipping`)
+
+**组件**: `frontend-mobile/src/pages/ShippingInterface.jsx`
+
+**权限**: `businessRole === 'site_admin' || businessRole === 'site_member'`
+
+**入口**:
+1. **扫码模式**（无参数）：Profile 页「员工功能」→「发货」→ 显示扫码 + 乐器 SN 输入面板
+2. **订单模式**（有参数）：订单详情页点击「发货」按钮，附带 `?order=XXX` 参数，跳过扫码直接加载
+
+**扫码面板**:
+- 扫码按钮（调用 `scanQRCode` 平台 API，支持 QR + Barcode）
+- 手动乐器 SN 输入框 + 查询按钮
+- 提交后调用 `GET /api/orders/by-instrument-sn?sn={code}`
+- 未找到乐器 → 显示"未找到该乐器的待发货订单"
+- 订单状态非 `paid`/`pending_shipment` → 显示"该订单当前不可发货"
+- 找到且状态正确 → 隐藏扫码面板，加载订单数据
+
+**信息面板（订单加载后，三面板卡片布局）**:
+1. **乐器信息**: SN、类型、级别、展示图片（缩略图）、商户名、网点名
+2. **网点信息**: 商户、网点名、地址、电话（通过 `GET /api/common/sites/:id` 获取）
+3. **订单信息**: 订单号、创建时间、创建人、收货地址
+
+**物流信息表单**:
+- 承运公司 + 快递单号（必填）
+
+**拍照存档（强制）**:
+- 标题红字标记「必填，至少 1 张」
+- 最多 10 张
+- 未拍照时提交按钮文案为"请先拍照存档"，且按钮不可点击
+- 提交时上传至 `PUT /api/upload`, 打捆至 `PUT /api/warehouse/orders/:id/shipping`
+
+**状态按钮**: 见上方状态按钮表格（`paid`/`pending_shipment` → 发货）
+
+**交互逻辑**:
+- 扫码使用 `platform.scanQRCode()`（跨端适配：浏览器使用 BarcodeDetector API，小程序使用 Taro.scanCode）
+- 订单信息实时加载，拍照后即可提交
+- 发货成功后跳转至 `/staff/orders`
+
 #### 收货界面 (`/staff/receiving`)
 
 **功能点**:
