@@ -4,6 +4,7 @@ import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi } from '../services/api'
 import { env, storage } from '../platform'
 import { parseJWT } from '../platform/init'
+import BottomNav from '../components/BottomNav'
 
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '' })
@@ -245,26 +246,15 @@ export default function Profile() {
       </ScrollView>
 
       {/* 4. 底部固定导航栏 */}
-      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-50 shadow-2xl flex-shrink-0">
-        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => navigate('/')}>
-          <View className="text-xl mb-0.5">🏪</View>
-          <Text className="text-[10px] font-medium text-white/50">首页</Text>
-        </View>
-        {/* 租赁：顾客 → /my-leases（我的租赁）；员工 → /staff/orders（同网点所有活跃/近期关闭的租赁列表） */}
-        <View className={`flex flex-col items-center justify-center ${token ? 'text-white/40' : 'opacity-30'}`} onClick={() => token && navigate(isStaff ? '/staff/orders' : '/my-leases')}>
-          <View className="text-xl mb-0.5">🪕</View>
-          <Text className={`text-[10px] font-medium ${token ? 'text-white/50' : 'text-white/20'}`}>租赁</Text>
-        </View>
-        {/* 维修：顾客 → /my-repairs（我的报修）；员工 → 员工维修列表（待实现，路由待定） */}
-        <View className={`flex flex-col items-center justify-center ${token ? 'text-white/40' : 'opacity-30'}`} onClick={() => token && navigate(isStaff ? '/my-repairs' : '/my-repairs')}>
-          <View className="text-xl mb-0.5">🛠️</View>
-          <Text className={`text-[10px] font-medium ${token ? 'text-white/50' : 'text-white/20'}`}>维修</Text>
-        </View>
-        <View className="flex flex-col items-center justify-center text-white">
-          <View className="text-xl mb-0.5">👤</View>
-          <Text className="text-[10px] font-bold text-white">我的</Text>
-        </View>
-      </View>
+      <BottomNav
+        active="profile"
+        tabs={[
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => token && navigate(isStaff ? '/staff/orders' : '/my-leases') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate(isStaff ? '/my-repairs' : '/my-repairs') },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
+        ]}
+      />
 
       <EditProfileModal
         visible={showEdit}

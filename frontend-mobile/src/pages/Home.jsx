@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import banner1 from '../assets/home/banner_1.png'
 import banner2 from '../assets/home/banner_2.png'
 import banner3 from '../assets/home/banner_3.png'
+import BottomNav from '../components/BottomNav'
 
 const DEFAULT_BANNERS = [banner1, banner2, banner3]
 const DEFAULT_BG_COLORS = ['#915F38', '#7D553D', '#4A6B7C']
@@ -176,7 +177,15 @@ export default function Home() {
   }
 
   const navigateToList = () => {
-    const url = tenant ? `/instruments?tenant=${tenant}` : '/instruments'
+    const token = getToken()
+    let isStaff = false
+    try {
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        isStaff = payload?.role && payload.role !== 'USER'
+      }
+    } catch {}
+    const url = isStaff ? '/staff/orders' : '/my-leases'
     navigate(url)
   }
 
@@ -291,24 +300,15 @@ export default function Home() {
        </ScrollView>
 
       {/* D. Bottom Tabbar */}
-      <View className="absolute bottom-0 left-0 right-0 bg-[#5A3B24] border-t border-[#4E321E] py-2 flex justify-around items-center z-[10000] shadow-2xl">
-        <View className="flex flex-col items-center justify-center text-white" onClick={() => navigate('/')}>
-          <Text className="text-xl mb-0.5">🏪</Text>
-          <Text className="text-[10px] font-bold text-white">首页</Text>
-        </View>
-        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => navigateToList()}>
-          <Text className="text-xl mb-0.5">🪕</Text>
-          <Text className="text-[10px] font-medium text-white/50">租赁</Text>
-        </View>
-        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => { const url = tenant ? `/my-service?tenant=${tenant}` : '/my-service'; navigate(url) }}>
-          <Text className="text-xl mb-0.5">🛠️</Text>
-          <Text className="text-[10px] font-medium text-white/50">维修</Text>
-        </View>
-        <View className="flex flex-col items-center justify-center text-white/40" onClick={() => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) }}>
-          <Text className="text-xl mb-0.5">👤</Text>
-          <Text className="text-[10px] font-medium text-white/50">我的</Text>
-        </View>
-      </View>
+      <BottomNav
+        active="home"
+        tabs={[
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/my-service?tenant=${tenant}` : '/my-service'; navigate(url) } },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
+        ]}
+      />
     </View>
   )
 }
