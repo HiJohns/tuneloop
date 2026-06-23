@@ -22,8 +22,11 @@ func NewUserAddressHandler() *UserAddressHandler {
 func (h *UserAddressHandler) ListAddresses(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
-
 	db := database.GetDB().WithContext(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
 
 	var addresses []models.UserAddress
 	if err := db.Where("user_id = ?", userID).Order("is_default DESC, created_at DESC").Find(&addresses).Error; err != nil {
@@ -121,6 +124,12 @@ func (h *UserAddressHandler) UpdateAddress(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	addrID := c.Param("id")
 
+	db := database.GetDB().WithContext(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
+
 	var req struct {
 		RecipientName string `json:"recipient_name"`
 		Phone         string `json:"phone"`
@@ -134,8 +143,6 @@ func (h *UserAddressHandler) UpdateAddress(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
 		return
 	}
-
-	db := database.GetDB().WithContext(ctx)
 
 	var addr models.UserAddress
 	if err := db.Where("id = ? AND user_id = ?", addrID, userID).First(&addr).Error; err != nil {
@@ -184,6 +191,10 @@ func (h *UserAddressHandler) SetDefaultAddress(c *gin.Context) {
 	addrID := c.Param("id")
 
 	db := database.GetDB().WithContext(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
 
 	var addr models.UserAddress
 	if err := db.Where("id = ? AND user_id = ?", addrID, userID).First(&addr).Error; err != nil {
@@ -219,6 +230,10 @@ func (h *UserAddressHandler) DeleteAddress(c *gin.Context) {
 	addrID := c.Param("id")
 
 	db := database.GetDB().WithContext(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
 
 	result := db.Where("id = ? AND user_id = ?", addrID, userID).Delete(&models.UserAddress{})
 	if result.RowsAffected == 0 {
