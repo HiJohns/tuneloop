@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
@@ -88,6 +89,8 @@ func GetOrder(c *gin.Context) {
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	userID := middleware.GetUserID(c.Request.Context())
+	role := middleware.GetRole(c.Request.Context())
+	log.Printf("[GetOrder] orderID=%s tenantID=%q userID=%q role=%q", orderID, tenantID, userID, role)
 	var order models.Order
 	query := db.Where("id = ?", orderID)
 	if tenantID != "" {
@@ -129,6 +132,9 @@ func GetOrder(c *gin.Context) {
 		userEmail = user.Email
 		userPhone = user.Phone
 		userIAMSub = user.IAMSub
+		log.Printf("[GetOrder] userName=%q userEmail=%q userPhone=%q iamSub=%q", userName, userEmail, userPhone, userIAMSub)
+	} else {
+		log.Printf("[GetOrder] user fetch failed for id=%s: %v", order.UserID, err)
 	}
 	// If local user has no name, try to fetch from IAM
 	if userName == "" && userIAMSub != "" {
