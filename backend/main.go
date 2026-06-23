@@ -177,6 +177,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/refresh", authHandler.Refresh)
 	api.POST("/wx/login", authHandler.WxLogin)
+	api.POST("/iam/callback", handlers.HandleIAMCallback)
 	api.POST("/wx/phone", authHandler.WxPhone)
 	// Setup routes (public, no auth required)
 	api.GET("/setup/status", setupHandler.GetSetupStatus)
