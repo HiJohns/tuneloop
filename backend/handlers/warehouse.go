@@ -191,6 +191,10 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 
 	// 2. Verify the user owns this order
 	userID := middleware.GetUserID(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
 	if order.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "not your order"})
 		return
