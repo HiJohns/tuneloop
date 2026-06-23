@@ -147,16 +147,10 @@ function SingleCheckout({ id, navigate }) {
       if (useNewAddress) {
         if (saveAddress) {
           try {
-            const createResp = await addressesApi.create(newAddress)
-            if (createResp.code === 20000 && createResp.data) {
-              addressId = createResp.data.id
-              deliveryAddress = `${newAddress.recipient_name} ${newAddress.phone} ${newAddress.province}${newAddress.city}${newAddress.district} ${newAddress.detail}`
-            }
-          } catch {}
+            await addressesApi.create(newAddress)
+          } catch (e) { console.error('save address failed', e) }
         }
-        if (!addressId) {
-          deliveryAddress = `${newAddress.recipient_name} ${newAddress.phone} ${newAddress.province}${newAddress.city}${newAddress.district} ${newAddress.detail}${newAddress.postal_code ? ' ' + newAddress.postal_code : ''}`
-        }
+        deliveryAddress = `${newAddress.recipient_name} ${newAddress.phone} ${newAddress.province}${newAddress.city}${newAddress.district} ${newAddress.detail}${newAddress.postal_code ? ' ' + newAddress.postal_code : ''}`
       } else {
         const addr = addresses.find(a => a.id === selectedAddressId)
         if (addr) {
@@ -387,6 +381,11 @@ function SingleCheckout({ id, navigate }) {
 function BatchCheckout({ navigate }) {
   const [submitting, setSubmitting] = useState(false)
   const [cartItems, setCartItems] = useState([])
+  const [addresses, setAddresses] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState('')
+  const [useNewAddress, setUseNewAddress] = useState(false)
+  const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
+  const [saveAddress, setSaveAddress] = useState(true)
   const [previewImages, setPreviewImages] = useState([])
   const [previewIndex, setPreviewIndex] = useState(-1)
 
@@ -397,8 +396,26 @@ function BatchCheckout({ navigate }) {
       redirectToLogin()
       return
     }
-    const data = storage.getJSON('cart', { items: [] }) || { items: [] }
-    setCartItems(data.items)
+    const loadData = async () => {
+      const data = storage.getJSON('cart', { items: [] }) || { items: [] }
+      setCartItems(data.items)
+      try {
+        const addrRes = await addressesApi.list()
+        let addrList = []
+        if (Array.isArray(addrRes)) {
+          addrList = addrRes
+        } else if (addrRes?.code === 20000) {
+          addrList = addrRes.data?.list || []
+        }
+        setAddresses(addrList)
+        const defaultAddr = addrList.find(a => a.is_default)
+        if (defaultAddr) setSelectedAddressId(defaultAddr.id)
+        else if (addrList.length === 0) setUseNewAddress(true)
+      } catch (e) {
+        setUseNewAddress(true)
+      }
+    }
+    loadData()
   }, [])
 
   const groups = useMemo(() => {
@@ -437,16 +454,45 @@ function BatchCheckout({ navigate }) {
     return total
   }, [groups])
 
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
+  const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
+
   const handleSubmit = async () => {
     if (cartItems.length === 0) return
+    if (!useNewAddress && !selectedAddressId) {
+      dialog.alert('请选择收货地址')
+      return
+    }
+    if (useNewAddress && !newAddress.recipient_name) {
+      dialog.alert('请填写收货人')
+      return
+    }
     setSubmitting(true)
     try {
+      let deliveryAddress = null
+
+      if (useNewAddress) {
+        if (saveAddress) {
+          try {
+            await addressesApi.create(newAddress)
+          } catch (e) { console.error('save address failed', e) }
+        }
+        deliveryAddress = `${newAddress.recipient_name} ${newAddress.phone} ${newAddress.province}${newAddress.city}${newAddress.district} ${newAddress.detail}${newAddress.postal_code ? ' ' + newAddress.postal_code : ''}`
+      } else {
+        const addr = addresses.find(a => a.id === selectedAddressId)
+        if (addr) {
+          deliveryAddress = `${addr.recipient_name} ${addr.phone} ${addr.province}${addr.city}${addr.district} ${addr.detail}${addr.postal_code ? ' ' + addr.postal_code : ''}`
+        }
+      }
+
       const items = cartItems.map(item => ({
         instrument_id: item.instrument_id,
         start_date: dayjs().format('YYYY-MM-DD'),
         end_date: dayjs().add(item.rent_qty || 30, 'day').format('YYYY-MM-DD'),
       }))
-      const resp = await ordersApi.batchCreate({ items })
+      const body = { items }
+      if (deliveryAddress) body.delivery_address = deliveryAddress
+      const resp = await ordersApi.batchCreate(body)
       if (resp.code === 20000) {
         storage.removeItem('cart')
         eventBus.emit('cartUpdated')
@@ -539,6 +585,69 @@ function BatchCheckout({ navigate }) {
 
           <View className="w-full bg-zinc-50 p-3 rounded-xl text-[11px] text-zinc-400 leading-normal">
             🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
+          </View>
+
+          <View className="w-full border-t border-dashed border-zinc-200 pt-4">
+            <Text className="text-xs font-bold text-zinc-500 mb-3">📍 收货地址</Text>
+
+            {addresses.length > 0 && !useNewAddress && (
+              <View className="space-y-2 mb-3">
+                {addresses.map(addr => (
+                  <label
+                    key={addr.id}
+                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
+                      selectedAddressId === addr.id ? 'border-brand-primary bg-blue-50' : 'border-zinc-200'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="batch-address"
+                      checked={selectedAddressId === addr.id}
+                      onChange={() => { setSelectedAddressId(addr.id); setUseNewAddress(false) }}
+                      className="mt-1"
+                    />
+                    <View className="flex-1 text-xs">
+                      <Text className="font-medium text-zinc-800">{addr.recipient_name} · {addr.phone}</Text>
+                      <Text className="text-zinc-400">{addr.province}{addr.city}{addr.district} {addr.detail}</Text>
+                      {addr.is_default && <Text className="text-xs text-brand-primary">默认</Text>}
+                    </View>
+                  </label>
+                ))}
+              </View>
+            )}
+
+            {(addresses.length === 0 || useNewAddress) && (
+              <View className="space-y-3">
+                <View className="grid grid-cols-2 gap-2">
+                  <View>
+                    <label className={labelClass}>收货人</label>
+                    <input className={inputClass} value={newAddress.recipient_name} onChange={e => setNewAddress(prev => ({ ...prev, recipient_name: e.target.value }))} placeholder="姓名" />
+                  </View>
+                  <View>
+                    <label className={labelClass}>电话</label>
+                    <input className={inputClass} value={newAddress.phone} onChange={e => setNewAddress(prev => ({ ...prev, phone: e.target.value }))} placeholder="手机号" />
+                  </View>
+                </View>
+                <View className="grid grid-cols-3 gap-2">
+                  <input className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value }))} placeholder="省" />
+                  <input className={inputClass} value={newAddress.city} onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value }))} placeholder="市" />
+                  <input className={inputClass} value={newAddress.district} onChange={e => setNewAddress(prev => ({ ...prev, district: e.target.value }))} placeholder="区" />
+                </View>
+                <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
+                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
+                <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+                  <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
+                  设置为我的收货地址
+                </label>
+              </View>
+            )}
+
+            {addresses.length > 0 && !useNewAddress && (
+              <Text className="mt-3 text-xs text-brand-primary" onClick={() => setUseNewAddress(true)}>+ 使用新地址</Text>
+            )}
+            {useNewAddress && addresses.length > 0 && (
+              <Text className="mt-3 text-xs text-zinc-400" onClick={() => setUseNewAddress(false)}>选择已有地址</Text>
+            )}
           </View>
         </View>
 

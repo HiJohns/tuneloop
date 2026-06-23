@@ -360,11 +360,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Create lease session
-	deliveryAddressJSON := ""
+	var deliveryAddressJSON string
 	if req.DeliveryAddress != nil {
-		if b, err := json.Marshal(req.DeliveryAddress); err == nil {
+		if b, err := json.Marshal(req.DeliveryAddress); err == nil && string(b) != "\"\"" {
 			deliveryAddressJSON = string(b)
 		}
+	}
+	var deliveryAddrPtr *string
+	if deliveryAddressJSON != "" {
+		deliveryAddrPtr = &deliveryAddressJSON
 	}
 	leaseSession := models.LeaseSession{
 		ID:               uuid.New().String(),
@@ -376,7 +380,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		StartDate:        startDate,
 		EndDate:          endDate,
 		Status:           "active",
-		DeliveryAddress:  &deliveryAddressJSON,
+		DeliveryAddress:  deliveryAddrPtr,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
@@ -442,6 +446,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			StartDate    string `json:"start_date" binding:"required"`
 			EndDate      string `json:"end_date" binding:"required"`
 		} `json:"items" binding:"required,min=1"`
+		DeliveryAddress interface{} `json:"delivery_address"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -535,6 +540,18 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		merchantConfigJSON = config.Config
 	}
 
+	// Serialize shared delivery address for all items
+	var deliveryAddressJSON string
+	if req.DeliveryAddress != nil {
+		if b, err := json.Marshal(req.DeliveryAddress); err == nil && string(b) != "\"\"" {
+			deliveryAddressJSON = string(b)
+		}
+	}
+	var deliveryAddrPtr *string
+	if deliveryAddressJSON != "" {
+		deliveryAddrPtr = &deliveryAddressJSON
+	}
+
 	// Process all orders in a single transaction
 	tx := db.Begin()
 
@@ -626,17 +643,18 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 		// Create lease session
 		leaseSession := models.LeaseSession{
-			ID:           uuid.New().String(),
-			TenantID:     effectiveTenantID,
-			OrgID:        stringPtr(effectiveOrgID),
-			OrderID:      order.ID,
-			UserID:       userID,
-			InstrumentID: item.InstrumentID,
-			StartDate:    startDate,
-			EndDate:      endDate,
-			Status:       "active",
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
+			ID:               uuid.New().String(),
+			TenantID:         effectiveTenantID,
+			OrgID:            stringPtr(effectiveOrgID),
+			OrderID:          order.ID,
+			UserID:           userID,
+			InstrumentID:     item.InstrumentID,
+			StartDate:        startDate,
+			EndDate:          endDate,
+			Status:           "active",
+			DeliveryAddress:  deliveryAddrPtr,
+			CreatedAt:        time.Now(),
+			UpdatedAt:        time.Now(),
 		}
 		if err := tx.Create(&leaseSession).Error; err != nil {
 			tx.Rollback()
