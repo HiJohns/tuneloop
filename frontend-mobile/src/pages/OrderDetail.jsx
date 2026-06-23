@@ -214,29 +214,32 @@ export default function OrderDetail() {
           <Text className="text-base font-black text-black mb-3">乐器信息</Text>
           <View className="flex gap-3">
             {(() => {
+              const thumbnail = instrument.thumbnail
               const imgs = (() => {
                 try {
                   return typeof instrument.images === 'string' ? JSON.parse(instrument.images) : (instrument.images || [])
                 } catch { return [] }
               })()
-              const hasImgs = Array.isArray(imgs) && imgs.length > 0
+              const allImgs = thumbnail ? [thumbnail, ...(Array.isArray(imgs) ? imgs : [])] : (Array.isArray(imgs) ? imgs : [])
+              const hasImgs = allImgs.length > 0
+              const idx = currentImageIndex % Math.max(allImgs.length, 1)
               return (
                 <View className="relative flex-shrink-0">
                   {hasImgs ? (
                     <>
-                      <Image src={imgs[currentImageIndex % imgs.length]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
-                      {imgs.length > 1 && (
+                      <Image src={allImgs[idx]} alt="" className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
+                      {allImgs.length > 1 && (
                         <View className="absolute -bottom-1 -right-1 bg-black/70 rounded-full px-1.5 py-0.5">
-                          <Text className="text-white text-[10px] font-bold">{currentImageIndex % imgs.length + 1}/{imgs.length}</Text>
+                          <Text className="text-white text-[10px] font-bold">{idx + 1}/{allImgs.length}</Text>
                         </View>
                       )}
-                      {imgs.length > 1 && (
+                      {allImgs.length > 1 && (
                         <>
-                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i - 1 + imgs.length) % imgs.length) }}
+                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
                             className="absolute left-0 top-1/2 -translate-y-1/2 -ml-3 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
                             <ChevronLeft size={14} className="text-zinc-500" />
                           </View>
-                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i + 1) % imgs.length) }}
+                          <View onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i + 1) % allImgs.length) }}
                             className="absolute right-0 top-1/2 -translate-y-1/2 -mr-3 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">
                             <ChevronRight size={14} className="text-zinc-500" />
                           </View>
