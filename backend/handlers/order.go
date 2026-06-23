@@ -121,20 +121,17 @@ func GetOrder(c *gin.Context) {
 		return
 	}
 
-	// Fetch user name (graceful fallback)
+	// Fetch user name (graceful fallback — use Raw to bypass tenant scope on users table)
 	userName := ""
 	userEmail := ""
 	userPhone := ""
 	userIAMSub := ""
 	var user models.User
-	if err := db.First(&user, "id = ?", order.UserID).Error; err == nil {
+	if err := db.Raw("SELECT * FROM users WHERE id = ? LIMIT 1", order.UserID).Scan(&user).Error; err == nil && user.ID != "" {
 		userName = user.Name
 		userEmail = user.Email
 		userPhone = user.Phone
 		userIAMSub = user.IAMSub
-		log.Printf("[GetOrder] userName=%q userEmail=%q userPhone=%q iamSub=%q", userName, userEmail, userPhone, userIAMSub)
-	} else {
-		log.Printf("[GetOrder] user fetch failed for id=%s: %v", order.UserID, err)
 	}
 	// If local user has no name, try to fetch from IAM
 	if userName == "" && userIAMSub != "" {
