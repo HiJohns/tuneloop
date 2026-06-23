@@ -340,6 +340,28 @@ func GetInstruments(c *gin.Context) {
 		return
 	}
 
+	// Build thumbnail map from InstrumentMedia (first image per instrument)
+	thumbMap := make(map[string]string)
+	var instIDs []string
+	for _, inst := range instruments {
+		instIDs = append(instIDs, inst.ID)
+	}
+	var allMedia []models.InstrumentMedia
+	if len(instIDs) > 0 {
+		db.Where("instrument_id IN ? AND file_type = ?", instIDs, "image").Order("sort_order asc, created_at desc").Find(&allMedia)
+		for _, m := range allMedia {
+			if _, exists := thumbMap[m.InstrumentID]; !exists {
+				key := normalizeMediaKey(m.StorageKey)
+				storageSvc := services.NewMediaStorage()
+				url, _ := storageSvc.GetURL(ctx, key)
+				if url == "" {
+					url = "/uploads/media/" + key
+				}
+				thumbMap[m.InstrumentID] = url
+			}
+		}
+	}
+
 	// Process instruments to parse specifications and pricing into specs array
 	var responseInstruments []map[string]interface{}
 	for _, instrument := range instruments {
@@ -373,6 +395,7 @@ func GetInstruments(c *gin.Context) {
 			"level_name":     instrument.LevelName,
 			"description":    instrument.Description,
 			"images":         json.RawMessage(instrument.Images),
+			"thumbnail":      thumbMap[instrument.ID],
 			"video":          instrument.Video,
 			"poster":         instrument.Poster,
 			"base_daily_rate": instrument.BaseDailyRate,

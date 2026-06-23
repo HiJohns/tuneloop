@@ -111,7 +111,7 @@ export default function InstrumentList() {
           className="cursor-pointer inline-block"
         >
           <Image
-            src={images && images.length > 0 ? images[0] : '/images/default-instrument.jpg'}
+            src={record.thumbnail || (images && images.length > 0 ? images[0] : '/images/default-instrument.jpg')}
             alt="instrument"
             width={50}
             height={50}
