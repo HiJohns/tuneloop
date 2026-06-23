@@ -141,7 +141,6 @@ function SingleCheckout({ id, navigate }) {
 
     setSubmitting(true)
     try {
-      let addressId = selectedAddressId
       let deliveryAddress = null
 
       if (useNewAddress) {
@@ -163,7 +162,6 @@ function SingleCheckout({ id, navigate }) {
         start_date: startDate,
         end_date: returnDate,
       }
-      if (addressId) body.address_id = addressId
       if (deliveryAddress) body.delivery_address = deliveryAddress
 
       const resp = await ordersApi.create(body)

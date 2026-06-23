@@ -182,11 +182,11 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 // POST /api/user/orders - Create rental order
 func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	var req struct {
-		InstrumentID    string                 `json:"instrument_id" binding:"required"`
-		StartDate       string                 `json:"start_date" binding:"required"`
-		EndDate         string                 `json:"end_date" binding:"required"`
-		DeliveryAddress interface{}            `json:"delivery_address"`
-		Notes           string                 `json:"notes"`
+		InstrumentID    string      `json:"instrument_id" binding:"required"`
+		StartDate       string      `json:"start_date" binding:"required"`
+		EndDate         string      `json:"end_date" binding:"required"`
+		DeliveryAddress interface{} `json:"delivery_address"`
+		Notes           string      `json:"notes"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -371,18 +371,18 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		deliveryAddrPtr = &deliveryAddressJSON
 	}
 	leaseSession := models.LeaseSession{
-		ID:               uuid.New().String(),
-		TenantID:         effectiveTenantID,
-		OrgID:            stringPtr(effectiveOrgID),
-		OrderID:          order.ID,
-		UserID:           userID,
-		InstrumentID:     req.InstrumentID,
-		StartDate:        startDate,
-		EndDate:          endDate,
-		Status:           "active",
-		DeliveryAddress:  deliveryAddrPtr,
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
+		ID:              uuid.New().String(),
+		TenantID:        effectiveTenantID,
+		OrgID:           stringPtr(effectiveOrgID),
+		OrderID:         order.ID,
+		UserID:          userID,
+		InstrumentID:    req.InstrumentID,
+		StartDate:       startDate,
+		EndDate:         endDate,
+		Status:          "active",
+		DeliveryAddress: deliveryAddrPtr,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 	if err := tx.Create(&leaseSession).Error; err != nil {
 		tx.Rollback()
@@ -643,18 +643,18 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 		// Create lease session
 		leaseSession := models.LeaseSession{
-			ID:               uuid.New().String(),
-			TenantID:         effectiveTenantID,
-			OrgID:            stringPtr(effectiveOrgID),
-			OrderID:          order.ID,
-			UserID:           userID,
-			InstrumentID:     item.InstrumentID,
-			StartDate:        startDate,
-			EndDate:          endDate,
-			Status:           "active",
-			DeliveryAddress:  deliveryAddrPtr,
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
+			ID:              uuid.New().String(),
+			TenantID:        effectiveTenantID,
+			OrgID:           stringPtr(effectiveOrgID),
+			OrderID:         order.ID,
+			UserID:          userID,
+			InstrumentID:    item.InstrumentID,
+			StartDate:       startDate,
+			EndDate:         endDate,
+			Status:          "active",
+			DeliveryAddress: deliveryAddrPtr,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
 		}
 		if err := tx.Create(&leaseSession).Error; err != nil {
 			tx.Rollback()
