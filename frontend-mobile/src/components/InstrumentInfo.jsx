@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
-import { ChevronLeft, ChevronRight, Package } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Package } from 'lucide-react'
 
 export default function InstrumentInfo({ instrument, onClick }) {
   const [imageIndex, setImageIndex] = useState(0)
@@ -27,7 +27,7 @@ export default function InstrumentInfo({ instrument, onClick }) {
               <>
                 <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i - 1 + allImgs.length) % allImgs.length) }}
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
-                  <ChevronLeft size={18} className="text-zinc-600" />
+                  <ArrowLeft size={18} className="text-zinc-600" />
                 </View>
                 <View onClick={e => { e.stopPropagation(); setImageIndex(i => (i + 1) % allImgs.length) }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">

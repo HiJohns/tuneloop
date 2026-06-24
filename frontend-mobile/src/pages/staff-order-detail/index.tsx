@@ -1,2 +1,2 @@
-import StaffOrderDetail from '../StaffOrderDetail'
-export default StaffOrderDetail
+import OrderDetail from '../OrderDetail'
+export default OrderDetail
