@@ -458,6 +458,13 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
+	// Update order status to returned (return completed, instrument enters maintenance)
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).
+		Update("status", models.OrderStatusReturned).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
+		return
+	}
+
 	// Create damage report
 	damageReport := models.DamageReport{
 		ID:                uuid.New().String(),
