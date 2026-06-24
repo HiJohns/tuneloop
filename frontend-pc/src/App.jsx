@@ -451,7 +451,7 @@ function onMenuClick(e) {
     timestamp: new Date().toISOString()
   })
 
-  if (!getToken() && location.pathname !== '/callback') {
+  if (!getToken() && location.pathname !== '/callback' && location.pathname !== '/logout') {
     console.log('%c[APP DEBUG] redirecting to IAM (no token)', 'color: red;')
     redirectToIAMLogin()
     return null
@@ -528,7 +528,7 @@ function onMenuClick(e) {
         </Header>
         <Content className="p-6 bg-gray-100 overflow-y-auto">
           <Routes>
-            <Route path="/logout" element={<LogoutPage />} />
+        <Route path="/logout" element={<LogoutPage />} />
             <Route path="/callback" element={<OAuthCallback />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
