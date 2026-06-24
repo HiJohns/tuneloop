@@ -396,6 +396,10 @@ func ReturnOrder(c *gin.Context) {
 
 	// Verify user ownership (customer-facing, no tenant context)
 	userID := middleware.GetUserID(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
 	if order.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    40300,
