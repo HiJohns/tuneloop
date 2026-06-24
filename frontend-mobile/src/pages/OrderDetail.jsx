@@ -210,7 +210,7 @@ export default function OrderDetail() {
       )}
 
       {/* Instrument Info */}
-      {instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {/* Customer Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">

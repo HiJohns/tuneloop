@@ -48,7 +48,7 @@ export default function ShippingInterface() {
 
   const fetchInstrumentById = async (id) => {
     try {
-      const resp = await apiFetch(`${baseUrl}/instruments/${id}`)
+      const resp = await apiFetch(`${baseUrl}/public/instruments/${id}`)
       const result = await resp.json()
       if (result.code === 20000 && result.data) return result.data
     } catch (err) {

@@ -16,7 +16,7 @@ export default function InstrumentInfo({ instrument, onClick }) {
   const idx = imageIndex % Math.max(allImgs.length, 1)
 
   return (
-    <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4" onClick={onClick}>
+    <View className="bg-white mt-3 rounded-2xl shadow-sm p-4" onClick={onClick}>
       <Text className="text-base font-black text-black mb-3">乐器信息</Text>
 
       <View className="relative w-full mb-3 flex items-center justify-center">
