@@ -113,6 +113,14 @@ func GetInstrumentByID(c *gin.Context) {
 		pricingField = json.RawMessage(raw)
 	}
 
+	// Resolve video URL from instrument_media storage_key (fallback to instrument.Video)
+	videoURL := instrument.Video
+	var mediaVideo models.InstrumentMedia
+	if db.Where("instrument_id = ? AND file_type = 'video'", instrumentID).
+		Order("created_at desc").First(&mediaVideo).Error == nil {
+		videoURL = "/uploads/media/" + normalizeMediaKey(mediaVideo.StorageKey)
+	}
+
 	instrumentMap := map[string]interface{}{
 		"id":              instrument.ID,
 		"tenant_id":       instrument.TenantID,
@@ -127,7 +135,7 @@ func GetInstrumentByID(c *gin.Context) {
 		"site_address":    siteAddress,
 		"description":     instrument.Description,
 		"images":          json.RawMessage(instrument.Images),
-		"video":           instrument.Video,
+		"video":           videoURL,
 		"poster":          instrument.Poster,
 		"base_daily_rate": instrument.BaseDailyRate,
 		"stock_status":    instrument.StockStatus,

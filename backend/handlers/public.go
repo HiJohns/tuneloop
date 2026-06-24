@@ -266,6 +266,23 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		response["thumbnail"] = url
 	}
 
+	// Resolve video URL from instrument_media storage_key (more reliable than instrument.Video)
+	var videoURL string
+	var mediaVideo models.InstrumentMedia
+	if db.Where("instrument_id = ? AND file_type = 'video'", id).
+		Order("created_at desc").First(&mediaVideo).Error == nil {
+		storage := services.NewMediaStorage()
+		key := normalizeMediaKey(mediaVideo.StorageKey)
+		url, _ := storage.GetURL(c.Request.Context(), key)
+		if url == "" {
+			url = "/uploads/media/" + key
+		}
+		videoURL = url
+	}
+	if videoURL != "" {
+		response["video"] = videoURL
+	}
+
 	// Fetch dynamic properties from instrument_properties table
 	var instrumentProps []models.InstrumentProperty
 	if err := db.Where("instrument_id = ?", id).Find(&instrumentProps).Error; err == nil {
