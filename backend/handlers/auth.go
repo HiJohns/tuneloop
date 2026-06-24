@@ -150,11 +150,9 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 
 	var tokenResp *services.TokenResponse
 	var err error
-	if appSecret != "" {
-		tokenResp, err = services.ExchangeCode(appClientID, appSecret, code, redirectURI)
-	} else {
-		tokenResp, err = h.iamService.ExchangeCodeWithRedirect(code, redirectURI)
-	}
+	// Exchange code — must use app-level client_id to match OAuth authorize request
+	// ExchangeCodeWithRedirect (namespace-level) uses wrong client_id, skip it entirely
+	tokenResp, err = services.ExchangeCode(appClientID, appSecret, code, redirectURI)
 	if err != nil {
 		log.Printf("[Auth] Token exchange failed: client=%s redirectURI=%s error=%v", appClientID, redirectURI, err)
 		if strings.Contains(err.Error(), "already used") {
