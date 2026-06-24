@@ -16,6 +16,20 @@ export default function LogoutPage() {
 
   useEffect(() => {
     localStorage.removeItem('logout_reason')
+
+    // Clear all auth tokens to prevent stale data on re-login
+    localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_info')
+    localStorage.removeItem('user_role')
+    localStorage.removeItem('user_is_owner')
+    document.cookie.split(';').forEach(c => {
+      const eqPos = c.indexOf('=')
+      const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim()
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname
+    })
+
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {

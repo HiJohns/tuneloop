@@ -100,12 +100,8 @@ function MainLayout() {
   const isFirstLogin = location.pathname === '/user/change-password' && searchParams.get('first_login') === '1'
 
   const redirectToIAMLogin = () => {
-    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-    const clientId = window.APP_CONFIG?.pc?.iamClientId
-    if (!clientId) { alert('无法获取配置，请刷新页面重试'); return }
-    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    const targetUrl = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
-    window.location.href = targetUrl
+    localStorage.setItem('logout_reason', 'session_expired')
+    window.location.href = '/logout'
   }
 
   // Session expiry warning — check every 30s
@@ -641,7 +637,8 @@ function OAuthCallback() {
       setErrorMsg(`OAuth 错误: ${error}`)
       setLoading(false)
       setTimeout(() => {
-        window.location.href = getOAuthUrl()
+        localStorage.setItem('logout_reason', 'auth_failed')
+        window.location.href = '/logout'
       }, 3000)
       return
     }
@@ -650,7 +647,8 @@ function OAuthCallback() {
       setErrorMsg('缺少授权码')
       setLoading(false)
       setTimeout(() => {
-        window.location.href = getOAuthUrl()
+        localStorage.setItem('logout_reason', 'auth_failed')
+        window.location.href = '/logout'
       }, 3000)
       return
     }
@@ -696,7 +694,8 @@ function OAuthCallback() {
 
         if (tokenData.relogin) {
           console.log('[OAuth] Code already used, redirecting to IAM for new code')
-          window.location.href = getOAuthUrl()
+          localStorage.setItem('logout_reason', 'auth_failed')
+          window.location.href = '/logout'
           return
         }
         
