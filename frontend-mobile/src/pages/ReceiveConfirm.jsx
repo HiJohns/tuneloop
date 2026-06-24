@@ -67,7 +67,7 @@ export default function ReceiveConfirm() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('确认收货成功')
-        navigate('/my-leases')
+        navigate('/my-leases', { replace: true })
       } else {
         dialog.alert('确认收货失败: ' + (result.message || ''))
       }

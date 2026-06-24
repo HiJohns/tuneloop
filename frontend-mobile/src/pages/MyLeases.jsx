@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
-import { ArrowLeft, Package } from 'lucide-react'
+import { Package } from 'lucide-react'
+import BottomNav from '../components/BottomNav'
 
 const MAIN_TABS = [
   { key: 'active', label: '进行中' },
@@ -59,6 +60,15 @@ export default function MyLeases() {
 
   const baseUrl = env.apiBaseUrl
 
+  const token = getToken()
+  const isStaff = (() => {
+    try {
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return payload?.role && payload.role !== 'USER'
+    } catch { return false }
+  })()
+
   useEffect(() => {
     const fetchOrders = async () => {
       setLoading(true)
@@ -85,12 +95,9 @@ export default function MyLeases() {
   }, [baseUrl, mainTab, subFilter])
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+    <View className="min-h-screen bg-[#FDFBF7] pb-20 relative">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4">
-        <View className="flex items-center gap-3">
-          <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-          <Text className="text-lg font-black text-black">我的租约</Text>
-        </View>
+        <Text className="text-lg font-black text-black">我的租约</Text>
       </View>
 
       {/* Main Tabs */}
@@ -183,6 +190,16 @@ export default function MyLeases() {
           </View>
         )}
       </View>
+
+      <BottomNav
+        active="rent"
+        tabs={[
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate(isStaff ? '/staff/orders' : '/my-leases') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/my-repairs') },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
+        ]}
+      />
     </View>
   )
 }
