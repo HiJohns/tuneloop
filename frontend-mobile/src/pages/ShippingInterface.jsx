@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
-import { ArrowLeft, Camera, User, MapPin, Package, Scan } from 'lucide-react'
+import { ArrowLeft, Camera, User, MapPin, Scan } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, scanQRCode } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 
@@ -12,9 +12,9 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg width
 export default function ShippingInterface() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('order')
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
-  const [site, setSite] = useState(null)
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
@@ -23,8 +23,6 @@ export default function ShippingInterface() {
   const [lookupLoading, setLookupLoading] = useState(false)
 
   const baseUrl = env.apiBaseUrl
-
-  const orderId = searchParams.get('order')
 
   useEffect(() => {
     if (orderId) {
@@ -41,7 +39,6 @@ export default function ShippingInterface() {
         const inst = await fetchInstrumentById(result.data.instrument_id)
         if (inst) {
           setInstrument(inst)
-          if (inst.site_id) fetchSiteDetail(inst.site_id)
         }
       }
     } catch (err) {
@@ -59,17 +56,6 @@ export default function ShippingInterface() {
     }
     return null
   }
-
-  const fetchSiteDetail = async (siteId) => {
-    try {
-      const resp = await apiFetch(`${baseUrl}/common/sites/${siteId}`)
-      const result = await resp.json()
-      if (result.code === 20000 && result.data) setSite(result.data)
-    } catch (err) {
-      console.error('Failed to fetch site:', err)
-    }
-  }
-
   const handleLookupByCode = async (code) => {
     if (!code.trim()) return
     setLookupError('')
@@ -201,41 +187,7 @@ export default function ShippingInterface() {
           <>
             <InstrumentInfo instrument={instrument} />
 
-            {/* Panel B: Site Info */}
-            <View className="bg-white rounded-2xl shadow-sm p-4">
-              <Text className="font-black text-black mb-3 flex items-center gap-2">
-                <MapPin size={16} />
-                网点信息
-              </Text>
-              <View className="space-y-2">
-                {instrument.tenant_name && (
-                  <View className="flex items-start gap-2">
-                    <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">商户</Text>
-                    <Text className="text-sm text-black font-medium">{instrument.tenant_name}</Text>
-                  </View>
-                )}
-                {instrument.site_name && (
-                  <View className="flex items-start gap-2">
-                    <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">网点</Text>
-                    <Text className="text-sm text-black font-medium">{instrument.site_name}</Text>
-                  </View>
-                )}
-                {site?.address && (
-                  <View className="flex items-start gap-2">
-                    <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">地址</Text>
-                    <Text className="text-sm text-black font-medium">{site.address}</Text>
-                  </View>
-                )}
-                {site?.phone && (
-                  <View className="flex items-start gap-2">
-                    <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">电话</Text>
-                    <Text className="text-sm text-black font-medium">{site.phone}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Panel C: Order Info */}
+            {/* Order Info */}
             <View className="bg-white rounded-2xl shadow-sm p-4">
               <Text className="font-black text-black mb-3">订单信息</Text>
               <View className="space-y-2">

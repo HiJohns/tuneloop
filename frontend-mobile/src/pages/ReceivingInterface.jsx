@@ -38,7 +38,7 @@ export default function ReceivingInterface() {
         setOrderData(orderResult.data)
         setOrderID(preloadedOrderId)
 
-        const instResp = await apiFetch(`${baseUrl}/instruments/${orderResult.data.instrument_id}`)
+        const instResp = await apiFetch(`${baseUrl}/public/instruments/${orderResult.data.instrument_id}`)
         const instResult = await instResp.json()
         if (instResult.code !== 20000) return
         const inst = instResult.data
@@ -75,7 +75,7 @@ export default function ReceivingInterface() {
       if (result.code === 20000 && result.data?.exists) {
         const inst = result.data.info
         // Load full instrument data (check API returns minimal fields)
-        const fullResp = await apiFetch(`${baseUrl}/instruments/${inst.id}`)
+        const fullResp = await apiFetch(`${baseUrl}/public/instruments/${inst.id}`)
         const fullResult = await fullResp.json()
         if (fullResult.code === 20000) {
           setCurrentItem(fullResult.data)
@@ -156,7 +156,7 @@ export default function ReceivingInterface() {
       {/* Customer Info — when via order_id */}
       {orderData && (
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3 flex items-center gap-2"><User size={16} />租赁人信息</Text>
+          <Text className="text-base font-black text-black mb-3 flex items-center gap-2"><User size={16} />归还人信息</Text>
           <Text className="text-sm font-black text-black">{orderData.user_name || '-'}</Text>
           {orderData.delivery_address && (
             <View className="flex items-start gap-2 mt-2 text-sm text-zinc-500">
@@ -169,27 +169,6 @@ export default function ReceivingInterface() {
 
       {/* Instrument Info */}
       {currentItem && <InstrumentInfo instrument={currentItem} />}
-
-      {/* Lease Info */}
-      {orderData && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3">租赁信息</Text>
-          <View className="space-y-2">
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">租期</Text>
-              <Text className="text-black font-black">{formatDisplayDate(orderData.start_date)} 至 {formatDisplayDate(orderData.end_date)}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">月租金</Text>
-              <Text className="text-black font-black">¥{orderData.monthly_rent || 0}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">押金</Text>
-              <Text className="text-black font-black">¥{orderData.deposit || 0}</Text>
-            </View>
-          </View>
-        </View>
-      )}
 
       {/* Photo Specs + Outbound Photos */}
       {(photoSpecs.length > 0 || outboundPhotos.length > 0) && (
