@@ -53,7 +53,7 @@ function InstrumentCard({ instrument, onClick }) {
     : 'bg-zinc-500'
 
   return (
-    <View className="bg-white rounded-l-2xl p-3 flex items-center shadow-md w-full" onClick={onClick}>
+    <View className="bg-white rounded-2xl p-3 flex items-center shadow-md w-full" onClick={onClick}>
       <View className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
         <Image src={thumb} className="w-[72px] h-[72px] object-contain" />
       </View>
@@ -270,10 +270,10 @@ export default function Home() {
 
         {/* Instrument list area — sticky+overflow-hidden clips content above menu bottom */}
         <View ref={listRef} className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`} style={listClipStyle}>
-          <View className="pl-7 pr-0 pt-4 pb-20 space-y-4">
+          <View className="px-4 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
-              <View key={i} className="bg-white rounded-l-2xl p-3 flex shadow-md">
+              <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
                 <View className="w-20 h-20 bg-zinc-200 rounded-xl animate-pulse flex-shrink-0" />
                 <View className="flex-1 ml-3 pr-4 space-y-2">
                   <View className="h-5 bg-zinc-200 rounded w-3/4 animate-pulse" />
