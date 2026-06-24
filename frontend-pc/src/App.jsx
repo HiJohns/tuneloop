@@ -633,7 +633,6 @@ function OAuthCallback() {
     }
     const redirectUri = encodeURIComponent(config.iamRedirectUri)
     return `${config.iamExternalUrl}/oauth/authorize?prompt=login&client_id=${config.iamClientId}&redirect_uri=${redirectUri}&response_type=code&noRegister=1`
-    return url
   }
 
   useEffect(() => {
