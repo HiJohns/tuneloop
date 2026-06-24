@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
-import { warehouseApi, apiFetch } from '../services/api'
+import { warehouseApi, apiFetch, getToken } from '../services/api'
 import { env, scanQRCode } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
+import BottomNav from '../components/BottomNav'
 
 const MAIN_TABS = [
   { key: 'active', label: '进行中' },
@@ -64,6 +65,15 @@ export default function StaffOrders() {
   const [searchInput, setSearchInput] = useState('')
   const sentinelRef = useRef(null)
   const baseUrl = env.apiBaseUrl
+
+  const token = getToken()
+  const isStaff = (() => {
+    try {
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return payload?.role && payload.role !== 'USER'
+    } catch { return false }
+  })()
 
   const fetchOrders = useCallback(async (pageNum = 1, append = false) => {
     if (!append) setLoading(true)
@@ -231,6 +241,16 @@ export default function StaffOrders() {
           </>
         )}
       </View>
+
+      <BottomNav
+        active="rent"
+        tabs={[
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate(isStaff ? '/staff/orders' : '/my-leases') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/my-repairs') },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
+        ]}
+      />
     </View>
   )
 }
