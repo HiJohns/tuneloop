@@ -92,6 +92,7 @@ function clearTokens() {
 }
 
 function redirectToLogin(reason = 'redirect_to_login') {
+  clearTokens()
   localStorage.setItem('logout_reason', reason)
   window.location.href = '/logout'
 }

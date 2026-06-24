@@ -100,6 +100,14 @@ function MainLayout() {
   const isFirstLogin = location.pathname === '/user/change-password' && searchParams.get('first_login') === '1'
 
   const redirectToIAMLogin = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('token_expiry')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_info')
+    localStorage.removeItem('user_role')
+    localStorage.removeItem('user_is_owner')
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+    document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
     localStorage.setItem('logout_reason', 'session_expired')
     window.location.href = '/logout'
   }
@@ -637,9 +645,12 @@ function OAuthCallback() {
       setErrorMsg(`OAuth 错误: ${error}`)
       setLoading(false)
       setTimeout(() => {
+        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+        document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
         localStorage.setItem('logout_reason', 'auth_failed')
         window.location.href = '/logout'
       }, 3000)
+
       return
     }
 
@@ -647,6 +658,7 @@ function OAuthCallback() {
       setErrorMsg('缺少授权码')
       setLoading(false)
       setTimeout(() => {
+        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
         localStorage.setItem('logout_reason', 'auth_failed')
         window.location.href = '/logout'
       }, 3000)
@@ -694,6 +706,7 @@ function OAuthCallback() {
 
         if (tokenData.relogin) {
           console.log('[OAuth] Code already used, redirecting to IAM for new code')
+          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
           localStorage.setItem('logout_reason', 'auth_failed')
           window.location.href = '/logout'
           return
