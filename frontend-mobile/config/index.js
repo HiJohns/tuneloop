@@ -2,6 +2,7 @@ const path = require('path')
 
 const config = {
   projectName: 'tuneloop-mobile',
+  cache: { enable: true },
   date: '2026-6-11',
   designWidth: 750,
   deviceRatio: {
