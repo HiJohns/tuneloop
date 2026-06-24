@@ -17,17 +17,6 @@ function getToken() {
       return token
     }
   }
-  
-  const cookies = document.cookie.split(';')
-  for (const cookie of cookies) {
-    const trimmed = cookie.trim()
-    const eqPos = trimmed.indexOf('=')
-    if (eqPos > 0) {
-      const name = trimmed.substring(0, eqPos)
-      const value = trimmed.substring(eqPos + 1)
-      if (name === 'token' && value) return decodeURIComponent(value)
-    }
-  }
 
   return sessionStorage.getItem('token') || null
 }
