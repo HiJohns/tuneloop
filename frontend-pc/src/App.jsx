@@ -540,7 +540,6 @@ function onMenuClick(e) {
         </Header>
         <Content className="p-6 bg-gray-100 overflow-y-auto">
           <Routes>
-            <Route path="/callback" element={<OAuthCallback />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/assets" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">资产管理</div></ProtectedRoute>} />
@@ -813,6 +812,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/logout" element={<LogoutPage />} />
+        <Route path="/callback" element={<OAuthCallback />} />
         <Route path="*" element={<MainLayout />} />
       </Routes>
     </BrowserRouter>
