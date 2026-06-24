@@ -91,28 +91,9 @@ function clearTokens() {
   })
 }
 
-function redirectToLogin() {
-  const clientId = CLIENT_ID()
-  fetch('/api/auth/oidc/authorization-url', {
-    credentials: 'include'
-  })
-    .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
-    .then(({ data }) => {
-      if (data.code === 20000 && data.data && data.data.authorization_url) {
-        window.location.href = data.data.authorization_url;
-      } else {
-        const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
-        window.location.href = `${getIAMUrl()}/oauth/authorize?prompt=login&client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&noRegister=1`;
-      }
-    })
-    .catch(() => {
-      // Retry after brief delay for APP_CONFIG to load (race condition workaround)
-      setTimeout(() => {
-        const retryId = CLIENT_ID()
-        const redirectUri = encodeURIComponent(window.APP_CONFIG?.pc?.iamRedirectUri || `${window.location.origin}/callback`);
-        window.location.href = `${getIAMUrl()}/oauth/authorize?prompt=login&client_id=${retryId}&redirect_uri=${redirectUri}&response_type=code&noRegister=1`;
-      }, 500)
-    });
+function redirectToLogin(reason = 'redirect_to_login') {
+  localStorage.setItem('logout_reason', reason)
+  window.location.href = '/logout'
 }
 
 export function ProtectedRoute({ children, requiredRoles = [], requiredPermission = null }) {
@@ -126,14 +107,14 @@ export function ProtectedRoute({ children, requiredRoles = [], requiredPermissio
       
       if (!tokenValue) {
         setChecking(false)
-        redirectToLogin()
+        redirectToLogin('no_token')
         return
       }
       
       if (!isTokenValid(tokenValue)) {
         clearTokens()
         setChecking(false)
-        redirectToLogin()
+        redirectToLogin('token_invalid')
         return
       }
       
@@ -205,7 +186,7 @@ export function AuthGuard({ children }) {
       setChecking(false)
       
       if (!tokenValue) {
-        redirectToLogin()
+        redirectToLogin('no_token')
       }
     }
     

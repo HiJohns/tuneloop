@@ -137,10 +137,8 @@ async function handleAuthError(token, retryCount, endpoint, options) {
    console.log('%c[AUTH DEBUG] Auth failed → clearing tokens → redirecting to IAM', 'color: red;')
    Logger.warn('AUTH', 'Auth failed, redirecting to IAM login')
    clearTokens()
-   const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-   const clientId = window.APP_CONFIG?.pc?.iamClientId
-   const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    window.location.href = iamUrl + '/oauth/authorize?client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
+   localStorage.setItem('logout_reason', 'auth_failed')
+   window.location.href = '/logout'
 
   // 返回特殊标记表示认证失败
 }
@@ -212,10 +210,8 @@ async function request(endpoint, options = {}, retryCount = 0) {
     if (serverVersion > 0 && storedVersion > 0 && serverVersion !== storedVersion) {
       console.warn('[AUTH] perm_version changed:', storedVersion, '->', serverVersion, ', forcing re-login')
       clearTokens()
-      const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-      const clientId = window.APP_CONFIG?.pc?.iamClientId
-      const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-      window.location.href = iamUrl + '/login?reason=session_expired&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&noRegister=1'
+      localStorage.setItem('logout_reason', 'session_expired')
+      window.location.href = '/logout'
       throw new Error('Permission version changed, please re-login')
     }
   }

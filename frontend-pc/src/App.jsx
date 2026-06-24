@@ -34,6 +34,7 @@ import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import WarehouseManagement from './pages/WarehouseManagement'
+import LogoutPage from './pages/LogoutPage'
 import UserRental from './pages/UserRental'
 import InstrumentListUser from './pages/InstrumentListUser'
 import InstrumentDetailUser from './pages/InstrumentDetailUser'
@@ -531,6 +532,7 @@ function onMenuClick(e) {
         </Header>
         <Content className="p-6 bg-gray-100 overflow-y-auto">
           <Routes>
+            <Route path="/logout" element={<LogoutPage />} />
             <Route path="/callback" element={<OAuthCallback />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
