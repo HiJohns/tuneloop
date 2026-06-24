@@ -103,7 +103,7 @@ export default function ReceiveConfirm() {
         <Text className="text-lg font-black text-black">确认收货</Text>
       </View>
 
-      {instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
         <LeaseInfo startDate={startDate} endDate={endDate} leaseTerm={leaseTerm} rentalDays={rentalDays} />

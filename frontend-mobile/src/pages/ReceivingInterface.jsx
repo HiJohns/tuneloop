@@ -168,7 +168,7 @@ export default function ReceivingInterface() {
       )}
 
       {/* Instrument Info */}
-      {currentItem && <InstrumentInfo instrument={currentItem} />}
+      <View className="mx-4">{currentItem && <InstrumentInfo instrument={currentItem} />}</View>
 
       {/* Photo Specs + Outbound Photos */}
       {(photoSpecs.length > 0 || outboundPhotos.length > 0) && (

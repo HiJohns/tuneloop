@@ -109,7 +109,7 @@ export default function StaffReceiveConfirm() {
       </View>
 
       <ScrollView>
-      {instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
