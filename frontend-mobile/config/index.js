@@ -20,6 +20,9 @@ const config = {
   framework: 'react',
   compiler: 'webpack5',
   mini: {
+    cache: {
+      type: 'filesystem',
+    },
     webpackChain(chain) {
       chain.resolve.alias
         .set('react-router-dom', path.resolve(__dirname, '../src/stubs/react-router-dom.js'))
