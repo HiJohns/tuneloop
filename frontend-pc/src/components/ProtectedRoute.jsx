@@ -9,12 +9,10 @@ const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId
 function getToken() {
   const token = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
-  console.log('[TOKEN DEBUG] getToken', { hasToken: !!token, hasExpiry: !!expiry, tokenLen: token?.length })
 
   if (token && expiry) {
     const now = new Date().getTime()
     const exp = parseInt(expiry)
-    console.log('[TOKEN DEBUG] expiry check', { now, exp, valid: now <= exp, diff: (exp - now) / 1000 })
     if (now <= exp) {
       return token
     }
@@ -40,7 +38,6 @@ async function getTokenWithRetry(maxRetries = 1, delay = 100) {
 
 function storeToken(token, expiresIn = 3600) {
   const expiry = new Date().getTime() + (expiresIn * 1000)
-  console.log('[TOKEN DEBUG] storeToken called', { tokenLen: token?.length, isJWT: token?.includes('.'), expiresIn, expiry })
   localStorage.setItem('token', token)
   localStorage.setItem('token_expiry', expiry.toString())
 }
