@@ -37,7 +37,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		SysPermBits:  []int{15, 16, 17},
 		CusPermCodes: []string{
 			"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:maintain",
-			"instrument:media_upload", "instrument:media_display",
+			"instrument:media_upload", "instrument:media_display", "instrument:media_delete",
 			"order:create", "order:read", "order:update", "order:cancel",
 			"appeal:read", "appeal:handle",
 			"audit_log:read",
