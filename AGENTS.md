@@ -478,6 +478,36 @@ tail -100 backend/backend.log
 发现一个 Bug 后，搜索同样模式在代码库中是否重复出现。
 例：发现 `project_admin` 是虚构角色 → 审计所有 `RequireRole` 调用。
 
+> 来自 #1014 — PC 前端闪回登录（10 次迭代才找到一行 bug）
+
+### Revert Before Patches（先还原，不要叠修复）
+
+每加一层修复都把真正问题藏得更深。如果第一轮没修好，**先 `git stash` 回到干净状态**，从头追踪完整链路。不要在一个已有 3 层 workaround 的基础上继续加第 4 层。
+
+### Trace the Data, Not the Symptom（追踪数据流，不要追症状）
+
+用户报告"闪退到登录页"时，直觉反应是做"退出过渡页"。但问题不在退出——在于 **token 从未被存储**。应追踪整条数据链路：OAuth 回调到达了吗？code 参数被传递了吗？API 返回了 token 吗？每一点都可以用 Console 日志验证，不需要猜。
+
+### Compare the Working Path（对比能工作的路径）
+
+本案例中 admin 能登录、staff 不能。唯一差异是 admin 通过常规 OAuth 流、staff 来自 admin 主动退出后的重登录。直接 diff 两个 IAM 重定向 URL 就能发现 `/callback` 缺失——不需要碰任何代码。
+
+### Console Logs Are Evidence, Not Noise（Console 日志是真相信号）
+
+`[CALLBACK DEBUG]` 从未打印 → OAuthCallback 没有被调用 → code 没有到达前端。这个信号在日志中出现了 5 轮才被认真对待。**当 debug log 显示某个函数从未执行时，立即向上追溯为什么它没被调用，不要继续在调用链下游猜原因。**
+
+### The Simplest Explanation（最简单的解释往往是对的）
+
+没有 token = token 没有存 = callback 没有收到 code = 重定向 URL 少了 `/callback`。在 cookie domain、HttpOnly、useEffect 时序、Gin SetCookie 上调试了 8 轮，全都是错误方向。
+
+### ⚠️ URL Builder Checklist（URL 拼接检查清单）
+
+任何拼接 OAuth/redirect URL 的地方必须检查：
+- [ ] `redirect_uri` 是否包含 `/callback`？
+- [ ] `client_id` 是否使用 **app 级** client_id（如 `tuneloop_1_web`）而非 namespace 级（如 `tuneloop_1`）？
+- [ ] `response_type=code` 是否缺失？
+- [ ] `redirect_uri` 是否被 `encodeURIComponent` 包裹？
+
 ### 2026-05-23: 用户账户操作必须以 IAM 为准，本地库仅是缓存
 
 **问题现象：**
