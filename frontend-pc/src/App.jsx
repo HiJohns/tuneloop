@@ -86,7 +86,7 @@ function handleLogout() {
     const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
     const clientId = window.APP_CONFIG?.pc?.iamClientId
     if (!clientId) { alert('无法获取配置，请刷新页面重试'); return }
-    const redirectUri = encodeURIComponent(window.location.origin)
+    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
     window.location.href = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
 }
 
