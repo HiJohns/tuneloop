@@ -913,6 +913,7 @@ func GetSites(c *gin.Context) {
 }
 
 func HandleUpload(c *gin.Context) {
+	c.Request.ParseMultipartForm(100 << 20)
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
