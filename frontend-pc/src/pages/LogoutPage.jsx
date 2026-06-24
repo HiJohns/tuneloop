@@ -17,18 +17,21 @@ export default function LogoutPage() {
   useEffect(() => {
     localStorage.removeItem('logout_reason')
 
-    // Clear all auth tokens to prevent stale data on re-login
+    // Clear all auth tokens — must match cookie domain from backend
     localStorage.removeItem('token')
+    localStorage.removeItem('token_expiry')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_info')
     localStorage.removeItem('user_role')
     localStorage.removeItem('user_is_owner')
-    document.cookie.split(';').forEach(c => {
-      const eqPos = c.indexOf('=')
-      const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim()
-      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
-      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname
-    })
+    
+    // Clear cookie without domain + with domain suffix (match backend SetCookie)
+    const domains = ['', '.' + window.location.hostname]
+    for (const domain of domains) {
+      const domainPart = domain ? '; domain=' + domain : ''
+      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/' + domainPart
+      document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/' + domainPart
+    }
 
     const timer = setInterval(() => {
       setCountdown(prev => {

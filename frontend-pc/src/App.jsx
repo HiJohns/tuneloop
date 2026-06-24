@@ -106,8 +106,12 @@ function MainLayout() {
     localStorage.removeItem('user_info')
     localStorage.removeItem('user_role')
     localStorage.removeItem('user_is_owner')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
-    document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+    const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
+    cookieDomains.forEach(domain => {
+      const path = domain ? `; domain=${domain}` : ''
+      document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+      document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+    })
     localStorage.setItem('logout_reason', 'session_expired')
     window.location.href = '/logout'
   }
@@ -536,7 +540,6 @@ function onMenuClick(e) {
         </Header>
         <Content className="p-6 bg-gray-100 overflow-y-auto">
           <Routes>
-        <Route path="/logout" element={<LogoutPage />} />
             <Route path="/callback" element={<OAuthCallback />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -645,12 +648,15 @@ function OAuthCallback() {
       setErrorMsg(`OAuth 错误: ${error}`)
       setLoading(false)
       setTimeout(() => {
-        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
-        document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+        const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
+        cookieDomains.forEach(domain => {
+          const path = domain ? `; domain=${domain}` : ''
+          document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+          document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+        })
         localStorage.setItem('logout_reason', 'auth_failed')
         window.location.href = '/logout'
       }, 3000)
-
       return
     }
 
@@ -658,7 +664,12 @@ function OAuthCallback() {
       setErrorMsg('缺少授权码')
       setLoading(false)
       setTimeout(() => {
-        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+        const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
+        cookieDomains.forEach(domain => {
+          const path = domain ? `; domain=${domain}` : ''
+          document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+          document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+        })
         localStorage.setItem('logout_reason', 'auth_failed')
         window.location.href = '/logout'
       }, 3000)
@@ -706,7 +717,12 @@ function OAuthCallback() {
 
         if (tokenData.relogin) {
           console.log('[OAuth] Code already used, redirecting to IAM for new code')
-          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+          const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
+          cookieDomains.forEach(domain => {
+            const path = domain ? `; domain=${domain}` : ''
+            document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+            document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
+          })
           localStorage.setItem('logout_reason', 'auth_failed')
           window.location.href = '/logout'
           return
@@ -796,7 +812,10 @@ function App() {
   
   return (
     <BrowserRouter>
-      <MainLayout />
+      <Routes>
+        <Route path="/logout" element={<LogoutPage />} />
+        <Route path="*" element={<MainLayout />} />
+      </Routes>
     </BrowserRouter>
   )
 }
