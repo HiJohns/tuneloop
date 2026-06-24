@@ -25,7 +25,7 @@ function getToken() {
     if (eqPos > 0) {
       const name = trimmed.substring(0, eqPos)
       const value = trimmed.substring(eqPos + 1)
-      if (name === 'token') return decodeURIComponent(value)
+      if (name === 'token' && value) return decodeURIComponent(value)
     }
   }
 
