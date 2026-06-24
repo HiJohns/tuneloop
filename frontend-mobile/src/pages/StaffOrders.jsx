@@ -141,7 +141,7 @@ export default function StaffOrders() {
   }
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+    <View className="min-h-screen bg-[#FDFBF7] pb-20 relative">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
