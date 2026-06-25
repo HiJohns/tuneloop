@@ -21,10 +21,10 @@ type AuditLogQuery struct {
 	Page         int
 	PageSize     int
 
-	Role     string
-	ActorID  string
-	TenantID string
-	OrgID    string
+	BusinessRole string
+	ActorID      string
+	TenantID     string
+	OrgID        string
 }
 
 type AuditLogResult struct {
@@ -97,10 +97,10 @@ func QueryAuditLogs(q *AuditLogQuery) (*AuditLogResult, error) {
 	}, nil
 }
 
-func GetAuditLogByID(id, role, userID, tenantID string) (*models.AuditLog, error) {
+func GetAuditLogByID(id, businessRole, userID, tenantID string) (*models.AuditLog, error) {
 	query := database.GetDB().Model(&models.AuditLog{}).Where("id = ?", id)
 
-	q := &AuditLogQuery{Role: role, ActorID: userID, TenantID: tenantID}
+	q := &AuditLogQuery{BusinessRole: businessRole, ActorID: userID, TenantID: tenantID}
 	query = applyAuditRBAC(query, q)
 
 	var log models.AuditLog
@@ -164,12 +164,14 @@ func ExportAuditLogs(q *AuditLogQuery) (string, error) {
 }
 
 func applyAuditRBAC(query *gorm.DB, q *AuditLogQuery) *gorm.DB {
-	switch q.Role {
-	case "OWNER":
+	switch q.BusinessRole {
+	case "system_admin":
+		return query
+	case "merchant_admin":
 		if q.TenantID != "" {
 			return query.Where("tenant_id = ?", q.TenantID)
 		}
-	case "ADMIN":
+	case "site_admin":
 		childIDs := getChildOrgIDs(q.OrgID)
 		ids := append(childIDs, q.OrgID)
 		return query.Where("org_id IN ?", ids)

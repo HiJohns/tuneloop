@@ -83,6 +83,82 @@ var auditRouteMap = map[string]auditRouteInfo{
 	"PUT /api/property/merge":                  {"MERGE", "property", "HIGH"},
 	"POST /api/labels/merge":                   {"MERGE", "label", "HIGH"},
 	"PUT /api/merchant/merchants/:id/status":   {"UPDATE_STATUS", "merchant", "HIGH"},
+	// ---- Forwarding sessions (7) ----
+	"PUT /api/forwarding/sessions/:id/ship":      {"SHIP", "forwarding_session", "HIGH"},
+	"PUT /api/forwarding/sessions/:id/receive":   {"RECEIVE", "forwarding_session", "HIGH"},
+	"PUT /api/forwarding/sessions/:id/ready":     {"READY", "forwarding_session", "HIGH"},
+	"PUT /api/forwarding/sessions/:id/last-mile": {"LAST_MILE", "forwarding_session", "HIGH"},
+	"PUT /api/forwarding/sessions/:id/complete":  {"COMPLETE", "forwarding_session", "HIGH"},
+	"PUT /api/forwarding/sessions/:id/lost":      {"LOST", "forwarding_session", "HIGH"},
+	"PUT /api/forwarding/sessions/:id/recover":   {"RECOVER", "forwarding_session", "HIGH"},
+	// ---- Instrument media ----
+	"POST /api/instruments/:id/photos/upload":   {"UPLOAD", "instrument_photo", "HIGH"},
+	"POST /api/instruments/:id/media":           {"CREATE", "instrument_media", "HIGH"},
+	"PUT /api/instruments/:id/media/display":    {"UPDATE", "instrument_media", "HIGH"},
+	"DELETE /api/instruments/:id/media/:batch_id": {"DELETE", "instrument_media", "HIGH"},
+	"POST /api/instruments/:id/display-image":   {"UPLOAD", "instrument_display", "HIGH"},
+	// ---- Instrument other ----
+	"POST /api/instruments/:id/scrap":           {"SCRAP", "instrument", "CRITICAL"},
+	"POST /api/instruments/batch-import/media":  {"IMPORT_MEDIA", "instrument", "HIGH"},
+	"POST /api/instruments/batch-import/preview": {"PREVIEW", "instrument", "HIGH"},
+	"PUT /api/instruments/batch-pricing":        {"BATCH_PRICING", "instrument", "HIGH"},
+	// ---- Categories ----
+	"POST /api/categories":    {"CREATE", "category", "HIGH"},
+	"PUT /api/categories/:id": {"UPDATE", "category", "HIGH"},
+	"DELETE /api/categories/:id": {"DELETE", "category", "HIGH"},
+	"PUT /api/categories/sort": {"SORT", "category", "HIGH"},
+	// ---- Properties ----
+	"POST /api/property":      {"CREATE", "property", "HIGH"},
+	"PUT /api/property/:id":   {"UPDATE", "property", "HIGH"},
+	"POST /api/property/option": {"CREATE", "property_option", "HIGH"},
+	"PUT /api/property/confirm": {"CONFIRM", "property", "HIGH"},
+	// ---- Labels ----
+	"POST /api/labels":               {"CREATE", "label", "HIGH"},
+	"PUT /api/labels/:id/approve":    {"APPROVE", "label", "HIGH"},
+	"PUT /api/labels/:id/reject":     {"REJECT", "label", "HIGH"},
+	// ---- Maintenance additional ----
+	"POST /api/maintenance/report":           {"REPORT", "maintenance_ticket", "HIGH"},
+	"POST /api/maintenance/:id/record":       {"RECORD", "maintenance_ticket", "HIGH"},
+	"PUT /api/maintenance/:id/status":        {"UPDATE_STATUS", "maintenance_ticket", "HIGH"},
+	"PUT /api/maintenance/tickets/:id/status": {"UPDATE_STATUS", "maintenance_ticket", "HIGH"},
+	"PUT /api/merchant/maintenance/:id/accept": {"ACCEPT", "maintenance_ticket", "HIGH"},
+	"PUT /api/merchant/maintenance/:id/update": {"UPDATE", "maintenance_ticket", "HIGH"},
+	// ---- Technician ----
+	"POST /api/technician/tickets/:id/complete": {"COMPLETE", "maintenance_ticket", "HIGH"},
+	"PUT /api/technician/tickets/:id/accept":    {"ACCEPT", "maintenance_ticket", "HIGH"},
+	// ---- User addresses ----
+	"POST /api/user/addresses":            {"CREATE", "address", "HIGH"},
+	"PUT /api/user/addresses/:id":         {"UPDATE", "address", "HIGH"},
+	"PUT /api/user/addresses/:id/default": {"SET_DEFAULT", "address", "HIGH"},
+	"DELETE /api/user/addresses/:id":      {"DELETE", "address", "HIGH"},
+	// ---- User self ----
+	"PUT /api/users/me":                          {"UPDATE", "user_self", "HIGH"},
+	"POST /api/user/change-password":             {"CHANGE_PASSWORD", "user_self", "HIGH"},
+	"POST /api/user/reset-password":              {"RESET_PASSWORD", "user_self", "HIGH"},
+	"POST /api/users/:id/activate":              {"ACTIVATE", "user", "CRITICAL"},
+	"POST /api/users/reset-password":            {"RESET_PASSWORD", "user", "HIGH"},
+	"POST /api/users/me/resend-email-confirmation": {"RESEND_EMAIL", "user_self", "LOW"},
+	// ---- Appeals additional ----
+	"POST /api/appeals":            {"CREATE", "appeal", "HIGH"},
+	"POST /api/appeals/:id/agree": {"AGREE", "appeal", "HIGH"},
+	// ---- Banner management ----
+	"POST /api/admin/banners":    {"CREATE", "banner", "HIGH"},
+	"PUT /api/admin/banners/:id": {"UPDATE", "banner", "HIGH"},
+	"DELETE /api/admin/banners/:id": {"DELETE", "banner", "HIGH"},
+	// ---- Permission management ----
+	"PUT /api/admin/users/:id/permissions": {"UPDATE", "user_permission", "CRITICAL"},
+	"PUT /api/admin/users/:id/roles":       {"UPDATE", "user_role", "CRITICAL"},
+	"PUT /api/admin/roles/:id":             {"UPDATE", "role", "CRITICAL"},
+	// ---- Confirmation sessions ----
+	"POST /api/confirmation-sessions":          {"CREATE", "confirmation", "HIGH"},
+	"POST /api/confirmation-sessions/:id/reject": {"REJECT", "confirmation", "HIGH"},
+	// ---- Other ----
+	"POST /api/user/orders/batch":        {"BATCH_CREATE", "user_order", "HIGH"},
+	"PUT /api/pricing/merchant-config":   {"UPDATE", "pricing_config", "HIGH"},
+	"PUT /api/settings/:key":             {"UPDATE", "setting", "HIGH"},
+	"POST /api/upload":                   {"UPLOAD", "file", "HIGH"},
+	"POST /api/notifications/mark-all-read": {"MARK_READ", "notification", "LOW"},
+	"POST /api/notifications/:id/read":    {"MARK_READ", "notification", "LOW"},
 }
 
 const maxRequestBodySize = 10 * 1024

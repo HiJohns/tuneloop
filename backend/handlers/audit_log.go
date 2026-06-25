@@ -25,7 +25,7 @@ func ListAuditLogs(c *gin.Context) {
 		Keyword:      c.Query("keyword"),
 		Page:         page,
 		PageSize:     pageSize,
-		Role:         middleware.GetRole(ctx),
+		BusinessRole: middleware.GetBusinessRole(ctx),
 		ActorID:      middleware.GetUserID(ctx),
 		TenantID:     middleware.GetTenantID(ctx),
 		OrgID:        middleware.GetOrgID(ctx),
@@ -51,7 +51,7 @@ func GetAuditLog(c *gin.Context) {
 	id := c.Param("id")
 
 	log, err := services.GetAuditLogByID(id,
-		middleware.GetRole(ctx),
+		middleware.GetBusinessRole(ctx),
 		middleware.GetUserID(ctx),
 		middleware.GetTenantID(ctx),
 	)
@@ -95,7 +95,7 @@ func ExportAuditLogs(c *gin.Context) {
 		DateFrom:     req.DateFrom,
 		DateTo:       req.DateTo,
 		Keyword:      req.Keyword,
-		Role:         middleware.GetRole(ctx),
+		BusinessRole: middleware.GetBusinessRole(ctx),
 		ActorID:      middleware.GetUserID(ctx),
 		TenantID:     middleware.GetTenantID(ctx),
 		OrgID:        middleware.GetOrgID(ctx),
