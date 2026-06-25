@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, Modal, Form, Input, InputNumber, Select, Upload, Image, Popconfirm, message } from 'antd';
+import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { bannerApi } from '../../services/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-
-const statusOptions = [
-  { value: 'active', label: '启用' },
-  { value: 'inactive', label: '禁用' },
-];
 
 export default function BannerManagePage() {
   const [banners, setBanners] = useState([]);
@@ -37,7 +32,7 @@ export default function BannerManagePage() {
   const handleCreate = () => {
     setEditingBanner(null);
     form.resetFields();
-    form.setFieldsValue({ sort_order: 0, status: 'active' });
+    form.setFieldsValue({ status: 'active' });
     setModalOpen(true);
   };
 
@@ -101,7 +96,9 @@ export default function BannerManagePage() {
           return;
         }
       } else {
-        const res = await bannerApi.create(values);
+        const values = await form.validateFields();
+        const maxSort = banners.reduce((max, b) => Math.max(max, b.sort_order || 0), 0);
+        const res = await bannerApi.create({ ...values, sort_order: maxSort + 1 });
         if (res.code === 20000 || res.code === 20100) {
           message.success('创建成功');
         } else {
@@ -135,10 +132,16 @@ export default function BannerManagePage() {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status) => (
-        <span style={{ color: status === 'active' ? '#52c41a' : '#ff4d4f' }}>
-          {status === 'active' ? '启用' : '禁用'}
-        </span>
+      render: (status, record) => (
+        <Button type="link" onClick={() => {
+          const nextStatus = status === 'active' ? 'inactive' : 'active';
+          bannerApi.update(record.id, { status: nextStatus }).then(res => {
+            if (res.code === 20000) { message.success(nextStatus === 'active' ? '已启用' : '已停用'); fetchBanners(); }
+          }).catch(() => message.error('操作失败'));
+        }}
+        style={{ fontWeight: status === 'active' ? 700 : 400, color: status === 'active' ? '#52c41a' : '#999', cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}>
+          {status === 'active' ? '启用' : '停用'}
+        </Button>
       ),
     },
     {
@@ -204,12 +207,6 @@ export default function BannerManagePage() {
           </Form.Item>
           <Form.Item name="title" label="标题">
             <Input placeholder="可选：轮播图标题" />
-          </Form.Item>
-          <Form.Item name="sort_order" label="排序">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select options={statusOptions} />
           </Form.Item>
         </Form>
       </Modal>
