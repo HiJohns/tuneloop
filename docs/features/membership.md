@@ -117,7 +117,7 @@
 
 | 级别 | 制订者 | 覆盖范围 | 优先级 |
 |------|--------|---------|:---:|
-| 系统 | namespace_admin | 全站默认 | 最低 |
+| 系统 | sys_admin | 全站默认 | 最低 |
 | 商户 | merchant_admin | 本商户（覆盖系统） | 中 |
 | 网点 | site_admin | 本网点/单件乐器（覆盖上级） | 最高 |
 
@@ -194,7 +194,7 @@
 | 操作 | 权限 |
 |------|------|
 | 管理级别表 | `category:manage`（已由 namespace_admin 持有） |
-| 管理系统促销方案 | namespace_admin |
+| 管理系统促销方案 | sys_admin |
 | 管理系统返点配置 | `rebate:manage`（新增 cus_perm，仅 namespace_admin） |
 | 管理商户促销方案 | merchant_admin |
 | 管理网点/乐器促销方案 | site_admin |
