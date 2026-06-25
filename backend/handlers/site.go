@@ -321,12 +321,6 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	adminID := orgResp.AdminID
 
 	if adminID != "" {
-		if t, ok := services.AllRoleTemplates["site_admin"]; ok && len(t.CusPermCodes) > 0 {
-			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-			if err := iamClient.SetUserCustomerPermissions(siteOrgID, adminID, cusPerm, cusPermExt); err != nil {
-				log.Printf("[CreateSite] SetUserCustomerPermissions failed: %v", err)
-			}
-		}
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {

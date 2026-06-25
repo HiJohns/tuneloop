@@ -262,13 +262,6 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				})
 				continue
 			}
-			// Set cus_perm for the new member based on role template
-			if t, ok := services.AllRoleTemplates[templateCode]; ok && len(t.CusPermCodes) > 0 {
-				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-				if err := iamClient.SetUserCustomerPermissions(site.OrgID, userID, cusPerm, cusPermExt); err != nil {
-					log.Printf("[AddMember] SetUserCustomerPermissions failed: %v", err)
-				}
-			}
 			// Assign role template to user (determines JWT roles, sys_perm, cus_perm)
 			nsID := middleware.GetNamespaceID(c.Request.Context())
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
@@ -389,12 +382,6 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 				}
 			}
 			// Set cus_perm based on role template
-			if t, ok := services.AllRoleTemplates[templateCode]; ok && len(t.CusPermCodes) > 0 {
-				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-				if err := iamClient.SetUserCustomerPermissions(site.OrgID, iamUser.IAMSub, cusPerm, cusPermExt); err != nil {
-					log.Printf("[UpdateMemberRole] SetUserCustomerPermissions failed: %v", err)
-				}
-			}
 			// Reassign role template
 			nsID := middleware.GetNamespaceID(c.Request.Context())
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {

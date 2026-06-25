@@ -427,16 +427,6 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 						})
 					} else {
 						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminIAMSub)
-						// Immediately set cus_perm via client credentials (not user token)
-						// so new merchant admin can use permissions without server restart.
-						if tmpl, ok := services.AllRoleTemplates[t.Code]; ok {
-							cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(tmpl.CusPermCodes, func(code string) int {
-								return middleware.PermissionRegistry.GetCusPermBit(code)
-							})
-							if err := iamClient.SetUserCustomerPermissions(iamOrgID, adminIAMSub, cusPerm, cusPermExt); err != nil {
-								log.Printf("[CreateMerchant] Warning: failed to set immediate cus_perm for %s: %v", adminIAMSub, err)
-							}
-						}
 					}
 					break
 				}

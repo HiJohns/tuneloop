@@ -343,17 +343,6 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			return
 		}
 
-		template := services.AllRoleTemplates[resolvedRole]
-		if len(template.CusPermCodes) > 0 {
-			cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-			if err := iamClient.SetUserCustomerPermissions(orgID, user.IAMSub, cusPerm, cusPermExt); err != nil {
-				iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
-				iamClient.DeleteUser(user.IAMSub)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
-				return
-			}
-		}
-
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
