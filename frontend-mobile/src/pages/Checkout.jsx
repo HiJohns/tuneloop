@@ -40,8 +40,7 @@ function SingleCheckout({ id, navigate }) {
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-
-  const [days, setDays] = useState(30)
+  const [user, setUser] = useState(null)
   const [selectedAddressId, setSelectedAddressId] = useState('')
   const [useNewAddress, setUseNewAddress] = useState(false)
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
@@ -100,6 +99,24 @@ function SingleCheckout({ id, navigate }) {
     }
     loadData()
   }, [id])
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const resp = await apiFetch(`${env.apiBaseUrl}/users/me`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          setUser(result.data)
+          setNewAddress(prev => ({
+            ...prev,
+            recipient_name: prev.recipient_name || result.data.name || '',
+            phone: prev.phone || result.data.phone || '',
+          }))
+        }
+      } catch {}
+    }
+    fetchUser()
+  }, [])
 
   const computeTieredRent = (daysCount) => {
     if (!pricingV2?.tiers?.length) {
@@ -404,6 +421,7 @@ function BatchCheckout({ navigate }) {
   const [saveAddress, setSaveAddress] = useState(true)
   const [previewImages, setPreviewImages] = useState([])
   const [previewIndex, setPreviewIndex] = useState(-1)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
     const token = getToken()
@@ -432,6 +450,24 @@ function BatchCheckout({ navigate }) {
       }
     }
     loadData()
+  }, [])
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const resp = await apiFetch(`${env.apiBaseUrl}/users/me`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          setUser(result.data)
+          setNewAddress(prev => ({
+            ...prev,
+            recipient_name: prev.recipient_name || result.data.name || '',
+            phone: prev.phone || result.data.phone || '',
+          }))
+        }
+      } catch {}
+    }
+    fetchUser()
   }, [])
 
   const groups = useMemo(() => {
