@@ -122,17 +122,7 @@ func BootstrapIAM(db *gorm.DB) error {
 					orgID := appCredentials["_org_id"]
 					appCredentialsLock.RUnlock()
 					if orgID != "" {
-						nsAdminCusPermCodes := []string{"category:manage", "attribute:manage", "banner:manage"}
-						nsAdminCusPerm, nsAdminCusPermExt := ComputeCusPermBitmapExt(nsAdminCusPermCodes, GlobalPermissionRegistry.GetCusPermBit)
-						permClient := iamClient
-						if webClient := GetWebIAMClient(); webClient != nil {
-							permClient = webClient
-						}
-						if err := permClient.SetUserCustomerPermissions(orgID, adminUserID, nsAdminCusPerm, nsAdminCusPermExt); err != nil {
-							log.Printf("[Bootstrap] Warning: failed to set admin cus_perm: %v", err)
-						} else {
-							log.Printf("[Bootstrap] Set admin cus_perm to namespace-admin codes: %v → %d", nsAdminCusPermCodes, nsAdminCusPerm)
-						}
+						log.Printf("[Bootstrap] Admin IAM user created with namespace_admin role (cus_perm via role template)")
 					}
 				}
 
