@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, InputNumber, Select, Upload, Image, Popconfirm, message } from 'antd';
-import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { bannerApi } from '../../services/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -61,6 +61,34 @@ export default function BannerManagePage() {
     }
   };
 
+  const handleMoveUp = (index) => {
+    if (index === 0) return
+    const sorted = [...banners]
+    const prev = sorted[index - 1]
+    const curr = sorted[index]
+    const temp = prev.sort_order
+    prev.sort_order = curr.sort_order
+    curr.sort_order = temp
+    Promise.all([
+      bannerApi.update(prev.id, { sort_order: prev.sort_order }),
+      bannerApi.update(curr.id, { sort_order: curr.sort_order }),
+    ]).then(() => fetchBanners()).catch(() => message.error('排序更新失败'))
+  }
+
+  const handleMoveDown = (index) => {
+    if (index === banners.length - 1) return
+    const sorted = [...banners]
+    const next = sorted[index + 1]
+    const curr = sorted[index]
+    const temp = next.sort_order
+    next.sort_order = curr.sort_order
+    curr.sort_order = temp
+    Promise.all([
+      bannerApi.update(next.id, { sort_order: next.sort_order }),
+      bannerApi.update(curr.id, { sort_order: curr.sort_order }),
+    ]).then(() => fetchBanners()).catch(() => message.error('排序更新失败'))
+  }
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -117,8 +145,10 @@ export default function BannerManagePage() {
       title: '操作',
       key: 'actions',
       width: 150,
-      render: (_, record) => (
+      render: (_, record, index) => (
         <Space>
+          <Button type="link" size="small" icon={<ArrowUpOutlined />} disabled={index === 0} onClick={() => handleMoveUp(index)} />
+          <Button type="link" size="small" icon={<ArrowDownOutlined />} disabled={index === banners.length - 1} onClick={() => handleMoveDown(index)} />
           <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
           <Popconfirm title="确定删除该轮播图？" onConfirm={() => handleDelete(record.id)} okText="确定" cancelText="取消">
             <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>

@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -147,7 +152,22 @@ func (h *BannerHandler) DeleteBanner(c *gin.Context) {
 		return
 	}
 
-	result := db.Where("id = ?", id).Delete(&models.Banner{})
+	var banner models.Banner
+	if err := db.Where("id = ?", id).First(&banner).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "banner not found"})
+		return
+	}
+
+	// Delete the uploaded file from disk
+	if banner.ImageURL != "" && strings.HasPrefix(banner.ImageURL, "/uploads/media/") {
+		key := strings.TrimPrefix(banner.ImageURL, "/uploads/media/")
+		filePath := filepath.Join("./uploads/media", key)
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			log.Printf("[Banner] failed to delete file %s: %v", filePath, err)
+		}
+	}
+
+	result := db.Where("id = ?", id).Delete(&banner)
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "banner not found"})
 		return
@@ -157,6 +177,21 @@ func (h *BannerHandler) DeleteBanner(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 	})
+}
+
+func ValidateBannerFiles(db *gorm.DB) {
+	var banners []models.Banner
+	db.Find(&banners)
+	for _, b := range banners {
+		if !strings.HasPrefix(b.ImageURL, "/uploads/media/") {
+			continue
+		}
+		key := strings.TrimPrefix(b.ImageURL, "/uploads/media/")
+		filePath := filepath.Join("./uploads/media", key)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			log.Printf("[Banner] WARNING: file not found for banner %s: %s (DB record exists)", b.ID, filePath)
+		}
+	}
 }
 
 func (h *BannerHandler) GetPublicBanners(c *gin.Context) {
