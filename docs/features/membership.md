@@ -59,7 +59,7 @@
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
-权限：仅 `namespace_admin` 可管理（`rebate:manage` cus_perm）。
+权限：仅系统管理员可管理（`rebate:manage` cus_perm）。
 
 ### 1.5 新增表：`points_policies`（促销点数政策，三级可覆盖）
 
@@ -193,9 +193,9 @@
 
 | 操作 | 权限 |
 |------|------|
-| 管理级别表 | `category:manage`（已由 namespace_admin 持有） |
+| 管理级别表 | `category:manage`（已由系统管理员持有） |
 | 管理系统促销方案 | sys_admin |
-| 管理系统返点配置 | `rebate:manage`（新增 cus_perm，仅 namespace_admin） |
+| 管理系统返点配置 | `rebate:manage`（新增 cus_perm，仅系统管理员） |
 | 管理商户促销方案 | merchant_admin |
 | 管理网点/乐器促销方案 | site_admin |
 | 管理促销点数政策 | 对应三级 scope 的管理员 |
