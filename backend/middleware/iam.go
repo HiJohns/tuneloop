@@ -467,10 +467,18 @@ func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
 		return "", fmt.Errorf("failed to query user: %w", err)
 	}
 
+	tenantID := GetTenantID(ctx)
+	if tenantID == "" {
+		tenantID = "00000000-0000-0000-0000-000000000000"
+	}
+	orgID := GetOrgID(ctx)
+	if orgID == "" {
+		orgID = "00000000-0000-0000-0000-000000000000"
+	}
 	user = models.User{
 		IAMSub:   iamSub,
-		TenantID: GetTenantID(ctx),
-		OrgID:    GetOrgID(ctx),
+		TenantID: tenantID,
+		OrgID:    orgID,
 		Name:     GetName(ctx),
 		Status:   "active",
 		IsShadow: true,

@@ -182,10 +182,14 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		// Sync IAM user to local users table (same pattern as WxLogin)
 		var existing models.User
 		if err := h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error; err != nil {
+				tenantID := claims.TenantID
+			if tenantID == "" { tenantID = "00000000-0000-0000-0000-000000000000" }
+			orgID := claims.OrgID
+			if orgID == "" { orgID = "00000000-0000-0000-0000-000000000000" }
 			newUser := models.User{
 				IAMSub:   claims.UserID,
-				TenantID: claims.TenantID,
-				OrgID:    claims.OrgID,
+				TenantID: tenantID,
+				OrgID:    orgID,
 				Name:     claims.Name,
 				Role:     "USER",
 				Status:   "active",
