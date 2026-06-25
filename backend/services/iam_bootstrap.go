@@ -145,7 +145,7 @@ func BootstrapIAM(db *gorm.DB) error {
 						TenantID: tenantID,
 						OrgID:    orgID,
 						Status:   "active",
-						Role:     "namespace_admin",
+						Role:     "sys_admin",
 					}
 					if err := db.Create(&localUser).Error; err != nil {
 						log.Printf("[Bootstrap] Warning: failed to save admin to local DB: %v", err)

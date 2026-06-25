@@ -63,7 +63,7 @@ function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {
 }
 
 function isNamespaceAdmin(roles) {
-  return Array.isArray(roles) && roles.includes('namespace_admin')
+  return Array.isArray(roles) && (roles.includes('namespace_admin') || roles.includes('sys_admin'))
 }
 
 function getNamespaceAdminMenuKeys() {
