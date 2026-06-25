@@ -94,6 +94,7 @@ export default function Home() {
   const topCategories = categories.filter(c => !c.parent_id)
   const initialized = useRef(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
+  const bannerTouchStartXRef = useRef(0)
   const listRef = useRef(null)
   const listOffsetRef = useRef(0)
 
@@ -218,6 +219,26 @@ export default function Home() {
           ))}
         </View>
       </View>
+
+      {/* Swipe touch layer — intercepts touches over the banner area */}
+      {banners.length > 0 && (
+        <View className="absolute top-0 left-0 right-0 z-[60] h-[240px]"
+          onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => {
+            const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
+            if (Math.abs(diff) > 50) {
+              if (diff < 0 && currentBanner < banners.length - 1) {
+                setCurrentBanner(prev => prev + 1)
+              } else if (diff > 0 && currentBanner > 0) {
+                setCurrentBanner(prev => prev - 1)
+              }
+            } else {
+              const currentItem = banners[currentBanner]
+              if (currentItem?.link_url) navigate(currentItem.link_url)
+            }
+          }}
+        />
+      )}
 
       {/* Fixed search bar — transparent initially, frosted on scroll */}
       <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`}>

@@ -63,6 +63,7 @@ export default function Detail() {
   const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
+  const bannerTouchStartXRef = useRef(0)
 
   const mediaScrollRef = useRef(null)
   const cartItemCount = (() => {
@@ -285,7 +286,19 @@ export default function Detail() {
       </View>
 
       {/* Banner carousel */}
-      <View className="w-full overflow-hidden">
+      <View className="w-full overflow-hidden"
+        onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+        onTouchEnd={(e) => {
+          const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
+          if (Math.abs(diff) > 50) {
+            if (diff < 0 && currentBanner < bannerImages.length - 1) {
+              setCurrentBanner(prev => prev + 1)
+            } else if (diff > 0 && currentBanner > 0) {
+              setCurrentBanner(prev => prev - 1)
+            }
+          }
+        }}
+      >
         <View className="w-full h-[150px]">
           <View className="flex flex-row h-full" style={{
             width: `${bannerImages.length * 100}%`,
