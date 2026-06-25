@@ -170,3 +170,12 @@ export const env = {
   isMiniProgram: true,
   isWechat: true,
 }
+
+export const getWindowSize = () => {
+  try {
+    const info = Taro.getSystemInfoSync()
+    return { width: info.windowWidth || 375, height: info.windowHeight || 667 }
+  } catch {
+    return { width: 375, height: 667 }
+  }
+}

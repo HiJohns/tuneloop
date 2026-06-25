@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
-import { env } from '../platform'
+import { env, getWindowSize } from '../platform'
 import BottomNav from '../components/BottomNav'
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -88,6 +88,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
   const [banners, setBanners] = useState([])
+  const [bannerImageHeight, setBannerImageHeight] = useState(0)
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
@@ -97,6 +98,17 @@ export default function Home() {
   const bannerTouchStartXRef = useRef(0)
   const listRef = useRef(null)
   const listOffsetRef = useRef(0)
+
+  const handleBannerImageLoad = (e) => {
+    try {
+      const nw = e.detail?.width || e.target?.naturalWidth || 0
+      const nh = e.detail?.height || e.target?.naturalHeight || 0
+      if (nw > 0 && nh > 0) {
+        const { width: screenW } = getWindowSize()
+        setBannerImageHeight(Math.round(screenW * nh / nw))
+      }
+    } catch {}
+  }
 
   const baseUrl = env.apiBaseUrl
 
@@ -201,8 +213,8 @@ export default function Home() {
                 style={{ width: `${100 / banners.length}%` }}
                 onClick={() => item.link_url && navigate(item.link_url)}
               >
-                <View className="w-full h-[240px] flex-shrink-0">
-                  <Image src={item.image_url} className="w-full h-full object-cover" />
+                <View className="w-full flex-shrink-0">
+                  <Image src={item.image_url} className="w-full" mode="widthFix" onLoad={handleBannerImageLoad} />
                 </View>
                 <View className="flex-1" style={{ backgroundColor: item.bg_color || '#915F38' }} />
               </View>
@@ -211,18 +223,20 @@ export default function Home() {
         )}
       </View>
 
-      {/* Carousel dots — fixed at bottom of banner */}
-      <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ top: '246px' }}>
-        <View className="flex items-center space-x-1.5">
-          {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => (
-            <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
-          ))}
+      {/* Carousel dots — at bottom of image */}
+      {bannerImageHeight > 0 && (
+        <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ top: `${bannerImageHeight - 12}px` }}>
+          <View className="flex items-center space-x-1.5">
+            {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => (
+              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Swipe touch layer — intercepts touches over the banner area */}
-      {banners.length > 0 && (
-        <View className="absolute top-0 left-0 right-0 z-[60] h-[240px]"
+      {banners.length > 0 && bannerImageHeight > 0 && (
+        <View className="absolute top-0 left-0 right-0 z-[60]" style={{ height: bannerImageHeight }}
           onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
           onTouchEnd={(e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
@@ -252,7 +266,7 @@ export default function Home() {
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
-        <View className="h-[260px]"></View>
+        <View style={{ height: `${bannerImageHeight > 0 ? bannerImageHeight + 60 : 260}px` }}></View>
 
         {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
         <View className={`sticky top-[62px] z-[9999] py-[3px] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
