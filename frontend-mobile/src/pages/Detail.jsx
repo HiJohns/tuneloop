@@ -259,7 +259,7 @@ export default function Detail() {
       setCurrentBanner(prev => (prev + 1) % bannerImages.length)
     }, 4000)
     return () => clearInterval(timer)
-  }, [])
+  }, [bannerImages.length])
 
   if (loading) {
     return <View className="p-4">加载中...</View>
