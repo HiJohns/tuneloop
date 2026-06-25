@@ -5,6 +5,7 @@ import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '..
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
+import regions from '../data/regions.json'
 
 function parseImages(images) {
   if (!images) return []
@@ -313,9 +314,26 @@ function SingleCheckout({ id, navigate }) {
                 </View>
               </View>
               <View className="grid grid-cols-3 gap-2">
-                <input className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value }))} placeholder="省" />
-                <input className={inputClass} value={newAddress.city} onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value }))} placeholder="市" />
-                <input className={inputClass} value={newAddress.district} onChange={e => setNewAddress(prev => ({ ...prev, district: e.target.value }))} placeholder="区" />
+                <select className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value, city: '', district: '' }))}>
+                  <option value="">省</option>
+                  {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
+                </select>
+                <select className={inputClass} value={newAddress.city} onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value, district: '' }))}>
+                  <option value="">市</option>
+                  {(() => {
+                    const prov = regions.find(r => r.name === newAddress.province)
+                    return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
+                  })()}
+                </select>
+                <select className={inputClass} value={newAddress.district} onChange={e => setNewAddress(prev => ({ ...prev, district: e.target.value }))}>
+                  <option value="">区</option>
+                  {(() => {
+                    const prov = regions.find(r => r.name === newAddress.province)
+                    if (!prov) return null
+                    const city = prov.children.find(c => c.name === newAddress.city)
+                    return city ? city.children.map((d, i) => <option key={i} value={d.name}>{d.name}</option>) : null
+                  })()}
+                </select>
               </View>
               <View>
                 <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />

@@ -1,0 +1,939 @@
+[
+{
+"name": "北京市",
+"children": [
+{
+"name": "东城区",
+"children": []
+},
+{
+"name": "西城区",
+"children": []
+},
+{
+"name": "朝阳区",
+"children": []
+},
+{
+"name": "海淀区",
+"children": []
+},
+{
+"name": "丰台区",
+"children": []
+},
+{
+"name": "石景山区",
+"children": []
+}
+]
+},
+{
+"name": "天津市",
+"children": [
+{
+"name": "和平区",
+"children": []
+},
+{
+"name": "河东区",
+"children": []
+},
+{
+"name": "河西区",
+"children": []
+},
+{
+"name": "南开区",
+"children": []
+},
+{
+"name": "河北区",
+"children": []
+}
+]
+},
+{
+"name": "河北省",
+"children": [
+{
+"name": "石家庄市",
+"children": [
+{
+"name": "长安区"
+},
+{
+"name": "桥西区"
+},
+{
+"name": "新华区"
+},
+{
+"name": "裕华区"
+}
+]
+},
+{
+"name": "唐山市",
+"children": [
+{
+"name": "路南区"
+},
+{
+"name": "路北区"
+}
+]
+},
+{
+"name": "保定市",
+"children": [
+{
+"name": "竞秀区"
+},
+{
+"name": "莲池区"
+}
+]
+},
+{
+"name": "邯郸市",
+"children": [
+{
+"name": "丛台区"
+},
+{
+"name": "邯山区"
+}
+]
+}
+]
+},
+{
+"name": "山西省",
+"children": [
+{
+"name": "太原市",
+"children": [
+{
+"name": "小店区"
+},
+{
+"name": "迎泽区"
+},
+{
+"name": "杏花岭区"
+}
+]
+},
+{
+"name": "大同市",
+"children": [
+{
+"name": "平城区"
+},
+{
+"name": "云冈区"
+}
+]
+}
+]
+},
+{
+"name": "内蒙古自治区",
+"children": [
+{
+"name": "呼和浩特市",
+"children": [
+{
+"name": "新城区"
+},
+{
+"name": "回民区"
+},
+{
+"name": "赛罕区"
+}
+]
+},
+{
+"name": "包头市",
+"children": [
+{
+"name": "昆都仑区"
+},
+{
+"name": "青山区"
+}
+]
+}
+]
+},
+{
+"name": "辽宁省",
+"children": [
+{
+"name": "沈阳市",
+"children": [
+{
+"name": "和平区"
+},
+{
+"name": "沈河区"
+},
+{
+"name": "铁西区"
+}
+]
+},
+{
+"name": "大连市",
+"children": [
+{
+"name": "中山区"
+},
+{
+"name": "西岗区"
+},
+{
+"name": "沙河口区"
+}
+]
+}
+]
+},
+{
+"name": "吉林省",
+"children": [
+{
+"name": "长春市",
+"children": [
+{
+"name": "南关区"
+},
+{
+"name": "朝阳区"
+},
+{
+"name": "宽城区"
+}
+]
+},
+{
+"name": "吉林市",
+"children": [
+{
+"name": "昌邑区"
+},
+{
+"name": "船营区"
+}
+]
+}
+]
+},
+{
+"name": "黑龙江省",
+"children": [
+{
+"name": "哈尔滨市",
+"children": [
+{
+"name": "道里区"
+},
+{
+"name": "南岗区"
+},
+{
+"name": "道外区"
+}
+]
+},
+{
+"name": "齐齐哈尔市",
+"children": [
+{
+"name": "龙沙区"
+},
+{
+"name": "建华区"
+}
+]
+}
+]
+},
+{
+"name": "上海市",
+"children": [
+{
+"name": "黄浦区",
+"children": []
+},
+{
+"name": "徐汇区",
+"children": []
+},
+{
+"name": "长宁区",
+"children": []
+},
+{
+"name": "静安区",
+"children": []
+},
+{
+"name": "普陀区",
+"children": []
+},
+{
+"name": "浦东新区",
+"children": []
+}
+]
+},
+{
+"name": "江苏省",
+"children": [
+{
+"name": "南京市",
+"children": [
+{
+"name": "玄武区"
+},
+{
+"name": "秦淮区"
+},
+{
+"name": "建邺区"
+},
+{
+"name": "鼓楼区"
+}
+]
+},
+{
+"name": "苏州市",
+"children": [
+{
+"name": "姑苏区"
+},
+{
+"name": "吴中区"
+},
+{
+"name": "吴江区"
+}
+]
+},
+{
+"name": "无锡市",
+"children": [
+{
+"name": "梁溪区"
+},
+{
+"name": "锡山区"
+}
+]
+}
+]
+},
+{
+"name": "浙江省",
+"children": [
+{
+"name": "杭州市",
+"children": [
+{
+"name": "上城区"
+},
+{
+"name": "拱墅区"
+},
+{
+"name": "西湖区"
+},
+{
+"name": "滨江区"
+}
+]
+},
+{
+"name": "宁波市",
+"children": [
+{
+"name": "海曙区"
+},
+{
+"name": "鄞州区"
+}
+]
+},
+{
+"name": "温州市",
+"children": [
+{
+"name": "鹿城区"
+},
+{
+"name": "龙湾区"
+}
+]
+}
+]
+},
+{
+"name": "安徽省",
+"children": [
+{
+"name": "合肥市",
+"children": [
+{
+"name": "瑶海区"
+},
+{
+"name": "蜀山区"
+},
+{
+"name": "包河区"
+}
+]
+},
+{
+"name": "芜湖市",
+"children": [
+{
+"name": "镜湖区"
+},
+{
+"name": "弋江区"
+}
+]
+}
+]
+},
+{
+"name": "福建省",
+"children": [
+{
+"name": "福州市",
+"children": [
+{
+"name": "鼓楼区"
+},
+{
+"name": "台江区"
+},
+{
+"name": "仓山区"
+}
+]
+},
+{
+"name": "厦门市",
+"children": [
+{
+"name": "思明区"
+},
+{
+"name": "湖里区"
+}
+]
+}
+]
+},
+{
+"name": "江西省",
+"children": [
+{
+"name": "南昌市",
+"children": [
+{
+"name": "东湖区"
+},
+{
+"name": "西湖区"
+},
+{
+"name": "青山湖区"
+}
+]
+}
+]
+},
+{
+"name": "山东省",
+"children": [
+{
+"name": "济南市",
+"children": [
+{
+"name": "历下区"
+},
+{
+"name": "市中区"
+},
+{
+"name": "槐荫区"
+}
+]
+},
+{
+"name": "青岛市",
+"children": [
+{
+"name": "市南区"
+},
+{
+"name": "市北区"
+},
+{
+"name": "崂山区"
+}
+]
+}
+]
+},
+{
+"name": "河南省",
+"children": [
+{
+"name": "郑州市",
+"children": [
+{
+"name": "中原区"
+},
+{
+"name": "二七区"
+},
+{
+"name": "金水区"
+}
+]
+},
+{
+"name": "洛阳市",
+"children": [
+{
+"name": "老城区"
+},
+{
+"name": "西工区"
+}
+]
+}
+]
+},
+{
+"name": "湖北省",
+"children": [
+{
+"name": "武汉市",
+"children": [
+{
+"name": "江岸区"
+},
+{
+"name": "江汉区"
+},
+{
+"name": "武昌区"
+},
+{
+"name": "洪山区"
+}
+]
+},
+{
+"name": "宜昌市",
+"children": [
+{
+"name": "西陵区"
+},
+{
+"name": "伍家岗区"
+}
+]
+}
+]
+},
+{
+"name": "湖南省",
+"children": [
+{
+"name": "长沙市",
+"children": [
+{
+"name": "芙蓉区"
+},
+{
+"name": "天心区"
+},
+{
+"name": "岳麓区"
+}
+]
+},
+{
+"name": "株洲市",
+"children": [
+{
+"name": "天元区"
+},
+{
+"name": "芦淞区"
+}
+]
+}
+]
+},
+{
+"name": "广东省",
+"children": [
+{
+"name": "广州市",
+"children": [
+{
+"name": "荔湾区"
+},
+{
+"name": "越秀区"
+},
+{
+"name": "天河区"
+},
+{
+"name": "白云区"
+}
+]
+},
+{
+"name": "深圳市",
+"children": [
+{
+"name": "罗湖区"
+},
+{
+"name": "福田区"
+},
+{
+"name": "南山区"
+},
+{
+"name": "宝安区"
+}
+]
+},
+{
+"name": "珠海市",
+"children": [
+{
+"name": "香洲区"
+}
+]
+}
+]
+},
+{
+"name": "广西壮族自治区",
+"children": [
+{
+"name": "南宁市",
+"children": [
+{
+"name": "兴宁区"
+},
+{
+"name": "青秀区"
+},
+{
+"name": "良庆区"
+}
+]
+},
+{
+"name": "桂林市",
+"children": [
+{
+"name": "秀峰区"
+},
+{
+"name": "叠彩区"
+}
+]
+}
+]
+},
+{
+"name": "海南省",
+"children": [
+{
+"name": "海口市",
+"children": [
+{
+"name": "秀英区"
+},
+{
+"name": "龙华区"
+},
+{
+"name": "琼山区"
+}
+]
+},
+{
+"name": "三亚市",
+"children": [
+{
+"name": "吉阳区"
+},
+{
+"name": "天涯区"
+}
+]
+}
+]
+},
+{
+"name": "重庆市",
+"children": [
+{
+"name": "渝中区",
+"children": []
+},
+{
+"name": "江北区",
+"children": []
+},
+{
+"name": "沙坪坝区",
+"children": []
+},
+{
+"name": "九龙坡区",
+"children": []
+},
+{
+"name": "南岸区",
+"children": []
+}
+]
+},
+{
+"name": "四川省",
+"children": [
+{
+"name": "成都市",
+"children": [
+{
+"name": "锦江区"
+},
+{
+"name": "青羊区"
+},
+{
+"name": "金牛区"
+},
+{
+"name": "武侯区"
+}
+]
+},
+{
+"name": "绵阳市",
+"children": [
+{
+"name": "涪城区"
+}
+]
+}
+]
+},
+{
+"name": "贵州省",
+"children": [
+{
+"name": "贵阳市",
+"children": [
+{
+"name": "南明区"
+},
+{
+"name": "云岩区"
+},
+{
+"name": "花溪区"
+}
+]
+}
+]
+},
+{
+"name": "云南省",
+"children": [
+{
+"name": "昆明市",
+"children": [
+{
+"name": "五华区"
+},
+{
+"name": "盘龙区"
+},
+{
+"name": "官渡区"
+}
+]
+},
+{
+"name": "大理市",
+"children": [
+{
+"name": "大理市"
+}
+]
+}
+]
+},
+{
+"name": "西藏自治区",
+"children": [
+{
+"name": "拉萨市",
+"children": [
+{
+"name": "城关区"
+}
+]
+}
+]
+},
+{
+"name": "陕西省",
+"children": [
+{
+"name": "西安市",
+"children": [
+{
+"name": "新城区"
+},
+{
+"name": "碑林区"
+},
+{
+"name": "莲湖区"
+},
+{
+"name": "雁塔区"
+}
+]
+}
+]
+},
+{
+"name": "甘肃省",
+"children": [
+{
+"name": "兰州市",
+"children": [
+{
+"name": "城关区"
+},
+{
+"name": "七里河区"
+},
+{
+"name": "西固区"
+}
+]
+}
+]
+},
+{
+"name": "青海省",
+"children": [
+{
+"name": "西宁市",
+"children": [
+{
+"name": "城中区"
+},
+{
+"name": "城东区"
+},
+{
+"name": "城西区"
+}
+]
+}
+]
+},
+{
+"name": "宁夏回族自治区",
+"children": [
+{
+"name": "银川市",
+"children": [
+{
+"name": "兴庆区"
+},
+{
+"name": "金凤区"
+},
+{
+"name": "西夏区"
+}
+]
+}
+]
+},
+{
+"name": "新疆维吾尔自治区",
+"children": [
+{
+"name": "乌鲁木齐市",
+"children": [
+{
+"name": "天山区"
+},
+{
+"name": "沙依巴克区"
+},
+{
+"name": "新市区"
+}
+]
+}
+]
+},
+{
+"name": "台湾省",
+"children": [
+{
+"name": "台北市",
+"children": []
+}
+]
+},
+{
+"name": "香港特别行政区",
+"children": [
+{
+"name": "香港岛",
+"children": []
+},
+{
+"name": "九龙",
+"children": []
+}
+]
+},
+{
+"name": "澳门特别行政区",
+"children": [
+{
+"name": "澳门半岛",
+"children": []
+}
+]
+}
+]
