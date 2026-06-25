@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, DatePicker, Select, Input, Tag, message, Modal, Descriptions } from 'antd';
 import { DownloadOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { api, auditLogApi } from '../../services/api';
+import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 
@@ -139,6 +140,24 @@ export default function AuditLogPage() {
           ...f, date_from: dates ? dates[0].format('YYYY-MM-DD') : '',
           date_to: dates ? dates[1].format('YYYY-MM-DD') : '',
         }))} />
+        <Button.Group size="small">
+          <Button onClick={() => {
+            const today = dayjs();
+            setFilters(f => ({ ...f, date_from: today.format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+          }}>今天</Button>
+          <Button onClick={() => {
+            const today = dayjs();
+            setFilters(f => ({ ...f, date_from: today.startOf('week').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+          }}>本周</Button>
+          <Button onClick={() => {
+            const today = dayjs();
+            setFilters(f => ({ ...f, date_from: today.startOf('month').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+          }}>本月</Button>
+          <Button onClick={() => {
+            const today = dayjs();
+            setFilters(f => ({ ...f, date_from: today.subtract(60, 'day').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+          }}>最近60天</Button>
+        </Button.Group>
         <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>查询</Button>
       </Space>
 
