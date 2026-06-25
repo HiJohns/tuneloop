@@ -52,6 +52,7 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 		Title     string `json:"title"`
 		SortOrder int    `json:"sort_order"`
 		Status    string `json:"status"`
+		BgColor   string `json:"bg_color"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
@@ -62,6 +63,10 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 	if status == "" {
 		status = "active"
 	}
+	bgColor := req.BgColor
+	if bgColor == "" {
+		bgColor = "#915F38"
+	}
 
 	banner := models.Banner{
 		ID:        uuid.New().String(),
@@ -71,6 +76,7 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 		Title:     req.Title,
 		SortOrder: req.SortOrder,
 		Status:    status,
+		BgColor:   bgColor,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -108,6 +114,7 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 		Title     string `json:"title"`
 		SortOrder int    `json:"sort_order"`
 		Status    string `json:"status"`
+		BgColor   string `json:"bg_color"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
@@ -129,6 +136,9 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	updates["sort_order"] = req.SortOrder
 	if req.Status != "" {
 		updates["status"] = req.Status
+	}
+	if req.BgColor != "" {
+		updates["bg_color"] = req.BgColor
 	}
 
 	if err := db.Model(&existing).Updates(updates).Error; err != nil {

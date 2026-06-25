@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message } from 'antd';
+import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message, ColorPicker } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { bannerApi } from '../../services/api';
 
@@ -207,6 +207,9 @@ export default function BannerManagePage() {
           </Form.Item>
           <Form.Item name="title" label="标题">
             <Input placeholder="可选：轮播图标题" />
+          </Form.Item>
+          <Form.Item name="bg_color" label="背景色" getValueFromEvent={(color) => typeof color === 'string' ? color : color?.toHexString()}>
+            <ColorPicker format="hex" showText />
           </Form.Item>
         </Form>
       </Modal>

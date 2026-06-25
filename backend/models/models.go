@@ -720,6 +720,7 @@ type Banner struct {
 	Title     string    `gorm:"type:varchar(200)" json:"title"`
 	SortOrder int       `gorm:"default:0;index" json:"sort_order"`
 	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	BgColor   string    `gorm:"type:varchar(7);default:'#915F38'" json:"bg_color"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
