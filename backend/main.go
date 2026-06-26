@@ -279,6 +279,25 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		instrumentOverride.GET("/instruments/:id/promo-overrides", handlers.GetInstrumentPromoOverrides)
 		instrumentOverride.PUT("/instruments/:id/promo-overrides", handlers.UpdateInstrumentPromoOverride)
 
+		// Points policies
+		pointsAdmin := authRequired.Group("")
+		pointsAdmin.Use(middleware.RequireCusPerm("points:manage"))
+		pointsAdmin.GET("/admin/points-policies", handlers.ListPointsPolicies)
+		pointsAdmin.POST("/admin/points-policies", handlers.CreatePointsPolicy)
+		pointsAdmin.PUT("/admin/points-policies/:id", handlers.UpdatePointsPolicy)
+		// Merchant points policies
+		merchantPoints := authRequired.Group("")
+		merchantPoints.Use(middleware.RequireCusPerm("points:manage"))
+		merchantPoints.GET("/merchant/points-policies", handlers.ListPointsPolicies)
+		merchantPoints.POST("/merchant/points-policies", handlers.CreatePointsPolicy)
+		merchantPoints.PUT("/merchant/points-policies/:id", handlers.UpdatePointsPolicy)
+		// Site points policies
+		sitePoints := authRequired.Group("")
+		sitePoints.Use(middleware.RequireCusPerm("points:manage"))
+		sitePoints.GET("/site/points-policies", handlers.ListPointsPolicies)
+		sitePoints.POST("/site/points-policies", handlers.CreatePointsPolicy)
+		sitePoints.PUT("/site/points-policies/:id", handlers.UpdatePointsPolicy)
+
 		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
 		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
 		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)
