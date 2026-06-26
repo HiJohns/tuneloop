@@ -22,7 +22,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"sys_admin": {
 		Name:         "系统管理员",
 		SysPermBits:  []int{5, 6, 7, 8, 9, 15, 16, 17, 18, 19},
-		CusPermCodes: []string{"category:manage", "attribute:manage", "banner:manage"},
+		CusPermCodes: []string{"category:manage", "attribute:manage", "banner:manage", "rebate:manage", "promo:manage", "points:manage", "membership:manage"},
 		Description:  "TuneLoop 系统管理员，管理商户和人员",
 	},
 		"merchant_admin": {
@@ -35,6 +35,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 			"order:create", "order:read", "order:update", "order:cancel",
 			"appeal:create", "appeal:read", "appeal:handle",
 			"audit_log:read",
+			"promo:manage", "points:manage",
 		},
 		Description: "商户级管理权限，全部业务权限",
 	},
@@ -47,6 +48,7 @@ var AllRoleTemplates = map[string]RoleTemplate{
 			"order:create", "order:read", "order:update", "order:cancel",
 			"appeal:read", "appeal:handle",
 			"audit_log:read",
+			"promo:override", "points:manage",
 		},
 		Description: "网点管理权限",
 	},

@@ -24,6 +24,10 @@ type User struct {
 	Role                 string     `gorm:"type:varchar(50)" json:"role"`
 	ForcePasswordChange  bool       `gorm:"default:false" json:"force_password_change"`
 	WxOpenid             string     `gorm:"type:varchar(128);index" json:"wx_openid"`
+	MembershipLevelID    *int       `gorm:"type:int" json:"membership_level_id"`
+	TotalSpending        float64    `gorm:"type:decimal;default:0" json:"total_spending"`
+	PrepaidPoints        float64    `gorm:"type:decimal;default:0" json:"prepaid_points"`
+	PromoPoints          float64    `gorm:"type:decimal;default:0" json:"promo_points"`
 	DeletedAt            *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
@@ -67,6 +71,7 @@ type Instrument struct {
 	PricingOverrides string          `gorm:"type:jsonb;default:'{}'" json:"pricing_overrides"`
 	StockStatus     string           `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
 	Properties      string           `gorm:"type:jsonb;default:'{}'" json:"properties"`
+	MinMembershipLevel *int          `gorm:"type:int" json:"min_membership_level"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
@@ -176,6 +181,7 @@ type Order struct {
 	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
 	DeliveredAt       *time.Time `gorm:"type:timestamp" json:"delivered_at"`
 	DepositRefunded   bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
+	PricingBreakdown  *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
@@ -588,6 +594,7 @@ type Merchant struct {
 	TransitAddress     string    `gorm:"type:text" json:"transit_address"`
 	TransitPhone       string    `gorm:"type:varchar(50)" json:"transit_phone"`
 	TransitContactName string    `gorm:"type:varchar(255)" json:"transit_contact_name"`
+	RebateOptIn        bool      `gorm:"default:true" json:"rebate_opt_in"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }

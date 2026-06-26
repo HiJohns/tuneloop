@@ -108,6 +108,11 @@ func getTuneLoopPermissions() []PermissionDef {
 		{Code: "category:manage", Name: "分类管理", BitCode: 18},
 		{Code: "attribute:manage", Name: "属性管理", BitCode: 19},
 		{Code: "banner:manage", Name: "轮播图管理", BitCode: 20},
+		{Code: "rebate:manage", Name: "返点管理", BitCode: 21},
+		{Code: "promo:manage", Name: "折扣政策管理", BitCode: 22},
+		{Code: "promo:override", Name: "乐器促销覆盖", BitCode: 23},
+		{Code: "points:manage", Name: "点数政策管理", BitCode: 24},
+		{Code: "membership:manage", Name: "会员级别管理", BitCode: 25},
 	}
 }
 
