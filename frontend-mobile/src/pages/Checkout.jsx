@@ -544,7 +544,7 @@ function BatchCheckout({ navigate }) {
       }))
       const body = { items }
         if (deliveryAddress) body.delivery_address = deliveryAddress
-        const orderResp = await ordersApi.create(body)
+        const orderResp = await ordersApi.batchCreate(body)
         if (orderResp.code === 20000) {
           const orderId = orderResp.data?.order_id
           if (orderId) {
