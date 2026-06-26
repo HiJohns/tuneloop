@@ -46,9 +46,19 @@ func BootstrapIAM(db *gorm.DB) error {
 			{AppType: "wechat", RedirectURIs: []string{wxRedirect}, AllowRegister: true},
 		}
 
+		iamCallbackURL := os.Getenv("EXTERNAL_BACKEND_URL")
+		if iamCallbackURL == "" {
+			wwwPort := os.Getenv("TUNELOOP_WWW_PORT")
+			if wwwPort == "" {
+				wwwPort = "5557"
+			}
+			iamCallbackURL = "http://localhost:" + wwwPort
+		}
+		iamCallbackURL += "/api/iam/callback"
+
 		// Try ActivateNamespace (beaconiam #177 — also creates org, returns org_id + apps)
 		// Fatal on failure — silent fallback hides configuration issues.
-		activateResp, actErr := iamClient.ActivateNamespace(iamNs, apps, true)
+		activateResp, actErr := iamClient.ActivateNamespace(iamNs, apps, true, iamCallbackURL)
 		if actErr != nil {
 			return fmt.Errorf("namespace activation failed (check IAM server and namespace secret): %w", actErr)
 		}
