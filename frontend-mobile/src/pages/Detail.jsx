@@ -200,9 +200,9 @@ export default function Detail() {
   const [displayMedia, setDisplayMedia] = useState(null)
 
   // computed values — must be after all state declarations
-  const bannerImagesSource = displayMedia?.images?.length > 0
+  const bannerImagesSource = Array.isArray(displayMedia?.images) && displayMedia.images.length > 0
     ? displayMedia.images.map(i => ({ url: i.url }))
-    : parseImages(instrument?.images).map(url => ({ url }))
+    : (parseImages(instrument?.images) || []).map(url => ({ url }))
   const bannerImages = bannerImagesSource.length > 0
     ? bannerImagesSource
     : [{ url: PLACEHOLDER_IMAGE }]
