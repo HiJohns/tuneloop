@@ -249,40 +249,26 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Category Menu — fixed overlay when scrolled, right below search bar */}
+      {scrolled && (
+        <View className="fixed left-0 right-0 z-[9999] bg-[#5A3B24]/15 backdrop-blur-md text-white" style={{ top: '62px' }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+        </View>
+      )}
+
       {/* Z=50: ScrollView */}
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
-        <View style={{ height: '225px' }}></View>
+        <View style={{ height: '285px' }}></View>
 
-        {/* Category Menu — sticky inside ScrollView, opaque white on scroll */}
-        <View className={`sticky top-[62px] z-[9999] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
-          <View className="w-full overflow-hidden pl-7"
-            onTouchStart={e => {
-              catTouchStartRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
-            }}
-            onTouchMove={e => {
-              const dx = e.touches[0].clientX - catTouchStartRef.current.x
-              if (Math.abs(dx) > 5) {
-                setCatOffsetX(Math.min(0, Math.max(catTouchStartRef.current.offset + dx, -(categories.length * 120 - 375))))
-              }
-            }}
-          >
-            <View className="inline-flex items-center space-x-8 pr-4"
-              style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap' }}
-            >
-              {[{ id: null, name: '全部' }, ...topCategories].map(item => (
-                <Text
-                  key={item.id || 'all'}
-                  className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 ${scrolled ? 'text-white border-white' : 'text-black border-black'}` : `font-bold ${scrolled ? 'text-white/70' : 'text-zinc-500/90'}`}`}
-                  onClick={() => setSelectedCategory(item.id)}
-                >
-                  {item.name}
-                </Text>
-              ))}
-            </View>
-          </View>
-        </View>
+        {/* Category Menu — in natural flow (hidden when scrolled, replaced by fixed version) */}
+        {!scrolled && (
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+        )}
+
+        {/* Spacer for fixed menu when scrolled */}
+        {scrolled && <View style={{ height: '42px' }}></View>}
 
         {/* Instrument list area — sticky+overflow-hidden clips content above menu bottom */}
         <View ref={listRef} className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`} style={listClipStyle}>
@@ -325,6 +311,39 @@ export default function Home() {
           { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
         ]}
       />
+    </View>
+  )
+}
+
+function MenuContent({ categories, selectedCategory, setSelectedCategory, catOffsetX, setCatOffsetX, scrolled }) {
+  const items = [{ id: null, name: '全部' }, ...(categories || [])]
+  const localTouchRef = useRef({ x: 0, offset: 0 })
+
+  return (
+    <View className="w-full overflow-hidden pl-7"
+      onTouchStart={e => {
+        localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
+      }}
+      onTouchMove={e => {
+        const dx = e.touches[0].clientX - localTouchRef.current.x
+        if (Math.abs(dx) > 5) {
+          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(items.length * 120 - 375))))
+        }
+      }}
+    >
+      <View className="inline-flex items-center space-x-8 pr-4"
+        style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap' }}
+      >
+        {items.map(item => (
+          <Text
+            key={item.id || 'all'}
+            className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 ${scrolled ? 'text-white border-white' : 'text-black border-black'}` : `font-bold ${scrolled ? 'text-white/70' : 'text-zinc-500/90'}`}`}
+            onClick={() => setSelectedCategory(item.id)}
+          >
+            {item.name}
+          </Text>
+        ))}
+      </View>
     </View>
   )
 }
