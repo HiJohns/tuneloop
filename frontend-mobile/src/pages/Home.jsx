@@ -239,7 +239,7 @@ export default function Home() {
 
       {/* Category Menu — fixed overlay when scrolled, right below search bar */}
       {scrolled && (
-        <View className="fixed left-0 right-0 z-[9999] bg-[#5A3B24]/15 backdrop-blur-md text-white" style={{ top: '62px' }}>
+        <View className="fixed left-0 right-0 z-[9999] bg-[#5A3B24]/70 backdrop-blur-md text-white" style={{ top: '62px' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
         </View>
       )}
@@ -260,11 +260,9 @@ export default function Home() {
 
         {/* Instrument list area — with clip-path to hide content behind frosted bars */}
         <View className={`transition-all duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}
-          style={{
-            transform: scrolled ? 'translateY(-191px)' : 'translateY(0)',
-            clipPath: scrolled ? `inset(${Math.max(0, scrollY - 191)}px 0 0 0)` : 'none'
-          }}>
-          <View className="px-4 pt-4 pb-20 space-y-4">
+          style={{ transform: scrolled ? 'translateY(-191px)' : 'translateY(0)' }}>
+          <View className="px-4 pt-4 pb-20 space-y-4"
+            style={scrolled ? { clipPath: `inset(${Math.max(0, scrollY - 191)}px 0 0 0)` } : {}}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
