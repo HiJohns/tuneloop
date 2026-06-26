@@ -238,7 +238,7 @@ export default function Home() {
       </View>
 
       {/* Category Menu — fixed below search bar */}
-      <View className={`fixed left-0 right-0 z-[9999] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`} style={{ top: '62px' }}>
+      <View className="fixed left-0 right-0 z-[9999] bg-[#5A3B24]/15 backdrop-blur-md" style={{ top: '62px' }}>
         <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
       </View>
 
