@@ -149,9 +149,9 @@ export default function InstrumentListUser() {
             className="instrument-card"
             cover={
               <div className="relative">
-                {instrument.images && instrument.images.length > 0 ? (
+                {instrument.poster || (instrument.images && instrument.images.length > 0) ? (
                   <Image
-                    src={instrument.images[0]}
+                    src={instrument.poster || instrument.images[0]}
                     alt={instrument.sn}
                     className="h-48 w-full object-cover"
                     preview={false}

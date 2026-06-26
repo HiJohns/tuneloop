@@ -70,9 +70,11 @@ export default function InstrumentDetailUser() {
   }
 
   const images = (() => {
-    if (!instrument.images) return []
-    if (Array.isArray(instrument.images)) return instrument.images
-    try { return JSON.parse(instrument.images) } catch { return [] }
+    if (!instrument.images) return instrument.poster ? [instrument.poster] : []
+    const parsed = Array.isArray(instrument.images)
+      ? instrument.images
+      : (() => { try { return JSON.parse(instrument.images) } catch { return [] } })()
+    return instrument.poster ? [instrument.poster, ...parsed.filter(u => u !== instrument.poster)] : parsed
   })()
 
   return (
