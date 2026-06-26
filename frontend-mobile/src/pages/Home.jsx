@@ -260,7 +260,7 @@ export default function Home() {
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
-        <View style={{ height: '285px' }}></View>
+        <View style={{ height: scrolled ? '94px' : '285px' }}></View>
 
         {/* Category Menu — in natural flow (hidden when scrolled, replaced by fixed version) */}
         {!scrolled && (
