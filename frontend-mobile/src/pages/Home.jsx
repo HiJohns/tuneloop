@@ -248,7 +248,7 @@ export default function Home() {
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
         {/* Push content below banner + search bar */}
-        <View style={{ height: scrolled ? '94px' : '285px' }}></View>
+        <View style={{ height: '285px' }}></View>
 
         {/* Category Menu — in natural flow (hidden when scrolled, replaced by fixed version) */}
         {!scrolled && (
@@ -258,8 +258,12 @@ export default function Home() {
         {/* Spacer for fixed menu when scrolled */}
         {scrolled && <View style={{ height: '42px' }}></View>}
 
-        {/* Instrument list area — sticky+overflow-hidden clips content above menu bottom */}
-        <View className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}>
+        {/* Instrument list area — with clip-path to hide content behind frosted bars */}
+        <View className={`transition-all duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}
+          style={{
+            transform: scrolled ? 'translateY(-191px)' : 'translateY(0)',
+            clipPath: scrolled ? `inset(${Math.max(0, scrollY - 191)}px 0 0 0)` : 'none'
+          }}>
           <View className="px-4 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
