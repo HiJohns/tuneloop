@@ -137,6 +137,7 @@ export default function Detail() {
   const isRentable = instrument?.stock_status === 'available'
   const [activeOrder, setActiveOrder] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
+  const isCustomer = !currentUser || currentUser?.role === 'USER'
 
   useEffect(() => {
     const fetchInstrument = async () => {
@@ -475,7 +476,7 @@ export default function Detail() {
 
       {/* Bottom panel */}
       <View className="fixed bottom-0 left-0 right-0 bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
-        {isRentable ? (
+        {isRentable && isCustomer ? (
           <>
             <View className="flex w-full space-x-3">
               <View
