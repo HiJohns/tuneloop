@@ -136,6 +136,7 @@ export default function Detail() {
 
   const isRentable = instrument?.stock_status === 'available'
   const [activeOrder, setActiveOrder] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
     const fetchInstrument = async () => {
@@ -153,6 +154,13 @@ export default function Detail() {
           if (inst.sn) {
             const token = getToken()
             if (token) {
+              try {
+                const userResp = await apiFetch(`${baseUrl}/users/me`)
+                const userResult = await userResp.json()
+                if (userResult.code === 20000) {
+                  setCurrentUser(userResult.data)
+                }
+              } catch {}
               try {
                 const orderResp = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
                 const orderResult = await orderResp.json()
@@ -530,12 +538,14 @@ export default function Detail() {
             <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
               <Text className="text-cyan-700 font-medium">乐器物流中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
-              <View
-                onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
-                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
-              >
-                <Text>确认收货</Text>
-              </View>
+              {currentUser?.id === activeOrder?.user_id && (
+                <View
+                  onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                  className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
+                >
+                  <Text>确认收货</Text>
+                </View>
+              )}
             </View>
           ) : activeOrder.order_status === 'expired' ? (
             <View className="p-3 bg-red-50 rounded-lg space-y-2">
@@ -559,12 +569,14 @@ export default function Detail() {
             <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
               <Text className="text-cyan-700 font-medium">乐器物流中</Text>
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
-              <View
-                onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
-                className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
-              >
-                <Text>确认收货</Text>
-              </View>
+              {currentUser?.id === activeOrder?.user_id && (
+                <View
+                  onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                  className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
+                >
+                  <Text>确认收货</Text>
+                </View>
+              )}
             </View>
           )
         ) : (
