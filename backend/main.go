@@ -241,6 +241,20 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		bannerAdmin.PUT("/admin/banners/:id", bannerHandler.UpdateBanner)
 		bannerAdmin.DELETE("/admin/banners/:id", bannerHandler.DeleteBanner)
 
+		// Membership management (system admin)
+		membershipAdmin := authRequired.Group("")
+		membershipAdmin.GET("/admin/membership-levels", handlers.ListMembershipLevels)
+		membershipAdmin.POST("/admin/membership-levels", middleware.RequireCusPerm("membership:manage"), handlers.CreateMembershipLevel)
+		membershipAdmin.PUT("/admin/membership-levels/:id", middleware.RequireCusPerm("membership:manage"), handlers.UpdateMembershipLevel)
+		membershipAdmin.DELETE("/admin/membership-levels/:id", middleware.RequireCusPerm("membership:manage"), handlers.DeleteMembershipLevel)
+		membershipAdmin.GET("/admin/rebate-config", middleware.RequireCusPerm("rebate:manage"), handlers.GetRebateConfig)
+		membershipAdmin.PUT("/admin/rebate-config", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateRebateConfig)
+
+		// Merchant rebate opt-in
+		merchantRebate := authRequired.Group("")
+		merchantRebate.GET("/merchant/rebate-opt-in", handlers.GetMerchantRebateOptIn)
+		merchantRebate.PUT("/merchant/rebate-opt-in", handlers.UpdateMerchantRebateOptIn)
+
 		authRequired.GET("/instruments", middleware.RequireCusPerm("instrument:read"), handlers.GetInstruments)
 		authRequired.GET("/instruments/levels", handlers.GetInstrumentLevels)
 		authRequired.GET("/instruments/filter-options", handlers.GetInstrumentFilterOptions)
