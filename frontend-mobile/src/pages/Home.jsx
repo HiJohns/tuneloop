@@ -237,32 +237,28 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Category Menu — fixed overlay when scrolled, right below search bar */}
-      {scrolled && (
-        <View className="fixed left-0 right-0 z-[9999] bg-[#5A3B24]/70 backdrop-blur-md text-white" style={{ top: '62px' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
-        </View>
-      )}
+      {/* B layer: occlusion shield — blocks list content behind frosted bars */}
+      <View className="fixed left-0 right-0 z-[100]" style={{
+        top: 0,
+        height: scrollY <= 0 ? 0 : Math.min(94, 62 + Math.round(Math.min(1, scrollY / 163) * 32)),
+        backgroundColor: '#3D291F',
+        transition: 'height 0.15s ease-out'
+      }} />
 
       {/* Z=50: ScrollView */}
       <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
         onScroll={e => setScrollY(e.target.scrollTop)}>
-        {/* Push content below banner + search bar */}
-        <View style={{ height: '285px' }}></View>
+        {/* Push content below banner */}
+        <View style={{ height: '225px' }}></View>
 
-        {/* Category Menu — in natural flow (hidden when scrolled, replaced by fixed version) */}
-        {!scrolled && (
+        {/* Category Menu — sticky, always in natural flow */}
+        <View className={`sticky top-[62px] z-[10] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
-        )}
+        </View>
 
-        {/* Spacer for fixed menu when scrolled */}
-        {scrolled && <View style={{ height: '42px' }}></View>}
-
-        {/* Instrument list area — with clip-path to hide content behind frosted bars */}
-        <View className={`transition-all duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}
-          style={{ transform: scrolled ? 'translateY(-191px)' : 'translateY(0)' }}>
-          <View className="px-4 pt-4 pb-20 space-y-4"
-            style={scrolled ? { clipPath: `inset(${Math.max(0, scrollY - 191)}px 0 0 0)` } : {}}>
+        {/* Instrument list — natural flow, no translate/clip hack */}
+        <View className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}>
+          <View className="px-4 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
