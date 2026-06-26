@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect } from 'antd'
+import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs, Table, Spin, Empty, message, Popconfirm, Input, InputNumber, Form, Select, TreeSelect, Switch } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
 import { api, pricingApi, instrumentsApi, request } from '../../../services/api'
 
@@ -648,6 +648,13 @@ export default function InstrumentDetail() {
           children: (
             <ActivityLogTab instrumentId={id} />
           )
+        },
+        {
+          label: '促销覆盖',
+          key: 'promo',
+          children: (
+            <PromoOverrideTab instrumentId={id} />
+          )
         }
       ]} />
     </div>
@@ -729,5 +736,58 @@ function ActivityLogTab({ instrumentId }) {
         </Card>
       ))}
     </div>
+  )
+}
+
+function PromoOverrideTab({ instrumentId }) {
+  const [discountEnabled, setDiscountEnabled] = useState(true)
+  const [rebateEnabled, setRebateEnabled] = useState(true)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!instrumentId) return
+    setLoading(true)
+    api.get(`/instruments/${instrumentId}/promo-overrides`).then(res => {
+      if (res.code === 20000 && res.data) {
+        res.data.forEach(o => {
+          if (o.override_type === 'discount') setDiscountEnabled(o.enabled)
+          if (o.override_type === 'rebate') setRebateEnabled(o.enabled)
+        })
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [instrumentId])
+
+  const handleToggle = async (type, value) => {
+    const res = await api.put(`/instruments/${instrumentId}/promo-overrides`, { override_type: type, enabled: value })
+    if (res.code === 20000) {
+      if (type === 'discount') setDiscountEnabled(value)
+      else setRebateEnabled(value)
+      message.success('已更新')
+    } else {
+      message.error(res.message)
+    }
+  }
+
+  if (loading) return <Spin />
+
+  return (
+    <Card title="乐器促销覆盖" size="small">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <div>
+            <div className="font-medium">会员折扣政策</div>
+            <div className="text-xs text-gray-400">开启后该乐器适用会员折扣</div>
+          </div>
+          <Switch checked={discountEnabled} onChange={v => handleToggle('discount', v)} />
+        </div>
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <div>
+            <div className="font-medium">返点政策</div>
+            <div className="text-xs text-gray-400">开启后该乐器适用返点政策</div>
+          </div>
+          <Switch checked={rebateEnabled} onChange={v => handleToggle('rebate', v)} />
+        </div>
+      </div>
+    </Card>
   )
 }

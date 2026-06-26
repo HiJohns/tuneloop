@@ -57,6 +57,9 @@ import Setup from './pages/Setup'
 import MerchantManagement from './pages/MerchantManagement'
 import AuditLogPage from './pages/System/AuditLogPage'
 import BannerManagePage from './pages/System/BannerManagePage'
+import MembershipLevelsPage from './pages/System/MembershipLevelsPage'
+import RebateConfigPage from './pages/System/RebateConfigPage'
+import PromoPlanManagePage from './pages/System/PromoPlanManagePage'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
 import MerchantPricingConfig from './pages/admin/pricing/MerchantPricingConfig'
@@ -339,7 +342,10 @@ function MainLayout() {
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
       { key: '/system/audit-logs', label: '操作日志', permission: { cusPermCodes: ['audit_log:read'] } },
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
-      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } }
+      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
+      { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
+      { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
+      { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
     ]
   },
   { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
@@ -413,6 +419,10 @@ function onMenuClick(e) {
     '/merchants': { title: '商户管理', parent: '系统管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
     '/system/banners': { title: '轮播图管理', parent: '系统管理' },
+    '/system/membership-levels': { title: '会员级别管理', parent: '系统管理' },
+    '/system/rebate-config': { title: '返点配置', parent: '系统管理' },
+    '/system/promo-plans': { title: '系统折扣政策', parent: '系统管理' },
+    '/merchant/promo-plans': { title: '商户折扣政策', parent: '组织管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
     '/user/profile': { title: '个人中心' },
@@ -566,6 +576,10 @@ function onMenuClick(e) {
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
             <Route path="/system/banners" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['banner:manage'] }}><BannerManagePage /></ProtectedRoute>} />
+            <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
+            <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
+            <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
+            <Route path="/merchant/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="merchant" /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />

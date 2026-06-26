@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Form, Input, Select, message, Card, Space, Popconfirm, Tag } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, Switch, message, Card, Space, Popconfirm, Tag } from 'antd';
 import api from '../services/api';
 import ManagerSelector from '../components/ManagerSelector';
 
@@ -266,6 +266,10 @@ const MerchantManagement = () => {
               conflictOptions={conflictOptions}
               conflictMessage={conflictOptions ? `发现 ${conflictOptions.length} 个冲突账户，请在搜索中选择` : ''}
             />
+          </Form.Item>
+
+          <Form.Item name="rebate_opt_in" label="参与返点" valuePropName="checked" initialValue={true}>
+            <Switch />
           </Form.Item>
         </Form>
       </Modal>
