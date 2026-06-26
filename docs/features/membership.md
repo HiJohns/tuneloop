@@ -32,6 +32,7 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | UUID | PK |
+| `plan_type` | varchar(20) | `discount_policy` / `promo_campaign` — 方案类型（见下方） |
 | `scope_type` | varchar(20) | `system` / `merchant` / `site`（折扣政策不可用 `site`） |
 | `scope_id` | UUID | 商户 ID 或网点 ID（system 级为空） |
 | `name` | varchar(100) | 方案名称 |
@@ -41,6 +42,12 @@
 | `is_active` | bool | 是否启用 |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
+
+**plan_type 约束**：
+- `discount_policy`（会员折扣政策）：`scope_type` 仅可为 `system` / `merchant`
+- `promo_campaign`（促销方案活动）：`scope_type` 可为 `system` / `merchant` / `site`
+
+**CHECK 约束**：`(plan_type = 'discount_policy' AND scope_type != 'site') OR (plan_type = 'promo_campaign')`
 
 ### 1.3 新增表：`promo_plan_details`（促销方案明细）
 
@@ -107,12 +114,13 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | UUID | PK |
+| `tenant_id` | UUID | FK → tenants/merchants，数据隔离字段 |
 | `instrument_id` | UUID | FK → instruments.id |
 | `override_type` | varchar(20) | `discount` / `rebate` — 覆盖类型（折扣政策/返点政策） |
 | `enabled` | bool | 该乐器是否适用此类型政策 |
 | `updated_at` | timestamp | |
 
-约束：同一 `(instrument_id, override_type)` 唯一。
+约束：同一 `(tenant_id, instrument_id, override_type)` 唯一。
 
 网点管理员可设置单件乐器是否参与折扣政策和返点政策，但不能修改政策本身。
 
@@ -120,7 +128,12 @@
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `pricing_breakdown` | jsonb | 价格计算明细，持久化订单生成时的完整计算过程 |
+| `pricing_breakdown` | jsonb | 价格计算明细，**计费快照**，订单创建时写入后不可修改 |
+
+**权威性说明**：
+- `pricing_breakdown` 为计费权威源，订单创建时 snapshot 当前所有折扣政策
+- `Order.MonthlyRent` / `Deposit` 等字段必须与 `pricing_breakdown` 中对应值一致
+- 后续政策变更不影响已生成订单的价格（历史订单价格不变）
 
 结构示例：
 ```json
@@ -154,14 +167,19 @@
 ### 2.2 折扣计算
 
 ```
-最终日租金 = 基础日租 × 阶梯折扣 × 会员折扣 × 促销折扣
+最终日租金 = 基础日租 × 阶梯折扣 × (乐器折扣开关 ? 会员折扣 : 1.0) × 促销折扣
 ```
 
-叠加规则：阶梯定价折扣 × 会员折扣 × 促销折扣（乘法叠加）。
+叠加规则：阶梯定价折扣 × (乐器开关 ? 会员折扣 : 1.0) × 促销折扣（乘法叠加）。
 
-例：基础价 10 元/天，高级会员（9折），促销方案（95折）：
+- `乐器折扣开关` = `instrument_promo_overrides.enabled`（仅对 discount 类型），false 时会员折扣不参与计算
+
+例：基础价 10 元/天，高级会员（9折），促销方案（95折），乐器启用折扣：
 - 第 1~30 天：10 × 1.0 × 0.9 × 0.95 = 8.55 元/天
 - 第 181~365 天：10 × 0.7 × 0.9 × 0.95 = 5.99 元/天
+
+例：同场景但乐器**禁用**折扣：
+- 第 1~30 天：10 × 1.0 × 1.0 × 0.95 = 9.50 元/天（会员折扣被跳过）
 
 **计算透明度要求**：
 - 购物车/结算页面须展示完整计算过程：**原价 → 适用政策（名称+折扣率）→ 最终价格**
@@ -209,6 +227,23 @@
 - 网点管理员可决定单件乐器是否适用返点（通过 `instrument_promo_overrides`）
 - 按实际支付租金的一定比例返还为点数
 - 返点政策不可由商户或网点创建/修改，仅系统管理员可配置比例
+
+**返点生效条件（三者 AND）**：
+```
+返点生效 = rebate_config.is_active（系统开关）
+           AND 商户 rebate_opt_in（商户开关，默认 true）
+           AND 乐器 override.enabled（网点开关，默认 true）
+```
+任一条件为 false，则该级别/商户/乐器不参与返点。
+
+### 2.4a 返点发放规则
+
+- **发放时机**：订单状态变为 `leased`（租赁中，即确认收货后）时发放
+- **存入字段**：`users.promo_points`
+- **发放比例**：按用户当前 `membership_level_id` 对应的 `rebate_config.rent_ratio` × 实际支付月租金
+- **订单取消/提前终止**：按实际租赁天数比例追回已发放返点（从 `promo_points` 中扣除）
+- **返点不计入 total_spending**（避免循环升级）
+- **乐器禁用返点**（`instrument_promo_overrides.enabled=false`）时，该乐器订单不产生返点
 
 ### 2.5 促销点数政策
 
@@ -262,7 +297,7 @@
 | 用例 | 操作 |
 |------|------|
 | 查看会员级别 | 显示当前级别名称和徽章，距下一级别所需消费金额进度条 |
-| 查看累计消费 | 显示 `total_spending` 金额，区分"仅看本商户"和"全平台累计" |
+| 查看累计消费 | `total_spending` 为**全平台累计**；本商户累计通过 `SUM(orders.total_amount WHERE tenant_id=当前商户)` 实时计算，不单独存储字段 |
 | 查看点数余额 | 显示 `promo_points` + `prepaid_points` 及有效期 |
 | 查看订单价格明细 | 订单详情页展示 `pricing_breakdown`：原价 → 各项折扣 → 最终价格 |
 | 下单时查看价格计算 | 购物车/结算页逐行展示折扣计算过程（见 §2.2） |
@@ -276,13 +311,31 @@
 
 | 操作 | 权限 | 说明 |
 |------|------|------|
-| 管理级别表 | `category:manage` | 已由系统管理员持有 |
-| 管理/创建系统会员折扣政策 | sys_admin | 全站默认折扣方案 |
-| 管理/创建商户会员折扣政策 | merchant_admin | 可采纳系统方案或创建本商户方案覆盖；影响本商户所有网点 |
+| 管理级别表 | `membership:manage` | 新增 cus_perm，仅 sys_admin |
+| 管理/创建系统会员折扣政策 | sys_admin + `promo:manage` | 全站默认折扣方案 |
+| 管理/创建商户会员折扣政策 | merchant_admin + `promo:manage` | 可采纳系统方案或创建本商户方案覆盖；影响本商户所有网点 |
 | 管理/创建返点比例（按级别） | `rebate:manage` | 新增 cus_perm，仅 sys_admin |
 | 商户决定是否参与返点 | merchant_admin | 仅 opt-in/opt-out，不修改比例 |
-| 决定乐器是否适用折扣政策 | site_admin | 通过 `instrument_promo_overrides` 开关，不修改政策本身 |
-| 决定乐器是否适用返点政策 | site_admin | 同上 |
+| 决定乐器是否适用折扣/返点 | `promo:override` | 新增 cus_perm，site_admin，通过 `instrument_promo_overrides` 开关，不修改政策本身 |
 | 管理促销方案活动（各级） | 对应级管理员 | 时间限定促销活动，非基础折扣政策 |
-| 管理促销点数政策 | 对应级管理员 | 三级可覆盖 |
+| 管理促销点数政策 | 对应级管理员 + `points:manage` | 新增 cus_perm，三级可覆盖 |
 | 设置乐器最低可租级别 | site_admin / site_member | 创建/编辑乐器时设置 |
+
+### 4.1 cus_perm 注册清单
+
+以下 4 个新 cus_perm 码必须在 `backend/services/permission_registry.go:getTuneLoopPermissions()` 中注册（从 bit 21 开始），否则 `RequireCusPerm` 中间件会直接穿透放行：
+
+| 权限码 | bit | 名称 | 授予角色 |
+|--------|-----|------|---------|
+| `rebate:manage` | 21 | 返点管理 | sys_admin |
+| `promo:manage` | 22 | 折扣政策管理 | sys_admin, merchant_admin |
+| `promo:override` | 23 | 乐器促销覆盖 | site_admin |
+| `points:manage` | 24 | 点数政策管理 | sys_admin, merchant_admin, site_admin |
+| `membership:manage` | 25 | 会员级别管理 | sys_admin |
+
+### 4.2 错误码
+
+| 错误码 | 说明 | 触发场景 |
+|--------|------|---------|
+| `40310` | `membership_level_insufficient` | 用户会员级别低于乐器 `min_membership_level` |
+| `40311` | `promo_not_applicable` | 乐器禁用该类型促销政策（`instrument_promo_overrides.enabled=false`） |
