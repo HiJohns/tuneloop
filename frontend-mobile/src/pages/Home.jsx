@@ -229,7 +229,7 @@ export default function Home() {
         />
       )}
 
-      {/* Fixed search bar — transparent initially, frosted on scroll */}
+      {/* Fixed search bar — transparent initially, frosted on scroll (A layer) */}
       <View className={`absolute top-0 left-0 right-0 z-[10000] pt-3 pb-2 px-6 transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`}>
         <View className={`w-[250px] h-[42px] mx-auto rounded-full flex items-center px-4 shadow-sm transition-colors duration-300 ${scrolled ? 'border border-[#5A3B24]/20' : 'border border-white/30'}`}>
           <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/50' : 'text-white/60'}`}>🔍</Text>
@@ -237,28 +237,21 @@ export default function Home() {
         </View>
       </View>
 
-      {/* B layer: occlusion shield — blocks list content behind frosted bars */}
-      <View className="fixed left-0 right-0 z-[100]" style={{
-        top: 0,
-        height: scrollY <= 0 ? 0 : Math.min(94, 62 + Math.round(Math.min(1, scrollY / 163) * 32)),
-        backgroundColor: '#3D291F',
-        transition: 'height 0.15s ease-out'
-      }} />
+      {/* Category Menu — fixed below search bar */}
+      <View className={`fixed left-0 right-0 z-[9999] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`} style={{ top: '62px' }}>
+        <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+      </View>
 
-      {/* Z=50: ScrollView */}
-      <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
-        onScroll={e => setScrollY(e.target.scrollTop)}>
-        {/* Push content below banner */}
-        <View style={{ height: '225px' }}></View>
+      {/* B layer: transparent clipping container — starts at menu bottom, clips C layer */}
+      <View className="fixed left-0 right-0 overflow-hidden" style={{ top: '94px', bottom: '50px', backgroundColor: 'transparent' }}>
+        <ScrollView className="w-full h-full overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
+          onScroll={e => setScrollY(e.target.scrollTop)}>
+          {/* Spacer — constant, never changes, no menu inside */}
+          <View style={{ height: '225px' }}></View>
 
-        {/* Category Menu — sticky, always in natural flow */}
-        <View className={`sticky top-[62px] z-[10] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
-        </View>
-
-        {/* Instrument list — natural flow, no translate/clip hack */}
-        <View className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}>
-          <View className="px-4 pt-4 pb-20 space-y-4">
+          {/* Instrument list */}
+          <View className={`transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/10 backdrop-blur-md' : ''}`}>
+            <View className="px-4 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
@@ -286,6 +279,7 @@ export default function Home() {
           </View>
         </View>
        </ScrollView>
+      </View>
 
       {/* D. Bottom Tabbar */}
       <BottomNav
