@@ -45,6 +45,7 @@ function SingleCheckout({ id, navigate }) {
   const [useNewAddress, setUseNewAddress] = useState(false)
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
+  const [days, setDays] = useState(30)
 
   useEffect(() => {
     const token = getToken()
