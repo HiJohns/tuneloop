@@ -137,8 +137,14 @@ export default function Profile() {
               )}
             </View>
             <View>
-              <Text className="block text-2xl font-black text-black tracking-wide">{displayName}</Text>
-            </View>
+            <Text className="block text-2xl font-black text-black tracking-wide">{displayName}</Text>
+            {user?.membership_level_id && (
+              <Text className="text-xs text-amber-700 mt-0.5">
+                {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
+                {user.total_spending > 0 && ` · 累计 ¥${user.total_spending.toLocaleString()}`}
+              </Text>
+            )}
+          </View>
           </View>
           <View
             className="bg-white/80 backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center active:opacity-70"
