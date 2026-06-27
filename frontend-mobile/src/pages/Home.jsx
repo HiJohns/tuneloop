@@ -191,7 +191,7 @@ export default function Home() {
                 onClick={() => item.link_url && navigate(item.link_url)}
               >
                 <View className="w-full flex-shrink-0" style={{ height: 220 }}>
-                  <Image src={item.image_url} className="w-full h-full" mode="aspectFill" />
+                  <Image src={item.image_url} className="w-full h-full object-contain" mode="aspectFit" />
                 </View>
                 <View className="flex-1" style={{ backgroundColor: item.bg_color || '#915F38' }} />
               </View>
