@@ -78,11 +78,10 @@ export default function Detail() {
         onTouchEnd={(e) => {
           const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
           if (Math.abs(diff) > 50) {
-            if (diff < 0 && currentBanner < bannerImages.length - 1) {
-              setCurrentBanner(prev => prev + 1)
-            } else if (diff > 0 && currentBanner > 0) {
-              setCurrentBanner(prev => prev - 1)
-            }
+            setCurrentBanner(prev => {
+              if (diff < 0) return (prev + 1) % bannerImages.length
+              return (prev - 1 + bannerImages.length) % bannerImages.length
+            })
           }
         }}
       >
