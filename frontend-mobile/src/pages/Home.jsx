@@ -200,8 +200,9 @@ export default function Home() {
         )}
       </View>
 
-      {/* Carousel dots — at bottom of banner area */}
-      <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ top: '220px' }}>
+      {/* Carousel dots — hide on scroll */}
+      {!scrolled && (
+        <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ top: '220px' }}>
           <View className="flex items-center space-x-1.5">
             {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => (
               <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
