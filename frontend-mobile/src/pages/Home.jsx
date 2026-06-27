@@ -250,7 +250,7 @@ export default function Home() {
       )}
 
       {/* B: clip layer — overflow:hidden clipping, pointer-events:none passes touch to C */}
-      <View className="fixed left-0 right-0 z-[100]" style={{ top: '94px', bottom: '50px', overflow: 'hidden', pointerEvents: 'none' }}>
+      <View className="fixed left-0 right-0 z-[100]" style={{ top: '94px', bottom: '48px', overflow: 'hidden', pointerEvents: 'none' }}>
         {/* C: ScrollView — receives scroll events via pointer-events:auto */}
         <ScrollView className="w-full h-full overflow-y-auto" style={{ pointerEvents: 'auto' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
