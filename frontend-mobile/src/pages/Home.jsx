@@ -91,6 +91,7 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
+  const menuStuck = scrollY >= 178
   const topCategories = categories.filter(c => !c.parent_id)
   const initialized = useRef(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
@@ -248,7 +249,7 @@ export default function Home() {
           onScroll={e => setScrollY(e.target.scrollTop)}>
           <View style={{ height: '146px' }}></View>
 
-          <View className={`sticky -top-8 transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/60 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
+          <View className={`sticky -top-8 transition-colors duration-300 ${menuStuck ? 'bg-[#5A3B24]/60 backdrop-blur-md' : 'bg-transparent'}`}>
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
           </View>
 
