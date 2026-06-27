@@ -240,14 +240,17 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — sticky in ScrollView, starts below carousel, sticks at 62px */}
-      <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
-        onScroll={e => setScrollY(e.target.scrollTop)}>
-        <View style={{ height: '225px' }}></View>
+      {/* B: clip layer — overflow:hidden clipping, pointer-events:none passes touch to C */}
+      <View className="fixed left-0 right-0 z-[100]" style={{ top: '94px', bottom: '50px', overflow: 'hidden', pointerEvents: 'none' }}>
+        {/* C: ScrollView — receives scroll events via pointer-events:auto */}
+        <ScrollView className="w-full h-full overflow-y-auto" style={{ pointerEvents: 'auto' }}
+          scrollY scrollWithAnimation enhanced showScrollbar={false}
+          onScroll={e => setScrollY(e.target.scrollTop)}>
+          <View style={{ height: '146px' }}></View>
 
-        <View className={`sticky top-[62px] z-[10] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/60 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
-        </View>
+          <View className={`sticky -top-8 transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/60 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
+            <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+          </View>
 
         <View>
           <View className="px-4 pt-4 pb-20 space-y-4">
@@ -278,6 +281,7 @@ export default function Home() {
           </View>
         </View>
         </ScrollView>
+      </View>
 
       {/* D. Bottom Tabbar */}
       <BottomNav
