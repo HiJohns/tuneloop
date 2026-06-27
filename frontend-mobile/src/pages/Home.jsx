@@ -258,7 +258,7 @@ export default function Home() {
           <View style={{ height: '146px' }}></View>
 
           <View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
-            <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+            <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
           </View>
 
         <View>
