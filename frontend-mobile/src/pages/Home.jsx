@@ -240,19 +240,17 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — fixed at search bar bottom (above B's clip boundary) */}
-      <View className="fixed left-0 right-0 z-[9999]" style={{ top: '62px' }}>
-        <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
-      </View>
+      {/* Menu — sticky in ScrollView, starts below carousel, sticks at 62px */}
+      <ScrollView className="relative z-50 w-full flex-1 overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
+        onScroll={e => setScrollY(e.target.scrollTop)}>
+        <View style={{ height: '225px' }}></View>
 
-      {/* B layer: transparent clip container — starts at menu bottom, clips C overflow */}
-      <View className="fixed left-0 right-0 overflow-hidden" style={{ top: '94px', bottom: '50px', backgroundColor: 'transparent' }}>
-        {/* C: ScrollView with instrument list */}
-        <ScrollView className="w-full h-full overflow-y-auto" scrollY scrollWithAnimation enhanced showScrollbar={false}
-          onScroll={e => setScrollY(e.target.scrollTop)}>
-          <View style={{ height: '225px' }}></View>
-          <View>
-            <View className="px-4 pt-4 pb-20 space-y-4">
+        <View className={`sticky top-[62px] z-[10] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/60 backdrop-blur-md text-white' : 'bg-[#FDFBF7] shadow-sm border-b border-zinc-100 text-zinc-500/90'}`}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+        </View>
+
+        <View>
+          <View className="px-4 pt-4 pb-20 space-y-4">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
@@ -280,7 +278,6 @@ export default function Home() {
           </View>
         </View>
         </ScrollView>
-      </View>
 
       {/* D. Bottom Tabbar */}
       <BottomNav
