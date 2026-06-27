@@ -47,6 +47,65 @@ export default function Detail() {
   const navigate = useNavigate()
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeOrder, setActiveOrder] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [currentBanner, setCurrentBanner] = useState(0)
+  const [displayMedia, setDisplayMedia] = useState(null)
+  const [pricingV2, setPricingV2] = useState(null)
+  const bannerTouchStartXRef = useRef(0)
+  const isRentable = instrument?.stock_status === 'available'
+  const isCustomer = !currentUser || currentUser?.role === 'USER'
+  const baseUrl = env.apiBaseUrl
+  const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const token = getToken()
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+
+        const [instRes, mediaRes, pv2Res] = await Promise.all([
+          apiFetch(`${baseUrl}/public/instruments/${id}`),
+          apiFetch(`${baseUrl}/public/instruments/${id}/display-media`),
+          apiFetch(`${baseUrl}/public/instruments/${id}/pricing-v2`),
+        ])
+        const instData = await instRes.json()
+        if (instData.code === 20000) setInstrument(instData.data)
+
+        const mediaData = await mediaRes.json()
+        if (mediaData.code === 20000) setDisplayMedia(mediaData.data)
+
+        const pv2Data = await pv2Res.json()
+        if (pv2Data.code === 20000) setPricingV2(pv2Data.data)
+
+        if (token) {
+          try {
+            const userRes = await apiFetch(`${baseUrl}/users/me`, { headers })
+            const userData = await userRes.json()
+            if (userData.code === 20000) setCurrentUser(userData.data)
+          } catch {}
+          try {
+            const inst = instData.data
+            if (inst?.sn) {
+              const orderRes = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+              const orderData = await orderRes.json()
+              if (orderData.code === 20000 && orderData.data) setActiveOrder(orderData.data)
+            }
+          } catch {}
+        }
+      } catch {}
+      setLoading(false)
+    }
+    fetchData()
+  }, [id])
+
+  const bannerImagesSource = Array.isArray(displayMedia?.images) && displayMedia.images.length > 0
+    ? displayMedia.images.map(i => ({ url: i.url }))
+    : (parseImages(instrument?.images) || []).map(url => ({ url }))
+  const bannerImages = bannerImagesSource.length > 0
+    ? bannerImagesSource
+    : [{ url: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="375" height="232" viewBox="0 0 375 232"><rect fill="#f0f0f0" width="375" height="232"/><text x="188" y="120" text-anchor="middle" fill="#ccc" font-size="20">暂无图片</text></svg>') }]
 
   if (loading) {
     return <View className="p-4">加载中...</View>
