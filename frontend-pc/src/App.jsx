@@ -340,7 +340,7 @@ function MainLayout() {
     label: '系统管理',
     children: [
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
-      { key: '/system/audit-logs', label: '操作日志', permission: { cusPermCodes: ['audit_log:read'] } },
+      { key: '/system/audit-logs', label: '操作日志' },
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
       { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },

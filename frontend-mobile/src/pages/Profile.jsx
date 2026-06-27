@@ -141,7 +141,11 @@ export default function Profile() {
             {user?.membership_level_id && (
               <Text className="text-xs text-amber-700 mt-0.5">
                 {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
-                {user.total_spending > 0 && ` · 累计 ¥${user.total_spending.toLocaleString()}`}
+              </Text>
+            )}
+            {user && (user.membership_level_id || user.total_spending > 0) && (
+              <Text className="text-xs text-zinc-500 mt-0.5">
+                {user.total_spending > 0 ? `累计消费 ¥${user.total_spending.toLocaleString()}` : ''}
               </Text>
             )}
           </View>
