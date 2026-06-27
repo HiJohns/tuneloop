@@ -249,10 +249,10 @@ export default function Home() {
         </View>
       )}
 
-      {/* B: clip layer — overflow:hidden clipping, pointer-events:none passes touch to C */}
-      <View className="fixed left-0 right-0 z-[100]" style={{ top: '94px', bottom: '48px', overflow: 'hidden', pointerEvents: 'none' }}>
-        {/* C: ScrollView — receives scroll events via pointer-events:auto */}
-        <ScrollView className="w-full h-full overflow-y-auto" style={{ pointerEvents: 'auto' }}
+      {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
+      <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '94px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        {/* C: ScrollView */}
+        <ScrollView className="flex-1 overflow-y-auto" style={{ pointerEvents: 'auto' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.target.scrollTop)}>
           <View style={{ height: '146px' }}></View>
@@ -290,18 +290,16 @@ export default function Home() {
           </View>
         </View>
         </ScrollView>
+        <BottomNav
+          active="home"
+          tabs={[
+            { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
+            { key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/my-service?tenant=${tenant}` : '/my-service'; navigate(url) } },
+            { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
+          ]}
+        />
       </View>
-
-      {/* D. Bottom Tabbar */}
-      <BottomNav
-        active="home"
-        tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/my-service?tenant=${tenant}` : '/my-service'; navigate(url) } },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
-        ]}
-      />
     </View>
   )
 }
