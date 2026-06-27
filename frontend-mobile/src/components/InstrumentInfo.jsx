@@ -11,7 +11,9 @@ export default function InstrumentInfo({ instrument, onClick }) {
       return typeof instrument?.images === 'string' ? JSON.parse(instrument.images) : (instrument?.images || [])
     } catch { return [] }
   })()
-  const allImgs = thumbnail ? [thumbnail, ...(Array.isArray(imgs) ? imgs : [])] : (Array.isArray(imgs) ? imgs : [])
+  const poster = instrument?.poster
+  const baseImgs = thumbnail ? [thumbnail, ...(Array.isArray(imgs) ? imgs : [])] : (Array.isArray(imgs) ? imgs : [])
+  const allImgs = poster ? [poster, ...baseImgs.filter(u => u !== poster)] : baseImgs
   const hasImgs = allImgs.length > 0
   const idx = imageIndex % Math.max(allImgs.length, 1)
 
