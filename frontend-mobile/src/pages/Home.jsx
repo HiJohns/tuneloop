@@ -91,7 +91,7 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 0
-  const menuStuck = scrollY >= 178
+  const menuStuck = scrollY >= 150
   const topCategories = categories.filter(c => !c.parent_id)
   const initialized = useRef(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
