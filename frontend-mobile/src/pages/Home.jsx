@@ -243,7 +243,7 @@ export default function Home() {
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
-        <View className="fixed left-0 right-0 z-[10001] bg-[#5A3B24]/15 backdrop-blur-md" style={{ top: '62px' }}>
+        <View className="fixed left-0 right-0 z-[10001] bg-transparent" style={{ top: '62px' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
         </View>
       )}
