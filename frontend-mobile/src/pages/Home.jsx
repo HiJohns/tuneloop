@@ -257,11 +257,9 @@ export default function Home() {
           onScroll={e => setScrollY(e.target.scrollTop)}>
           <View style={{ height: '146px' }}></View>
 
-          {!menuStuck && (
           <View className="bg-transparent">
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
           </View>
-          )}
 
         <View>
           <View className="px-4 pt-4 pb-20 space-y-4">
