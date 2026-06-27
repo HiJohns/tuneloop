@@ -52,11 +52,20 @@ export default function Detail() {
   const [currentBanner, setCurrentBanner] = useState(0)
   const [displayMedia, setDisplayMedia] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
+  const [showComparison, setShowComparison] = useState(false)
+  const [auditLogs, setAuditLogs] = useState([])
   const bannerTouchStartXRef = useRef(0)
   const isRentable = instrument?.stock_status === 'available'
   const isCustomer = !currentUser || currentUser?.role === 'USER'
   const baseUrl = env.apiBaseUrl
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
+
+  const cartItemCount = (() => {
+    try {
+      const cartData = storage.getJSON('cart', {items: []})
+      return cartData.items?.length || 0
+    } catch { return 0 }
+  })()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +101,11 @@ export default function Detail() {
               const orderData = await orderRes.json()
               if (orderData.code === 20000 && orderData.data) setActiveOrder(orderData.data)
             }
+          } catch {}
+          try {
+            const logRes = await apiFetch(`${baseUrl}/admin/audit-logs?resource_type=instrument&resource_id=${id}&pageSize=20`, { headers })
+            const logData = await logRes.json()
+            if (logData.code === 20000) setAuditLogs(logData.data?.list || [])
           } catch {}
         }
       } catch {}
@@ -293,6 +307,24 @@ export default function Detail() {
               <View className="flex justify-between items-center">
                 <Text className="text-base font-black text-black">服务权益对比</Text>
                 <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Audit log section (staff only) */}
+          {!isCustomer && currentUser && auditLogs.length > 0 && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm">
+              <Text className="text-base font-black text-black mb-3">操作日志</Text>
+              <View className="space-y-2 max-h-48 overflow-y-auto">
+                {auditLogs.map((log, i) => (
+                  <View key={log.id || i} className="flex gap-2 items-center py-1.5 px-2 bg-gray-50 rounded text-xs">
+                    <Text className="text-gray-400 w-28 flex-shrink-0">{new Date(log.created_at).toLocaleString()}</Text>
+                    <View className="px-1.5 py-0.5 rounded bg-white text-gray-600 font-medium">
+                      {{'CREATE': '创建', 'UPDATE': '编辑', 'DELETE': '删除', 'SHIP': '发货', 'RECEIVE': '收货', 'RETURN': '归还', 'INSPECT': '验收'}[log.action] || log.action}
+                    </View>
+                    <Text className="text-gray-400">{log.actor_name || ''}</Text>
+                  </View>
+                ))}
               </View>
             </View>
           )}
