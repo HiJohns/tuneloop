@@ -410,7 +410,7 @@ export default function Detail() {
                 return (
                   <View key={i} className="flex justify-between text-sm">
                     <Text className="text-zinc-500">{range}</Text>
-                    <Text className="font-bold text-black">¥{t.daily_rate}/天</Text>
+                    <Text className="font-bold text-black">¥{Math.round(t.daily_rate)}/天</Text>
                   </View>
                 )
               })}
