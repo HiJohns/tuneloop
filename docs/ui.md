@@ -183,6 +183,8 @@
 
 ### 2.2 首页 (`/pages/index`)
 
+> **实际实现**：已从原设计重构为五层 Z 轴架构，详见 [`docs/frontpage.md`](./frontpage.md)。
+
 **布局结构**:
 ```html
 <view class="container">
