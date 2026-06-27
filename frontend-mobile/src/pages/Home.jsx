@@ -241,6 +241,13 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Menu — fixed overlay when stuck, z above search bar */}
+      {menuStuck && (
+        <View className="fixed left-0 right-0 z-[10001] bg-[#5A3B24]/60 backdrop-blur-md" style={{ top: '62px' }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+        </View>
+      )}
+
       {/* B: clip layer — overflow:hidden clipping, pointer-events:none passes touch to C */}
       <View className="fixed left-0 right-0 z-[100]" style={{ top: '94px', bottom: '50px', overflow: 'hidden', pointerEvents: 'none' }}>
         {/* C: ScrollView — receives scroll events via pointer-events:auto */}
@@ -249,7 +256,7 @@ export default function Home() {
           onScroll={e => setScrollY(e.target.scrollTop)}>
           <View style={{ height: '146px' }}></View>
 
-          <View className={`sticky -top-8 transition-colors duration-300 ${menuStuck ? 'bg-[#5A3B24]/60 backdrop-blur-md' : 'bg-transparent'}`}>
+          <View className="bg-transparent">
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
           </View>
 
