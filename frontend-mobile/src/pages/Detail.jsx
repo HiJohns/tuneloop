@@ -346,12 +346,14 @@ export default function Detail() {
                   超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
                 </Text>
               )}
+              {isCustomer && (
               <View
                 onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
                 className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
               >
                 <Text>归还乐器</Text>
               </View>
+              )}
             </View>
           ) : activeOrder.order_status === 'returning' ? (
             <View className="p-3 bg-orange-50 rounded-lg space-y-2">
