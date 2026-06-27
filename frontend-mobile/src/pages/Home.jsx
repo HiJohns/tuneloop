@@ -290,6 +290,7 @@ export default function Home() {
           </View>
         </View>
         </ScrollView>
+        <View style={{ pointerEvents: 'auto' }}>
         <BottomNav
           active="home"
           tabs={[
@@ -299,6 +300,7 @@ export default function Home() {
             { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
           ]}
         />
+        </View>
       </View>
     </View>
   )
