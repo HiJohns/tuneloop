@@ -165,7 +165,7 @@ export default function AuditLogPage() {
             handleSearch({ ...filters, date_from: today.subtract(60, 'day').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') });
           }}>最近60天</Button>
         </Button.Group>
-        <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>查询</Button>
+        <Button type="primary" icon={<SearchOutlined />} onClick={() => handleSearch()}>查询</Button>
       </Space>
 
       <style>{`
