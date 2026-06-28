@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 	"tuneloop-backend/database"
@@ -182,11 +183,13 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 // POST /api/user/orders - Create rental order
 func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	var req struct {
-		InstrumentID    string      `json:"instrument_id" binding:"required"`
-		StartDate       string      `json:"start_date" binding:"required"`
-		EndDate         string      `json:"end_date" binding:"required"`
-		DeliveryAddress interface{} `json:"delivery_address"`
-		Notes           string      `json:"notes"`
+		InstrumentID      string      `json:"instrument_id" binding:"required"`
+		StartDate         string      `json:"start_date" binding:"required"`
+		EndDate           string      `json:"end_date" binding:"required"`
+		DeliveryAddress   interface{} `json:"delivery_address"`
+		Notes             string      `json:"notes"`
+		PrepaidPointsUsed float64     `json:"prepaid_points_used"`
+		GiftPointsUsed    float64     `json:"gift_points_used"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -320,7 +323,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if instrument.BaseDailyRate != nil {
 		baseRate = *instrument.BaseDailyRate
 	}
-	pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, instrument.PricingOverrides)
+	pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, instrument.PricingOverrides, instrument.Pricing)
 
 	dailyRent := 0.0
 	if len(pricingResult.Tiers) > 0 {
@@ -332,6 +335,57 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// monthly rent = daily_rent * 25
 	monthlyRent := dailyRent * 25
 	totalAmount := monthlyRent + deposit + shippingFee
+
+	// Points wallet validation
+	var userWallet models.User
+	if err := db.Where("id = ?", userID).First(&userWallet).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	req.PrepaidPointsUsed = max(0, req.PrepaidPointsUsed)
+	req.GiftPointsUsed = max(0, req.GiftPointsUsed)
+
+	if req.PrepaidPointsUsed > userWallet.PrepaidPoints {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient prepaid points"})
+		return
+	}
+
+	if req.GiftPointsUsed > 0 {
+		pointsPolicies, err := queryApplicablePointsPolicies(db, effectiveTenantID, effectiveOrgID)
+		if err == nil && len(pointsPolicies) > 0 {
+			maxGiftRatio := pointsPolicies[0].MaxPayRatio
+			maxGiftAllowed := floorFloat(totalAmount * maxGiftRatio)
+			if req.GiftPointsUsed > maxGiftAllowed {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("gift points usage exceeds max allowed: %.2f (max %.2f)", req.GiftPointsUsed, maxGiftAllowed)})
+				return
+			}
+		}
+		if req.GiftPointsUsed > userWallet.PromoPoints {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
+			return
+		}
+	}
+
+	cashPaid := totalAmount - req.PrepaidPointsUsed - req.GiftPointsUsed
+	if cashPaid < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points exceed total amount"})
+		return
+	}
+
+	// Calculate pricing_breakdown via rent calculator
+	pricingBreakdown, err := services.CalculatePricingBreakdown(services.RentCalcInput{
+		BaseDailyRate:     baseRate,
+		LeaseTerm:         days,
+		MembershipLevelID: userWallet.MembershipLevelID,
+		InstrumentID:      req.InstrumentID,
+		TenantID:          effectiveTenantID,
+		OrgID:             &effectiveOrgID,
+	})
+	pricingBreakdownJSON := ""
+	if err == nil && pricingBreakdown != nil {
+		pricingBreakdownJSON = services.FormatPricingBreakdownJSON(pricingBreakdown)
+	}
 
 	// Create order
 	startDateStr := req.StartDate
@@ -350,14 +404,81 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Status:       models.OrderStatusReserved,
 		StartDate:    &startDateStr,
 		EndDate:      &endDateStr,
+		CashPaid:     cashPaid,
+		PrepaidPointsUsed: req.PrepaidPointsUsed,
+		GiftPointsUsed:    req.GiftPointsUsed,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
+	}
+	if pricingBreakdownJSON != "" {
+		order.PricingBreakdown = &pricingBreakdownJSON
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
 		return
+	}
+
+	// Deduct points from wallet (inside transaction)
+	if req.PrepaidPointsUsed > 0 || req.GiftPointsUsed > 0 {
+		updates := map[string]interface{}{
+			"updated_at": time.Now(),
+		}
+		if req.PrepaidPointsUsed > 0 {
+			updates["prepaid_points"] = gorm.Expr("prepaid_points - ?", req.PrepaidPointsUsed)
+		}
+		if req.GiftPointsUsed > 0 {
+			updates["promo_points"] = gorm.Expr("promo_points - ?", req.GiftPointsUsed)
+		}
+		if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to deduct points"})
+			return
+		}
+
+		// Create points_transaction records
+		newPrepaid := userWallet.PrepaidPoints - req.PrepaidPointsUsed
+		newPromo := userWallet.PromoPoints - req.GiftPointsUsed
+
+		if req.PrepaidPointsUsed > 0 {
+			pt := models.PointsTransaction{
+				ID:                  uuid.New().String(),
+				UserID:              userID,
+				TenantID:            effectiveTenantID,
+				Type:                "order_deduct",
+				Amount:              -req.PrepaidPointsUsed,
+				BalanceAfterPrepaid: newPrepaid,
+				BalanceAfterPromo:   newPromo,
+				OrderID:             &order.ID,
+				Description:         "订单预付点数抵扣",
+				CreatedAt:           time.Now(),
+			}
+			if err := tx.Create(&pt).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record transaction"})
+				return
+			}
+		}
+		if req.GiftPointsUsed > 0 {
+			pt := models.PointsTransaction{
+				ID:                  uuid.New().String(),
+				UserID:              userID,
+				TenantID:            effectiveTenantID,
+				Type:                "order_deduct",
+				Amount:              -req.GiftPointsUsed,
+				BalanceAfterPrepaid: newPrepaid,
+				BalanceAfterPromo:   newPromo,
+				OrderID:             &order.ID,
+				Description:         "订单赠送点数抵扣",
+				CreatedAt:           time.Now(),
+			}
+			if err := tx.Create(&pt).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record transaction"})
+				return
+			}
+		}
 	}
 
 	// Create lease session
@@ -605,7 +726,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		if lockedInstrument.BaseDailyRate != nil {
 			baseRate = *lockedInstrument.BaseDailyRate
 		}
-		pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, lockedInstrument.PricingOverrides)
+		pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, lockedInstrument.PricingOverrides, lockedInstrument.Pricing)
 		dailyRent := 0.0
 		if len(pricingResult.Tiers) > 0 {
 			dailyRent = pricingResult.Tiers[0].DailyRate
@@ -901,4 +1022,65 @@ func (h *UserRentalHandler) GetContract(c *gin.Context) {
 		"code": 20000,
 		"data": detail,
 	})
+}
+
+// GET /api/user/orders/counts - Get order counts by status for current user
+func (h *UserRentalHandler) GetOrderCounts(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+
+	db := database.GetDB().WithContext(ctx)
+
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{"reserved": 0, "in_lease": 0, "returning": 0, "completed": 0},
+		})
+		return
+	}
+
+	var reserved, inLease, returning, completed int64
+	db.Model(&models.Order{}).Where("user_id = ? AND status = ?", localUser.ID, "reserved").Count(&reserved)
+	db.Model(&models.Order{}).Where("user_id = ? AND status = ?", localUser.ID, "in_lease").Count(&inLease)
+	db.Model(&models.Order{}).Where("user_id = ? AND status = ?", localUser.ID, "returning").Count(&returning)
+	db.Model(&models.Order{}).Where("user_id = ? AND status = ?", localUser.ID, "completed").Count(&completed)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"reserved":  reserved,
+			"in_lease":  inLease,
+			"returning": returning,
+			"completed": completed,
+		},
+	})
+}
+
+func queryApplicablePointsPolicies(db *gorm.DB, tenantID string, orgID string) ([]models.PointsPolicy, error) {
+	var policies []models.PointsPolicy
+	if err := db.Where("is_active = ?", true).Find(&policies).Error; err != nil {
+		return nil, err
+	}
+	sort.Slice(policies, func(i, j int) bool {
+		return policyPriority(policies[i], tenantID, orgID) < policyPriority(policies[j], tenantID, orgID)
+	})
+	return policies, nil
+}
+
+func policyPriority(p models.PointsPolicy, tenantID string, orgID string) int {
+	if p.ScopeType == "site" && p.ScopeID != nil && *p.ScopeID == orgID {
+		return 1
+	}
+	if p.ScopeType == "merchant" && p.ScopeID != nil && *p.ScopeID == tenantID {
+		return 2
+	}
+	if p.ScopeType == "system" {
+		return 3
+	}
+	return 4
+}
+
+func floorFloat(v float64) float64 {
+	return float64(int(v))
 }

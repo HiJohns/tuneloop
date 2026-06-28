@@ -54,11 +54,16 @@ export default function Detail() {
   const [pricingV2, setPricingV2] = useState(null)
   const [showComparison, setShowComparison] = useState(false)
   const [auditLogs, setAuditLogs] = useState([])
+  const [cartToast, setCartToast] = useState(false)
+  const [fullscreenImage, setFullscreenImage] = useState(null)
   const bannerTouchStartXRef = useRef(0)
   const isRentable = instrument?.stock_status === 'available'
   const isCustomer = !currentUser || currentUser?.role === 'USER'
   const baseUrl = env.apiBaseUrl
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
+  const deposit = instrument?.deposit || pricingV2?.deposit || 0
+  const liveVideo = displayMedia?.video
+  const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
 
   const cartItemCount = (() => {
     try {
@@ -66,6 +71,18 @@ export default function Detail() {
       return cartData.items?.length || 0
     } catch { return 0 }
   })()
+
+  const handleAddToCart = () => {
+    try {
+      const cartData = storage.getJSON('cart', {items: []}) || {items: []}
+      if (!cartData.items.find(i => i.id === id)) {
+        cartData.items.push({ id, name: instrument?.name, sn: instrument?.sn })
+        storage.setJSON('cart', cartData)
+      }
+      setCartToast(true)
+      setTimeout(() => setCartToast(false), 2000)
+    } catch {}
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,11 +119,14 @@ export default function Detail() {
               if (orderData.code === 20000 && orderData.data) setActiveOrder(orderData.data)
             }
           } catch {}
-          try {
-            const logRes = await apiFetch(`${baseUrl}/admin/audit-logs?resource_type=instrument&resource_id=${id}&pageSize=20`, { headers })
-            const logData = await logRes.json()
-            if (logData.code === 20000) setAuditLogs(logData.data?.list || [])
-          } catch {}
+          const role = (() => { try { return JSON.parse(atob((token || '').split('.')[1]))?.role } catch { return null } })()
+          if (role && role !== 'USER') {
+            try {
+              const logRes = await apiFetch(`${baseUrl}/admin/audit-logs?resource_type=instrument&resource_id=${id}&pageSize=20`, { headers })
+              const logData = await logRes.json()
+              if (logData.code === 20000) setAuditLogs(logData.data?.list || [])
+            } catch {}
+          }
         }
       } catch {}
       setLoading(false)
@@ -158,7 +178,7 @@ export default function Detail() {
           }
         }}
       >
-        <View className="w-full" style={{ height: `${Math.round(getWindowSize().width * 0.618)}px` }}>
+        <View className="w-full" style={{ height: `${Math.round(getWindowSize().width * 1.618)}px` }}>
           <View className="flex flex-row h-full" style={{
             width: `${bannerImages.length * 100}%`,
             transform: `translateX(-${currentBanner * (100 / bannerImages.length)}%)`,
@@ -166,7 +186,7 @@ export default function Detail() {
           }}>
             {bannerImages.map((img, i) => (
               <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / bannerImages.length}%` }}>
-                <Image src={img.url || img} className="w-full h-full object-contain" />
+                <Image src={img.url || img} className="w-full h-full object-cover" />
               </View>
             ))}
           </View>
@@ -344,7 +364,7 @@ export default function Detail() {
 
       {/* Bottom panel */}
       <View className="fixed bottom-0 left-0 right-0 bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
-        {isRentable && isCustomer ? (
+        {isRentable ? (
           <>
             <View className="flex w-full space-x-3">
               <View

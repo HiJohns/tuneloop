@@ -77,8 +77,7 @@ export default function ReturnConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        dialog.alert('已提交归还申请')
-        navigate('/my-leases', { replace: true })
+        navigate(`/return-settlement/${orderId}`, { replace: true })
       } else {
         dialog.alert('归还失败: ' + (result.message || ''))
       }

@@ -101,7 +101,7 @@ func GetInstrumentByID(c *gin.Context) {
 		if instrument.BaseDailyRate != nil {
 			baseRate = *instrument.BaseDailyRate
 		}
-		computed := services.CalculatePricing(baseRate, configJSON, instrument.PricingOverrides)
+		computed := services.CalculatePricing(baseRate, configJSON, instrument.PricingOverrides, instrument.Pricing)
 		dailyRent := 0.0
 		if len(computed.Tiers) > 0 {
 			dailyRent = computed.Tiers[0].DailyRate
@@ -1031,29 +1031,53 @@ func HandleUpload(c *gin.Context) {
 
 // GetOverdueLeases returns overdue lease data (replaces the old abnormal work orders API)
 func GetOverdueLeases(c *gin.Context) {
-	overdueLeases := []gin.H{
-		{
-			"id":              "LEASE-001",
-			"instrument_name": "雅马哈 U1 立式钢琴",
-			"renter_name":     "张三",
-			"lease_end_date":  "2026-03-15",
-			"overdue_days":    3,
-			"contact":         "138****1234",
-			"status":          "逾期",
-		},
-		{
-			"id":              "LEASE-002",
-			"instrument_name": "卡马 F1 民谣吉他",
-			"renter_name":     "李四",
-			"lease_end_date":  "2026-03-10",
-			"overdue_days":    8,
-			"contact":         "139****5678",
-			"status":          "逾期",
-		},
+	tenantID := middleware.GetTenantID(c.Request.Context())
+	orgID := middleware.GetOrgID(c.Request.Context())
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	statusFilter := c.Query("status")
+
+	db := database.GetDB()
+	query := db.Table("overdue_charges").
+		Select(`overdue_charges.id, overdue_charges.order_id, overdue_charges.charge_date,
+			overdue_charges.amount, overdue_charges.deducted_from_prepaid,
+			overdue_charges.remaining_balance, overdue_charges.status,
+			overdue_charges.failure_reason, overdue_charges.created_at,
+			orders.instrument_id, instruments.sn AS instrument_sn,
+			instruments.category_name, users.display_name AS user_name,
+			users.phone AS user_phone`).
+		Joins("JOIN orders ON orders.id = overdue_charges.order_id").
+		Joins("JOIN instruments ON instruments.id = orders.instrument_id").
+		Joins("JOIN users ON users.id = orders.user_id").
+		Where("overdue_charges.tenant_id = ?", tenantID).
+		Where("overdue_charges.status IN ?", []string{"failed", "partial"})
+
+	if orgID != "" {
+		query = query.Where("orders.org_id = ?", orgID)
+	}
+
+	if statusFilter != "" {
+		query = query.Where("overdue_charges.status = ?", statusFilter)
+	}
+
+	var total int64
+	query.Count(&total)
+
+	var results []map[string]interface{}
+	offset := (page - 1) * pageSize
+	query.Order("overdue_charges.created_at DESC").
+		Offset(offset).Limit(pageSize).Scan(&results)
+
+	if results == nil {
+		results = []map[string]interface{}{}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":  overdueLeases,
-		"total": len(overdueLeases),
+		"code": 20000,
+		"data": gin.H{
+			"list":  results,
+			"total": total,
+		},
 	})
 }

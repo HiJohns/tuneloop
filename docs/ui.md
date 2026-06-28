@@ -1,7 +1,7 @@
 # TuneLoop UI 设计文档
 
-> 版本: v2.3 (状态模型重构: Instrument 5态 + Order 11态; 订单详情页 + 顾客/员工按钮逻辑)
-> 最后更新: 2026-06-09
+> 版本: v2.4 (会员系统: 会员级别管理 + 返点配置 + 折扣政策 + 引导页 + 结算页 + 逾期告警)
+> 最后更新: 2026-06-28
 > 覆盖度: 100% features.md
 
 ---
@@ -2273,6 +2273,11 @@ cd frontend-pc && npm run build  # 应该成功
 | 库管工作台 | `/warehouse` | MANAGER |
 | 申诉处理 | `/appeals` | MANAGER |
 | 用户申诉 | `/user/appeals` | 用户本人 |
+| 会员级别管理 | `/system/membership-levels` | `membership:manage` |
+| 返点配置 | `/system/rebate-config` | `rebate:manage` |
+| 系统折扣政策 | `/system/promo-plans` | `promo:manage` |
+| 商户折扣政策 | `/merchant/promo-plans` | `promo:manage` |
+| 逾期告警 | `/overdue-alerts` | `instrument:read` |
 
 ### 3.17 申诉处理 (AppealManagement)
 
@@ -2695,3 +2700,124 @@ cd frontend-pc && npm run build  # 应该成功
 - 按租借会话分组（每笔订单为一个会话）
 - 每个会话内按时间排序显示操作事件（发货/接收/归还/定损等）
 - 每事件显示：事件名称、时间、操作人、关联图像（≤3 张缩略图）
+
+### 3.28 移动端首次登录引导页 (`/onboarding`)
+
+**组件**: `frontend-mobile/src/pages/Onboarding.jsx`
+
+**权限**: 任何已登录用户（customer）
+
+**触发条件**: OAuth 登录回调默认跳转 `/onboarding`；已引导用户自动重定向到首页
+
+**布局**: 垂直表单，灰色渐变背景
+
+**功能**:
+1. **昵称输入**（可选）— 单行文本输入框
+2. **收货地址**（可选）— 收件人、手机、省/市/区（三列）、详细地址
+3. **身份证照片**（可选）— 虚线边框上传区域，支持 JPG/PNG，最大 5MB
+4. **预购点数**（可选）— 快捷 ¥100/300/500 按钮 + 自定义金额输入
+5. 提交按钮：`开始使用` — 依次保存地址、购买点数、标记引导完成 → 跳转首页
+6. 跳过链接：`跳过，稍后再说`
+
+### 3.29 移动端归还结算页 (`/return-settlement/:orderId`)
+
+**组件**: `frontend-mobile/src/pages/ReturnSettlement.jsx`
+
+**权限**: 已登录用户（订单所属用户）
+
+**触发条件**: 用户提交归还申请后跳转
+
+**布局**: 卡片分块展示
+
+**功能**:
+1. **租金计算** — 实际租期 × 日租金
+2. **赠点调整** — 已用赠点 vs 可用额度（`floor(实际租金 × cap_rate / 100)`），超额退回
+3. **逾期费用** — 逾期扣款汇总（如有）
+4. **退款明细** — 原实付 / 原预付点 / 应退总额 / 可提现 / 退回预付点
+5. **退款方式选择**：
+   - 存为预付点（即时到账）
+   - 提现（不超过原实付现金，3-5 工作日）
+6. 确认结算 → 标记 order.completed，更新余额 → 跳转租期列表
+
+### 3.30 移动端支付确认点数选择
+
+**组件**: `frontend-mobile/src/pages/Checkout.jsx`
+
+**功能**: 在 `SingleCheckout`（独立租琴）结算时：
+- 展示当前预付点余额和赠点余额
+- 可选使用预付点抵扣（输入抵扣金额）
+- 赠点由系统自动计算（根据 points_policy.cap_rate 限定最高使用比例）
+- 底部确认栏显示：月租金、租期、押金、运费、赠点优惠、实付合计
+
+### 3.31 PC 逾期告警视图 (`/overdue-alerts`)
+
+**组件**: `frontend-pc/src/pages/OverdueAlerts.jsx`
+
+**路由注册**: `frontend-pc/src/App.jsx` — 库存监控子菜单
+
+**权限**: `instrument:read`
+
+**功能**:
+- 表格展示 failed/partial 状态的逾期扣款记录
+- 列：乐器、用户(手机)、扣款日期、逾期金额、已扣预付、欠款余额(红色)、状态、失败原因、创建时间
+- 状态筛选器（全部/扣款失败/部分扣款）
+- 分页
+
+### 3.32 移动端个人中心未读角标
+
+**组件**: `frontend-mobile/src/pages/Profile.jsx` + `frontend-mobile/src/components/BottomNav.jsx`
+
+**功能**:
+- `BottomNav` 新增 `badges` prop: `{ tabKey: number }`
+- 有未读时在图标右上角显示红圈数字（>99 显示 `99+`）
+- Profile.jsx 在页面加载时获取未读数，传给 BottomNav 的 profile Tab
+- 跳转消息列表后未读清零
+
+### 3.33 PC 会员级别管理 (`/system/membership-levels`)
+
+**组件**: `frontend-pc/src/pages/System/MembershipLevelsPage.jsx`
+
+**路由注册**: `frontend-pc/src/App.jsx` — 系统管理子菜单
+
+**权限**: `membership:manage`
+
+**功能**:
+- 表格展示所有会员级别（id、名称、折扣率、升级消费门槛、排序）
+- 新建/编辑/删除会员级别
+- 表单：级别名称、折扣率、最低消费金额、排序号
+
+### 3.34 PC 返点配置 (`/system/rebate-config`)
+
+**组件**: `frontend-pc/src/pages/System/RebateConfigPage.jsx`
+
+**路由注册**: `frontend-pc/src/App.jsx` — 系统管理子菜单
+
+**权限**: `rebate:manage`
+
+**功能**:
+- 按会员级别设置租金→点数返还比例
+- 表格：级别名称 + 返点比例输入框
+- 保存按钮
+
+### 3.35 PC 折扣政策管理 (`/system/promo-plans` / `/merchant/promo-plans`)
+
+**组件**: `frontend-pc/src/pages/System/PromoPlanManagePage.jsx`（两个 scope 共用同一组件）
+
+**路由注册**: `frontend-pc/src/App.jsx` — 系统管理 + 组织管理子菜单
+
+**权限**: `promo:manage`
+
+**功能**:
+- 列表展示折扣政策（名称、类型、启用状态）
+- 新建/编辑/删除
+- 政策详情管理：按会员级别设折扣率
+- scope 切换：sys_admin 见系统级，merchant_admin 见商户级
+
+### 3.36 PC/移动端个人中心会员级别展示
+
+**组件**: `frontend-pc/src/pages/UserProfile.jsx` + `frontend-mobile/src/pages/Profile.jsx`
+
+**功能**:
+- 展示当前用户会员级别名称
+- 展示累计消费总额（total_spending）
+- 显示下一级别的消费缺口

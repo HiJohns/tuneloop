@@ -301,7 +301,7 @@ func GetInstrumentPricingV2(c *gin.Context) {
 		}
 	}
 
-	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides)
+	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": services.FormatPricingResult(result),

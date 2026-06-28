@@ -28,6 +28,7 @@ type User struct {
 	TotalSpending        float64    `gorm:"type:decimal;default:0" json:"total_spending"`
 	PrepaidPoints        float64    `gorm:"type:decimal;default:0" json:"prepaid_points"`
 	PromoPoints          float64    `gorm:"type:decimal;default:0" json:"promo_points"`
+	OnboardingCompleted  bool       `gorm:"default:false" json:"onboarding_completed"`
 	DeletedAt            *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
@@ -180,10 +181,43 @@ type Order struct {
 	CourierCompany    *string    `gorm:"type:varchar(100)" json:"courier_company"`
 	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
 	DeliveredAt       *time.Time `gorm:"type:timestamp" json:"delivered_at"`
-	DepositRefunded   bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
-	PricingBreakdown  *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
+	DepositRefunded     bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
+	PricingBreakdown    *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
+	CashPaid            float64    `gorm:"type:decimal(10,2);not null;default:0" json:"cash_paid"`
+	PrepaidPointsUsed   float64    `gorm:"type:decimal(10,2);not null;default:0" json:"prepaid_points_used"`
+	GiftPointsUsed      float64    `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_used"`
+	PointsPolicySnapshot *string   `gorm:"type:jsonb" json:"points_policy_snapshot"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+type Settlement struct {
+	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID            string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	ActualRentDays     int       `gorm:"not null;default:0" json:"actual_rent_days"`
+	ActualRentAmount   float64   `gorm:"type:decimal(10,2);not null;default:0" json:"actual_rent_amount"`
+	OriginalRentAmount float64   `gorm:"type:decimal(10,2);not null;default:0" json:"original_rent_amount"`
+	GiftPointsRefunded float64   `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_refunded"`
+	CashRefundable     float64   `gorm:"type:decimal(10,2);not null;default:0" json:"cash_refundable"`
+	PrepaidRefunded    float64   `gorm:"type:decimal(10,2);not null;default:0" json:"prepaid_refunded"`
+	RefundMethod       string    `gorm:"type:varchar(20);not null;default:'prepaid'" json:"refund_method"`
+	RefundStatus       string    `gorm:"type:varchar(20);not null;default:'pending'" json:"refund_status"`
+	OverdueChargesTotal float64  `gorm:"type:decimal(10,2);not null;default:0" json:"overdue_charges_total"`
+	Breakdown          string    `gorm:"type:jsonb;not null;default:'{}'" json:"breakdown"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type OverdueCharge struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID          string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	ChargeDate       string    `gorm:"type:date;not null;index" json:"charge_date"`
+	Amount           float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	DeductedFromPrepaid float64 `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_prepaid"`
+	RemainingBalance float64   `gorm:"type:decimal(10,2);not null;default:0" json:"remaining_balance"`
+	Status           string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
+	FailureReason    *string   `gorm:"type:varchar(500)" json:"failure_reason"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type Site struct {
@@ -330,7 +364,20 @@ type Deposit struct {
 	TransactionDate string    `gorm:"type:date;not null" json:"transaction_date"`
 	Notes           string    `gorm:"type:text" json:"notes"`
 	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type PointsTransaction struct {
+	ID                string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID            string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	TenantID          string    `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	Type              string    `gorm:"type:varchar(20);not null;index" json:"type"`
+	Amount            float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	BalanceAfterPrepaid float64 `gorm:"type:decimal(10,2);not null;default:0" json:"balance_after_prepaid"`
+	BalanceAfterPromo float64   `gorm:"type:decimal(10,2);not null;default:0" json:"balance_after_promo"`
+	OrderID           *string   `gorm:"type:uuid;index" json:"order_id"`
+	Description       string    `gorm:"type:varchar(500)" json:"description"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 // Label represents a normalized tag/label for instruments

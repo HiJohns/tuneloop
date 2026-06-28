@@ -34,6 +34,8 @@ import MyContracts from './pages/MyContracts'
 import StaffOrders from './pages/StaffOrders'
 import RepairScan from './pages/RepairScan'
 import OrderDetail from './pages/OrderDetail'
+import Onboarding from './pages/Onboarding'
+import ReturnSettlement from './pages/ReturnSettlement'
 
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
@@ -111,7 +113,7 @@ function OAuthCallback() {
             session.setItem('show_login_reason', reason)
           }
 
-          const redirectTo = session.getItem('post_auth_redirect') || '/'
+          let redirectTo = session.getItem('post_auth_redirect') || '/onboarding'
           session.removeItem('post_auth_redirect')
           navigation.redirect(redirectTo)
         } else {
@@ -183,6 +185,8 @@ function App() {
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
         <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
         <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+        <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

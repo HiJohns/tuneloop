@@ -94,7 +94,9 @@ export default function ReceiveConfirm() {
   })() : ''
 
   const leaseTerm = order?.lease_term || 0
-  const rentalDays = leaseTerm * 30
+  const rentalDays = (order?.start_date && order?.end_date)
+    ? Math.max(1, Math.round((new Date(order.end_date) - new Date(order.start_date)) / 86400000))
+    : leaseTerm * 30
 
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-24">

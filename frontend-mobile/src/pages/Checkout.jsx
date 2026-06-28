@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, pointsApi } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
@@ -46,6 +46,10 @@ function SingleCheckout({ id, navigate }) {
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
   const [days, setDays] = useState(30)
+  const [pointsBalance, setPointsBalance] = useState({ prepaid_points: 0, promo_points: 0 })
+  const [prepaidPointsUsed, setPrepaidPointsUsed] = useState(0)
+  const [giftPointsUsed, setGiftPointsUsed] = useState(0)
+  const [usePoints, setUsePoints] = useState(false)
 
   useEffect(() => {
     const token = getToken()
@@ -104,15 +108,21 @@ function SingleCheckout({ id, navigate }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const resp = await apiFetch(`${env.apiBaseUrl}/users/me`)
-        const result = await resp.json()
-        if (result.code === 20000) {
-          setUser(result.data)
+        const [userRes, pointsRes] = await Promise.all([
+          apiFetch(`${env.apiBaseUrl}/users/me`),
+          pointsApi.balance(),
+        ])
+        const userResult = await userRes.json()
+        if (userResult.code === 20000) {
+          setUser(userResult.data)
           setNewAddress(prev => ({
             ...prev,
-            recipient_name: prev.recipient_name || result.data.name || '',
-            phone: prev.phone || result.data.phone || '',
+            recipient_name: prev.recipient_name || userResult.data.name || '',
+            phone: prev.phone || userResult.data.phone || '',
           }))
+        }
+        if (pointsRes?.code === 20000) {
+          setPointsBalance(pointsRes.data)
         }
       } catch {}
     }
@@ -182,6 +192,10 @@ function SingleCheckout({ id, navigate }) {
         end_date: returnDate,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
+      if (usePoints) {
+        body.prepaid_points_used = prepaidPointsUsed
+        body.gift_points_used = giftPointsUsed
+      }
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -198,35 +212,35 @@ function SingleCheckout({ id, navigate }) {
   const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
-  if (loading) return <View className="min-h-screen bg-gray-50 flex items-center justify-center"><Text className="text-gray-500">加载中...</Text></View>
-  if (!instrument) return <View className="min-h-screen bg-gray-50 flex items-center justify-center"><Text className="text-gray-500">乐器不存在</Text></View>
+  if (loading) return <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
+  if (!instrument) return <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center"><Text className="text-zinc-400">乐器不存在</Text></View>
 
   return (
-    <View className="min-h-screen bg-gray-50 pb-28">
-      <View className="bg-white border-b px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-bold">确认订单</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-28">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
+        <Text className="text-lg font-black text-black">确认订单</Text>
       </View>
 
-      <View className="p-4 space-y-4">
-        <View className="bg-white rounded-xl p-4">
-          <Text className="text-sm font-medium text-gray-900 mb-2">租赁乐器</Text>
+      <View className="p-4 space-y-3">
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="font-black text-black mb-2">租赁乐器</Text>
           <View className="flex gap-3">
             <Image
               src={parseImages(instrument.images)?.[0] || ''}
               alt=""
-              className="w-16 h-16 object-cover rounded-lg bg-gray-100"
+              className="w-16 h-16 object-cover rounded-lg bg-[#FDF4E7]"
               onError={(e) => { e.target.style.display = 'none' }}
             />
             <View>
-              <Text className="font-medium text-sm">SN: {instrument.sn || id?.slice(0, 8)}</Text>
-              <Text className="text-xs text-gray-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
+              <Text className="font-black text-sm text-black">SN: {instrument.sn || id?.slice(0, 8)}</Text>
+              <Text className="text-xs text-zinc-400">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
             </View>
           </View>
         </View>
 
-        <View className="bg-white rounded-xl p-4">
-          <Text className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="font-black text-black mb-3 flex items-center gap-2">
             <Calendar size={16} className="text-brand-primary" />
             租期选择
           </Text>
@@ -256,39 +270,84 @@ function SingleCheckout({ id, navigate }) {
           </View>
         </View>
 
-        <View className="bg-white rounded-xl p-4">
-          <Text className="text-sm font-medium text-gray-900 mb-3">费用明细</Text>
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="font-black text-black mb-3">费用明细</Text>
           <View className="space-y-2 text-sm">
-            <View className="flex justify-between">
-              <Text className="text-gray-500">租金 ({days}天)</Text>
-              <Text className="font-medium">¥{totalRent.toFixed(0)}</Text>
+            <View className="flex justify-between items-center">
+              <Text className="text-zinc-400">租金 ({days}天)</Text>
+              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{totalRent.toFixed(0)}</Text>
             </View>
             {pricingV2?.tiers?.length > 0 && (
-              <View className="text-xs text-gray-400 pl-2 pb-1 border-b border-dashed">
+              <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
                 {pricingV2.tiers.map((t, i) => {
                   const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                   const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <Text key={i} className="mr-3">{range}: ¥{t.daily_rate}/天</Text>
+                  return <Text key={i} className="mr-3">{range}: ¥{Math.round(t.daily_rate)}/天</Text>
                 })}
               </View>
             )}
-            <View className="flex justify-between">
-              <Text className="text-gray-500">押金</Text>
-              <Text className="font-medium">¥{deposit}</Text>
+            <View className="flex justify-between items-center">
+              <Text className="text-zinc-400">押金</Text>
+              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
             </View>
-            <View className="flex justify-between">
-              <Text className="text-gray-500">物流费</Text>
-              <Text className="font-medium">¥{shippingFee}</Text>
+            <View className="flex justify-between items-center">
+              <Text className="text-zinc-400">物流费</Text>
+              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{shippingFee}</Text>
             </View>
             <View className="border-t pt-2 flex justify-between font-bold text-base">
-              <Text className="text-gray-900">合计</Text>
-              <Text className="text-brand-primary">¥{totalAmount.toFixed(0)}</Text>
+              <Text className="text-zinc-900">合计</Text>
+              <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(0)}</Text>
             </View>
           </View>
         </View>
 
-        <View className="bg-white rounded-xl p-4">
-          <Text className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+        {/* Points selection section */}
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="font-black text-black mb-3">点数使用</Text>
+          {pointsBalance.prepaid_points > 0 || pointsBalance.promo_points > 0 ? (
+            <>
+              <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
+                <input type="checkbox" checked={usePoints} onChange={e => { setUsePoints(e.target.checked); if (!e.target.checked) { setPrepaidPointsUsed(0); setGiftPointsUsed(0) } }} />
+                使用点数抵扣
+              </label>
+              {usePoints && (
+                <View className="space-y-2">
+                  {pointsBalance.prepaid_points > 0 && (
+                    <View className="flex items-center justify-between">
+                      <Text className="text-sm text-gray-500">预付点数 (余额: {pointsBalance.prepaid_points})</Text>
+                      <input
+                        type="number"
+                        min={0}
+                        max={pointsBalance.prepaid_points}
+                        value={prepaidPointsUsed}
+                        onChange={e => setPrepaidPointsUsed(Math.max(0, Math.min(pointsBalance.prepaid_points, parseInt(e.target.value) || 0)))}
+                        className="w-24 text-right border rounded px-2 py-1 text-sm"
+                      />
+                    </View>
+                  )}
+                  {pointsBalance.promo_points > 0 && (
+                    <View className="flex items-center justify-between">
+                      <Text className="text-sm text-gray-500">赠送点数 (余额: {pointsBalance.promo_points})</Text>
+                      <input
+                        type="number"
+                        min={0}
+                        max={pointsBalance.promo_points}
+                        value={giftPointsUsed}
+                        onChange={e => setGiftPointsUsed(Math.max(0, Math.min(pointsBalance.promo_points, parseInt(e.target.value) || 0)))}
+                        className="w-24 text-right border rounded px-2 py-1 text-sm"
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+            </>
+          ) : (
+            <Text className="text-sm text-gray-400">暂无可用点数</Text>
+          )}
+        </View>
+
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="font-black text-black mb-3 flex items-center gap-2">
             <MapPin size={16} className="text-brand-primary" />
             收货地址
           </Text>
@@ -384,9 +443,9 @@ function SingleCheckout({ id, navigate }) {
           )}
         </View>
 
-        <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+        <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-sm text-amber-700">
           <Text className="font-medium mb-1">租赁须知</Text>
-          <ul className="text-xs space-y-1 text-blue-600">
+          <ul className="text-xs space-y-1 text-amber-600">
             <li>· 提交即生成订单，需在10分钟内完成支付</li>
             <li>· 超时未支付订单将自动取消</li>
             <li>· 发货前可取消订单免手续费</li>
@@ -395,15 +454,20 @@ function SingleCheckout({ id, navigate }) {
         </View>
       </View>
 
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb">
         <View className="flex items-center justify-between mb-2">
-          <Text className="text-sm text-gray-500">应付总额</Text>
-          <Text className="text-xl font-bold text-brand-primary">¥{totalAmount.toFixed(0)}</Text>
+          <Text className="text-sm text-zinc-400">{usePoints && (prepaidPointsUsed > 0 || giftPointsUsed > 0) ? '实付金额' : '应付总额'}</Text>
+          <Text className="text-xl font-black text-brand-primary">¥{(totalAmount - (usePoints ? prepaidPointsUsed + giftPointsUsed : 0)).toFixed(0)}</Text>
         </View>
+        {usePoints && (prepaidPointsUsed > 0 || giftPointsUsed > 0) && (
+          <Text className="text-xs text-zinc-400 text-right -mt-1 mb-1">
+            点数抵扣 ¥{(prepaidPointsUsed + giftPointsUsed).toFixed(0)}
+          </Text>
+        )}
         <Button
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-3 bg-brand-primary text-white rounded-xl font-black disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {submitting ? '提交中...' : '提交订单'}
         </Button>
@@ -549,7 +613,7 @@ function BatchCheckout({ navigate }) {
         if (orderResp.code === 20000) {
           const orderId = orderResp.data?.order_id
           if (orderId) {
-            await apiFetch(`${baseUrl}/orders/${orderId}/pay`, { method: 'POST' })
+            await apiFetch(`${env.apiBaseUrl}/orders/${orderId}/pay`, { method: 'POST' })
           }
           storage.removeItem('cart')
           eventBus.emit('cartUpdated')

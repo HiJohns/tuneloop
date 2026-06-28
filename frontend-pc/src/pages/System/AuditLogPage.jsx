@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Button, Space, DatePicker, Select, Input, Tag, message, Modal, Descriptions } from 'antd';
+import { Table, Card, Button, Space, DatePicker, Checkbox, Tag, message, Modal, Descriptions } from 'antd';
 import { DownloadOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { api, auditLogApi } from '../../services/api';
 import dayjs from 'dayjs';
-
-const { RangePicker } = DatePicker;
 
 const actionDisplayMap = {
   CREATE: '创建', UPDATE: '更新', DELETE: '删除',
@@ -29,26 +27,19 @@ const resourceDisplayMap = {
   outbound: '出库', assessment: '评估', system: '系统',
 };
 
-const filterActions = Object.keys(actionDisplayMap)
-const filterResources = Object.keys(resourceDisplayMap)
-
 function formatLogMessage(record) {
   const action = actionDisplayMap[record.action] || record.action
   const resource = resourceDisplayMap[record.resource_type] || record.resource_type
-  let detail = ''
-  if (record.request_body) {
+  let detail = record.resource_id || ''
+  if (record.resource_type === 'order' && record.request_body) {
     try {
       const body = JSON.parse(record.request_body)
-      detail = body.name || body.username || ''
+      if (body.order_id) detail = body.order_id
+      if (body.instrument_sn) detail += ` / ${body.instrument_sn}`
     } catch {}
   }
   const namePart = detail ? `「${detail}」` : ''
-  const result = record.status === 'failure' && record.error_message
-    ? `失败：${record.error_message}`
-    : record.status === 'failure'
-      ? '失败'
-      : '成功'
-  return `${action}${resource}${namePart} → ${result}`
+  return `${action} ${resource}${namePart}`
 }
 
 function getStatusColor(status) {
@@ -77,6 +68,7 @@ export default function AuditLogPage() {
   });
   const [detailLog, setDetailLog] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
+  const [toNow, setToNow] = useState(true);
 
   useEffect(() => { fetchLogs(); }, [page, pageSize]);
 
@@ -111,6 +103,10 @@ export default function AuditLogPage() {
   const columns = [
     { title: '时间', dataIndex: 'created_at', key: 'created_at',
       render: (v) => v ? new Date(v).toLocaleString() : '-', width: 180 },
+    { title: '操作者', dataIndex: 'actor_name', key: 'actor_name', width: 100,
+      render: (v) => v || '-' },
+    { title: '对象类型', dataIndex: 'resource_type', key: 'resource_type', width: 100,
+      render: (v) => resourceDisplayMap[v] || v || '-' },
     { title: '操作描述', key: 'description', width: 500,
       render: (_, record) => formatLogMessage(record) },
     { title: '结果', dataIndex: 'status', key: 'status', width: 100,
@@ -126,36 +122,40 @@ export default function AuditLogPage() {
   return (
     <Card title="操作日志" extra={<Button icon={<DownloadOutlined />} onClick={handleExport}>导出CSV</Button>}>
       <Space wrap style={{ marginBottom: 16 }}>
-        <Select placeholder="操作类型" allowClear style={{ width: 140 }}
-          value={filters.action} onChange={(v) => setFilters(f => ({ ...f, action: v || '' }))}>
-          {filterActions.map(a =>
-            <Select.Option key={a} value={a}>{actionDisplayMap[a] || a}</Select.Option>)}
-        </Select>
-        <Select placeholder="资源类型" allowClear style={{ width: 140 }}
-          value={filters.resource_type} onChange={(v) => setFilters(f => ({ ...f, resource_type: v || '' }))}>
-          {filterResources.map(t =>
-            <Select.Option key={t} value={t}>{resourceDisplayMap[t] || t}</Select.Option>)}
-        </Select>
-        <RangePicker onChange={(dates) => setFilters(f => ({
-          ...f, date_from: dates ? dates[0].format('YYYY-MM-DD') : '',
-          date_to: dates ? dates[1].format('YYYY-MM-DD') : '',
-        }))} />
+        <DatePicker placeholder="起始日期"
+          value={filters.date_from ? dayjs(filters.date_from) : null}
+          onChange={(d) => setFilters(f => ({ ...f, date_from: d ? d.format('YYYY-MM-DD') : '' }))} />
+        <Checkbox checked={toNow}
+          onChange={(e) => { setToNow(e.target.checked); if (e.target.checked) setFilters(f => ({ ...f, date_to: dayjs().format('YYYY-MM-DD') })); }}>
+          至现在
+        </Checkbox>
+        <DatePicker placeholder="结束日期" disabled={toNow}
+          value={(!toNow && filters.date_to) ? dayjs(filters.date_to) : null}
+          onChange={(d) => setFilters(f => ({ ...f, date_to: d ? d.format('YYYY-MM-DD') : '' }))} />
         <Button.Group size="small">
           <Button onClick={() => {
             const today = dayjs();
+            setToNow(true);
             setFilters(f => ({ ...f, date_from: today.format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+            handleSearch();
           }}>今天</Button>
           <Button onClick={() => {
             const today = dayjs();
+            setToNow(true);
             setFilters(f => ({ ...f, date_from: today.startOf('week').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+            handleSearch();
           }}>本周</Button>
           <Button onClick={() => {
             const today = dayjs();
+            setToNow(true);
             setFilters(f => ({ ...f, date_from: today.startOf('month').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+            handleSearch();
           }}>本月</Button>
           <Button onClick={() => {
             const today = dayjs();
+            setToNow(true);
             setFilters(f => ({ ...f, date_from: today.subtract(60, 'day').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
+            handleSearch();
           }}>最近60天</Button>
         </Button.Group>
         <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>查询</Button>

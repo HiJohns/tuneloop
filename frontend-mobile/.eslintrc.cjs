@@ -7,7 +7,6 @@ module.exports = {
   },
   extends: [
     'eslint:recommended',
-    'plugin:react/recommended',
     'plugin:react-hooks/recommended',
   ],
   parserOptions: {
@@ -17,15 +16,19 @@ module.exports = {
       jsx: true,
     },
   },
-  settings: {
-    react: { version: '18.2' },
+  globals: {
+    wx: 'readonly',
+    BarcodeDetector: 'readonly',
   },
   rules: {
     'no-undef': 'error',
     'no-use-before-define': ['error', { variables: true, functions: false }],
-    'no-unused-vars': 'off',
+    'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]' }],
     'react-hooks/set-state-in-effect': 'off',
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
+    'no-empty': 'off',
+    'react-hooks/exhaustive-deps': 'warn',
+    'react-hooks/preserve-manual-memoization': 'warn',
   },
-};
+}

@@ -422,6 +422,11 @@ export const addressesApi = {
   delete: (id) => api.delete(`/user/addresses/${id}`),
 }
 
+export const pointsApi = {
+  balance: () => api.get('/user/points/balance'),
+  transactions: (params) => api.get('/user/points/transactions', params),
+}
+
 export function resendEmailConfirmation() {
   return api.post('/users/me/resend-email-confirmation')
 }

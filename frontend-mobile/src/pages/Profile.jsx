@@ -6,6 +6,14 @@ import { env, storage } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components/BottomNav'
 
+function Badge({ count }) {
+  return (
+    <View className="absolute -top-1 -right-2 bg-[#FF2A55] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+      {count > 9 ? '9+' : count}
+    </View>
+  )
+}
+
 function EditProfileModal({ visible, user, onClose, onSave }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '' })
   const [saving, setSaving] = useState(false)
@@ -77,6 +85,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
 
   const baseUrl = env.apiBaseUrl
 
@@ -106,6 +115,24 @@ export default function Profile() {
     return () => clearInterval(interval)
   }, [])
 
+  const displayName = user?.name || '路人'
+  const token = getToken()
+  const claims = token ? parseJWT(token) : {}
+  const isStaff = claims.role === 'STAFF'
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/user/orders/counts`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          setOrderCounts(result.data || {})
+        }
+      } catch {}
+    }
+    if (!isStaff) fetchCounts()
+  }, [baseUrl, isStaff])
+
   const handleLogout = () => {
     storage.removeItem('token')
     storage.removeItem('token_expiry')
@@ -116,11 +143,6 @@ export default function Profile() {
   if (loading) {
     return <View className="h-screen flex items-center justify-center bg-zinc-50"><Text className="text-zinc-400">加载中...</Text></View>
   }
-
-  const displayName = user?.name || '路人'
-  const token = getToken()
-  const claims = token ? parseJWT(token) : {}
-  const isStaff = claims.role === 'STAFF'
 
   return (
     <View className="h-screen w-screen bg-zinc-50 overflow-hidden flex flex-col relative antialiased">
@@ -143,11 +165,7 @@ export default function Profile() {
                 {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
               </Text>
             )}
-            {user && (user.membership_level_id || user.total_spending > 0) && (
-              <Text className="text-xs text-zinc-500 mt-0.5">
-                {user.total_spending > 0 ? `累计消费 ¥${user.total_spending.toLocaleString()}` : ''}
-              </Text>
-            )}
+
           </View>
           </View>
           <View
@@ -177,34 +195,55 @@ export default function Profile() {
             </>
           ) : (
             <>
-              <View className="flex flex-col items-center justify-center relative py-1 active:bg-zinc-50 rounded-xl">
+              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/my-leases?status=reserved')}>
                 <View className="text-2xl mb-1 relative">
-                  ☑️
-                  {unreadCount > 0 && (
-                    <View className="absolute -top-1 -right-2 bg-[#FF2A55] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </View>
-                  )}
+                  📥
+                  {orderCounts.reserved > 0 && <Badge count={orderCounts.reserved} />}
                 </View>
-                <Text className="text-xs font-bold text-zinc-700">全部</Text>
-              </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl">
-                <View className="text-2xl mb-1">📥</View>
                 <Text className="text-xs font-bold text-zinc-700">待付款</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl">
-                <View className="text-2xl mb-1">💬</View>
+              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/my-leases?status=in_lease')}>
+                <View className="text-2xl mb-1 relative">
+                  💬
+                  {orderCounts.in_lease > 0 && <Badge count={orderCounts.in_lease} />}
+                </View>
                 <Text className="text-xs font-bold text-zinc-700">服务中</Text>
               </View>
-              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl">
-                <View className="text-2xl mb-1">✖️</View>
+              <View className="flex flex-col items-center justify-center py-1 active:bg-zinc-50 rounded-xl" onClick={() => navigate('/my-leases?status=completed')}>
+                <View className="text-2xl mb-1">
+                  ✖️
+                </View>
                 <Text className="text-xs font-bold text-zinc-700">已完成</Text>
               </View>
             </>
           )}
         </View>
 
-        {/* 3. 下方通用抽屉式列表 */}
+        {/* 3. 个人信息面板 — 仅顾客 */}
+        {!isStaff && (
+          <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
+            <View className="flex justify-between items-center py-2">
+              <Text className="text-sm text-zinc-500">用户名</Text>
+              <Text className="text-sm font-bold text-black">{user?.name || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center py-2">
+              <Text className="text-sm text-zinc-500">电话</Text>
+              <Text className="text-sm font-bold text-black">{user?.phone || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center py-2 active:opacity-60" onClick={() => navigate('/addresses')}>
+              <Text className="text-sm text-zinc-500">收货地址</Text>
+              <Text className="text-sm text-zinc-300">❯</Text>
+            </View>
+            <View className="flex justify-between items-center py-2">
+              <Text className="text-sm text-zinc-500">消费总额</Text>
+              <Text className="text-sm font-bold text-[#C21838]">
+                ¥{(user?.total_spending || 0).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* 4. 下方通用抽屉式列表 */}
         <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
           <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/messages')}>
             <View className="flex items-center gap-2">
@@ -255,7 +294,7 @@ export default function Profile() {
 
       </ScrollView>
 
-      {/* 4. 底部固定导航栏 */}
+      {/* 5. 底部固定导航栏 */}
       <BottomNav
         active="profile"
         tabs={[
@@ -264,6 +303,7 @@ export default function Profile() {
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => token && navigate(isStaff ? '/my-repairs' : '/my-repairs') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
         ]}
+        badges={{ profile: isStaff ? 0 : unreadCount }}
       />
 
       <EditProfileModal

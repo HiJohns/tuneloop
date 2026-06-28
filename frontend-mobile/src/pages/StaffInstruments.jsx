@@ -24,12 +24,27 @@ function parseImages(images) {
 export default function StaffInstruments() {
   const navigate = useNavigate()
   const [instruments, setInstruments] = useState([])
-  const [categories, setCategories] = useState([])
-  const [activeCategory, setActiveCategory] = useState('全部')
+  const [categories, setCategories] = useState([{ id: 'all', name: '全部' }])
+  const [activeCategory, setActiveCategory] = useState('all')
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const pageSize = 20
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const baseUrl = env.apiBaseUrl
+        const resp = await apiFetch(`${baseUrl}/categories`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          const list = result.data?.list || result.data || []
+          setCategories([{ id: 'all', name: '全部' }, ...list.map(c => ({ id: c.id, name: c.name }))])
+        }
+      } catch {}
+    }
+    fetchCategories()
+  }, [])
 
   useEffect(() => {
     const fetchInstruments = async () => {
@@ -37,7 +52,7 @@ export default function StaffInstruments() {
         setLoading(true)
         const baseUrl = env.apiBaseUrl
         let url = `${baseUrl}/instruments?page=${page}&pageSize=${pageSize}`
-        if (activeCategory !== '全部') {
+        if (activeCategory !== 'all') {
           url += `&category_id=${activeCategory}`
         }
         const resp = await apiFetch(url)
@@ -45,10 +60,6 @@ export default function StaffInstruments() {
         if (result.code === 20000) {
           setInstruments(result.data?.list || [])
           setTotal(result.data?.total || 0)
-          if (page === 1) {
-            const cats = ['全部', ...new Set((result.data?.list || []).map(i => i.category_name || i.category).filter(Boolean))]
-            setCategories(cats)
-          }
         }
       } catch (err) {
         console.error('Failed to fetch instruments:', err)
@@ -87,15 +98,15 @@ export default function StaffInstruments() {
         <View className="flex px-4 py-3 gap-2">
           {categories.map(cat => (
             <Button
-              key={cat}
-              onClick={() => { setActiveCategory(cat); setPage(1) }}
+              key={cat.id}
+              onClick={() => { setActiveCategory(cat.id); setPage(1) }}
               className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-                activeCategory === cat
+                activeCategory === cat.id
                   ? 'bg-brand-primary text-white'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >
-              {cat}
+              {cat.name}
             </Button>
           ))}
         </View>
@@ -113,10 +124,10 @@ export default function StaffInstruments() {
                 onClick={() => navigate(`/staff/instrument/${inst.id}`)}
               >
                 {(() => {
-                  const instImages = parseImages(inst.images)
+                  const imgSrc = inst.poster || parseImages(inst.images)[0] || PLACEHOLDER_IMAGE
                   return (
                   <Image
-                  src={instImages[0] || PLACEHOLDER_IMAGE}
+                  src={imgSrc}
                   alt={inst.sn}
                   className="w-20 h-20 object-cover rounded-lg bg-gray-100"
                   onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE }}

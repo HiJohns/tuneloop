@@ -86,14 +86,13 @@ export default function Home() {
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(null)
-  const [currentBanner, setCurrentBanner] = useState(0)
   const [banners, setBanners] = useState([])
+  const [currentBanner, setCurrentBanner] = useState(0)
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
-  const scrolled = scrollY > 0
-  const menuStuck = scrollY >= 150
+  const scrolled = scrollY > 50
+  const menuStuck = scrollY > 130
   const topCategories = categories.filter(c => !c.parent_id)
-  const initialized = useRef(false)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
 
@@ -106,8 +105,7 @@ export default function Home() {
       if (result.code === 20000) {
         const topList = result.data?.list?.filter(c => !c.parent_id) || []
         setCategories(result.data?.list || [])
-        if (topList.length > 0 && !initialized.current) {
-          initialized.current = true
+        if (topList.length > 0 && !selectedCategory) {
           setSelectedCategory(topList[0].id)
         }
       }

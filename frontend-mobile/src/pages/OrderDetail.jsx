@@ -153,7 +153,9 @@ export default function OrderDetail() {
   const startDate = formatDisplayDate(order.start_date)
   const endDate = formatDisplayDate(order.end_date)
   const leaseTerm = order.lease_term || 0
-  const rentalDays = leaseTerm * 30
+  const rentalDays = (order.start_date && order.end_date)
+    ? Math.max(1, Math.round((new Date(order.end_date) - new Date(order.start_date)) / 86400000))
+    : leaseTerm * 30
   const deposit = order.deposit || 0
   const monthlyRent = order.monthly_rent || 0
   const shippingFee = order.shipping_fee || 0

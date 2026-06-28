@@ -1,27 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
-import { ArrowLeft, MapPin, Package, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
+import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
 import { dialog, env, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
-
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
-    <rect fill="#f3f4f6" width="200" height="160"/>
-    <text x="100" y="80" text-anchor="middle" fill="#9ca3af" font-size="14">No Image</text>
-  </svg>
-`)
-
-function parseImages(images) {
-  if (!images) return []
-  if (Array.isArray(images)) return images
-  if (typeof images === 'string') {
-    try { return JSON.parse(images) } catch { return [] }
-  }
-  return []
-}
+import InstrumentInfo from '../components/InstrumentInfo'
 
 function parsePricing(pricing) {
   if (!pricing) return []
@@ -157,7 +142,6 @@ export default function StaffInstrumentDetail() {
     return <View className="p-4">乐器不存在</View>
   }
 
-  const images = parseImages(instrument.images)
   const pricing = parsePricing(instrument.pricing)
   const pricingInfo = pricing[0] || {}
 
@@ -172,14 +156,7 @@ export default function StaffInstrumentDetail() {
 
       <View className="p-4 space-y-4">
         {/* Image */}
-        <View className="bg-white rounded-xl overflow-hidden">
-          <Image
-            src={images[0] || PLACEHOLDER_IMAGE}
-            alt={instrument.name}
-            className="w-full h-48 object-contain bg-gray-100"
-            onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE }}
-          />
-        </View>
+        <InstrumentInfo instrument={instrument} />
 
         {/* Basic Info */}
         <View className="bg-white rounded-xl p-4">

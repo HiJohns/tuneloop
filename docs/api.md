@@ -1,7 +1,7 @@
 # TuneLoop API 文档
 
-> 版本: v2.2 (权限管理重构: 10 cus_perm + sys_perm 25-26)
-> 最后更新: 2026-05-27
+> 版本: v2.3 (租金计算系统: 点数钱包 + 归还结算 + 逾期扣款 + 首次登录引导)
+> 最后更新: 2026-06-28
 > 覆盖度: 100% features.md
 
 ---
@@ -1506,6 +1506,27 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 ---
 
+### 6.3a 订单计数
+
+**接口**: `GET /api/user/orders/counts`
+
+> **游客支持**：已认证的用户均可调用，返回当前用户各状态订单数量。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "reserved": 2,
+    "in_lease": 1,
+    "returning": 0,
+    "completed": 5
+  }
+}
+```
+
+---
+
 ### 6.4 订单列表
 
 **接口**: `GET /api/orders`
@@ -2388,6 +2409,239 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 {
   "code": 20000,
   "message": "success"
+}
+```
+
+---
+
+### 8.11 点数钱包
+
+**接口**: `GET /api/user/points/balance`
+
+**说明**: 查询当前用户点数余额
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "prepaid_points": 500.00,
+    "promo_points": 100.00
+  }
+}
+```
+
+---
+
+**接口**: `GET /api/user/points/transactions?page=1&page_size=20`
+
+**说明**: 查询点数交易记录
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "type": "prepaid_purchase",
+        "amount": 500.00,
+        "balance_after_prepaid": 1000.00,
+        "description": "预购点数",
+        "created_at": "2026-06-28T00:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 20
+  }
+}
+```
+
+---
+
+**接口**: `POST /api/user/points/purchase`
+
+**说明**: 预购预付点数
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| amount | decimal | 购买金额 |
+
+**请求示例**:
+```json
+{ "amount": 500 }
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "new_balance": 1000.00,
+    "transaction_id": "uuid"
+  }
+}
+```
+
+---
+
+### 8.12 首次登录引导
+
+**接口**: `GET /api/user/onboarding`
+
+**说明**: 查询引导状态
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "name": "用户昵称",
+    "onboarding_completed": false,
+    "prepaid_points": 0,
+    "promo_points": 0
+  }
+}
+```
+
+---
+
+**接口**: `PUT /api/user/onboarding`
+
+**说明**: 提交引导（标记完成 + 可选更新昵称）
+
+**请求 Body**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 否 | 用户昵称 |
+
+**请求示例**:
+```json
+{ "name": "小明" }
+```
+
+**响应**:
+```json
+{ "code": 20000, "message": "onboarding completed" }
+```
+
+---
+
+**接口**: `POST /api/user/id-photo`
+
+**说明**: 上传身份证照片（multipart/form-data）
+
+**请求参数**: `file` (image/jpeg, image/png, image/webp, max 5MB)
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "url": "/uploads/media/id_photos/uuid_123.jpg" }
+}
+```
+
+---
+
+### 8.13 归还结算
+
+**接口**: `GET /api/user/settlements/:orderId/calculate`
+
+**说明**: 结算预览（不创建记录）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "actual_rent_days": 15,
+    "final_daily_rent": 50.00,
+    "actual_rent_amount": 750.00,
+    "gift_points_used": 200.00,
+    "gift_cap": 75.00,
+    "gift_points_refunded": 125.00,
+    "cash_paid": 1000.00,
+    "prepaid_points_used": 200.00,
+    "total_refund": 450.00,
+    "cash_refundable": 450.00,
+    "prepaid_refunded": 0.00,
+    "overdue_charges_total": 0.00
+  }
+}
+```
+
+---
+
+**接口**: `POST /api/user/settlements/:orderId`
+
+**说明**: 确认结算（创建 settlement 记录，更新余额 and 订单状态）
+
+**请求 Body**:
+| 字段 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| refund_method | string | "prepaid" | "prepaid" / "cash_withdrawal" |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "settlement_id": "uuid",
+    "cash_refundable": 450.00,
+    "prepaid_refunded": 0.00,
+    "gift_points_refunded": 125.00
+  }
+}
+```
+
+---
+
+**接口**: `GET /api/user/settlements/:orderId`
+
+**说明**: 查询结算记录
+
+---
+
+### 8.14 逾期扣款告警
+
+**更新说明**: 原 `GET /api/overdue-leases` 已改为从 `overdue_charges` 表读取真实数据，返回 failed/partial 状态的扣款记录。
+
+**接口**: `GET /api/overdue-leases?page=1&page_size=10&status=`
+
+**查询参数**:
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | int | 页码 |
+| page_size | int | 每页条数 |
+| status | string | 筛选: failed / partial |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid",
+        "order_id": "uuid",
+        "charge_date": "2026-06-28",
+        "amount": 75.00,
+        "deducted_from_prepaid": 50.00,
+        "remaining_balance": 25.00,
+        "status": "partial",
+        "failure_reason": null,
+        "instrument_sn": "YAMAHA-001",
+        "category_name": "立式钢琴",
+        "user_name": "张三",
+        "user_phone": "138****1234",
+        "created_at": "2026-06-28T00:00:00Z"
+      }
+    ],
+    "total": 1
+  }
 }
 ```
 
@@ -3916,6 +4170,181 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **响应**: CSV 文件下载（Content-Type: text/csv, Content-Disposition: attachment; filename=audit_logs.csv）
 
 **CSV 列**: Time, UserID, ActorRole, Action, ResourceType, ResourceID, IPAddress
+
+---
+
+### 12.5 会员级别管理
+
+**权限码**: `membership:manage`
+
+**接口**: `GET /api/admin/membership-levels` — 列出所有会员级别
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": [
+    { "id": 1, "name": "初级会员", "min_spending": 0, "discount_rate": 1.0, "sort_order": 1 },
+    { "id": 2, "name": "中级会员", "min_spending": 5000, "discount_rate": 0.95, "sort_order": 2 }
+  ]
+}
+```
+
+**接口**: `POST /api/admin/membership-levels` — 创建会员级别
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| name | string | 级别名称 |
+| discount_rate | decimal | 折扣率 (0.0–1.0) |
+| min_spending | decimal | 升级所需累计消费 |
+| sort_order | int | 排序号 |
+
+**接口**: `PUT /api/admin/membership-levels/:id` — 更新会员级别
+
+**接口**: `DELETE /api/admin/membership-levels/:id` — 删除会员级别
+
+---
+
+### 12.6 返点配置
+
+**权限码**: `rebate:manage`
+
+**接口**: `GET /api/admin/rebate-config` — 获取返点配置
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "rates": [
+      { "level_id": 1, "rebate_rate": 0.02 },
+      { "level_id": 2, "rebate_rate": 0.05 }
+    ]
+  }
+}
+```
+
+**接口**: `PUT /api/admin/rebate-config` — 更新返点配置（按会员级别设租金→点数返还比例）
+
+**接口**: `GET /api/merchant/rebate-opt-in` — 获取商户返点参与状态
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": { "opt_in": true }
+}
+```
+
+**接口**: `PUT /api/merchant/rebate-opt-in` — 更新商户返点参与状态
+
+**请求 Body**:
+```json
+{ "opt_in": false }
+```
+
+---
+
+### 12.7 折扣政策管理
+
+**权限码**: `promo:manage`
+
+#### 12.7.1 系统级
+
+**接口**: `GET /api/admin/promo-plans` — 列出系统折扣政策
+
+**接口**: `POST /api/admin/promo-plans` — 创建系统折扣政策
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| plan_name | string | 政策名称 |
+| plan_type | string | 类型: membership_discount / overdue_discount / seasonal |
+| is_active | bool | 是否启用 |
+| applicable_levels | string | 适用会员级别 ID 列表 (逗号分隔) |
+
+**接口**: `PUT /api/admin/promo-plans/:id` — 更新系统折扣政策
+
+**接口**: `DELETE /api/admin/promo-plans/:id` — 删除系统折扣政策
+
+**接口**: `GET /api/admin/promo-plans/:id/details` — 获取折扣政策详情（按级别折扣率）
+
+**接口**: `PUT /api/admin/promo-plans/:id/details` — 更新折扣政策详情
+
+**请求 Body**:
+```json
+{ "details": [{ "level_id": 1, "discount_rate": 0.9 }] }
+```
+
+#### 12.7.2 商户级
+
+**接口**: `GET /api/merchant/promo-plans` — 列出商户折扣政策
+**接口**: `POST /api/merchant/promo-plans` — 创建商户折扣政策
+**接口**: `PUT /api/merchant/promo-plans/:id` — 更新
+**接口**: `DELETE /api/merchant/promo-plans/:id` — 删除
+**接口**: `GET /api/merchant/promo-plans/:id/details` — 详情
+**接口**: `PUT /api/merchant/promo-plans/:id/details` — 更新详情
+
+参数同系统级。
+
+---
+
+### 12.8 乐器促销覆盖
+
+**权限码**: `promo:override`
+
+**接口**: `GET /api/instruments/:id/promo-overrides` — 获取乐器折扣/返点开关
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "discount_enabled": true,
+    "rebate_enabled": true
+  }
+}
+```
+
+**接口**: `PUT /api/instruments/:id/promo-overrides` — 更新乐器折扣/返点开关
+
+**请求 Body**:
+```json
+{ "discount_enabled": false, "rebate_enabled": true }
+```
+
+---
+
+### 12.9 点数政策管理
+
+**权限码**: `points:manage`
+
+三级可覆盖（网点＞商户＞系统），定义点数可支付上限和有效期。
+
+#### 12.9.1 系统级
+
+**接口**: `GET /api/admin/points-policies` — 列出系统点数政策
+**接口**: `POST /api/admin/points-policies` — 创建系统点数政策
+**接口**: `PUT /api/admin/points-policies/:id` — 更新系统点数政策
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| cap_rate | decimal | 支付上限比率（如 10 表示 10%） |
+| valid_days | int | 点数有效期（天） |
+| is_active | bool | 是否启用 |
+
+#### 12.9.2 商户级
+
+**接口**: `GET /api/merchant/points-policies` — 列出商户点数政策
+**接口**: `POST /api/merchant/points-policies` — 创建
+**接口**: `PUT /api/merchant/points-policies/:id` — 更新
+
+#### 12.9.3 网点级
+
+**接口**: `GET /api/site/points-policies` — 列出网点点数政策
+**接口**: `POST /api/site/points-policies` — 创建
+**接口**: `PUT /api/site/points-policies/:id` — 更新
 
 ---
 

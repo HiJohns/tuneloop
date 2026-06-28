@@ -480,9 +480,31 @@ tail -100 backend/backend.log
 
 > 来自 #1014 — PC 前端闪回登录（10 次迭代才找到一行 bug）
 
+**⚠️ 强制检查步骤**:
+1. 从 Bug 代码中提取**可 grep 的精确模式**（如 `¥{t.daily_rate}/天`、`RequireRole("project_admin"`）
+2. `rg` 全库搜索，确认所有命中文件是否都需要修复
+3. 如果时间不够修全部 → 打开新 Issue 列出遗漏文件，不在当前 Issue 关闭
+
+**反面案例**: #1046 修复 `Detail.jsx` 的浮点数显示，`rg 'daily_rate}/天'` 就能发现 `Checkout.jsx` 同一行，但没搜 → 部分修复 →
+
 ### Revert Before Patches（先还原，不要叠修复）
 
 每加一层修复都把真正问题藏得更深。如果第一轮没修好，**先 `git stash` 回到干净状态**，从头追踪完整链路。不要在一个已有 3 层 workaround 的基础上继续加第 4 层。
+
+### ⚠️ 表层修补不能关 Issue
+
+如果你的 commit message 或 PR comment 中出现了以下模式，说明**根因未修**，禁止将 Issue 设为 `status:ready` 或 `status:done`：
+- `"Consider adding/fixing X"`
+- `"Backend note: ... not from the main ... field"`
+- `"Would be better to ..."`
+- `"TODO: ..."`
+
+**处理方式**：
+- 当前 Issue 保持 `status:wip` 或设为 `status:todo`（阻塞）
+- 在 Issue 中 comment 标记"已知未修根因 + 需要做什么"
+- 如根因属其他仓库 → 按 IAM 问题处理原则创建上游 Issue
+
+**反面案例**: #1049 commit message 写了「CalculatePricing only reads shipping_fee from pricing_overrides JSONB, not from the main pricing field. Consider adding pricing field fallback to CalculatePricing」却还是关了 → 用户所见物流费仍是 ¥0 →
 
 ### Trace the Data, Not the Symptom（追踪数据流，不要追症状）
 
@@ -841,5 +863,23 @@ done
 4. Comment commit hash 到 Issue
 
 
-> *Last updated: 2026-06-15*
+> *Last updated: 2026-06-27*
+
+---
+
+## ✅ 强制验证清单 (Mandatory Verification)
+
+每次修改完成后，必须执行对应的验证步骤：
+
+| 修改类型 | 强制验证 | 命令 |
+|---------|---------|------|
+| JS/JSX (前端) | ESLint `no-undef` + `no-use-before-define` 零错误 | `find src -name '*.jsx' -o -name '*.js' \| xargs npx eslint \| grep -E 'no-undef\|no-use-before-define'` |
+| Go (后端) | 编译通过 | `go build .` |
+
+### 验证原则
+
+- **JS 修改**：必须针对**修改涉及的文件**执行 ESLint，确认无 `no-undef` 错误。不要求无 warning（如 `no-unused-vars`），但必须 0 `no-undef`。
+- **Go 修改**：必须执行 `go build .` 确认编译通过。
+- **Both**：同时涉及前后端的修改，两组验证都要做。
+- 验证结果必须写入 Work Summary Comment。
 

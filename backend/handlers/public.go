@@ -417,7 +417,7 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 		}
 	}
 
-	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides)
+	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": services.FormatPricingResult(result),
@@ -502,21 +502,9 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	}
 
 	var displayMedia []models.InstrumentMedia
-	db.Where("instrument_id = ?", id).
+	db.Where("instrument_id = ? AND is_display = ?", id, true).
 		Order("sort_order asc, created_at desc").
 		Find(&displayMedia)
-
-	// If no display images, fallback to latest archive batch
-	if len(displayMedia) == 0 {
-		var latestBatch models.InstrumentMedia
-		if err := db.Where("instrument_id = ? AND file_type != ?", id, "video_thumb").
-			Order("created_at desc").First(&latestBatch).Error; err == nil {
-			// Get all media from that batch
-			db.Where("instrument_id = ? AND batch_id = ? AND file_type != ?", id, latestBatch.BatchID, "video_thumb").
-				Order("sort_order asc, created_at desc").
-				Find(&displayMedia)
-		}
-	}
 
 	storage := services.NewMediaStorage()
 	type mediaItem struct {

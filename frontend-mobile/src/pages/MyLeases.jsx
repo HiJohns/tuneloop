@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
@@ -53,8 +53,11 @@ const MAIN_INCLUDE = {
 
 export default function MyLeases() {
   const navigate = useNavigate()
-  const [mainTab, setMainTab] = useState('active')
-  const [subFilter, setSubFilter] = useState('')
+  const [searchParams] = useSearchParams()
+  const initStatus = searchParams.get('status') || ''
+  const initTab = initStatus && ['returned', 'completed', 'cancelled'].includes(initStatus) ? 'completed' : 'active'
+  const [mainTab, setMainTab] = useState(initTab)
+  const [subFilter, setSubFilter] = useState(initStatus)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 

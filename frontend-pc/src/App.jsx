@@ -21,6 +21,7 @@ import WorkOrderList from './pages/WorkOrderList'
 import LeaseLedger from './pages/LeaseLedger'
 import DepositFlow from './pages/DepositFlow'
 import ExpireWarning from './pages/ExpireWarning'
+import OverdueAlerts from './pages/OverdueAlerts'
 import SupplierDB from './pages/SupplierDB'
 import InstrumentStock from './pages/InstrumentStock'
 import SiteManagement from './pages/SiteManagement'
@@ -321,7 +322,9 @@ function MainLayout() {
     children: [
       { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
       { key: '/pricing/config', label: '定价策略', permission: { cusPermCodes: ['instrument:price_config'] } },
-      { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } }
+      { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
+      { key: '/expire-warning', label: '到期预警', permission: { cusPermCodes: ['instrument:read'] } },
+      { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
     ]
   },
   {
@@ -393,7 +396,7 @@ function onMenuClick(e) {
   let openKeys = []
   if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
   else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
-  else if (['/inventory/transfer', '/inventory/rent-setting', '/pricing/config'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
+  else if (['/inventory/transfer', '/inventory/rent-setting', '/pricing/config', '/expire-warning', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
   else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
   else if (['/merchants', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
@@ -425,6 +428,8 @@ function onMenuClick(e) {
     '/merchant/promo-plans': { title: '商户折扣政策', parent: '组织管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
+    '/expire-warning': { title: '到期预警', parent: '库存监控' },
+    '/overdue-alerts': { title: '逾期告警', parent: '库存监控' },
     '/user/profile': { title: '个人中心' },
 
   }
@@ -583,6 +588,8 @@ function onMenuClick(e) {
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
+            <Route path="/expire-warning" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><ExpireWarning /></ProtectedRoute>} />
+            <Route path="/overdue-alerts" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><OverdueAlerts /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/user/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/user/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />

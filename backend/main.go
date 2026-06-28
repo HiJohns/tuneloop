@@ -84,6 +84,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	warehouseHandler := handlers.NewWarehouseHandler()
 	userRentalHandler := handlers.NewUserRentalHandler()
 	userAddressHandler := handlers.NewUserAddressHandler()
+	userOnboardingHandler := handlers.NewUserOnboardingHandler()
+	userSettlementHandler := handlers.NewUserSettlementHandler()
+	userPointsHandler := handlers.NewUserPointsHandler()
 	bannerHandler := handlers.NewBannerHandler()
 
 	// Bulk import handler (Issue #423)
@@ -384,6 +387,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/notifications/:id", handlers.GetNotificationDetail)
 			authRequired.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 			authRequired.GET("/instrument-photo-specs/:category_id", handlers.GetInstrumentPhotoSpecs)
+
+			// Points wallet routes
+			authRequired.GET("/user/points/balance", userPointsHandler.GetBalance)
+			authRequired.GET("/user/points/transactions", userPointsHandler.ListTransactions)
+			authRequired.POST("/user/points/purchase", userPointsHandler.PurchasePoints)
 		}
 
 		propertyRequired := authRequired.Group("")
@@ -514,6 +522,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
 				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)
 				userOptionalAuth.GET("/user/contracts/:id", userRentalHandler.GetContract)
+				userOptionalAuth.GET("/user/orders/counts", userRentalHandler.GetOrderCounts)
 				userOptionalAuth.GET("/orders", handlers.GetOrders)
 			userOptionalAuth.GET("/orders/:id", handlers.GetOrder)
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
@@ -526,6 +535,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.PUT("/user/addresses/:id", userAddressHandler.UpdateAddress)
 				userOptionalAuth.PUT("/user/addresses/:id/default", userAddressHandler.SetDefaultAddress)
 				userOptionalAuth.DELETE("/user/addresses/:id", userAddressHandler.DeleteAddress)
+				userOptionalAuth.GET("/user/onboarding", userOnboardingHandler.GetOnboardingStatus)
+				userOptionalAuth.PUT("/user/onboarding", userOnboardingHandler.CompleteOnboarding)
+				userOptionalAuth.POST("/user/id-photo", userOnboardingHandler.UploadIDPhoto)
+				userOptionalAuth.GET("/user/settlements/:id/calculate", userSettlementHandler.CalculateSettlement)
+				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)
+				userOptionalAuth.GET("/user/settlements/:id", userSettlementHandler.GetSettlement)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
@@ -783,6 +798,14 @@ func main() {
 	mediaCleanup := services.NewMediaCleanupService()
 	mediaCleanup.Start()
 	defer mediaCleanup.Stop()
+
+	returnReminderScheduler := services.NewReturnReminderScheduler()
+	returnReminderScheduler.Start()
+	defer returnReminderScheduler.Stop()
+
+	overdueDeductionScheduler := services.NewOverdueDeductionScheduler()
+	overdueDeductionScheduler.Start()
+	defer overdueDeductionScheduler.Stop()
 
 	_ = wwwURL
 	_ = wxURL
