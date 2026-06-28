@@ -63,7 +63,7 @@ func GetOrders(c *gin.Context) {
 	// Get orders with pagination
 	var orders []models.Order
 	offset := (page - 1) * pageSize
-	query.Offset(offset).Limit(pageSize).Find(&orders)
+	query.Order("updated_at DESC").Offset(offset).Limit(pageSize).Find(&orders)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,

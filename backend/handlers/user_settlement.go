@@ -56,6 +56,9 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 	}
 
 	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
+	if finalDailyRent == 0 && order.MonthlyRent > 0 {
+		finalDailyRent = order.MonthlyRent / 25
+	}
 	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
 	startDate := parseDate(order.StartDate)
@@ -75,6 +78,9 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 	actualRentAmount := finalDailyRent * float64(actualDays)
 
 	totalPaid := order.CashPaid + order.PrepaidPointsUsed
+	if totalPaid == 0 {
+		totalPaid = order.MonthlyRent + order.Deposit + order.ShippingFee
+	}
 
 	giftCap := math.Floor(actualRentAmount * capRate / 100)
 	giftPointsRefunded := 0.0
@@ -178,6 +184,9 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	}
 
 	totalPaid := order.CashPaid + order.PrepaidPointsUsed
+	if totalPaid == 0 {
+		totalPaid = order.MonthlyRent + order.Deposit + order.ShippingFee
+	}
 	totalRefund := 0.0
 	if totalPaid > actualRentAmount {
 		totalRefund = totalPaid - actualRentAmount
@@ -257,7 +266,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		}
 	}
 
-	if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
+	if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusReturned).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status"})
 		return

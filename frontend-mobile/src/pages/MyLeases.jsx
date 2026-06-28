@@ -46,6 +46,19 @@ const STATUS_COLORS = {
   expired: 'bg-red-100 text-red-700',
 }
 
+const getActualRent = (order) => {
+  if (!order.pricing_breakdown) return order.monthly_rent
+  try {
+    const pb = typeof order.pricing_breakdown === 'string'
+      ? JSON.parse(order.pricing_breakdown)
+      : order.pricing_breakdown
+    return pb?.actual_rent_amount || order.monthly_rent
+  } catch { return order.monthly_rent }
+}
+
+const isScheduledPeriod = (status) =>
+  ['completed', 'returned', 'returning', 'cancelled'].includes(status)
+
 const MAIN_INCLUDE = {
   active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
   completed: ['returned', 'completed', 'cancelled'],
@@ -162,18 +175,18 @@ export default function MyLeases() {
                 <View className="space-y-1 text-sm">
                   <View className="flex items-center gap-2">
                     <Text className="text-zinc-400 font-medium">月租:</Text>
-                    <Text className="text-black font-black">¥{order.monthly_rent}</Text>
+                    <Text className="text-black font-black">¥{getActualRent(order)}</Text>
                     <Text className="text-zinc-400 font-medium ml-4">押金:</Text>
                     <Text className="text-black font-black">¥{order.deposit}</Text>
                   </View>
                   {order.start_date && (
                     <Text className="text-zinc-400 font-medium">
-                      起: <Text className="text-black">{formatDisplayDate(order.start_date)}</Text>
+                      {isScheduledPeriod(order.status) ? '预定起: ' : '起: '}<Text className="text-black">{formatDisplayDate(order.start_date)}</Text>
                     </Text>
                   )}
                   {order.end_date && (
                     <Text className="text-zinc-400 font-medium">
-                      止: <Text className="text-black">{formatDisplayDate(order.end_date)}</Text>
+                      {isScheduledPeriod(order.status) ? '预定止: ' : '止: '}<Text className="text-black">{formatDisplayDate(order.end_date)}</Text>
                     </Text>
                   )}
                 </View>

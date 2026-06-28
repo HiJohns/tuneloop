@@ -79,13 +79,14 @@ function InstrumentCard({ instrument, onClick }) {
 
 export default function Home() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const tenant = searchParams.get('tenant')
+  const categoryFromUrl = searchParams.get('category_id') || null
 
   const [categories, setCategories] = useState([])
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl)
   const [banners, setBanners] = useState([])
   const [currentBanner, setCurrentBanner] = useState(0)
   const [catOffsetX, setCatOffsetX] = useState(0)
@@ -103,11 +104,7 @@ export default function Home() {
       const res = await apiFetch(`${baseUrl}/public/categories${tenant ? `?tenant=${tenant}` : ''}`)
       const result = await res.json()
       if (result.code === 20000) {
-        const topList = result.data?.list?.filter(c => !c.parent_id) || []
         setCategories(result.data?.list || [])
-        if (topList.length > 0 && !selectedCategory) {
-          setSelectedCategory(topList[0].id)
-        }
       }
     } catch {}
   }, [baseUrl, tenant])
@@ -152,6 +149,24 @@ export default function Home() {
     }, 4000)
     return () => clearInterval(timer)
   }, [banners.length])
+
+  useEffect(() => {
+    const urlCat = searchParams.get('category_id') || null
+    if (urlCat !== selectedCategory) {
+      setSelectedCategory(urlCat)
+    }
+  }, [searchParams.get('category_id')])
+
+  const handleCategoryChange = (catId) => {
+    setSelectedCategory(catId)
+    const params = new URLSearchParams(searchParams)
+    if (catId) {
+      params.set('category_id', catId)
+    } else {
+      params.delete('category_id')
+    }
+    setSearchParams(params)
+  }
 
   const navigateToCategory = (catId) => {
     const url = tenant ? `/instruments?category_id=${catId}&tenant=${tenant}` : `/instruments?category_id=${catId}`
@@ -243,7 +258,7 @@ export default function Home() {
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
         <View className="fixed left-0 right-0 z-[10001] bg-transparent" style={{ top: '62px' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
         </View>
       )}
 
@@ -256,7 +271,7 @@ export default function Home() {
           <View style={{ height: '146px' }}></View>
 
           <View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
-            <MenuContent categories={topCategories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
+            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
           </View>
 
         <View>
@@ -304,7 +319,7 @@ export default function Home() {
   )
 }
 
-function MenuContent({ categories, selectedCategory, setSelectedCategory, catOffsetX, setCatOffsetX, scrolled }) {
+function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
   const items = [{ id: null, name: '全部' }, ...(categories || [])]
   const localTouchRef = useRef({ x: 0, offset: 0 })
 
@@ -327,7 +342,7 @@ function MenuContent({ categories, selectedCategory, setSelectedCategory, catOff
           <Text
             key={item.id || 'all'}
             className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 ${scrolled ? 'text-white border-white' : 'text-black border-black'}` : `font-bold ${scrolled ? 'text-white/70' : 'text-zinc-500/90'}`}`}
-            onClick={() => setSelectedCategory(item.id)}
+            onClick={() => onCategoryChange(item.id)}
           >
             {item.name}
           </Text>

@@ -53,7 +53,7 @@ func (s *ReturnReminderScheduler) checkReturnReminders() {
 	reminderDateStr := reminderDate.Format("2006-01-02")
 
 	var orders []models.Order
-	if err := s.db.Where("status = ? AND end_date = ? AND deleted_at IS NULL",
+	if err := s.db.Where("status = ? AND end_date = ?",
 		models.OrderStatusInLease, reminderDateStr).Find(&orders).Error; err != nil {
 		log.Printf("[ReturnReminderScheduler] query error: %v", err)
 		return

@@ -50,8 +50,8 @@ export default function ReturnSettlement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">加载中...</div>
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <div className="text-zinc-400">加载中...</div>
       </div>
     )
   }
@@ -69,7 +69,7 @@ export default function ReturnSettlement() {
               : '本次无需退款'}
         </p>
         <button
-          className="bg-blue-500 text-white px-8 py-3 rounded-xl font-medium active:bg-blue-600"
+          className="bg-blue-500 text-white px-8 py-3 rounded-2xl font-black active:bg-blue-600"
           onClick={() => navigation.redirect('/my-leases')}
         >
           返回租期列表
@@ -79,27 +79,27 @@ export default function ReturnSettlement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-white px-5 pt-12 pb-6">
-        <h1 className="text-xl font-bold text-gray-800 mb-1">归还结算</h1>
-        <p className="text-gray-400 text-sm">以下为本次租期的费用结算明细</p>
+    <div className="min-h-screen bg-[#FDFBF7] pb-24">
+      <div className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
+        <h1 className="text-lg font-black text-black">归还结算</h1>
+        <p className="text-zinc-400 text-sm">以下为本次租期的费用结算明细</p>
       </div>
 
       <div className="px-4 space-y-3 mt-3">
         {/* Rent Calculation */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-800 mb-3">租金计算</h2>
+          <h2 className="text-sm font-black text-black mb-3">租金计算</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">实际租期</span>
-              <span className="font-medium">{s?.actual_rent_days || 0} 天</span>
+              <span className="text-zinc-400">实际租期</span>
+              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">{s?.actual_rent_days || 0} 天</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">日租金</span>
-              <span className="font-medium">¥{num(s?.final_daily_rent)}</span>
+              <span className="text-zinc-400">日租金</span>
+              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.final_daily_rent)}</span>
             </div>
             <div className="flex justify-between border-t pt-2">
-              <span className="text-gray-800 font-bold">实际租金</span>
+              <span className="text-zinc-900 font-bold">实际租金</span>
               <span className="font-bold text-blue-600">¥{num(s?.actual_rent_amount)}</span>
             </div>
           </div>
@@ -108,15 +108,15 @@ export default function ReturnSettlement() {
         {/* Points Adjustment */}
         {(s?.gift_points_refunded > 0) && (
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-800 mb-3">赠点调整</h2>
+            <h2 className="text-sm font-black text-black mb-3">赠点调整</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">已用赠点</span>
-                <span className="font-medium">¥{num(s?.gift_points_used)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">可用额度</span>
-                <span className="font-medium">¥{num(s?.gift_cap)}</span>
+                <span className="text-zinc-400">已用赠点</span>
+              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.gift_points_used)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">可用额度</span>
+              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.gift_cap)}</span>
               </div>
               <div className="flex justify-between text-green-600">
                 <span className="font-medium">退回赠点</span>
@@ -129,7 +129,7 @@ export default function ReturnSettlement() {
         {/* Overdue Charges */}
         {s?.overdue_charges_total > 0 && (
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-800 mb-3">逾期费用</h2>
+            <h2 className="text-sm font-black text-black mb-3">逾期费用</h2>
             <div className="flex justify-between text-sm text-red-500">
               <span className="font-medium">逾期扣款</span>
               <span className="font-bold">¥{num(s?.overdue_charges_total)}</span>
@@ -139,18 +139,18 @@ export default function ReturnSettlement() {
 
         {/* Refund */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-800 mb-3">退款明细</h2>
+          <h2 className="text-sm font-black text-black mb-3">退款明细</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-500">原实付现金</span>
-              <span className="font-medium">¥{num(s?.cash_paid)}</span>
+              <span className="text-zinc-400">原实付现金</span>
+              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.cash_paid)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">原使用预付点</span>
-              <span className="font-medium">¥{num(s?.prepaid_points_used)}</span>
+              <span className="text-zinc-400">原使用预付点</span>
+              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.prepaid_points_used)}</span>
             </div>
             <div className="flex justify-between border-t pt-2">
-              <span className="text-gray-800 font-bold">应退总额</span>
+              <span className="text-zinc-900 font-bold">应退总额</span>
               <span className="font-bold text-green-600">¥{num(s?.total_refund)}</span>
             </div>
             <div className="flex justify-between text-blue-600">
@@ -167,7 +167,7 @@ export default function ReturnSettlement() {
         {/* Refund Method */}
         {!existing && (
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-800 mb-3">退款方式</h2>
+            <h2 className="text-sm font-black text-black mb-3">退款方式</h2>
             <div className="space-y-2">
               <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
                 <input
@@ -179,23 +179,23 @@ export default function ReturnSettlement() {
                   className="accent-blue-500"
                 />
                 <div>
-                  <div className="text-sm font-medium text-gray-800">存为预付点</div>
-                  <div className="text-xs text-gray-400">即时到账，下次租琴可用</div>
-                </div>
-              </label>
-              {s?.cash_refundable > 0 && (
-                <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="refundMethod"
-                    value="cash_withdrawal"
-                    checked={refundMethod === 'cash_withdrawal'}
-                    onChange={() => setRefundMethod('cash_withdrawal')}
-                    className="accent-blue-500"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-gray-800">提现</div>
-                    <div className="text-xs text-gray-400">最多可提现 ¥{num(s?.cash_refundable)}，3-5 个工作日到账</div>
+                    <div className="text-sm font-black text-black">存为预付点</div>
+                    <div className="text-xs text-zinc-400">即时到账，下次租琴可用</div>
+                  </div>
+                </label>
+                {s?.cash_refundable > 0 && (
+                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="refundMethod"
+                      value="cash_withdrawal"
+                      checked={refundMethod === 'cash_withdrawal'}
+                      onChange={() => setRefundMethod('cash_withdrawal')}
+                      className="accent-blue-500"
+                    />
+                    <div>
+                      <div className="text-sm font-black text-black">提现</div>
+                      <div className="text-xs text-zinc-400">最多可提现 ¥{num(s?.cash_refundable)}，3-5 个工作日到账</div>
                   </div>
                 </label>
               )}
@@ -205,9 +205,9 @@ export default function ReturnSettlement() {
       </div>
 
       {!existing && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
           <button
-            className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium active:bg-blue-600 disabled:opacity-50"
+            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black active:bg-blue-600 disabled:opacity-50"
             disabled={submitting}
             onClick={handleConfirm}
           >

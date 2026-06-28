@@ -3,10 +3,13 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 
+	"tuneloop-backend/database"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
@@ -92,14 +95,11 @@ var auditRouteMap = map[string]auditRouteInfo{
 	"PUT /api/forwarding/sessions/:id/lost":      {"LOST", "forwarding_session", "HIGH"},
 	"PUT /api/forwarding/sessions/:id/recover":   {"RECOVER", "forwarding_session", "HIGH"},
 	// ---- Instrument media ----
-	"POST /api/instruments/:id/photos/upload":   {"UPLOAD", "instrument_photo", "HIGH"},
 	"POST /api/instruments/:id/media":           {"CREATE", "instrument_media", "HIGH"},
 	"PUT /api/instruments/:id/media/display":    {"UPDATE", "instrument_media", "HIGH"},
 	"DELETE /api/instruments/:id/media/:batch_id": {"DELETE", "instrument_media", "HIGH"},
-	"POST /api/instruments/:id/display-image":   {"UPLOAD", "instrument_display", "HIGH"},
 	// ---- Instrument other ----
 	"POST /api/instruments/:id/scrap":           {"SCRAP", "instrument", "CRITICAL"},
-	"POST /api/instruments/batch-import/media":  {"IMPORT_MEDIA", "instrument", "HIGH"},
 	"POST /api/instruments/batch-import/preview": {"PREVIEW", "instrument", "HIGH"},
 	"PUT /api/instruments/batch-pricing":        {"BATCH_PRICING", "instrument", "HIGH"},
 	// ---- Categories ----
@@ -156,7 +156,6 @@ var auditRouteMap = map[string]auditRouteInfo{
 	"POST /api/user/orders/batch":        {"BATCH_CREATE", "user_order", "HIGH"},
 	"PUT /api/pricing/merchant-config":   {"UPDATE", "pricing_config", "HIGH"},
 	"PUT /api/settings/:key":             {"UPDATE", "setting", "HIGH"},
-	"POST /api/upload":                   {"UPLOAD", "file", "HIGH"},
 	"POST /api/notifications/mark-all-read": {"MARK_READ", "notification", "LOW"},
 	"POST /api/notifications/:id/read":    {"MARK_READ", "notification", "LOW"},
 }
@@ -274,6 +273,27 @@ func AuditLogger(writer *services.AuditWriter) gin.HandlerFunc {
 			ActorName:    actorName,
 			IPAddress:    ipAddress,
 			UserAgent:    c.GetHeader("User-Agent"),
+		}
+
+		if info.Action == "SHIPPING" || info.Action == "DELIVERY" {
+			var order models.Order
+			if err := database.GetDB().WithContext(ctx).Where("id = ?", resourceID).First(&order).Error; err == nil {
+				var instrument models.Instrument
+				if err := database.GetDB().WithContext(ctx).Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil {
+					var bodyMap map[string]interface{}
+					if bodyStr != "" {
+						json.Unmarshal([]byte(bodyStr), &bodyMap)
+					}
+					company, _ := bodyMap["company"].(string)
+					tracking, _ := bodyMap["tracking_number"].(string)
+					details := map[string]interface{}{
+						"description": fmt.Sprintf("将乐器 SN:%s 交付 %s，物流单 %s",
+							instrument.SN, company, tracking),
+					}
+					b, _ := json.Marshal(details)
+					rec.Details = string(b)
+				}
+			}
 		}
 
 		if err := writer.WriteSync(rec); err != nil {

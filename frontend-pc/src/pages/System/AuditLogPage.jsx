@@ -28,6 +28,14 @@ const resourceDisplayMap = {
 };
 
 function formatLogMessage(record) {
+  // 优先使用后端预构建的 details.description
+  if (record.details) {
+    try {
+      const d = typeof record.details === 'string' ? JSON.parse(record.details) : record.details
+      if (d.description) return d.description
+    } catch {}
+  }
+  // 回退到原逻辑
   const action = actionDisplayMap[record.action] || record.action
   const resource = resourceDisplayMap[record.resource_type] || record.resource_type
   let detail = record.resource_id || ''
@@ -70,7 +78,7 @@ export default function AuditLogPage() {
   const [detailVisible, setDetailVisible] = useState(false);
   const [toNow, setToNow] = useState(true);
 
-  useEffect(() => { fetchLogs(); }, [page, pageSize]);
+  useEffect(() => { fetchLogs(); }, [page, pageSize, filters]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -85,7 +93,10 @@ export default function AuditLogPage() {
     } finally { setLoading(false); }
   };
 
-  const handleSearch = () => { setPage(1); fetchLogs(); };
+  const handleSearch = (newFilters) => {
+    setPage(1);
+    if (newFilters) setFilters(newFilters);
+  };
 
   const handleExport = async () => {
     try {
@@ -104,7 +115,7 @@ export default function AuditLogPage() {
     { title: '时间', dataIndex: 'created_at', key: 'created_at',
       render: (v) => v ? new Date(v).toLocaleString() : '-', width: 180 },
     { title: '操作者', dataIndex: 'actor_name', key: 'actor_name', width: 100,
-      render: (v) => v || '-' },
+      render: (v, record) => v || record.user_id?.slice(0, 8) || '-' },
     { title: '对象类型', dataIndex: 'resource_type', key: 'resource_type', width: 100,
       render: (v) => resourceDisplayMap[v] || v || '-' },
     { title: '操作描述', key: 'description', width: 500,
@@ -136,26 +147,22 @@ export default function AuditLogPage() {
           <Button onClick={() => {
             const today = dayjs();
             setToNow(true);
-            setFilters(f => ({ ...f, date_from: today.format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
-            handleSearch();
+            handleSearch({ ...filters, date_from: today.format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') });
           }}>今天</Button>
           <Button onClick={() => {
             const today = dayjs();
             setToNow(true);
-            setFilters(f => ({ ...f, date_from: today.startOf('week').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
-            handleSearch();
+            handleSearch({ ...filters, date_from: today.startOf('week').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') });
           }}>本周</Button>
           <Button onClick={() => {
             const today = dayjs();
             setToNow(true);
-            setFilters(f => ({ ...f, date_from: today.startOf('month').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
-            handleSearch();
+            handleSearch({ ...filters, date_from: today.startOf('month').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') });
           }}>本月</Button>
           <Button onClick={() => {
             const today = dayjs();
             setToNow(true);
-            setFilters(f => ({ ...f, date_from: today.subtract(60, 'day').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') }));
-            handleSearch();
+            handleSearch({ ...filters, date_from: today.subtract(60, 'day').format('YYYY-MM-DD'), date_to: today.format('YYYY-MM-DD') });
           }}>最近60天</Button>
         </Button.Group>
         <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>查询</Button>

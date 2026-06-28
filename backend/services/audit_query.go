@@ -55,7 +55,7 @@ func QueryAuditLogs(q *AuditLogQuery) (*AuditLogResult, error) {
 		query = query.Where("created_at >= ?", q.DateFrom)
 	}
 	if q.DateTo != "" {
-		query = query.Where("created_at < ?", q.DateTo)
+		query = query.Where("DATE(created_at) <= ?", q.DateTo)
 	}
 	if q.Keyword != "" {
 		like := "%" + q.Keyword + "%"
@@ -131,7 +131,7 @@ func ExportAuditLogs(q *AuditLogQuery) (string, error) {
 		query = query.Where("created_at >= ?", q.DateFrom)
 	}
 	if q.DateTo != "" {
-		query = query.Where("created_at < ?", q.DateTo)
+		query = query.Where("DATE(created_at) <= ?", q.DateTo)
 	}
 	if q.Keyword != "" {
 		like := "%" + q.Keyword + "%"
