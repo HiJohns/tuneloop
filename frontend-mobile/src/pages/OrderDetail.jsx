@@ -310,40 +310,35 @@ export default function OrderDetail() {
           {/* Pricing breakdown (if available) */}
           {order.pricing_breakdown && typeof order.pricing_breakdown === 'object' && (
             <>
-            {order.pricing_breakdown.monthly_rent && (
+            {order.pricing_breakdown.base_daily_rent && (
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">月租金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.monthly_rent}</Text>
+                <Text className="text-zinc-500 font-medium">日租金</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.base_daily_rent}</Text>
               </View>
             )}
-            {order.pricing_breakdown.months && (
+            {order.pricing_breakdown.rent_days && (
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">租期（月）</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.pricing_breakdown.months}</Text>
+                <Text className="text-zinc-500 font-medium">租期（天）</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.pricing_breakdown.rent_days}</Text>
               </View>
             )}
-            {order.pricing_breakdown.total_rent && (
+            {order.pricing_breakdown.total_amount && (
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">总租金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_rent}</Text>
+                <Text className="text-zinc-500 font-medium">总金额</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
               </View>
             )}
-            {order.pricing_breakdown.original_deposit && (
+            {order.pricing_breakdown.final_daily_rent && order.pricing_breakdown.base_daily_rent && order.pricing_breakdown.final_daily_rent !== order.pricing_breakdown.base_daily_rent && (
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">原押金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.original_deposit}</Text>
+                <Text className="text-zinc-500 font-medium">折扣后日租金</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.final_daily_rent}</Text>
               </View>
             )}
-            {order.pricing_breakdown.adjusted_deposit && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">调整后押金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.adjusted_deposit}</Text>
-              </View>
-            )}
-            {order.pricing_breakdown.shipping_fee !== undefined && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">物流费</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.shipping_fee}</Text>
+            {order.pricing_breakdown.applied_policies && order.pricing_breakdown.applied_policies.length > 0 && (
+              <View className="text-xs text-zinc-400 mt-1 space-y-1">
+                {order.pricing_breakdown.applied_policies.map((p, i) => (
+                  <Text key={i} className="block">{p.plan_name}: {Math.round((1 - (p.rate || 1)) * 100)}% 折扣</Text>
+                ))}
               </View>
             )}
             </>
