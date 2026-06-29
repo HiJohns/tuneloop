@@ -23,6 +23,13 @@ const STATUS_LABELS = {
   transferred: '已过户',
 }
 
+const LIFECYCLE_ORDER = [
+  'created', 'paid', 'pending_shipment', 'shipped', 'in_transit',
+  'delivered', 'in_lease', 'returning', 'returned', 'completed',
+  'settlement_confirmed', 'cancelled', 'expired', 'pickup_confirmed',
+  'damage_assessed', 'return_inspected',
+]
+
 const EVENT_LABELS = {
   created: '下单',
   paid: '已付款',
@@ -64,6 +71,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [instrument, setInstrument] = useState(null)
+  const [orderLogs, setOrderLogs] = useState([])
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
@@ -101,6 +109,18 @@ export default function OrderDetail() {
       })
       .catch(() => {})
   }, [order?.instrument_id])
+
+  useEffect(() => {
+    if (!id) return
+    apiFetch(`${baseUrl}/orders/${id}/logs`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.code === 20000 && res.data?.logs) {
+          setOrderLogs(res.data.logs)
+        }
+      })
+      .catch(() => {})
+  }, [id])
 
   const handlePay = async () => {
     if (!dialog.confirm('确认支付该订单？')) return
@@ -181,7 +201,6 @@ export default function OrderDetail() {
   const shippingFee = order.shipping_fee || 0
 
   const settlement = order.settlement
-  const actualRentAmount = settlement?.actual_rent_amount || monthlyRent
 
   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(endDate) < new Date()
   const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(endDate)) / (1000 * 60 * 60 * 24)) : 0
@@ -438,25 +457,38 @@ export default function OrderDetail() {
       )}
 
       {/* Order Logs Timeline */}
-      {order.order_logs && order.order_logs.length > 0 && (
+      {orderLogs.length > 0 && (
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-4">订单日志</Text>
         <View className="space-y-0">
-          {order.order_logs.map((log, idx) => (
-          <View key={log.id || idx} className="flex gap-3">
+          {orderLogs.map((log, idx) => {
+            const statusIdx = LIFECYCLE_ORDER.indexOf(order?.status)
+            const eventIdx = LIFECYCLE_ORDER.indexOf(log.event)
+            const isFuture = eventIdx >= 0 && statusIdx >= 0 && eventIdx > statusIdx
+            const isCurrent = log.event === order?.status
+            const dotClass = isCurrent
+              ? 'bg-black ring-2 ring-black ring-offset-2'
+              : isFuture
+                ? 'border-2 border-zinc-300 bg-transparent'
+                : 'bg-zinc-300'
+          return (
+          <View key={idx} className="flex gap-3">
             <View className="flex flex-col items-center">
-              <View className={`w-3 h-3 rounded-full mt-1.5 ${idx === 0 ? 'bg-black' : 'bg-zinc-300'}`} />
-              {idx < order.order_logs.length - 1 && <View className="w-0.5 flex-1 bg-zinc-200 mt-0.5" />}
+              <View className={`w-3 h-3 rounded-full mt-1.5 ${dotClass}`} />
+              {idx < orderLogs.length - 1 && <View className="w-0.5 flex-1 bg-zinc-200 mt-0.5" />}
             </View>
             <View className="flex-1 pb-4">
-              <Text className="text-sm font-black text-black">{EVENT_LABELS[log.event] || log.event}</Text>
+              <Text className={`text-sm font-black ${isCurrent ? 'text-black' : isFuture ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                {EVENT_LABELS[log.event] || log.event}
+              </Text>
               <Text className="text-xs text-zinc-400 mt-0.5">
-                {formatDisplayDate(log.created_at)}
-                {log.operator_name && <Text className="ml-2">by {log.operator_name}</Text>}
+                {formatDisplayDate(log.time || log.created_at)}
+                {log.operator && <Text className="ml-2">by {log.operator}</Text>}
               </Text>
             </View>
           </View>
-          ))}
+          )
+          })}
         </View>
       </View>
       )}
