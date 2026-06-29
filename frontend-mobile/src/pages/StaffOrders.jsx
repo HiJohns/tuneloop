@@ -128,7 +128,7 @@ export default function StaffOrders() {
   }
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7] overflow-hidden">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>

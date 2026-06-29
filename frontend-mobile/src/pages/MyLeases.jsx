@@ -124,7 +124,7 @@ export default function MyLeases() {
   }, [page, baseUrl, mainTab, subFilter])
 
   return (
-    <View className="flex flex-col h-screen bg-[#FDFBF7] overflow-hidden">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4">
         <Text className="text-lg font-black text-black">我的租约</Text>
       </View>
