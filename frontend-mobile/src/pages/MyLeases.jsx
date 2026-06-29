@@ -110,7 +110,7 @@ export default function MyLeases() {
   }, [baseUrl, mainTab, subFilter])
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-20 relative">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4">
         <Text className="text-lg font-black text-black">我的租约</Text>
       </View>
@@ -147,7 +147,7 @@ export default function MyLeases() {
         </View>
       </ScrollView>
 
-      <View className="p-4">
+      <ScrollView scrollY className="flex-1 px-4">
         {loading ? (
           <View className="text-center py-16 text-zinc-400 font-medium">加载中...</View>
         ) : orders.length === 0 ? (
@@ -274,7 +274,7 @@ export default function MyLeases() {
             })}
           </View>
         )}
-      </View>
+      </ScrollView>
 
       <BottomNav
         active="rent"
