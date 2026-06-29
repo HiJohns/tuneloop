@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -22,7 +23,12 @@ func GetOrders(c *gin.Context) {
 	status := c.Query("status")
 
 	// Parse pagination parameters
-	// Note: Simplified for brevity, should parse from query params in real implementation
+	if p, err := strconv.Atoi(c.DefaultQuery("page", "1")); err == nil && p > 0 {
+		page = p
+	}
+	if ps, err := strconv.Atoi(c.DefaultQuery("page_size", "10")); err == nil && ps > 0 {
+		pageSize = ps
+	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
 	tenantID := middleware.GetTenantID(c.Request.Context())

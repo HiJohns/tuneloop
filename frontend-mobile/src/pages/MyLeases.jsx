@@ -72,6 +72,9 @@ export default function MyLeases() {
   const [subFilter, setSubFilter] = useState(initStatus)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
 
   const baseUrl = env.apiBaseUrl
 
@@ -84,13 +87,22 @@ export default function MyLeases() {
     } catch { return false }
   })()
 
+  // Reset pagination when tab or filter changes
+  useEffect(() => {
+    setPage(1)
+    setOrders([])
+    setHasMore(true)
+  }, [baseUrl, mainTab, subFilter])
+
+  // Fetch orders with pagination
   useEffect(() => {
     const fetchOrders = async () => {
-      setLoading(true)
+      if (page === 1) setLoading(true)
+      else setLoadingMore(true)
       try {
         const statusKey = subFilter || ''
-        let url = `${baseUrl}/orders`
-        if (statusKey) url += `?status=${statusKey}`
+        let url = `${baseUrl}/orders?page=${page}&page_size=10`
+        if (statusKey) url += `&status=${statusKey}`
         const resp = await apiFetch(url)
         const result = await resp.json()
         let list = []
@@ -100,14 +112,16 @@ export default function MyLeases() {
         if (!subFilter) {
           list = list.filter(o => MAIN_INCLUDE[mainTab]?.includes(o.status))
         }
-        setOrders(list)
+        setOrders(prev => page === 1 ? list : [...prev, ...list])
+        setHasMore((result.data?.total || 0) > (page * 10))
       } catch (err) {
         console.error('Failed to fetch orders:', err)
       }
       setLoading(false)
+      setLoadingMore(false)
     }
     fetchOrders()
-  }, [baseUrl, mainTab, subFilter])
+  }, [page, baseUrl, mainTab, subFilter])
 
   return (
     <View className="flex flex-col h-screen bg-[#FDFBF7]">
@@ -147,7 +161,16 @@ export default function MyLeases() {
         </View>
       </ScrollView>
 
-      <ScrollView scrollY className="flex-1 px-4">
+      <ScrollView scrollY className="flex-1 px-4"
+        onScrollToLower={() => {
+          if (!loadingMore && hasMore) {
+            setLoadingMore(true)
+            setPage(prev => prev + 1)
+          }
+        }}
+        lowerThreshold={50}
+        enableBackToTop
+      >
         {loading ? (
           <View className="text-center py-16 text-zinc-400 font-medium">加载中...</View>
         ) : orders.length === 0 ? (
@@ -156,6 +179,7 @@ export default function MyLeases() {
             <Text className="text-zinc-400 font-medium">暂无租约</Text>
           </View>
         ) : (
+          <>
           <View className="space-y-3">
               {orders.map(order => {
               const showReturn = order.status === 'in_lease'
@@ -273,6 +297,12 @@ export default function MyLeases() {
               )
             })}
           </View>
+          {loadingMore && (
+            <View className="text-center py-4">
+              <Text className="text-zinc-400 text-sm">加载更多...</Text>
+            </View>
+          )}
+          </>
         )}
       </ScrollView>
 
