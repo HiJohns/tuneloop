@@ -62,7 +62,6 @@ export default function StaffOrders() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [searchInput, setSearchInput] = useState('')
-  const sentinelRef = useRef(null)
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
