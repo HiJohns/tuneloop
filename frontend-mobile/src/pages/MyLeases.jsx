@@ -60,7 +60,7 @@ const isScheduledPeriod = (status) =>
 
 const MAIN_INCLUDE = {
   active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
-  completed: ['completed', 'cancelled'],
+  completed: ['returned', 'completed', 'cancelled'],
 }
 
 export default function MyLeases() {
