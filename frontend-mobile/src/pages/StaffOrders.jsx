@@ -225,7 +225,7 @@ export default function StaffOrders() {
                   <View className="space-y-1 text-sm">
                     <Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text>
                     <Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at || order.end_date)}</Text></Text>
-                    <Text className="text-zinc-400 font-medium">租期天数: <Text className="text-black font-medium">{Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000)) || order.lease_term * 30 || '-'}</Text> 天</Text>
+                    <Text className="text-zinc-400 font-medium">租期天数: <Text className="text-black font-medium">{Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000))) || order.lease_term * 30 || '-'}</Text> 天</Text>
                   </View>
                 ) : (
                   <View className="space-y-1 text-sm">
