@@ -133,7 +133,7 @@ export default function StaffOrders() {
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
-      <ScrollView scrollY className="flex-1 px-4 min-h-0"
+      <ScrollView scrollY className="flex-1 px-4 min-h-0 overflow-y-auto"
         onScrollToLower={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true)
