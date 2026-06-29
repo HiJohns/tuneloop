@@ -23,7 +23,6 @@ const SUB_FILTERS = {
     { key: 'returning', label: '归还中' },
   ],
   completed: [
-    { key: 'returned', label: '已归还' },
     { key: 'completed', label: '已完成' },
     { key: 'cancelled', label: '已取消' },
   ],
@@ -61,7 +60,7 @@ const isScheduledPeriod = (status) =>
 
 const MAIN_INCLUDE = {
   active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
-  completed: ['returned', 'completed', 'cancelled'],
+  completed: ['completed', 'cancelled'],
 }
 
 export default function MyLeases() {
@@ -158,7 +157,16 @@ export default function MyLeases() {
           </View>
         ) : (
           <View className="space-y-3">
-            {orders.map(order => (
+              {orders.map(order => {
+              const activeStatuses = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning']
+              const isActive = activeStatuses.includes(order.status)
+              const showReturn = order.status === 'in_lease'
+              const showPay = order.status === 'reserved'
+              const showCancel = ['paid', 'pending_shipment', 'shipped'].includes(order.status)
+              const showConfirm = order.status === 'shipped'
+              const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
+
+              return (
               <View
                 key={order.id}
                 className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80"
@@ -173,8 +181,19 @@ export default function MyLeases() {
                   </Text>
                 </View>
                 <View className="space-y-1 text-sm">
+                  {order.user_name && (
+                    <Text className="text-zinc-400 font-medium">
+                      租赁人: <Text className="text-black font-medium">{order.user_name}</Text>
+                    </Text>
+                  )}
+                  {order.instrument_name && (
+                    <Text className="text-zinc-400 font-medium">
+                      乐器: <Text className="text-black font-medium">{order.instrument_name}</Text>
+                      {order.instrument_category && <Text className="text-zinc-300 ml-1">({order.instrument_category})</Text>}
+                    </Text>
+                  )}
                   <View className="flex items-center gap-2">
-                    <Text className="text-zinc-400 font-medium">月租:</Text>
+                    <Text className="text-zinc-400 font-medium">租金:</Text>
                     <Text className="text-black font-black">¥{getActualRent(order)}</Text>
                     <Text className="text-zinc-400 font-medium ml-4">押金:</Text>
                     <Text className="text-black font-black">¥{order.deposit}</Text>
@@ -190,19 +209,61 @@ export default function MyLeases() {
                     </Text>
                   )}
                 </View>
-                {order.status === 'in_lease' && (
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/return/${order.id}?instrument=${order.instrument_id}`)
-                    }}
-                    className="mt-3 w-full py-2.5 bg-black text-white rounded-xl font-black text-sm"
-                  >
-                    归还乐器
-                  </Button>
-                )}
+                <View className="mt-3 flex gap-2">
+                  {isTerminal ? (
+                    <View className="w-full py-2.5 bg-zinc-100 rounded-xl text-center">
+                      <Text className="text-zinc-500 font-black text-sm">
+                        {order.status === 'cancelled' ? '已取消' : '已完成'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      {showPay && (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                          className="flex-1 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                        >
+                          立即支付
+                        </Button>
+                      )}
+                      {showConfirm && (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                          className="flex-1 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                        >
+                          确认收货
+                        </Button>
+                      )}
+                      {showReturn && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/return/${order.id}?instrument=${order.instrument_id}`)
+                          }}
+                          className="flex-1 py-2.5 bg-black text-white rounded-xl font-black text-sm"
+                        >
+                          归还乐器
+                        </Button>
+                      )}
+                      {showCancel && (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                          className="flex-1 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl font-black text-sm"
+                        >
+                          取消订单
+                        </Button>
+                      )}
+                      {!showPay && !showConfirm && !showReturn && !showCancel && (
+                        <View className="w-full py-2.5 bg-zinc-100 rounded-xl text-center">
+                          <Text className="text-zinc-400 font-black text-sm">等待处理</Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
               </View>
-            ))}
+              )
+            })}
           </View>
         )}
       </View>
