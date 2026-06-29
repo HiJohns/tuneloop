@@ -158,11 +158,9 @@ export default function MyLeases() {
         ) : (
           <View className="space-y-3">
               {orders.map(order => {
-              const activeStatuses = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning']
-              const isActive = activeStatuses.includes(order.status)
               const showReturn = order.status === 'in_lease'
               const showPay = order.status === 'reserved'
-              const showCancel = ['paid', 'pending_shipment', 'shipped'].includes(order.status)
+              const showCancel = ['paid', 'pending_shipment'].includes(order.status)
               const showConfirm = order.status === 'shipped'
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
 
@@ -192,9 +190,14 @@ export default function MyLeases() {
                       {order.instrument_category && <Text className="text-zinc-300 ml-1">({order.instrument_category})</Text>}
                     </Text>
                   )}
+                  {order.created_at && (
+                    <Text className="text-zinc-400 font-medium">
+                      下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text>
+                    </Text>
+                  )}
                   <View className="flex items-center gap-2">
                     <Text className="text-zinc-400 font-medium">租金:</Text>
-                    <Text className="text-black font-black">¥{getActualRent(order)}</Text>
+                    <Text className="text-black font-black">¥{isTerminal ? (order.settlement?.actual_rent_amount || getActualRent(order)) : getActualRent(order)}</Text>
                     <Text className="text-zinc-400 font-medium ml-4">押金:</Text>
                     <Text className="text-black font-black">¥{order.deposit}</Text>
                   </View>
@@ -203,9 +206,14 @@ export default function MyLeases() {
                       {isScheduledPeriod(order.status) ? '预定起: ' : '起: '}<Text className="text-black">{formatDisplayDate(order.start_date)}</Text>
                     </Text>
                   )}
-                  {order.end_date && (
+                  {order.end_date && !isTerminal && (
                     <Text className="text-zinc-400 font-medium">
                       {isScheduledPeriod(order.status) ? '预定止: ' : '止: '}<Text className="text-black">{formatDisplayDate(order.end_date)}</Text>
+                    </Text>
+                  )}
+                  {isTerminal && (order.returned_at || order.settlement?.created_at) && (
+                    <Text className="text-zinc-400 font-medium">
+                      结束日: <Text className="text-black">{formatDisplayDate(order.returned_at || order.settlement?.created_at)}</Text>
                     </Text>
                   )}
                 </View>
