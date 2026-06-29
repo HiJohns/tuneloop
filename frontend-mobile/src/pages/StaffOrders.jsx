@@ -220,6 +220,8 @@ export default function StaffOrders() {
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
+                <View className="flex-row">
+                  <View className="flex-1">
                 {isTerminal ? (
                   <View className="space-y-1 text-sm">
                     <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
@@ -234,6 +236,9 @@ export default function StaffOrders() {
                     <View><Text className="text-zinc-400 font-medium">预期归还日: <Text className="text-black font-medium">{formatDisplayDate(order.end_date)}</Text></Text></View>
                   </View>
                 )}
+                  </View>
+                  {order.cover_image && <Image src={order.cover_image} className="w-20 h-24 rounded-lg ml-3 mt-1" mode="aspectFill" />}
+                </View>
               </View>
               )
             })}

@@ -10,6 +10,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -64,14 +65,25 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 		models.Order
 		InstrumentSN       string `json:"instrument_sn"`
 		InstrumentCategory string `json:"instrument_category"`
+		CoverImage         string `json:"cover_image"`
 	}
 	list := make([]warehouseOrder, 0, len(orders))
+	storageSvc := services.MediaStorageFromContext(c)
 	for _, o := range orders {
 		item := warehouseOrder{Order: o}
 		var instr models.Instrument
 		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
 			item.InstrumentSN = instr.SN
 			item.InstrumentCategory = instr.CategoryName
+		}
+		var media models.InstrumentMedia
+		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
+			url, _ := storageSvc.GetURL(ctx, media.StorageKey)
+			if url != "" {
+				item.CoverImage = url
+			} else {
+				item.CoverImage = "/uploads/media/" + media.StorageKey
+			}
 		}
 		list = append(list, item)
 	}

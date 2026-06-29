@@ -30,7 +30,8 @@ func GetOrders(c *gin.Context) {
 		pageSize = ps
 	}
 
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	userID := middleware.GetUserID(c.Request.Context())
 	query := db.Model(&models.Order{})
@@ -80,14 +81,25 @@ func GetOrders(c *gin.Context) {
 		InstrumentCategory string   `json:"instrument_category"`
 		UserName           string   `json:"user_name"`
 		ActualRentAmount   *float64 `json:"actual_rent_amount,omitempty"`
+		CoverImage         string   `json:"cover_image"`
 	}
 	list := make([]orderListItem, 0, len(orders))
+	storageSvc := services.MediaStorageFromContext(c)
 	for _, o := range orders {
 		item := orderListItem{Order: o}
 		var instr models.Instrument
 		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
 			item.InstrumentName = instr.SN
 			item.InstrumentCategory = instr.CategoryName
+		}
+		var media models.InstrumentMedia
+		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
+			url, _ := storageSvc.GetURL(ctx, media.StorageKey)
+			if url != "" {
+				item.CoverImage = url
+			} else {
+				item.CoverImage = "/uploads/media/" + media.StorageKey
+			}
 		}
 		var user models.User
 		if err := db.Raw("SELECT name FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&user).Error; err == nil {

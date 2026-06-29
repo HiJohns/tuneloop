@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
@@ -202,6 +202,8 @@ export default function MyLeases() {
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
+                <View className="flex-row">
+                  <View className="flex-1">
                 <View className="space-y-1 text-sm">
                   {order.instrument_name && (
                     <View><Text className="text-zinc-400 font-medium">
@@ -218,6 +220,9 @@ export default function MyLeases() {
                     <Text className="text-zinc-400 font-medium">总金额:</Text>
                     <Text className="text-black font-black">¥{(order.monthly_rent || 0) + (order.deposit || 0) + (order.shipping_fee || 0)}</Text>
                   </View>
+                </View>
+                  </View>
+                  {order.cover_image && <Image src={order.cover_image} className="w-20 h-24 rounded-lg ml-3 mt-1" mode="aspectFill" />}
                 </View>
                 <View className="mt-3 flex gap-2">
                   {!isTerminal && (
