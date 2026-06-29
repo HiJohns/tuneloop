@@ -220,35 +220,12 @@ export default function MyLeases() {
                     </Text>
                   )}
                   <View className="flex items-center gap-2">
-                    <Text className="text-zinc-400 font-medium">租金:</Text>
-                    <Text className="text-black font-black">¥{isTerminal ? (order.settlement?.actual_rent_amount || getActualRent(order)) : getActualRent(order)}</Text>
-                    <Text className="text-zinc-400 font-medium ml-4">押金:</Text>
-                    <Text className="text-black font-black">¥{order.deposit}</Text>
+                    <Text className="text-zinc-400 font-medium">总金额:</Text>
+                    <Text className="text-black font-black">¥{(order.monthly_rent || 0) + (order.deposit || 0) + (order.shipping_fee || 0)}</Text>
                   </View>
-                  {order.start_date && (
-                    <Text className="text-zinc-400 font-medium">
-                      {isScheduledPeriod(order.status) ? '预定起: ' : '起: '}<Text className="text-black">{formatDisplayDate(order.start_date)}</Text>
-                    </Text>
-                  )}
-                  {order.end_date && !isTerminal && (
-                    <Text className="text-zinc-400 font-medium">
-                      {isScheduledPeriod(order.status) ? '预定止: ' : '止: '}<Text className="text-black">{formatDisplayDate(order.end_date)}</Text>
-                    </Text>
-                  )}
-                  {isTerminal && (order.returned_at || order.settlement?.created_at) && (
-                    <Text className="text-zinc-400 font-medium">
-                      结束日: <Text className="text-black">{formatDisplayDate(order.returned_at || order.settlement?.created_at)}</Text>
-                    </Text>
-                  )}
                 </View>
                 <View className="mt-3 flex gap-2">
-                  {isTerminal ? (
-                    <View className="w-full py-2.5 bg-zinc-100 rounded-xl text-center">
-                      <Text className="text-zinc-500 font-black text-sm">
-                        {order.status === 'cancelled' ? '已取消' : '已完成'}
-                      </Text>
-                    </View>
-                  ) : (
+                  {!isTerminal && (
                     <>
                       {showPay && (
                         <Button
