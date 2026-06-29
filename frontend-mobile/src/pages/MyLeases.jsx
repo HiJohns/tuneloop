@@ -204,15 +204,15 @@ export default function MyLeases() {
                 </View>
                 <View className="space-y-1 text-sm">
                   {order.instrument_name && (
-                    <Text className="text-zinc-400 font-medium">
+                    <View><Text className="text-zinc-400 font-medium">
                       乐器: <Text className="text-black font-medium">{order.instrument_name}</Text>
                       {order.instrument_category && <Text className="text-zinc-300 ml-1">({order.instrument_category})</Text>}
-                    </Text>
+                    </Text></View>
                   )}
                   {order.created_at && (
-                    <Text className="text-zinc-400 font-medium">
+                    <View><Text className="text-zinc-400 font-medium">
                       下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text>
-                    </Text>
+                    </Text></View>
                   )}
                   <View className="flex items-center gap-2">
                     <Text className="text-zinc-400 font-medium">总金额:</Text>
