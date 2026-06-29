@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -665,6 +666,30 @@ func GetOrderLogs(c *gin.Context) {
 		return
 	}
 
+	// Data isolation: verify access rights
+	tenantID := middleware.GetTenantID(ctx)
+	userID := middleware.GetUserID(ctx)
+	role := middleware.GetRole(ctx)
+
+	if tenantID != "" && order.TenantID != tenantID {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+	if role == "USER" && userID != "" {
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+			if order.UserID != localUser.ID {
+				c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+				return
+			}
+		} else {
+			if order.UserID != userID {
+				c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+				return
+			}
+		}
+	}
+
 	type logEntry struct {
 		Event     string    `json:"event"`
 		Time      time.Time `json:"time"`
@@ -713,13 +738,9 @@ func GetOrderLogs(c *gin.Context) {
 	}
 
 	// Sort by time ascending
-	for i := 0; i < len(logs); i++ {
-		for j := i + 1; j < len(logs); j++ {
-			if logs[i].Time.After(logs[j].Time) {
-				logs[i], logs[j] = logs[j], logs[i]
-			}
-		}
-	}
+	sort.Slice(logs, func(i, j int) bool {
+		return logs[i].Time.Before(logs[j].Time)
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
