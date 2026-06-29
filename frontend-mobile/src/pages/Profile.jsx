@@ -149,7 +149,7 @@ export default function Profile() {
       <ScrollView className="w-full flex-1 pb-20" scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
-        <View className="w-full bg-gradient-to-b from-[#FDF4E7] to-white px-6 pt-8 pb-4 flex items-center justify-between relative">
+        <View className="w-full bg-gradient-to-b from-[#FDF4E7] to-white px-6 pt-8 pb-4 flex items-start justify-between relative">
           <View className="flex items-center gap-4">
             <View className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-zinc-200 flex items-center justify-center" onClick={() => setShowEdit(true)}>
               {user?.avatar ? (
@@ -164,6 +164,16 @@ export default function Profile() {
               <Text className="text-xs text-amber-700 mt-0.5">
                 {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
               </Text>
+            )}
+
+            {!isStaff && (
+              <>
+                <Text className="block text-sm text-zinc-500 mt-1.5">{user?.phone || '未绑定手机'}</Text>
+                <View className="flex items-center gap-0.5 mt-0.5 active:opacity-60" onClick={() => navigate('/addresses')}>
+                  <Text className="text-sm text-zinc-500">收货地址</Text>
+                  <Text className="text-sm text-zinc-300">❯</Text>
+                </View>
+              </>
             )}
 
           </View>
@@ -219,29 +229,6 @@ export default function Profile() {
           )}
         </View>
 
-        {/* 3. 个人信息面板 — 仅顾客 */}
-        {!isStaff && (
-          <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
-            <View className="flex justify-between items-center py-2">
-              <Text className="text-sm text-zinc-500">用户名</Text>
-              <Text className="text-sm font-bold text-black">{user?.name || '-'}</Text>
-            </View>
-            <View className="flex justify-between items-center py-2">
-              <Text className="text-sm text-zinc-500">电话</Text>
-              <Text className="text-sm font-bold text-black">{user?.phone || '-'}</Text>
-            </View>
-            <View className="flex justify-between items-center py-2 active:opacity-60" onClick={() => navigate('/addresses')}>
-              <Text className="text-sm text-zinc-500">收货地址</Text>
-              <Text className="text-sm text-zinc-300">❯</Text>
-            </View>
-            <View className="flex justify-between items-center py-2">
-              <Text className="text-sm text-zinc-500">消费总额</Text>
-              <Text className="text-sm font-bold text-[#C21838]">
-                ¥{(user?.total_spending || 0).toLocaleString()}
-              </Text>
-            </View>
-          </View>
-        )}
 
         {/* 4. 下方通用抽屉式列表 */}
         <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
