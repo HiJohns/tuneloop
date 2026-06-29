@@ -106,7 +106,7 @@ export default function StaffOrders() {
     setLoadingMore(false)
   }, [mainTab, subFilter, baseUrl])
 
-  useEffect(() => { setPage(1); setOrders([]); setHasMore(true) }, [mainTab, subFilter])
+  useEffect(() => { setPage(1); setOrders([]); setHasMore(true); fetchOrders(1, false) }, [mainTab, subFilter])
 
   useEffect(() => {
     fetchOrders(page, page > 1)
