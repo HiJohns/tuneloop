@@ -382,7 +382,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Notification routes
 			authRequired.GET("/notifications", handlers.GetNotifications)
-			authRequired.GET("/notifications/unread-count", handlers.GetUnreadCount)
 			authRequired.POST("/notifications/mark-all-read", handlers.MarkAllNotificationsRead)
 			authRequired.GET("/notifications/:id", handlers.GetNotificationDetail)
 			authRequired.POST("/notifications/:id/read", handlers.MarkNotificationRead)
@@ -541,6 +540,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/settlements/:id/calculate", userSettlementHandler.CalculateSettlement)
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)
 				userOptionalAuth.GET("/user/settlements/:id", userSettlementHandler.GetSettlement)
+				userOptionalAuth.GET("/notifications/unread-count", handlers.GetUnreadCount)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
