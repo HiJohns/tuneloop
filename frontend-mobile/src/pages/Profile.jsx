@@ -262,10 +262,10 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60">
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/membership')}>
             <View className="flex items-center gap-2">
-              <Text className="text-lg">💬</Text>
-              <Text className="text-base font-bold text-zinc-800">售后、优惠券</Text>
+              <Text className="text-lg">👑</Text>
+              <Text className="text-base font-bold text-zinc-800">会员中心</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>

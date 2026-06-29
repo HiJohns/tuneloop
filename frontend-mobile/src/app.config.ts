@@ -7,6 +7,7 @@ export default {
     'pages/checkout/index',
     'pages/lease-history/index',
     'pages/maintenance-progress/index',
+    'pages/membership/index',
     'pages/message-detail/index',
     'pages/messages/index',
     'pages/my-contracts/index',

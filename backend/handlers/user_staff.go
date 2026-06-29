@@ -735,7 +735,19 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"sys_perm":      middleware.GetSysPerm(ctx),
 		"cus_perm":      middleware.GetCusPerm(ctx),
 		"cus_perm_ext":  middleware.GetCusPermExt(ctx),
-		"site_id":       nil,
+		"site_id":              nil,
+		"membership_level_id":  user.MembershipLevelID,
+		"total_spending":       user.TotalSpending,
+		"prepaid_points":       user.PrepaidPoints,
+		"promo_points":         user.PromoPoints,
+	}
+
+	// Resolve membership level name
+	if user.MembershipLevelID != nil {
+		var level models.MembershipLevel
+		if err := db.Where("id = ?", *user.MembershipLevelID).First(&level).Error; err == nil {
+			result["membership_level_name"] = level.Name
+		}
 	}
 
 	// Sync shadow user data from IAM
