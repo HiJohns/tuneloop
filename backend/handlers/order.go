@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -65,10 +66,32 @@ func GetOrders(c *gin.Context) {
 	offset := (page - 1) * pageSize
 	query.Order("updated_at DESC").Offset(offset).Limit(pageSize).Find(&orders)
 
+	// Enrich orders with instrument info and settlement data
+	type orderListItem struct {
+		models.Order
+		InstrumentName     string   `json:"instrument_name"`
+		InstrumentCategory string   `json:"instrument_category"`
+		ActualRentAmount   *float64 `json:"actual_rent_amount,omitempty"`
+	}
+	list := make([]orderListItem, 0, len(orders))
+	for _, o := range orders {
+		item := orderListItem{Order: o}
+		var instr models.Instrument
+		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
+			item.InstrumentName = instr.SN
+			item.InstrumentCategory = instr.CategoryName
+		}
+		var settlement models.Settlement
+		if err := db.Where("order_id = ?", o.ID).Order("created_at DESC").First(&settlement).Error; err == nil {
+			item.ActualRentAmount = &settlement.ActualRentAmount
+		}
+		list = append(list, item)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"list":  orders,
+			"list":  list,
 			"total": total,
 			"page":  page,
 		},
@@ -155,31 +178,83 @@ func GetOrder(c *gin.Context) {
 		deliveryAddress = leaseSession.DeliveryAddress
 	}
 
+	// Fetch instrument info
+	var instrument models.Instrument
+	instrumentName := ""
+	instrumentCategory := ""
+	if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", order.InstrumentID).Scan(&instrument).Error; err == nil {
+		instrumentName = instrument.SN
+		instrumentCategory = instrument.CategoryName
+	}
+
+	// Fetch settlement
+	var settlement models.Settlement
+	var settlementData map[string]interface{}
+	if err := db.Where("order_id = ?", order.ID).Order("created_at DESC").First(&settlement).Error; err == nil {
+		settlementData = map[string]interface{}{
+			"id":                    settlement.ID,
+			"actual_rent_days":      settlement.ActualRentDays,
+			"actual_rent_amount":    settlement.ActualRentAmount,
+			"original_rent_amount":  settlement.OriginalRentAmount,
+			"gift_points_refunded":  settlement.GiftPointsRefunded,
+			"cash_refundable":       settlement.CashRefundable,
+			"prepaid_refunded":      settlement.PrepaidRefunded,
+			"refund_method":         settlement.RefundMethod,
+			"refund_status":         settlement.RefundStatus,
+			"overdue_charges_total": settlement.OverdueChargesTotal,
+		}
+		if settlement.Breakdown != "" {
+			var breakdown map[string]interface{}
+			if err := json.Unmarshal([]byte(settlement.Breakdown), &breakdown); err == nil {
+				settlementData["breakdown"] = breakdown
+			}
+		}
+	}
+
+	// Fetch order logs
+	var orderLogs []models.OrderLog
+	db.Where("order_id = ?", order.ID).Order("created_at ASC").Find(&orderLogs)
+
+	// Parse pricing_breakdown
+	var pricingBreakdownData interface{}
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb map[string]interface{}
+		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+			pricingBreakdownData = pb
+		}
+	}
+
 	orderData := map[string]interface{}{
-		"id":                 order.ID,
-		"tenant_id":          order.TenantID,
-		"user_id":            order.UserID,
-		"user_name":          userName,
-		"user_email":         userEmail,
-		"user_phone":         userPhone,
-		"instrument_id":      order.InstrumentID,
-		"level":              order.Level,
-		"lease_term":         order.LeaseTerm,
-		"deposit_mode":       order.DepositMode,
-		"monthly_rent":       order.MonthlyRent,
-		"deposit":            order.Deposit,
-		"shipping_fee":       order.ShippingFee,
-		"accumulated_months": order.AccumulatedMonths,
-		"status":             order.Status,
-		"start_date":         order.StartDate,
-		"end_date":           order.EndDate,
-		"tracking_number":    order.TrackingNumber,
-		"courier_company":    order.CourierCompany,
-		"shipped_at":         order.ShippedAt,
-		"delivered_at":       order.DeliveredAt,
-		"delivery_address":   deliveryAddress,
-		"created_at":         order.CreatedAt,
-		"updated_at":         order.UpdatedAt,
+		"id":                    order.ID,
+		"tenant_id":             order.TenantID,
+		"user_id":               order.UserID,
+		"user_name":             userName,
+		"user_email":            userEmail,
+		"user_phone":            userPhone,
+		"instrument_id":         order.InstrumentID,
+		"instrument_name":       instrumentName,
+		"instrument_category":   instrumentCategory,
+		"level":                 order.Level,
+		"lease_term":            order.LeaseTerm,
+		"deposit_mode":          order.DepositMode,
+		"monthly_rent":          order.MonthlyRent,
+		"deposit":               order.Deposit,
+		"shipping_fee":          order.ShippingFee,
+		"accumulated_months":    order.AccumulatedMonths,
+		"status":                order.Status,
+		"start_date":            order.StartDate,
+		"end_date":              order.EndDate,
+		"tracking_number":       order.TrackingNumber,
+		"courier_company":       order.CourierCompany,
+		"shipped_at":            order.ShippedAt,
+		"delivered_at":          order.DeliveredAt,
+		"returned_at":           order.ReturnedAt,
+		"delivery_address":      deliveryAddress,
+		"created_at":            order.CreatedAt,
+		"updated_at":            order.UpdatedAt,
+		"pricing_breakdown":     pricingBreakdownData,
+		"settlement":            settlementData,
+		"order_logs":            orderLogs,
 	}
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
@@ -408,12 +483,14 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
+	now := time.Now()
 	// Update order status: in_lease -> returning
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).
 		Updates(map[string]interface{}{
 			"status":          models.OrderStatusReturning,
 			"courier_company": req.CourierCompany,
 			"tracking_number": req.TrackingNumber,
+			"returned_at":     now,
 		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
@@ -441,7 +518,7 @@ func ReturnOrder(c *gin.Context) {
 		StatusTo:   models.OrderStatusReturning,
 		Notes:      "顾客发起归还",
 		ChangedBy:  stringPtr(userID),
-		ChangedAt:  time.Now(),
+		ChangedAt:  now,
 	}
 	if err := db.Create(&history).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -562,6 +639,87 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 			"end_date":       order.EndDate,
 			"monthly_rent":   order.MonthlyRent,
 			"deposit":        order.Deposit,
+		},
+	})
+}
+
+// GetOrderLogs retrieves ordered timeline of events for an order
+func GetOrderLogs(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order_id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	type logEntry struct {
+		Event     string    `json:"event"`
+		Time      time.Time `json:"time"`
+		Operator  string    `json:"operator"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+	logs := []logEntry{}
+
+	// 1. Order created
+	logs = append(logs, logEntry{
+		Event:     "created",
+		Time:      order.CreatedAt,
+		Operator:  "customer",
+		CreatedAt: order.CreatedAt,
+	})
+
+	// 2. Status transitions from order_status_history
+	var history []models.OrderStatusHistory
+	db.Where("order_id = ?", orderID).Order("changed_at ASC").Find(&history)
+	for _, h := range history {
+		op := "customer"
+		if h.ChangedBy != nil {
+			var operator models.User
+			if err := db.Raw("SELECT name FROM users WHERE id = ? LIMIT 1", *h.ChangedBy).Scan(&operator).Error; err == nil && operator.Name != "" {
+				op = operator.Name
+			}
+		}
+		eventLabel := h.StatusTo
+		logs = append(logs, logEntry{
+			Event:     eventLabel,
+			Time:      h.ChangedAt,
+			Operator:  op,
+			CreatedAt: h.CreatedAt,
+		})
+	}
+
+	// 3. Settlement confirmed (from settlements table)
+	var settlement models.Settlement
+	if err := db.Where("order_id = ?", orderID).Order("created_at DESC").First(&settlement).Error; err == nil {
+		logs = append(logs, logEntry{
+			Event:     "settlement_confirmed",
+			Time:      settlement.CreatedAt,
+			Operator:  "system",
+			CreatedAt: settlement.CreatedAt,
+		})
+	}
+
+	// Sort by time ascending
+	for i := 0; i < len(logs); i++ {
+		for j := i + 1; j < len(logs); j++ {
+			if logs[i].Time.After(logs[j].Time) {
+				logs[i], logs[j] = logs[j], logs[i]
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"logs": logs,
 		},
 	})
 }

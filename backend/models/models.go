@@ -181,6 +181,7 @@ type Order struct {
 	CourierCompany    *string    `gorm:"type:varchar(100)" json:"courier_company"`
 	ShippedAt         *time.Time `gorm:"type:timestamp" json:"shipped_at"`
 	DeliveredAt       *time.Time `gorm:"type:timestamp" json:"delivered_at"`
+	ReturnedAt        *time.Time `gorm:"type:timestamp" json:"returned_at"`
 	DepositRefunded     bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
 	PricingBreakdown    *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
 	CashPaid            float64    `gorm:"type:decimal(10,2);not null;default:0" json:"cash_paid"`
@@ -218,6 +219,15 @@ type OverdueCharge struct {
 	Status           string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
 	FailureReason    *string   `gorm:"type:varchar(500)" json:"failure_reason"`
 	CreatedAt        time.Time `json:"created_at"`
+}
+
+type OrderLog struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID      string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	Event        string    `gorm:"type:varchar(50);not null" json:"event"`
+	OperatorID   *string   `gorm:"type:varchar(255)" json:"operator_id"`
+	OperatorName *string   `gorm:"type:varchar(255)" json:"operator_name"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type Site struct {
