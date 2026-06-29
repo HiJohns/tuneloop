@@ -60,10 +60,26 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	var orders []models.Order
 	query.Offset(offset).Limit(pageSize).Find(&orders)
 
+	type warehouseOrder struct {
+		models.Order
+		InstrumentSN       string `json:"instrument_sn"`
+		InstrumentCategory string `json:"instrument_category"`
+	}
+	list := make([]warehouseOrder, 0, len(orders))
+	for _, o := range orders {
+		item := warehouseOrder{Order: o}
+		var instr models.Instrument
+		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
+			item.InstrumentSN = instr.SN
+			item.InstrumentCategory = instr.CategoryName
+		}
+		list = append(list, item)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"list":     orders,
+			"list":     list,
 			"total":    total,
 			"page":     page,
 			"pageSize": pageSize,

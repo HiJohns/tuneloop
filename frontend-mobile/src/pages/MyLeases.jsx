@@ -32,7 +32,7 @@ const STATUS_LABELS = {
   reserved: '未支付', paid: '待发货', pending_shipment: '待发货',
   shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
-  cancelled: '已取消', expired: '超期',
+  cancelled: '已取消', expired: '超期', transferred: '已过户',
 }
 
 const STATUS_COLORS = {
@@ -42,7 +42,7 @@ const STATUS_COLORS = {
   in_lease: 'bg-indigo-100 text-indigo-700', returning: 'bg-yellow-100 text-yellow-700',
   returned: 'bg-gray-100 text-gray-600',
   completed: 'bg-gray-100 text-gray-600', cancelled: 'bg-red-100 text-red-700',
-  expired: 'bg-red-100 text-red-700',
+  expired: 'bg-red-100 text-red-700', transferred: 'bg-purple-100 text-purple-700',
 }
 
 const getActualRent = (order) => {
@@ -60,7 +60,7 @@ const isScheduledPeriod = (status) =>
 
 const MAIN_INCLUDE = {
   active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
-  completed: ['returned', 'completed', 'cancelled'],
+  completed: ['returned', 'completed', 'cancelled', 'transferred'],
 }
 
 export default function MyLeases() {
@@ -203,11 +203,6 @@ export default function MyLeases() {
                   </Text>
                 </View>
                 <View className="space-y-1 text-sm">
-                  {order.user_name && (
-                    <Text className="text-zinc-400 font-medium">
-                      租赁人: <Text className="text-black font-medium">{order.user_name}</Text>
-                    </Text>
-                  )}
                   {order.instrument_name && (
                     <Text className="text-zinc-400 font-medium">
                       乐器: <Text className="text-black font-medium">{order.instrument_name}</Text>

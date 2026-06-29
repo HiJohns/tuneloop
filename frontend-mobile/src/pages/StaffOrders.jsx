@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { warehouseApi, apiFetch, getToken } from '../services/api'
 import { env, scanQRCode } from '../platform'
 import { formatDisplayDate } from '../utils/format'
-import { Package, Clock, Search, Scan, User, MapPin } from 'lucide-react'
+import { Package, Search, Scan } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 
 const MAIN_TABS = [
@@ -24,7 +24,6 @@ const SUB_FILTERS = {
     { key: 'returning', label: '归还中' },
   ],
   completed: [
-    { key: 'returned', label: '已归还' },
     { key: 'completed', label: '已完成' },
     { key: 'cancelled', label: '已取消' },
     { key: 'transferred', label: '已过户' },
@@ -100,7 +99,7 @@ export default function StaffOrders() {
       } else {
         setOrders(list)
       }
-      setHasMore(list.length === 20)
+      setHasMore(result.data?.total > (pageNum * 20))
     } catch (err) {
       console.error('Failed to fetch orders:', err)
     }
@@ -108,22 +107,11 @@ export default function StaffOrders() {
     setLoadingMore(false)
   }, [mainTab, subFilter, baseUrl])
 
-  useEffect(() => { setPage(1); setOrders([]); fetchOrders(1, false) }, [mainTab, subFilter])
+  useEffect(() => { setPage(1); setOrders([]); setHasMore(true) }, [mainTab, subFilter])
 
   useEffect(() => {
-    if (page > 1) fetchOrders(page, true)
+    fetchOrders(page, page > 1)
   }, [page])
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !loadingMore) {
-        setPage(p => p + 1)
-      }
-    }, { threshold: 0.1, rootMargin: '200px' })
-    const sentinel = sentinelRef.current
-    if (sentinel) observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasMore, loadingMore])
 
   const handleSearch = () => {
     const id = searchInput.trim()
@@ -141,12 +129,22 @@ export default function StaffOrders() {
   }
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-20 relative">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
         <Text className="text-lg font-black text-black">订单管理</Text>
       </View>
 
-      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+      <ScrollView scrollY className="flex-1 px-4"
+        onScrollToLower={() => {
+          if (!loadingMore && hasMore) {
+            setLoadingMore(true)
+            setPage(p => p + 1)
+          }
+        }}
+        lowerThreshold={50}
+        enableBackToTop
+      >
+      <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
         <View className="flex gap-2 mb-3">
           {MAIN_TABS.map(tab => (
             <View
@@ -176,7 +174,7 @@ export default function StaffOrders() {
       </View>
 
       {/* Search Bar */}
-      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+      <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
         <View className="flex gap-2">
           <View className="flex-1 relative">
             <Search size={16} className="text-zinc-400" style={{ position: 'absolute', left: 12, top: 12 }} />
@@ -199,7 +197,7 @@ export default function StaffOrders() {
       </View>
 
       {/* Order List */}
-      <View className="px-4 mt-3 space-y-3">
+      <View className="mt-3 space-y-3">
         {loading ? (
           <View className="text-center text-zinc-400 py-8 font-medium">加载中...</View>
         ) : orders.length === 0 ? (
@@ -209,38 +207,42 @@ export default function StaffOrders() {
           </View>
         ) : (
           <>
-            {orders.map(order => (
+            {(mainTab === 'active' ? [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) : [...orders].sort((a, b) => new Date(b.returned_at || b.end_date || 0) - new Date(a.returned_at || a.end_date || 0))).map(order => {
+              const isTerminal = ['completed', 'returned', 'cancelled', 'transferred'].includes(order.status)
+              return (
               <View
                 key={order.id}
-                className="bg-white rounded-l-2xl shadow-sm pl-7 pr-0 py-4 cursor-pointer"
+                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80"
                 onClick={() => navigate(`/staff/orders/${order.id}`)}
               >
-                <View className="flex justify-between items-start mb-3 pr-4 min-w-0">
-                  <View className="flex-1 min-w-0 pr-2">
-                    <Text className="text-sm font-black text-black truncate">#{order.id?.slice(0, 8)}</Text>
-                  </View>
-                  <Text className={`text-xs px-2 py-1 rounded-full font-black flex-shrink-0 ${STATUS_COLORS[order.status] || 'bg-zinc-100 text-zinc-500'}`}>
+                <View className="flex items-center justify-between mb-2">
+                  <Text className="text-sm font-black text-black flex-1 min-w-0 truncate">#{order.id?.slice(0, 8)}</Text>
+                  <Text className={`text-xs px-2 py-1 rounded-full font-bold flex-shrink-0 ml-2 ${STATUS_COLORS[order.status] || 'bg-zinc-100 text-zinc-500'}`}>
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
-                <View className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 font-medium pr-4">
-                  {order.user_name && (
-                    <Text className="flex items-center gap-1"><User size={12} /> {order.user_name}</Text>
-                  )}
-                  {order.instrument?.sn && (
-                    <Text className="flex items-center gap-1"><Package size={12} /> {order.instrument.sn}</Text>
-                  )}
-                  {order.end_date && (
-                    <Text className="flex items-center gap-1"><Clock size={12} /> 到期 {formatDisplayDate(order.end_date)}</Text>
-                  )}
-                </View>
+                {isTerminal ? (
+                  <View className="space-y-1 text-sm">
+                    <Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text>
+                    <Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at || order.end_date)}</Text></Text>
+                    <Text className="text-zinc-400 font-medium">租期天数: <Text className="text-black font-medium">{Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000)) || order.lease_term * 30 || '-'}</Text> 天</Text>
+                  </View>
+                ) : (
+                  <View className="space-y-1 text-sm">
+                    <Text className="text-zinc-400 font-medium">下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text></Text>
+                    <Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text>
+                    <Text className="text-zinc-400 font-medium">租期天数: <Text className="text-black font-medium">{order.lease_term || Math.max(1, Math.round(((new Date(order.end_date) - new Date(order.start_date)) / 86400000))) || '-'}</Text> 天</Text>
+                    <Text className="text-zinc-400 font-medium">预期归还日: <Text className="text-black font-medium">{formatDisplayDate(order.end_date)}</Text></Text>
+                  </View>
+                )}
               </View>
-            ))}
+              )
+            })}
             {loadingMore && <View className="text-center py-4 text-zinc-400 font-medium">加载中...</View>}
-            {hasMore && <View ref={sentinelRef} className="h-20" />}
           </>
         )}
       </View>
+      </ScrollView>
 
       <BottomNav
         active="rent"
