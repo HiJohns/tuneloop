@@ -200,7 +200,10 @@ export default function Home() {
               <View
                 key={i}
                 className="h-full"
-                style={{ width: `${100 / banners.length}%` }}
+                style={{
+                  width: `${100 / banners.length}%`,
+                  backgroundColor: item.bg_color || '#915F38'
+                }}
                 onClick={() => item.link_url && navigate(item.link_url)}
               >
                 <Image
@@ -209,6 +212,11 @@ export default function Home() {
                   style={{ objectFit: 'contain', objectPosition: 'top center' }}
                   mode="aspectFit"
                 />
+                {item.title ? (
+                  <View className="absolute bottom-0 left-0 right-0 bg-black/40 px-4 py-2">
+                    <Text className="text-white text-sm">{item.title}</Text>
+                  </View>
+                ) : null}
               </View>
             ))}
           </View>
