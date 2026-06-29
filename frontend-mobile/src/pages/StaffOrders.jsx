@@ -237,7 +237,7 @@ export default function StaffOrders() {
                   </View>
                 )}
                   </View>
-                  {order.cover_image && <Image src={order.cover_image} className="w-20 h-24 rounded-lg ml-3 mt-1" mode="aspectFill" />}
+                  {order.cover_image && <Image src={order.cover_image} className="w-20 h-20 rounded-lg ml-3 self-start" mode="aspectFill" />}
                 </View>
               </View>
               )
