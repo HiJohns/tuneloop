@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -266,6 +268,16 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		}
 	}
 
+	// Increment total spending by actual rental amount
+	if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"total_spending": gorm.Expr("total_spending + ?", actualRentAmount),
+		"updated_at":     time.Now(),
+	}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update total spending"})
+		return
+	}
+
 	if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusReturned).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status"})
@@ -273,6 +285,11 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	// Check and upgrade membership level after settlement
+	if err := services.CheckAndUpgradeLevel(userID, nil); err != nil {
+		log.Printf("[WARN] Membership upgrade check failed for user %s: %v", userID, err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
