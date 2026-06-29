@@ -71,6 +71,7 @@ func GetOrders(c *gin.Context) {
 		models.Order
 		InstrumentName     string   `json:"instrument_name"`
 		InstrumentCategory string   `json:"instrument_category"`
+		UserName           string   `json:"user_name"`
 		ActualRentAmount   *float64 `json:"actual_rent_amount,omitempty"`
 	}
 	list := make([]orderListItem, 0, len(orders))
@@ -80,6 +81,10 @@ func GetOrders(c *gin.Context) {
 		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
 			item.InstrumentName = instr.SN
 			item.InstrumentCategory = instr.CategoryName
+		}
+		var user models.User
+		if err := db.Raw("SELECT name FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&user).Error; err == nil {
+			item.UserName = user.Name
 		}
 		var settlement models.Settlement
 		if err := db.Where("order_id = ?", o.ID).Order("created_at DESC").First(&settlement).Error; err == nil {
