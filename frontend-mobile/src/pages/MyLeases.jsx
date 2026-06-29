@@ -202,7 +202,7 @@ export default function MyLeases() {
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
-                <View className="flex-row">
+                <View className="flex flex-row">
                   <View className="flex-1">
                 <View className="space-y-1 text-sm">
                   {order.instrument_name && (

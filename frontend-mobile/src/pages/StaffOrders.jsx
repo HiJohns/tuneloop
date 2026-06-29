@@ -220,7 +220,7 @@ export default function StaffOrders() {
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
-                <View className="flex-row">
+                <View className="flex flex-row">
                   <View className="flex-1">
                 {isTerminal ? (
                   <View className="space-y-1 text-sm">
