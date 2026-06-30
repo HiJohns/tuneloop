@@ -28,6 +28,7 @@ export default {
     'pages/staff-instruments/index',
     'pages/staff-order-detail/index',
     'pages/staff-orders/index',
+    'pages/addresses/index',
     'pages/staff-receive-confirm/index',
   ],
   window: {

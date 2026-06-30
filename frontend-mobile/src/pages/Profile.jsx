@@ -169,10 +169,6 @@ export default function Profile() {
             {!isStaff && (
               <>
                 <Text className="block text-sm text-zinc-500 mt-1.5">{user?.phone || '未绑定手机'}</Text>
-                <View className="flex items-center gap-0.5 mt-0.5 active:opacity-60" onClick={() => navigate('/addresses')}>
-                  <Text className="text-sm text-zinc-500">收货地址</Text>
-                  <Text className="text-sm text-zinc-300">❯</Text>
-                </View>
               </>
             )}
 

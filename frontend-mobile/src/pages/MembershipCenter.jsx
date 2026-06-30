@@ -63,6 +63,14 @@ export default function MembershipCenter() {
         </View>
       </View>
 
+      {/* Address entry */}
+      <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4" onClick={() => navigate('/addresses')}>
+        <View className="flex justify-between items-center">
+          <Text className="text-sm font-medium text-zinc-700">收货地址</Text>
+          <Text className="text-sm text-zinc-300">❯</Text>
+        </View>
+      </View>
+
       {loading && (
         <View className="flex-1 items-center justify-center mt-20">
           <Text className="text-zinc-400">加载中...</Text>
