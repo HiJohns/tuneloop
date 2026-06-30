@@ -4,6 +4,7 @@ export default {
     'pages/detail/index',
     'pages/booking/index',
     'pages/cart/index',
+    'pages/create-repair/index',
     'pages/checkout/index',
     'pages/lease-history/index',
     'pages/maintenance-progress/index',
