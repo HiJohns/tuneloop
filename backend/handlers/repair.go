@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type RepairHandler struct{}
@@ -82,6 +85,15 @@ func (h *RepairHandler) CompleteRepair(c *gin.Context) {
 
 	if inst.RepairWorkerID == nil || *inst.RepairWorkerID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "only the assigned repair worker can complete"})
+		return
+	}
+
+	// Verify at least one repair record with photos exists
+	var recordCount int64
+	db.Model(&models.RepairRecord{}).Where("instrument_id = ? AND worker_id = ?", instrumentID, userID).
+		Where("photos IS NOT NULL AND photos != '[]' AND photos != ''").Count(&recordCount)
+	if recordCount == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "at least one photo record is required before completing"})
 		return
 	}
 
@@ -263,4 +275,63 @@ func (h *RepairHandler) ReassignRepair(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair reassigned"})
+}
+
+// AddRecord adds a repair record (comment + photos) to an instrument repair session.
+func (h *RepairHandler) AddRecord(c *gin.Context) {
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id is required"})
+		return
+	}
+
+	var req struct {
+		Comment string   `json:"comment"`
+		Photos  []string `json:"photos"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	photosJSON, _ := json.Marshal(req.Photos)
+
+	record := models.RepairRecord{
+		ID:           uuid.New().String(),
+		InstrumentID: instrumentID,
+		WorkerID:     userID,
+		Comment:      req.Comment,
+		Photos:       string(photosJSON),
+		CreatedAt:    time.Now(),
+	}
+	if err := db.Create(&record).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create record"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": record.ID}})
+}
+
+// ListRecords returns all repair records for an instrument, ordered by creation time.
+func (h *RepairHandler) ListRecords(c *gin.Context) {
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var records []models.RepairRecord
+	if err := db.Where("instrument_id = ?", instrumentID).Order("created_at ASC").Find(&records).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query records"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records}})
 }

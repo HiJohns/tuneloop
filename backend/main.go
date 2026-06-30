@@ -499,6 +499,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairRequired.POST("/repair/:id/reassign", repairHandler.ReassignRepair)
 			repairRequired.POST("/repair/:id/accept", repairHandler.AcceptRepair)
 			repairRequired.POST("/repair/:id/reject", repairHandler.RejectRepair)
+			repairRequired.POST("/repair/:id/records", repairHandler.AddRecord)
+			repairRequired.GET("/repair/:id/records", repairHandler.ListRecords)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)

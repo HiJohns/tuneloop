@@ -505,6 +505,16 @@ type MaintenanceSessionRecord struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+// RepairRecord stores individual repair session records (comments + photos)
+type RepairRecord struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	InstrumentID string    `gorm:"type:uuid;not null;index" json:"instrument_id"`
+	WorkerID     string    `gorm:"type:varchar(255);not null" json:"worker_id"`
+	Comment      string    `gorm:"type:text" json:"comment"`
+	Photos       string    `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 // LeaseSession 租赁会话表
 type LeaseSession struct {
 	ID              string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
