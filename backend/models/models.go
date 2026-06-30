@@ -471,7 +471,8 @@ type Tenant struct {
 	Status      string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	Description string    `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	ClosedAt       *time.Time `json:"closed_at"`
 }
 
 // InstrumentLevel represents the skill level for instruments
@@ -672,6 +673,13 @@ type Appeal struct {
 	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID          string     `gorm:"type:uuid;index" json:"org_id"`
+	SiteID         string     `gorm:"type:uuid;index" json:"site_id"`
+	Category       string     `gorm:"type:varchar(30)" json:"category"`
+	ObjectType     string     `gorm:"type:varchar(30)" json:"object_type"`
+	ObjectID       string     `gorm:"type:uuid;index" json:"object_id"`
+	AppellantID    string     `gorm:"type:varchar(255)" json:"appellant_id"`
+	Description    string     `gorm:"type:text" json:"description"`
+	Images         string     `gorm:"type:jsonb;default:'[]'" json:"images"`
 	DamageReportID string     `gorm:"type:uuid;not null;index" json:"damage_report_id"`
 	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
 	AppealReason   string     `gorm:"type:text;not null" json:"appeal_reason"`
@@ -684,6 +692,7 @@ type Appeal struct {
 	ResolvedBy     *string    `gorm:"type:uuid" json:"resolved_by"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
+	ClosedAt       *time.Time `json:"closed_at"`
 }
 
 // OrderStatusHistory 订单状态历史表
