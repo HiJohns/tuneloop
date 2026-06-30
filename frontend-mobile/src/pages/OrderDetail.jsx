@@ -341,6 +341,12 @@ export default function OrderDetail() {
                 ))}
               </View>
             )}
+            {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">物流费</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.pricing_breakdown.shipping_fee).toFixed(2)}</Text>
+              </View>
+            )}
             </>
           )}
           {/* Fallback: show direct fields when pricing_breakdown not available */}

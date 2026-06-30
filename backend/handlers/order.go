@@ -244,6 +244,10 @@ func GetOrder(c *gin.Context) {
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb map[string]interface{}
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+			// Ensure shipping_fee from order is included in pricing_breakdown
+			if _, hasFee := pb["shipping_fee"]; !hasFee && order.ShippingFee > 0 {
+				pb["shipping_fee"] = order.ShippingFee
+			}
 			pricingBreakdownData = pb
 		}
 	}
