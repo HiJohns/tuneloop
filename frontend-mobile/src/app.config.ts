@@ -20,6 +20,7 @@ export default {
     'pages/profile/index',
     'pages/receive-confirm/index',
     'pages/receiving-interface/index',
+    'pages/receiving-repair-scan/index',
     'pages/repair/index',
     'pages/repair-request/index',
     'pages/repair-scan/index',
