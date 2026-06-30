@@ -513,6 +513,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-requests", repairReqHandler.Create)
 			repairReqRequired.GET("/repair-requests/:id", repairReqHandler.Get)
 			repairReqRequired.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
+			repairReqRequired.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
 			repairReqRequired.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 
 			// Repair config routes (Issue #1118)

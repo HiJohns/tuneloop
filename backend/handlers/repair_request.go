@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type RepairRequestHandler struct{}
@@ -186,4 +187,64 @@ func (h *RepairRequestHandler) UserInstrumentLookup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"instrument": nil}})
+}
+
+// PayRepairRequest processes payment for a repair request and updates user total_spending.
+// Accept quote (pending_payment → repairing): adds quote_amount
+// Reject quote (pending_cancel → return_pending): adds inspection_fee
+func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "id required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+
+	var amount float64
+	var newStatus string
+
+	switch req.Status {
+	case models.RepairReqStatusPendingPay:
+		if req.QuoteAmount == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no quote amount"})
+			return
+		}
+		amount = *req.QuoteAmount
+		newStatus = models.RepairReqStatusRepairing
+	case models.RepairReqStatusPendingCancel:
+		if req.InspectionFee == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "no inspection fee"})
+			return
+		}
+		amount = *req.InspectionFee
+		newStatus = models.RepairReqStatusReturnPend
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "not in payable status"})
+		return
+	}
+
+	// Update user total_spending (excludes shipping fee)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+	db.Model(&localUser).Update("total_spending", gorm.Expr("total_spending + ?", amount))
+
+	// Update repair request status
+	db.Model(&req).Updates(map[string]interface{}{
+		"status":     newStatus,
+		"updated_at": time.Now(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "payment processed"})
 }
