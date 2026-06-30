@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, InputNumber, Switch, Button, message, Spin, Form, Tooltip } from 'antd'
-import { adminApi } from '../../services/api'
+import { adminApi } from '../../../services/api'
 
 export default function RepairConfigPage() {
   const [inspectionFee, setInspectionFee] = useState(0)
