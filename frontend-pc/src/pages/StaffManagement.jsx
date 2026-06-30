@@ -656,6 +656,7 @@ export default function StaffManagement() {
                     </Select>
                   </Form.Item>
                   <Form.Item name="role" label="角色" initialValue="site_member">
+                    <Select>
                       <Option value="site_admin">管理员</Option>
                       <Option value="site_member">成员</Option>
                       <Option value="repair_technician">维修师傅</Option>
