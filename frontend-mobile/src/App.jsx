@@ -37,7 +37,6 @@ import OrderDetail from './pages/OrderDetail'
 import Onboarding from './pages/Onboarding'
 import ReturnSettlement from './pages/ReturnSettlement'
 import MembershipCenter from './pages/MembershipCenter'
-import AddressList from './pages/AddressList'
 
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
@@ -190,7 +189,6 @@ function App() {
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/membership" element={<ProtectedRoute><MembershipCenter /></ProtectedRoute>} />
-        <Route path="/addresses" element={<ProtectedRoute><AddressList /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )
