@@ -301,10 +301,24 @@ export default function StaffInstrumentDetail() {
                   <RotateCcw size={18} />接收确认
                 </Button>
               )}
-              {instrument.stock_status === 'maintenance' && has('maintenance:complete') && (
-                <Button onClick={handleCompleteMaintenance} disabled={actionLoading} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
-                  <CheckCircle size={18} />维修完成
-                </Button>
+              {instrument.stock_status === 'maintenance' && (
+                <>
+                  {instrument.repair_status === 'repair_pending' && (
+                    <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                      <CheckCircle size={18} />开始维修
+                    </Button>
+                  )}
+                  {instrument.repair_status === 'repair_in_progress' && (
+                    <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                      <CheckCircle size={18} />维修完成
+                    </Button>
+                  )}
+                  {instrument.repair_status === 'repair_completed' && (
+                    <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                      <CheckCircle size={18} />验收
+                    </Button>
+                  )}
+                </>
               )}
             </View>
           )
