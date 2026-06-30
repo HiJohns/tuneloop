@@ -400,6 +400,39 @@ Usage:
 
 ---
 
+## Instrument Image Hierarchy（乐器图像分层规范）
+
+> 来源：#1099 — 避免后端图像字段在前端各处混用，定义每类图像的使用范围。
+
+### 数据库字段分类
+
+| 来源 | 存储 | 字段 | 用途 |
+|------|------|------|------|
+| `instruments.poster` | `text` | 乐器海报 | 大尺寸封面图，仅用于乐器详情页 |
+| `instrument_media` (is_display=true) | `storage_key` | 展示图片 | 选定的乐器展示照，详情页用原图，列表/订单卡片用小图(≤128px) |
+| `instrument_media` (is_display=false) | `storage_key` | 流程记录图 | 发货/收货/定损等环节中手机随手拍的记录照，仅在员工乐器详情日志面板中使用 |
+| `instrument_media` (file_type='video_thumb') | `storage_key` | 视频缩略图 | 乐器视频的封面图，在列表/详情页显示 |
+| `instruments.images` | `jsonb` (array) | 旧版图片数组 | 过渡期兼容字段，新功能不应再写入此字段 |
+
+### 前端引用规则
+
+| 图片类型 | 顾客详情页 | 员工详情页 | 员工日志面板 | 乐器列表 | 订单卡片 | 订单详情 |
+|----------|:---:|:---:|:---:|:---:|:---:|:---:|
+| Poster / 海报 | ✅ 原图 | ✅ 原图 | ❌ | ❌ | ❌ | ❌ |
+| Display 展示图 (is_display=true) | ✅ 原图 | ✅ 原图 | ❌ | ✅ 小图(128px) | ✅ 小图(128px) | ✅ 小图(128px) |
+| Process 记录图 (is_display=false) | ❌ | ❌ | ✅ 原图 | ❌ | ❌ | ❌ |
+| Video 缩略图 | ❌ | ✅ 替代视频 | ❌ | ❌ | ❌ | ❌ |
+
+### API 字段命名约定
+
+| API 字段 | 对应数据源 | 说明 |
+|----------|-----------|------|
+| `cover_image` | `instrument_media` WHERE is_display=true LIMIT 1 → `{storage_key}_thumb.jpg` | 列表/卡片用封面小图 |
+| `images` (instrument) | `instruments.images` JSONB | 旧版字段，逐步废弃 |
+| `poster` | `instruments.poster` | 详情页海报 |
+
+---
+
 ## 🚫 红线禁令 (Absolute Prohibitions)
 
 **严禁**：AI 不得自行终止任何非自己启动的进程（包括但不限于 `pkill`、`kill`、`fuser -k` 等命令）。
