@@ -77,6 +77,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	// New handlers for Issue #299 (Maintenance, Appeal, Warehouse, User Rental)
 	maintenanceWorkerHandler := handlers.NewMaintenanceWorkerHandler()
 	maintenanceSessionHandler := handlers.NewMaintenanceSessionHandler()
+	repairHandler := handlers.NewRepairHandler()
 	appealHandler := handlers.NewAppealHandler()
 	iamClient := services.NewIAMClient()
 	permManageHandler := handlers.NewPermissionManageHandler(database.GetDB(), iamClient, permRegistry)
@@ -489,6 +490,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			maintRequired.PUT("/maintenance/:id/status", maintenanceSessionHandler.UpdateStatus)
 			maintRequired.POST("/maintenance/:id/record", maintenanceSessionHandler.SubmitRecord)
 			maintRequired.POST("/maintenance/:id/inspect", maintenanceSessionHandler.Inspect)
+
+			// New repair state machine API (flat, replacing ticket/session layers)
+			repairRequired := maintRequired
+			repairRequired.POST("/repair/:id/start", repairHandler.StartRepair)
+			repairRequired.POST("/repair/:id/complete", repairHandler.CompleteRepair)
+			repairRequired.POST("/repair/:id/accept", repairHandler.AcceptRepair)
+			repairRequired.POST("/repair/:id/reject", repairHandler.RejectRepair)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)

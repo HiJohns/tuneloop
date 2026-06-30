@@ -71,6 +71,8 @@ type Instrument struct {
 	BaseDailyRate   *float64         `gorm:"type:decimal(10,2)" json:"base_daily_rate"`
 	PricingOverrides string          `gorm:"type:jsonb;default:'{}'" json:"pricing_overrides"`
 	StockStatus     string           `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
+	RepairStatus    string           `gorm:"type:varchar(20);default:null" json:"repair_status"`
+	RepairWorkerID  *string          `gorm:"type:uuid;index" json:"repair_worker_id"`
 	Properties      string           `gorm:"type:jsonb;default:'{}'" json:"properties"`
 	MinMembershipLevel *int          `gorm:"type:int" json:"min_membership_level"`
 	CreatedAt      time.Time  `json:"created_at"`

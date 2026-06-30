@@ -137,8 +137,9 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 			return
 		}
 
-		// Update instrument status to maintenance
-		if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusMaintenance).Error; err != nil {
+		// Update instrument status to maintenance + repair_pending
+		if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).
+			Updates(map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
 				"message": "Failed to update instrument status",

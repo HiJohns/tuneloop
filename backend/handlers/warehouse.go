@@ -380,12 +380,14 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	// Update instrument status
-	instStatus := models.StockStatusAvailable
+	var updates map[string]interface{}
 	if req.Condition == "damaged" {
-		instStatus = models.StockStatusMaintenance
+		updates = map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
+	} else {
+		updates = map[string]interface{}{"stock_status": models.StockStatusAvailable, "repair_status": nil}
 	}
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
-		Update("stock_status", instStatus).Error; err != nil {
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}
@@ -482,9 +484,9 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 
 	orgID := middleware.GetOrgID(ctx)
 
-	// Update instrument status to maintenance
+	// Update instrument status to maintenance + repair_pending
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
-		Update("stock_status", models.StockStatusMaintenance).Error; err != nil {
+		Updates(map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update instrument status: " + err.Error()})
 		return
 	}
