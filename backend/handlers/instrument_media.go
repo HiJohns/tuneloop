@@ -9,6 +9,7 @@ import (
 	"image/jpeg"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -155,6 +156,22 @@ func CreateInstrumentMedia(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	// Generate thumbnails for display images
+	if req.IsDisplay {
+		for i, f := range req.Files {
+			if f.FileType == "image" {
+				newKey := buildStructuredKey(ctx, f.FileKey, req.BatchType, i+1)
+				thumbKey := strings.TrimSuffix(newKey, filepath.Ext(newKey)) + "_thumb.jpg"
+				srcPath := filepath.Join(".", "uploads", "media", newKey)
+				if data, err := os.ReadFile(srcPath); err == nil {
+					if thumbData, err := services.GenerateThumbnail(data, 128); err == nil {
+						storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg")
+					}
+				}
+			}
+		}
+	}
 
 	if hasVideo {
 		go generateVideoThumbnail(c, db, tenantID, instrumentID, batchID, storage)
@@ -492,6 +509,13 @@ func UploadDisplayImage(c *gin.Context) {
 	if err := storage.Upload(ctx, storageKey, &buf, "image/jpeg"); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50001, "message": "failed to upload image"})
 		return
+	}
+
+	// Generate thumbnail
+	thumbData, err := services.GenerateThumbnail(buf.Bytes(), 128)
+	if err == nil {
+		thumbKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_thumb.jpg"
+		storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg")
 	}
 
 	orgID := middleware.GetOrgID(ctx)

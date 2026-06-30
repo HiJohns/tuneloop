@@ -94,11 +94,12 @@ func GetOrders(c *gin.Context) {
 		}
 		var media models.InstrumentMedia
 		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
-			url, _ := storageSvc.GetURL(ctx, media.StorageKey)
+			thumbKey := media.StorageKey + "_thumb.jpg"
+			url, _ := storageSvc.GetURL(ctx, thumbKey)
 			if url != "" {
 				item.CoverImage = url
 			} else {
-				item.CoverImage = "/uploads/media/" + media.StorageKey
+				item.CoverImage = "/uploads/media/" + thumbKey
 			}
 		}
 		var user models.User
