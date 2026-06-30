@@ -425,7 +425,7 @@ type RepairRequest struct {
 	ReturnTrackingNumber string    `gorm:"type:varchar(100)" json:"return_tracking_number"`
 	WorkerID             *string   `gorm:"type:varchar(255)" json:"worker_id"`
 	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 	ClosedAt             *time.Time `json:"closed_at"`
 }
 
@@ -471,8 +471,7 @@ type Tenant struct {
 	Status      string    `gorm:"type:varchar(20);default:'active'" json:"status"`
 	Description string    `gorm:"type:text" json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-	ClosedAt       *time.Time `json:"closed_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // InstrumentLevel represents the skill level for instruments
