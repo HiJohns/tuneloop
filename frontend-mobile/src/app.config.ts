@@ -21,6 +21,7 @@ export default {
     'pages/receive-confirm/index',
     'pages/receiving-interface/index',
     'pages/repair/index',
+    'pages/repair-request/index',
     'pages/repair-scan/index',
     'pages/return-confirm/index',
     'pages/shipping-interface/index',
