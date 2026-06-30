@@ -433,6 +433,27 @@ Usage:
 
 ---
 
+## Repair Request Tables（报修表字段说明）
+
+> 来源：#1110 — 客户报修流程数据模型。
+
+### 表结构
+
+| 表 | 说明 | 关键字段 |
+|----|------|---------|
+| `user_instruments` | 用户自有乐器 | id, user_id, sn, instrument_type, brand, model |
+| `repair_requests` | 报修单 | id, tenant_id, site_id, user_id, user_instrument_id, status(11个状态), description, quote_amount, inspection_fee, shipping_fee, tracking_number, return_tracking_number, worker_id |
+| `repair_request_records` | 报修日志 | id, repair_request_id, worker_id, comment, photos, record_type |
+| `appeals` | 申诉（定损/报修通用） | id, tenant_id, site_id, category, object_type, object_id, appellant_id, description, images, status |
+
+### 状态枚举
+
+```go
+pending_ship → shipping → inspecting → quoted → pending_payment → pending_cancel → repairing → return_pending → returned → closed → appealing
+```
+
+---
+
 ## 🚫 红线禁令 (Absolute Prohibitions)
 
 **严禁**：AI 不得自行终止任何非自己启动的进程（包括但不限于 `pkill`、`kill`、`fuser -k` 等命令）。

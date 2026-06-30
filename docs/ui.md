@@ -138,6 +138,10 @@
 | `ReceiveConfirm.jsx` | `/receive/:orderId` | 确认收货 |
 | `ReceivingInterface.jsx` | `/staff/receiving` | 收货界面 |
 | `RepairScan.jsx` | `/staff/repair-scan` | 维修扫码 |
+| `MyRepairs.jsx` | `/my-repairs` | 维修中心（扫码入口+维修列表） |
+| `RepairWorkflow.jsx` | `/repair` | 维修工作流（多面板） |
+| `CreateRepairRequest.jsx` | `/create-repair` | 创建报修单 |
+| `RepairRequestDetail.jsx` | `/repair-request/:id` | 报修详情 |
 | `ReturnConfirm.jsx` | `/return/:orderId` | 归还确认 |
 | `ShippingInterface.jsx` | `/staff/shipping` | 发货界面 |
 | `SiteDetail.jsx` | `/site/:id` | 网点详情 |
