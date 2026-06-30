@@ -179,9 +179,10 @@ export default function UserCreateDialog({ form, onSubmit, onCancel, siteOptions
         rules={[{ required: true, message: '请选择角色' }]}
       >
         <Select placeholder="请选择角色">
-          <Option value="site_admin">网点管理员</Option>
-          <Option value="site_member">网点员工</Option>
-          <Option value="worker">维修工程师</Option>
+                    <Option value="site_admin">网点管理员</Option>
+                    <Option value="site_member">网点员工</Option>
+                    <Option value="worker">维修工程师</Option>
+                    <Option value="repair_technician">维修师傅</Option>
         </Select>
       </Form.Item>
 

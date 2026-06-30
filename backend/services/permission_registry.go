@@ -112,8 +112,12 @@ func getTuneLoopPermissions() []PermissionDef {
 		{Code: "promo:manage", Name: "折扣政策管理", BitCode: 22},
 		{Code: "promo:override", Name: "乐器促销覆盖", BitCode: 23},
 		{Code: "points:manage", Name: "点数政策管理", BitCode: 24},
-		{Code: "membership:manage", Name: "会员级别管理", BitCode: 25},
-	}
+	{Code: "membership:manage", Name: "会员级别管理", BitCode: 25},
+	{Code: "repair:read", Name: "查看维修", BitCode: 26},
+	{Code: "repair:start", Name: "开始维修", BitCode: 27},
+	{Code: "repair:complete", Name: "完成维修", BitCode: 28},
+	{Code: "repair:accept", Name: "验收维修", BitCode: 29},
+}
 }
 
 func (r *PermissionRegistry) UpdateGlobalRegistry() {

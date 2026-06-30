@@ -99,8 +99,9 @@ export default function StaffEdit() {
           </Form.Item>
           <Form.Item name="role" label="角色">
             <Select>
-              <Select.Option value="site_admin">管理员</Select.Option>
-              <Select.Option value="site_member">成员</Select.Option>
+                    <Select.Option value="site_admin">管理员</Select.Option>
+                    <Select.Option value="site_member">成员</Select.Option>
+                    <Select.Option value="repair_technician">维修师傅</Select.Option>
             </Select>
           </Form.Item>
           <Space>

@@ -11,17 +11,21 @@ export default function MyRepairs() {
   const [myRepairs, setMyRepairs] = useState([])
   const [pendingRepairs, setPendingRepairs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [roles, setRoles] = useState([])
   const baseUrl = env.apiBaseUrl
 
   const fetchRepairs = async () => {
     setLoading(true)
     try {
-      const [mineRes, pendingRes] = await Promise.all([
+      const [roleRes, mineRes, pendingRes] = await Promise.all([
+        apiFetch(`${baseUrl}/site-members/me`),
         apiFetch(`${baseUrl}/repair/mine`),
         apiFetch(`${baseUrl}/repair/pending`),
       ])
+      const role = await roleRes.json()
       const mine = await mineRes.json()
       const pending = await pendingRes.json()
+      if (role.code === 20000) setRoles(role.data?.roles || [])
       if (mine.code === 20000) setMyRepairs(mine.data?.list || [])
       if (pending.code === 20000) setPendingRepairs(pending.data?.list || [])
     } catch {}
@@ -30,9 +34,12 @@ export default function MyRepairs() {
 
   useEffect(() => { fetchRepairs() }, [])
 
+  const hasSiteRole = roles.some(r => ['site_admin', 'site_member', 'worker'].includes(r))
+  const isPureTech = roles.includes('repair_technician') && !hasSiteRole
+
   const handleSearch = () => {
     if (!snInput.trim()) return
-    navigate(`/staff/repair-scan?sn=${snInput.trim()}`)
+    navigate(`/repair?instrument_id=${snInput.trim()}`)
   }
 
   return (
@@ -101,7 +108,7 @@ export default function MyRepairs() {
         active="service"
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') },
+          ...(!isPureTech ? [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') }] : []),
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate('/my-repairs') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}

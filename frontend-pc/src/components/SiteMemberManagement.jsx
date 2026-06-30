@@ -8,7 +8,7 @@ const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
   admin: 'blue', site_admin: 'blue',
   staff: 'green', site_member: 'green',
-  worker: 'orange',
+  worker: 'orange', repair_technician: 'purple',
 };
 const ROLE_NAMES = {
   admin: '网点管理员',
@@ -16,9 +16,10 @@ const ROLE_NAMES = {
   staff: '网点员工',
   site_member: '网点员工',
   worker: '维修工程师',
+  repair_technician: '维修师傅',
 };
 
-const SITE_ROLES = ['site_admin', 'site_member', 'worker'];
+const SITE_ROLES = ['site_admin', 'site_member', 'worker', 'repair_technician'];
 
 const roleToCode = (role) => {
   if (!role) return 'site_member'
