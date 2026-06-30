@@ -335,3 +335,34 @@ func (h *RepairHandler) ListRecords(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records}})
 }
+
+// ListMyRepairs returns all repairs assigned to the current user.
+func (h *RepairHandler) ListMyRepairs(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	var instruments []models.Instrument
+	if err := db.Where("repair_worker_id = ? AND repair_status IS NOT NULL", userID).
+		Order("updated_at DESC").Find(&instruments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query repairs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": instruments}})
+}
+
+// ListPendingRepairs returns all repair_pending instruments (for browsing/takeover).
+func (h *RepairHandler) ListPendingRepairs(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var instruments []models.Instrument
+	if err := db.Where("repair_status = ?", "repair_pending").
+		Order("updated_at DESC").Find(&instruments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query repairs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": instruments}})
+}

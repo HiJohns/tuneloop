@@ -12,6 +12,7 @@ export default {
     'pages/messages/index',
     'pages/my-contracts/index',
     'pages/my-leases/index',
+    'pages/my-repairs/index',
     'pages/my-service/index',
     'pages/order-detail/index',
     'pages/payment-complete/index',
