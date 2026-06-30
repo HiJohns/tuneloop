@@ -34,6 +34,7 @@ import ClientManagement from './pages/ClientManagement'
 import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
+import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import WarehouseManagement from './pages/WarehouseManagement'
 import LogoutPage from './pages/LogoutPage'
 import UserRental from './pages/UserRental'
@@ -312,7 +313,8 @@ function MainLayout() {
     icon: <ToolOutlined />,
     label: '维修管理',
     children: [
-      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } }
+      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
+      { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:maintain'] } },
     ]
   },
   {
@@ -576,6 +578,7 @@ function onMenuClick(e) {
             <Route path="/appeals" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['appeal:read'] }}><AppealManagement /></ProtectedRoute>} />
             <Route path="/workorders" element={<ProtectedRoute><WorkOrderList /></ProtectedRoute>} />
             <Route path="/maintenance/sessions" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:maintain'] }}><MaintenanceSessionManagement /></ProtectedRoute>} />
+            <Route path="/repair/settings" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:maintain'] }}><RepairConfigPage /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />

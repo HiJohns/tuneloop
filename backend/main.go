@@ -515,6 +515,13 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
 			repairReqRequired.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 
+			// Repair config routes (Issue #1118)
+			authRequired.GET("/config/repair", handlers.GetRepairAllSettings)
+			authRequired.GET("/config/repair/single", handlers.GetRepairSetting)
+			authRequired.PUT("/config/repair/single", handlers.SetRepairSetting)
+			authRequired.GET("/sites/:id/config/shipping-fee", handlers.GetSiteShippingFee)
+			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
+
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)
 			authRequired.GET("/appeals/:id", appealHandler.GetAppeal)
