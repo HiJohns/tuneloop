@@ -495,6 +495,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairRequired := maintRequired
 			repairRequired.POST("/repair/:id/start", repairHandler.StartRepair)
 			repairRequired.POST("/repair/:id/complete", repairHandler.CompleteRepair)
+			repairRequired.POST("/repair/:id/takeover", repairHandler.TakeoverRepair)
+			repairRequired.POST("/repair/:id/reassign", repairHandler.ReassignRepair)
 			repairRequired.POST("/repair/:id/accept", repairHandler.AcceptRepair)
 			repairRequired.POST("/repair/:id/reject", repairHandler.RejectRepair)
 

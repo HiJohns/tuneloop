@@ -189,3 +189,78 @@ func (h *RepairHandler) RejectRepair(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair rejected, returned to in_progress"})
 }
+
+// TakeoverRepair sets the current user as the repair worker for an instrument
+// that is repair_pending or repair_in_progress. Used when a worker takes over
+// an existing repair from another worker.
+func (h *RepairHandler) TakeoverRepair(c *gin.Context) {
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	var inst models.Instrument
+	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	if inst.RepairStatus != "repair_pending" && inst.RepairStatus != "repair_in_progress" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "instrument must be pending or in progress"})
+		return
+	}
+
+	if err := db.Model(&inst).Updates(map[string]interface{}{
+		"repair_status":    "repair_in_progress",
+		"repair_worker_id": userID,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to takeover repair"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair taken over"})
+}
+
+// ReassignRepair changes the repair worker for an active repair.
+// Intended for admin/manager use.
+func (h *RepairHandler) ReassignRepair(c *gin.Context) {
+	instrumentID := c.Param("id")
+	if instrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id is required"})
+		return
+	}
+
+	var req struct {
+		WorkerID string `json:"worker_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.WorkerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "worker_id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var inst models.Instrument
+	if err := db.Where("id = ?", instrumentID).First(&inst).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	if inst.RepairStatus != "repair_in_progress" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "instrument must be in progress"})
+		return
+	}
+
+	if err := db.Model(&inst).Update("repair_worker_id", req.WorkerID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reassign repair"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair reassigned"})
+}
