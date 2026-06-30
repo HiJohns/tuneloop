@@ -78,6 +78,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	maintenanceWorkerHandler := handlers.NewMaintenanceWorkerHandler()
 	maintenanceSessionHandler := handlers.NewMaintenanceSessionHandler()
 	repairHandler := handlers.NewRepairHandler()
+	repairReqHandler := handlers.NewRepairRequestHandler()
 	appealHandler := handlers.NewAppealHandler()
 	iamClient := services.NewIAMClient()
 	permManageHandler := handlers.NewPermissionManageHandler(database.GetDB(), iamClient, permRegistry)
@@ -504,6 +505,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairRequired.GET("/repair/:id/records", repairHandler.ListRecords)
 			repairRequired.GET("/repair/mine", repairHandler.ListMyRepairs)
 			repairRequired.GET("/repair/pending", repairHandler.ListPendingRepairs)
+
+			// Repair request routes (Issue #1110)
+			repairReqRequired := authRequired
+			repairReqRequired.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
+			repairReqRequired.GET("/repair-requests", repairReqHandler.List)
+			repairReqRequired.POST("/repair-requests", repairReqHandler.Create)
+			repairReqRequired.GET("/repair-requests/:id", repairReqHandler.Get)
+			repairReqRequired.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
+			repairReqRequired.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)

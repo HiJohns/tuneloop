@@ -375,8 +375,69 @@ type Deposit struct {
 	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	TransactionDate string    `gorm:"type:date;not null" json:"transaction_date"`
 	Notes           string    `gorm:"type:text" json:"notes"`
-	CreatedAt       time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// UserInstrument represents an instrument owned by a user (for repair requests).
+type UserInstrument struct {
+	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID         string    `gorm:"type:varchar(255);index;not null" json:"user_id"`
+	SN             string    `gorm:"type:varchar(255);index;not null" json:"sn"`
+	InstrumentType string    `gorm:"type:varchar(100)" json:"instrument_type"`
+	Brand          string    `gorm:"type:varchar(100)" json:"brand"`
+	Model          string    `gorm:"type:varchar(100)" json:"model"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// RepairRequestStatus constants
+const (
+	RepairReqStatusPendingShip  = "pending_ship"
+	RepairReqStatusShipping     = "shipping"
+	RepairReqStatusInspecting   = "inspecting"
+	RepairReqStatusQuoted       = "quoted"
+	RepairReqStatusPendingPay   = "pending_payment"
+	RepairReqStatusPendingCancel = "pending_cancel"
+	RepairReqStatusRepairing    = "repairing"
+	RepairReqStatusReturnPend   = "return_pending"
+	RepairReqStatusReturned     = "returned"
+	RepairReqStatusClosed       = "closed"
+	RepairReqStatusAppealing    = "appealing"
+)
+
+// RepairRequest represents a customer repair request.
+type RepairRequest struct {
+	ID                   string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID             string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SiteID               string    `gorm:"type:uuid;index;not null" json:"site_id"`
+	UserID               string    `gorm:"type:varchar(255);index;not null" json:"user_id"`
+	UserInstrumentID     string    `gorm:"type:uuid;index" json:"user_instrument_id"`
+	Status               string    `gorm:"type:varchar(20);default:'pending_ship'" json:"status"`
+	Description          string    `gorm:"type:text" json:"description"`
+	Photos               string    `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	QuoteAmount          *float64  `json:"quote_amount"`
+	InspectionFee        *float64  `json:"inspection_fee"`
+	ShippingFee          *float64  `json:"shipping_fee"`
+	TrackingCompany      string    `gorm:"type:varchar(100)" json:"tracking_company"`
+	TrackingNumber       string    `gorm:"type:varchar(100)" json:"tracking_number"`
+	ReturnCompany        string    `gorm:"type:varchar(100)" json:"return_company"`
+	ReturnTrackingNumber string    `gorm:"type:varchar(100)" json:"return_tracking_number"`
+	WorkerID             *string   `gorm:"type:varchar(255)" json:"worker_id"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+	ClosedAt             *time.Time `json:"closed_at"`
+}
+
+// RepairRequestRecord stores logs for a repair request.
+type RepairRequestRecord struct {
+	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	RepairRequestID string    `gorm:"type:uuid;index;not null" json:"repair_request_id"`
+	WorkerID        string    `gorm:"type:varchar(255)" json:"worker_id"`
+	Comment         string    `gorm:"type:text" json:"comment"`
+	Photos          string    `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	RecordType      string    `gorm:"type:varchar(20)" json:"record_type"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type PointsTransaction struct {
