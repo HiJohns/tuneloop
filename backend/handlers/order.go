@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -94,7 +96,7 @@ func GetOrders(c *gin.Context) {
 		}
 		var media models.InstrumentMedia
 		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
-			thumbKey := media.StorageKey + "_thumb.jpg"
+			thumbKey := strings.TrimSuffix(media.StorageKey, filepath.Ext(media.StorageKey)) + "_thumb.jpg"
 			url, _ := storageSvc.GetURL(ctx, thumbKey)
 			if url != "" {
 				item.CoverImage = url
