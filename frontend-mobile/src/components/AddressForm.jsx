@@ -18,6 +18,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
   const handleSubmit = async () => {
     if (!form.recipient_name) { alert('请填写收货人'); return }
     if (!form.phone) { alert('请填写手机号'); return }
+    if (form.postal_code && !/^\d{6}$/.test(form.postal_code)) { alert('邮编格式不正确，请输入6位数字'); return }
     setSaving(true)
     try {
       let resp
@@ -66,7 +67,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
             <input className={inputClass} value={form.district} onChange={e => setForm(prev => ({ ...prev, district: e.target.value }))} placeholder="区" />
           </div>
           <input className={inputClass} value={form.detail} onChange={e => setForm(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
-          <input className={inputClass} value={form.postal_code} onChange={e => setForm(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
+          <input className={inputClass} value={form.postal_code} onChange={e => setForm(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
           <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
             <input type="checkbox" checked={form.is_default} onChange={e => setForm(prev => ({ ...prev, is_default: e.target.checked }))} />
             设为默认地址

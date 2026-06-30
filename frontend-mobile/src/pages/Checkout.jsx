@@ -416,8 +416,8 @@ function SingleCheckout({ id, navigate }) {
                 <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
               </View>
               <View>
-                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
-              </View>
+                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
+          </View>
               <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
                 <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
                 设置为我的收货地址
@@ -772,7 +772,7 @@ function BatchCheckout({ navigate }) {
                   </select>
                 </View>
                 <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
-                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" />
+                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
                 <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
                   <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
                   设置为我的收货地址

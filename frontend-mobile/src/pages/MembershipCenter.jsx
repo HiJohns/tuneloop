@@ -56,6 +56,7 @@ export default function MembershipCenter() {
   const handleSave = async () => {
     if (!form.recipient_name) { alert('请填写收货人'); return }
     if (!form.phone) { alert('请填写手机号'); return }
+    if (form.postal_code && !/^\d{6}$/.test(form.postal_code)) { alert('邮编格式不正确，请输入6位数字'); return }
     setSaving(true)
     try {
       let resp
@@ -203,7 +204,7 @@ export default function MembershipCenter() {
               </select>
             </View>
             <input className={inputClass} value={form.detail} onChange={e => setForm(p => ({ ...p, detail: e.target.value }))} placeholder="详细地址" />
-            <input className={inputClass} value={form.postal_code} onChange={e => setForm(p => ({ ...p, postal_code: e.target.value }))} placeholder="邮编" />
+            <input className={inputClass} value={form.postal_code} onChange={e => setForm(p => ({ ...p, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
             <View className="flex gap-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-black text-white rounded-xl font-bold text-sm">
                 {saving ? '保存中...' : editingId ? '保存修改' : '新增地址'}
