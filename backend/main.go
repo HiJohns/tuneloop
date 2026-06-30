@@ -523,11 +523,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/sites/:id/config/shipping-fee", handlers.GetSiteShippingFee)
 			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
 
-			// Repair admin routes (Issues #1115, #1116, #1119)
-			authRequired.GET("/merchant/repair-requests", handlers.ListMerchantRepairRequests)
-			authRequired.GET("/appeals", handlers.ListAppeals)
-			authRequired.POST("/appeals", handlers.CreateAppeal)
-			authRequired.POST("/appeals/:id/close", handlers.CloseAppeal)
+			// Repair appeal routes (Issues #1115, #1116, #1119)
+			authRequired.GET("/repair-appeals", handlers.ListAppeals)
+			authRequired.POST("/repair-appeals", handlers.CreateAppeal)
+			authRequired.POST("/repair-appeals/:id/close", handlers.CloseAppeal)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)
