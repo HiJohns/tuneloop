@@ -19,6 +19,7 @@ export default {
     'pages/profile/index',
     'pages/receive-confirm/index',
     'pages/receiving-interface/index',
+    'pages/repair/index',
     'pages/repair-scan/index',
     'pages/return-confirm/index',
     'pages/shipping-interface/index',
