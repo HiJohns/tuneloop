@@ -62,12 +62,12 @@ export default function MyRepairs() {
         </View>
 
         {/* My in-progress repairs */}
-        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
-          <Text className="text-sm font-bold text-black mb-3">我的维修 ({myRepairs.length})</Text>
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
+          <View><Text className="text-sm font-bold text-black">我的维修 ({myRepairs.length})</Text></View>
           {loading ? (
-            <Text className="text-xs text-zinc-400">加载中...</Text>
+            <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
           ) : myRepairs.length === 0 ? (
-            <Text className="text-xs text-zinc-400">暂无进行中的维修</Text>
+            <View><Text className="text-xs text-zinc-400">暂无进行中的维修</Text></View>
           ) : (
             <View className="space-y-2">
               {myRepairs.map(inst => (
@@ -85,10 +85,10 @@ export default function MyRepairs() {
         </View>
 
         {/* Pending repairs (available for takeover) */}
-        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-          <Text className="text-sm font-bold text-black mb-3">待维修乐器 ({pendingRepairs.length})</Text>
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4 space-y-1">
+          <View><Text className="text-sm font-bold text-black">待维修乐器 ({pendingRepairs.length})</Text></View>
           {pendingRepairs.length === 0 ? (
-            <Text className="text-xs text-zinc-400">暂无待维修乐器</Text>
+            <View><Text className="text-xs text-zinc-400">暂无待维修乐器</Text></View>
           ) : (
             <View className="space-y-2">
               {pendingRepairs.map(inst => (
