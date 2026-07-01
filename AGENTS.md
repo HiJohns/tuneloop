@@ -454,6 +454,33 @@ pending_ship → shipping → inspecting → quoted → pending_payment → pend
 
 ---
 
+## 维修页角色×页面矩阵
+
+> 来源：#1109审计复盘。多角色项目中，每个页面必须明确各角色分别看到什么内容。
+
+### 移动端维修相关页面
+
+| 页面 | 顾客 (USER) | 网点员工 (site_member/admin) | 维修师傅 (repair_technician) | 商户管理员 (merchant_admin) |
+|------|:---|:---|:---|:---|
+| `/my-repairs` | 我的报修列表 (repair_requests by user_id) + 创建按钮 | 本网点报修列表 + 待发回填物流 | 我的维修 (my repairs) + 质检中/维修中报修单列表 | — (PC端) |
+| `/repair` | ❌ | 验收面板（已修复乐器→通过/不通过） | 维修面板 + 接手 | — |
+| `/repair-request` | 报修详情 + 确认/拒绝报价 + 支付 + 评价 | 查看报修详情 + 发回物流 | 质检+报价面板 / 维修中完成面板 | — |
+| `/create-repair` | 创建报修单（SN防抖+表单+网点选择） | — | — | — |
+| `/receiving-repair-scan` | — | 收货智能匹配 | — | — |
+
+### 底部导航 tab 差异
+
+| 角色 | 首页 | 租赁 | 维修 | 我的 |
+|------|:---:|:---:|:---:|:---:|
+| 顾客 | ✅ | ✅ | ✅ `/my-repairs` | ✅ |
+| 网点员工 | ✅ | ✅ | ✅ `/my-repairs` | ✅ |
+| 纯维修师傅 (无 site_member) | ✅ | ❌ | ✅ `/my-repairs` | ✅ |
+| 维修师傅 + site_member | ✅ | ✅ | ✅ `/my-repairs` | ✅ |
+
+---
+
+
+
 ## 🚫 红线禁令 (Absolute Prohibitions)
 
 **严禁**：AI 不得自行终止任何非自己启动的进程（包括但不限于 `pkill`、`kill`、`fuser -k` 等命令）。
