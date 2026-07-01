@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, InputNumber, Switch, Button, message, Spin, Form, Tooltip } from 'antd'
-import { adminApi } from '../../../services/api'
+import { api } from '../../../services/api'
 
 export default function RepairConfigPage() {
   const [inspectionFee, setInspectionFee] = useState(0)
@@ -10,7 +10,7 @@ export default function RepairConfigPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    adminApi.get('/config/repair').then(res => {
+    api.get('/config/repair').then(res => {
       if (res.code === 20000) {
         setInspectionFee(Number(res.data?.repair_inspection_fee || 0))
         setShippingFee(Number(res.data?.repair_shipping_fee || 0))
@@ -23,9 +23,9 @@ export default function RepairConfigPage() {
     setSaving(true)
     try {
       await Promise.all([
-        adminApi.put('/config/repair/single', { key: 'repair_inspection_fee', value: String(inspectionFee) }),
-        adminApi.put('/config/repair/single', { key: 'repair_shipping_fee', value: String(shippingFee) }),
-        adminApi.put('/config/repair/single', { key: 'repair_gift_points_enabled', value: String(giftPointsEnabled) }),
+        api.put('/config/repair/single', { key: 'repair_inspection_fee', value: String(inspectionFee) }),
+        api.put('/config/repair/single', { key: 'repair_shipping_fee', value: String(shippingFee) }),
+        api.put('/config/repair/single', { key: 'repair_gift_points_enabled', value: String(giftPointsEnabled) }),
       ])
       message.success('保存成功')
     } catch {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Spin, Select } from 'antd'
-import { adminApi } from '../../../services/api'
+import { api } from '../../../services/api'
 
 const statusLabels = {
   pending_ship: '待发送', shipping: '发送中', inspecting: '质检中',
