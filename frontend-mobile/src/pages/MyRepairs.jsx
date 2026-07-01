@@ -109,7 +109,8 @@ export default function MyRepairs() {
       </View>
 
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
-        {/* Scan / SN search — all roles */}
+        {/* Scan / SN search — staff and repair technicians only */}
+        {!isCustomer && (
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <Text className="text-sm font-bold text-black mb-2">扫码查找乐器</Text>
           <View className="flex gap-2">
@@ -118,6 +119,7 @@ export default function MyRepairs() {
             <Button onClick={handleSearch} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold">查找</Button>
           </View>
         </View>
+        )}
 
         {/* Customer: My repair requests + create button */}
         {isCustomer && (
