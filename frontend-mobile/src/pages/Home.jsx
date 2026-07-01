@@ -319,7 +319,7 @@ export default function Home() {
           tabs={[
             { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
             { key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList },
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/my-service?tenant=${tenant}` : '/my-service'; navigate(url) } },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/my-repairs?tenant=${tenant}` : '/my-repairs'; navigate(url) } },
             { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/profile?tenant=${tenant}` : '/profile'; navigate(url) } },
           ]}
         />
