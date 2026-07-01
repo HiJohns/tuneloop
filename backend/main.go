@@ -516,10 +516,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
 			repairReqRequired.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 
-			// Repair config routes (Issue #1118)
-			authRequired.GET("/config/repair", handlers.GetRepairAllSettings)
-			authRequired.GET("/config/repair/single", handlers.GetRepairSetting)
-			authRequired.PUT("/config/repair/single", handlers.SetRepairSetting)
+			// Repair config routes (Issue #1118) — merchant_admin only
+			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
+			authRequired.GET("/config/repair/single", middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
+			authRequired.PUT("/config/repair/single", middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
 			authRequired.GET("/sites/:id/config/shipping-fee", handlers.GetSiteShippingFee)
 			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
 
