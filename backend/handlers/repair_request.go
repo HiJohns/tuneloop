@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -29,12 +30,28 @@ func (h *RepairRequestHandler) List(c *gin.Context) {
 	var requests []models.RepairRequest
 	query := db.Model(&models.RepairRequest{})
 
+	// Status filter (comma-separated)
+	if statusParam := c.Query("status"); statusParam != "" {
+		statuses := strings.Split(statusParam, ",")
+		query = query.Where("status IN ?", statuses)
+	}
+
 	if role == "USER" {
 		var localUser models.User
 		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			query = query.Where("user_id = ?", localUser.ID)
 		} else {
 			query = query.Where("user_id = ?", userID)
+		}
+	} else {
+		// Staff: filter by current user's sites
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+			var siteIDs []string
+			db.Table("site_members").Where("user_id = ?", localUser.ID).Pluck("site_id", &siteIDs)
+			if len(siteIDs) > 0 {
+				query = query.Where("site_id IN ?", siteIDs)
+			}
 		}
 	}
 
@@ -187,6 +204,42 @@ func (h *RepairRequestHandler) UserInstrumentLookup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"instrument": nil}})
+}
+
+// ReturnShipping sets return tracking info and transitions repair request to returned.
+func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
+	id := c.Param("id")
+	var body struct {
+		ReturnCompany        string `json:"return_company"`
+		ReturnTrackingNumber string `json:"return_tracking_number"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.ReturnTrackingNumber == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "return_tracking_number required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+
+	if req.Status != models.RepairReqStatusReturnPend {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "only return_pending requests can update return shipping"})
+		return
+	}
+
+	db.Model(&req).Updates(map[string]interface{}{
+		"return_company":         body.ReturnCompany,
+		"return_tracking_number": body.ReturnTrackingNumber,
+		"status":                 models.RepairReqStatusReturned,
+		"updated_at":             time.Now(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "return shipping updated"})
 }
 
 // PayRepairRequest processes payment for a repair request and updates user total_spending.
