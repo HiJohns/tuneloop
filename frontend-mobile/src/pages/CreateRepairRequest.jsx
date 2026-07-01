@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Input, Image } from '@tarojs/components'
 import { addressesApi } from '../services/api'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
+import { Camera } from 'lucide-react'
 
 export default function CreateRepairRequest() {
   const navigate = useNavigate()
@@ -121,9 +122,22 @@ export default function CreateRepairRequest() {
               value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="描述故障情况" />
           </View>
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">照片 *</Text>
-            <Button onClick={() => setForm(p => ({ ...p, photos: [...p.photos, `photo_${Date.now()}.jpg`] }))}
-              className="py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">+ 拍照（{form.photos.length} 张）</Button>
+            <Text className="block text-xs font-medium text-zinc-500 mb-1">照片 *（{form.photos.length} 张）</Text>
+            <View className="flex flex-wrap gap-2">
+              {form.photos.map((img, idx) => (
+                <View key={idx} className="w-16 h-16 bg-zinc-200 rounded-lg overflow-hidden relative">
+                  <Image src={img} className="w-full h-full object-cover" mode="aspectFill" />
+                  <View className="absolute top-0 right-0 bg-black/50 w-5 h-5 rounded-bl-lg flex items-center justify-center"
+                    onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, i) => i !== idx) }))}>
+                    <Text className="text-white text-xs">×</Text>
+                  </View>
+                </View>
+              ))}
+              <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center active:opacity-60"
+                onClick={() => setForm(p => ({ ...p, photos: [...p.photos, `photo_${Date.now()}.jpg`] }))}>
+                <Camera size={20} className="text-zinc-400" />
+              </View>
+            </View>
           </View>
           <View>
             <Text className="block text-xs font-medium text-zinc-500 mb-1">选择商户</Text>
