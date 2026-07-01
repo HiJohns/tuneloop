@@ -123,21 +123,28 @@ export default function CreateRepairRequest() {
           </View>
           <View>
             <Text className="block text-xs font-medium text-zinc-500 mb-1">照片 *（{form.photos.length} 张）</Text>
-            <View className="flex flex-wrap gap-2">
-              {form.photos.map((img, idx) => (
-                <View key={idx} className="w-16 h-16 bg-zinc-200 rounded-lg overflow-hidden relative">
-                  <Image src={img} className="w-full h-full object-cover" mode="aspectFill" />
-                  <View className="absolute top-0 right-0 bg-black/50 w-5 h-5 rounded-bl-lg flex items-center justify-center"
-                    onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, i) => i !== idx) }))}>
-                    <Text className="text-white text-xs">×</Text>
+            <View className="grid grid-cols-3 gap-2 mb-2">
+              {form.photos.map((file, i) => (
+                <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
+                  <Image src={URL.createObjectURL(file)} className="w-full h-full object-cover" mode="aspectFill" />
+                  <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
+                    onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, j) => j !== i) }))}>
+                    <Text className="text-white text-xs">✕</Text>
                   </View>
                 </View>
               ))}
-              <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center active:opacity-60"
-                onClick={() => setForm(p => ({ ...p, photos: [...p.photos, `photo_${Date.now()}.jpg`] }))}>
-                <Camera size={20} className="text-zinc-400" />
-              </View>
+              {form.photos.length < 10 && (
+                <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center text-zinc-400 active:opacity-60">
+                  <Camera size={24} />
+                  <Text className="text-xs mt-1">拍摄</Text>
+                  <input type="file" accept="image/*" capture="environment" multiple className="hidden"
+                    onChange={e => setForm(p => ({ ...p, photos: [...p.photos, ...Array.from(e.target.files || [])].slice(0, 10) }))} />
+                </label>
+              )}
             </View>
+            {form.photos.length === 0 && (
+              <Text className="text-xs text-red-400">请先拍照存档（至少 1 张）</Text>
+            )}
           </View>
           <View>
             <Text className="block text-xs font-medium text-zinc-500 mb-1">选择商户</Text>
