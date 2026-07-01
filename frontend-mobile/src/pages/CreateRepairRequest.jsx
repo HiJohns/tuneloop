@@ -11,7 +11,7 @@ export default function CreateRepairRequest() {
 
   const [form, setForm] = useState({
     sn: '', instrument_type: '', brand: '', model: '',
-    description: '', photos: [] as string[],
+    description: '', photos: [],
     tracking_company: '', tracking_number: '',
     site_id: '', merchant_id: '',
   })
