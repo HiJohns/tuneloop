@@ -101,6 +101,20 @@
 
 ---
 
+## 1.3 跨端渲染基本准则（Taro H5 + 微信小程序）
+
+> 来源：#1096《Text 垂直堆叠》反复修复 + #1122 同模式修复。Taro 的双端编译存在 CSS 行为差异。
+
+| 准则 | 说明 | 反例 | 正例 |
+|------|------|------|------|
+| **每一行文本必须包 `<View>`** | Taro 的 `<Text>` 在 H5（Vite）端渲染为 `<span>`（inline），不会垂直堆叠。必须用 `<View>` 包裹才能利用 CSS 间距 | `<Text>行1</Text><Text>行2</Text>` → 横排挤在一起 | `<View><Text>行1</Text></View><View><Text>行2</Text></View>` → 垂直排列 |
+| **列表间距用 `space-y-*`，永远不用 `margin-bottom`** | Tailwind 的 `space-y-*` 在 `<View>` 容器上工作，对 Taro 的 `<Text>` 不生效 | 在父容器上用 `space-y-2` 但子元素是裸 `<Text>` | 父容器 `space-y-2` + 每个子项为 `<View>` 包裹 |
+| **不依赖 `<Text>` 的 `margin` 类** | Taro H5 模式下 `<Text>` 的 `mb-*`/`mt-*` 等 margin 类可能被浏览器忽略 | `<Text className="mb-3">` | 用外层 `<View>` 的 padding 或 `space-y-*` 控制间距 |
+| **`flex-row` 与 `flex flex-row` 的区别** | `flex-row` 在 Tailwind 中仅设置 `flex-direction:row`，不启用 `display:flex` | `<View className="flex-row">` → 不生效 | `<View className="flex flex-row">` |
+| **`min-h-0` 防止 flex-1 溢出** | flex 子项默认 `min-height: auto`，阻止 `flex-1` 的子项收缩 | ScrollView 的 `flex-1` 推到底条以下 | ScrollView 加 `flex-1 min-h-0 overflow-y-auto` |
+
+---
+
 ### 2.1a React Mobile App 路由表（Vite 模式）
 
 **组件**: `frontend-mobile/src/App.jsx`
