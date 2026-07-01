@@ -265,7 +265,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		}
 	}
 
-	validRoles := map[string]bool{"site_member": true, "site_admin": true, "worker": true}
+	validRoles := map[string]bool{"site_member": true, "site_admin": true, "worker": true, "repair_technician": true}
 	if !validRoles[resolvedRole] {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid role, must be one of: site_member, site_admin, worker"})
 		return
