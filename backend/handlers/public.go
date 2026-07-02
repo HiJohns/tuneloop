@@ -601,3 +601,36 @@ func ListPublicMerchants(c *gin.Context) {
 		},
 	})
 }
+
+// ListTransitSites returns transit site info for a controlled merchant.
+func ListTransitSites(c *gin.Context) {
+	merchantID := c.Param("id")
+	if merchantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "merchant id is required"})
+		return
+	}
+
+	db := database.GetDB()
+
+	var merchant models.Merchant
+	if err := db.Where("id = ?", merchantID).First(&merchant).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+		return
+	}
+
+	if merchant.MerchantType != "controlled" {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"sites": []interface{}{}}})
+		return
+	}
+
+	sites := []gin.H{{
+		"id":           merchant.ID,
+		"name":         merchant.Name + "-中转",
+		"address":      merchant.TransitAddress,
+		"phone":        merchant.TransitPhone,
+		"contact_name": merchant.TransitContactName,
+		"is_transit":   true,
+	}}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"sites": sites}})
+}
