@@ -344,10 +344,7 @@ func GetPublicSites(c *gin.Context) {
 	if merchantID := c.Query("merchant_id"); merchantID != "" {
 		var merchant models.Merchant
 		if err := db.Where("id = ?", merchantID).First(&merchant).Error; err == nil {
-			query = query.Where("org_id = ?", merchant.OrgID)
-			if merchant.TenantID != "" {
-				query = query.Where("tenant_id = ?", merchant.TenantID)
-			}
+			query = query.Where("tenant_id = ?", merchant.OrgID)
 		}
 	}
 	if typeFilter := c.Query("type"); typeFilter != "" {
