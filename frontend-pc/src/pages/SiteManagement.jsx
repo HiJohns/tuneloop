@@ -246,6 +246,7 @@ export default function SiteManagement() {
         address: values.address || '',
         type: values.type || '',
         phone: values.phone || '',
+        postal_code: values.postal_code || '',
         parent_id: editingSite?.parent_id,
       }
       
@@ -513,6 +514,14 @@ filterTreeNode={(node) => {
                   data-testid="site-form-phone"
                 >
                    <Input placeholder="请输入联系电话" />
+                 </Form.Item>
+
+                 <Form.Item
+                   name="postal_code"
+                   label="邮编"
+                   data-testid="site-form-postal"
+                 >
+                   <Input placeholder="请输入邮编" />
                  </Form.Item>
                </Form>
             </Card>

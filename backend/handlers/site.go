@@ -383,6 +383,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		Latitude:      req.Latitude,
 		Longitude:     req.Longitude,
 		Phone:         req.Phone,
+		PostalCode:    req.PostalCode,
 		BusinessHours: req.BusinessHours,
 		ParentID:      parentUUID,
 		ManagerID:     managerUUID,
@@ -438,6 +439,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		Latitude      float64 `json:"latitude"`
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
+		PostalCode    string  `json:"postal_code"`
 		BusinessHours string  `json:"business_hours"`
 	}
 
@@ -458,6 +460,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		"latitude":       req.Latitude,
 		"longitude":      req.Longitude,
 		"phone":          req.Phone,
+		"postal_code":    req.PostalCode,
 		"business_hours": req.BusinessHours,
 		"updated_at":     gorm.Expr("NOW()"),
 	})
