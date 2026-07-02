@@ -13,21 +13,8 @@ export default function CreateRepairRequest() {
   const [form, setForm] = useState({
     sn: '', instrument_type: '', brand: '', model: '',
     description: '', photos: [], video_url: '',
-    tracking_company: '', tracking_number: '',
     site_id: '', merchant_id: '',
   })
-      const r = await resp.json()
-      if (r.code === 20000) {
-        alert('报修单已提交')
-        navigate(-1)
-      } else {
-        alert(r.message || '提交失败')
-      }
-    } catch (err) {
-      alert('提交失败: ' + (err.message || ''))
-    }
-    setSubmitting(false)
-  }
 
   const handleSubmit = async () => {
     if (!isFormValid) { alert('请填写所有必填项'); return }
