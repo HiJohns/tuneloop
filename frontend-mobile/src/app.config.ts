@@ -35,6 +35,7 @@ export default {
     'pages/staff-order-detail/index',
     'pages/staff-orders/index',
     'pages/staff-receive-confirm/index',
+    'pages/user-warnings/index',
   ],
   window: {
     backgroundTextStyle: 'light',
