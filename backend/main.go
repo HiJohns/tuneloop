@@ -525,6 +525,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	authRequired.POST("/transit-orders/:id/repack", handlers.TransitOrderRepack)
 	authRequired.POST("/transit-orders/:id/ship", handlers.TransitOrderShip)
 
+	// Quote routes (Issue #1148)
+	authRequired.POST("/quotes", handlers.SubmitQuote)
+	authRequired.GET("/quotes/:request_id", handlers.ListQuotes)
+	authRequired.POST("/quotes/:id/accept", handlers.AcceptQuote)
+
 			// Repair request routes (Issue #1110)
 			repairReqRequired := authRequired
 			repairReqRequired.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
