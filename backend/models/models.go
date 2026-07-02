@@ -856,6 +856,62 @@ type SystemSetting struct {
 	UpdatedBy    string    `gorm:"type:varchar(255)" json:"updated_by"`
 }
 
+// TransitRoute maps a controlled site to its transit site.
+type TransitRoute struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ControlledSiteID string    `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
+	TransitSiteID    string    `gorm:"type:uuid;index;not null" json:"transit_site_id"`
+	Priority         int       `gorm:"default:0" json:"priority"`
+	IsDefault        bool      `gorm:"default:false" json:"is_default"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+// TransitOrderStatus constants
+const (
+	TransitOrderDispatching = "dispatching"
+	TransitOrderArrived     = "arrived"
+	TransitOrderRepacked    = "repacked"
+	TransitOrderShipped     = "shipped"
+)
+
+// TransitOrder links a lease order with its transit workflow.
+type TransitOrder struct {
+	ID                  string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID             string     `gorm:"type:uuid;index;not null" json:"order_id"`
+	TransitSiteID       string     `gorm:"type:uuid;index;not null" json:"transit_site_id"`
+	ControlledSiteID    string     `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
+	Status              string     `gorm:"type:varchar(20);default:'dispatching'" json:"status"`
+	UnpackPhotos        string     `gorm:"type:jsonb;default:'[]'" json:"unpack_photos"`
+	RepackCompany       string     `gorm:"type:varchar(100)" json:"repack_company"`
+	RepackTrackingNumber string   `gorm:"type:varchar(100)" json:"repack_tracking_number"`
+	TransitOrderNumber  string     `gorm:"type:varchar(50)" json:"transit_order_number"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+// RepairTransitStatus constants
+const (
+	RepairTransitInbound    = "inbound"
+	RepairTransitTransiting = "transiting"
+	RepairTransitOutbound   = "outbound"
+	RepairTransitSentBack   = "sent_back"
+)
+
+// RepairTransitOrder links a repair request with its transit workflow.
+type RepairTransitOrder struct {
+	ID                  string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	RepairRequestID     string     `gorm:"type:uuid;index" json:"repair_request_id"`
+	TransitSiteID       string     `gorm:"type:uuid;index;not null" json:"transit_site_id"`
+	ControlledSiteID    string     `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
+	Status              string     `gorm:"type:varchar(20);default:'inbound'" json:"status"`
+	UnpackPhotos        string     `gorm:"type:jsonb;default:'[]'" json:"unpack_photos"`
+	RepackCompany       string     `gorm:"type:varchar(100)" json:"repack_company"`
+	RepackTrackingNumber string   `gorm:"type:varchar(100)" json:"repack_tracking_number"`
+	TransitOrderNumber  string     `gorm:"type:varchar(50)" json:"transit_order_number"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
 // WarningStatus constants
 const (
 	WarningStatusOpen        = "open"
