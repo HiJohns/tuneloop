@@ -394,6 +394,7 @@ type UserInstrument struct {
 // RepairRequestStatus constants
 const (
 	RepairReqStatusPendingShip  = "pending_ship"
+	RepairReqStatusPendingAssessment = "pending_assessment"
 	RepairReqStatusShipping     = "shipping"
 	RepairReqStatusInspecting   = "inspecting"
 	RepairReqStatusQuoted       = "quoted"
@@ -416,6 +417,7 @@ type RepairRequest struct {
 	Status               string    `gorm:"type:varchar(20);default:'pending_ship'" json:"status"`
 	Description          string    `gorm:"type:text" json:"description"`
 	Photos               string    `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	VideoURL             string    `gorm:"type:varchar(500)" json:"video_url"`
 	QuoteAmount          *float64  `json:"quote_amount"`
 	InspectionFee        *float64  `json:"inspection_fee"`
 	ShippingFee          *float64  `json:"shipping_fee"`

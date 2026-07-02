@@ -86,6 +86,7 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		SiteID           string   `json:"site_id"`
 		Description      string   `json:"description"`
 		Photos           []string `json:"photos"`
+		VideoURL         string   `json:"video_url"`
 		TrackingCompany  string   `json:"tracking_company"`
 		TrackingNumber   string   `json:"tracking_number"`
 	}
@@ -98,7 +99,7 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
 
-	status := models.RepairReqStatusPendingShip
+	status := models.RepairReqStatusPendingAssessment
 	if body.TrackingNumber != "" {
 		status = models.RepairReqStatusShipping
 	}
@@ -114,6 +115,7 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		Status:           status,
 		Description:      body.Description,
 		Photos:           string(photosJSON),
+		VideoURL:         body.VideoURL,
 		TrackingCompany:  body.TrackingCompany,
 		TrackingNumber:   body.TrackingNumber,
 		CreatedAt:        time.Now(),

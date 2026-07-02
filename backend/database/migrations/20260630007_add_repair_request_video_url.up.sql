@@ -1,0 +1,1 @@
+ALTER TABLE repair_requests ADD COLUMN IF NOT EXISTS video_url VARCHAR(500);

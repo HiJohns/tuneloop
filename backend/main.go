@@ -519,6 +519,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
 	authRequired.DELETE("/transit-routes/:id", handlers.DeleteTransitRoute)
 
+	// Transit order routes (Issue #1134)
+	authRequired.GET("/transit-orders", handlers.ListTransitOrders)
+	authRequired.POST("/transit-orders/:id/receive", handlers.TransitOrderReceive)
+	authRequired.POST("/transit-orders/:id/repack", handlers.TransitOrderRepack)
+	authRequired.POST("/transit-orders/:id/ship", handlers.TransitOrderShip)
+
 			// Repair request routes (Issue #1110)
 			repairReqRequired := authRequired
 			repairReqRequired.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
