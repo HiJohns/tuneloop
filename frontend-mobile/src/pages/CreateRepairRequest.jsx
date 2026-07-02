@@ -15,6 +15,48 @@ export default function CreateRepairRequest() {
     description: '', photos: [], video_url: '',
     site_id: '', merchant_id: '',
   })
+  const [merchants, setMerchants] = useState([])
+  const [hasControlled, setHasControlled] = useState(false)
+  const [cooperativeMode, setCooperativeMode] = useState(false)
+  const [sites, setSites] = useState([])
+  const [transitSites, setTransitSites] = useState([])
+  const [showMerchantPicker, setShowMerchantPicker] = useState(false)
+  const [showSitePicker, setShowSitePicker] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const debounceTimer = useRef(null)
+
+  const handleSnChange = (val) => {
+    setForm(p => ({ ...p, sn: val }))
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(async () => {
+      if (!val.trim()) return
+      try {
+        const resp = await apiFetch(`${baseUrl}/user-instruments/lookup?sn=${val}`)
+        const r = await resp.json()
+        if (r.code === 20000 && r.data?.instrument) {
+          setForm(p => ({ ...p, sn: val, instrument_type: r.data.instrument.instrument_type || p.instrument_type, brand: r.data.instrument.brand || p.brand, model: r.data.instrument.model || p.model }))
+        }
+      } catch {}
+    }, 500)
+  }
+
+  useEffect(() => {
+    apiFetch(`${baseUrl}/public/merchants`).then(r => r.json()).then(r => {
+      if (r.code === 20000) { setMerchants(r.data?.merchants || []); setHasControlled(r.data?.has_controlled || false) }
+    }).catch(() => {})
+  }, [])
+
+  const handleMerchantSelect = (m) => {
+    setForm(p => ({ ...p, merchant_id: m.id, site_id: '' }))
+    setCooperativeMode(false)
+    setShowMerchantPicker(false)
+    if (m.id === '__cooperative__') {
+      setCooperativeMode(true)
+      apiFetch(`${baseUrl}/public/sites?type=transit`).then(r => r.json()).then(r => { if (r.code === 20000) setTransitSites(r.data?.list || []) }).catch(() => {})
+    } else {
+      apiFetch(`${baseUrl}/public/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => { if (r.code === 20000) setSites(r.data?.list || []) }).catch(() => {})
+    }
+  }
 
   const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
     form.description && form.photos.length > 0 && form.site_id
