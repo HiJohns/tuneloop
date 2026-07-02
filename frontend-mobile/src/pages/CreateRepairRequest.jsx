@@ -29,6 +29,28 @@ export default function CreateRepairRequest() {
     setSubmitting(false)
   }
 
+  const handleSubmit = async () => {
+    if (!isFormValid) { alert('请填写所有必填项'); return }
+    setSubmitting(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        alert('报修单已提交，等待评估')
+        navigate(-1)
+      } else {
+        alert(r.message || '提交失败')
+      }
+    } catch (err) {
+      alert('提交失败: ' + (err.message || ''))
+    }
+    setSubmitting(false)
+  }
+
   return (
     <View className="h-screen bg-zinc-50 flex flex-col">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
