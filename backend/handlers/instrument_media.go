@@ -33,6 +33,7 @@ var validBatchTypes = map[string]bool{
 	"relaying":   true,
 	"receiving":  true,
 	"repaired":   true,
+	"repair":     true,
 }
 
 func buildStructuredKey(ctx context.Context, originalKey string, batchType string, seq int) string {

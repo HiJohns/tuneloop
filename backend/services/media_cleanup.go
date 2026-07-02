@@ -3,8 +3,6 @@ package services
 import (
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -42,7 +40,7 @@ func (s *MediaCleanupService) Start() {
 			}
 		}
 	}()
-	log.Println("[MediaCleanupService] started - runs daily")
+	log.Println("[MediaCleanupService] started - runs daily (retention: 180 days default)")
 }
 
 func (s *MediaCleanupService) Stop() {
@@ -50,38 +48,39 @@ func (s *MediaCleanupService) Stop() {
 }
 
 func (s *MediaCleanupService) clean() error {
-	retentionYears := 5
-	if envVal := os.Getenv("MEDIA_RETENTION_YEARS"); envVal != "" {
-		if parsed, err := strconv.Atoi(envVal); err == nil && parsed > 0 {
-			retentionYears = parsed
+	retentionDays := 180
+	var setting models.SystemSetting
+	if err := s.db.Where("setting_key = ?", "media_retention_days").First(&setting).Error; err == nil {
+		if parsed, err := time.ParseDuration(setting.SettingValue + "h"); err == nil {
+			retentionDays = int(parsed.Hours() / 24)
 		}
 	}
-
-	cutoff := time.Now().AddDate(-retentionYears, 0, 0)
-
-	var expiredBatches []struct {
-		BatchID   string
-		BatchType string
-		Count     int
-	}
-	if err := s.db.Model(&models.InstrumentMedia{}).
-		Select("batch_id, batch_type, count(*) as count").
-		Where("created_at < ?", cutoff).
-		Group("batch_id, batch_type").
-		Find(&expiredBatches).Error; err != nil {
-		return fmt.Errorf("failed to query expired media: %w", err)
+	if retentionDays < 1 {
+		retentionDays = 180
 	}
 
-	if len(expiredBatches) == 0 {
+	cutoff := time.Now().AddDate(0, 0, -retentionDays)
+
+	// Only delete process record types (not display)
+	var count int64
+	s.db.Model(&models.InstrumentMedia{}).
+		Where("batch_type != ? AND created_at < ?", "display", cutoff).
+		Count(&count)
+
+	if count == 0 {
 		return nil
 	}
 
-	log.Printf("[MediaCleanupService] Found %d expired media batch(es) older than %d years", len(expiredBatches), retentionYears)
-	for _, b := range expiredBatches {
-		log.Printf("[MediaCleanupService]   Batch %s (%s): %d files", b.BatchID, b.BatchType, b.Count)
+	log.Printf("[MediaCleanupService] Deleting %d expired process records (older than %d days)", count, retentionDays)
+
+	result := s.db.Where("batch_type != ? AND created_at < ?", "display", cutoff).
+		Delete(&models.InstrumentMedia{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete expired media: %w", result.Error)
 	}
 
-	log.Printf("[MediaCleanupService] WARNING: %d expired batch(es) requires manual confirmation to delete. Run: UPDATE instrument_media SET deleted_at = NOW() WHERE created_at < NOW() - INTERVAL '%d years'", len(expiredBatches), retentionYears)
+	// Also delete the physical files via storage (simplified: log only)
+	log.Printf("[MediaCleanupService] Deleted %d records from DB. Physical file cleanup requires storage service sweep.", result.RowsAffected)
 
 	return nil
 }
