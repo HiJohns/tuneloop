@@ -196,6 +196,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/categories", handlers.GetPublicCategories)
 	api.GET("/public/sites", handlers.GetPublicSites)
 	api.GET("/public/banners", bannerHandler.GetPublicBanners)
+	api.GET("/public/merchants", handlers.ListPublicMerchants)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())
