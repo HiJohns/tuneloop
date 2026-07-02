@@ -36,6 +36,8 @@ import AppealManagement from './pages/AppealManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import WarningManagement from './pages/admin/warnings/WarningManagement'
+import WarningSettings from './pages/admin/warnings/WarningSettings'
+import TransitRouteConfig from './pages/admin/transit/TransitRouteConfig'
 import WarehouseManagement from './pages/WarehouseManagement'
 import LogoutPage from './pages/LogoutPage'
 import UserRental from './pages/UserRental'
@@ -356,6 +358,7 @@ function MainLayout() {
       { key: '/system/warning-settings', label: '警告配置', permission: { sysPermBits: [5] } },
     ]
   },
+  { key: '/transit-routes', icon: <ToolOutlined />, label: '中转路由', permission: { sysPermBits: [5] } },
   { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
 ]
 
@@ -432,6 +435,7 @@ function onMenuClick(e) {
     '/system/promo-plans': { title: '系统折扣政策', parent: '系统管理' },
     '/system/warnings': { title: '警告管理', parent: '系统管理' },
     '/system/warning-settings': { title: '警告配置', parent: '系统管理' },
+    '/transit-routes': { title: '中转路由', parent: '系统管理' },
   }
 
 
@@ -587,6 +591,8 @@ function onMenuClick(e) {
             <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
             <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
             <Route path="/system/warnings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningManagement /></ProtectedRoute>} />
+            <Route path="/system/warning-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningSettings /></ProtectedRoute>} />
+            <Route path="/transit-routes" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><TransitRouteConfig /></ProtectedRoute>} />
             <Route path="/merchant/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="merchant" /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
