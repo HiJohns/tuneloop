@@ -158,17 +158,15 @@ func CreateInstrumentMedia(c *gin.Context) {
 
 	tx.Commit()
 
-	// Generate thumbnails for display images
-	if req.IsDisplay {
-		for i, f := range req.Files {
-			if f.FileType == "image" {
-				newKey := buildStructuredKey(ctx, f.FileKey, req.BatchType, i+1)
-				thumbKey := strings.TrimSuffix(newKey, filepath.Ext(newKey)) + "_thumb.jpg"
-				srcPath := filepath.Join(".", "uploads", "media", newKey)
-				if data, err := os.ReadFile(srcPath); err == nil {
-					if thumbData, err := services.GenerateThumbnail(data, 128); err == nil {
-						storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg")
-					}
+	// Generate thumbnails for all image types
+	for i, f := range req.Files {
+		if f.FileType == "image" {
+			newKey := buildStructuredKey(ctx, f.FileKey, req.BatchType, i+1)
+			thumbKey := strings.TrimSuffix(newKey, filepath.Ext(newKey)) + "_thumb.jpg"
+			srcPath := filepath.Join(".", "uploads", "media", newKey)
+			if data, err := os.ReadFile(srcPath); err == nil {
+				if thumbData, err := services.GenerateThumbnail(data, 128); err == nil {
+					storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg")
 				}
 			}
 		}
