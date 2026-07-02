@@ -16,6 +16,9 @@ export default function CreateRepairRequest() {
     site_id: '', merchant_id: '',
   })
 
+  const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
+    form.description && form.photos.length > 0 && form.site_id
+
   const handleSubmit = async () => {
     if (!isFormValid) { alert('请填写所有必填项'); return }
     setSubmitting(true)
