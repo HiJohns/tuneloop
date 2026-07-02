@@ -30,6 +30,20 @@ type activitySession struct {
 	Events    []activityEvent  `json:"events"`
 }
 
+// statusToBatchType maps order status transitions to their relevant batch_type.
+var statusToBatchType = map[string]string{
+	" → pending_shipment": "",
+	" → paid":             "",
+	" → shipped":          "shipping",
+	" → in_lease":         "",
+	" → returning":        "",
+	" → returned":         "receiving",
+	" → completed":        "",
+	" → cancelled":        "",
+	" → assessed":         "receiving",
+	" → maintenance":      "repaired",
+}
+
 // GetInstrumentActivityLog returns the full activity log for an instrument
 func GetInstrumentActivityLog(c *gin.Context) {
 	instrumentID := c.Param("id")
@@ -95,16 +109,22 @@ func GetInstrumentActivityLog(c *gin.Context) {
 				eventName = h.StatusFrom + " → " + h.StatusTo
 			}
 
+			// Determine which batch_type to show for this event
+			eventSuffix := " → " + h.StatusTo
+			batchType := statusToBatchType[eventSuffix]
+
 			var mediaItems []struct {
 				URL       string `json:"url"`
 				BatchType string `json:"batch_type"`
 			}
-			for bt, urls := range mediaByBatchType {
-				for _, u := range urls {
-					mediaItems = append(mediaItems, struct {
-						URL       string `json:"url"`
-						BatchType string `json:"batch_type"`
-					}{URL: u, BatchType: bt})
+			if batchType != "" {
+				if urls, ok := mediaByBatchType[batchType]; ok {
+					for _, u := range urls {
+						mediaItems = append(mediaItems, struct {
+							URL       string `json:"url"`
+							BatchType string `json:"batch_type"`
+						}{URL: u, BatchType: batchType})
+					}
 				}
 			}
 
