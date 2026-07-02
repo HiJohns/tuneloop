@@ -37,6 +37,7 @@ import RepairWorkflow from './pages/RepairWorkflow'
 import CreateRepairRequest from './pages/CreateRepairRequest'
 import RepairRequestDetail from './pages/RepairRequestDetail'
 import ReceivingRepairScan from './pages/ReceivingRepairScan'
+import RepairQuote from './pages/RepairQuote'
 import RepairScan from './pages/RepairScan'
 import OrderDetail from './pages/OrderDetail'
 import Onboarding from './pages/Onboarding'
@@ -190,6 +191,7 @@ function App() {
         <Route path="/create-repair" element={<ProtectedRoute><CreateRepairRequest /></ProtectedRoute>} />
         <Route path="/repair" element={<ProtectedRoute><RepairWorkflow /></ProtectedRoute>} />
         <Route path="/repair-request" element={<ProtectedRoute><RepairRequestDetail /></ProtectedRoute>} />
+        <Route path="/repair-quote" element={<ProtectedRoute><RepairQuote /></ProtectedRoute>} />
         <Route path="/receiving-repair-scan" element={<ProtectedRoute><ReceivingRepairScan /></ProtectedRoute>} />
         <Route path="/staff/repair-scan" element={<ProtectedRoute><RepairScan /></ProtectedRoute>} />
         <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />

@@ -22,6 +22,7 @@ export default {
     'pages/receiving-interface/index',
     'pages/receiving-repair-scan/index',
     'pages/repair/index',
+    'pages/repair-quote/index',
     'pages/repair-request/index',
     'pages/repair-scan/index',
     'pages/return-confirm/index',
