@@ -339,21 +339,22 @@ func GetPublicCategories(c *gin.Context) {
 func GetPublicSites(c *gin.Context) {
 	db := database.GetDB()
 
+	query := db.Where("status = ?", "active")
+
+	if typeFilter := c.Query("type"); typeFilter != "" {
+		query = query.Where("type = ?", typeFilter)
+	}
+	if merchantID := c.Query("merchant_id"); merchantID != "" {
+		query = query.Where("org_id = ?", merchantID)
+	}
+
 	var sites []models.Site
-	if err := db.Where("status = ?", "active").Find(&sites).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to fetch sites",
-		})
+	if err := query.Find(&sites).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "Failed to fetch sites"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": gin.H{
-			"list": sites,
-		},
-	})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": sites}})
 }
 
 // GET /api/public/instruments/:id/pricing-v2 — Public pricing info (no auth)

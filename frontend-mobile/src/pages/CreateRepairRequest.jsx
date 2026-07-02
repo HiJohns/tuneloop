@@ -64,11 +64,11 @@ export default function CreateRepairRequest() {
     if (m.id === '__cooperative__') {
       setCooperativeMode(true)
       // Load transit sites
-      apiFetch(`${baseUrl}/sites?type=transit`).then(r => r.json()).then(r => {
+      apiFetch(`${baseUrl}/public/sites?type=transit`).then(r => r.json()).then(r => {
         if (r.code === 20000) setTransitSites(r.data?.list || [])
       }).catch(() => {})
     } else {
-      apiFetch(`${baseUrl}/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => {
+      apiFetch(`${baseUrl}/public/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => {
         if (r.code === 20000) setSites(r.data?.list || [])
       }).catch(() => {})
     }
