@@ -17,7 +17,10 @@ export default function CreateRepairRequest() {
     site_id: '', merchant_id: '',
   })
   const [merchants, setMerchants] = useState([])
+  const [hasControlled, setHasControlled] = useState(false)
+  const [cooperativeMode, setCooperativeMode] = useState(false)
   const [sites, setSites] = useState([])
+  const [transitSites, setTransitSites] = useState([])
   const [showMerchantPicker, setShowMerchantPicker] = useState(false)
   const [showSitePicker, setShowSitePicker] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -44,20 +47,31 @@ export default function CreateRepairRequest() {
     }, 500)
   }
 
-  // Load merchants
+  // Load merchants from public API
   useEffect(() => {
-    apiFetch(`${baseUrl}/merchants`).then(r => r.json()).then(r => {
-      if (r.code === 20000) setMerchants(r.data?.list || [])
+    apiFetch(`${baseUrl}/public/merchants`).then(r => r.json()).then(r => {
+      if (r.code === 20000) {
+        setMerchants(r.data?.merchants || [])
+        setHasControlled(r.data?.has_controlled || false)
+      }
     }).catch(() => {})
   }, [])
 
   const handleMerchantSelect = (m) => {
     setForm(p => ({ ...p, merchant_id: m.id, site_id: '' }))
+    setCooperativeMode(false)
     setShowMerchantPicker(false)
-    // Load sites for this merchant
-    apiFetch(`${baseUrl}/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => {
-      if (r.code === 20000) setSites(r.data?.list || [])
-    }).catch(() => {})
+    if (m.id === '__cooperative__') {
+      setCooperativeMode(true)
+      // Load transit sites
+      apiFetch(`${baseUrl}/sites?type=transit`).then(r => r.json()).then(r => {
+        if (r.code === 20000) setTransitSites(r.data?.list || [])
+      }).catch(() => {})
+    } else {
+      apiFetch(`${baseUrl}/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => {
+        if (r.code === 20000) setSites(r.data?.list || [])
+      }).catch(() => {})
+    }
   }
 
   const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
@@ -196,16 +210,37 @@ export default function CreateRepairRequest() {
                 <Text className="text-sm text-black">{m.name}</Text>
               </View>
             ))}
+            {hasControlled && (
+              <View className="py-3 border-b border-zinc-50 active:opacity-60"
+                onClick={() => handleMerchantSelect({ id: '__cooperative__', name: '合作商家' })}>
+                <Text className="text-sm text-blue-600 font-bold">合作商家</Text>
+              </View>
+            )}
           </View>
         </View>
       )}
 
       {/* Site picker modal */}
-      {showSitePicker && (
+      {showSitePicker && !cooperativeMode && (
         <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择网点</Text>
             {sites.map(s => (
+              <View key={s.id} className="py-3 border-b border-zinc-50 active:opacity-60"
+                onClick={() => { setForm(p => ({ ...p, site_id: s.id })); setShowSitePicker(false) }}>
+                <Text className="text-sm text-black">{s.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Transit site picker (cooperative mode) */}
+      {showSitePicker && cooperativeMode && (
+        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
+          <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
+            <Text className="text-sm font-bold text-black mb-3">选择中转网点</Text>
+            {transitSites.map(s => (
               <View key={s.id} className="py-3 border-b border-zinc-50 active:opacity-60"
                 onClick={() => { setForm(p => ({ ...p, site_id: s.id })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>

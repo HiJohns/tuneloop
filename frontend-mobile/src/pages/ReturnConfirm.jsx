@@ -127,6 +127,14 @@ export default function ReturnConfirm() {
         </View>
       )}
 
+      {order && order.delivery_address && (
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+          <Text className="text-base font-black text-black mb-3">发回地址</Text>
+          <Text className="text-sm text-zinc-600">{order.delivery_address}</Text>
+          <Text className="text-xs text-red-500 mt-2">* 请确保在物流留言中填写中转单号（若有）</Text>
+        </View>
+      )}
+
       {/* Logistics Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3 flex items-center gap-2">
