@@ -856,6 +856,37 @@ type SystemSetting struct {
 	UpdatedBy    string    `gorm:"type:varchar(255)" json:"updated_by"`
 }
 
+// WarningStatus constants
+const (
+	WarningStatusOpen        = "open"
+	WarningStatusAcknowledged = "acknowledged"
+	WarningStatusResolved    = "resolved"
+)
+
+// WarningSeverity constants
+const (
+	WarningSeverityLow    = "low"
+	WarningSeverityMedium = "medium"
+	WarningSeverityHigh   = "high"
+)
+
+// Warning represents an alert record in the warning system.
+type Warning struct {
+	ID          string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SiteID      string     `gorm:"type:uuid;index" json:"site_id"`
+	MerchantID  string     `gorm:"type:uuid;index" json:"merchant_id"`
+	Reason      string     `gorm:"type:varchar(50);not null" json:"reason"`
+	Category    string     `gorm:"type:varchar(30)" json:"category"`
+	Level       string     `gorm:"type:varchar(10);default:'low'" json:"level"`
+	ObjectType  string     `gorm:"type:varchar(30)" json:"object_type"`
+	ObjectID    string     `gorm:"type:uuid;index" json:"object_id"`
+	Description string     `gorm:"type:text" json:"description"`
+	Status      string     `gorm:"type:varchar(20);default:'open'" json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
+	ResolvedBy  *string    `gorm:"type:uuid" json:"resolved_by"`
+}
+
 // Banner stores WeChat homepage carousel images
 type Banner struct {
 	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
