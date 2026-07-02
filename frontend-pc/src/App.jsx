@@ -35,6 +35,7 @@ import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import MaintenanceSessionManagement from './pages/MaintenanceSessionManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
+import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarehouseManagement from './pages/WarehouseManagement'
 import LogoutPage from './pages/LogoutPage'
 import UserRental from './pages/UserRental'
@@ -351,6 +352,8 @@ function MainLayout() {
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
       { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
+      { key: '/system/warnings', label: '警告管理', permission: { sysPermBits: [5] } },
+      { key: '/system/warning-settings', label: '警告配置', permission: { sysPermBits: [5] } },
     ]
   },
   { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
@@ -427,14 +430,10 @@ function onMenuClick(e) {
     '/system/membership-levels': { title: '会员级别管理', parent: '系统管理' },
     '/system/rebate-config': { title: '返点配置', parent: '系统管理' },
     '/system/promo-plans': { title: '系统折扣政策', parent: '系统管理' },
-    '/merchant/promo-plans': { title: '商户折扣政策', parent: '组织管理' },
-    '/staff': { title: '人员管理', parent: '组织管理' },
-    '/appeals': { title: '申诉处理', parent: '组织管理' },
-    '/expire-warning': { title: '到期预警', parent: '库存监控' },
-    '/overdue-alerts': { title: '逾期告警', parent: '库存监控' },
-    '/user/profile': { title: '个人中心' },
-
+    '/system/warnings': { title: '警告管理', parent: '系统管理' },
+    '/system/warning-settings': { title: '警告配置', parent: '系统管理' },
   }
+
 
   if (routeMap[location.pathname]) {
     pageTitle = routeMap[location.pathname].title
@@ -587,6 +586,7 @@ function onMenuClick(e) {
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
             <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
             <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
+            <Route path="/system/warnings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningManagement /></ProtectedRoute>} />
             <Route path="/merchant/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="merchant" /></ProtectedRoute>} />
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
