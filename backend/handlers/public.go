@@ -341,11 +341,17 @@ func GetPublicSites(c *gin.Context) {
 
 	query := db.Where("status = ?", "active")
 
+	if merchantID := c.Query("merchant_id"); merchantID != "" {
+		var merchant models.Merchant
+		if err := db.Where("id = ?", merchantID).First(&merchant).Error; err == nil {
+			query = query.Where("org_id = ?", merchant.OrgID)
+			if merchant.TenantID != "" {
+				query = query.Where("tenant_id = ?", merchant.TenantID)
+			}
+		}
+	}
 	if typeFilter := c.Query("type"); typeFilter != "" {
 		query = query.Where("type = ?", typeFilter)
-	}
-	if merchantID := c.Query("merchant_id"); merchantID != "" {
-		query = query.Where("org_id = ?", merchantID)
 	}
 
 	var sites []models.Site
