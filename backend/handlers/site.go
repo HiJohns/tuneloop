@@ -213,6 +213,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		Latitude      float64 `json:"latitude"`
 		Longitude     float64 `json:"longitude"`
 		Phone         string  `json:"phone"`
+		PostalCode    string  `json:"postal_code"`
 		BusinessHours string  `json:"business_hours"`
 		ParentID      *string `json:"parent_id"`
 		ManagerID     *string `json:"manager_id"`

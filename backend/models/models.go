@@ -71,7 +71,7 @@ type Instrument struct {
 	BaseDailyRate   *float64         `gorm:"type:decimal(10,2)" json:"base_daily_rate"`
 	PricingOverrides string          `gorm:"type:jsonb;default:'{}'" json:"pricing_overrides"`
 	StockStatus     string           `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
-	RepairStatus    string           `gorm:"type:varchar(20);default:null" json:"repair_status"`
+	RepairStatus    string           `gorm:"type:varchar(20)" json:"repair_status"`
 	RepairWorkerID  *string          `gorm:"type:uuid;index" json:"repair_worker_id"`
 	Properties      string           `gorm:"type:jsonb;default:'{}'" json:"properties"`
 	MinMembershipLevel *int          `gorm:"type:int" json:"min_membership_level"`
@@ -245,6 +245,7 @@ type Site struct {
 	Latitude      float64    `gorm:"type:decimal(10,6)" json:"latitude"`
 	Longitude     float64    `gorm:"type:decimal(10,6)" json:"longitude"`
 	Phone         string     `gorm:"type:varchar(50)" json:"phone"`
+	PostalCode    string     `gorm:"type:varchar(20)" json:"postal_code"`
 	BusinessHours string     `gorm:"type:varchar(100)" json:"business_hours"`
 	Status        string     `gorm:"type:varchar(20);default:'active'" json:"status"`
 	ManagerPending bool     `gorm:"default:false" json:"manager_pending"`
@@ -393,9 +394,9 @@ type UserInstrument struct {
 
 // RepairRequestStatus constants
 const (
-	RepairReqStatusPendingShip  = "pending_ship"
+	RepairReqStatusPendingShip       = "pending_ship"
 	RepairReqStatusPendingAssessment = "pending_assessment"
-	RepairReqStatusShipping     = "shipping"
+	RepairReqStatusShipping          = "shipping"
 	RepairReqStatusInspecting   = "inspecting"
 	RepairReqStatusQuoted       = "quoted"
 	RepairReqStatusPendingPay   = "pending_payment"
@@ -476,16 +477,386 @@ type Tenant struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// RepairQuote stores a repair quote submitted by a technician for assessment.
-type RepairQuote struct {
+// InstrumentLevel represents the skill level for instruments
+type InstrumentLevel struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Caption   string    `gorm:"type:varchar(50)uniqueIndexnot null" json:"caption"`
+	Code      string    `gorm:"type:varchar(20)uniqueIndexnot null" json:"code"`
+	SortOrder int       `gorm:"default:0" json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Property struct {
+	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID           string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	Name               string    `gorm:"type:varchar(100);not null" json:"name"`
+	PropertyType       string    `gorm:"type:varchar(20);not null" json:"property_type"`
+	IsRequired         bool      `gorm:"default:false" json:"is_required"`
+	Unit               string    `gorm:"type:varchar(50)" json:"unit"`
+	Caption            string    `gorm:"type:varchar(100);not null" json:"caption"`
+	ScopeType          string    `gorm:"type:varchar(20);default:'global'" json:"scope_type"`
+	RelatedCategoryID  *string   `gorm:"type:uuid;index" json:"related_category_id"`
+	RelatedPropertyID  *string   `gorm:"type:uuid;index" json:"related_property_id"`
+	Description        string    `gorm:"type:text" json:"description"`
+	Status             string    `gorm:"type:varchar(20);default:'active';not null" json:"status"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type PropertyOption struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID         string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	PropertyName     string    `gorm:"type:varchar(100);index" json:"property_name"`
+	Value            string    `gorm:"type:varchar(255);not null" json:"value"`
+	Status           string    `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Alias            *string   `gorm:"type:uuid;index" json:"alias"`
+	ScopeCategoryID  *string   `gorm:"type:uuid;index" json:"scope_category_id"`
+	ScopeParentValue *string   `gorm:"type:varchar(255)" json:"scope_parent_value"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type InstrumentProperty struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	PropertyName string    `gorm:"type:varchar(100);index" json:"property_name"`
+	Value        string    `gorm:"type:varchar(255)" json:"value"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// MaintenanceWorker 维修师傅表
+type MaintenanceWorker struct {
+	ID        string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID     string     `gorm:"type:uuid;index" json:"org_id"`
+	SiteID    *string    `gorm:"type:uuid;index" json:"site_id"`
+	Name      string     `gorm:"type:varchar(100);not null" json:"name"`
+	Phone     string     `gorm:"type:varchar(50)" json:"phone"`
+	JoinDate  *time.Time `json:"join_date"`
+	Status    string     `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+// MaintenanceSession 维修会话表
+type MaintenanceSession struct {
+	ID                  string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID            string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID               string     `gorm:"type:uuid;index" json:"org_id"`
+	MaintenanceTicketID string     `gorm:"type:uuid;not null" json:"maintenance_ticket_id"`
+	WorkerID            *string    `gorm:"type:uuid;index" json:"worker_id"`
+	Status              string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	StartTime           *time.Time `json:"start_time"`
+	EndTime             *time.Time `json:"end_time"`
+	ProgressNotes       string     `gorm:"type:text" json:"progress_notes"`
+	CompletionNotes     string     `gorm:"type:text" json:"completion_notes"`
+	InspectionResult    string     `gorm:"type:varchar(20)" json:"inspection_result"`
+	InspectionComment   string     `gorm:"type:text" json:"inspection_comment"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+// MaintenanceSessionRecord 维修记录表
+type MaintenanceSessionRecord struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SessionID  string    `gorm:"type:uuid;index;not null" json:"session_id"`
+	RecordType string    `gorm:"type:varchar(20)" json:"record_type"`
+	Content    string    `gorm:"type:text" json:"content"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+// RepairRecord stores individual repair session records (comments + photos)
+type RepairRecord struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	InstrumentID string    `gorm:"type:uuid;not null;index" json:"instrument_id"`
+	WorkerID     string    `gorm:"type:varchar(255);not null" json:"worker_id"`
+	Comment      string    `gorm:"type:text" json:"comment"`
+	Photos       string    `gorm:"type:jsonb;default:'[]'" json:"photos"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// LeaseSession 租赁会话表
+type LeaseSession struct {
+	ID              string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID        string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID           *string    `gorm:"type:uuid;index" json:"org_id"`
+	OrderID         string     `gorm:"type:uuid;not null;index" json:"order_id"`
+	UserID          string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	InstrumentID    string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	StartDate       time.Time  `gorm:"type:date" json:"start_date"`
+	EndDate         time.Time  `gorm:"type:date" json:"end_date"`
+	ActualEndDate   *time.Time `gorm:"type:date" json:"actual_end_date,omitempty"`
+	Status          string     `gorm:"type:varchar(20);default:'active';index" json:"status"`
+	DeliveryAddress *string    `gorm:"type:jsonb" json:"delivery_address,omitempty"`
+	ReturnMethod    string     `gorm:"type:varchar(20)" json:"return_method"`
+	ReturnTracking  string     `gorm:"type:varchar(100)" json:"return_tracking"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+// ForwardingSession 转发会话表
+type ForwardingSession struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID         string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID            string    `gorm:"type:uuid;index" json:"org_id"`
+	LeaseSessionID   string    `gorm:"type:uuid;not null;index" json:"lease_session_id"`
+	OrderID          string    `gorm:"type:uuid;index" json:"order_id"`
+	MerchantID       string    `gorm:"type:uuid;index" json:"merchant_id"`
+	ForwardingSiteID string    `gorm:"type:uuid;index" json:"forwarding_site_id"`
+	Direction        string    `gorm:"type:varchar(20);not null" json:"direction"`
+	Status           string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	SessionCode      string    `gorm:"type:varchar(6);uniqueIndex" json:"session_code"`
+	InstrumentID     string    `gorm:"type:uuid;index" json:"instrument_id"`
+	TrackingNumbers  string    `gorm:"type:jsonb" json:"tracking_numbers"`
+	Notes            string    `gorm:"type:text" json:"notes"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+// ElectronicContract 电子合同表
+type ElectronicContract struct {
+	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          *string   `gorm:"type:uuid;index" json:"org_id"`
+	OrderID        string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	UserID         string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	InstrumentID   string    `gorm:"type:uuid;not null" json:"instrument_id"`
+	ContractURL    string    `gorm:"type:varchar(500);not null" json:"contract_url"`
+	ContractNumber string    `gorm:"type:varchar(50);unique" json:"contract_number"`
+	GeneratedAt    time.Time `json:"generated_at"`
+	Status         string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// DamageReport 定损报告表
+type DamageReport struct {
+	ID                string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID          string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID             string     `gorm:"type:uuid;index" json:"org_id"`
+	LeaseID           string     `gorm:"type:uuid;not null;index" json:"lease_id"`
+	InstrumentID      string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	UserID            string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	DamageAmount      *float64   `gorm:"type:decimal(10,2)" json:"damage_amount,omitempty"`
+	DamageDescription string     `gorm:"type:text" json:"damage_description"`
+	AssessedBy        *string    `gorm:"type:uuid;index" json:"assessed_by"`
+	AssessedAt        *time.Time `json:"assessed_at"`
+	DepositDeducted   float64    `gorm:"type:decimal(10,2);default:0" json:"deposit_deducted"`
+	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+// DamageAssessment 定损评估记录表
+type DamageAssessment struct {
+	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID         string     `gorm:"type:uuid;index" json:"org_id"`
+	OrderID       string     `gorm:"type:uuid;not null;index" json:"order_id"`
+	InstrumentID  string     `gorm:"type:uuid;index" json:"instrument_id"`
+	UserID        string     `gorm:"type:uuid;index" json:"user_id"`
+	InspectorID   *string    `gorm:"type:uuid;index" json:"inspector_id"`
+	Condition     string     `gorm:"type:varchar(20)" json:"condition"`
+	Description   string     `gorm:"type:text" json:"description"`
+	Photos        string     `gorm:"type:jsonb" json:"photos"`
+	Notes         string     `gorm:"type:text" json:"notes"`
+	EstimatedCost *float64   `gorm:"type:decimal(10,2)" json:"estimated_cost"`
+	ScanTime      *time.Time `json:"scan_time"`
+	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+// Appeal 申诉记录表
+type Appeal struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string     `gorm:"type:uuid;index" json:"org_id"`
+	SiteID         string     `gorm:"type:uuid;index" json:"site_id"`
+	Category       string     `gorm:"type:varchar(30)" json:"category"`
+	ObjectType     string     `gorm:"type:varchar(30)" json:"object_type"`
+	ObjectID       string     `gorm:"type:uuid;index" json:"object_id"`
+	AppellantID    string     `gorm:"type:varchar(255)" json:"appellant_id"`
+	Description    string     `gorm:"type:text" json:"description"`
+	Images         string     `gorm:"type:jsonb;default:'[]'" json:"images"`
+	DamageReportID string     `gorm:"type:uuid;not null;index" json:"damage_report_id"`
+	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	AppealReason   string     `gorm:"type:text;not null" json:"appeal_reason"`
+	Status         string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
+	SubmittedAt    time.Time  `json:"submitted_at"`
+	ResolvedAt     *time.Time `json:"resolved_at,omitempty"`
+	Resolution     string     `gorm:"type:varchar(20)" json:"resolution"`
+	FinalAmount    *float64   `gorm:"type:decimal(10,2)" json:"final_amount,omitempty"`
+	ManagerComment string     `gorm:"type:text" json:"manager_comment"`
+	ResolvedBy     *string    `gorm:"type:uuid" json:"resolved_by"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	ClosedAt       *time.Time `json:"closed_at"`
+}
+
+// OrderStatusHistory 订单状态历史表
+type OrderStatusHistory struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID      *string   `gorm:"type:uuid;index" json:"org_id"`
+	OrderID    string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	StatusFrom string    `gorm:"type:varchar(20)" json:"status_from"`
+	StatusTo   string    `gorm:"type:varchar(20)" json:"status_to"`
+	Notes      string    `gorm:"type:text" json:"notes"`
+	ChangedBy  *string   `gorm:"type:uuid;index" json:"changed_by"`
+	ChangedAt  time.Time `json:"changed_at"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+func (OrderStatusHistory) TableName() string {
+	return "order_status_history"
+}
+
+// Merchant represents a merchant/organization entity aligned with IAM Organization
+type Merchant struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID        string    `gorm:"type:uuid;index;not null" json:"org_id"`
+	Name         string    `gorm:"type:varchar(255);not null" json:"name"`
+	Code         string    `gorm:"type:varchar(100)" json:"code"`
+	ContactName  string    `gorm:"type:varchar(255)" json:"contact_name"`
+	ContactEmail string    `gorm:"type:varchar(255)" json:"contact_email"`
+	ContactPhone string    `gorm:"type:varchar(50)" json:"contact_phone"`
+	Phone        string    `gorm:"type:varchar(50)" json:"phone"`
+	Address      string    `gorm:"type:text" json:"address"`
+	AdminUID           string    `gorm:"type:uuid;index" json:"admin_uid"`
+	AdminPending       bool      `gorm:"default:false" json:"admin_pending"`
+	Status             string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	MerchantType       string    `gorm:"type:varchar(20);default:'full'" json:"merchant_type"`
+	TransitAddress     string    `gorm:"type:text" json:"transit_address"`
+	TransitPhone       string    `gorm:"type:varchar(50)" json:"transit_phone"`
+	TransitContactName string    `gorm:"type:varchar(255)" json:"transit_contact_name"`
+	RebateOptIn        bool      `gorm:"default:true" json:"rebate_opt_in"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// SiteMember represents the many-to-many relationship between users and sites
+type SiteMember struct {
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID  string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	SiteID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"site_id"`
+	UserID    string    `gorm:"type:uuid;not null;index:idx_site_members_unique" json:"user_id"`
+	Role      string    `gorm:"type:varchar(20);default:'Staff'" json:"role"`
+	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"`
+	IamTaskID string    `gorm:"type:varchar(255)" json:"iam_task_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ConfirmationSession handles user invitation confirmation flow
+type ConfirmationSession struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID          string     `gorm:"type:uuid;index;not null" json:"org_id"`
+	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	ConfirmType    string     `gorm:"type:varchar(20);not null" json:"confirm_type"`
+	ConfirmTarget  string     `gorm:"type:varchar(255);not null" json:"confirm_target"`
+	MerchantID     string     `gorm:"type:uuid;index" json:"merchant_id"`
+	ActionType     string     `gorm:"type:varchar(50);not null" json:"action_type"`
+	ActionTargetID string     `gorm:"type:uuid" json:"action_target_id"`
+	IAMSessionID   string     `gorm:"type:varchar(255);index" json:"iam_session_id"`
+	CallbackURL    string     `gorm:"type:varchar(500)" json:"callback_url"`
+	Status         string     `gorm:"type:varchar(20);default:'waiting';index" json:"status"`
+	Message        string     `gorm:"type:text" json:"message"`
+	Token          string     `gorm:"type:varchar(100);uniqueIndex" json:"token"`
+	ExpiresAt      time.Time  `gorm:"not null" json:"expires_at"`
+	ConfirmedAt    *time.Time `json:"confirmed_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// InstrumentPhotoBatch stores photo batch metadata for instruments
+type InstrumentPhotoBatch struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	BatchType    string    `gorm:"type:varchar(20);not null;index" json:"batch_type"`
+	StoragePath  string    `gorm:"type:varchar(500);not null" json:"storage_path"`
+	OperatorID   string    `gorm:"type:uuid;index" json:"operator_id"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// Role defines a role template with cus_perm codes (IAM cache)
+type Role struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string    `gorm:"type:uuid;not null;uniqueIndex:idx_tenant_code" json:"tenant_id"`
+	IAMTemplateID string    `gorm:"type:varchar(100)" json:"iam_template_id"`
+	Name          string    `gorm:"type:varchar(100);not null" json:"name"`
+	Code          string    `gorm:"type:varchar(50);not null;uniqueIndex:idx_tenant_code" json:"code"`
+	CusPermCodes  pq.StringArray `gorm:"type:text[];default:'{}'" json:"cus_perm_codes"`
+	IsSystem      bool      `gorm:"default:false" json:"is_system"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type PricingTemplate struct {
 	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	RepairRequestID string    `gorm:"type:uuid;index;not null" json:"repair_request_id"`
-	WorkerID        string    `gorm:"type:varchar(255);not null" json:"worker_id"`
-	QuoteAmount     float64   `gorm:"type:decimal(10,2);not null" json:"quote_amount"`
-	Timeframe       string    `gorm:"type:varchar(100)" json:"timeframe"`
-	Comment         string    `gorm:"type:text" json:"comment"`
-	Status          string    `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Code            string    `gorm:"type:varchar(50);uniqueIndex;not null" json:"code"`
+	Name            string    `gorm:"type:varchar(100);not null" json:"name"`
+	Description     string    `gorm:"type:text" json:"description"`
+	ConfigSchema    string    `gorm:"type:jsonb;not null;default:'{}'" json:"config_schema"`
+	IsActive        bool      `gorm:"default:true" json:"is_active"`
+	IsSystemDefault bool      `gorm:"default:false" json:"is_system_default"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type MerchantPricingConfig struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID   string    `gorm:"type:uuid;uniqueIndex;not null" json:"tenant_id"`
+	TemplateID string    `gorm:"type:uuid;not null" json:"template_id"`
+	Config     string    `gorm:"type:jsonb;not null;default:'{}'" json:"config"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	UpdatedBy  string    `gorm:"type:varchar(255)" json:"updated_by"`
+}
+
+type InstrumentMedia struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID        string    `gorm:"type:uuid;index" json:"org_id"`
+	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	BatchID      string    `gorm:"type:uuid;index;not null" json:"batch_id"`
+	BatchType    string    `gorm:"type:varchar(20);not null" json:"batch_type"`
+	FileName     string    `gorm:"type:varchar(255);not null" json:"file_name"`
+	FileType     string    `gorm:"type:varchar(10);not null" json:"file_type"`
+	FileSize     int64     `gorm:"default:0" json:"file_size"`
+	StorageKey   string    `gorm:"type:varchar(500);not null" json:"storage_key"`
+	IsDisplay    bool      `gorm:"default:false" json:"is_display"`
+	SortOrder    int       `gorm:"default:0" json:"sort_order"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// UserAddress stores user's shipping addresses
+type UserAddress struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	UserID        string    `gorm:"type:uuid;index;not null" json:"user_id"`
+	RecipientName string    `gorm:"type:varchar(100)" json:"recipient_name"`
+	Phone         string    `gorm:"type:varchar(50)" json:"phone"`
+	Province      string    `gorm:"type:varchar(50)" json:"province"`
+	City          string    `gorm:"type:varchar(50)" json:"city"`
+	District      string    `gorm:"type:varchar(50)" json:"district"`
+	Detail        string    `gorm:"type:varchar(500)" json:"detail"`
+	PostalCode    string    `gorm:"type:varchar(20)" json:"postal_code"`
+	IsDefault     bool      `gorm:"default:false" json:"is_default"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type SystemSetting struct {
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;index;not null;uniqueIndex:idx_setting_tenant_key" json:"tenant_id"`
+	SettingKey   string    `gorm:"type:varchar(100);not null;uniqueIndex:idx_setting_tenant_key" json:"setting_key"`
+	SettingValue string    `gorm:"type:text;not null;default:''" json:"setting_value"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	UpdatedBy    string    `gorm:"type:varchar(255)" json:"updated_by"`
 }
 
 // TransitRoute maps a controlled site to its transit site.

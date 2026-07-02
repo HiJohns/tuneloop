@@ -2,15 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
-	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // TransitOrderReceive marks a transit order as arrived with photos.
