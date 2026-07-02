@@ -16,76 +16,6 @@ export default function CreateRepairRequest() {
     tracking_company: '', tracking_number: '',
     site_id: '', merchant_id: '',
   })
-  const [merchants, setMerchants] = useState([])
-  const [hasControlled, setHasControlled] = useState(false)
-  const [cooperativeMode, setCooperativeMode] = useState(false)
-  const [sites, setSites] = useState([])
-  const [transitSites, setTransitSites] = useState([])
-  const [showMerchantPicker, setShowMerchantPicker] = useState(false)
-  const [showSitePicker, setShowSitePicker] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const debounceTimer = useRef(null)
-
-  // SN debounce lookup (300-500ms)
-  const handleSnChange = (val) => {
-    setForm(p => ({ ...p, sn: val }))
-    if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    debounceTimer.current = setTimeout(async () => {
-      if (!val.trim()) return
-      try {
-        const resp = await apiFetch(`${baseUrl}/user-instruments/lookup?sn=${val}`)
-        const r = await resp.json()
-        if (r.code === 20000 && r.data?.instrument) {
-          setForm(p => ({
-            ...p, sn: val,
-            instrument_type: r.data.instrument.instrument_type || p.instrument_type,
-            brand: r.data.instrument.brand || p.brand,
-            model: r.data.instrument.model || p.model,
-          }))
-        }
-      } catch {}
-    }, 500)
-  }
-
-  // Load merchants from public API
-  useEffect(() => {
-    apiFetch(`${baseUrl}/public/merchants`).then(r => r.json()).then(r => {
-      if (r.code === 20000) {
-        setMerchants(r.data?.merchants || [])
-        setHasControlled(r.data?.has_controlled || false)
-      }
-    }).catch(() => {})
-  }, [])
-
-  const handleMerchantSelect = (m) => {
-    setForm(p => ({ ...p, merchant_id: m.id, site_id: '' }))
-    setCooperativeMode(false)
-    setShowMerchantPicker(false)
-    if (m.id === '__cooperative__') {
-      setCooperativeMode(true)
-      // Load transit sites
-      apiFetch(`${baseUrl}/public/sites?type=transit`).then(r => r.json()).then(r => {
-        if (r.code === 20000) setTransitSites(r.data?.list || [])
-      }).catch(() => {})
-    } else {
-      apiFetch(`${baseUrl}/public/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => {
-        if (r.code === 20000) setSites(r.data?.list || [])
-      }).catch(() => {})
-    }
-  }
-
-  const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
-    form.description && form.photos.length > 0 && form.site_id
-
-  const handleSubmit = async () => {
-    if (!isFormValid) { alert('请填写所有必填项'); return }
-    setSubmitting(true)
-    try {
-      const resp = await apiFetch(`${baseUrl}/repair-requests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
       const r = await resp.json()
       if (r.code === 20000) {
         alert('报修单已提交')
@@ -185,13 +115,6 @@ export default function CreateRepairRequest() {
               </Button>
             </View>
           )}
-          <View className="border-t border-zinc-100 pt-3">
-            <Text className="text-xs font-medium text-zinc-500 mb-1">物流信息（可选）</Text>
-            <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-              value={form.tracking_company} onChange={e => setForm(p => ({ ...p, tracking_company: e.target.value }))} placeholder="物流公司" />
-            <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
-              value={form.tracking_number} onChange={e => setForm(p => ({ ...p, tracking_number: e.target.value }))} placeholder="物流单号" />
-          </View>
           <Button onClick={handleSubmit} disabled={!isFormValid || submitting}
             className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center mt-2">
             {submitting ? '提交中...' : '提交评估'}
