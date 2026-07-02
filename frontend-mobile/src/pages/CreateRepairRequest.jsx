@@ -84,8 +84,8 @@ export default function CreateRepairRequest() {
   }
 
   return (
-    <View className="h-screen bg-zinc-50 flex flex-col">
-      <View className="bg-white px-4 py-3 border-b border-zinc-100">
+    <View className="h-screen bg-gray-50 flex flex-col">
+      <View className="bg-gradient-to-b from-blue-50 to-white px-4 py-3">
         <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center">创建报修单</Text>
       </View>
@@ -93,34 +93,34 @@ export default function CreateRepairRequest() {
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-3">
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">识别码 *</Text>
-            <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+            <Text className="block text-sm font-medium text-gray-700 mb-1">识别码 *</Text>
+            <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={form.sn} onChange={e => handleSnChange(e.target.value)} placeholder="输入识别码" />
           </View>
           <View className="grid grid-cols-2 gap-2">
             <View>
-              <Text className="block text-xs font-medium text-zinc-500 mb-1">类型 *</Text>
-              <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+              <Text className="block text-sm font-medium text-gray-700 mb-1">类型 *</Text>
+              <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 value={form.instrument_type} onChange={e => setForm(p => ({ ...p, instrument_type: e.target.value }))} placeholder="乐器类型" />
             </View>
             <View>
-              <Text className="block text-xs font-medium text-zinc-500 mb-1">品牌 *</Text>
-              <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+              <Text className="block text-sm font-medium text-gray-700 mb-1">品牌 *</Text>
+              <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 value={form.brand} onChange={e => setForm(p => ({ ...p, brand: e.target.value }))} placeholder="品牌" />
             </View>
           </View>
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">型号 *</Text>
-            <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+            <Text className="block text-sm font-medium text-gray-700 mb-1">型号 *</Text>
+            <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={form.model} onChange={e => setForm(p => ({ ...p, model: e.target.value }))} placeholder="型号" />
           </View>
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">描述 *</Text>
-            <textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm" rows={3}
+            <Text className="block text-sm font-medium text-gray-700 mb-1">描述 *</Text>
+            <textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm" rows={3}
               value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="描述故障情况" />
           </View>
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">照片 *（{form.photos.length} 张）</Text>
+            <Text className="block text-sm font-medium text-gray-700 mb-1">照片 *（{form.photos.length} 张）</Text>
             <View className="grid grid-cols-3 gap-2 mb-2">
               {form.photos.map((file, i) => (
                 <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
@@ -132,7 +132,7 @@ export default function CreateRepairRequest() {
                 </View>
               ))}
               {form.photos.length < 10 && (
-                <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center text-zinc-400 active:opacity-60">
+                <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60">
                   <Camera size={24} />
                   <Text className="text-xs mt-1">拍摄</Text>
                   <input type="file" accept="image/*" capture="environment" multiple className="hidden"
@@ -141,30 +141,30 @@ export default function CreateRepairRequest() {
               )}
             </View>
             {form.photos.length === 0 && (
-              <Text className="text-xs text-red-400">请先拍照存档（至少 1 张）</Text>
+              <Text className="text-xs text-red-500">请先拍照存档（至少 1 张）</Text>
             )}
           </View>
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">视频（可选，估价用）</Text>
-            <label className="flex items-center gap-2 py-2 bg-zinc-100 rounded-lg px-3 active:opacity-60">
-              <Camera size={20} className="text-zinc-500" />
-              <Text className="text-xs text-zinc-600">{form.video_url ? '已选择视频' : '上传视频'}</Text>
+            <Text className="block text-sm font-medium text-gray-700 mb-1">视频（可选，估价用）</Text>
+            <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60">
+              <Camera size={20} className="text-gray-500" />
+              <Text className="text-xs text-gray-600">{form.video_url ? '已选择视频' : '上传视频'}</Text>
               <input type="file" accept="video/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video_url: f.name })) }} />
             </label>
           </View>
           <View>
-            <Text className="block text-xs font-medium text-zinc-500 mb-1">选择商户</Text>
+            <Text className="block text-sm font-medium text-gray-700 mb-1">选择商户</Text>
             <Button onClick={() => setShowMerchantPicker(true)}
-              className="w-full py-2 bg-zinc-100 rounded-lg text-xs text-left px-3 text-zinc-600">
+              className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600">
               {form.merchant_id ? merchants.find(m => m.id === form.merchant_id)?.name || '已选' : '点击选择商户 *'}
             </Button>
           </View>
           {form.merchant_id && (
             <View>
-              <Text className="block text-xs font-medium text-zinc-500 mb-1">选择网点</Text>
+              <Text className="block text-sm font-medium text-gray-700 mb-1">选择网点</Text>
               <Button onClick={() => setShowSitePicker(true)}
-                className="w-full py-2 bg-zinc-100 rounded-lg text-xs text-left px-3 text-zinc-600">
+                className="w-full py-2 bg-gray-100 rounded-lg text-xs text-left px-3 text-gray-600">
                 {form.site_id ? sites.find(s => s.id === form.site_id)?.name || '已选' : '点击选择网点 *'}
               </Button>
             </View>
@@ -182,13 +182,13 @@ export default function CreateRepairRequest() {
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择商户</Text>
             {merchants.map(m => (
-              <View key={m.id} className="py-3 border-b border-zinc-50 active:opacity-60"
+              <View key={m.id} className="py-3 border-b border-gray-50 active:opacity-60"
                 onClick={() => handleMerchantSelect(m)}>
                 <Text className="text-sm text-black">{m.name}</Text>
               </View>
             ))}
             {hasControlled && (
-              <View className="py-3 border-b border-zinc-50 active:opacity-60"
+              <View className="py-3 border-b border-gray-50 active:opacity-60"
                 onClick={() => handleMerchantSelect({ id: '__cooperative__', name: '合作商家' })}>
                 <Text className="text-sm text-blue-600 font-bold">合作商家</Text>
               </View>
@@ -203,7 +203,7 @@ export default function CreateRepairRequest() {
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择网点</Text>
             {sites.map(s => (
-              <View key={s.id} className="py-3 border-b border-zinc-50 active:opacity-60"
+              <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
                 onClick={() => { setForm(p => ({ ...p, site_id: s.id })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>
               </View>
@@ -218,7 +218,7 @@ export default function CreateRepairRequest() {
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-black mb-3">选择中转网点</Text>
             {transitSites.map(s => (
-              <View key={s.id} className="py-3 border-b border-zinc-50 active:opacity-60"
+              <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
                 onClick={() => { setForm(p => ({ ...p, site_id: s.id })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>
               </View>
