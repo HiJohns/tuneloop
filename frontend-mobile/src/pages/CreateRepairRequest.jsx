@@ -12,7 +12,7 @@ export default function CreateRepairRequest() {
 
   const [form, setForm] = useState({
     sn: '', instrument_type: '', brand: '', model: '',
-    description: '', photos: [],
+    description: '', photos: [], video_url: '',
     tracking_company: '', tracking_number: '',
     site_id: '', merchant_id: '',
   })
@@ -147,6 +147,15 @@ export default function CreateRepairRequest() {
             )}
           </View>
           <View>
+            <Text className="block text-xs font-medium text-zinc-500 mb-1">视频（可选，估价用）</Text>
+            <label className="flex items-center gap-2 py-2 bg-zinc-100 rounded-lg px-3 active:opacity-60">
+              <Camera size={20} className="text-zinc-500" />
+              <Text className="text-xs text-zinc-600">{form.video_url ? '已选择视频' : '上传视频'}</Text>
+              <input type="file" accept="video/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video_url: f.name })) }} />
+            </label>
+          </View>
+          <View>
             <Text className="block text-xs font-medium text-zinc-500 mb-1">选择商户</Text>
             <Button onClick={() => setShowMerchantPicker(true)}
               className="w-full py-2 bg-zinc-100 rounded-lg text-xs text-left px-3 text-zinc-600">
@@ -171,7 +180,7 @@ export default function CreateRepairRequest() {
           </View>
           <Button onClick={handleSubmit} disabled={!isFormValid || submitting}
             className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center mt-2">
-            {submitting ? '提交中...' : '提交报修单'}
+            {submitting ? '提交中...' : '提交评估'}
           </Button>
         </View>
       </ScrollView>
