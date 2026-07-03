@@ -444,7 +444,7 @@ func GetPublicInstrumentMedia(c *gin.Context) {
 	}
 
 	var mediaList []models.InstrumentMedia
-	db.Where("instrument_id = ? AND (is_display = ? OR file_type = ?)", id, true, "video").
+	db.Where("(instrument_id = ? OR (object_type = 'instrument' AND object_id = ?)) AND (is_display = ? OR file_type = ?)", id, id, true, "video").
 		Order("sort_order asc, created_at desc").
 		Find(&mediaList)
 
@@ -506,7 +506,7 @@ func GetPublicInstrumentDisplayMedia(c *gin.Context) {
 	}
 
 	var displayMedia []models.InstrumentMedia
-	db.Where("instrument_id = ? AND is_display = ?", id, true).
+	db.Where("(instrument_id = ? OR (object_type = 'instrument' AND object_id = ?)) AND is_display = ?", id, id, true).
 		Order("sort_order asc, created_at desc").
 		Find(&displayMedia)
 
@@ -637,4 +637,43 @@ func ListTransitSites(c *gin.Context) {
 	}}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"sites": sites}})
+}
+
+// LookupInstrumentBySN looks up instrument info by serial number.
+// Checks both instruments and user_instruments tables.
+func LookupInstrumentBySN(c *gin.Context) {
+	sn := c.Query("sn")
+	if sn == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "sn is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var instr models.Instrument
+	if err := db.Where("sn = ?", sn).First(&instr).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+			"instrument": gin.H{
+				"instrument_type": instr.CategoryName,
+				"brand":          "",
+				"model":          "",
+			},
+		}})
+		return
+	}
+
+	var ui models.UserInstrument
+	if err := db.Where("sn = ?", sn).First(&ui).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+			"instrument": gin.H{
+				"instrument_type": ui.InstrumentType,
+				"brand":          ui.Brand,
+				"model":          ui.Model,
+			},
+		}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"instrument": nil}})
 }

@@ -59,9 +59,11 @@ func CreateInstrumentMedia(c *gin.Context) {
 	}
 
 	var req struct {
-		BatchType string `json:"batch_type"`
-		IsDisplay bool   `json:"is_display"`
-		Files     []struct {
+		BatchType  string `json:"batch_type"`
+		IsDisplay  bool   `json:"is_display"`
+		ObjectType string `json:"object_type"`
+		ObjectID   string `json:"object_id"`
+		Files      []struct {
 			FileKey   string `json:"file_key"`
 			FileType  string `json:"file_type"`
 			SortOrder int    `json:"sort_order"`
@@ -108,6 +110,16 @@ func CreateInstrumentMedia(c *gin.Context) {
 	}
 
 	var hasVideo bool
+	var videoCount int
+	for _, f := range req.Files {
+		if f.FileType == "video" {
+			videoCount++
+		}
+	}
+	if videoCount > 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40005, "message": "at most 1 video per batch"})
+		return
+	}
 	for _, f := range req.Files {
 		if f.FileType == "video" {
 			hasVideo = true
@@ -137,10 +149,16 @@ func CreateInstrumentMedia(c *gin.Context) {
 			log.Printf("[InstrumentMedia] Rename failed, using original key: %v", err)
 			newKey = f.FileKey
 		}
+		var objectID *string
+		if req.ObjectID != "" {
+			objectID = &req.ObjectID
+		}
 		media := models.InstrumentMedia{
 			TenantID:     tenantID,
 			OrgID:        middleware.GetOrgID(ctx),
-			InstrumentID: instrumentID,
+			InstrumentID: &instrumentID,
+			ObjectType:   req.ObjectType,
+			ObjectID:     objectID,
 			BatchID:      batchID,
 			BatchType:    req.BatchType,
 			FileName:     filepath.Base(f.FileKey),
@@ -210,7 +228,7 @@ func generateVideoThumbnail(c *gin.Context, db *gorm.DB, tenantID, instrumentID,
 	thumb := models.InstrumentMedia{
 		TenantID:     tenantID,
 		OrgID:        video.OrgID,
-		InstrumentID: instrumentID,
+		InstrumentID: &instrumentID,
 		BatchID:      batchID,
 		BatchType:    video.BatchType,
 		FileName:     filepath.Base(thumbKey),
@@ -324,7 +342,7 @@ func GetInstrumentMedia(c *gin.Context) {
 	storage := services.MediaStorageFromContext(c)
 
 	var mediaList []models.InstrumentMedia
-	if err := db.Where("instrument_id = ? AND tenant_id = ?", instrumentID, tenantID).
+	if err := db.Where("tenant_id = ? AND (instrument_id = ? OR (object_type = 'instrument' AND object_id = ?))", tenantID, instrumentID, instrumentID).
 		Order("sort_order asc, created_at desc").
 		Find(&mediaList).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query media"})
@@ -527,7 +545,7 @@ func UploadDisplayImage(c *gin.Context) {
 		ID:           uuid.New().String(),
 		TenantID:     tenantID,
 		OrgID:        orgID,
-		InstrumentID: instrumentID,
+		InstrumentID: &instrumentID,
 		BatchID:      uuid.New().String(),
 		BatchType:    "display",
 		FileName:     header.Filename,
