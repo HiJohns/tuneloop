@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -311,6 +312,27 @@ func (h *RepairHandler) AddRecord(c *gin.Context) {
 	if err := db.Create(&record).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create record"})
 		return
+	}
+
+	if len(req.Photos) > 0 {
+		tenantID := middleware.GetTenantID(ctx)
+		orgID := middleware.GetOrgID(ctx)
+		batchID := uuid.New().String()
+		for i, url := range req.Photos {
+			media := models.InstrumentMedia{
+				TenantID:     tenantID,
+				OrgID:        orgID,
+				InstrumentID: &instrumentID,
+				BatchID:      batchID,
+				BatchType:    "repair",
+				FileName:     filepath.Base(url),
+				FileType:     "image",
+				StorageKey:   url,
+				IsDisplay:    false,
+				SortOrder:    i,
+			}
+			db.Create(&media)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"id": record.ID}})

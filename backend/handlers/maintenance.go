@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 	"tuneloop-backend/database"
@@ -11,6 +12,7 @@ import (
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -396,6 +398,25 @@ func (h *MaintenanceHandler) UpdateTicketStatus(c *gin.Context) {
 	if len(req.RepairPhotos) > 0 {
 		photosJSON := fmt.Sprintf(`["%s"]`, strings.Join(req.RepairPhotos, `","`))
 		updates["repair_photos"] = photosJSON
+
+		tenantID := middleware.GetTenantID(c.Request.Context())
+		orgID := middleware.GetOrgID(c.Request.Context())
+		batchID := uuid.New().String()
+		for i, url := range req.RepairPhotos {
+			media := models.InstrumentMedia{
+				TenantID:     tenantID,
+				OrgID:        orgID,
+				InstrumentID: &ticket.InstrumentID,
+				BatchID:      batchID,
+				BatchType:    "repair",
+				FileName:     filepath.Base(url),
+				FileType:     "image",
+				StorageKey:   url,
+				IsDisplay:    false,
+				SortOrder:    i,
+			}
+			db.Create(&media)
+		}
 	}
 
 	if req.Status == models.TicketStatusCompleted {
@@ -573,6 +594,25 @@ func (h *MaintenanceHandler) CompleteTicket(c *gin.Context) {
 	if len(req.Photos) > 0 {
 		photosJSON := fmt.Sprintf(`["%s"]`, strings.Join(req.Photos, `","`))
 		updates["completion_photos"] = photosJSON
+
+		tenantID := middleware.GetTenantID(c.Request.Context())
+		orgID := middleware.GetOrgID(c.Request.Context())
+		batchID := uuid.New().String()
+		for i, url := range req.Photos {
+			media := models.InstrumentMedia{
+				TenantID:     tenantID,
+				OrgID:        orgID,
+				InstrumentID: &ticket.InstrumentID,
+				BatchID:      batchID,
+				BatchType:    "repaired",
+				FileName:     filepath.Base(url),
+				FileType:     "image",
+				StorageKey:   url,
+				IsDisplay:    false,
+				SortOrder:    i,
+			}
+			db.Create(&media)
+		}
 	}
 
 	if err := db.Model(&ticket).Updates(updates).Error; err != nil {

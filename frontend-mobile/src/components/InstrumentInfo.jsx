@@ -5,15 +5,17 @@ import { ArrowLeft, ChevronRight, Package } from 'lucide-react'
 export default function InstrumentInfo({ instrument, onClick }) {
   const [imageIndex, setImageIndex] = useState(0)
 
-  const thumbnail = instrument?.thumbnail
-  const imgs = (() => {
+  const displayMedia = instrument?.media?.display || []
+  const mediaImages = displayMedia.map(m => m.url)
+  const coverImage = instrument?.cover_image || instrument?.thumbnail || instrument?.poster || ''
+  const legacyImgs = (() => {
     try {
       return typeof instrument?.images === 'string' ? JSON.parse(instrument.images) : (instrument?.images || [])
     } catch { return [] }
   })()
-  const poster = instrument?.poster
-  const baseImgs = thumbnail ? [thumbnail, ...(Array.isArray(imgs) ? imgs : [])] : (Array.isArray(imgs) ? imgs : [])
-  const allImgs = poster ? [poster, ...baseImgs.filter(u => u !== poster)] : baseImgs
+  const allImgs = mediaImages.length > 0 ? mediaImages
+    : coverImage ? [coverImage, ...legacyImgs]
+    : (Array.isArray(legacyImgs) ? legacyImgs : [])
   const hasImgs = allImgs.length > 0
   const idx = imageIndex % Math.max(allImgs.length, 1)
 

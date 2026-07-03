@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 	"tuneloop-backend/database"
@@ -89,6 +90,10 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		VideoURL         string   `json:"video_url"`
 		TrackingCompany  string   `json:"tracking_company"`
 		TrackingNumber   string   `json:"tracking_number"`
+		SN               string   `json:"sn"`
+		InstrumentType   string   `json:"instrument_type"`
+		Brand            string   `json:"brand"`
+		Model            string   `json:"model"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
@@ -98,6 +103,26 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	userID := middleware.GetUserID(ctx)
+
+	userInstrumentID := body.UserInstrumentID
+	if userInstrumentID == "" && body.SN != "" {
+		var existing models.UserInstrument
+		if err := db.Where("sn = ? AND user_id = ?", body.SN, userID).First(&existing).Error; err != nil {
+			newUI := models.UserInstrument{
+				ID:             uuid.New().String(),
+				UserID:         userID,
+				SN:             body.SN,
+				InstrumentType: body.InstrumentType,
+				Brand:          body.Brand,
+				Model:          body.Model,
+				CreatedAt:      time.Now(),
+			}
+			db.Create(&newUI)
+			userInstrumentID = newUI.ID
+		} else {
+			userInstrumentID = existing.ID
+		}
+	}
 
 	status := models.RepairReqStatusPendingAssessment
 	if body.TrackingNumber != "" {
@@ -125,6 +150,47 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 	if err := db.Create(&req).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create"})
 		return
+	}
+
+	objectID := req.ID
+	if len(body.Photos) > 0 || body.VideoURL != "" {
+		tenantID := middleware.GetTenantID(ctx)
+		orgID := middleware.GetOrgID(ctx)
+		batchID := uuid.New().String()
+		seq := 0
+		for _, url := range body.Photos {
+			media := models.InstrumentMedia{
+				TenantID:   tenantID,
+				OrgID:      orgID,
+				ObjectType: "repair_request",
+				ObjectID:   &objectID,
+				BatchID:    batchID,
+				BatchType:  "repair",
+				FileName:   filepath.Base(url),
+				FileType:   "image",
+				StorageKey: url,
+				IsDisplay:  false,
+				SortOrder:  seq,
+			}
+			db.Create(&media)
+			seq++
+		}
+		if body.VideoURL != "" {
+			media := models.InstrumentMedia{
+				TenantID:   tenantID,
+				OrgID:      orgID,
+				ObjectType: "repair_request",
+				ObjectID:   &objectID,
+				BatchID:    batchID,
+				BatchType:  "repair",
+				FileName:   filepath.Base(body.VideoURL),
+				FileType:   "video",
+				StorageKey: body.VideoURL,
+				IsDisplay:  false,
+				SortOrder:  seq,
+			}
+			db.Create(&media)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": req})

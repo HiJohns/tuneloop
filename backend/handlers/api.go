@@ -259,6 +259,9 @@ func GetInstrumentByID(c *gin.Context) {
 			"batches": batches,
 			"video":   videoItem,
 		}
+		if len(displayItems) > 0 {
+			instrumentMap["cover_image"] = displayItems[0].URL
+		}
 	} else {
 		instrumentMap["media"] = gin.H{
 			"display": []interface{}{},
@@ -358,14 +361,18 @@ func GetInstruments(c *gin.Context) {
 	if len(instIDs) > 0 {
 		db.Where("instrument_id IN ? AND file_type = ?", instIDs, "image").Order("sort_order asc, created_at desc").Find(&allMedia)
 		for _, m := range allMedia {
-			if _, exists := thumbMap[m.InstrumentID]; !exists {
+			if m.InstrumentID == nil {
+				continue
+			}
+			id := *m.InstrumentID
+			if _, exists := thumbMap[id]; !exists {
 				key := normalizeMediaKey(m.StorageKey)
 				storageSvc := services.NewMediaStorage()
 				url, _ := storageSvc.GetURL(ctx, key)
 				if url == "" {
 					url = "/uploads/media/" + key
 				}
-				thumbMap[m.InstrumentID] = url
+				thumbMap[id] = url
 			}
 		}
 	}

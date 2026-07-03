@@ -347,7 +347,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 				ID:           uuid.New().String(),
 				TenantID:     tenantID,
 				OrgID:        order.OrgID,
-				InstrumentID: order.InstrumentID,
+				InstrumentID: &order.InstrumentID,
 				BatchID:      batchID,
 				BatchType:    "receiving",
 				FileName:     fmt.Sprintf("return_%d.jpg", i+1),

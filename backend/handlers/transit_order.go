@@ -3,11 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"time"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // TransitOrderReceive marks a transit order as arrived with photos.
@@ -25,11 +28,35 @@ func TransitOrderReceive(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	photosJSON, _ := json.Marshal(req.Photos)
 
+	objectID := id
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+
 	db.Model(&models.TransitOrder{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"status":       models.TransitOrderArrived,
+		"status":        models.TransitOrderArrived,
 		"unpack_photos": string(photosJSON),
-		"updated_at":   time.Now(),
+		"updated_at":    time.Now(),
 	})
+
+	if len(req.Photos) > 0 {
+		batchID := uuid.New().String()
+		for i, url := range req.Photos {
+			media := models.InstrumentMedia{
+				TenantID:   tenantID,
+				OrgID:      orgID,
+				ObjectType: "transit_order",
+				ObjectID:   &objectID,
+				BatchID:    batchID,
+				BatchType:  "relaying",
+				FileName:   filepath.Base(url),
+				FileType:   "image",
+				StorageKey: url,
+				IsDisplay:  false,
+				SortOrder:  i,
+			}
+			db.Create(&media)
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "received"})
 }
 
@@ -50,13 +77,37 @@ func TransitOrderRepack(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	photosJSON, _ := json.Marshal(req.Photos)
 
+	objectID := id
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+
 	db.Model(&models.TransitOrder{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"status":                models.TransitOrderRepacked,
-		"repack_company":        req.Company,
+		"status":                 models.TransitOrderRepacked,
+		"repack_company":         req.Company,
 		"repack_tracking_number": req.Number,
-		"unpack_photos":         string(photosJSON),
-		"updated_at":            time.Now(),
+		"unpack_photos":          string(photosJSON),
+		"updated_at":             time.Now(),
 	})
+
+	if len(req.Photos) > 0 {
+		batchID := uuid.New().String()
+		for i, url := range req.Photos {
+			media := models.InstrumentMedia{
+				TenantID:   tenantID,
+				OrgID:      orgID,
+				ObjectType: "transit_order",
+				ObjectID:   &objectID,
+				BatchID:    batchID,
+				BatchType:  "relaying",
+				FileName:   filepath.Base(url),
+				FileType:   "image",
+				StorageKey: url,
+				IsDisplay:  false,
+				SortOrder:  i,
+			}
+			db.Create(&media)
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repacked"})
 }
 

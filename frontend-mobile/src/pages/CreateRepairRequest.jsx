@@ -12,7 +12,7 @@ export default function CreateRepairRequest() {
 
   const [form, setForm] = useState({
     sn: '', instrument_type: '', brand: '', model: '',
-    description: '', photos: [], video_url: '',
+    description: '', photos: [], video: null,
     site_id: '', merchant_id: '',
   })
   const [merchants, setMerchants] = useState([])
@@ -31,7 +31,7 @@ export default function CreateRepairRequest() {
     debounceTimer.current = setTimeout(async () => {
       if (!val.trim()) return
       try {
-        const resp = await apiFetch(`${baseUrl}/user-instruments/lookup?sn=${val}`)
+        const resp = await apiFetch(`${baseUrl}/public/instruments/lookup?sn=${val}`)
         const r = await resp.json()
         if (r.code === 20000 && r.data?.instrument) {
           setForm(p => ({ ...p, sn: val, instrument_type: r.data.instrument.instrument_type || p.instrument_type, brand: r.data.instrument.brand || p.brand, model: r.data.instrument.model || p.model }))
@@ -58,6 +58,15 @@ export default function CreateRepairRequest() {
     }
   }
 
+  const uploadFile = async (file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+    const r = await resp.json()
+    if (r.code === 20000) return r.data.file_key
+    throw new Error(r.message || 'upload failed')
+  }
+
   const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
     form.description && form.photos.length > 0 && form.site_id
 
@@ -65,10 +74,28 @@ export default function CreateRepairRequest() {
     if (!isFormValid) { alert('请填写所有必填项'); return }
     setSubmitting(true)
     try {
+      const photoKeys = []
+      for (const f of form.photos) {
+        const key = await uploadFile(f)
+        photoKeys.push(key)
+      }
+      let videoKey = ''
+      if (form.video) {
+        videoKey = await uploadFile(form.video)
+      }
       const resp = await apiFetch(`${baseUrl}/repair-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          sn: form.sn,
+          instrument_type: form.instrument_type,
+          brand: form.brand,
+          model: form.model,
+          description: form.description,
+          photos: photoKeys,
+          video_url: videoKey,
+          site_id: form.site_id,
+        }),
       })
       const r = await resp.json()
       if (r.code === 20000) {
@@ -148,9 +175,9 @@ export default function CreateRepairRequest() {
             <Text className="block text-sm font-medium text-gray-700 mb-1">视频（可选，估价用）</Text>
             <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60">
               <Camera size={20} className="text-gray-500" />
-              <Text className="text-xs text-gray-600">{form.video_url ? '已选择视频' : '上传视频'}</Text>
+              <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
               <input type="file" accept="video/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video_url: f.name })) }} />
+                onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video: f })) }} />
             </label>
           </View>
           <View>
