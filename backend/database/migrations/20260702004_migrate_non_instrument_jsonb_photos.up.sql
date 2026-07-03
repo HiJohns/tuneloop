@@ -20,14 +20,14 @@ FROM repair_requests r,
 LATERAL jsonb_array_elements_text(r.photos::jsonb) AS photo
 WHERE r.photos IS NOT NULL AND r.photos != '[]'::jsonb;
 
--- repair_request_records.photos → instrument_media (object_type='repair_request_record')
--- tenant_id is derived from the parent repair_request (records carry no tenant_id).
+-- repair_request_records.photos → instrument_media (object_type='repair_request')
+-- tenant_id and object_id are derived from the parent repair_request (records carry neither).
 INSERT INTO instrument_media (tenant_id, org_id, object_type, object_id, batch_id, batch_type, file_name, file_type, storage_key, is_display, sort_order, created_at)
 SELECT
   req.tenant_id,
   NULL AS org_id,
-  'repair_request_record' AS object_type,
-  rr.id AS object_id,
+  'repair_request' AS object_type,
+  rr.repair_request_id AS object_id,
   gen_random_uuid() AS batch_id,
   'repair' AS batch_type,
   'record_photo.jpg' AS file_name,
