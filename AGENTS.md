@@ -498,6 +498,42 @@ pending_ship → shipping → inspecting → quoted → pending_payment → pend
 
 ---
 
+## 🖥️ 生产服务器访问 (Production Server Access)
+
+### SSH 配置
+
+| 主机别名 | 主机名 | 用户 | 密钥路径 |
+|----------|--------|------|----------|
+| `cadenza` | `web.cadenzayueqi.com` | `root` | `~/cert/cadenza.key` |
+
+```bash
+# SSH 登录
+ssh cadenza
+```
+
+### 生产服务
+
+| 服务 | 路径 | 日志查看 |
+|------|------|----------|
+| **tuneloop** | `/opt/tuneloop/apps/tuneloop/service/tuneloop` | `journalctl --unit=tuneloop --since "8 hours ago" --no-pager` |
+| **beaconiam** | `/opt/tuneloop/apps/beaconiam/service/beaconiam` | `journalctl --unit=beaconiam --since "8 hours ago" --no-pager` |
+
+### 生产环境端口
+
+| 项目 | Port |
+|------|------|
+| tuneloop Backend | 5558 (Prerelease) |
+| beaconiam Internal | 5560 (NGINX) |
+| IAM API | 5560 |
+
+### 发布策略
+
+- 生产服的二进制/静态文件通过 CI/CD 流程自动部署到 `/opt/flow/`，版本快照按时间戳命名（如 `tuneloop_20260703-061912_720fb6c0`）
+- `/opt/tuneloop/apps/tuneloop/` 内的 `service`/`www`/`mobile`/`database` 为指向版本快照的软链接
+- **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git -> CI/CD -> 生产部署流程。
+
+---
+
 ## 🧪 调试效率经验 (Debugging Efficiency Lessons)
 
 ### ⚠️ 强制规则：排查任何 Issue 必须先检查后端日志
