@@ -78,7 +78,37 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": req})
+	instrumentSN, instrumentType, brand, model, siteName, merchantName, reporterName := resolveRepairMeta(db, req)
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"id":                     req.ID,
+		"tenant_id":              req.TenantID,
+		"site_id":                req.SiteID,
+		"user_id":                req.UserID,
+		"user_instrument_id":     req.UserInstrumentID,
+		"status":                 req.Status,
+		"description":            req.Description,
+		"photos":                 req.Photos,
+		"video_url":              req.VideoURL,
+		"quote_amount":           req.QuoteAmount,
+		"inspection_fee":         req.InspectionFee,
+		"shipping_fee":           req.ShippingFee,
+		"tracking_company":       req.TrackingCompany,
+		"tracking_number":        req.TrackingNumber,
+		"return_company":         req.ReturnCompany,
+		"return_tracking_number": req.ReturnTrackingNumber,
+		"worker_id":              req.WorkerID,
+		"created_at":             req.CreatedAt,
+		"updated_at":             req.UpdatedAt,
+		"closed_at":              req.ClosedAt,
+		"instrument_sn":          instrumentSN,
+		"instrument_type":        instrumentType,
+		"brand":                  brand,
+		"model":                  model,
+		"site_name":              siteName,
+		"merchant_name":          merchantName,
+		"reporter_name":          reporterName,
+	}})
 }
 
 // Create creates a new repair request.
@@ -393,4 +423,48 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "payment processed"})
+}
+
+// resolveRepairMeta enriches a RepairRequest with resolved names for instrument, site,
+// merchant, and reporter. All lookups are best-effort (errors silently return empty strings).
+// Shared by the Get and List handlers.
+func resolveRepairMeta(db *gorm.DB, req models.RepairRequest) (instrumentSN, instrumentType, brand, model, siteName, merchantName, reporterName string) {
+	if req.UserInstrumentID != "" {
+		var ui models.UserInstrument
+		if err := db.Where("id = ?", req.UserInstrumentID).First(&ui).Error; err == nil {
+			instrumentSN = ui.SN
+			instrumentType = ui.InstrumentType
+			brand = ui.Brand
+			model = ui.Model
+		}
+	}
+
+	if req.SiteID != "" {
+		var site models.Site
+		if err := db.Where("id = ?", req.SiteID).First(&site).Error; err == nil {
+			siteName = site.Name
+		}
+	}
+
+	if req.TenantID != "" {
+		var tenant models.Tenant
+		if err := db.Where("id = ?", req.TenantID).First(&tenant).Error; err == nil {
+			merchantName = tenant.Name
+		}
+	}
+
+	if req.UserID != "" {
+		var user models.User
+		if err := db.Where("iam_sub = ?", req.UserID).First(&user).Error; err == nil {
+			reporterName = user.Name
+			if reporterName == "" {
+				reporterName = user.Username
+			}
+			if reporterName == "" {
+				reporterName = user.Phone
+			}
+		}
+	}
+
+	return
 }

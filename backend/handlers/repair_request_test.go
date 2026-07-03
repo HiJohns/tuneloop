@@ -208,3 +208,113 @@ func TestCreateRepairRequest(t *testing.T) {
 		assert.Equal(t, models.RepairReqStatusRepairing, updated.Status)
 	})
 }
+
+func TestGetRepairRequest(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	config := database.LoadConfig()
+	db, err := database.InitDB(config)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	tables := []interface{}{
+		&models.RepairRequest{},
+		&models.UserInstrument{},
+		&models.Site{},
+		&models.Tenant{},
+		&models.User{},
+	}
+	for _, table := range tables {
+		_ = db.Migrator().DropTable(table)
+		if err := db.Migrator().CreateTable(table); err != nil {
+			t.Fatalf("failed to create table: %v", err)
+		}
+	}
+	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
+
+	tenantID := uuid.New().String()
+	orgID := uuid.New().String()
+	userID := uuid.New().String()
+
+	site := models.Site{
+		ID:       uuid.New().String(),
+		TenantID: tenantID,
+		OrgID:    orgID,
+		Name:     "测试网点",
+	}
+	require.NoError(t, db.Create(&site).Error)
+
+	tenant := models.Tenant{
+		ID:   tenantID,
+		Name: "测试商户",
+	}
+	require.NoError(t, db.Create(&tenant).Error)
+
+	localUser := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   userID,
+		TenantID: tenantID,
+		OrgID:    orgID,
+		Name:     "张三",
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&localUser).Error)
+
+	ui := models.UserInstrument{
+		ID:             uuid.New().String(),
+		UserID:         userID,
+		SN:             "SN-TEST-001",
+		InstrumentType: "钢琴",
+		Brand:          "雅马哈",
+		Model:          "U1",
+	}
+	require.NoError(t, db.Create(&ui).Error)
+
+	req := models.RepairRequest{
+		ID:               uuid.New().String(),
+		TenantID:         tenantID,
+		SiteID:           site.ID,
+		UserID:           userID,
+		UserInstrumentID: ui.ID,
+		Status:           models.RepairReqStatusPendingAssessment,
+		Description:      "不响了",
+	}
+	require.NoError(t, db.Create(&req).Error)
+
+	handler := NewRepairRequestHandler()
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.GET("/api/repair-requests/:id", handler.Get)
+
+	httpReq := httptest.NewRequest("GET", "/api/repair-requests/"+req.ID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httpReq)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int                    `json:"code"`
+		Data map[string]interface{} `json:"data"`
+	}
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, 20000, resp.Code)
+
+	assert.Equal(t, req.ID, resp.Data["id"])
+	assert.Equal(t, "SN-TEST-001", resp.Data["instrument_sn"])
+	assert.Equal(t, "钢琴", resp.Data["instrument_type"])
+	assert.Equal(t, "雅马哈", resp.Data["brand"])
+	assert.Equal(t, "U1", resp.Data["model"])
+	assert.Equal(t, "测试网点", resp.Data["site_name"])
+	assert.Equal(t, "测试商户", resp.Data["merchant_name"])
+	assert.Equal(t, "张三", resp.Data["reporter_name"])
+	assert.Equal(t, "pending_assessment", resp.Data["status"])
+	assert.Equal(t, "不响了", resp.Data["description"])
+}

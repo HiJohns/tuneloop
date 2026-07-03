@@ -66,10 +66,73 @@ export default function RepairRequestDetail() {
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
         {/* Request info */}
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
-          <Text className="text-sm font-bold text-black mb-2">报修信息</Text>
-          <Text className="text-xs text-zinc-500">状态: {status}</Text>
-          <Text className="text-xs text-zinc-500">描述: {request.description || '-'}</Text>
-          {request.quote_amount && <Text className="text-xs text-zinc-500">报价: ¥{request.quote_amount}</Text>}
+          <View><Text className="text-sm font-bold text-black">报修信息</Text></View>
+          <View className="space-y-2 mt-3">
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">识别码</Text>
+              <Text className="text-xs text-zinc-600">{request.instrument_sn || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">状态</Text>
+              <Text className="text-xs text-zinc-600">{status}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">乐器类别</Text>
+              <Text className="text-xs text-zinc-600">{request.instrument_type || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">品牌</Text>
+              <Text className="text-xs text-zinc-600">{request.brand || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">型号</Text>
+              <Text className="text-xs text-zinc-600">{request.model || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">描述</Text>
+              <Text className="text-xs text-zinc-600">{request.description || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">报修人</Text>
+              <Text className="text-xs text-zinc-600">{request.reporter_name || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">商户</Text>
+              <Text className="text-xs text-zinc-600">{request.merchant_name || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">网点</Text>
+              <Text className="text-xs text-zinc-600">{request.site_name || '-'}</Text>
+            </View>
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">创建时间</Text>
+              <Text className="text-xs text-zinc-600">{request.created_at ? new Date(request.created_at).toLocaleString() : '-'}</Text>
+            </View>
+            {request.quote_amount != null && (
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">报价</Text>
+              <Text className="text-xs text-zinc-600">¥{request.quote_amount}</Text>
+            </View>
+            )}
+            {request.inspection_fee != null && (
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">检测费</Text>
+              <Text className="text-xs text-zinc-600">¥{request.inspection_fee}</Text>
+            </View>
+            )}
+            {request.shipping_fee != null && (
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">运费</Text>
+              <Text className="text-xs text-zinc-600">¥{request.shipping_fee}</Text>
+            </View>
+            )}
+            {request.tracking_number && (
+            <View className="flex justify-between items-center">
+              <Text className="text-xs text-zinc-400">物流单号</Text>
+              <Text className="text-xs text-zinc-600">{request.tracking_number}</Text>
+            </View>
+            )}
+          </View>
         </View>
 
         {/* Repair records */}
