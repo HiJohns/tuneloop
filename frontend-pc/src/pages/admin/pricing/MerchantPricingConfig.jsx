@@ -6,11 +6,11 @@ import { api } from '../../../services/api'
 const DEFAULT_CONFIG = {
   tiers: [
     { name: '短期租赁', days_max: 30, discount_percent: 0 },
-    { name: '中期租赁', days_max: 365, discount_percent: 20 },
-    { name: '长期租赁', days_max: -1, discount_percent: 40 },
+    { name: '中期租赁', days_max: 180, discount_percent: 5 },
+    { name: '长期租赁', days_max: -1, discount_percent: 10 },
   ],
   deposit_mode: 'ratio',
-  deposit_ratio: 2.0,
+  deposit_ratio: 0.3,
   deposit_fixed: 0,
 }
 

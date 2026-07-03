@@ -122,6 +122,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [hasPricePerm, setHasPricePerm] = useState(false)
   const [merchantPricingConfig, setMerchantPricingConfig] = useState(null)
   const [baseDailyRate, setBaseDailyRate] = useState(null)
+  const [totalPrice, setTotalPrice] = useState(null)
   const snCheckTimer = useRef(null)
   const lastKeyPressTime = useRef(0)
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
@@ -502,6 +503,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
           poster: instrumentData.poster,
           status: instrumentData.status || 'active',
           base_daily_rate: instrumentData.base_daily_rate,
+          total_price: instrumentData.total_price,
         })
 
         if (instrumentData.video) {
@@ -965,6 +967,7 @@ const loadCategoryChildren = async (node) => {
         level_id: values.level_id,
         description: values.description,
         base_daily_rate: values.base_daily_rate || 0,
+        total_price: values.total_price || 0,
         pricing: {
           daily_rent: values.base_daily_rate || 0,
           deposit: values.deposit || 0,
@@ -1260,6 +1263,9 @@ const loadCategoryChildren = async (node) => {
             <Form.Item label="第一阶梯日均价(¥)" name="base_daily_rate">
               <InputNumber min={0} precision={2} style={{ width: 200 }} placeholder="输入后预览阶梯价格" onChange={(val) => setBaseDailyRate(val)} />
             </Form.Item>
+            <Form.Item label="总价(¥)" name="total_price">
+              <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} placeholder="乐器总价" onChange={(val) => setTotalPrice(val)} />
+            </Form.Item>
             <Form.Item label="押金(¥)" name="deposit">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
             </Form.Item>
@@ -1270,7 +1276,7 @@ const loadCategoryChildren = async (node) => {
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
             </Form.Item>
 
-            {baseDailyRate > 0 && merchantPricingConfig && merchantPricingConfig.tiers && (
+            {(baseDailyRate > 0 || totalPrice > 0) && merchantPricingConfig && merchantPricingConfig.tiers && (
               <div className="pricing-preview" style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
                 <p style={{ fontWeight: 500, marginBottom: 8 }}>阶梯价格预览（基于商户定价策略）：</p>
                 {merchantPricingConfig.tiers.map((tier, i) => {
@@ -1290,7 +1296,7 @@ const loadCategoryChildren = async (node) => {
                 })}
                 <div style={{ borderTop: '1px solid #e8e8e8', marginTop: 8, paddingTop: 8, fontSize: 14 }}>
                   押金: ¥{merchantPricingConfig.deposit_mode === 'ratio'
-                    ? (parseFloat(baseDailyRate) * (merchantPricingConfig.deposit_ratio || 2)).toFixed(0)
+                    ? ((totalPrice > 0 ? parseFloat(totalPrice) : parseFloat(baseDailyRate)) * (merchantPricingConfig.deposit_ratio || 0.3)).toFixed(0)
                     : (merchantPricingConfig.deposit_fixed || 0)}
                 </div>
               </div>
