@@ -39,12 +39,7 @@ func (h *RepairRequestHandler) List(c *gin.Context) {
 	}
 
 	if role == "USER" {
-		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
-			query = query.Where("user_id = ?", localUser.ID)
-		} else {
-			query = query.Where("user_id = ?", userID)
-		}
+		query = query.Where("user_id = ?", userID)
 	} else {
 		// Staff: filter by current user's sites
 		var localUser models.User

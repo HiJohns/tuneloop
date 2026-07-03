@@ -149,7 +149,7 @@ func TestCreateRepairRequest(t *testing.T) {
 			ID:               repairID,
 			TenantID:         uuid.New().String(),
 			SiteID:           uuid.New().String(),
-			UserID:           localUser.ID,
+			UserID:           userSub,
 			UserInstrumentID: validUIID,
 			Status:           models.RepairReqStatusPendingAssessment,
 		}
@@ -180,7 +180,7 @@ func TestCreateRepairRequest(t *testing.T) {
 			ID:               repairID,
 			TenantID:         uuid.New().String(),
 			SiteID:           uuid.New().String(),
-			UserID:           localUser.ID,
+			UserID:           userSub,
 			UserInstrumentID: validUIID,
 			Status:           models.RepairReqStatusPendingPay,
 			QuoteAmount:      &quoteAmount,
