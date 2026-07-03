@@ -142,6 +142,7 @@ func GetInstrumentByID(c *gin.Context) {
 		"video":           videoURL,
 		"poster":          instrument.Poster,
 		"base_daily_rate": instrument.BaseDailyRate,
+		"total_price":     instrument.TotalPrice,
 		"stock_status":    instrument.StockStatus,
 		"status":          instrument.StockStatus,
 		"created_at":      instrument.CreatedAt,

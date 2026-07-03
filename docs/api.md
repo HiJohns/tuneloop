@@ -805,6 +805,8 @@
 ```
 
 > **注**: `days_max=0` 表示无上限（即超过 365 天后按此费率）。
+>
+> **押金计算**：ratio 模式下 `deposit = total_price × deposit_ratio`（`deposit_ratio` 默认定价策略为 0.3，即总价 30%）。若 `total_price` 未设置，回退为 `base_daily_rate × deposit_ratio`。网点管理员可通过批零价覆盖手动修改押金金额。
 
 ---
 
@@ -921,6 +923,7 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 | daily_rate | 日租金 | ❌ | 数字格式，如: 50（旧模型） |
 | monthly_rate | 月租金 | ❌ | 数字格式（旧模型，建议用 base_daily_rate） |
 | base_daily_rate | 第一阶梯日均价 | ❌ | 数字格式，阶梯定价锚点 |
+| total_price | 乐器总价 | ❌ | 数字格式，采购价/标价 |
 | deposit | 押金 | ❌ | 数字格式 |
 | stock | 库存数量 | ❌ | 整数，默认0 |
 | status | 状态 | ❌ | enum: available/rented/maintenance/archived/lost，默认available |
