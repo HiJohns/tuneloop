@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -51,8 +52,8 @@ func (s *MediaCleanupService) clean() error {
 	retentionDays := 180
 	var setting models.SystemSetting
 	if err := s.db.Where("setting_key = ?", "media_retention_days").First(&setting).Error; err == nil {
-		if parsed, err := time.ParseDuration(setting.SettingValue + "h"); err == nil {
-			retentionDays = int(parsed.Hours() / 24)
+		if days, err := strconv.Atoi(setting.SettingValue); err == nil && days > 0 {
+			retentionDays = days
 		}
 	}
 	if retentionDays < 1 {
