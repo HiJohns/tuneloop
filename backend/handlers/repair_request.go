@@ -124,6 +124,22 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		}
 	}
 
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+	if tenantID == "" {
+		if body.SiteID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "site_id is required"})
+			return
+		}
+		var site models.Site
+		if err := db.Where("id = ?", body.SiteID).First(&site).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "site not found"})
+			return
+		}
+		tenantID = site.TenantID
+		orgID = site.OrgID
+	}
+
 	status := models.RepairReqStatusPendingAssessment
 	if body.TrackingNumber != "" {
 		status = models.RepairReqStatusShipping
@@ -133,7 +149,7 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 
 	req := models.RepairRequest{
 		ID:               uuid.New().String(),
-		TenantID:         middleware.GetTenantID(ctx),
+		TenantID:         tenantID,
 		SiteID:           body.SiteID,
 		UserID:           userID,
 		UserInstrumentID: body.UserInstrumentID,
@@ -154,8 +170,6 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 
 	objectID := req.ID
 	if len(body.Photos) > 0 || body.VideoURL != "" {
-		tenantID := middleware.GetTenantID(ctx)
-		orgID := middleware.GetOrgID(ctx)
 		batchID := uuid.New().String()
 		seq := 0
 		for _, url := range body.Photos {
