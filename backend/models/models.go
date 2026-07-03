@@ -822,7 +822,9 @@ type InstrumentMedia struct {
 	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID     string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID        string    `gorm:"type:uuid;index" json:"org_id"`
-	InstrumentID string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
+	InstrumentID *string   `gorm:"type:uuid;index" json:"instrument_id"`
+	ObjectType   string    `gorm:"type:varchar(30)" json:"object_type"`
+	ObjectID     *string   `gorm:"type:uuid;index" json:"object_id"`
 	BatchID      string    `gorm:"type:uuid;index;not null" json:"batch_id"`
 	BatchType    string    `gorm:"type:varchar(20);not null" json:"batch_type"`
 	FileName     string    `gorm:"type:varchar(255);not null" json:"file_name"`
