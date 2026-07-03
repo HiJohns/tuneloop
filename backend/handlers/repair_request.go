@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -117,11 +118,20 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 				Model:          body.Model,
 				CreatedAt:      time.Now(),
 			}
-			db.Create(&newUI)
+			if err := db.Create(&newUI).Error; err != nil {
+				log.Printf("[RepairRequest.Create] user_instrument create failed: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user instrument"})
+				return
+			}
 			userInstrumentID = newUI.ID
 		} else {
 			userInstrumentID = existing.ID
 		}
+	}
+
+	if userInstrumentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "user_instrument_id or sn is required"})
+		return
 	}
 
 	tenantID := middleware.GetTenantID(ctx)
@@ -152,7 +162,7 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		TenantID:         tenantID,
 		SiteID:           body.SiteID,
 		UserID:           userID,
-		UserInstrumentID: body.UserInstrumentID,
+		UserInstrumentID: userInstrumentID,
 		Status:           status,
 		Description:      body.Description,
 		Photos:           string(photosJSON),
@@ -164,7 +174,8 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 	}
 
 	if err := db.Create(&req).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create"})
+		log.Printf("[RepairRequest.Create] insert failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create repair request"})
 		return
 	}
 
