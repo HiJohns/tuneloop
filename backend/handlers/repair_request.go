@@ -58,7 +58,124 @@ func (h *RepairRequestHandler) List(c *gin.Context) {
 	}
 
 	query.Order("created_at DESC").Find(&requests)
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": requests}})
+	enriched := enrichRepairRequestList(db, requests)
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": enriched}})
+}
+
+// enrichRepairRequestList enriches a slice of RepairRequests with resolved names
+// for instrument, site, and merchant using batch lookups to avoid N+1 queries.
+func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin.H {
+	if len(requests) == 0 {
+		return []gin.H{}
+	}
+
+	// Collect unique IDs for batch lookups
+	uiIDs := make(map[string]bool)
+	siteIDs := make(map[string]bool)
+	tenantIDs := make(map[string]bool)
+	for _, r := range requests {
+		if r.UserInstrumentID != "" {
+			uiIDs[r.UserInstrumentID] = true
+		}
+		if r.SiteID != "" {
+			siteIDs[r.SiteID] = true
+		}
+		if r.TenantID != "" {
+			tenantIDs[r.TenantID] = true
+		}
+	}
+
+	// Batch lookups
+	uiMap := make(map[string]models.UserInstrument)
+	if len(uiIDs) > 0 {
+		var uis []models.UserInstrument
+		db.Where("id IN ?", keys(uiIDs)).Find(&uis)
+		for _, ui := range uis {
+			uiMap[ui.ID] = ui
+		}
+	}
+
+	siteMap := make(map[string]models.Site)
+	if len(siteIDs) > 0 {
+		var sites []models.Site
+		db.Where("id IN ?", keys(siteIDs)).Find(&sites)
+		for _, s := range sites {
+			siteMap[s.ID] = s
+		}
+	}
+
+	tenantMap := make(map[string]models.Tenant)
+	if len(tenantIDs) > 0 {
+		var tenants []models.Tenant
+		db.Where("id IN ?", keys(tenantIDs)).Find(&tenants)
+		for _, t := range tenants {
+			tenantMap[t.ID] = t
+		}
+	}
+
+	// Build enriched response
+	result := make([]gin.H, len(requests))
+	for i, r := range requests {
+		instrumentSN := ""
+		instrumentType := ""
+		brand := ""
+		model := ""
+		if ui, ok := uiMap[r.UserInstrumentID]; ok {
+			instrumentSN = ui.SN
+			instrumentType = ui.InstrumentType
+			brand = ui.Brand
+			model = ui.Model
+		}
+
+		siteName := ""
+		if s, ok := siteMap[r.SiteID]; ok {
+			siteName = s.Name
+		}
+
+		merchantName := ""
+		if t, ok := tenantMap[r.TenantID]; ok {
+			merchantName = t.Name
+		}
+
+		result[i] = gin.H{
+			"id":                     r.ID,
+			"tenant_id":              r.TenantID,
+			"site_id":                r.SiteID,
+			"user_id":                r.UserID,
+			"user_instrument_id":     r.UserInstrumentID,
+			"status":                 r.Status,
+			"description":            r.Description,
+			"photos":                 r.Photos,
+			"video_url":              r.VideoURL,
+			"quote_amount":           r.QuoteAmount,
+			"inspection_fee":         r.InspectionFee,
+			"shipping_fee":           r.ShippingFee,
+			"tracking_company":       r.TrackingCompany,
+			"tracking_number":        r.TrackingNumber,
+			"return_company":         r.ReturnCompany,
+			"return_tracking_number": r.ReturnTrackingNumber,
+			"worker_id":              r.WorkerID,
+			"created_at":             r.CreatedAt,
+			"updated_at":             r.UpdatedAt,
+			"closed_at":              r.ClosedAt,
+			"instrument_sn":          instrumentSN,
+			"instrument_type":        instrumentType,
+			"brand":                  brand,
+			"model":                  model,
+			"site_name":              siteName,
+			"merchant_name":          merchantName,
+		}
+	}
+	return result
+}
+
+// keys returns the keys of a map as a slice.
+func keys[K comparable, V any](m map[K]V) []K {
+	result := make([]K, 0, len(m))
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
 }
 
 // Get returns a single repair request by ID.

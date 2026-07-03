@@ -133,11 +133,38 @@ export default function MyRepairs() {
             ) : (
               <View className="space-y-2">
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 space-y-1 active:opacity-80"
                     onClick={() => navigate(`/repair-request?request_id=${r.id}`)}>
-                    <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
-                    <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
-                    {r.quote_amount && <Text className="text-xs text-zinc-500 mt-1">报价: ¥{r.quote_amount}</Text>}
+                    <View className="flex justify-between items-center">
+                      <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
+                      <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
+                    </View>
+                    <View className="flex justify-between items-center">
+                      <Text className="text-xs text-zinc-400">识别码</Text>
+                      <Text className="text-xs text-zinc-600">{r.instrument_sn || '-'}</Text>
+                    </View>
+                    <View className="flex justify-between items-center">
+                      <Text className="text-xs text-zinc-400">类别</Text>
+                      <Text className="text-xs text-zinc-600">{r.instrument_type || '-'}</Text>
+                    </View>
+                    <View className="flex justify-between items-center">
+                      <Text className="text-xs text-zinc-400">品牌/型号</Text>
+                      <Text className="text-xs text-zinc-600">{r.brand && r.model ? `${r.brand} ${r.model}` : r.brand || r.model || '-'}</Text>
+                    </View>
+                    <View className="flex justify-between items-center">
+                      <Text className="text-xs text-zinc-400">商户</Text>
+                      <Text className="text-xs text-zinc-600">{r.merchant_name || '-'}</Text>
+                    </View>
+                    <View className="flex justify-between items-center">
+                      <Text className="text-xs text-zinc-400">网点</Text>
+                      <Text className="text-xs text-zinc-600">{r.site_name || '-'}</Text>
+                    </View>
+                    {r.quote_amount != null && (
+                    <View className="flex justify-between items-center">
+                      <Text className="text-xs text-zinc-400">报价</Text>
+                      <Text className="text-xs text-zinc-600">¥{r.quote_amount}</Text>
+                    </View>
+                    )}
                   </View>
                 ))}
               </View>
