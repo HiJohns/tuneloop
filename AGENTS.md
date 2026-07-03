@@ -18,6 +18,7 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/permissions.md` - 权限-人员矩阵
 - `docs/account-lifecycle.md` - 账户生命周期与数据完整性
 - `docs/weapp.md` - 微信小程序架构与部署（Taro 构建策略、三端架构、登录流程、发布流程）
+- `docs/media_directory.md` - 媒体存储架构（instrument_media 表结构、batch_type 全集、目录体系）
 
 ## Environment Guide
 
@@ -403,6 +404,7 @@ Usage:
 ## Instrument Image Hierarchy（乐器图像分层规范）
 
 > 来源：#1099 — 避免后端图像字段在前端各处混用，定义每类图像的使用范围。
+> 统一存储架构：见 `docs/media_directory.md`。
 
 ### 数据库字段分类
 
