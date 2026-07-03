@@ -2,14 +2,21 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 )
 
@@ -352,5 +359,134 @@ func TestIAMProxyHandler_Issue340_IntegrationFlow(t *testing.T) {
 		var response map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &response)
 		assert.Equal(t, "existing-user-id", response["id"])
+	})
+}
+
+func TestSyncOrganizations_SiteTenantID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	config := database.LoadConfig()
+	db, err := database.InitDB(config)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	// Set up Site table
+	_ = db.Migrator().DropTable(&models.Site{})
+	require.NoError(t, db.Migrator().CreateTable(&models.Site{}))
+
+	merchantOrgID := uuid.New().String()
+	nsOrgID := uuid.New().String()
+	siteOrgID := uuid.New().String()
+
+	// Mock IAM server: token endpoint + namespace lookup + org list
+	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/api/v1/auth/token" {
+			json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "mock-token", "expires_in": 3600, "token_type": "bearer"})
+			return
+		}
+		if strings.Contains(r.URL.Path, "/api/v1/namespaces/") {
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": nsOrgID})
+			return
+		}
+		if r.URL.Path == "/api/v1/organizations" {
+			parentID := merchantOrgID
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"organizations": []map[string]interface{}{
+					{"id": merchantOrgID, "name": "test-merchant", "parent_id": nil, "namespace_id": nsOrgID, "status": "active"},
+					{"id": siteOrgID, "name": "test-site", "parent_id": &parentID, "namespace_id": nsOrgID, "status": "active"},
+				},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer mockIAM.Close()
+	services.SetIAMInternalURLForTesting(mockIAM.URL)
+
+	t.Run("create site with correct tenant_id", func(t *testing.T) {
+		handler := NewIAMProxyHandler()
+		router := gin.New()
+		router.Use(func(c *gin.Context) {
+			ctx := c.Request.Context()
+			ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, merchantOrgID)
+			ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, merchantOrgID)
+			ctx = context.WithValue(ctx, middleware.ContextKeyUserID, uuid.New().String())
+			c.Request = c.Request.WithContext(ctx)
+			c.Next()
+		})
+		router.POST("/api/iam/organizations/sync", handler.SyncOrganizations)
+
+		body := `{}`
+		req := httptest.NewRequest("POST", "/api/iam/organizations/sync", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(&http.Cookie{Name: "token", Value: "mock-token"})
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				Synced int `json:"synced"`
+			} `json:"data"`
+		}
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		assert.Equal(t, 20000, resp.Code)
+		assert.Equal(t, 1, resp.Data.Synced, "should sync 1 site")
+
+		var site models.Site
+		err = db.Where("org_id = ?", siteOrgID).First(&site).Error
+		require.NoError(t, err, "site should exist")
+		assert.Equal(t, merchantOrgID, site.TenantID, "site.tenant_id should equal merchant org")
+	})
+
+	t.Run("update existing site with wrong tenant_id", func(t *testing.T) {
+		existingSite := models.Site{
+			ID:       uuid.New().String(),
+			Name:     "test-site",
+			OrgID:    siteOrgID,
+			TenantID: "00000000-0000-0000-0000-000000000000",
+			Status:   "active",
+		}
+		require.NoError(t, db.Create(&existingSite).Error)
+
+		handler := NewIAMProxyHandler()
+		router := gin.New()
+		router.Use(func(c *gin.Context) {
+			ctx := c.Request.Context()
+			ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, merchantOrgID)
+			ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, merchantOrgID)
+			ctx = context.WithValue(ctx, middleware.ContextKeyUserID, uuid.New().String())
+			c.Request = c.Request.WithContext(ctx)
+			c.Next()
+		})
+		router.POST("/api/iam/organizations/sync", handler.SyncOrganizations)
+
+		body := `{}`
+		req := httptest.NewRequest("POST", "/api/iam/organizations/sync", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(&http.Cookie{Name: "token", Value: "mock-token"})
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				Synced int `json:"synced"`
+			} `json:"data"`
+		}
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		assert.Equal(t, 20000, resp.Code)
+
+		var site models.Site
+		err = db.Where("org_id = ?", siteOrgID).First(&site).Error
+		require.NoError(t, err)
+		assert.Equal(t, merchantOrgID, site.TenantID, "site.tenant_id should be corrected to merchant org")
 	})
 }

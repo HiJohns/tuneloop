@@ -266,13 +266,13 @@ func reverse(s string) string {
 // POST /api/iam/users - Create IAM user (JIT provisioning)
 func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	var req struct {
-		Email           string `json:"email"`
-		Phone           string `json:"phone"`
-		Name            string `json:"name" binding:"required"`
-		Username        string `json:"username"`
-		Password        string `json:"password"`
-		Role            string `json:"role"`
-		SkipActivation  bool   `json:"skip_activation"`
+		Email          string `json:"email"`
+		Phone          string `json:"phone"`
+		Name           string `json:"name" binding:"required"`
+		Username       string `json:"username"`
+		Password       string `json:"password"`
+		Role           string `json:"role"`
+		SkipActivation bool   `json:"skip_activation"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -306,7 +306,7 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 	// Check uniqueness: name, email, or phone
 	db := database.GetDB().WithContext(ctx)
 	var conflicts []gin.H
-	seen := make(map[string]*models.User)     // userID -> user
+	seen := make(map[string]*models.User)      // userID -> user
 	matchedFields := make(map[string][]string) // userID -> matched_fields
 
 	addConflict := func(user *models.User, field string) {
@@ -508,13 +508,13 @@ func (h *IAMProxyHandler) CreateUser(c *gin.Context) {
 
 // createLocalUserWithStatus creates a local user record after IAM user creation.
 func createLocalUserWithStatus(c *gin.Context, iamUserID string, req *struct {
-	Email           string `json:"email"`
-	Phone           string `json:"phone"`
-	Name            string `json:"name" binding:"required"`
-	Username        string `json:"username"`
-	Password        string `json:"password"`
-	Role            string `json:"role"`
-	SkipActivation  bool   `json:"skip_activation"`
+	Email          string `json:"email"`
+	Phone          string `json:"phone"`
+	Name           string `json:"name" binding:"required"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	Role           string `json:"role"`
+	SkipActivation bool   `json:"skip_activation"`
 }, status string) (string, error) {
 	nilUUID := "00000000-0000-0000-0000-000000000000"
 	localUserID := uuid.New().String()
@@ -544,13 +544,13 @@ func createLocalUserWithStatus(c *gin.Context, iamUserID string, req *struct {
 
 // createLocalUser creates a local user record with "pending" status (backward compat).
 func createLocalUser(c *gin.Context, iamUserID string, req *struct {
-	Email           string `json:"email"`
-	Phone           string `json:"phone"`
-	Name            string `json:"name" binding:"required"`
-	Username        string `json:"username"`
-	Password        string `json:"password"`
-	Role            string `json:"role"`
-	SkipActivation  bool   `json:"skip_activation"`
+	Email          string `json:"email"`
+	Phone          string `json:"phone"`
+	Name           string `json:"name" binding:"required"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	Role           string `json:"role"`
+	SkipActivation bool   `json:"skip_activation"`
 }) (string, error) {
 	return createLocalUserWithStatus(c, iamUserID, req, "pending")
 }
@@ -754,7 +754,7 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 				ID:       uuid.New().String(),
 				Name:     org.Name,
 				OrgID:    org.ID,
-				TenantID: tenantID,
+				TenantID: userOrgID,
 				Status:   "active",
 			}
 			if err := db.Create(&site).Error; err != nil {
@@ -766,18 +766,29 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 			synced++
 		} else if err == nil {
 			// Site exists - update if different (IAM wins on conflict)
+			needsUpdate := false
 			if existingSite.Name != org.Name {
-				if err := db.Model(&existingSite).Update("name", org.Name).Error; err != nil {
+				needsUpdate = true
+			}
+			if existingSite.TenantID != userOrgID {
+				needsUpdate = true
+			}
+			if needsUpdate {
+				updates := map[string]interface{}{}
+				if existingSite.Name != org.Name {
+					updates["name"] = org.Name
+				}
+				if existingSite.TenantID != userOrgID {
+					updates["tenant_id"] = userOrgID
+				}
+				if err := db.Model(&existingSite).Updates(updates).Error; err != nil {
 					log.Printf("[IAMProxy] SyncOrganizations: failed to update site %s: %v", org.Name, err)
 					conflicts++
 					continue
 				}
-			}
-			orgToSite[org.ID] = existingSite.ID
-			if existingSite.Name == org.Name {
-				skipped++
-			} else {
 				synced++
+			} else {
+				skipped++
 			}
 		} else {
 			log.Printf("[IAMProxy] SyncOrganizations: error checking existing site: %v", err)

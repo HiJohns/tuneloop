@@ -293,9 +293,13 @@ func syncIAMOrganizations(db *gorm.DB, iamNs string) {
 				log.Printf("[Bootstrap] Synced IAM org %s -> merchant", org.Name)
 			}
 		} else {
+			siteTenantID := namespaceOrgID
+			if org.ParentID != nil {
+				siteTenantID = *org.ParentID
+			}
 			site := models.Site{
 				ID:       uuid.New().String(),
-				TenantID: namespaceOrgID,
+				TenantID: siteTenantID,
 				OrgID:    org.ID,
 				Name:     org.Name,
 				Status:   "active",
