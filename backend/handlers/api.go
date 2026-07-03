@@ -101,7 +101,11 @@ func GetInstrumentByID(c *gin.Context) {
 		if instrument.BaseDailyRate != nil {
 			baseRate = *instrument.BaseDailyRate
 		}
-		computed := services.CalculatePricing(baseRate, configJSON, instrument.PricingOverrides, instrument.Pricing)
+		totalPrice := 0.0
+		if instrument.TotalPrice != nil {
+			totalPrice = *instrument.TotalPrice
+		}
+		computed := services.CalculatePricing(baseRate, totalPrice, configJSON, instrument.PricingOverrides, instrument.Pricing)
 		dailyRent := 0.0
 		if len(computed.Tiers) > 0 {
 			dailyRent = computed.Tiers[0].DailyRate

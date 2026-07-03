@@ -5,14 +5,14 @@ import (
 )
 
 type TierConfig struct {
-	Name            string  `json:"name"`
-	DaysMax         int     `json:"days_max"`
-	DiscountPercent int     `json:"discount_percent"`
+	Name            string `json:"name"`
+	DaysMax         int    `json:"days_max"`
+	DiscountPercent int    `json:"discount_percent"`
 }
 
 type MerchantPricingConfig struct {
-	TemplateID    string                 `json:"template_id"`
-	Config        map[string]interface{} `json:"config"`
+	TemplateID string                 `json:"template_id"`
+	Config     map[string]interface{} `json:"config"`
 }
 
 type TierPrice struct {
@@ -29,7 +29,7 @@ type InstrumentPricing struct {
 }
 
 // CalculatePricing computes instrument pricing from base rate and merchant config
-func CalculatePricing(baseDailyRate float64, configJSON string, overridesJSON string, instrumentPricingJSON ...string) *InstrumentPricing {
+func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON string, overridesJSON string, instrumentPricingJSON ...string) *InstrumentPricing {
 	var config map[string]interface{}
 	json.Unmarshal([]byte(configJSON), &config)
 
@@ -85,9 +85,13 @@ func CalculatePricing(baseDailyRate float64, configJSON string, overridesJSON st
 	default:
 		ratio := getFloat(config, "deposit_ratio")
 		if ratio <= 0 {
-			ratio = 2.0
+			ratio = 0.3
 		}
-		result.Deposit = baseDailyRate * ratio
+		if totalPrice > 0 {
+			result.Deposit = totalPrice * ratio
+		} else {
+			result.Deposit = baseDailyRate * ratio
+		}
 	}
 
 	// Check individual override fields

@@ -323,7 +323,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if instrument.BaseDailyRate != nil {
 		baseRate = *instrument.BaseDailyRate
 	}
-	pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, instrument.PricingOverrides, instrument.Pricing)
+	totalPrice := 0.0
+	if instrument.TotalPrice != nil {
+		totalPrice = *instrument.TotalPrice
+	}
+	pricingResult := services.CalculatePricing(baseRate, totalPrice, merchantConfigJSON, instrument.PricingOverrides, instrument.Pricing)
 
 	dailyRent := 0.0
 	if len(pricingResult.Tiers) > 0 {
@@ -391,24 +395,24 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	startDateStr := req.StartDate
 	endDateStr := req.EndDate
 	order := models.Order{
-		ID:           uuid.New().String(),
-		TenantID:     effectiveTenantID,
-		OrgID:        effectiveOrgID,
-		UserID:       userID,
-		InstrumentID: req.InstrumentID,
-		Level:        instrument.Level,
-		LeaseTerm:    months,
-		MonthlyRent:  monthlyRent,
-		Deposit:      deposit,
-		ShippingFee:  shippingFee,
-		Status:       models.OrderStatusReserved,
-		StartDate:    &startDateStr,
-		EndDate:      &endDateStr,
-		CashPaid:     cashPaid,
+		ID:                uuid.New().String(),
+		TenantID:          effectiveTenantID,
+		OrgID:             effectiveOrgID,
+		UserID:            userID,
+		InstrumentID:      req.InstrumentID,
+		Level:             instrument.Level,
+		LeaseTerm:         months,
+		MonthlyRent:       monthlyRent,
+		Deposit:           deposit,
+		ShippingFee:       shippingFee,
+		Status:            models.OrderStatusReserved,
+		StartDate:         &startDateStr,
+		EndDate:           &endDateStr,
+		CashPaid:          cashPaid,
 		PrepaidPointsUsed: req.PrepaidPointsUsed,
 		GiftPointsUsed:    req.GiftPointsUsed,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
 	}
 	if pricingBreakdownJSON != "" {
 		order.PricingBreakdown = &pricingBreakdownJSON
@@ -726,7 +730,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		if lockedInstrument.BaseDailyRate != nil {
 			baseRate = *lockedInstrument.BaseDailyRate
 		}
-		pricingResult := services.CalculatePricing(baseRate, merchantConfigJSON, lockedInstrument.PricingOverrides, lockedInstrument.Pricing)
+		totalPrice := 0.0
+		if lockedInstrument.TotalPrice != nil {
+			totalPrice = *lockedInstrument.TotalPrice
+		}
+		pricingResult := services.CalculatePricing(baseRate, totalPrice, merchantConfigJSON, lockedInstrument.PricingOverrides, lockedInstrument.Pricing)
 		dailyRent := 0.0
 		if len(pricingResult.Tiers) > 0 {
 			dailyRent = pricingResult.Tiers[0].DailyRate

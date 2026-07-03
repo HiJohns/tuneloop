@@ -183,8 +183,8 @@ func BatchSetInstrumentPricing(c *gin.Context) {
 
 	var req struct {
 		Items []struct {
-			ID            string   `json:"id" binding:"required"`
-			BaseDailyRate *float64 `json:"base_daily_rate"`
+			ID            string                  `json:"id" binding:"required"`
+			BaseDailyRate *float64                `json:"base_daily_rate"`
 			Overrides     *map[string]interface{} `json:"overrides,omitempty"`
 		} `json:"items" binding:"required"`
 	}
@@ -301,7 +301,11 @@ func GetInstrumentPricingV2(c *gin.Context) {
 		}
 	}
 
-	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides, instrument.Pricing)
+	totalPrice := 0.0
+	if instrument.TotalPrice != nil {
+		totalPrice = *instrument.TotalPrice
+	}
+	result := services.CalculatePricing(*instrument.BaseDailyRate, totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": services.FormatPricingResult(result),
@@ -325,9 +329,7 @@ func GetDailyRateForDuration(pricing *services.InstrumentPricing, days int) floa
 var GetDailyRateForDurationFn = GetDailyRateForDuration
 
 type PricingConfigResponse struct {
-	TemplateID   string                    `json:"template_id"`
-	Config       map[string]interface{}    `json:"config"`
-	Configured   bool                      `json:"configured"`
+	TemplateID string                 `json:"template_id"`
+	Config     map[string]interface{} `json:"config"`
+	Configured bool                   `json:"configured"`
 }
-
-

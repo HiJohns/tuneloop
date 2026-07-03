@@ -158,22 +158,22 @@ func GetPublicInstruments(c *gin.Context) {
 		responseInstruments = append(responseInstruments, map[string]interface{}{
 			"id":              instrument.ID,
 			"sn":              instrument.SN,
-			"category_id":    instrument.CategoryID,
-			"category_name":  instrument.CategoryName,
-			"level_name":     instrument.LevelName,
-			"level_id":       instrument.LevelID,
+			"category_id":     instrument.CategoryID,
+			"category_name":   instrument.CategoryName,
+			"level_name":      instrument.LevelName,
+			"level_id":        instrument.LevelID,
 			"images":          instrument.Images,
-			"pricing":        instrument.Pricing,
+			"pricing":         instrument.Pricing,
 			"base_daily_rate": instrument.BaseDailyRate,
-			"stock_status":   instrument.StockStatus,
-			"tenant_id":      instrument.TenantID,
-			"tenant_name":    tenantName,
-			"site_id":        instrument.SiteID,
-			"site_name":      siteName,
-			"site_address":   siteAddress,
-			"site_phone":     sitePhone,
-			"description":    instrument.Description,
-			"thumbnail":      thumbMap[instrument.ID],
+			"stock_status":    instrument.StockStatus,
+			"tenant_id":       instrument.TenantID,
+			"tenant_name":     tenantName,
+			"site_id":         instrument.SiteID,
+			"site_name":       siteName,
+			"site_address":    siteAddress,
+			"site_phone":      sitePhone,
+			"description":     instrument.Description,
+			"thumbnail":       thumbMap[instrument.ID],
 		})
 	}
 
@@ -232,7 +232,7 @@ func GetPublicInstrumentByID(c *gin.Context) {
 
 	response := map[string]interface{}{
 		"id":              instrument.ID,
-		"sn":               instrument.SN,
+		"sn":              instrument.SN,
 		"category_id":     instrument.CategoryID,
 		"category_name":   instrument.CategoryName,
 		"level_name":      instrument.LevelName,
@@ -421,7 +421,11 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 		}
 	}
 
-	result := services.CalculatePricing(*instrument.BaseDailyRate, config.Config, instrument.PricingOverrides, instrument.Pricing)
+	totalPrice := 0.0
+	if instrument.TotalPrice != nil {
+		totalPrice = *instrument.TotalPrice
+	}
+	result := services.CalculatePricing(*instrument.BaseDailyRate, totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": services.FormatPricingResult(result),
@@ -656,8 +660,8 @@ func LookupInstrumentBySN(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 			"instrument": gin.H{
 				"instrument_type": instr.CategoryName,
-				"brand":          "",
-				"model":          "",
+				"brand":           "",
+				"model":           "",
 			},
 		}})
 		return
@@ -668,8 +672,8 @@ func LookupInstrumentBySN(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 			"instrument": gin.H{
 				"instrument_type": ui.InstrumentType,
-				"brand":          ui.Brand,
-				"model":          ui.Model,
+				"brand":           ui.Brand,
+				"model":           ui.Model,
 			},
 		}})
 		return
