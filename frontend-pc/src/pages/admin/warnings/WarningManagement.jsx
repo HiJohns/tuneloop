@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Tag, Select, Button, message, Modal, Input } from 'antd'
-import { api } from '../../services/api'
+import { api } from '../../../services/api'
 
 const severityColors = { low: 'green', medium: 'orange', high: 'red' }
 const statusColors = { open: 'red', acknowledged: 'blue', resolved: 'gray' }
