@@ -1,12 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { View, Text, Button, ScrollView, Input, Textarea } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Input, Textarea, Image } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
-import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive } from 'lucide-react'
+import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive, Clock } from 'lucide-react'
 import { dialog, env, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
+
+const eventLabels = {
+  'pending_shipment → shipped': '寄出乐器',
+  'shipped → in_lease': '租赁开始',
+  'in_lease → returning': '申请归还',
+  'returning → returned': '收到归还',
+  'returned → assessed': '定损',
+  'assessed → maintenance': '维修中',
+  'maintenance → repaired': '完成维修',
+  'returned → completed': '订单完成',
+  ' → paid': '已支付',
+  ' → pending_shipment': '待发货',
+  ' → cancelled': '已取消',
+}
+
+function formatActivityTime(timeStr) {
+  if (!timeStr) return ''
+  const d = new Date(timeStr)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
 
 function parsePricing(pricing) {
   if (!pricing) return []
@@ -24,6 +44,7 @@ export default function StaffInstrumentDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [activeOrder, setActiveOrder] = useState(null)
+  const [sessions, setSessions] = useState([])
 
   const baseUrl = env.apiBaseUrl
 
@@ -52,6 +73,21 @@ export default function StaffInstrumentDetail() {
       setLoading(false)
     }
     fetchInstrument()
+  }, [id])
+
+  useEffect(() => {
+    const fetchActivityLog = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/instruments/${id}/activity-log`)
+        const result = await resp.json()
+        if (result.code === 20000 && result.data?.sessions) {
+          setSessions(result.data.sessions)
+        }
+      } catch (err) {
+        console.error('Failed to fetch activity log:', err)
+      }
+    }
+    if (id) fetchActivityLog()
   }, [id])
 
   const statusColor = {
@@ -242,6 +278,61 @@ export default function StaffInstrumentDetail() {
             </View>
           </View>
         </View>
+
+        {/* Activity Log Timeline */}
+        {sessions.length > 0 && (
+          <View className="bg-white rounded-xl p-4">
+            <View className="flex items-center gap-2 mb-4">
+              <Clock size={18} className="text-gray-500" />
+              <Text className="font-medium">操作记录</Text>
+            </View>
+            {sessions.map((session) => (
+              <View key={session.order_id}>
+                {session.events.map((event, ei) => {
+                  const label = eventLabels[event.event] || event.event
+                  return (
+                    <View key={ei} className="relative pl-6 pb-4 border-l-2 border-gray-200 last:border-transparent">
+                      <View className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-brand-primary" />
+                      <View className="text-sm">
+                        <View className="flex items-center gap-2">
+                          <Text className="font-medium">{label}</Text>
+                          <Text className="text-gray-400 text-xs">{formatActivityTime(event.time)}</Text>
+                        </View>
+                        {event.operator && (
+                          <Text className="text-gray-400 text-xs">{event.operator}</Text>
+                        )}
+                        {event.media?.length > 0 && (
+                          <View className="flex gap-2 mt-2 flex-wrap">
+                            {event.media.filter(m => m.file_type === 'image').map((m, mi) => (
+                              <Image
+                                key={mi}
+                                src={m.url}
+                                className="w-16 h-16 rounded object-cover"
+                                mode="aspectFill"
+                              />
+                            ))}
+                            {event.media.filter(m => m.file_type === 'video').map((m, mi) => (
+                              <View key={mi} className="relative">
+                                <Image
+                                  src={m.url}
+                                  className="w-16 h-16 rounded object-cover"
+                                  mode="aspectFill"
+                                />
+                                <View className="absolute inset-0 flex items-center justify-center bg-black/30 rounded">
+                                  <Text className="text-white text-xs">▶</Text>
+                                </View>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )
+                })}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Booker Info Card - Only show for reserved status */}
         {instrument.stock_status === 'rented' && (instrument.booker_name || instrument.booker_phone) && (
