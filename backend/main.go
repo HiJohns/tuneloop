@@ -363,16 +363,14 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			siteRequired.GET("/common/sites", siteHandler.ListSites)
 			siteRequired.GET("/common/sites/nearby", siteHandler.GetNearbySites)
 			siteRequired.GET("/common/sites/:id", siteHandler.GetSiteDetail)
-		siteRequired.POST("/merchant/sites", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
-		siteRequired.PUT("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationUpdate), siteHandler.UpdateSite)
-		siteRequired.DELETE("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationDelete), siteHandler.DeleteSite)
+			siteRequired.POST("/merchant/sites", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
+			siteRequired.PUT("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationUpdate), siteHandler.UpdateSite)
+			siteRequired.DELETE("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationDelete), siteHandler.DeleteSite)
 			siteRequired.GET("/sites/tree", siteHandler.GetSiteTree)
 			siteRequired.GET("/sites/:id/members", siteMemberHandler.ListMembers)
 			siteRequired.POST("/sites/:id/members", siteMemberHandler.AddMember)
 			siteRequired.PUT("/sites/:id/members/:uid", siteMemberHandler.UpdateMemberRole)
 			siteRequired.DELETE("/sites/:id/members/:uid", siteMemberHandler.RemoveMember)
-			authRequired.GET("/site-members/me", handlers.GetMyRoles)
-
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", middleware.RequireRole("ADMIN", "OWNER"), staffHandler.ListStaff)
 			authRequired.PUT("/users/me", staffHandler.UpdateCurrentUser)
@@ -482,7 +480,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				techMaint.POST("/technician/tickets/:id/complete", maintHandler.CompleteTicket)
 			}
 
-		// Issue #303: Maintenance Worker Management Routes
+			// Issue #303: Maintenance Worker Management Routes
 			maintRequired.GET("/maintenance/workers", maintenanceWorkerHandler.ListWorkers)
 			maintRequired.POST("/maintenance/workers", maintenanceWorkerHandler.CreateWorker)
 			maintRequired.GET("/maintenance/workers/:id", maintenanceWorkerHandler.GetWorker)
@@ -509,36 +507,32 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairRequired.GET("/repair/mine", repairHandler.ListMyRepairs)
 			repairRequired.GET("/repair/pending", repairHandler.ListPendingRepairs)
 
-	// Warning routes (Issue #1140)
-	authRequired.GET("/warnings", handlers.ListWarnings)
-	authRequired.POST("/warnings", handlers.CreateWarning)
-	authRequired.GET("/warnings/:id", handlers.GetWarning)
-	authRequired.PUT("/warnings/:id/status", handlers.UpdateWarningStatus)
+			// Warning routes (Issue #1140)
+			authRequired.GET("/warnings", handlers.ListWarnings)
+			authRequired.POST("/warnings", handlers.CreateWarning)
+			authRequired.GET("/warnings/:id", handlers.GetWarning)
+			authRequired.PUT("/warnings/:id/status", handlers.UpdateWarningStatus)
 
-	// Transit route routes (Issue #1133)
-	authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
-	authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
-	authRequired.DELETE("/transit-routes/:id", handlers.DeleteTransitRoute)
+			// Transit route routes (Issue #1133)
+			authRequired.GET("/transit-routes", handlers.ListTransitRoutes)
+			authRequired.POST("/transit-routes", handlers.CreateTransitRoute)
+			authRequired.DELETE("/transit-routes/:id", handlers.DeleteTransitRoute)
 
-	// Transit order routes (Issue #1134)
-	authRequired.GET("/transit-orders", handlers.ListTransitOrders)
-	authRequired.POST("/transit-orders/:id/receive", handlers.TransitOrderReceive)
-	authRequired.POST("/transit-orders/:id/repack", handlers.TransitOrderRepack)
-	authRequired.POST("/transit-orders/:id/ship", handlers.TransitOrderShip)
+			// Transit order routes (Issue #1134)
+			authRequired.GET("/transit-orders", handlers.ListTransitOrders)
+			authRequired.POST("/transit-orders/:id/receive", handlers.TransitOrderReceive)
+			authRequired.POST("/transit-orders/:id/repack", handlers.TransitOrderRepack)
+			authRequired.POST("/transit-orders/:id/ship", handlers.TransitOrderShip)
 
-	// Quote routes (Issue #1148)
-	authRequired.POST("/quotes", handlers.SubmitQuote)
-	authRequired.GET("/quotes/:request_id", handlers.ListQuotes)
-	authRequired.POST("/quotes/:id/accept", handlers.AcceptQuote)
+			// Quote routes (Issue #1148)
+			authRequired.POST("/quotes", handlers.SubmitQuote)
+			authRequired.GET("/quotes/:request_id", handlers.ListQuotes)
+			authRequired.POST("/quotes/:id/accept", handlers.AcceptQuote)
 
 			// Repair request routes (Issue #1110)
 			repairReqRequired := authRequired
-			repairReqRequired.GET("/repair-requests", repairReqHandler.List)
-			repairReqRequired.GET("/repair-requests/:id", repairReqHandler.Get)
 			repairReqRequired.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
 			repairReqRequired.PUT("/repair-requests/:id/return-shipping", repairReqHandler.ReturnShipping)
-			repairReqRequired.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
-			repairReqRequired.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
 			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
@@ -585,7 +579,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/contracts/:id", userRentalHandler.GetContract)
 				userOptionalAuth.GET("/user/orders/counts", userRentalHandler.GetOrderCounts)
 				userOptionalAuth.GET("/orders", handlers.GetOrders)
-			userOptionalAuth.GET("/orders/:id", handlers.GetOrder)
+				userOptionalAuth.GET("/orders/:id", handlers.GetOrder)
 				userOptionalAuth.GET("/orders/:id/logs", handlers.GetOrderLogs)
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
@@ -605,7 +599,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/settlements/:id", userSettlementHandler.GetSettlement)
 				userOptionalAuth.GET("/notifications/unread-count", handlers.GetUnreadCount)
 				userOptionalAuth.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
-			userOptionalAuth.POST("/repair-requests", repairReqHandler.Create)
+				userOptionalAuth.POST("/repair-requests", repairReqHandler.Create)
+				userOptionalAuth.GET("/site-members/me", handlers.GetMyRoles)
+				userOptionalAuth.GET("/repair-requests", repairReqHandler.List)
+				userOptionalAuth.GET("/repair-requests/:id", repairReqHandler.Get)
+				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
+				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
@@ -749,15 +748,15 @@ func main() {
 						log.Printf("[Bootstrap] Synced sys_perm for role %s: bits=%v", code, template.SysPermBits)
 					}
 				}
-			if len(template.CusPermCodes) > 0 {
-				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, permRegistry.GetCusPermBit)
-				log.Printf("[Bootstrap] Computing cus_perm for %s: codes=%v → value=%d", code, template.CusPermCodes, cusPerm)
-				if err := iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt); err != nil {
-					log.Printf("[Bootstrap] Warning: failed to sync cus_perm for role %s: %v", code, err)
-				} else {
-					log.Printf("[Bootstrap] Synced cus_perm for role %s: value=%d, codes=%v", code, cusPerm, template.CusPermCodes)
+				if len(template.CusPermCodes) > 0 {
+					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, permRegistry.GetCusPermBit)
+					log.Printf("[Bootstrap] Computing cus_perm for %s: codes=%v → value=%d", code, template.CusPermCodes, cusPerm)
+					if err := iamClient.SyncRoleTemplateCusPerm(nsID, code, cusPerm, cusPermExt); err != nil {
+						log.Printf("[Bootstrap] Warning: failed to sync cus_perm for role %s: %v", code, err)
+					} else {
+						log.Printf("[Bootstrap] Synced cus_perm for role %s: value=%d, codes=%v", code, cusPerm, template.CusPermCodes)
+					}
 				}
-			}
 			}
 		} else {
 			log.Printf("[Bootstrap] Skipping sys_perm sync: namespace not resolvable (nsErr=%v)", nsErr)

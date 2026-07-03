@@ -108,4 +108,103 @@ func TestCreateRepairRequest(t *testing.T) {
 		assert.Equal(t, 40002, resp.Code)
 		assert.Contains(t, resp.Message, "required")
 	})
+
+	// --- USER context tests (empty tenantID, no org binding) ---
+	// Move User table setup here to share the same db instance with staff tests
+	// This avoids test isolation issues caused by the global database.DB variable
+	_ = db.Migrator().DropTable(&models.User{})
+	_ = db.Migrator().CreateTable(&models.User{})
+	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
+
+	userSub := uuid.New().String()
+	localUser := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   userSub,
+		TenantID: uuid.New().String(),
+		OrgID:    uuid.New().String(),
+		Status:   "active",
+	}
+	err = db.Create(&localUser).Error
+	require.NoError(t, err)
+
+	usrRouter := gin.New()
+	usrRouter.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, "")
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, "")
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userSub)
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "USER")
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	usrRouter.GET("/api/repair-requests", handler.List)
+	usrRouter.POST("/api/repair-requests/:id/pay", handler.PayRepairRequest)
+
+	validUIID := uuid.New().String()
+
+	t.Run("List as USER — empty tid, returns user's repair requests", func(t *testing.T) {
+		repairID := uuid.New().String()
+		req := models.RepairRequest{
+			ID:               repairID,
+			TenantID:         uuid.New().String(),
+			SiteID:           uuid.New().String(),
+			UserID:           localUser.ID,
+			UserInstrumentID: validUIID,
+			Status:           models.RepairReqStatusPendingAssessment,
+		}
+		err := db.Create(&req).Error
+		require.NoError(t, err)
+
+		httpReq := httptest.NewRequest("GET", "/api/repair-requests", nil)
+		w := httptest.NewRecorder()
+		usrRouter.ServeHTTP(w, httpReq)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				List []map[string]interface{} `json:"list"`
+			} `json:"data"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		assert.Equal(t, 20000, resp.Code)
+		assert.GreaterOrEqual(t, len(resp.Data.List), 1)
+	})
+
+	t.Run("PayRepairRequest as USER — empty tid, processes payment", func(t *testing.T) {
+		quoteAmount := 500.0
+		repairID := uuid.New().String()
+		repairReq := models.RepairRequest{
+			ID:               repairID,
+			TenantID:         uuid.New().String(),
+			SiteID:           uuid.New().String(),
+			UserID:           localUser.ID,
+			UserInstrumentID: validUIID,
+			Status:           models.RepairReqStatusPendingPay,
+			QuoteAmount:      &quoteAmount,
+		}
+		err := db.Create(&repairReq).Error
+		require.NoError(t, err)
+
+		body := `{}`
+		httpReq := httptest.NewRequest("POST", "/api/repair-requests/"+repairID+"/pay", strings.NewReader(body))
+		httpReq.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		usrRouter.ServeHTTP(w, httpReq)
+
+		t.Logf("pay response: %s", w.Body.String())
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		}
+		err = json.Unmarshal(w.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		assert.Equal(t, 20000, resp.Code)
+
+		var updated models.RepairRequest
+		db.Where("id = ?", repairID).First(&updated)
+		assert.Equal(t, models.RepairReqStatusRepairing, updated.Status)
+	})
 }
