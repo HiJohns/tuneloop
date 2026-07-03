@@ -53,6 +53,7 @@ export default function SiteManagement() {
   const [expandedKeys, setExpandedKeys] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
   const [syncLoading, setSyncLoading] = useState(false)
+  const [transitSites, setTransitSites] = useState([])
   const [userRole, setUserRole] = useState('')
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -72,7 +73,18 @@ export default function SiteManagement() {
       }
     }
     fetchSiteTree()
+    loadTransitSites()
   }, [])
+
+  const loadTransitSites = async () => {
+    try {
+      const res = await fetch('/api/public/sites?type=transit')
+      const json = await res.json()
+      if (json.code === 20000) setTransitSites(json.data?.list || [])
+    } catch (e) {
+      console.error('Failed to load transit sites:', e)
+    }
+  }
 
   const fetchSiteTree = async () => {
     Logger.state('SiteManagement', { status: 'fetchSiteTree', action: 'START' })
@@ -248,6 +260,7 @@ export default function SiteManagement() {
         phone: values.phone || '',
         postal_code: values.postal_code || '',
         parent_id: editingSite?.parent_id,
+        transit_site_id: values.transit_site_id || '',
       }
       
       Logger.log('SITE', 'siteData:', siteData)
@@ -522,6 +535,20 @@ filterTreeNode={(node) => {
                    data-testid="site-form-postal"
                  >
                    <Input placeholder="请输入邮编" />
+                 </Form.Item>
+
+                 <Form.Item
+                   name="transit_site_id"
+                   label="中转网点"
+                   data-testid="site-form-transit"
+                 >
+                   <Select placeholder="请选择中转网点" allowClear>
+                     {transitSites.map(s => (
+                       <Option key={s.id} value={s.id}>
+                         {s.name}（{s.address || ''}）
+                       </Option>
+                     ))}
+                   </Select>
                  </Form.Item>
                </Form>
             </Card>

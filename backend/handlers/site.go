@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -207,20 +208,21 @@ func (h *SiteHandler) GetSiteDetail(c *gin.Context) {
 // POST /api/merchant/sites - Create site
 func (h *SiteHandler) CreateSite(c *gin.Context) {
 	var req struct {
-		Name          string  `json:"name" binding:"required"`
-		Address       string  `json:"address"`
-		Type          string  `json:"type"`
-		Latitude      float64 `json:"latitude"`
-		Longitude     float64 `json:"longitude"`
-		Phone         string  `json:"phone"`
-		PostalCode    string  `json:"postal_code"`
-		BusinessHours string  `json:"business_hours"`
-		ParentID      *string `json:"parent_id"`
-		ManagerID     *string `json:"manager_id"`
-		ManagerName   string  `json:"manager_name"`
+		Name            string  `json:"name" binding:"required"`
+		Address         string  `json:"address"`
+		Type            string  `json:"type"`
+		Latitude        float64 `json:"latitude"`
+		Longitude       float64 `json:"longitude"`
+		Phone           string  `json:"phone"`
+		PostalCode      string  `json:"postal_code"`
+		BusinessHours   string  `json:"business_hours"`
+		ParentID        *string `json:"parent_id"`
+		ManagerID       *string `json:"manager_id"`
+		ManagerName     string  `json:"manager_name"`
 		ManagerUsername string  `json:"manager_username"`
-		ManagerEmail  string  `json:"manager_email"`
-		ManagerPhone  string  `json:"manager_phone"`
+		ManagerEmail    string  `json:"manager_email"`
+		ManagerPhone    string  `json:"manager_phone"`
+		TransitSiteID   string  `json:"transit_site_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -375,6 +377,28 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		}
 	}
 
+	// Controlled merchant: require transit_site_id
+	var merchant models.Merchant
+	if err := db.Where("org_id = ?", orgID).First(&merchant).Error; err == nil {
+		if merchant.MerchantType == "controlled" && req.TransitSiteID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "transit_site_id is required for controlled merchant",
+			})
+			return
+		}
+		if req.TransitSiteID != "" {
+			var transitSite models.Site
+			if err := db.Where("id = ? AND type = 'transit'", req.TransitSiteID).First(&transitSite).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"code":    40002,
+					"message": "transit site not found or not a transit type",
+				})
+				return
+			}
+		}
+	}
+
 	site := models.Site{
 		Name:          req.Name,
 		TenantID:      tenantID,
@@ -408,6 +432,19 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		}
 		if err := db.Create(&siteMember).Error; err != nil {
 			log.Printf("[CreateSite] Failed to add manager as site member: %v", err)
+		}
+	}
+
+	if req.TransitSiteID != "" {
+		transitRoute := models.TransitRoute{
+			ID:               uuid.New().String(),
+			ControlledSiteID: site.ID,
+			TransitSiteID:    req.TransitSiteID,
+			IsDefault:        true,
+			CreatedAt:        time.Now(),
+		}
+		if err := db.Create(&transitRoute).Error; err != nil {
+			log.Printf("[CreateSite] Failed to create transit route: %v", err)
 		}
 	}
 
