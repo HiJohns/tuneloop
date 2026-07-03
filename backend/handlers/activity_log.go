@@ -19,6 +19,7 @@ type activityEvent struct {
 	Media    []struct {
 		URL       string `json:"url"`
 		BatchType string `json:"batch_type"`
+		FileType  string `json:"file_type"`
 	} `json:"media"`
 }
 
@@ -88,13 +89,17 @@ func GetInstrumentActivityLog(c *gin.Context) {
 		Find(&mediaList)
 
 	// Build media lookup by batch_type
-	mediaByBatchType := make(map[string][]string)
+	type mediaInfo struct {
+		URL      string
+		FileType string
+	}
+	mediaByBatchType := make(map[string][]mediaInfo)
 	for _, m := range mediaList {
 		url, _ := storage.GetURL(ctx, m.StorageKey)
 		if url == "" {
 			url = "/uploads/media/" + m.StorageKey
 		}
-		mediaByBatchType[m.BatchType] = append(mediaByBatchType[m.BatchType], url)
+		mediaByBatchType[m.BatchType] = append(mediaByBatchType[m.BatchType], mediaInfo{URL: url, FileType: m.FileType})
 	}
 
 	// Build sessions
@@ -116,14 +121,16 @@ func GetInstrumentActivityLog(c *gin.Context) {
 			var mediaItems []struct {
 				URL       string `json:"url"`
 				BatchType string `json:"batch_type"`
+				FileType  string `json:"file_type"`
 			}
 			if batchType != "" {
-				if urls, ok := mediaByBatchType[batchType]; ok {
-					for _, u := range urls {
+				if items, ok := mediaByBatchType[batchType]; ok {
+					for _, item := range items {
 						mediaItems = append(mediaItems, struct {
 							URL       string `json:"url"`
 							BatchType string `json:"batch_type"`
-						}{URL: u, BatchType: batchType})
+							FileType  string `json:"file_type"`
+						}{URL: item.URL, BatchType: batchType, FileType: item.FileType})
 					}
 				}
 			}

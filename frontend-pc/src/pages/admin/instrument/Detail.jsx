@@ -722,9 +722,16 @@ function ActivityLogTab({ instrumentId }) {
                     <p className="text-sm font-medium">{event.event}</p>
                     {event.operator && <p className="text-xs text-gray-400">操作人: {event.operator}</p>}
                     {event.media?.length > 0 && (
-                      <div className="flex gap-1 mt-1">
-                        {event.media.filter(m => m.url).slice(0, 3).map((m, mi) => (
-                          <Image key={mi} src={m.url} width={40} height={40} className="object-cover rounded" preview={{ mask: null }} />
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {event.media.filter(m => m.url).map((m, mi) => (
+                          <div key={mi} className="relative w-[60px] h-[60px]">
+                            <Image src={m.url} width={60} height={60} className="object-cover rounded" preview={{ mask: null }} />
+                            {m.file_type === 'video_thumb' && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded">
+                                <div className="w-0 h-0 border-t-[8px] border-b-[8px] border-l-[14px] border-t-transparent border-b-transparent border-l-white ml-1" />
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
