@@ -376,19 +376,19 @@ function onMenuClick(e) {
   // Filter menu: children by permission, parent visible if any child visible
   const ownerAtMerchant = userInfo?.tid && userInfo?.tid === userInfo?.oid
   const isNsAdmin = isNamespaceAdmin(userInfo?.roles || [])
+  const isItemVisible = (item, parentKey) => {
+    const key = item.key || ''
+    if (isNsAdmin && getNamespaceAdminMenuKeys().includes(key)) return true
+    if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0 && parentKey !== 'system') return true
+    return checkPermission(item.permission, sysPerm, cusPerm, cusPermMapping)
+  }
   const filteredItems = menuConfig
-    .map(item => ({
-      ...item,
-      children: item.children?.filter(child => {
-        const childKey = child.key || ''
-        if (isNsAdmin && getNamespaceAdminMenuKeys().includes(childKey)) return true
-        if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0) {
-          if (item.key !== 'system') return true
-        }
-        return checkPermission(child.permission, sysPerm, cusPerm, cusPermMapping)
-      }).filter(child => !isNsAdmin || getNamespaceAdminMenuKeys().includes(child.key))
-    }))
-    .filter(item => (item.children && item.children.length > 0) || item.key.startsWith('/'));
+    .map(item => item.children
+      ? { ...item, children: item.children.filter(c => isItemVisible(c, item.key)) }
+      : item)
+    .filter(item => item.children
+      ? item.children.length > 0
+      : isItemVisible(item, item.key));
 
   console.log('%c[APP DEBUG] Menu filter result', 'color: purple;', {
     userInfoExists: !!userInfo,
