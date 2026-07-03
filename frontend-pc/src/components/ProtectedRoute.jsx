@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Spin } from 'antd'
 import { useState, useEffect } from 'react'
-import { checkPermission } from '../config/menuPermissions'
+import { checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from '../config/menuPermissions'
 
 const getIAMUrl = () => window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
 const CLIENT_ID = () => window.APP_CONFIG?.pc?.iamClientId
@@ -138,6 +138,12 @@ export function ProtectedRoute({ children, requiredRoles = [], requiredPermissio
 
   // Check bit-based permissions (new #414 behavior)
   if (requiredPermission) {
+    // Namespace admin bypass (consistent with menu: getNamespaceAdminMenuKeys)
+    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+    if (isNamespaceAdmin(userInfo.roles) && getNamespaceAdminMenuKeys().includes(location.pathname)) {
+      return children
+    }
+
     const sysPerm = parseInt(localStorage.getItem('user_sys_perm') || '0')
     const cusPerm = parseInt(localStorage.getItem('user_cus_perm') || '0')
     const cusPermMapping = JSON.parse(localStorage.getItem('permission_mapping') || '{}')
