@@ -37,6 +37,10 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 	tenantID := uuid.New().String()
 	now := time.Now()
 
+	levelID := uuid.New().String()
+	db.Exec(`INSERT INTO instrument_levels (id, caption, code, sort_order) VALUES (?, ?, ?, ?)`,
+		levelID, "入门", "entry", 1)
+
 	// Create test data
 	siteID := uuid.New().String()
 	db.Exec(`INSERT INTO sites (id, name, tenant_id, status, created_at, updated_at) 
@@ -65,9 +69,10 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 
 	requestBody := map[string]interface{}{
 		"sn":          "TEST-SN-001",
-		"level":       "入门",
+		"level_id":    levelID,
 		"category_id": categoryID,
 		"site_id":     siteID,
+		"total_price": 50000,
 		"properties": map[string]interface{}{
 			"型号": []string{"U1"},
 			"品牌": []string{"雅马哈"},
@@ -87,22 +92,25 @@ func TestCreateInstrumentSavesAllFields(t *testing.T) {
 	var instrument struct {
 		ID             string
 		SN             string
-		Level          string
+		LevelID        string
 		CategoryID     string
 		SiteID         *string
 		Specifications string
+		TotalPrice     *float64
 	}
 
-	err = db.Raw(`SELECT id, sn, level, category_id, site_id, specifications 
+	err = db.Raw(`SELECT id, sn, level_id::text, category_id, site_id, specifications, total_price 
 		FROM instruments WHERE tenant_id = ? AND sn = ?`, tenantID, "TEST-SN-001").Scan(&instrument).Error
 	require.NoError(t, err)
 
 	assert.Equal(t, "TEST-SN-001", instrument.SN)
-	assert.Equal(t, "入门", instrument.Level)
+	assert.Equal(t, levelID, instrument.LevelID)
 	assert.Equal(t, categoryID, instrument.CategoryID)
 	require.NotNil(t, instrument.SiteID)
 	assert.Equal(t, siteID, *instrument.SiteID)
 	assert.NotEmpty(t, instrument.Specifications)
+	require.NotNil(t, instrument.TotalPrice)
+	assert.Equal(t, 50000.0, *instrument.TotalPrice)
 
 	// Cleanup
 	db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)

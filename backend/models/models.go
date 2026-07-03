@@ -68,6 +68,7 @@ type Instrument struct {
 	Poster             string     `gorm:"type:text" json:"poster"`
 	Specifications     string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
 	Pricing            string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`
+	TotalPrice         *float64   `gorm:"type:decimal(12,2)" json:"total_price"`
 	BaseDailyRate      *float64   `gorm:"type:decimal(10,2)" json:"base_daily_rate"`
 	PricingOverrides   string     `gorm:"type:jsonb;default:'{}'" json:"pricing_overrides"`
 	StockStatus        string     `gorm:"type:varchar(20);default:'available'" json:"stock_status"`

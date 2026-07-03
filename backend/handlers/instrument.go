@@ -26,6 +26,7 @@ type CreateInstrumentRequest struct {
 	Status         string                   `json:"status"`
 	Pricing        map[string]interface{}   `json:"pricing"`
 	BaseDailyRate  *float64                 `json:"base_daily_rate"`
+	TotalPrice     *float64                 `json:"total_price"`
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
@@ -48,6 +49,7 @@ type UpdateInstrumentRequest struct {
 	Images         []string                 `json:"images"`
 	Pricing        map[string]interface{}   `json:"pricing"`
 	BaseDailyRate  *float64                 `json:"base_daily_rate"`
+	TotalPrice     *float64                 `json:"total_price"`
 	Specifications []map[string]interface{} `json:"specifications"`
 	Properties     map[string]interface{}   `json:"properties"`
 	Level          *string                  `json:"level"`
@@ -378,6 +380,9 @@ func CreateInstrument(c *gin.Context) {
 	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
 		instrument.BaseDailyRate = req.BaseDailyRate
 	}
+	if req.TotalPrice != nil && *req.TotalPrice > 0 {
+		instrument.TotalPrice = req.TotalPrice
+	}
 
 	// Handle Video field
 	instrument.Video = req.Video
@@ -621,6 +626,9 @@ func UpdateInstrument(c *gin.Context) {
 	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
 		updates["base_daily_rate"] = *req.BaseDailyRate
 	}
+	if req.TotalPrice != nil && *req.TotalPrice > 0 {
+		updates["total_price"] = *req.TotalPrice
+	}
 
 	// Step 3: 确保 tenant_id 不为空
 	if instrument.TenantID == "" {
@@ -826,14 +834,14 @@ func CheckInstrumentSN(c *gin.Context) {
 		"data": gin.H{
 			"exists": true,
 			"info": gin.H{
-				"id":           instrument.ID,
-				"sn":           instrument.SN,
-				"site":         siteName,
-				"site_id":      instrument.SiteID,
-				"category":     categoryName,
-				"category_id":  instrument.CategoryID,
+				"id":            instrument.ID,
+				"sn":            instrument.SN,
+				"site":          siteName,
+				"site_id":       instrument.SiteID,
+				"category":      categoryName,
+				"category_id":   instrument.CategoryID,
 				"category_name": instrument.CategoryName,
-				"stock_status": instrument.StockStatus,
+				"stock_status":  instrument.StockStatus,
 			},
 		},
 	})
