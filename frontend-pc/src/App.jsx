@@ -20,7 +20,6 @@ import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
 import LeaseLedger from './pages/LeaseLedger'
 import DepositFlow from './pages/DepositFlow'
-import ExpireWarning from './pages/ExpireWarning'
 import OverdueAlerts from './pages/OverdueAlerts'
 import SupplierDB from './pages/SupplierDB'
 import InstrumentStock from './pages/InstrumentStock'
@@ -302,33 +301,37 @@ function MainLayout() {
   
   const menuConfig = [
   {
-    key: 'instruments',
+    key: 'basic',
     icon: <SettingOutlined />,
-    label: '乐器管理',
+    label: '基础配置',
     children: [
-      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
       { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
-      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } }
+      { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } },
+      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
     ]
   },
   {
-    key: 'maintenance',
+    key: 'strategy',
     icon: <ToolOutlined />,
-    label: '维修管理',
-    children: [
-      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
-      { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
-    ]
-  },
-  {
-    key: 'inventory',
-    icon: <AppstoreOutlined />,
-    label: '库存监控',
+    label: '经营策略',
     children: [
       { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
       { key: '/pricing/config', label: '定价策略', permission: { cusPermCodes: ['instrument:price_config'] } },
+      { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
+      { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
+      { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
+      { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
+    ]
+  },
+  {
+    key: 'operations',
+    icon: <AppstoreOutlined />,
+    label: '运营管理',
+    children: [
+      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
-      { key: '/expire-warning', label: '到期预警', permission: { cusPermCodes: ['instrument:read'] } },
+      { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
+      { key: '/transit-routes', label: '中转路由', permission: { sysPermBits: [5] } },
       { key: '/overdue-alerts', label: '逾期告警', permission: { cusPermCodes: ['instrument:read'] } },
     ]
   },
@@ -350,15 +353,10 @@ function MainLayout() {
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
       { key: '/system/audit-logs', label: '操作日志' },
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
-      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
-      { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
-      { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
-      { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
       { key: '/system/warnings', label: '警告管理', permission: { sysPermBits: [5] } },
       { key: '/system/warning-settings', label: '警告配置', permission: { sysPermBits: [5] } },
     ]
   },
-  { key: '/transit-routes', icon: <ToolOutlined />, label: '中转路由', permission: { sysPermBits: [5] } },
   { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
 ]
 
@@ -402,11 +400,11 @@ function onMenuClick(e) {
 
   const selectedKeys = [location.pathname]
   let openKeys = []
-  if (['/', '/instruments/categories', '/instruments/list', '/instruments/properties'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['instruments']
-  else if (['/site/stock', '/instruments/detail'].includes(location.pathname) || location.pathname.startsWith('/site/stock/')) openKeys = ['instruments']
-  else if (['/inventory/transfer', '/inventory/rent-setting', '/pricing/config', '/expire-warning', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/inventory/')) openKeys = ['inventory']
+  if (['/instruments/categories', '/instruments/properties', '/system/banners'].includes(location.pathname)) openKeys = ['basic']
+  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels'].includes(location.pathname)) openKeys = ['strategy']
+  else if (['/instruments/list', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['operations']
   else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
-  else if (['/merchants', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
+  else if (['/merchants', '/system/audit-logs', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
 
 
@@ -418,24 +416,31 @@ function onMenuClick(e) {
   ]
   
   const routeMap = {
-    '/': { title: '仪表盘 (Dashboard)', parent: '乐器管理' },
-    '/instruments/categories': { title: '分类设置', parent: '乐器管理' },
-    '/instruments/list': { title: '乐器列表', parent: '乐器管理' },
-    '/instruments/properties': { title: '属性管理', parent: '乐器管理' },
-    '/site/stock': { title: '库存监控', parent: '乐器管理' },
-    '/inventory/rent-setting': { title: '租金设定', parent: '库存监控' },
-    '/pricing/config': { title: '定价策略', parent: '库存监控' },
+    '/': { title: '仪表盘 (Dashboard)', parent: '基础配置' },
+    '/instruments/categories': { title: '分类设置', parent: '基础配置' },
+    '/instruments/properties': { title: '属性管理', parent: '基础配置' },
+    '/system/banners': { title: '轮播图管理', parent: '基础配置' },
+    '/inventory/rent-setting': { title: '租金设定', parent: '经营策略' },
+    '/pricing/config': { title: '定价策略', parent: '经营策略' },
+    '/system/promo-plans': { title: '系统折扣政策', parent: '经营策略' },
+    '/repair/settings': { title: '报修设置', parent: '经营策略' },
+    '/system/rebate-config': { title: '返点配置', parent: '经营策略' },
+    '/system/membership-levels': { title: '会员级别管理', parent: '经营策略' },
+    '/instruments/list': { title: '乐器列表', parent: '运营管理' },
+    '/site/stock': { title: '库存监控', parent: '运营管理' },
+    '/warehouse': { title: '库管工作台', parent: '运营管理' },
+    '/maintenance/sessions': { title: '会话管理', parent: '运营管理' },
+    '/transit-routes': { title: '中转路由', parent: '运营管理' },
+    '/overdue-alerts': { title: '逾期告警', parent: '运营管理' },
     '/organization/sites': { title: '网点管理', parent: '组织管理' },
     '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
+    '/staff': { title: '人员管理', parent: '组织管理' },
+    '/appeals': { title: '申诉处理', parent: '组织管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
-    '/system/banners': { title: '轮播图管理', parent: '系统管理' },
-    '/system/membership-levels': { title: '会员级别管理', parent: '系统管理' },
-    '/system/rebate-config': { title: '返点配置', parent: '系统管理' },
-    '/system/promo-plans': { title: '系统折扣政策', parent: '系统管理' },
+    '/system/permissions': { title: '权限管理', parent: '系统管理' },
     '/system/warnings': { title: '警告管理', parent: '系统管理' },
     '/system/warning-settings': { title: '警告配置', parent: '系统管理' },
-    '/transit-routes': { title: '中转路由', parent: '系统管理' },
   }
 
 
@@ -597,7 +602,6 @@ function onMenuClick(e) {
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
-            <Route path="/expire-warning" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><ExpireWarning /></ProtectedRoute>} />
             <Route path="/overdue-alerts" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><OverdueAlerts /></ProtectedRoute>} />
             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/user/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
