@@ -533,7 +533,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Repair request routes (Issue #1110)
 			repairReqRequired := authRequired
-			repairReqRequired.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
 			repairReqRequired.GET("/repair-requests", repairReqHandler.List)
 			repairReqRequired.POST("/repair-requests", repairReqHandler.Create)
 			repairReqRequired.GET("/repair-requests/:id", repairReqHandler.Get)
@@ -606,6 +605,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)
 				userOptionalAuth.GET("/user/settlements/:id", userSettlementHandler.GetSettlement)
 				userOptionalAuth.GET("/notifications/unread-count", handlers.GetUnreadCount)
+				userOptionalAuth.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
