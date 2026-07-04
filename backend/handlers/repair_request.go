@@ -478,6 +478,14 @@ func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
 		return
 	}
 
+	orgID := middleware.GetOrgID(ctx)
+	if orgID == "" {
+		var site models.Site
+		if err := db.Where("id = ?", req.SiteID).First(&site).Error; err == nil {
+			orgID = site.OrgID
+		}
+	}
+
 	photosJSON, _ := json.Marshal(body.Photos)
 	record := models.RepairRequestRecord{
 		ID:              uuid.New().String(),
@@ -510,7 +518,7 @@ func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
 	for _, url := range body.Photos {
 		media := models.InstrumentMedia{
 			TenantID:   req.TenantID,
-			OrgID:      req.TenantID,
+			OrgID:      orgID,
 			ObjectType: "repair_request",
 			ObjectID:   &id,
 			BatchID:    batchID,
@@ -527,7 +535,7 @@ func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
 	if body.VideoURL != "" {
 		media := models.InstrumentMedia{
 			TenantID:   req.TenantID,
-			OrgID:      req.TenantID,
+			OrgID:      orgID,
 			ObjectType: "repair_request",
 			ObjectID:   &id,
 			BatchID:    batchID,
