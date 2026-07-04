@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, ScrollView, Button } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Image, Video } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
 import RepairRecordPanel from '../components/RepairRecordPanel'
@@ -134,6 +134,24 @@ export default function RepairRequestDetail() {
             )}
           </View>
         </View>
+
+        {/* Media: photos and video */}
+        {request.photos && JSON.parse(request.photos).length > 0 && (
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+          <View><Text className="text-sm font-bold text-black mb-2">图片</Text></View>
+          <View className="flex flex-wrap gap-2">
+            {JSON.parse(request.photos).map((p, i) => (
+              <Image key={i} src={`/uploads/media/${p}`} className="w-24 h-24 rounded-lg object-cover" mode="aspectFill" />
+            ))}
+          </View>
+        </View>
+        )}
+        {request.video_url && (
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+          <View><Text className="text-sm font-bold text-black mb-2">视频</Text></View>
+          <Video src={`/uploads/media/${request.video_url}`} className="w-full h-48 rounded-lg" controls />
+        </View>
+        )}
 
         {/* Repair records */}
         <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
