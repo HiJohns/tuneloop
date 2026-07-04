@@ -598,7 +598,154 @@ func (h *RepairRequestHandler) UserInstrumentLookup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"instrument": nil}})
 }
 
-// ReturnShipping sets return tracking info and transitions repair request to returned.
+// TransitProcess handles transit process for a controlled repair request (v3).
+// Transit employee fills transit_service_fee and transit_logistics_fee, then fans out to controlled sites.
+func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+	if req.Status != models.RepairReqStatusTransitProcessing {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not in transit_processing status"})
+		return
+	}
+	if req.MerchantType != models.MerchantTypeControlled {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not a controlled repair request"})
+		return
+	}
+
+	var body struct {
+		TransitServiceFee   float64 `json:"transit_service_fee"`
+		TransitLogisticsFee float64 `json:"transit_logistics_fee"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
+		return
+	}
+
+	// Create inbound transit order (pending_activation, activated when user ships)
+	transitOrder := models.RepairTransitOrder{
+		ID:                  uuid.New().String(),
+		RepairRequestID:     id,
+		TransitSiteID:       req.TransitSiteID,
+		Direction:           models.RepairTransitDirIn,
+		Status:              models.RepairTransitPendingActivation,
+		TransitServiceFee:   &body.TransitServiceFee,
+		TransitLogisticsFee: &body.TransitLogisticsFee,
+		CreatedAt:           time.Now(),
+	}
+	if err := db.Create(&transitOrder).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create transit order"})
+		return
+	}
+
+	// Transition to pending_assessment (fanned out to all controlled sites)
+	now := time.Now()
+	exp := now.AddDate(0, 0, 7)
+	db.Model(&req).Updates(map[string]interface{}{
+		"status":     models.RepairReqStatusPendingAssessment,
+		"expire_at":  &exp,
+		"updated_at": now,
+	})
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "transit process completed, repair request fanned out to controlled sites"})
+}
+
+// Receive handles receiving a repair request at a site (v3).
+func (h *RepairRequestHandler) Receive(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+	if req.Status != models.RepairReqStatusShipping && req.Status != models.RepairReqStatusTransitIn {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not in shipping or transit_in status"})
+		return
+	}
+
+	newStatus := models.RepairReqStatusRepairing
+	if req.Status == models.RepairReqStatusShipping && req.MerchantType == models.MerchantTypeControlled {
+		// Full-authority site receives → repairing directly
+		// Controlled: shipping → transit_in (transit site processes later)
+		newStatus = models.RepairReqStatusTransitIn
+	}
+
+	db.Model(&req).Updates(map[string]interface{}{
+		"status":     newStatus,
+		"updated_at": time.Now(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair request received", "data": gin.H{"status": newStatus}})
+}
+
+// TransitRelay handles relay (scan/unpack/photograph/repack/forward) for a transit order (v3).
+func (h *RepairRequestHandler) TransitRelay(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+
+	var body struct {
+		Direction          string   `json:"direction"` // in/out
+		TransitOrderNumber string   `json:"transit_order_number"`
+		UnpackPhotos       []string `json:"unpack_photos"`
+		RepackCompany      string   `json:"repack_company"`
+		RepackTrackingNum  string   `json:"repack_tracking_number"`
+		Note               string   `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
+		return
+	}
+
+	var transitOrder models.RepairTransitOrder
+	if err := db.Where("repair_request_id = ? AND direction = ?", id, body.Direction).First(&transitOrder).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "transit order not found"})
+		return
+	}
+
+	photosJSON, _ := json.Marshal(body.UnpackPhotos)
+	updates := map[string]interface{}{
+		"status":                 models.RepairTransitRelayed,
+		"transit_order_number":   body.TransitOrderNumber,
+		"unpack_photos":          string(photosJSON),
+		"repack_company":         body.RepackCompany,
+		"repack_tracking_number": body.RepackTrackingNum,
+		"note":                   body.Note,
+		"updated_at":             time.Now(),
+	}
+	db.Model(&transitOrder).Updates(updates)
+
+	// Advance the repair request status based on direction
+	var reqStatus string
+	if body.Direction == models.RepairTransitDirIn {
+		reqStatus = models.RepairReqStatusTransitIn // inbound relay done → transit_in
+	} else {
+		reqStatus = models.RepairReqStatusTransitOut // outbound relay done → transit_out
+	}
+	db.Model(&req).Updates(map[string]interface{}{
+		"status":     reqStatus,
+		"updated_at": time.Now(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "transit relay completed"})
+}
+
+// ReturnShipping sets return tracking info, transitions repair request to returned/transit_out, and activates outbound transit order (v3).
 func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 	id := c.Param("id")
 	var body struct {
@@ -624,10 +771,28 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 		return
 	}
 
+	var newStatus string
+	if req.MerchantType == models.MerchantTypeControlled {
+		// Controlled path: create and activate outbound transit order
+		transitOrder := models.RepairTransitOrder{
+			ID:               uuid.New().String(),
+			RepairRequestID:  id,
+			TransitSiteID:    req.TransitSiteID,
+			ControlledSiteID: req.ControlledSiteID,
+			Direction:        models.RepairTransitDirOut,
+			Status:           models.RepairTransitActive, // activated immediately
+			CreatedAt:        time.Now(),
+		}
+		db.Create(&transitOrder)
+		newStatus = models.RepairReqStatusTransitOut
+	} else {
+		newStatus = models.RepairReqStatusReturned
+	}
+
 	db.Model(&req).Updates(map[string]interface{}{
 		"return_company":         body.ReturnCompany,
 		"return_tracking_number": body.ReturnTrackingNumber,
-		"status":                 models.RepairReqStatusReturned,
+		"status":                 newStatus,
 		"updated_at":             time.Now(),
 	})
 

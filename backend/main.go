@@ -527,6 +527,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			repairReqRequired := authRequired
 			repairReqRequired.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
 			repairReqRequired.PUT("/repair-requests/:id/return-shipping", repairReqHandler.ReturnShipping)
+			// v3 repair-request transit routes
+			repairReqRequired.POST("/repair-requests/:id/transit-process", repairReqHandler.TransitProcess)
+			repairReqRequired.POST("/repair-requests/:id/receive", repairReqHandler.Receive)
+			repairReqRequired.POST("/repair-requests/:id/transit-relay", repairReqHandler.TransitRelay)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
 			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
