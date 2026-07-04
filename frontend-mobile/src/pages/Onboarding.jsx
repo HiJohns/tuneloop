@@ -22,6 +22,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     checkStatus()
+    loadProfile()
     loadExistingAddress()
   }, [])
 
@@ -37,6 +38,16 @@ export default function Onboarding() {
     setLoading(false)
   }
 
+  const loadProfile = async () => {
+    try {
+      const resp = await api.get('/users/me')
+      if (resp?.code === 20000 && resp.data) {
+        if (resp.data.name && !recipientName) setRecipientName(resp.data.name)
+        if (resp.data.phone && !phone) setPhone(resp.data.phone)
+      }
+    } catch { /* no profile */ }
+  }
+
   const loadExistingAddress = async () => {
     try {
       const resp = await api.get('/user/addresses')
@@ -44,11 +55,6 @@ export default function Onboarding() {
         const a = resp.data.list[0]
         setRecipientName(a.recipient_name || '')
         setPhone(a.phone || '')
-        setProvince(a.province || '')
-        setCity(a.city || '')
-        setDistrict(a.district || '')
-        setDetail(a.detail || '')
-        setHasExistingAddress(true)
 
       }
     } catch { /* no address */ }
