@@ -695,6 +695,7 @@
         "level": "professional",
         "level_name": "专业级",
         "monthly_rent": 800,
+        "total_price": 50000,
         "deposit": 5000,
         "stock_status": "available" // available, rented, maintenance, archived, lost
       }
@@ -732,6 +733,7 @@
     "pricing": {
       "monthly_rent": 800,
       "deposit": 5000,
+      "total_price": 50000,
       "discounts": {
         "3_months": 1.0,
         "6_months": 0.98,
