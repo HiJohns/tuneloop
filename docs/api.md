@@ -575,9 +575,12 @@
   "longitude": 116.2987,
   "phone": "010-87654321",
   "business_hours": "09:00-21:00",
-  "manager_user_id": "user-002"
+  "manager_user_id": "user-002",
+  "transit_site_id": "site-003"
 }
 ```
+
+> **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
 
 **响应**:
 ```json

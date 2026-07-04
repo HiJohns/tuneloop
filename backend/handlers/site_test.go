@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 )
 
 func TestGetSiteTreeReturnsManager(t *testing.T) {
@@ -302,4 +303,34 @@ func TestGetSiteDetailReturnsNullManagerWhenNoManager(t *testing.T) {
 
 	// Cleanup
 	db.Exec(`DELETE FROM sites WHERE tenant_id = ?`, tenantID)
+}
+
+func TestTransitRoute_DBCreation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	controlledSiteID := uuid.New().String()
+	transitSiteID := uuid.New().String()
+
+	route := models.TransitRoute{
+		ID:               uuid.New().String(),
+		ControlledSiteID: controlledSiteID,
+		TransitSiteID:    transitSiteID,
+		IsDefault:        true,
+		CreatedAt:        time.Now(),
+	}
+	err = db.Create(&route).Error
+	require.NoError(t, err, "TransitRoute should be created")
+
+	var fetched models.TransitRoute
+	err = db.Where("controlled_site_id = ?", controlledSiteID).First(&fetched).Error
+	require.NoError(t, err, "TransitRoute should be queryable")
+	assert.Equal(t, transitSiteID, fetched.TransitSiteID)
+	assert.Equal(t, true, fetched.IsDefault)
 }

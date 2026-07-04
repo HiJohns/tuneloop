@@ -50,6 +50,7 @@ var allTestModels = []interface{}{
 	&models.SiteImage{},
 	&models.SiteMember{},
 	&models.Tenant{},
+	&models.TransitRoute{},
 	&models.User{},
 	&models.UserInstrument{},
 	&models.Warning{},
