@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
 import { api, addressesApi } from '../services/api'
-import { storage, navigation } from '../platform'
+import { storage } from '../platform'
 import regions from '../data/regions.json'
 
 export default function Onboarding() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [hasExistingAddress, setHasExistingAddress] = useState(false)
@@ -20,17 +22,12 @@ export default function Onboarding() {
   const [idPhotoBack, setIdPhotoBack] = useState(null)
   const [idPhotoFrontUrl, setIdPhotoFrontUrl] = useState('')
   const [idPhotoBackUrl, setIdPhotoBackUrl] = useState('')
-  useEffect(() => {
-    checkStatus()
-    loadProfile()
-    loadExistingAddress()
-  }, [])
 
   const checkStatus = async () => {
     try {
       const resp = await api.get('/user/onboarding')
       if (resp?.data?.onboarding_completed) {
-        navigation.redirect('/')
+        navigate('/')
         return
       }
       if (resp?.data?.name) setName(resp.data.name || '')
@@ -59,6 +56,12 @@ export default function Onboarding() {
       }
     } catch { /* no address */ }
   }
+
+  useEffect(() => {
+    checkStatus()
+    loadProfile()
+    loadExistingAddress()
+  }, [])
 
   const handleIDPhotoSelect = (side, e) => {
     const file = e.target.files?.[0]
@@ -118,7 +121,7 @@ export default function Onboarding() {
       if (idPhotoFront) await uploadIDPhoto(idPhotoFront)
       if (idPhotoBack) await uploadIDPhoto(idPhotoBack)
       await api.put('/user/onboarding', { name: name || undefined })
-      navigation.navigate('/points-purchase')
+      navigate('/points-purchase')
     } catch { setSubmitting(false) }
   }
 
@@ -236,7 +239,7 @@ export default function Onboarding() {
         </Button>
 
         <Button className="w-full text-gray-400 text-sm py-3 mt-2"
-          onClick={() => navigation.redirect('/')}>跳过</Button>
+          onClick={() => navigate('/')}>跳过</Button>
       </View>
     </ScrollView>
   )

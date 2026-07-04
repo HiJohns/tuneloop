@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { View, Text, Button, Input, ScrollView } from '@tarojs/components'
 import { api } from '../services/api'
-import { navigation } from '../platform'
 
 export default function PointsPrePurchase() {
+  const navigate = useNavigate()
   const [amount, setAmount] = useState(300)
   const [customAmount, setCustomAmount] = useState('')
   const [paying, setPaying] = useState(false)
@@ -16,7 +17,7 @@ export default function PointsPrePurchase() {
     try {
       const resp = await api.post('/user/points/purchase', { amount: parseFloat(selectedAmount) })
       if (resp.code === 20000) {
-        navigation.redirect('/points-complete', { points: resp.data.prepaid_points })
+        navigate('/points-complete', { state: { points: resp.data.prepaid_points } })
         return
       }
     } catch { /* failed */ }
@@ -52,7 +53,7 @@ export default function PointsPrePurchase() {
             placeholder="自定义金额"
             type="digit"
             value={customAmount}
-            onInput={e => { setCustomAmount(e.detail.value); setAmount(0) }} />
+            onChange={e => { setCustomAmount(e.target.value); setAmount(0) }} />
         </View>
 
         <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium mb-3"
@@ -61,7 +62,7 @@ export default function PointsPrePurchase() {
         </Button>
 
         <Button className="w-full text-gray-400 text-sm py-3"
-          onClick={() => navigation.redirect('/')}>跳过</Button>
+          onClick={() => navigate('/')}>跳过</Button>
       </View>
     </ScrollView>
   )

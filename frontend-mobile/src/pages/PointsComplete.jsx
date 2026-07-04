@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
 import { api } from '../services/api'
-import { navigation } from '../platform'
 
 export default function PointsComplete() {
+  const navigate = useNavigate()
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadBalance()
-  }, [])
 
   const loadBalance = async () => {
     try {
@@ -18,6 +15,10 @@ export default function PointsComplete() {
     } catch { /* silent */ }
     setLoading(false)
   }
+
+  useEffect(() => {
+    loadBalance()
+  }, [])
 
   return (
     <ScrollView scrollY className="h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -34,7 +35,7 @@ export default function PointsComplete() {
         </View>
 
         <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium"
-          onClick={() => navigation.redirect('/')}>进入首页</Button>
+          onClick={() => navigate('/')}>进入首页</Button>
       </View>
     </ScrollView>
   )
