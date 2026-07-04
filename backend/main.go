@@ -391,10 +391,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 			authRequired.GET("/instrument-photo-specs/:category_id", handlers.GetInstrumentPhotoSpecs)
 
-			// Points wallet routes
-			authRequired.GET("/user/points/balance", userPointsHandler.GetBalance)
-			authRequired.GET("/user/points/transactions", userPointsHandler.ListTransactions)
-			authRequired.POST("/user/points/purchase", userPointsHandler.PurchasePoints)
 		}
 
 		propertyRequired := authRequired.Group("")
@@ -594,6 +590,12 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/onboarding", userOnboardingHandler.GetOnboardingStatus)
 				userOptionalAuth.PUT("/user/onboarding", userOnboardingHandler.CompleteOnboarding)
 				userOptionalAuth.POST("/user/id-photo", userOnboardingHandler.UploadIDPhoto)
+
+				// Points wallet routes
+				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)
+				userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
+				userOptionalAuth.POST("/user/points/purchase", userPointsHandler.PurchasePoints)
+
 				userOptionalAuth.GET("/user/settlements/:id/calculate", userSettlementHandler.CalculateSettlement)
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)
 				userOptionalAuth.GET("/user/settlements/:id", userSettlementHandler.GetSettlement)
