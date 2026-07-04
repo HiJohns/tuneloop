@@ -10,6 +10,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -346,6 +347,17 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		return
 	}
 
+	initRecord := models.RepairRequestRecord{
+		ID:              uuid.New().String(),
+		RepairRequestID: req.ID,
+		WorkerID:        userID,
+		Comment:         "报修单已创建",
+		Photos:          string(photosJSON),
+		RecordType:      "created",
+		CreatedAt:       time.Now(),
+	}
+	db.Create(&initRecord)
+
 	objectID := req.ID
 	if len(body.Photos) > 0 || body.VideoURL != "" {
 		batchID := uuid.New().String()
@@ -437,6 +449,99 @@ func (h *RepairRequestHandler) ListRecords(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records}})
+}
+
+func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	var body struct {
+		Comment  string   `json:"comment"`
+		Photos   []string `json:"photos"`
+		VideoURL string   `json:"video_url"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
+		return
+	}
+
+	if body.Comment == "" && len(body.Photos) == 0 && body.VideoURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "comment, photos, or video_url is required"})
+		return
+	}
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "repair request not found"})
+		return
+	}
+
+	photosJSON, _ := json.Marshal(body.Photos)
+	record := models.RepairRequestRecord{
+		ID:              uuid.New().String(),
+		RepairRequestID: id,
+		WorkerID:        userID,
+		Comment:         body.Comment,
+		Photos:          string(photosJSON),
+		RecordType:      "progress",
+		CreatedAt:       time.Now(),
+	}
+	if err := db.Create(&record).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create record"})
+		return
+	}
+
+	// Video replacement logic
+	if body.VideoURL != "" {
+		if req.VideoURL != "" && req.VideoURL != body.VideoURL {
+			if err := services.NewMediaStorage().Delete(ctx, req.VideoURL); err != nil {
+				log.Printf("[RepairRequest.AddRecord] failed to delete old video %s: %v", req.VideoURL, err)
+			}
+		}
+		db.Model(&req).Update("video_url", body.VideoURL)
+		db.Model(&req).Update("updated_at", time.Now())
+	}
+
+	// Create InstrumentMedia entries
+	batchID := uuid.New().String()
+	seq := 0
+	for _, url := range body.Photos {
+		media := models.InstrumentMedia{
+			TenantID:   req.TenantID,
+			OrgID:      req.TenantID,
+			ObjectType: "repair_request",
+			ObjectID:   &id,
+			BatchID:    batchID,
+			BatchType:  "repair",
+			FileName:   filepath.Base(url),
+			FileType:   "image",
+			StorageKey: url,
+			IsDisplay:  false,
+			SortOrder:  seq,
+		}
+		db.Create(&media)
+		seq++
+	}
+	if body.VideoURL != "" {
+		media := models.InstrumentMedia{
+			TenantID:   req.TenantID,
+			OrgID:      req.TenantID,
+			ObjectType: "repair_request",
+			ObjectID:   &id,
+			BatchID:    batchID,
+			BatchType:  "repair",
+			FileName:   filepath.Base(body.VideoURL),
+			FileType:   "video",
+			StorageKey: body.VideoURL,
+			IsDisplay:  false,
+			SortOrder:  seq,
+		}
+		db.Create(&media)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": record})
 }
 
 // UserInstrumentLookup looks up user instruments by SN.

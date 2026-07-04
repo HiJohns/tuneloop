@@ -606,6 +606,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/repair-requests", repairReqHandler.List)
 				userOptionalAuth.GET("/repair-requests/:id", repairReqHandler.Get)
 				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
+			userOptionalAuth.POST("/repair-requests/:id/records", repairReqHandler.AddRecord)
 				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
 			}
 

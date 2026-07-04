@@ -1,34 +1,72 @@
-import { useState } from 'react'
-import { View, Text, Button } from '@tarojs/components'
+import { useState, useRef } from 'react'
+import { View, Text, Button, Image } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
+const uploadFile = async (file, baseUrl) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+  const r = await resp.json()
+  if (r.code === 20000) return r.data.file_key
+  throw new Error(r.message || 'upload failed')
+}
+
 export default function RepairRecordPanel({ instrumentId, records, onRecordAdded, baseUrl: customUrl }) {
   const [comment, setComment] = useState('')
-  const [photos, setPhotos] = useState([])
+  const [photoFiles, setPhotoFiles] = useState([])
+  const [videoFile, setVideoFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const baseUrl = customUrl || env.apiBaseUrl
+  const photoInputRef = useRef(null)
+  const videoInputRef = useRef(null)
 
-  const apiPath = `${baseUrl}/repair/${instrumentId}/records`
+  const apiPath = `${baseUrl}/repair-requests/${instrumentId}/records`
 
   const handleSubmitRecord = async () => {
-    if (!comment && photos.length === 0) { alert('请输入评论或拍照'); return }
+    if (!comment && photoFiles.length === 0 && !videoFile) { alert('请输入评论、拍照或选择视频'); return }
     setSubmitting(true)
     try {
+      const photoKeys = []
+      for (const f of photoFiles) {
+        const key = await uploadFile(f, baseUrl)
+        photoKeys.push(key)
+      }
+      let videoKey = ''
+      if (videoFile) {
+        videoKey = await uploadFile(videoFile, baseUrl)
+      }
       const resp = await apiFetch(apiPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment, photos }),
+        body: JSON.stringify({ comment, photos: photoKeys, video_url: videoKey || undefined }),
       })
       const r = await resp.json()
       if (r.code === 20000) {
         setComment('')
-        setPhotos([])
+        setPhotoFiles([])
+        setVideoFile(null)
         if (onRecordAdded) onRecordAdded()
+      } else {
+        alert(r.message || '提交失败')
       }
-    } catch {}
+    } catch { alert('提交失败') }
     setSubmitting(false)
+  }
+
+  const renderPhotos = (photosStr) => {
+    if (!photosStr || photosStr === '[]') return null
+    let parsed
+    try { parsed = JSON.parse(photosStr) } catch { return null }
+    if (!parsed.length) return null
+    return (
+      <View className="flex flex-wrap gap-1 mt-1">
+        {parsed.map((p, i) => (
+          <Image key={i} src={`/uploads/media/${p}`} className="w-12 h-12 rounded object-cover" mode="aspectFill" />
+        ))}
+      </View>
+    )
   }
 
   return (
@@ -43,7 +81,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
               <View key={r.id} className="border-b border-zinc-50 pb-2">
                 <Text className="text-xs text-zinc-400">{formatDisplayDate(r.created_at)}</Text>
                 {r.comment && <Text className="text-sm text-black mt-1">{r.comment}</Text>}
-                {r.photos && r.photos !== '[]' && <Text className="text-xs text-blue-500 mt-1">[有照片]</Text>}
+                {renderPhotos(r.photos)}
               </View>
             ))}
           </View>
@@ -54,12 +92,18 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         <Text className="text-sm font-bold text-black mb-2">添加记录</Text>
         <textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm" rows={3}
           value={comment} onChange={e => setComment(e.target.value)} placeholder="输入评论..." />
-        <View className="flex gap-2 mt-2">
-          <Button onClick={() => setPhotos(p => [...p, `photo_${Date.now()}.jpg`])}
-            className="flex-1 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">+ 拍照（{photos.length}）</Button>
+        <View className="flex flex-wrap gap-2 mt-2">
+          <Button onClick={() => photoInputRef.current?.click()}
+            className="flex-1 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">+ 照片（{photoFiles.length}）</Button>
+          <Button onClick={() => videoInputRef.current?.click()}
+            className="flex-1 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">{videoFile ? '✓ 已选视频' : '+ 视频'}</Button>
           <Button onClick={handleSubmitRecord} disabled={submitting}
             className="flex-1 py-2 bg-black text-white rounded-lg text-xs font-bold">提交记录</Button>
         </View>
+        <input type="file" accept="image/*" multiple className="hidden" ref={photoInputRef}
+          onChange={e => { setPhotoFiles([...photoFiles, ...Array.from(e.target.files || [])]) }} />
+        <input type="file" accept="video/*" className="hidden" ref={videoInputRef}
+          onChange={e => { const f = e.target.files?.[0]; if (f) setVideoFile(f) }} />
       </View>
     </View>
   )

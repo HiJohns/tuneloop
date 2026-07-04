@@ -2118,6 +2118,72 @@ Content-Disposition: attachment; filename="assessment_order_001.pdf"
 
 ---
 
+### 7.8 报修记录（维修进度）
+
+**接口**: `GET /api/repair-requests/:id/records`
+
+**说明**: 查询报修单的所有维修进度记录（含初始创建记录和后续追加的进度记录）。创建报修单时自动生成 `record_type=created` 的初始记录。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "records": [
+      {
+        "id": "uuid",
+        "repair_request_id": "uuid",
+        "worker_id": "uuid",
+        "comment": "报修单已创建",
+        "photos": "[\"photo_key.jpg\"]",
+        "record_type": "created",
+        "created_at": "2026-07-04T05:01:58Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+**接口**: `POST /api/repair-requests/:id/records`
+
+**说明**: 追加一条维修进度记录。可附带照片和视频，照片累积，视频替换旧文件（旧视频文件会被删除）。
+
+**请求 Body**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| comment | string | 否 | 进度描述 |
+| photos | string[] | 否 | 照片 file_key 列表（需先通过 `/upload` 上传） |
+| video_url | string | 否 | 视频 file_key（需先通过 `/upload` 上传，会替换旧视频） |
+
+**请求示例**:
+```json
+{
+  "comment": "已完成检查，开始维修",
+  "photos": ["photo_abc123.jpg", "photo_def456.jpg"],
+  "video_url": "video_xyz789.mp4"
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "id": "uuid",
+    "repair_request_id": "uuid",
+    "worker_id": "uuid",
+    "comment": "已完成检查，开始维修",
+    "photos": "[\"photo_abc123.jpg\",\"photo_def456.jpg\"]",
+    "record_type": "progress",
+    "created_at": "2026-07-04T06:00:00Z"
+  }
+}
+```
+
+---
+
 ## 八、个人中心模块
 
 ### 8.1 租约管理
