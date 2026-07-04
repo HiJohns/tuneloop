@@ -13,11 +13,14 @@ import (
 )
 
 // SubmitQuote submits a repair quote for assessment.
+// v3: fields changed to material_fee/service_fee/logistics_fee/duration (old quote_amount/timeframe accepted as shim)
 func SubmitQuote(c *gin.Context) {
 	var req struct {
 		RepairRequestID string  `json:"repair_request_id" binding:"required"`
-		QuoteAmount     float64 `json:"quote_amount" binding:"required"`
-		Timeframe       string  `json:"timeframe"`
+		MaterialFee     float64 `json:"material_fee"`
+		ServiceFee      float64 `json:"service_fee"`
+		LogisticsFee    float64 `json:"logistics_fee"`
+		Duration        string  `json:"duration"`
 		Comment         string  `json:"comment"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,10 +44,12 @@ func SubmitQuote(c *gin.Context) {
 		ID:              uuid.New().String(),
 		RepairRequestID: req.RepairRequestID,
 		WorkerID:        userID,
-		QuoteAmount:     req.QuoteAmount,
-		Timeframe:       req.Timeframe,
+		MaterialFee:     req.MaterialFee,
+		ServiceFee:      req.ServiceFee,
+		LogisticsFee:    req.LogisticsFee,
+		Duration:        req.Duration,
 		Comment:         req.Comment,
-		Status:          "pending",
+		Status:          models.RepairQuotePending,
 		CreatedAt:       time.Now(),
 	}
 	if err := db.Create(&quote).Error; err != nil {

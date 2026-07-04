@@ -45,6 +45,8 @@ var allTestModels = []interface{}{
 	&models.PropertyOption{},
 	&models.RepairRequest{},
 	&models.RepairRequestRecord{},
+	&models.RepairQuote{},
+	&models.RepairTransitOrder{},
 	&models.Role{},
 	&models.Site{},
 	&models.SiteImage{},

@@ -394,19 +394,25 @@ type UserInstrument struct {
 }
 
 // RepairRequestStatus constants
+// v3: added transit_processing, transit_in, transit_out
+//
+//	deprecated inspecting, quoted, pending_cancel
 const (
 	RepairReqStatusPendingShip       = "pending_ship"
 	RepairReqStatusPendingAssessment = "pending_assessment"
 	RepairReqStatusShipping          = "shipping"
-	RepairReqStatusInspecting        = "inspecting"
-	RepairReqStatusQuoted            = "quoted"
+	RepairReqStatusInspecting        = "inspecting" // Deprecated: v3, use pending_assessment
+	RepairReqStatusQuoted            = "quoted"     // Deprecated: v3, use pending_assessment
 	RepairReqStatusPendingPay        = "pending_payment"
-	RepairReqStatusPendingCancel     = "pending_cancel"
+	RepairReqStatusPendingCancel     = "pending_cancel" // Deprecated: v3
 	RepairReqStatusRepairing         = "repairing"
 	RepairReqStatusReturnPend        = "return_pending"
 	RepairReqStatusReturned          = "returned"
 	RepairReqStatusClosed            = "closed"
 	RepairReqStatusAppealing         = "appealing"
+	RepairReqStatusTransitProcessing = "transit_processing"
+	RepairReqStatusTransitIn         = "transit_in"
+	RepairReqStatusTransitOut        = "transit_out"
 )
 
 // RepairRequest represents a customer repair request.
@@ -417,11 +423,19 @@ type RepairRequest struct {
 	UserID               string     `gorm:"type:varchar(255);index;not null" json:"user_id"`
 	UserInstrumentID     string     `gorm:"type:uuid;index" json:"user_instrument_id"`
 	Status               string     `gorm:"type:varchar(20);default:'pending_ship'" json:"status"`
+	MerchantType         string     `gorm:"type:varchar(10);default:'full'" json:"merchant_type"` // v3: full / controlled
+	TransitSiteID        string     `gorm:"type:uuid;index" json:"transit_site_id"`               // v3: selected transit site (controlled path)
+	ControlledSiteID     string     `gorm:"type:uuid;index" json:"controlled_site_id"`            // v3: accepted quote's controlled site
+	AcceptedQuoteID      string     `gorm:"type:uuid;index" json:"accepted_quote_id"`             // v3
+	CheckFeeSnapshot     *float64   `json:"check_fee_snapshot"`                                   // v3: system check_fee at payment time
+	PaidAmount           *float64   `gorm:"type:decimal(10,2)" json:"paid_amount"`                // v3: total amount paid
+	ExpireAt             *time.Time `json:"expire_at"`                                            // v3: pending_assessment expiry
+	ReminderSent         bool       `gorm:"default:false" json:"reminder_sent"`                   // v3: 24h reminder sent flag
 	Description          string     `gorm:"type:text" json:"description"`
 	Photos               string     `gorm:"type:jsonb;default:'[]'" json:"photos"`
 	VideoURL             string     `gorm:"type:varchar(500)" json:"video_url"`
-	QuoteAmount          *float64   `json:"quote_amount"`
-	InspectionFee        *float64   `json:"inspection_fee"`
+	QuoteAmount          *float64   `json:"quote_amount"`   // Deprecated: v3, use repair_quotes
+	InspectionFee        *float64   `json:"inspection_fee"` // Deprecated: v3, use check_fee_snapshot
 	ShippingFee          *float64   `json:"shipping_fee"`
 	TrackingCompany      string     `gorm:"type:varchar(100)" json:"tracking_company"`
 	TrackingNumber       string     `gorm:"type:varchar(100)" json:"tracking_number"`
@@ -683,9 +697,9 @@ type Appeal struct {
 	AppellantID    string     `gorm:"type:varchar(255)" json:"appellant_id"`
 	Description    string     `gorm:"type:text" json:"description"`
 	Images         string     `gorm:"type:jsonb;default:'[]'" json:"images"`
-	DamageReportID string     `gorm:"type:uuid;not null;index" json:"damage_report_id"`
-	UserID         string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	AppealReason   string     `gorm:"type:text;not null" json:"appeal_reason"`
+	DamageReportID *string    `gorm:"type:uuid;index" json:"damage_report_id,omitempty"`
+	UserID         *string    `gorm:"type:uuid;index" json:"user_id,omitempty"`
+	AppealReason   *string    `gorm:"type:text" json:"appeal_reason,omitempty"`
 	Status         string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	SubmittedAt    time.Time  `json:"submitted_at"`
 	ResolvedAt     *time.Time `json:"resolved_at,omitempty"`
@@ -896,11 +910,22 @@ type TransitOrder struct {
 }
 
 // RepairTransitStatus constants
+// v3: added pending_activation/active/received/relayed; deprecated inbound/transiting/outbound/sent_back
 const (
-	RepairTransitInbound    = "inbound"
-	RepairTransitTransiting = "transiting"
-	RepairTransitOutbound   = "outbound"
-	RepairTransitSentBack   = "sent_back"
+	RepairTransitInbound           = "inbound"    // Deprecated: v3 direction=in, status=active
+	RepairTransitTransiting        = "transiting" // Deprecated: v3
+	RepairTransitOutbound          = "outbound"   // Deprecated: v3 direction=out, status=active
+	RepairTransitSentBack          = "sent_back"  // Deprecated: v3
+	RepairTransitPendingActivation = "pending_activation"
+	RepairTransitActive            = "active"
+	RepairTransitReceived          = "received"
+	RepairTransitRelayed           = "relayed"
+)
+
+// RepairTransitOrderDirection constants
+const (
+	RepairTransitDirIn  = "in"
+	RepairTransitDirOut = "out"
 )
 
 // RepairTransitOrder links a repair request with its transit workflow.
@@ -909,7 +934,11 @@ type RepairTransitOrder struct {
 	RepairRequestID      string    `gorm:"type:uuid;index" json:"repair_request_id"`
 	TransitSiteID        string    `gorm:"type:uuid;index;not null" json:"transit_site_id"`
 	ControlledSiteID     string    `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
-	Status               string    `gorm:"type:varchar(20);default:'inbound'" json:"status"`
+	Direction            string    `gorm:"type:varchar(10)" json:"direction"` // v3: in/out
+	Status               string    `gorm:"type:varchar(20);default:'pending_activation'" json:"status"`
+	TransitServiceFee    *float64  `gorm:"type:decimal(10,2)" json:"transit_service_fee"`   // v3
+	TransitLogisticsFee  *float64  `gorm:"type:decimal(10,2)" json:"transit_logistics_fee"` // v3
+	Note                 string    `gorm:"type:text" json:"note"`                           // v3
 	UnpackPhotos         string    `gorm:"type:jsonb;default:'[]'" json:"unpack_photos"`
 	RepackCompany        string    `gorm:"type:varchar(100)" json:"repack_company"`
 	RepackTrackingNumber string    `gorm:"type:varchar(100)" json:"repack_tracking_number"`

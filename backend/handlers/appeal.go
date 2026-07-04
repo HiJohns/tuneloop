@@ -60,7 +60,9 @@ func (h *AppealHandler) ListAppeals(c *gin.Context) {
 	var drIDs []string
 	var orderIDs []string
 	for _, a := range appeals {
-		drIDs = append(drIDs, a.DamageReportID)
+		if a.DamageReportID != nil {
+			drIDs = append(drIDs, *a.DamageReportID)
+		}
 	}
 
 	// Load all damage reports
@@ -112,16 +114,18 @@ func (h *AppealHandler) ListAppeals(c *gin.Context) {
 
 	for _, a := range appeals {
 		item := appealItem{Appeal: a}
-		if dr, ok := drMap[a.DamageReportID]; ok {
-			item.DamageReport = &dr
-			if o, ok := orderMap[dr.LeaseID]; ok {
-				item.Order = &o
-				if inst, ok := instrMap[o.InstrumentID]; ok {
-					item.InstrumentSN = inst.SN
-					item.CategoryName = inst.CategoryName
-				}
-				if u, ok := userMap[o.UserID]; ok {
-					item.UserName = u.Name
+		if a.DamageReportID != nil {
+			if dr, ok := drMap[*a.DamageReportID]; ok {
+				item.DamageReport = &dr
+				if o, ok := orderMap[dr.LeaseID]; ok {
+					item.Order = &o
+					if inst, ok := instrMap[o.InstrumentID]; ok {
+						item.InstrumentSN = inst.SN
+						item.CategoryName = inst.CategoryName
+					}
+					if u, ok := userMap[o.UserID]; ok {
+						item.UserName = u.Name
+					}
 				}
 			}
 		}
@@ -160,12 +164,12 @@ func (h *AppealHandler) GetAppeal(c *gin.Context) {
 
 	// Get order info
 	type detailData struct {
-		Appeal        models.Appeal        `json:"appeal"`
-		DamageReport  models.DamageReport  `json:"damage_report"`
-		Order         *models.Order        `json:"order,omitempty"`
-		InstrumentSN  string               `json:"instrument_sn"`
-		CategoryName  string               `json:"category_name"`
-		UserName      string               `json:"user_name"`
+		Appeal       models.Appeal       `json:"appeal"`
+		DamageReport models.DamageReport `json:"damage_report"`
+		Order        *models.Order       `json:"order,omitempty"`
+		InstrumentSN string              `json:"instrument_sn"`
+		CategoryName string              `json:"category_name"`
+		UserName     string              `json:"user_name"`
 	}
 
 	var data detailData
@@ -447,9 +451,9 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 		ID:             uuid.New().String(),
 		TenantID:       tenantID,
 		OrgID:          middleware.GetOrgID(ctx),
-		DamageReportID: req.DamageReportID,
-		UserID:         userID,
-		AppealReason:   req.AppealReason,
+		DamageReportID: &req.DamageReportID,
+		UserID:         &userID,
+		AppealReason:   &req.AppealReason,
 		Status:         "pending",
 		SubmittedAt:    now,
 	}
@@ -591,8 +595,8 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"damage_report":   damageReport,
-			"order_status":    nextOrderStatus,
+			"damage_report":    damageReport,
+			"order_status":     nextOrderStatus,
 			"deposit_deducted": damageReport.DepositDeducted,
 		},
 	})

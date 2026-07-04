@@ -254,6 +254,8 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 	var body struct {
 		UserInstrumentID string   `json:"user_instrument_id"`
 		SiteID           string   `json:"site_id"`
+		MerchantType     string   `json:"merchant_type"`
+		TransitSiteID    string   `json:"transit_site_id"`
 		Description      string   `json:"description"`
 		Photos           []string `json:"photos"`
 		VideoURL         string   `json:"video_url"`
@@ -318,8 +320,22 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		orgID = site.OrgID
 	}
 
+	merchantType := body.MerchantType
+	if merchantType == "" {
+		merchantType = models.MerchantTypeFull
+	}
+
 	status := models.RepairReqStatusPendingAssessment
-	if body.TrackingNumber != "" {
+	var expireAt *time.Time
+	if merchantType == models.MerchantTypeControlled && body.TransitSiteID != "" {
+		status = models.RepairReqStatusTransitProcessing
+	} else {
+		// Full authority: enter pending_assessment directly, set 5-business-day expiry
+		now := time.Now()
+		exp := now.AddDate(0, 0, 7) // simple approximation: 5 business days ≈ 7 calendar days
+		expireAt = &exp
+	}
+	if body.TrackingNumber != "" && status != models.RepairReqStatusTransitProcessing {
 		status = models.RepairReqStatusShipping
 	}
 
@@ -332,6 +348,9 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		UserID:           userID,
 		UserInstrumentID: userInstrumentID,
 		Status:           status,
+		MerchantType:     merchantType,
+		TransitSiteID:    body.TransitSiteID,
+		ExpireAt:         expireAt,
 		Description:      body.Description,
 		Photos:           string(photosJSON),
 		VideoURL:         body.VideoURL,
