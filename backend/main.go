@@ -521,9 +521,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/transit-orders/:id/ship", handlers.TransitOrderShip)
 
 			// Quote routes (Issue #1148)
-			authRequired.POST("/quotes", handlers.SubmitQuote)
-			authRequired.GET("/quotes/:request_id", handlers.ListQuotes)
-			authRequired.POST("/quotes/:id/accept", handlers.AcceptQuote)
+			// authRequired quotes routes removed in v3 — moved to userOptionalAuth as nested /repair-requests/:id/quotes
 
 			// Repair request routes (Issue #1110)
 			repairReqRequired := authRequired
@@ -610,6 +608,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 				userOptionalAuth.POST("/repair-requests/:id/records", repairReqHandler.AddRecord)
 				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
+				// v3 quoting subsystem (nested under repair-requests)
+				userOptionalAuth.POST("/repair-requests/:id/quotes", handlers.SubmitQuote)
+				userOptionalAuth.GET("/repair-requests/:id/quotes", handlers.ListQuotes)
+				userOptionalAuth.POST("/repair-requests/:id/quotes/:qid/accept", handlers.AcceptQuote)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
