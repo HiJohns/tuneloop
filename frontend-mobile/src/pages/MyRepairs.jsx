@@ -268,14 +268,6 @@ export default function MyRepairs() {
                       <Text className="text-xs text-zinc-400">报修人</Text>
                       <Text className="text-xs text-zinc-600">{r.reporter_name || '-'}</Text>
                     </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">商户</Text>
-                      <Text className="text-xs text-zinc-600">{r.merchant_name || '-'}</Text>
-                    </View>
-                    <View className="flex justify-between items-center">
-                      <Text className="text-xs text-zinc-400">网点</Text>
-                      <Text className="text-xs text-zinc-600">{r.site_name || '-'}</Text>
-                    </View>
                     {r.status === 'return_pending' && (
                       <Button onClick={(e) => { e.stopPropagation(); handleShipBack(r.id) }}
                         className="mt-1 py-1.5 bg-black text-white rounded-lg text-xs font-bold">填物流发回</Button>
