@@ -140,12 +140,12 @@ export default function Onboarding() {
               placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)} />
 
             <View className="flex flex-row gap-2">
-              <select className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm bg-white"
+              <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/2"
                 value={province} onChange={e => { setProvince(e.target.value); setCity(''); setDistrict('') }}>
                 <option value="">省</option>
                 {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
               </select>
-              <select className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm bg-white"
+              <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/4"
                 value={city} onChange={e => { setCity(e.target.value); setDistrict('') }}>
                 <option value="">市</option>
                 {(() => {
@@ -153,7 +153,7 @@ export default function Onboarding() {
                   return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
                 })()}
               </select>
-              <select className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm bg-white"
+              <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/4"
                 value={district} onChange={e => setDistrict(e.target.value)}>
                 <option value="">区</option>
                 {(() => {
