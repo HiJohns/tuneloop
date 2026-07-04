@@ -540,8 +540,20 @@ func TestSyncUsers_ScopeFilter(t *testing.T) {
 		case strings.Contains(r.URL.Path, "/api/v1/users"):
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"users": []map[string]interface{}{
-					{"id": uuid.New().String(), "name": "in-scope-user", "email": "inscope@test.com", "org_id": childOrgID, "status": "active"},
-					{"id": uuid.New().String(), "name": "out-of-scope-user", "email": "outscope@test.com", "org_id": outsideOrgID, "status": "active"},
+					{
+						"id": uuid.New().String(), "name": "in-scope-user", "email": "inscope@test.com",
+						"status": "active",
+						"organizations": []map[string]interface{}{
+							{"id": childOrgID, "name": "child-site", "role": "STAFF", "is_active": true},
+						},
+					},
+					{
+						"id": uuid.New().String(), "name": "out-of-scope-user", "email": "outscope@test.com",
+						"status": "active",
+						"organizations": []map[string]interface{}{
+							{"id": outsideOrgID, "name": "outside-org", "role": "member", "is_active": false},
+						},
+					},
 				},
 			})
 		default:
@@ -640,7 +652,13 @@ func TestSyncUsers_SiteMember(t *testing.T) {
 		case strings.Contains(r.URL.Path, "/api/v1/users"):
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"users": []map[string]interface{}{
-					{"id": uuid.New().String(), "name": "site-user", "email": "siteuser@test.com", "org_id": childOrgID, "role": "STAFF", "status": "active"},
+					{
+						"id": uuid.New().String(), "name": "site-user", "email": "siteuser@test.com",
+						"status": "active",
+						"organizations": []map[string]interface{}{
+							{"id": childOrgID, "name": "child-site", "role": "STAFF", "is_active": true},
+						},
+					},
 				},
 			})
 		default:

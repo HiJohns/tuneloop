@@ -910,7 +910,17 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 
 	// Upsert each user
 	for _, user := range users {
-		if !validOrgIDs[user.OrgID] {
+		// Determine matched org and role from user_org_relations (via include_orgs=true)
+		matchedOrgID := ""
+		matchedRole := user.Role
+		for _, org := range user.Organizations {
+			if org.IsActive && validOrgIDs[org.ID] {
+				matchedOrgID = org.ID
+				matchedRole = org.Role
+				break
+			}
+		}
+		if matchedOrgID == "" {
 			skipped++
 			details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "skipped"})
 			continue
@@ -920,10 +930,6 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 
 		if err == gorm.ErrRecordNotFound {
 			// Create new shadow user
-			orgID := user.OrgID
-			if orgID == "" {
-				orgID = tenantID // Use tenantID as default org if org_id is empty
-			}
 			newUser := models.User{
 				ID:       uuid.New().String(),
 				IAMSub:   user.ID,
@@ -931,19 +937,19 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				Email:    user.Email,
 				Phone:    user.Phone,
 				TenantID: tenantID,
-				OrgID:    orgID,
-				Role:     user.Role,
+				OrgID:    matchedOrgID,
+				Role:     matchedRole,
 				IsShadow: true,
 				Status:   user.Status,
 			}
 			if err := db.Create(&newUser).Error; err != nil {
 				log.Printf("[IAMProxy] SyncUsers: failed to create user %s: %v", user.Name, err)
 				conflicts++
-				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "error"})
+				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": matchedOrgID, "result": "error"})
 			} else {
 				synced++
-				ensureSiteMember(db, newUser.ID, user.OrgID, user.Role, tenantID)
-				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "added"})
+				ensureSiteMember(db, newUser.ID, matchedOrgID, matchedRole, tenantID)
+				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": matchedOrgID, "result": "added"})
 			}
 		} else if err == nil {
 			// User exists - update if different (IAM wins)
@@ -962,16 +968,16 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				updates["phone"] = user.Phone
 				needsUpdate = true
 			}
-			if existingUser.Role != user.Role {
-				updates["role"] = user.Role
+			if existingUser.Role != matchedRole {
+				updates["role"] = matchedRole
 				needsUpdate = true
 			}
 			if existingUser.Status != user.Status {
 				updates["status"] = user.Status
 				needsUpdate = true
 			}
-			if user.OrgID != "" && existingUser.OrgID != user.OrgID {
-				updates["org_id"] = user.OrgID
+			if matchedOrgID != "" && existingUser.OrgID != matchedOrgID {
+				updates["org_id"] = matchedOrgID
 				needsUpdate = true
 			}
 
@@ -979,19 +985,19 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				if err := db.Model(&existingUser).Updates(updates).Error; err != nil {
 					log.Printf("[IAMProxy] SyncUsers: failed to update user %s: %v", user.Name, err)
 					conflicts++
-					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "error"})
+					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": matchedOrgID, "result": "error"})
 				} else {
 					synced++
-					ensureSiteMember(db, existingUser.ID, user.OrgID, user.Role, tenantID)
-					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "updated"})
+					ensureSiteMember(db, existingUser.ID, matchedOrgID, matchedRole, tenantID)
+					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": matchedOrgID, "result": "updated"})
 				}
 			} else {
 				skipped++
-				if ensureSiteMember(db, existingUser.ID, user.OrgID, user.Role, tenantID) {
+				if ensureSiteMember(db, existingUser.ID, matchedOrgID, matchedRole, tenantID) {
 					synced++
 					skipped--
 				}
-				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "existing"})
+				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": matchedOrgID, "result": "existing"})
 			}
 		} else {
 			log.Printf("[IAMProxy] SyncUsers: error checking existing user: %v", err)

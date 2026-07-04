@@ -335,18 +335,27 @@ type Organization struct {
 	UpdatedAt   string  `json:"updated_at"`
 }
 
+// OrgRelation represents a user's membership in an organization.
+type OrgRelation struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	IsActive bool   `json:"is_active"`
+}
+
 // User represents an IAM user
 type User struct {
-	ID              string     `json:"id"`
-	Name            string     `json:"name"`
-	Username        string     `json:"username"`
-	Email           string     `json:"email"`
-	Phone           string     `json:"phone"`
-	Status          string     `json:"status"`
-	OrgID           string     `json:"org_id"`
-	Role            string     `json:"role"`
-	EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
-	EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
+	ID               string        `json:"id"`
+	Name             string        `json:"name"`
+	Username         string        `json:"username"`
+	Email            string        `json:"email"`
+	Phone            string        `json:"phone"`
+	Status           string        `json:"status"`
+	OrgID            string        `json:"org_id"`
+	Role             string        `json:"role"`
+	EmailSentAt      *time.Time    `json:"email_sent_at,omitempty"`
+	EmailConfirmedAt *time.Time    `json:"email_confirmed_at,omitempty"`
+	Organizations    []OrgRelation `json:"organizations,omitempty"`
 }
 
 func (c *IAMClient) GetNamespaceID() (string, error) {
@@ -632,7 +641,7 @@ func (c *IAMClient) ListUsers() ([]User, error) {
 }
 
 func (c *IAMClient) ListUsersWithToken(token string) ([]User, error) {
-	respBody, statusCode, err := c.doRequestWithToken("GET", "/api/v1/users", token, nil)
+	respBody, statusCode, err := c.doRequestWithToken("GET", "/api/v1/users?include_orgs=true", token, nil)
 	if err != nil {
 		log.Printf("[IAMClient] ListUsersWithToken: doRequest error: %v", err)
 		return nil, fmt.Errorf("ListUsersWithToken request failed: %w", err)
@@ -698,7 +707,7 @@ func (c *IAMClient) GetUserEmailStatus(userID string) (*time.Time, *time.Time, e
 
 	// Try flat user response first
 	var flatUser struct {
-		EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+		EmailSentAt      *time.Time `json:"email_sent_at,omitempty"`
 		EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
 	}
 	if err := json.Unmarshal(respBody, &flatUser); err == nil {
@@ -708,11 +717,11 @@ func (c *IAMClient) GetUserEmailStatus(userID string) (*time.Time, *time.Time, e
 	// Fallback: try nested formats
 	var nested struct {
 		User *struct {
-			EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+			EmailSentAt      *time.Time `json:"email_sent_at,omitempty"`
 			EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
 		} `json:"user"`
 		Data *struct {
-			EmailSentAt     *time.Time `json:"email_sent_at,omitempty"`
+			EmailSentAt      *time.Time `json:"email_sent_at,omitempty"`
 			EmailConfirmedAt *time.Time `json:"email_confirmed_at,omitempty"`
 		} `json:"data"`
 	}
@@ -1020,9 +1029,9 @@ type ResetPasswordResult struct {
 
 func (c *IAMClient) ResetPasswordWithToken(userToken string, userIDs []string, redirectURL string, culture string) (*ResetPasswordResult, error) {
 	req := map[string]interface{}{
-		"user_ids":      userIDs,
-		"redirect_url":  redirectURL,
-		"culture":       culture,
+		"user_ids":     userIDs,
+		"redirect_url": redirectURL,
+		"culture":      culture,
 	}
 	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users/reset-password", userToken, req)
 	if err != nil {
@@ -1234,19 +1243,19 @@ func (c *IAMClient) GetUserCustomerPermissions(orgID, userID string) (map[string
 	}
 
 	var result struct {
-		CusPerm    int64              `json:"cus_perm"`
-		CusPermExt string             `json:"cus_perm_ext"`
-		OrgID      string             `json:"org_id"`
-		UserID     string             `json:"user_id"`
+		CusPerm    int64  `json:"cus_perm"`
+		CusPermExt string `json:"cus_perm_ext"`
+		OrgID      string `json:"org_id"`
+		UserID     string `json:"user_id"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, 0, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	resp := map[string]interface{}{
-		"cus_perm":  result.CusPerm,
-		"org_id":    result.OrgID,
-		"user_id":   result.UserID,
+		"cus_perm": result.CusPerm,
+		"org_id":   result.OrgID,
+		"user_id":  result.UserID,
 	}
 	return resp, result.CusPerm, nil
 }
@@ -1287,7 +1296,6 @@ func (c *IAMClient) IncrementPermVersion() error {
 	log.Printf("[IAMClient] Incremented perm_version")
 	return nil
 }
-
 
 // SyncRoleTemplateSysPerm syncs the sys_perm for a role template in IAM.
 func (c *IAMClient) SyncRoleTemplateSysPerm(namespaceID, roleCode string, sysPermBits []int) error {
@@ -1483,7 +1491,7 @@ func (c *IAMClient) RegisterNamespaceApp(namespaceID, appType, redirectURIs stri
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/apps", namespaceID)
 	body, err := json.Marshal(map[string]interface{}{
-		"type":           appType,
+		"type":          appType,
 		"redirect_uris": []string{redirectURIs},
 	})
 	if err != nil {
@@ -1627,10 +1635,10 @@ func ExchangeCode(clientID, clientSecret, code, redirectURI string) (*TokenRespo
 }
 
 type AppRegistration struct {
-	AppType        string   `json:"type"`
-	RedirectURIs   []string `json:"redirect_uris"`
-	IsDefault      bool     `json:"is_default,omitempty"`
-	AllowRegister  bool     `json:"allow_register,omitempty"`
+	AppType       string   `json:"type"`
+	RedirectURIs  []string `json:"redirect_uris"`
+	IsDefault     bool     `json:"is_default,omitempty"`
+	AllowRegister bool     `json:"allow_register,omitempty"`
 }
 
 type ActivateNamespaceResponse struct {
