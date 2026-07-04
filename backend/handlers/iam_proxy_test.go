@@ -430,13 +430,28 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 		var resp struct {
 			Code int `json:"code"`
 			Data struct {
-				Synced int `json:"synced"`
+				Synced  int                      `json:"synced"`
+				Details []map[string]interface{} `json:"details"`
 			} `json:"data"`
 		}
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Equal(t, 20000, resp.Code)
 		assert.Equal(t, 1, resp.Data.Synced, "should sync 1 site")
+
+		require.GreaterOrEqual(t, len(resp.Data.Details), 1)
+		var siteDetail map[string]interface{}
+		for _, d := range resp.Data.Details {
+			if d["id"] == siteOrgID {
+				siteDetail = d
+				break
+			}
+		}
+		require.NotNil(t, siteDetail, "should have detail for the created site")
+		assert.Equal(t, siteOrgID, siteDetail["id"])
+		assert.Equal(t, "test-site", siteDetail["name"])
+		assert.Equal(t, "site", siteDetail["kind"])
+		assert.Equal(t, "added", siteDetail["result"])
 
 		var site models.Site
 		err = db.Where("org_id = ?", siteOrgID).First(&site).Error

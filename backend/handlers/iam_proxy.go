@@ -727,6 +727,7 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 	var synced, skipped, conflicts int
+	var details []gin.H
 
 	// Map: IAM org_id -> local site_id (used for parent resolution)
 	orgToSite := make(map[string]string)
@@ -737,11 +738,13 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 		// Skip the merchant org itself (it's not a site)
 		if org.ID == userOrgID {
 			skipped++
+			details = append(details, gin.H{"id": org.ID, "name": org.Name, "parent_id": org.ParentID, "kind": "merchant", "result": "skipped"})
 			continue
 		}
 		// Only sync orgs under the current user's merchant org
 		if org.ParentID == nil || *org.ParentID != userOrgID {
 			skipped++
+			details = append(details, gin.H{"id": org.ID, "name": org.Name, "parent_id": org.ParentID, "kind": "unknown", "result": "skipped"})
 			continue
 		}
 		// Check if site already exists by org_id
@@ -764,6 +767,7 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 			}
 			orgToSite[org.ID] = site.ID
 			synced++
+			details = append(details, gin.H{"id": org.ID, "name": org.Name, "parent_id": org.ParentID, "kind": "site", "result": "added"})
 		} else if err == nil {
 			// Site exists - update if different (IAM wins on conflict)
 			needsUpdate := false
@@ -787,12 +791,15 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 					continue
 				}
 				synced++
+				details = append(details, gin.H{"id": org.ID, "name": org.Name, "parent_id": org.ParentID, "kind": "site", "result": "updated"})
 			} else {
 				skipped++
+				details = append(details, gin.H{"id": org.ID, "name": org.Name, "parent_id": org.ParentID, "kind": "site", "result": "existing"})
 			}
 		} else {
 			log.Printf("[IAMProxy] SyncOrganizations: error checking existing site: %v", err)
 			conflicts++
+			details = append(details, gin.H{"id": org.ID, "name": org.Name, "parent_id": org.ParentID, "kind": "site", "result": "error"})
 		}
 	}
 
@@ -849,6 +856,7 @@ func (h *IAMProxyHandler) SyncOrganizations(c *gin.Context) {
 			"synced":    synced,
 			"skipped":   skipped,
 			"conflicts": conflicts,
+			"details":   details,
 		},
 	})
 }
@@ -885,6 +893,7 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 	var synced, skipped, conflicts int
+	var details []gin.H
 
 	// Upsert each user
 	for _, user := range users {
@@ -912,8 +921,10 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 			if err := db.Create(&newUser).Error; err != nil {
 				log.Printf("[IAMProxy] SyncUsers: failed to create user %s: %v", user.Name, err)
 				conflicts++
+				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "error"})
 			} else {
 				synced++
+				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "added"})
 			}
 		} else if err == nil {
 			// User exists - update if different (IAM wins)
@@ -949,11 +960,14 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				if err := db.Model(&existingUser).Updates(updates).Error; err != nil {
 					log.Printf("[IAMProxy] SyncUsers: failed to update user %s: %v", user.Name, err)
 					conflicts++
+					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "error"})
 				} else {
 					synced++
+					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "updated"})
 				}
 			} else {
 				skipped++
+				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "existing"})
 			}
 		} else {
 			log.Printf("[IAMProxy] SyncUsers: error checking existing user: %v", err)
@@ -968,6 +982,7 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 			"synced":    synced,
 			"skipped":   skipped,
 			"conflicts": conflicts,
+			"details":   details,
 		},
 	})
 }

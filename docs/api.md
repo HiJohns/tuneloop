@@ -296,16 +296,33 @@
   "data": {
     "synced": 3,
     "skipped": 1,
-    "conflicts": 0
+    "conflicts": 0,
+    "details": [
+      {
+        "id": "org-001",
+        "name": "海淀店",
+        "parent_id": "org-tenant",
+        "kind": "site",
+        "result": "added"
+      },
+      {
+        "id": "org-002",
+        "name": "朝阳店",
+        "parent_id": "org-tenant",
+        "kind": "site",
+        "result": "existing"
+      }
+    ]
   },
   "message": "success"
 }
 ```
 
 **字段说明**:
-- `synced`: 成功同步的组织数量
+- `synced`: 成功同步的组织数量（含新增与更新）
 - `skipped`: 跳过的组织数量（已存在且一致）
-- `conflicts`: 发生冲突的数量（IAM 与本地数据不一致，IAM 数据优先）
+- `conflicts`: 发生冲突的数量
+- `details`: 逐条明细数组，每项含 `id`（IAM 组织 ID）、`name`、`parent_id`、`kind`（merchant/site）、`result`（added/existing/updated/skipped/error）
 
 ---
 
@@ -326,16 +343,33 @@
   "data": {
     "synced": 5,
     "skipped": 2,
-    "conflicts": 0
+    "conflicts": 0,
+    "details": [
+      {
+        "id": "user-001",
+        "name": "张三",
+        "email": "zhangsan@example.com",
+        "org_id": "org-tenant",
+        "result": "added"
+      },
+      {
+        "id": "user-002",
+        "name": "李四",
+        "email": "lisi@example.com",
+        "org_id": "org-tenant",
+        "result": "existing"
+      }
+    ]
   },
   "message": "success"
 }
 ```
 
 **字段说明**:
-- `synced`: 成功同步的用户数量
+- `synced`: 成功同步的用户数量（含新增与更新）
 - `skipped`: 跳过的用户数量（已存在且一致）
-- `conflicts`: 发生冲突的数量（IAM 与本地数据不一致，IAM 数据优先）
+- `conflicts`: 发生冲突的数量
+- `details`: 逐条明细数组，每项含 `id`（IAM 用户 ID）、`name`、`email`、`org_id`、`result`（added/existing/updated/error）
 
 ---
 
