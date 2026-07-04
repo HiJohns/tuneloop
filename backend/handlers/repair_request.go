@@ -68,6 +68,7 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 	uiIDs := make(map[string]bool)
 	siteIDs := make(map[string]bool)
 	tenantIDs := make(map[string]bool)
+	userIDs := make(map[string]bool)
 	for _, r := range requests {
 		if r.UserInstrumentID != "" {
 			uiIDs[r.UserInstrumentID] = true
@@ -77,6 +78,9 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 		}
 		if r.TenantID != "" {
 			tenantIDs[r.TenantID] = true
+		}
+		if r.UserID != "" {
+			userIDs[r.UserID] = true
 		}
 	}
 
@@ -108,6 +112,15 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 		}
 	}
 
+	userMap := make(map[string]models.User)
+	if len(userIDs) > 0 {
+		var users []models.User
+		db.Where("iam_sub IN ?", keys(userIDs)).Find(&users)
+		for _, u := range users {
+			userMap[u.IAMSub] = u
+		}
+	}
+
 	// Build enriched response
 	result := make([]gin.H, len(requests))
 	for i, r := range requests {
@@ -130,6 +143,17 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 		merchantName := ""
 		if t, ok := tenantMap[r.TenantID]; ok {
 			merchantName = t.Name
+		}
+
+		reporterName := ""
+		if u, ok := userMap[r.UserID]; ok {
+			reporterName = u.Name
+			if reporterName == "" {
+				reporterName = u.Username
+			}
+			if reporterName == "" {
+				reporterName = u.Phone
+			}
 		}
 
 		result[i] = gin.H{
@@ -159,6 +183,7 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 			"model":                  model,
 			"site_name":              siteName,
 			"merchant_name":          merchantName,
+			"reporter_name":          reporterName,
 		}
 	}
 	return result
