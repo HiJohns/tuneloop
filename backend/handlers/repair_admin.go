@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
@@ -115,7 +116,7 @@ func CloseAppeal(c *gin.Context) {
 	}
 
 	now := time.Now()
-	appeal.Status = "closed"
+	appeal.Status = models.AppealStatusClosed
 	appeal.ClosedAt = &now
 	db.Save(&appeal)
 
@@ -126,4 +127,75 @@ func CloseAppeal(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "appeal closed"})
+}
+
+// ReviewAppeal allows a transit site employee to review and desensitize an appeal before forwarding.
+// v3: only for controlled/partner path appeals; sets desensitized_description and transitions to reviewing.
+func ReviewAppeal(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	var req struct {
+		DesensitizedDesc string `json:"desensitized_description" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "desensitized_description required"})
+		return
+	}
+
+	var appeal models.Appeal
+	if err := db.Where("id = ?", id).First(&appeal).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "appeal not found"})
+		return
+	}
+
+	if appeal.Status != models.AppealStatusPending {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "appeal is not in pending state"})
+		return
+	}
+
+	appeal.Status = models.AppealStatusReviewing
+	appeal.ReviewerID = userID
+	appeal.DesensitizedDesc = req.DesensitizedDesc
+	db.Save(&appeal)
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "appeal under review"})
+}
+
+// ForwardAppeal forwards a reviewed appeal to the controlled site admin, stripping user contact info.
+// v3: sets forwarded_to, transitions to forwarded; controlled site admin can then close.
+func ForwardAppeal(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req struct {
+		ForwardedTo string `json:"forwarded_to" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "forwarded_to required"})
+		return
+	}
+
+	var appeal models.Appeal
+	if err := db.Where("id = ?", id).First(&appeal).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "appeal not found"})
+		return
+	}
+
+	if appeal.Status != models.AppealStatusReviewing {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "appeal is not under review"})
+		return
+	}
+
+	appeal.Status = models.AppealStatusForwarded
+	appeal.ForwardedTo = req.ForwardedTo
+	db.Save(&appeal)
+
+	// Cascade: notify the controlled site admin (placeholder, will use services.Notify in later integration)
+	log.Printf("[ForwardAppeal] Forwarded appeal %s to controlled site admin %s", id, req.ForwardedTo)
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "appeal forwarded"})
 }

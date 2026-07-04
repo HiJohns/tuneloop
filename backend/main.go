@@ -541,6 +541,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/repair-appeals", handlers.ListAppeals)
 			authRequired.POST("/repair-appeals", handlers.CreateAppeal)
 			authRequired.POST("/repair-appeals/:id/close", handlers.CloseAppeal)
+			authRequired.POST("/repair-appeals/:id/review", handlers.ReviewAppeal)
+			authRequired.POST("/repair-appeals/:id/forward", handlers.ForwardAppeal)
 
 			// Issue #305: Appeal Processing Routes
 			authRequired.GET("/appeals", appealHandler.ListAppeals)
