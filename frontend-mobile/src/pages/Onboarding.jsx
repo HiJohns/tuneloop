@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react'
 import { View, Text, Input, Button, Picker, ScrollView } from '@tarojs/components'
 import { api, addressesApi } from '../services/api'
 import { storage, navigation } from '../platform'
+import regions from '../data/regions.json'
 
-const REGIONS = {
-  '北京市': { '北京市': ['海淀区', '朝阳区', '东城区', '西城区', '丰台区', '石景山区'] },
-  '上海市': { '上海市': ['浦东新区', '黄浦区', '徐汇区', '静安区', '长宁区'] },
-  '广东省': { '广州市': ['天河区', '越秀区', '海珠区', '白云区'], '深圳市': ['南山区', '福田区', '罗湖区', '宝安区'] },
+const provinceList = regions.map(r => r.name)
+const getCityList = (provName) => {
+  const prov = regions.find(r => r.name === provName)
+  return prov ? prov.children.map(c => c.name) : []
 }
-
-const provinceList = Object.keys(REGIONS)
-const getCityList = (p) => REGIONS[p] ? Object.keys(REGIONS[p]) : []
-const getDistrictList = (p, c) => REGIONS[p]?.[c] || []
+const getDistrictList = (provName, cityName) => {
+  const prov = regions.find(r => r.name === provName)
+  if (!prov) return []
+  const city = prov.children.find(c => c.name === cityName)
+  return city ? city.children.map(d => d.name) : []
+}
 
 export default function Onboarding() {
   const [loading, setLoading] = useState(true)
@@ -110,7 +113,7 @@ export default function Onboarding() {
       formData.append('file', file)
       const resp = await fetch('/api/user/id-photo', {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + storage.getItem('auth_token') },
+        headers: { Authorization: 'Bearer ' + storage.getItem('token') },
         body: formData,
       })
       const json = await resp.json()
@@ -159,7 +162,7 @@ export default function Onboarding() {
   return (
     <ScrollView scrollY className="h-screen bg-gradient-to-b from-blue-50 to-white">
       <View className="px-5 pt-12 pb-8">
-        <View className="mb-1"><Text className="text-2xl font-bold text-center block">欢迎来到音租</Text></View>
+        <View className="mb-1"><Text className="text-2xl font-bold text-center block">欢迎来到 Tuneloop</Text></View>
         <View className="mb-8"><Text className="text-gray-500 text-center text-sm block">完善您的信息，开启租赁之旅</Text></View>
 
         {/* Step 1: Nickname */}
