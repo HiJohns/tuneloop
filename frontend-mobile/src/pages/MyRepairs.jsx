@@ -20,6 +20,8 @@ export default function MyRepairs() {
   const [repairRequests, setRepairRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [roles, setRoles] = useState([])
+  const [showSiteRepairs, setShowSiteRepairs] = useState(true)
+  const [showPending, setShowPending] = useState(true)
   const baseUrl = env.apiBaseUrl
 
   // Check if user is customer (no staff claims)
@@ -238,8 +240,11 @@ export default function MyRepairs() {
         {hasSiteRole && (
           <>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
-            <View><Text className="text-sm font-bold text-black">本网点报修 ({repairRequests.length})</Text></View>
-            {loading ? (
+            <View className="flex justify-between items-center" onClick={() => setShowSiteRepairs(v => !v)}>
+              <Text className="text-sm font-bold text-black">本网点报修 ({repairRequests.length})</Text>
+              <Text className="text-xs text-zinc-400">{showSiteRepairs ? '▾' : '▸'}</Text>
+            </View>
+            {showSiteRepairs && (loading ? (
               <View><Text className="text-xs text-zinc-400">加载中...</Text></View>
             ) : repairRequests.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无报修</Text></View>
@@ -275,11 +280,14 @@ export default function MyRepairs() {
                   </View>
                 ))}
               </View>
-            )}
+            ))}
           </View>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4 space-y-1">
-            <View><Text className="text-sm font-bold text-black">待维修乐器 ({pendingRepairs.length})</Text></View>
-            {pendingRepairs.length === 0 ? (
+            <View className="flex justify-between items-center" onClick={() => setShowPending(v => !v)}>
+              <Text className="text-sm font-bold text-black">待维修乐器 ({pendingRepairs.length})</Text>
+              <Text className="text-xs text-zinc-400">{showPending ? '▾' : '▸'}</Text>
+            </View>
+            {showPending && (pendingRepairs.length === 0 ? (
               <View><Text className="text-xs text-zinc-400">暂无等待维修的乐器</Text></View>
             ) : (
               <View className="space-y-2">
@@ -292,7 +300,7 @@ export default function MyRepairs() {
                   </View>
                 ))}
               </View>
-            )}
+            ))}
           </View>
           </>
         )}

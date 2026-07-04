@@ -115,7 +115,7 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 	userMap := make(map[string]models.User)
 	if len(userIDs) > 0 {
 		var users []models.User
-		db.Where("iam_sub IN ?", keys(userIDs)).Find(&users)
+		database.GetDB().Where("iam_sub IN ?", keys(userIDs)).Find(&users)
 		for _, u := range users {
 			userMap[u.IAMSub] = u
 		}
@@ -592,7 +592,7 @@ func resolveRepairMeta(db *gorm.DB, req models.RepairRequest) (instrumentSN, ins
 
 	if req.UserID != "" {
 		var user models.User
-		if err := db.Where("iam_sub = ?", req.UserID).First(&user).Error; err == nil {
+		if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&user).Error; err == nil {
 			reporterName = user.Name
 			if reporterName == "" {
 				reporterName = user.Username
