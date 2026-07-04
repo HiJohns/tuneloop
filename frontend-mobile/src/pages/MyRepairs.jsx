@@ -246,7 +246,8 @@ export default function MyRepairs() {
             ) : (
               <View className="space-y-2">
                 {repairRequests.map(r => (
-                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3">
+                  <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
+                    onClick={() => navigate(`/repair-request?request_id=${r.id}`)}>
                     <Text className="text-sm font-bold text-black">#{r.id?.slice(0, 8)}</Text>
                     <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
                     {r.status === 'return_pending' && (
