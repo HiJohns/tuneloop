@@ -895,8 +895,25 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 	var synced, skipped, conflicts int
 	var details []gin.H
 
+	// Build valid org scope: caller's merchant org + direct child orgs
+	// Filters out users that don't belong to this merchant's hierarchy
+	userOrgID := middleware.GetOrgID(ctx)
+	validOrgIDs := map[string]bool{userOrgID: true}
+	if orgs, err := client.ListOrganizationsWithToken(userToken); err == nil {
+		for _, org := range orgs {
+			if org.ParentID != nil && *org.ParentID == userOrgID {
+				validOrgIDs[org.ID] = true
+			}
+		}
+	}
+
 	// Upsert each user
 	for _, user := range users {
+		if !validOrgIDs[user.OrgID] {
+			skipped++
+			details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "skipped"})
+			continue
+		}
 		var existingUser models.User
 		err := db.Where("iam_sub = ?", user.ID).Or("email = ?", user.Email).First(&existingUser).Error
 

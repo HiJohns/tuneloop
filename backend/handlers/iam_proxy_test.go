@@ -505,3 +505,93 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 		assert.Equal(t, merchantOrgID, site.TenantID, "site.tenant_id should be corrected to merchant org")
 	})
 }
+
+func TestSyncUsers_ScopeFilter(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("Test database not available, skipping:", err)
+		return
+	}
+	database.SetDB(db)
+
+	merchantOrgID := uuid.New().String()
+	childOrgID := uuid.New().String()
+	outsideOrgID := uuid.New().String()
+	nsOrgID := uuid.New().String()
+
+	mockIAM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "/api/v1/auth/token"):
+			json.NewEncoder(w).Encode(map[string]interface{}{"access_token": "mock-token", "expires_in": 3600, "token_type": "bearer"})
+		case strings.Contains(r.URL.Path, "/api/v1/namespaces/"):
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": nsOrgID})
+		case strings.Contains(r.URL.Path, "/api/v1/organizations"):
+			parentID := merchantOrgID
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"organizations": []map[string]interface{}{
+					{"id": merchantOrgID, "name": "merchant", "parent_id": nil, "namespace_id": nsOrgID, "status": "active"},
+					{"id": childOrgID, "name": "child-site", "parent_id": &parentID, "namespace_id": nsOrgID, "status": "active"},
+				},
+			})
+		case strings.Contains(r.URL.Path, "/api/v1/users"):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"users": []map[string]interface{}{
+					{"id": uuid.New().String(), "name": "in-scope-user", "email": "inscope@test.com", "org_id": childOrgID, "status": "active"},
+					{"id": uuid.New().String(), "name": "out-of-scope-user", "email": "outscope@test.com", "org_id": outsideOrgID, "status": "active"},
+				},
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer mockIAM.Close()
+	services.SetIAMInternalURLForTesting(mockIAM.URL)
+
+	handler := NewIAMProxyHandler()
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, merchantOrgID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, merchantOrgID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, uuid.New().String())
+		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, nsOrgID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "OWNER")
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/iam/users/sync", handler.SyncUsers)
+
+	body := `{}`
+	req := httptest.NewRequest("POST", "/api/iam/users/sync", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "token", Value: "mock-token"})
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Synced  int                      `json:"synced"`
+			Skipped int                      `json:"skipped"`
+			Details []map[string]interface{} `json:"details"`
+		} `json:"data"`
+	}
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, 20000, resp.Code)
+	assert.Equal(t, 1, resp.Data.Synced, "should sync 1 user (in scope)")
+	assert.Equal(t, 1, resp.Data.Skipped, "should skip 1 user (out of scope)")
+
+	var localUser models.User
+	err = db.Where("email = ?", "inscope@test.com").First(&localUser).Error
+	require.NoError(t, err, "in-scope user should exist")
+	assert.NotEmpty(t, localUser.ID)
+
+	var outsideUser models.User
+	err = db.Where("email = ?", "outscope@test.com").First(&outsideUser).Error
+	require.Error(t, err, "out-of-scope user should NOT exist")
+}
