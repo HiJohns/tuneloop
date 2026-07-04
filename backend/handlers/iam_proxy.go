@@ -1053,9 +1053,15 @@ func ensureSiteMember(db *gorm.DB, userID string, iamOrgID string, iamRole strin
 	if err := db.Where("org_id = ? AND status = 'active'", iamOrgID).First(&site).Error; err != nil {
 		return false
 	}
-	var count int64
-	db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).Count(&count)
-	if count > 0 {
+	var existingRole string
+	db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).Select("role").Scan(&existingRole)
+	if existingRole != "" {
+		siteRole := mapIAMRoleToSiteRole(iamRole)
+		if existingRole != siteRole {
+			db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).Update("role", siteRole)
+			log.Printf("[IAMProxy] SyncUsers: corrected site_member role for user %s site %s: %s -> %s", userID, site.ID, existingRole, siteRole)
+			return true
+		}
 		return false
 	}
 	siteMember := models.SiteMember{
