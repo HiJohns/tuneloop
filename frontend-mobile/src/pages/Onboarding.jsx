@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react'
-import { api, pointsApi, addressesApi } from '../services/api'
+import { View, Text, Input, Button, Picker, ScrollView } from '@tarojs/components'
+import { api, addressesApi } from '../services/api'
 import { storage, navigation } from '../platform'
+
+const REGIONS = {
+  '北京市': { '北京市': ['海淀区', '朝阳区', '东城区', '西城区', '丰台区', '石景山区'] },
+  '上海市': { '上海市': ['浦东新区', '黄浦区', '徐汇区', '静安区', '长宁区'] },
+  '广东省': { '广州市': ['天河区', '越秀区', '海珠区', '白云区'], '深圳市': ['南山区', '福田区', '罗湖区', '宝安区'] },
+}
+
+const provinceList = Object.keys(REGIONS)
+const getCityList = (p) => REGIONS[p] ? Object.keys(REGIONS[p]) : []
+const getDistrictList = (p, c) => REGIONS[p]?.[c] || []
 
 export default function Onboarding() {
   const [loading, setLoading] = useState(true)
-  const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const [hasExistingAddress, setHasExistingAddress] = useState(false)
 
   const [name, setName] = useState('')
   const [recipientName, setRecipientName] = useState('')
@@ -18,8 +29,40 @@ export default function Onboarding() {
   const [uploading, setUploading] = useState(false)
   const [pointAmount, setPointAmount] = useState('')
 
+  const [provinceIdx, setProvinceIdx] = useState(0)
+  const [cityIdx, setCityIdx] = useState(0)
+  const [districtIdx, setDistrictIdx] = useState(0)
+
+  const currentCities = getCityList(provinceList[provinceIdx])
+  const currentDistricts = getDistrictList(provinceList[provinceIdx], currentCities[cityIdx])
+
+  const onProvinceChange = (e) => {
+    const idx = parseInt(e.detail.value, 10)
+    setProvinceIdx(idx)
+    setCityIdx(0)
+    setDistrictIdx(0)
+    setProvince(provinceList[idx])
+    setCity(currentCities[0] || '')
+    setDistrict((getDistrictList(provinceList[idx], currentCities[0]) || [])[0] || '')
+  }
+
+  const onCityChange = (e) => {
+    const idx = parseInt(e.detail.value, 10)
+    setCityIdx(idx)
+    setDistrictIdx(0)
+    setCity(currentCities[idx])
+    setDistrict(currentDistricts[0] || '')
+  }
+
+  const onDistrictChange = (e) => {
+    const idx = parseInt(e.detail.value, 10)
+    setDistrictIdx(idx)
+    setDistrict(currentDistricts[idx])
+  }
+
   useEffect(() => {
     checkStatus()
+    loadExistingAddress()
   }, [])
 
   const checkStatus = async () => {
@@ -29,14 +72,33 @@ export default function Onboarding() {
         navigation.redirect('/')
         return
       }
-      if (resp?.data?.name) {
-        setName(resp.data.name || '')
+      if (resp?.data?.name) setName(resp.data.name || '')
+    } catch { /* offline */ }
+    setLoading(false)
+  }
+
+  const loadExistingAddress = async () => {
+    try {
+      const resp = await api.get('/user/addresses')
+      if (resp?.code === 20000 && resp.data?.list?.length > 0) {
+        const a = resp.data.list[0]
+        setRecipientName(a.recipient_name || '')
+        setPhone(a.phone || '')
+        setProvince(a.province || '')
+        setCity(a.city || '')
+        setDistrict(a.district || '')
+        setDetail(a.detail || '')
+        setHasExistingAddress(true)
+        if (a.province) {
+          const pi = provinceList.indexOf(a.province)
+          if (pi >= 0) setProvinceIdx(pi)
+        }
+        if (a.city) {
+          const ci = getCityList(provinceList[provinceIdx]).indexOf(a.city)
+          if (ci >= 0) setCityIdx(ci)
+        }
       }
-    } catch {
-      // offline fallback
-    } finally {
-      setLoading(false)
-    }
+    } catch { /* no address */ }
   }
 
   const handleIDPhotoUpload = async (e) => {
@@ -52,181 +114,140 @@ export default function Onboarding() {
         body: formData,
       })
       const json = await resp.json()
-      if (json.code === 20000) {
-        setIdPhotoUrl(json.data?.url || 'uploaded')
-      }
-    } catch {
-      // silent
-    } finally {
-      setUploading(false)
-    }
+      if (json.code === 20000) setIdPhotoUrl(json.data?.url || 'uploaded')
+    } catch { /* silent */ }
+    setUploading(false)
   }
 
   const handleSaveAddress = async () => {
     if (!recipientName || !phone || !detail) return
     try {
-      await addressesApi.create({ recipient_name: recipientName, phone, province, city, district, detail })
-    } catch {
-      // address save failed silently
-    }
+      if (hasExistingAddress) {
+        await api.put('/user/addresses/' + (await api.get('/user/addresses')).data?.list?.[0]?.id, {
+          recipient_name: recipientName, phone, province, city, district, detail,
+        })
+      } else {
+        await addressesApi.create({ recipient_name: recipientName, phone, province, city, district, detail })
+      }
+    } catch { /* silent */ }
   }
 
   const handlePurchasePoints = async () => {
     const amount = parseFloat(pointAmount)
     if (!amount || amount <= 0) return
-    try {
-      await api.post('/user/points/purchase', { amount })
-    } catch {
-      // purchase failed silently
-    }
+    try { await api.post('/user/points/purchase', { amount }) } catch { /* silent */ }
   }
 
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
-      if (recipientName && phone && detail) {
-        await handleSaveAddress()
-      }
-      if (parseFloat(pointAmount) > 0) {
-        await handlePurchasePoints()
-      }
-
+      if (recipientName && phone && detail) await handleSaveAddress()
+      if (parseFloat(pointAmount) > 0) await handlePurchasePoints()
       await api.put('/user/onboarding', { name: name || undefined })
       navigation.redirect('/')
-    } catch {
-      setSubmitting(false)
-    }
+    } catch { setSubmitting(false) }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-gray-500">加载中...</div>
-      </div>
+      <View className="flex items-center justify-center h-screen bg-gray-50">
+        <Text className="text-gray-500">加载中...</Text>
+      </View>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <div className="px-5 pt-12 pb-8">
-        <h1 className="text-2xl font-bold text-center mb-1">欢迎来到音租</h1>
-        <p className="text-gray-500 text-center text-sm mb-8">完善您的信息，开启租赁之旅</p>
+    <ScrollView scrollY className="h-screen bg-gradient-to-b from-blue-50 to-white">
+      <View className="px-5 pt-12 pb-8">
+        <View className="mb-1"><Text className="text-2xl font-bold text-center block">欢迎来到音租</Text></View>
+        <View className="mb-8"><Text className="text-gray-500 text-center text-sm block">完善您的信息，开启租赁之旅</Text></View>
 
         {/* Step 1: Nickname */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">昵称（可选）</label>
-          <input
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        <View className="mb-6">
+          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">昵称（可选）</Text></View>
+          <Input
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
             placeholder="输入您的昵称"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onInput={e => setName(e.detail.value)}
           />
-        </div>
+        </View>
 
         {/* Step 2: Address */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">收货地址（可选）</label>
-          <div className="space-y-2">
-            <input
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="收件人姓名"
-              value={recipientName}
-              onChange={e => setRecipientName(e.target.value)}
-            />
-            <input
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="手机号"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-            />
-            <div className="flex gap-2">
-              <input
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="省"
-                value={province}
-                onChange={e => setProvince(e.target.value)}
-              />
-              <input
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="市"
-                value={city}
-                onChange={e => setCity(e.target.value)}
-              />
-              <input
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="区"
-                value={district}
-                onChange={e => setDistrict(e.target.value)}
-              />
-            </div>
-            <input
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="详细地址"
-              value={detail}
-              onChange={e => setDetail(e.target.value)}
-            />
-          </div>
-        </div>
+        <View className="mb-6">
+          <View className="mb-1">
+            <Text className="text-sm font-medium text-gray-700">
+              收货地址{hasExistingAddress ? '（已有地址，可修改）' : '（可选）'}
+            </Text>
+          </View>
+          <View className="space-y-2">
+            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
+              placeholder="收件人姓名" value={recipientName} onInput={e => setRecipientName(e.detail.value)} />
+            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
+              placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)} />
+
+            <View className="flex flex-row gap-2">
+              <Picker mode="selector" range={provinceList} value={provinceIdx} onChange={onProvinceChange}>
+                <View className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700">
+                  {provinceList[provinceIdx] || '省'}
+                </View>
+              </Picker>
+              <Picker mode="selector" range={currentCities} value={cityIdx} onChange={onCityChange}>
+                <View className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700">
+                  {currentCities[cityIdx] || '市'}
+                </View>
+              </Picker>
+              <Picker mode="selector" range={currentDistricts} value={districtIdx} onChange={onDistrictChange}>
+                <View className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700">
+                  {currentDistricts[districtIdx] || '区'}
+                </View>
+              </Picker>
+            </View>
+
+            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
+              placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)} />
+          </View>
+        </View>
 
         {/* Step 3: ID Photo */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">身份证照片（可选）</label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+        <View className="mb-6">
+          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">身份证照片（可选）</Text></View>
+          <View className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             {idPhotoUrl ? (
-              <div className="text-green-600 text-sm">✓ 已上传</div>
+              <View><Text className="text-green-600 text-sm">✓ 已上传</Text></View>
             ) : (
-              <label className="cursor-pointer block">
-                <div className="text-gray-400 text-sm mb-1">{uploading ? '上传中...' : '点击上传'}</div>
-                <div className="text-gray-400 text-xs">支持 JPG/PNG，最大 5MB</div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleIDPhotoUpload} disabled={uploading} />
-              </label>
+              <View onClick={() => { const el = document.querySelector('#id-photo-input'); if (el) el.click() }}>
+                <View><Text className="text-gray-400 text-sm">{uploading ? '上传中...' : '点击上传'}</Text></View>
+                <View><Text className="text-gray-400 text-xs">支持 JPG/PNG，最大 5MB</Text></View>
+                <input type="file" id="id-photo-input" accept="image/*" className="hidden" onChange={handleIDPhotoUpload} disabled={uploading} />
+              </View>
             )}
-          </div>
-        </div>
+          </View>
+        </View>
 
-        {/* Step 4: Points Purchase */}
-        <div className="mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-1">预购点数（可选）</label>
-          <div className="flex gap-2">
+        {/* Step 4: Points */}
+        <View className="mb-8">
+          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">预购点数（可选）</Text></View>
+          <View className="flex flex-row gap-2">
             {[100, 300, 500].map(amt => (
-              <button
-                key={amt}
-                className={`flex-1 py-3 rounded-lg text-sm font-medium border transition ${
-                  pointAmount === String(amt)
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300'
-                }`}
+              <Button key={amt}
+                className={`flex-1 py-3 rounded-lg text-sm font-medium border ${pointAmount === String(amt) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300'}`}
                 onClick={() => setPointAmount(String(amt))}
-              >
-                ¥{amt}
-              </button>
+              >¥{amt}</Button>
             ))}
-          </div>
-          <input
-            className="w-full mt-2 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="自定义金额"
-            type="number"
-            min="0"
-            value={pointAmount}
-            onChange={e => setPointAmount(e.target.value)}
-          />
-        </div>
+          </View>
+          <Input className="w-full mt-2 border border-gray-300 rounded-lg px-4 py-3 text-sm"
+            placeholder="自定义金额" type="number" value={pointAmount} onInput={e => setPointAmount(e.detail.value)} />
+        </View>
 
-        <button
-          className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium active:bg-blue-600 disabled:opacity-50"
-          disabled={submitting}
-          onClick={handleSubmit}
-        >
+        <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium"
+          disabled={submitting} onClick={handleSubmit}>
           {submitting ? '提交中...' : '开始使用'}
-        </button>
+        </Button>
 
-        <button
-          className="w-full text-gray-400 text-sm py-3 mt-2"
-          onClick={() => navigation.redirect('/')}
-        >
-          跳过，稍后再说
-        </button>
-      </div>
-    </div>
+        <Button className="w-full text-gray-400 text-sm py-3 mt-2"
+          onClick={() => navigation.redirect('/')}>跳过，稍后再说</Button>
+      </View>
+    </ScrollView>
   )
 }
