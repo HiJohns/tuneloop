@@ -1,20 +1,8 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Input, Button, Picker, ScrollView } from '@tarojs/components'
+import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
 import { api, addressesApi } from '../services/api'
 import { storage, navigation } from '../platform'
 import regions from '../data/regions.json'
-
-const provinceList = regions.map(r => r.name)
-const getCityList = (provName) => {
-  const prov = regions.find(r => r.name === provName)
-  return prov ? prov.children.map(c => c.name) : []
-}
-const getDistrictList = (provName, cityName) => {
-  const prov = regions.find(r => r.name === provName)
-  if (!prov) return []
-  const city = prov.children.find(c => c.name === cityName)
-  return city ? city.children.map(d => d.name) : []
-}
 
 export default function Onboarding() {
   const [loading, setLoading] = useState(true)
@@ -31,37 +19,6 @@ export default function Onboarding() {
   const [idPhotoUrl, setIdPhotoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [pointAmount, setPointAmount] = useState('')
-
-  const [provinceIdx, setProvinceIdx] = useState(0)
-  const [cityIdx, setCityIdx] = useState(0)
-  const [districtIdx, setDistrictIdx] = useState(0)
-
-  const currentCities = getCityList(provinceList[provinceIdx])
-  const currentDistricts = getDistrictList(provinceList[provinceIdx], currentCities[cityIdx])
-
-  const onProvinceChange = (e) => {
-    const idx = parseInt(e.detail.value, 10)
-    setProvinceIdx(idx)
-    setCityIdx(0)
-    setDistrictIdx(0)
-    setProvince(provinceList[idx])
-    setCity(currentCities[0] || '')
-    setDistrict((getDistrictList(provinceList[idx], currentCities[0]) || [])[0] || '')
-  }
-
-  const onCityChange = (e) => {
-    const idx = parseInt(e.detail.value, 10)
-    setCityIdx(idx)
-    setDistrictIdx(0)
-    setCity(currentCities[idx])
-    setDistrict(currentDistricts[0] || '')
-  }
-
-  const onDistrictChange = (e) => {
-    const idx = parseInt(e.detail.value, 10)
-    setDistrictIdx(idx)
-    setDistrict(currentDistricts[idx])
-  }
 
   useEffect(() => {
     checkStatus()
@@ -92,14 +49,7 @@ export default function Onboarding() {
         setDistrict(a.district || '')
         setDetail(a.detail || '')
         setHasExistingAddress(true)
-        if (a.province) {
-          const pi = provinceList.indexOf(a.province)
-          if (pi >= 0) setProvinceIdx(pi)
-        }
-        if (a.city) {
-          const ci = getCityList(provinceList[provinceIdx]).indexOf(a.city)
-          if (ci >= 0) setCityIdx(ci)
-        }
+
       }
     } catch { /* no address */ }
   }
@@ -190,21 +140,29 @@ export default function Onboarding() {
               placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)} />
 
             <View className="flex flex-row gap-2">
-              <Picker mode="selector" range={provinceList} value={provinceIdx} onChange={onProvinceChange}>
-                <View className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700">
-                  {provinceList[provinceIdx] || '省'}
-                </View>
-              </Picker>
-              <Picker mode="selector" range={currentCities} value={cityIdx} onChange={onCityChange}>
-                <View className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700">
-                  {currentCities[cityIdx] || '市'}
-                </View>
-              </Picker>
-              <Picker mode="selector" range={currentDistricts} value={districtIdx} onChange={onDistrictChange}>
-                <View className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700">
-                  {currentDistricts[districtIdx] || '区'}
-                </View>
-              </Picker>
+              <select className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm bg-white"
+                value={province} onChange={e => { setProvince(e.target.value); setCity(''); setDistrict('') }}>
+                <option value="">省</option>
+                {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
+              </select>
+              <select className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm bg-white"
+                value={city} onChange={e => { setCity(e.target.value); setDistrict('') }}>
+                <option value="">市</option>
+                {(() => {
+                  const prov = regions.find(r => r.name === province)
+                  return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
+                })()}
+              </select>
+              <select className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm bg-white"
+                value={district} onChange={e => setDistrict(e.target.value)}>
+                <option value="">区</option>
+                {(() => {
+                  const prov = regions.find(r => r.name === province)
+                  if (!prov) return null
+                  const cit = prov.children.find(c => c.name === city)
+                  return cit ? cit.children.map((d, i) => <option key={i} value={d.name}>{d.name}</option>) : null
+                })()}
+              </select>
             </View>
 
             <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
