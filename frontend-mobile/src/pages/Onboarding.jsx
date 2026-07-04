@@ -143,7 +143,7 @@ export default function Onboarding() {
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
             placeholder="输入您的昵称"
             value={name}
-            onInput={e => setName(e.detail.value)}
+            onChange={e => setName(e.target.value)}
           />
         </View>
 
@@ -156,9 +156,9 @@ export default function Onboarding() {
           </View>
           <View className="space-y-2">
             <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
-              placeholder="收件人姓名" value={recipientName} onInput={e => setRecipientName(e.detail.value)} />
+              placeholder="收件人姓名" value={recipientName} onChange={e => setRecipientName(e.target.value)} />
             <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
-              placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)} />
+              placeholder="手机号" value={phone} onChange={e => setPhone(e.target.value)} />
 
             <View className="flex flex-row gap-2">
               <select className="border border-gray-300 rounded-lg px-2 py-3 text-sm bg-white w-1/2"
@@ -187,7 +187,7 @@ export default function Onboarding() {
             </View>
 
             <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
-              placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)} />
+              placeholder="详细地址" value={detail} onChange={e => setDetail(e.target.value)} />
           </View>
         </View>
 
