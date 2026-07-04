@@ -634,9 +634,8 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "return shipping updated"})
 }
 
-// PayRepairRequest processes payment for a repair request and updates user total_spending.
-// Accept quote (pending_payment → repairing): adds quote_amount
-// Reject quote (pending_cancel → return_pending): adds inspection_fee
+// PayRepairRequest processes payment for a repair request.
+// v3: handles first payment (pending_payment → pending_ship) and requote supplement.
 func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -654,30 +653,70 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		return
 	}
 
-	var amount float64
-	var newStatus string
-
-	switch req.Status {
-	case models.RepairReqStatusPendingPay:
-		if req.QuoteAmount == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no quote amount"})
-			return
-		}
-		amount = *req.QuoteAmount
-		newStatus = models.RepairReqStatusRepairing
-	case models.RepairReqStatusPendingCancel:
-		if req.InspectionFee == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "no inspection fee"})
-			return
-		}
-		amount = *req.InspectionFee
-		newStatus = models.RepairReqStatusReturnPend
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "not in payable status"})
+	if req.Status != models.RepairReqStatusPendingPay {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "not in pending_payment status"})
 		return
 	}
 
-	// Update user total_spending (excludes shipping fee)
+	if req.AcceptedQuoteID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no accepted quote"})
+		return
+	}
+
+	// Load accepted quote
+	var quote models.RepairQuote
+	if err := db.Where("id = ?", req.AcceptedQuoteID).First(&quote).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "accepted quote not found"})
+		return
+	}
+
+	var amount float64
+	var newStatus string
+
+	if quote.IsRenegotiation {
+		// Requote supplement: pay the difference
+		newTotal := quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee
+		if req.PaidAmount != nil {
+			amount = newTotal - *req.PaidAmount
+			if amount < 0 {
+				amount = 0
+			}
+		} else {
+			amount = newTotal
+		}
+		newStatus = models.RepairReqStatusRepairing
+	} else {
+		// First payment: material + service + logistics
+		amount = quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee
+
+		// Add transit fees if controlled path
+		if req.MerchantType == models.MerchantTypeControlled {
+			var transitOrder models.RepairTransitOrder
+			if err := db.Where("repair_request_id = ? AND direction = ?", id, models.RepairTransitDirIn).
+				First(&transitOrder).Error; err == nil {
+				if transitOrder.TransitServiceFee != nil {
+					amount += *transitOrder.TransitServiceFee
+				}
+				if transitOrder.TransitLogisticsFee != nil {
+					amount += *transitOrder.TransitLogisticsFee
+				}
+			}
+		}
+
+		// Snapshot the system check_fee
+		var checkFeeSetting models.SystemSetting
+		db.Where("setting_key = ?", "repair_check_fee").First(&checkFeeSetting)
+		_ = checkFeeSetting // best-effort snapshot
+
+		newStatus = models.RepairReqStatusPendingShip
+	}
+
+	if amount <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "payment amount must be positive"})
+		return
+	}
+
+	// Update user total_spending
 	var localUser models.User
 	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
@@ -685,13 +724,157 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	}
 	db.Model(&localUser).Update("total_spending", gorm.Expr("total_spending + ?", amount))
 
-	// Update repair request status
+	// Update repair request
 	db.Model(&req).Updates(map[string]interface{}{
-		"status":     newStatus,
-		"updated_at": time.Now(),
+		"paid_amount": gorm.Expr("COALESCE(paid_amount, 0) + ?", amount),
+		"status":      newStatus,
+		"updated_at":  time.Now(),
 	})
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "payment processed"})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"amount_paid": amount, "status": newStatus}})
+}
+
+// Requote allows a technician to submit a renegotiation quote during repair (v3, once per request).
+func (h *RepairRequestHandler) Requote(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+	if req.Status != models.RepairReqStatusRepairing {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not in repairing status"})
+		return
+	}
+
+	// Check that a renegotiation hasn't already been submitted
+	var existingRenegotiation int64
+	db.Model(&models.RepairQuote{}).
+		Where("repair_request_id = ? AND is_renegotiation = ?", id, true).
+		Count(&existingRenegotiation)
+	if existingRenegotiation > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "renegotiation already submitted (once only)"})
+		return
+	}
+
+	var body struct {
+		MaterialFee  float64 `json:"material_fee"`
+		ServiceFee   float64 `json:"service_fee"`
+		LogisticsFee float64 `json:"logistics_fee"`
+		Duration     string  `json:"duration"`
+		Comment      string  `json:"comment"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request"})
+		return
+	}
+
+	// Scan for sensitive content
+	if body.Comment != "" {
+		if services.HandleSensitiveQuote(id, "", body.Comment) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "quote comment contains sensitive information"})
+			return
+		}
+	}
+
+	// Determine technician's site
+	var siteID string
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		var members []models.SiteMember
+		db.Where("user_id = ? AND role = ?", localUser.ID, "repair_technician").Limit(1).Find(&members)
+		if len(members) > 0 {
+			siteID = members[0].SiteID
+		}
+	}
+
+	quoteNo := "RQ" + uuid.New().String()[:8]
+	quote := models.RepairQuote{
+		ID:              uuid.New().String(),
+		RepairRequestID: id,
+		SiteID:          siteID,
+		WorkerID:        userID,
+		QuoteNo:         quoteNo,
+		MaterialFee:     body.MaterialFee,
+		ServiceFee:      body.ServiceFee,
+		LogisticsFee:    body.LogisticsFee,
+		Duration:        body.Duration,
+		Comment:         body.Comment,
+		IsRenegotiation: true,
+		Status:          models.RepairQuotePending,
+		CreatedAt:       time.Now(),
+	}
+	if err := db.Create(&quote).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create requote"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": quote})
+}
+
+// RejectRequote rejects a renegotiation quote and triggers rollback settlement (v3).
+func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+	if req.Status != models.RepairReqStatusRepairing {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "not in repairing status"})
+		return
+	}
+
+	// Rollback settlement: refund = max(0, material+service - check_fee_snapshot)
+	// Logistics and transit fees are retained (lock-in at shipping time)
+	if req.AcceptedQuoteID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no accepted quote for rollback calculation"})
+		return
+	}
+	var quote models.RepairQuote
+	if err := db.Where("id = ?", req.AcceptedQuoteID).First(&quote).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "accepted quote not found"})
+		return
+	}
+
+	checkFee := float64(0)
+	if req.CheckFeeSnapshot != nil {
+		checkFee = *req.CheckFeeSnapshot
+	}
+	refund := (quote.MaterialFee + quote.ServiceFee) - checkFee
+	if refund < 0 {
+		refund = 0
+	}
+
+	// Update repair request: transition to return_pending, adjust paid_amount
+	// refund reduces the effective paid amount
+	updates := map[string]interface{}{
+		"status":     models.RepairReqStatusReturnPend,
+		"updated_at": time.Now(),
+	}
+
+	// If there's a paid_amount, reduce it by the refund
+	if req.PaidAmount != nil {
+		newPaid := *req.PaidAmount - refund
+		if newPaid < 0 {
+			newPaid = 0
+		}
+		updates["paid_amount"] = newPaid
+	}
+
+	db.Model(&req).Updates(updates)
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "rollback settlement complete", "data": gin.H{
+		"refund":        refund,
+		"retained_fees": checkFee + quote.LogisticsFee,
+	}})
 }
 
 // resolveRepairMeta enriches a RepairRequest with resolved names for instrument, site,

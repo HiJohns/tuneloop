@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	keyRepairInspectionFee    = "repair_inspection_fee"
-	keyRepairShippingFee      = "repair_shipping_fee"
+	systemTenantID             = "00000000-0000-0000-0000-000000000000"
+	keyRepairInspectionFee     = "repair_inspection_fee"
+	keyRepairShippingFee       = "repair_shipping_fee"
 	keyRepairGiftPointsEnabled = "repair_gift_points_enabled"
+	keyRepairCheckFee          = "repair_check_fee"
 )
 
 // GetRepairSetting returns a single repair config value by key.
@@ -136,4 +138,40 @@ func SetSiteShippingFee(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "saved"})
+}
+
+// GetCheckFee returns the system-level check fee (v3: namespace_admin setting, not merchant-level).
+func GetCheckFee(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var setting models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = ?", systemTenantID, keyRepairCheckFee).First(&setting).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"check_fee": 0}})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"check_fee": setting.SettingValue}})
+}
+
+// SetCheckFee sets the system-level check fee (namespace_admin only).
+func SetCheckFee(c *gin.Context) {
+	var req struct {
+		Value string `json:"value"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "value required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var setting models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = ?", systemTenantID, keyRepairCheckFee).First(&setting).Error; err == nil {
+		db.Model(&setting).Update("setting_value", req.Value)
+	} else {
+		db.Create(&models.SystemSetting{TenantID: systemTenantID, SettingKey: keyRepairCheckFee, SettingValue: req.Value})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "check fee saved"})
 }

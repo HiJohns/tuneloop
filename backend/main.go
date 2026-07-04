@@ -532,6 +532,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/config/repair", middleware.RequireRole("OWNER"), handlers.GetRepairAllSettings)
 			authRequired.GET("/config/repair/single", middleware.RequireRole("OWNER"), handlers.GetRepairSetting)
 			authRequired.PUT("/config/repair/single", middleware.RequireRole("OWNER"), handlers.SetRepairSetting)
+			// v3 system-level check_fee (namespace_admin should be used when permission framework in place)
+			authRequired.GET("/config/repair/check-fee", handlers.GetCheckFee)
+			authRequired.PUT("/config/repair/check-fee", handlers.SetCheckFee)
 			authRequired.GET("/sites/:id/config/shipping-fee", handlers.GetSiteShippingFee)
 			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
 
@@ -608,6 +611,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 				userOptionalAuth.POST("/repair-requests/:id/records", repairReqHandler.AddRecord)
 				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
+				userOptionalAuth.POST("/repair-requests/:id/requote", repairReqHandler.Requote)
+				userOptionalAuth.POST("/repair-requests/:id/requote-reject", repairReqHandler.RejectRequote)
 				// v3 quoting subsystem (nested under repair-requests)
 				userOptionalAuth.POST("/repair-requests/:id/quotes", handlers.SubmitQuote)
 				userOptionalAuth.GET("/repair-requests/:id/quotes", handlers.ListQuotes)
