@@ -6,9 +6,10 @@ import { env } from '../platform'
 import BottomNav from '../components/BottomNav'
 
 const statusLabels = {
-  pending_assessment: '待评估', pending_ship: '待发送', shipping: '发送中', inspecting: '质检中',
-  quoted: '待回复', pending_payment: '待付款', pending_cancel: '待取消',
-  repairing: '维修中', return_pending: '待发回', returned: '已发回',
+  pending_assessment: '待评估', transit_processing: '中转处理中',
+  pending_ship: '待发送', shipping: '发送中', transit_in: '转入中',
+  pending_payment: '待付款', repairing: '维修中',
+  return_pending: '待发回', transit_out: '转出中', returned: '已发回',
   closed: '已关闭', appealing: '申诉中',
 }
 

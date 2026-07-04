@@ -14,6 +14,7 @@ export default function CreateRepairRequest() {
     sn: '', instrument_type: '', brand: '', model: '',
     description: '', photos: [], video: null,
     site_id: '', merchant_id: '',
+    merchant_type: '', transit_site_id: '',
   })
   const [merchants, setMerchants] = useState([])
   const [hasControlled, setHasControlled] = useState(false)
@@ -47,11 +48,12 @@ export default function CreateRepairRequest() {
   }, [])
 
   const handleMerchantSelect = (m) => {
-    setForm(p => ({ ...p, merchant_id: m.id, site_id: '' }))
+    setForm(p => ({ ...p, merchant_id: m.id, site_id: '', merchant_type: '' }))
     setCooperativeMode(false)
     setShowMerchantPicker(false)
     if (m.id === '__cooperative__') {
       setCooperativeMode(true)
+      setForm(p => ({ ...p, merchant_type: 'controlled' }))
       apiFetch(`${baseUrl}/public/sites?type=transit`).then(r => r.json()).then(r => { if (r.code === 20000) setTransitSites(r.data?.list || []) }).catch(() => {})
     } else {
       apiFetch(`${baseUrl}/public/sites?merchant_id=${m.id}`).then(r => r.json()).then(r => { if (r.code === 20000) setSites(r.data?.list || []) }).catch(() => {})
@@ -95,6 +97,8 @@ export default function CreateRepairRequest() {
           photos: photoKeys,
           video_url: videoKey,
           site_id: form.site_id,
+          merchant_type: form.merchant_type || undefined,
+          transit_site_id: form.transit_site_id || undefined,
         }),
       })
       const r = await resp.json()
@@ -231,22 +235,7 @@ export default function CreateRepairRequest() {
             <Text className="text-sm font-bold text-black mb-3">选择网点</Text>
             {sites.map(s => (
               <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
-                onClick={() => { setForm(p => ({ ...p, site_id: s.id })); setShowSitePicker(false) }}>
-                <Text className="text-sm text-black">{s.name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* Transit site picker (cooperative mode) */}
-      {showSitePicker && cooperativeMode && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
-          <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
-            <Text className="text-sm font-bold text-black mb-3">选择中转网点</Text>
-            {transitSites.map(s => (
-              <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
-                onClick={() => { setForm(p => ({ ...p, site_id: s.id })); setShowSitePicker(false) }}>
+                onClick={() => { setForm(p => ({ ...p, site_id: s.id, merchant_type: 'full' })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>
               </View>
             ))}
