@@ -51,7 +51,7 @@ TuneLoop 的维修功能覆盖两类场景：
 | `instrument_media` | 乐器媒体 | `storage_key`, `is_display`, `batch_type` |
 | `repair_records` | 维修记录 | `instrument_id`, `worker_id`, `comment`, `photos` |
 | `user_instruments` | 客户自有乐器 | `user_id`, `sn`, `instrument_type`, `brand`, `model` |
-| `repair_requests` | 报修单 | `user_id`, `user_instrument_id`, `status`(v3 状态见 §3.3), `site_id`；**v3 新增**：`merchant_type`(full/partner), `transit_site_id`, `controlled_site_id`, `accepted_quote_id`, `check_fee_snapshot`, `paid_amount`, `expire_at` |
+| `repair_requests` | 报修单 | `user_id`, `user_instrument_id`, `status`(v3 状态见 §3.3), `site_id`；**v3 新增**：`merchant_type`(full/controlled), `transit_site_id`, `controlled_site_id`, `accepted_quote_id`, `check_fee_snapshot`, `paid_amount`, `expire_at` |
 | `repair_quotes` **(v3 新增)** | 报价单（多师傅竞价） | `id`, `repair_request_id`, `site_id`, `worker_id`, `quote_no`(报价单号), `material_fee`, `service_fee`, `logistics_fee`(C段), `duration`(工期), `comment`, `status`(pending/accepted/rejected/superseded), `is_renegotiation`(bool), `created_at` |
 | `repair_transit_orders` **(v3 新增)** | 中转单（转入/转出） | `id`, `repair_request_id`, `transit_site_id`, `direction`(in/out), `transit_no`(中转单号), `transit_service_fee`, `transit_logistics_fee`(B+D段), `status`(pending_activation/active/received/relayed), `note`, `created_at` |
 | `repair_request_records` | 报修日志（v3 承载重新协商时间线） | `repair_request_id`, `worker_id`, `comment`, `photos`, `record_type` |
