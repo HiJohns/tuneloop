@@ -20,8 +20,6 @@ export default function Onboarding() {
   const [idPhotoBack, setIdPhotoBack] = useState(null)
   const [idPhotoFrontUrl, setIdPhotoFrontUrl] = useState('')
   const [idPhotoBackUrl, setIdPhotoBackUrl] = useState('')
-  const [pointAmount, setPointAmount] = useState('')
-
   useEffect(() => {
     checkStatus()
     loadProfile()
@@ -113,21 +111,14 @@ export default function Onboarding() {
     } catch { /* silent */ }
   }
 
-  const handlePurchasePoints = async () => {
-    const amount = parseFloat(pointAmount)
-    if (!amount || amount <= 0) return
-    try { await api.post('/user/points/purchase', { amount }) } catch { /* silent */ }
-  }
-
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
       if (recipientName && phone && detail) await handleSaveAddress()
-      if (parseFloat(pointAmount) > 0) await handlePurchasePoints()
       if (idPhotoFront) await uploadIDPhoto(idPhotoFront)
       if (idPhotoBack) await uploadIDPhoto(idPhotoBack)
       await api.put('/user/onboarding', { name: name || undefined })
-      navigation.redirect('/')
+      navigation.navigate('/points-purchase')
     } catch { setSubmitting(false) }
   }
 
@@ -239,28 +230,13 @@ export default function Onboarding() {
           </View>
         </View>
 
-        {/* Step 4: Points */}
-        <View className="mb-8">
-          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">预购点数（可选）</Text></View>
-          <View className="flex flex-row gap-2">
-            {[100, 300, 500].map(amt => (
-              <Button key={amt}
-                className={`flex-1 py-3 rounded-lg text-sm font-medium border ${pointAmount === String(amt) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300'}`}
-                onClick={() => setPointAmount(String(amt))}
-              >¥{amt}</Button>
-            ))}
-          </View>
-          <Input className="w-full mt-2 border border-gray-300 rounded-lg px-4 py-3 text-sm"
-            placeholder="自定义金额" type="number" value={pointAmount} onInput={e => setPointAmount(e.detail.value)} />
-        </View>
-
         <Button className="w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-medium"
           disabled={submitting} onClick={handleSubmit}>
-          {submitting ? '提交中...' : '开始使用'}
+          {submitting ? '提交中...' : '提交'}
         </Button>
 
         <Button className="w-full text-gray-400 text-sm py-3 mt-2"
-          onClick={() => navigation.redirect('/')}>跳过，稍后再说</Button>
+          onClick={() => navigation.redirect('/')}>跳过</Button>
       </View>
     </ScrollView>
   )
