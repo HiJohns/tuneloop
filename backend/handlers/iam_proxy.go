@@ -991,6 +991,10 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				updates["org_id"] = matchedOrgID
 				needsUpdate = true
 			}
+			if existingUser.TenantID != tenantID {
+				updates["tenant_id"] = tenantID
+				needsUpdate = true
+			}
 
 			if needsUpdate {
 				if err := db.Model(&existingUser).Updates(updates).Error; err != nil {
