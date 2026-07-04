@@ -84,12 +84,15 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		result.Deposit = getFloat(config, "deposit_fixed")
 	default:
 		ratio := getFloat(config, "deposit_ratio")
-		if ratio <= 0 {
-			ratio = 0.3
-		}
 		if totalPrice > 0 {
+			if ratio <= 0 {
+				ratio = 0.3
+			}
 			result.Deposit = totalPrice * ratio
 		} else {
+			if ratio <= 0 {
+				ratio = 2.0
+			}
 			result.Deposit = baseDailyRate * ratio
 		}
 	}
