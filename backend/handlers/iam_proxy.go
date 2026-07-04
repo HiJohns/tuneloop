@@ -911,13 +911,24 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 	// Upsert each user
 	for _, user := range users {
 		// Determine matched org and role from user_org_relations (via include_orgs=true)
+		// Prefer child orgs over the merchant org itself (the merchant org has no site).
 		matchedOrgID := ""
 		matchedRole := user.Role
 		for _, org := range user.Organizations {
-			if org.IsActive && validOrgIDs[org.ID] {
+			if org.IsActive && validOrgIDs[org.ID] && org.ID != userOrgID {
 				matchedOrgID = org.ID
 				matchedRole = org.Role
 				break
+			}
+		}
+		// Fallback: merchant org itself (for users without a child org, e.g. merchant admin)
+		if matchedOrgID == "" {
+			for _, org := range user.Organizations {
+				if org.IsActive && validOrgIDs[org.ID] {
+					matchedOrgID = org.ID
+					matchedRole = org.Role
+					break
+				}
 			}
 		}
 		if matchedOrgID == "" {
