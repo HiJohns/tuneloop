@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -941,6 +942,7 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "error"})
 			} else {
 				synced++
+				ensureSiteMember(db, newUser.ID, user.OrgID, user.Role, tenantID)
 				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "added"})
 			}
 		} else if err == nil {
@@ -980,10 +982,15 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "error"})
 				} else {
 					synced++
+					ensureSiteMember(db, existingUser.ID, user.OrgID, user.Role, tenantID)
 					details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "updated"})
 				}
 			} else {
 				skipped++
+				if ensureSiteMember(db, existingUser.ID, user.OrgID, user.Role, tenantID) {
+					synced++
+					skipped--
+				}
 				details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": user.OrgID, "result": "existing"})
 			}
 		} else {
@@ -1002,4 +1009,51 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 			"details":   details,
 		},
 	})
+}
+
+// mapIAMRoleToSiteRole translates IAM user roles to local site_members roles.
+func mapIAMRoleToSiteRole(iamRole string) string {
+	switch iamRole {
+	case "OWNER":
+		return "merchant_admin"
+	case "ADMIN":
+		return "site_admin"
+	case "STAFF":
+		return "site_member"
+	case "repair_technician":
+		return "worker"
+	default:
+		return "site_member"
+	}
+}
+
+// ensureSiteMember creates a site_members record linking a user to a site.
+func ensureSiteMember(db *gorm.DB, userID string, iamOrgID string, iamRole string, tenantID string) bool {
+	if iamOrgID == "" || tenantID == "" {
+		return false
+	}
+	var site models.Site
+	if err := db.Where("org_id = ? AND status = 'active'", iamOrgID).First(&site).Error; err != nil {
+		return false
+	}
+	var count int64
+	db.Model(&models.SiteMember{}).Where("user_id = ? AND site_id = ?", userID, site.ID).Count(&count)
+	if count > 0 {
+		return false
+	}
+	siteMember := models.SiteMember{
+		ID:        uuid.New().String(),
+		TenantID:  tenantID,
+		SiteID:    site.ID,
+		UserID:    userID,
+		Role:      mapIAMRoleToSiteRole(iamRole),
+		Status:    "active",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	if err := db.Create(&siteMember).Error; err != nil {
+		log.Printf("[IAMProxy] SyncUsers: failed to create site_member for user %s: %v", userID, err)
+		return false
+	}
+	return true
 }
