@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Tree, Descriptions, Button, Modal, Form, Input, Select, message, Spin, Empty, Space, Popconfirm, Tabs, Tag } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UserOutlined, EnvironmentOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { sitesApi, iamApi } from '../services/api'
+import { sitesApi } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
  
@@ -52,7 +52,6 @@ export default function SiteManagement() {
   const [lookupError, setLookupError] = useState({ message: '', visible: false })
   const [expandedKeys, setExpandedKeys] = useState([])
   const [selectedKeys, setSelectedKeys] = useState([])
-  const [syncLoading, setSyncLoading] = useState(false)
   const [transitSites, setTransitSites] = useState([])
   const [userRole, setUserRole] = useState('')
   const [searchText, setSearchText] = useState('')
@@ -105,24 +104,6 @@ export default function SiteManagement() {
     } finally {
       setLoading(false)
       Logger.state('SiteManagement', { status: 'fetchSiteTree', action: 'END' })
-    }
-  }
-
-  const handleSyncFromIAM = async () => {
-    setSyncLoading(true)
-    try {
-      const result = await iamApi.syncOrganizations()
-      if (result.code === 20000) {
-        message.success(`同步成功：新增 ${result.data.synced} 个组织，跳过 ${result.data.skipped} 个`)
-        // Refresh the tree after sync
-        await fetchSiteTree()
-      } else {
-        message.error('同步失败：' + (result.message || '未知错误'))
-      }
-    } catch (err) {
-      message.error('同步失败：' + err.message)
-    } finally {
-      setSyncLoading(false)
     }
   }
 
@@ -355,18 +336,7 @@ export default function SiteManagement() {
               >
                 批量导入
               </Button>
-              {isMerchantAdmin && (
-                <Button 
-                  type="default" 
-                  size="small" 
-                  onClick={handleSyncFromIAM}
-                  loading={syncLoading}
-                  disabled={syncLoading}
-                  title="从 IAM 同步组织数据"
-                >
-                  从 IAM 同步
-                </Button>
-              )}
+
             </Space>
           }
         >

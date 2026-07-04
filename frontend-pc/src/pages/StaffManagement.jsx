@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, Select, message, Spin, Space, Popconfirm, Tag, Alert, Tabs, Radio, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, SendOutlined, MailOutlined, ReloadOutlined } from '@ant-design/icons'
-import { staffApi, sitesApi, iamApi } from '../services/api'
+import { staffApi, sitesApi } from '../services/api'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const { Option } = Select
@@ -26,7 +26,6 @@ export default function StaffManagement() {
   const [conflictModalVisible, setConflictModalVisible] = useState(false)
   const [conflictUsers, setConflictUsers] = useState([])
   const [currentNewUser, setCurrentNewUser] = useState(null)
-  const [syncLoading, setSyncLoading] = useState(false)
   const [userRole, setUserRole] = useState('')
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
@@ -86,13 +85,6 @@ export default function StaffManagement() {
           ...pagination,
           total: result.data?.total || 0
         })
-
-        // Auto-sync IAM status when any user is still pending
-        if (list.some(u => u.status === 'pending')) {
-          iamApi.syncUsers().then(r => {
-            if (r.code === 20000) fetchStaffList()
-          }).catch(() => {})
-        }
       }
     } catch (error) {
       message.error('加载人员列表失败: ' + error.message)
@@ -109,23 +101,6 @@ export default function StaffManagement() {
       }
     } catch (error) {
       console.error('加载网点数据失败:', error)
-    }
-  }
-
-  const handleSyncUsersFromIAM = async () => {
-    setSyncLoading(true)
-    try {
-      const result = await iamApi.syncUsers()
-      if (result.code === 20000) {
-        message.success(`同步完成: ${result.data.synced} 新增, ${result.data.skipped} 跳过`)
-        fetchStaffList()
-      } else {
-        message.error('同步失败: ' + result.message)
-      }
-    } catch (err) {
-      message.error('同步失败: ' + err.message)
-    } finally {
-      setSyncLoading(false)
     }
   }
 
@@ -452,16 +427,6 @@ export default function StaffManagement() {
         title="人员管理" 
         extra={
           <Space>
-            {isMerchantAdmin && (
-              <Button 
-                onClick={handleSyncUsersFromIAM}
-                loading={syncLoading}
-                disabled={syncLoading}
-                title="从 IAM 同步用户数据"
-              >
-                从 IAM 同步
-              </Button>
-            )}
             <Button
               icon={<UploadOutlined />}
               onClick={() => navigate('/staff/bulk-import')}

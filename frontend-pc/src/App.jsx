@@ -19,6 +19,7 @@ import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
 import LeaseLedger from './pages/LeaseLedger'
+import IAMSyncPage from './pages/IAMSyncPage'
 import DepositFlow from './pages/DepositFlow'
 import OverdueAlerts from './pages/OverdueAlerts'
 import SupplierDB from './pages/SupplierDB'
@@ -343,6 +344,7 @@ function MainLayout() {
       { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
       { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:read'] } },
+      { key: '/organization/iam-sync', label: '与 IAM 同步', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
     ]
   },
   {
@@ -403,7 +405,7 @@ function onMenuClick(e) {
   if (['/instruments/categories', '/instruments/properties', '/system/banners'].includes(location.pathname)) openKeys = ['basic']
   else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/instruments/list', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['operations']
-  else if (['/organization/sites', '/staff', '/appeals'].includes(location.pathname)) openKeys = ['organization']
+  else if (['/organization/sites', '/staff', '/appeals', '/organization/iam-sync'].includes(location.pathname)) openKeys = ['organization']
   else if (['/merchants', '/system/audit-logs', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
 
@@ -436,6 +438,7 @@ function onMenuClick(e) {
     '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
     '/staff': { title: '人员管理', parent: '组织管理' },
     '/appeals': { title: '申诉处理', parent: '组织管理' },
+    '/organization/iam-sync': { title: '与 IAM 同步', parent: '组织管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
     '/system/permissions': { title: '权限管理', parent: '系统管理' },
@@ -576,6 +579,7 @@ function onMenuClick(e) {
             <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
+            <Route path="/organization/iam-sync" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true }}><IAMSyncPage /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
