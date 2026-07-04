@@ -6,7 +6,7 @@ import { env } from '../platform'
 import BottomNav from '../components/BottomNav'
 
 const statusLabels = {
-  pending_ship: '待发送', shipping: '发送中', inspecting: '质检中',
+  pending_assessment: '待评估', pending_ship: '待发送', shipping: '发送中', inspecting: '质检中',
   quoted: '待回复', pending_payment: '待付款', pending_cancel: '待取消',
   repairing: '维修中', return_pending: '待发回', returned: '已发回',
   closed: '已关闭', appealing: '申诉中',
@@ -64,7 +64,7 @@ export default function MyRepairs() {
 
       // Staff: also fetch site repair requests
       if (hasSiteRole || isPureTech) {
-        const statusFilter = isPureTech ? '?status=inspecting,repairing' : '?status=return_pending,pending_ship,shipping,repairing,quoted,inspecting'
+        const statusFilter = isPureTech ? '?status=inspecting,repairing' : '?status=pending_assessment,return_pending,pending_ship,shipping,repairing,quoted,inspecting'
         fetches.push(apiFetch(`${baseUrl}/repair-requests${statusFilter}`).then(r => r.json()).then(r => {
           if (r.code === 20000) setRepairRequests(r.data?.list || [])
         }))
