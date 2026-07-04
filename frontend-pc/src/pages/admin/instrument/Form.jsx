@@ -1285,11 +1285,12 @@ const loadCategoryChildren = async (node) => {
                   const rate = tier.discount_percent > 0
                     ? parseFloat(baseDailyRate) * (1 - tier.discount_percent / 100)
                     : parseFloat(baseDailyRate)
+                  const dailyRateDisplay = baseDailyRate > 0 ? rate.toFixed(0) : '-'
                   return (
                     <div key={i} style={{ fontSize: 14, lineHeight: '28px' }}>
                       <span style={{ fontWeight: 500 }}>{tier.name}</span>
                       <span style={{ color: '#999', marginLeft: 8 }}>({daysDisplay})</span>
-                      <span style={{ marginLeft: 12 }}>¥{rate.toFixed(0)}/天</span>
+                      <span style={{ marginLeft: 12 }}>¥{dailyRateDisplay}/天</span>
                       {tier.discount_percent > 0 && <Tag color="green" style={{ marginLeft: 8 }}>{tier.discount_percent}%折扣</Tag>}
                     </div>
                   )
