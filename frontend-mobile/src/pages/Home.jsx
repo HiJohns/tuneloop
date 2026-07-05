@@ -375,7 +375,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
   const localTouchRef = useRef({ x: 0, offset: 0 })
 
   return (
-    <View className="w-full overflow-hidden pl-7"
+    <View className="w-full overflow-hidden pl-7 bg-black/30 rounded-lg py-1"
       onTouchStart={e => {
         localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
       }}
