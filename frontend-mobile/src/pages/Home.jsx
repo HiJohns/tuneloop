@@ -265,7 +265,7 @@ export default function Home() {
 
         {/* Swipe layer — intercepts touch and mouse over the banner area */}
         {banners.length > 0 && (
-          <div className="absolute top-0 left-0 right-0 z-[60]" style={{ height: 240 }}
+          <div className="absolute top-0 left-0 right-0 z-[10002]" style={{ height: 240 }}
             onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
             onTouchEnd={(e) => {
               const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
