@@ -104,7 +104,7 @@
 * **统计大屏**：全局在租率、资产总估值、转售转化率等核心指标监控。
 
 ### 5. 媒体管理
-* **图片/视频上传**：支持 JPEG/PNG/GIF/WebP/MP4/WebM/MOV 格式上传。
+* **图片/视频上传**：支持 JPEG/PNG/GIF/WebP/MP4/WebM/MOV 格式上传。展示图自动生成 1080×1440 WebP 缩略图；支持封面图（72×72 方形，列表使用）和海报图（max-width 1080px）。所有生成变体统一为 WebP Q0.8。
 * **批次管理**：按 shipping/forwarding/accepting/returning/relaying/receiving/repaired 类型分组管理媒体。
 * **展示设置**：指定某批次为乐器展示媒体，多图轮播 + 视频介绍。
 * **视频缩略图**：上传视频后自动提取第 1 秒帧作为缩略图（需 FFmpeg）。
