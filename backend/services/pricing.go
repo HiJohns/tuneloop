@@ -28,6 +28,104 @@ type InstrumentPricing struct {
 	ShippingFee   float64     `json:"shipping_fee,omitempty"`
 }
 
+// TierDetail represents one tier's contribution to the final rent calculation.
+type TierDetail struct {
+	DaysMin         int     `json:"days_min"`
+	DaysMax         int     `json:"days_max"`
+	DiscountPercent int     `json:"discount_percent"`
+	DaysInTier      int     `json:"days_in_tier"`
+	EffectiveRate   float64 `json:"effective_rate"`
+	Subtotal        float64 `json:"subtotal"`
+}
+
+// TieredPricingResult contains the full per-day tiered calculation result.
+type TieredPricingResult struct {
+	BaseDailyRate float64       `json:"base_daily_rate"`
+	TotalDays     int           `json:"total_days"`
+	Tiers         []TierDetail  `json:"tiers"`
+	TotalRent     float64       `json:"total_rent"`
+}
+
+// CalculateTieredPricing calculates rent by splitting days across discount tiers.
+// Each tier specifies days_max (max day in this tier) and discount_percent.
+// Example: 70 days, tiers=[{30,0},{180,5},{-1,10}] with base=100
+//   Tier 1: 30 days × 100 = 3000
+//   Tier 2: 40 days × 95 = 3800
+//   Total: 6800
+func CalculateTieredPricing(days int, baseDailyRate float64, tiers []TierConfig) *TieredPricingResult {
+	result := &TieredPricingResult{
+		BaseDailyRate: baseDailyRate,
+		TotalDays:     days,
+	}
+
+	if days <= 0 || baseDailyRate <= 0 {
+		return result
+	}
+
+	accumulated := 0
+	prevMax := 0
+	totalRent := 0.0
+
+	for _, t := range tiers {
+		daysMax := t.DaysMax
+		if daysMax <= 0 {
+			daysMax = days // -1 means unlimited, cap at total days
+		}
+
+		daysInTier := daysMax - prevMax
+		if daysInTier <= 0 {
+			prevMax = daysMax
+			continue
+		}
+
+		remaining := days - accumulated
+		if remaining <= 0 {
+			break
+		}
+
+		if daysInTier > remaining {
+			daysInTier = remaining
+		}
+
+		rate := baseDailyRate
+		if t.DiscountPercent > 0 {
+			rate = baseDailyRate * (1 - float64(t.DiscountPercent)/100)
+		}
+
+		subtotal := rate * float64(daysInTier)
+		totalRent += subtotal
+
+		result.Tiers = append(result.Tiers, TierDetail{
+			DaysMin:         prevMax + 1,
+			DaysMax:         prevMax + daysInTier,
+			DiscountPercent: t.DiscountPercent,
+			DaysInTier:      daysInTier,
+			EffectiveRate:   rate,
+			Subtotal:        subtotal,
+		})
+
+		accumulated += daysInTier
+		prevMax = daysMax
+
+		if accumulated >= days {
+			break
+		}
+	}
+
+	result.TotalRent = totalRent
+	return result
+}
+
+// ResolvePricingConfig resolves the effective pricing config for a tenant.
+// Priority: merchant-specific config → system default template.
+func ResolvePricingConfig(tenantID string) ([]TierConfig, error) {
+	return []TierConfig{
+		{DaysMax: 30, DiscountPercent: 0},
+		{DaysMax: 180, DiscountPercent: 5},
+		{DaysMax: -1, DiscountPercent: 10},
+	}, nil // simplified: returns system defaults; full merchant lookup deferred to sub-task
+}
+
 // CalculatePricing computes instrument pricing from base rate and merchant config
 func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON string, overridesJSON string, instrumentPricingJSON ...string) *InstrumentPricing {
 	var config map[string]interface{}
