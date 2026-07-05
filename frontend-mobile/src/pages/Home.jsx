@@ -314,7 +314,7 @@ export default function Home() {
         {/* Menu bar with frosted glass */}
         <View className={`${scrolled ? 'bg-[rgba(90,59,36,0.85)]' : 'bg-transparent'} transition-colors duration-300`}
           style={{ backdropFilter: scrolled ? 'blur(10px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(10px)' : 'none', pointerEvents: 'auto' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+          {/* MenuContent rendered inside ScrollView below (natural menu) or as Z=10001 sticky */}
         </View>
         <ScrollView className={`flex-1 overflow-y-auto ${scrolled ? 'bg-[rgba(90,59,36,0.85)]' : 'bg-transparent'} transition-colors duration-300`} style={{ backdropFilter: scrolled ? 'blur(10px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(10px)' : 'none', pointerEvents: 'auto' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
