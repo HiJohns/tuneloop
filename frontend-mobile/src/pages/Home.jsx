@@ -283,8 +283,12 @@ export default function Home() {
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '94px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        {/* C: ScrollView */}
-        <ScrollView className="flex-1 overflow-y-auto" style={{ pointerEvents: 'auto' }}
+        {/* Menu bar with frosted glass */}
+        <View className={`${scrolled ? 'bg-[rgba(90,59,36,0.85)]' : 'bg-transparent'} transition-colors duration-300`}
+          style={{ backdropFilter: scrolled ? 'blur(10px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(10px)' : 'none', pointerEvents: 'auto' }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={scrolled} />
+        </View>
+        <ScrollView className={`flex-1 overflow-y-auto ${scrolled ? 'bg-[rgba(90,59,36,0.85)]' : 'bg-transparent'} transition-colors duration-300`} style={{ backdropFilter: scrolled ? 'blur(10px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(10px)' : 'none', pointerEvents: 'auto' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.target.scrollTop)}>
           <View style={{ height: '146px' }}></View>
