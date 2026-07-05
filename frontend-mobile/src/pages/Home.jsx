@@ -89,6 +89,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl)
   const [banners, setBanners] = useState([])
   const [currentBanner, setCurrentBanner] = useState(0)
+  const [jumpReset, setJumpReset] = useState(false)
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 50
@@ -146,7 +147,7 @@ export default function Home() {
     if (!banners.length) return
     const timer = setInterval(() => {
       setCurrentBanner(prev => {
-        const next = prev < banners.length - 1 ? prev + 1 : banners.length
+        const next = prev >= banners.length ? 0 : prev < banners.length - 1 ? prev + 1 : banners.length
         console.log('[CAROUSEL] auto-advance:', prev, '→', next, '| banners:', banners.length)
         return next
       })
@@ -198,12 +199,19 @@ export default function Home() {
           <View className="flex flex-row h-full" style={{
             width: `${(banners.length + 2) * 100}%`,
             transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`,
-            transition: currentBanner === -1 || currentBanner === banners.length ? 'none' : 'transform 0.5s ease-in-out'
+            transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out'
           }}
             onTransitionEnd={() => {
               console.log('[CAROUSEL] transitionEnd: currentBanner=', currentBanner)
-              if (currentBanner === -1) setCurrentBanner(banners.length - 1)
-              else if (currentBanner === banners.length) setCurrentBanner(0)
+              if (currentBanner === -1) {
+                setJumpReset(true)
+                setCurrentBanner(banners.length - 1)
+                setTimeout(() => setJumpReset(false), 50)
+              } else if (currentBanner === banners.length) {
+                setJumpReset(true)
+                setCurrentBanner(0)
+                setTimeout(() => setJumpReset(false), 50)
+              }
             }}>
             {banners.length > 0 && (
               <View key="clone-last" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>

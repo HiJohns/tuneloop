@@ -50,6 +50,7 @@ export default function Detail() {
   const [activeOrder, setActiveOrder] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
   const [currentBanner, setCurrentBanner] = useState(0)
+  const [jumpReset, setJumpReset] = useState(false)
   const [displayMedia, setDisplayMedia] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
   const [showComparison, setShowComparison] = useState(false)
@@ -186,11 +187,17 @@ export default function Detail() {
           <View className="flex flex-row h-full" style={{
             width: `${(bannerImages.length + 2) * 100}%`,
             transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
-            transition: currentBanner === -1 || currentBanner === bannerImages.length ? 'none' : 'transform 0.5s ease-in-out'
-          }}
+            transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out'
             onTransitionEnd={() => {
-              if (currentBanner === -1) setCurrentBanner(bannerImages.length - 1)
-              else if (currentBanner === bannerImages.length) setCurrentBanner(0)
+              if (currentBanner === -1) {
+                setJumpReset(true)
+                setCurrentBanner(bannerImages.length - 1)
+                setTimeout(() => setJumpReset(false), 50)
+              } else if (currentBanner === bannerImages.length) {
+                setJumpReset(true)
+                setCurrentBanner(0)
+                setTimeout(() => setJumpReset(false), 50)
+              }
             }}>
             {bannerImages.length > 0 && (
               <View key="clone-last" className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
