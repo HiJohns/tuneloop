@@ -809,7 +809,7 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 
 	// Notify customer that instrument has been shipped back
 	var customerUser models.User
-	if err := db.Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
+	if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
 		title := "乐器已发回"
 		content := "您的报修乐器已发回，请注意查收。"
 		services.Notify(db, req.TenantID, customerUser.ID, "returned", title, content, req.ID, "repair_request")
@@ -1008,7 +1008,7 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 
 	// Notify customer of requote
 	var customerUser models.User
-	if err := db.Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
+	if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
 		title := "维修师傅重新报价"
 		content := "维修师傅给出了新的报价，请查看并确认。"
 		services.Notify(db, req.TenantID, customerUser.ID, "requote", title, content, req.ID, "repair_request")

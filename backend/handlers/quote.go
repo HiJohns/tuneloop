@@ -82,7 +82,7 @@ func SubmitQuote(c *gin.Context) {
 	var reqModel models.RepairRequest
 	if err := db.Where("id = ?", repairRequestID).First(&reqModel).Error; err == nil {
 		var customerUser models.User
-		if err := db.Where("iam_sub = ?", reqModel.UserID).First(&customerUser).Error; err == nil {
+		if err := database.GetDB().Where("iam_sub = ?", reqModel.UserID).First(&customerUser).Error; err == nil {
 			title := "收到新报价"
 			content := "您的报修单收到一份新报价，请查看并确认。"
 			services.Notify(db, reqModel.TenantID, customerUser.ID, "quote", title, content, repairRequestID, "repair_request")
