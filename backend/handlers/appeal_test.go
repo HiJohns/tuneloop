@@ -49,13 +49,14 @@ func TestListAppeals(t *testing.T) {
 	userID := uuid.New().String()
 	damageID := uuid.New().String()
 	orgID := uuid.New().String()
+	appealReason := "Test appeal"
 	appeal := models.Appeal{
 		ID:             uuid.New().String(),
 		TenantID:       tenantID,
 		OrgID:          orgID,
-		DamageReportID: damageID,
-		UserID:         userID,
-		AppealReason:   "Test appeal",
+		DamageReportID: &damageID,
+		UserID:         &userID,
+		AppealReason:   &appealReason,
 		Status:         "pending",
 		SubmittedAt:    time.Now(),
 	}

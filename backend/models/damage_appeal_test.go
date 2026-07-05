@@ -72,20 +72,23 @@ func TestDamageAssessment(t *testing.T) {
 }
 
 func TestAppeal(t *testing.T) {
+	appealReason := "琴弦自然老化，非人为损坏"
+	dr1 := uuid.New().String()
+	u1 := uuid.New().String()
 	// Test struct creation
 	appeal := Appeal{
 		ID:             uuid.New().String(),
 		TenantID:       uuid.New().String(),
 		OrgID:          uuid.New().String(),
-		DamageReportID: uuid.New().String(),
-		UserID:         uuid.New().String(),
-		AppealReason:   "琴弦自然老化，非人为损坏",
+		DamageReportID: &dr1,
+		UserID:         &u1,
+		AppealReason:   &appealReason,
 		Status:         "pending",
 		SubmittedAt:    time.Now(),
 	}
 
 	assert.NotEmpty(t, appeal.ID)
-	assert.Equal(t, "琴弦自然老化，非人为损坏", appeal.AppealReason)
+	assert.Equal(t, appealReason, *appeal.AppealReason)
 	assert.Equal(t, "pending", appeal.Status)
 
 	// Test all status values
@@ -131,13 +134,14 @@ func TestRelationships(t *testing.T) {
 	damageReportID := uuid.New().String()
 	userID := uuid.New().String()
 
+	tr  := "Test relationship"
 	appeal := Appeal{
 		ID:             uuid.New().String(),
-		DamageReportID: damageReportID,
-		UserID:         userID,
-		AppealReason:   "Test relationship",
+		DamageReportID: &damageReportID,
+		UserID:         &userID,
+		AppealReason:   &tr,
 	}
 
-	assert.Equal(t, damageReportID, appeal.DamageReportID)
-	assert.Equal(t, userID, appeal.UserID)
+	assert.Equal(t, damageReportID, *appeal.DamageReportID)
+	assert.Equal(t, userID, *appeal.UserID)
 }

@@ -9,11 +9,12 @@ import (
 )
 
 func TestLeaseSession(t *testing.T) {
+	oID := uuid.New().String()
 	// Test struct creation
 	session := LeaseSession{
 		ID:           uuid.New().String(),
 		TenantID:     uuid.New().String(),
-		OrgID:        uuid.New().String(),
+		OrgID:        &oID,
 		OrderID:      uuid.New().String(),
 		UserID:       uuid.New().String(),
 		InstrumentID: uuid.New().String(),
@@ -46,11 +47,12 @@ func TestLeaseSession(t *testing.T) {
 }
 
 func TestElectronicContract(t *testing.T) {
+	org2 := uuid.New().String()
 	// Test struct creation
 	contract := ElectronicContract{
 		ID:             uuid.New().String(),
 		TenantID:       uuid.New().String(),
-		OrgID:          uuid.New().String(),
+		OrgID:          &org2,
 		OrderID:        uuid.New().String(),
 		UserID:         uuid.New().String(),
 		InstrumentID:   uuid.New().String(),

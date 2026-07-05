@@ -330,13 +330,15 @@ func TestIntegration_Scenario4_AppealProcess(t *testing.T) {
 	router.PUT("/api/appeals/:id/resolve", appealHandler.ResolveAppeal)
 
 	appealID := uuid.New().String()
+	drID := uuid.New().String()
+	appealReason := "Test damage appeal"
 	appeal := models.Appeal{
 		ID:             appealID,
 		TenantID:       tenantID,
 		Status:         "pending",
-		DamageReportID: uuid.New().String(),
-		UserID:         userID,
-		AppealReason:   "Test damage appeal",
+		DamageReportID: &drID,
+		UserID:         &userID,
+		AppealReason:   &appealReason,
 		SubmittedAt:    time.Now(),
 	}
 	db.Create(&appeal)
