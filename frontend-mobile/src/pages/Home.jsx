@@ -280,7 +280,7 @@ export default function Home() {
                if (currentItem?.link_url) navigate(currentItem.link_url)
              }
            }}
-           onMouseDown={(e) => { console.log('[SWIPE] mouseDown x:', e.clientX); bannerTouchStartXRef.current = e.clientX }}
+           onMouseDownCapture={(e) => { console.log('[SWIPE] mouseDownCapture x:', e.clientX); bannerTouchStartXRef.current = e.clientX }}
            onMouseUp={(e) => {
              console.log('[SWIPE] mouseUp x:', e.clientX, 'startX:', bannerTouchStartXRef.current)
              const diff = e.clientX - bannerTouchStartXRef.current
