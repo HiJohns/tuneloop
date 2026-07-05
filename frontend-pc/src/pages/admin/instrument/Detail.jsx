@@ -324,102 +324,42 @@ export default function InstrumentDetail() {
                   )}
                 </Card>
               </Col>
-              
-              <Col span={8}>
-                <Card title="价格配置"
-                  extra={editingCard === 'pricing' ? null : <EditOutlined className="cursor-pointer" onClick={() => setEditingCard('pricing')} />}
-                >
-                  {editingCard === 'pricing' ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm text-gray-500">基础日均价 (¥)</label>
-                        <InputNumber
-                          defaultValue={pricingV2?.base_daily_rate ?? instrument.base_daily_rate ?? 0}
-                          id="edit-daily-rate" min={0} className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">押金 (¥)</label>
-                        <InputNumber
-                          defaultValue={instrument.deposit ?? pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0}
-                          id="edit-deposit" min={0} className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">物流费 (¥)</label>
-                        <InputNumber
-                          defaultValue={pricingV2?.shipping_fee ?? parsePricing(instrument.pricing)?.shipping_fee ?? 0}
-                          id="edit-shipping" min={0} className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-500">逾期日费 (¥/天)</label>
-                        <InputNumber
-                          defaultValue={overdueDailyFee || 0}
-                          id="edit-overdue" min={0} className="w-full"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="primary" loading={savingCard} onClick={() => {
-                          handleSaveCard('pricing', {
-                            deposit: parseFloat(document.getElementById('edit-deposit')?.value || '0'),
-                            shipping_fee: parseFloat(document.getElementById('edit-shipping')?.value || '0'),
-                            base_daily_rate: parseFloat(document.getElementById('edit-daily-rate')?.value || '0'),
-                            overdue_daily_fee: parseFloat(document.getElementById('edit-overdue')?.value || '0'),
-                          })
-                        }}>保存</Button>
-                        <Button onClick={() => setEditingCard(null)}>取消</Button>
-                      </div>
-                    </div>
-                  ) : pricingV2Loading ? (
-                    <Spin />
-                  ) : pricingV2?.tiers?.length > 0 ? (
-                    <>
-                      <Table
-                        dataSource={pricingV2.tiers.map((t, i) => ({ ...t, _key: i }))}
-                        rowKey="_key"
-                        pagination={false}
-                        columns={[
-                          {
-                            title: '阶段',
-                            key: 'name',
-                            width: 80,
-                            render: (_, __, i) => `第${i + 1}阶`,
-                          },
-                          {
-                            title: '天数范围',
-                            key: 'range',
-                            width: 150,
-                            render: (_, r, i) => {
-                              const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                              const daysMax = r.days_max > 0 ? r.days_max : '以上'
-                              return `${prevMax + 1}-${daysMax}天`
-                            },
-                          },
-                          {
-                            title: '日租金',
-                            dataIndex: 'daily_rate',
-                            key: 'daily',
-                            width: 100,
-                            render: (v) => `¥${(v || 0).toFixed(2)}`,
-                          },
-                        ]}
+
+              <Col span={12}>
+                <Card title="封面图"
+                  extra={
+                    <label className="text-xs text-brand-primary cursor-pointer hover:underline">
+                      {instrument.cover_image ? '替换' : '上传'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            const res = await request(`/instruments/${id}/cover-image`, { method: 'POST', body: formData })
+                            if (res.code === 20000) {
+                              message.success('封面图更新成功')
+                              fetchInstrument()
+                            } else {
+                              message.error(res?.message || '上传失败')
+                            }
+                          } catch (err) {
+                            message.error('上传失败: ' + (err.message || ''))
+                          }
+                          e.target.value = ''
+                        }}
                       />
-                      <Divider />
-                      <Descriptions column={2} size="small" bordered>
-                        <Descriptions.Item label="押金">
-                          ¥{(instrument.deposit ?? pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0).toFixed(2)}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="物流费">
-                          ¥{(pricingV2?.shipping_fee ?? parsePricing(instrument.pricing)?.shipping_fee ?? 0).toFixed(2)}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="逾期日费">
-                          ¥{(overdueDailyFee || 0).toFixed(2)}/天
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </>
+                    </label>
+                  }
+                >
+                  {instrument.cover_image ? (
+                    <img src={instrument.cover_image} alt="封面图" style={{ maxWidth: 120, maxHeight: 120, objectFit: 'cover', borderRadius: 8 }} />
                   ) : (
-                    <Empty description="暂未配置分阶段定价" />
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无封面图" />
                   )}
                 </Card>
               </Col>
