@@ -50,6 +50,8 @@ function SingleCheckout({ id, navigate }) {
   const [prepaidPointsUsed, setPrepaidPointsUsed] = useState(0)
   const [giftPointsUsed, setGiftPointsUsed] = useState(0)
   const [usePoints, setUsePoints] = useState(false)
+  const [rentalCalc, setRentalCalc] = useState(null)
+  const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
 
   useEffect(() => {
     const token = getToken()
@@ -146,6 +148,25 @@ function SingleCheckout({ id, navigate }) {
     }
     return total
   }
+
+  // Fetch rental calculation from backend API
+  useEffect(() => {
+    if (!instrument?.id || !days) return
+    const fetchCalc = async () => {
+      setRentalCalcLoading(true)
+      try {
+        const res = await apiFetch(`${env.apiBaseUrl}/rental/calculate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instrument_id: instrument.id, days }),
+        })
+        const r = await res.json()
+        if (r.code === 20000) setRentalCalc(r.data)
+      } catch {}
+      setRentalCalcLoading(false)
+    }
+    fetchCalc()
+  }, [instrument?.id, days])
 
   const totalRent = computeTieredRent(days)
   const deposit = pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
