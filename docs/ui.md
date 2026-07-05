@@ -256,6 +256,20 @@ setInterval(() => {
 - 触摸保留 Taro View 的 `onTouchStart`/`onTouchEnd`（正常转发）
 - 阈值 `abs(diff) > 50px` 触发翻页，≤50px 视为点击
 
+### 菜单文字可读性（Home.jsx）
+
+**问题**：轮播图背景深浅不一，菜单文字难以辨认。
+
+**方案**：三层防护确保文字在任何背景图上可读：
+1. **Z=1 渐变遮罩**：`linear-gradient(to bottom, rgba(0,0,0,0.55) → transparent)` 覆盖顶部 240px
+2. **MenuContent 容器背景**：`bg-black/20`（半透明黑色直角背景）
+3. **文字样式**：白色 `text-white` + `textShadow: '0 1px 4px rgba(0,0,0,0.6)'`
+
+**菜单层级**（对齐 `docs/frontpage.md` §2.2）：
+- 自然菜单：ScrollView 内，`scrollY < 130` 时可见，`scrolled={false}`
+- 粘连菜单：Z=10001, `top:102px`，`menuStuck`（≥130）时接管
+- 搜索栏：`top:60px`，文字统一白色 + 阴影
+
 **数据源**：
 - `Home.jsx`：`GET /public/banners` → `banners[]`（`image_url`, `bg_color`, `link_url`, `title`）
 - `Detail.jsx`：`GET /public/instruments/:id/display-media` → `displayMedia.images[]`（媒体 key 列表）
