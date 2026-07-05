@@ -112,8 +112,15 @@ func ListQuotes(c *gin.Context) {
 	// - The repair request owner sees all quotes (with desensitization for controlled)
 	// - Technicians see only quotes from their own site
 	// - Cross-site quotes are invisible
+
+	// Check if this is a controlled repair request (for desensitization)
+	var repairReq models.RepairRequest
+	isControlled := false
+	if err := db.Where("id = ?", repairRequestID).First(&repairReq).Error; err == nil {
+		isControlled = repairReq.MerchantType == models.MerchantTypeControlled
+	}
+
 	if role == "USER" {
-		// Customer: see all quotes (desensitization handled in response)
 		query.Find(&quotes)
 	} else {
 		// Staff/tech: find the user's site, then show only that site's quotes
@@ -126,6 +133,26 @@ func ListQuotes(c *gin.Context) {
 			}
 		}
 		query.Find(&quotes)
+	}
+
+	// Desensitize for controlled: strip worker/site identity for USER
+	if isControlled && role == "USER" {
+		desensitized := make([]gin.H, len(quotes))
+		for i, q := range quotes {
+			desensitized[i] = gin.H{
+				"id":            q.ID,
+				"quote_no":      q.QuoteNo,
+				"material_fee":  q.MaterialFee,
+				"service_fee":   q.ServiceFee,
+				"logistics_fee": q.LogisticsFee,
+				"duration":      q.Duration,
+				"comment":       q.Comment,
+				"status":        q.Status,
+				"created_at":    q.CreatedAt,
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": desensitized}})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": quotes}})
