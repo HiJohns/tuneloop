@@ -263,37 +263,37 @@ export default function Home() {
         </View>
       )}
 
-       {/* Swipe layer — intercepts touch and mouse over the banner area */}
-       {banners.length > 0 && (
-         <View className="absolute top-0 left-0 right-0 z-[60]" style={{ height: 240 }}
-           onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
-           onTouchEnd={(e) => {
-             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
-             if (Math.abs(diff) > 50) {
-               if (diff < 0) {
-                 setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
-               } else {
-                 setCurrentBanner(prev => prev > 0 ? prev - 1 : -1)
-               }
-             } else {
-               const currentItem = banners[currentBanner >= 0 && currentBanner < banners.length ? currentBanner : 0]
-               if (currentItem?.link_url) navigate(currentItem.link_url)
-             }
-           }}
-           onMouseDownCapture={(e) => { console.log('[SWIPE] mouseDownCapture x:', e.clientX); bannerTouchStartXRef.current = e.clientX }}
-           onMouseUp={(e) => {
-             console.log('[SWIPE] mouseUp x:', e.clientX, 'startX:', bannerTouchStartXRef.current)
-             const diff = e.clientX - bannerTouchStartXRef.current
-             if (Math.abs(diff) > 50) {
-               if (diff < 0) {
-                 setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
-               } else {
-                 setCurrentBanner(prev => prev > 0 ? prev - 1 : -1)
-               }
-             }
-           }}
-         />
-       )}
+        {/* Swipe layer — intercepts touch and mouse over the banner area */}
+        {banners.length > 0 && (
+          <div className="absolute top-0 left-0 right-0 z-[60]" style={{ height: 240 }}
+            onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+            onTouchEnd={(e) => {
+              const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
+              if (Math.abs(diff) > 50) {
+                if (diff < 0) {
+                  setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
+                } else {
+                  setCurrentBanner(prev => prev > 0 ? prev - 1 : -1)
+                }
+              } else {
+                const currentItem = banners[currentBanner >= 0 && currentBanner < banners.length ? currentBanner : 0]
+                if (currentItem?.link_url) navigate(currentItem.link_url)
+              }
+            }}
+            onMouseDownCapture={(e) => { console.log('[SWIPE] mouseDownCapture x:', e.clientX); bannerTouchStartXRef.current = e.clientX }}
+            onMouseUp={(e) => {
+              console.log('[SWIPE] mouseUp x:', e.clientX, 'startX:', bannerTouchStartXRef.current)
+              const diff = e.clientX - bannerTouchStartXRef.current
+              if (Math.abs(diff) > 50) {
+                if (diff < 0) {
+                  setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
+                } else {
+                  setCurrentBanner(prev => prev > 0 ? prev - 1 : -1)
+                }
+              }
+            }}
+          />
+        )}
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
       <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`}
