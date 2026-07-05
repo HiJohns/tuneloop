@@ -228,7 +228,7 @@ export default function CreateRepairRequest() {
         </View>
       )}
 
-      {/* Site picker modal */}
+      {/* Site picker modal (full merchant) */}
       {showSitePicker && !cooperativeMode && (
         <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
           <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
@@ -236,6 +236,21 @@ export default function CreateRepairRequest() {
             {sites.map(s => (
               <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
                 onClick={() => { setForm(p => ({ ...p, site_id: s.id, merchant_type: 'full' })); setShowSitePicker(false) }}>
+                <Text className="text-sm text-black">{s.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Transit site picker (cooperative/controlled mode) */}
+      {showSitePicker && cooperativeMode && (
+        <View className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowSitePicker(false)}>
+          <View className="bg-white rounded-t-2xl w-full max-h-80 p-4" onClick={e => e.stopPropagation()}>
+            <Text className="text-sm font-bold text-black mb-3">选择中转网点</Text>
+            {transitSites.map(s => (
+              <View key={s.id} className="py-3 border-b border-gray-50 active:opacity-60"
+                onClick={() => { setForm(p => ({ ...p, site_id: s.id, transit_site_id: s.id, merchant_type: 'controlled' })); setShowSitePicker(false) }}>
                 <Text className="text-sm text-black">{s.name}</Text>
               </View>
             ))}
