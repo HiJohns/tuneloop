@@ -890,7 +890,7 @@ type SystemSetting struct {
 // TransitRoute maps a controlled site to its transit site.
 type TransitRoute struct {
 	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	ControlledSiteID string    `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
+	ControlledSiteID string    `gorm:"type:uuid;index" json:"controlled_site_id"`
 	TransitSiteID    string    `gorm:"type:uuid;index;not null" json:"transit_site_id"`
 	Priority         int       `gorm:"default:0" json:"priority"`
 	IsDefault        bool      `gorm:"default:false" json:"is_default"`
