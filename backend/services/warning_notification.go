@@ -5,6 +5,8 @@ import (
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+
+	"github.com/google/uuid"
 )
 
 // SendWarningNotification dispatches notifications for a warning based on its level configuration.
@@ -52,8 +54,34 @@ func getNotifyMethods(level string) []string {
 }
 
 func sendSystemMessage(warning *models.Warning, role string) {
-	// Create a system notification record — simplified stub
-	log.Printf("[WarningNotify] System message to %s: warning %s (%s)", role, warning.ID, warning.Reason)
+	db := database.GetDB()
+	var members []struct {
+		UserID string
+	}
+	if err := db.Table("site_members").
+		Select("user_id").
+		Where("site_id = ? AND role = ?", warning.SiteID, role).
+		Find(&members).Error; err != nil {
+		log.Printf("[WarningNotify] Failed to query members for site %s: %v", warning.SiteID, err)
+		return
+	}
+	for _, m := range members {
+		notif := models.Notification{
+			ID:        uuid.New().String(),
+			TenantID:  warning.MerchantID,
+			UserID:    m.UserID,
+			Type:      "warning",
+			Title:     warning.Reason,
+			Content:   warning.Description,
+			RefID:     warning.ID,
+			RefType:   "warning",
+			Status:    "unread",
+			CreatedAt: time.Now(),
+		}
+		if err := db.Create(&notif).Error; err != nil {
+			log.Printf("[WarningNotify] Failed to create notification for user %s: %v", m.UserID, err)
+		}
+	}
 }
 
 func sendWechatAlert(warning *models.Warning, role string) {

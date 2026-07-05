@@ -653,6 +653,16 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 		"updated_at": now,
 	})
 
+	// Notify technicians at all controlled sites associated with this transit site
+	var routes []models.TransitRoute
+	if err := db.Where("transit_site_id = ?", req.TransitSiteID).Find(&routes).Error; err == nil {
+		title := "有新报修单待报价"
+		content := "中转网点已处理完成，请查看并提交报价。"
+		for _, route := range routes {
+			services.NotifyTechniciansOfSite(db, req.TenantID, route.ControlledSiteID, "new_repair", title, content, req.ID, "repair_request")
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "transit process completed, repair request fanned out to controlled sites"})
 }
 
@@ -795,6 +805,14 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 		"status":                 newStatus,
 		"updated_at":             time.Now(),
 	})
+
+	// Notify customer that instrument has been shipped back
+	var customerUser models.User
+	if err := db.Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
+		title := "乐器已发回"
+		content := "您的报修乐器已发回，请注意查收。"
+		services.Notify(db, req.TenantID, customerUser.ID, "returned", title, content, req.ID, "repair_request")
+	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "return shipping updated"})
 }
@@ -976,6 +994,14 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 	if err := db.Create(&quote).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create requote"})
 		return
+	}
+
+	// Notify customer of requote
+	var customerUser models.User
+	if err := db.Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
+		title := "维修师傅重新报价"
+		content := "维修师傅给出了新的报价，请查看并确认。"
+		services.Notify(db, req.TenantID, customerUser.ID, "requote", title, content, req.ID, "repair_request")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": quote})

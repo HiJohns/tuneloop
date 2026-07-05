@@ -11,9 +11,11 @@ import (
 
 // Notify creates a notification for a user (dual-channel: system message + WeChat).
 // WeChat sending is a log stub until template IDs and WeChat API client are configured.
-func Notify(db *gorm.DB, userID, ntype, title, content, refID, refType string) {
+// tenantID must be provided explicitly (avoid auto-scoping issues with cross-tenant notifications).
+func Notify(db *gorm.DB, tenantID, userID, ntype, title, content, refID, refType string) {
 	notif := models.Notification{
 		ID:        uuid.New().String(),
+		TenantID:  tenantID,
 		UserID:    userID,
 		Type:      ntype,
 		Title:     title,
@@ -30,7 +32,7 @@ func Notify(db *gorm.DB, userID, ntype, title, content, refID, refType string) {
 }
 
 // NotifyUsersBySite sends a notification to all site_members with the given roles at a site.
-func NotifyUsersBySite(db *gorm.DB, siteID, ntype, title, content, refID, refType string, roles []string) {
+func NotifyUsersBySite(db *gorm.DB, tenantID, siteID, ntype, title, content, refID, refType string, roles []string) {
 	var members []struct {
 		UserID string
 	}
@@ -42,13 +44,13 @@ func NotifyUsersBySite(db *gorm.DB, siteID, ntype, title, content, refID, refTyp
 		return
 	}
 	for _, m := range members {
-		Notify(db, m.UserID, ntype, title, content, refID, refType)
+		Notify(db, tenantID, m.UserID, ntype, title, content, refID, refType)
 	}
 }
 
 // NotifyTechniciansOfSite sends a notification to all repair_technicians at a site.
-func NotifyTechniciansOfSite(db *gorm.DB, siteID, ntype, title, content, refID, refType string) {
-	NotifyUsersBySite(db, siteID, ntype, title, content, refID, refType, []string{"repair_technician"})
+func NotifyTechniciansOfSite(db *gorm.DB, tenantID, siteID, ntype, title, content, refID, refType string) {
+	NotifyUsersBySite(db, tenantID, siteID, ntype, title, content, refID, refType, []string{"repair_technician"})
 }
 
 // NotifyMerchantAdmins sends a notification to all merchant admin users within a tenant.
@@ -64,6 +66,6 @@ func NotifyMerchantAdmins(db *gorm.DB, tenantID, ntype, title, content, refID, r
 		return
 	}
 	for _, a := range admins {
-		Notify(db, a.ID, ntype, title, content, refID, refType)
+		Notify(db, tenantID, a.ID, ntype, title, content, refID, refType)
 	}
 }

@@ -78,6 +78,17 @@ func SubmitQuote(c *gin.Context) {
 		return
 	}
 
+	// Notify customer of new quote
+	var reqModel models.RepairRequest
+	if err := db.Where("id = ?", repairRequestID).First(&reqModel).Error; err == nil {
+		var customerUser models.User
+		if err := db.Where("iam_sub = ?", reqModel.UserID).First(&customerUser).Error; err == nil {
+			title := "收到新报价"
+			content := "您的报修单收到一份新报价，请查看并确认。"
+			services.Notify(db, reqModel.TenantID, customerUser.ID, "quote", title, content, repairRequestID, "repair_request")
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": quote})
 }
 
@@ -158,20 +169,16 @@ func AcceptQuote(c *gin.Context) {
 		Where("repair_request_id = ? AND id != ? AND status = ?", repairRequestID, quoteID, models.RepairQuotePending).
 		Update("status", models.RepairQuoteSuperseded)
 
-	// If this is a renegotiation quote, transition to pending_payment for supplement
-	// Otherwise, transition to pending_payment as first payment
-	var updates map[string]interface{}
-	if quote.IsRenegotiation {
-		updates = map[string]interface{}{
-			"accepted_quote_id": quoteID,
-			"status":            models.RepairReqStatusPendingPay,
-		}
-	} else {
-		updates = map[string]interface{}{
-			"accepted_quote_id": quoteID,
-			"status":            models.RepairReqStatusPendingPay,
-		}
+	updates := map[string]interface{}{
+		"accepted_quote_id": quoteID,
+		"status":            models.RepairReqStatusPendingPay,
 	}
+
+	// If controlled, record the winning quote's site as controlled_site_id
+	if quote.SiteID != "" {
+		updates["controlled_site_id"] = quote.SiteID
+	}
+
 	if err := tx.Model(&models.RepairRequest{}).Where("id = ?", repairRequestID).Updates(updates).Error; err != nil {
 		tx.Rollback()
 		log.Printf("[AcceptQuote] Failed to update repair request %s: %v", repairRequestID, err)
@@ -180,6 +187,16 @@ func AcceptQuote(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	// Notify winning technician's site
+	var reqModel models.RepairRequest
+	if err := db.Where("id = ?", repairRequestID).First(&reqModel).Error; err == nil {
+		if quote.SiteID != "" {
+			title := "报价已被接受"
+			content := "您的报价已被报修人接受，报修单进入待付款状态。"
+			services.NotifyTechniciansOfSite(db, reqModel.TenantID, quote.SiteID, "quote_accepted", title, content, repairRequestID, "repair_request")
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "quote accepted"})
 }
