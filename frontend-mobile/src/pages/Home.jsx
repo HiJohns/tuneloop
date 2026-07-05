@@ -194,12 +194,6 @@ export default function Home() {
     <View className="h-screen w-screen overflow-hidden flex flex-col relative antialiased">
       {/* Z=0: Full-screen carousel background */}
       <View className="fixed inset-0 w-full h-full z-0">
-        {/* ...carousel content... */}
-      </View>
-
-      {/* Z=1: Gradient overlay — ensures menu text readability over any banner image */}
-      <View className="fixed top-0 left-0 right-0 z-[1] pointer-events-none"
-        style={{ height: 220, background: 'linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.2) 60%, transparent)' }} />
         {banners.length > 0 && (
           <View className="flex flex-row h-full" style={{
             width: `${(banners.length + 2) * 100}%`,
@@ -296,6 +290,10 @@ export default function Home() {
             }}
           />
         )}
+
+      {/* Z=1: Gradient overlay — darkens top of carousel for menu text readability */}
+      <View className="fixed top-0 left-0 right-0 z-[1] pointer-events-none"
+        style={{ height: 220, background: 'linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.2) 60%, transparent)' }} />
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
       <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`} />
