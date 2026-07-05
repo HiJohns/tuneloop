@@ -66,6 +66,7 @@ type Instrument struct {
 	Images             string     `gorm:"type:jsonb;default:'[]'" json:"images"`
 	Video              string     `gorm:"type:varchar(500)" json:"video"`
 	Poster             string     `gorm:"type:text" json:"poster"`
+	CoverImage         string     `gorm:"type:text" json:"cover_image"`
 	Deposit            *float64   `gorm:"type:decimal(10,2);default:0" json:"deposit"`
 	Specifications     string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
 	Pricing            string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`

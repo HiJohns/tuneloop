@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -574,11 +575,11 @@ func UploadDisplayImage(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"id":         displayMedia.ID,
-			"url":        url,
-			"width":      width,
-			"height":     height,
-			"file_size":  displayMedia.FileSize,
+			"id":        displayMedia.ID,
+			"url":       url,
+			"width":     width,
+			"height":    height,
+			"file_size": displayMedia.FileSize,
 		},
 	})
 }
@@ -611,4 +612,46 @@ func syncBackwardCompat(db *gorm.DB, tenantID, instrumentID string) {
 			"images": imagesJSON,
 			"video":  video,
 		})
+}
+
+// UploadCoverImage uploads and sets the cover image for an instrument (v3).
+func UploadCoverImage(c *gin.Context) {
+	instrumentID := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "file required"})
+		return
+	}
+	defer file.Close()
+
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to read file"})
+		return
+	}
+
+	// Resize to square cover (72×72 max, no upscaling) → WebP Q0.8
+	coverData, err := services.ResizeToCoverSquare(fileData, 72)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to process image"})
+		return
+	}
+
+	storage := services.NewMediaStorage()
+	coverKey := "cover_" + instrumentID + ".webp"
+	if err := storage.Upload(ctx, coverKey, bytes.NewReader(coverData), "image/webp"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload cover"})
+		return
+	}
+
+	coverURL := "/uploads/media/" + coverKey
+	if err := db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("cover_image", coverURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save cover image"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"cover_image": coverURL}})
 }
