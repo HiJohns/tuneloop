@@ -302,6 +302,13 @@ export default function Home() {
         </View>
       </View>
 
+      {/* Menu — fixed overlay when stuck, z above search bar */}
+      {menuStuck && (
+        <View className="fixed left-0 right-0 z-[10001] bg-transparent" style={{ top: '62px' }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
+        </View>
+      )}
+
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '94px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
         {/* Menu bar with frosted glass */}
@@ -314,8 +321,8 @@ export default function Home() {
           onScroll={e => setScrollY(e.target.scrollTop)}>
           <View style={{ height: '146px' }}></View>
 
-          <View className={menuStuck ? 'bg-transparent' : 'opacity-0'}>
-            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
+          <View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
+            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
           </View>
 
         <View>
