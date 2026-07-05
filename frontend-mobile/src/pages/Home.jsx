@@ -269,10 +269,10 @@ export default function Home() {
           onTouchEnd={(e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
             if (Math.abs(diff) > 50) {
-              if (diff < 0 && currentBanner < banners.length - 1) {
-                setCurrentBanner(prev => prev + 1)
-              } else if (diff > 0 && currentBanner > 0) {
-                setCurrentBanner(prev => prev - 1)
+              if (diff < 0) {
+                setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
+              } else {
+                setCurrentBanner(prev => prev > 0 ? prev - 1 : -1)
               }
             } else {
               const currentItem = banners[currentBanner]
