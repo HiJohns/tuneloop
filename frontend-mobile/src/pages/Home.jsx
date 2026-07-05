@@ -310,7 +310,7 @@ export default function Home() {
       )}
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-      <View className="fixed left-0 right-0 z-[100] flex flex-col pointer-events-none" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}
+       <View className="fixed left-0 right-0 z-[100] flex flex-col pointer-events-none" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}>
         <ScrollView className="flex-1 overflow-y-auto bg-transparent" style={{ pointerEvents: 'auto' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.target.scrollTop)}>
