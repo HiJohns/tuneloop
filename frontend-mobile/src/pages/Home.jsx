@@ -236,9 +236,10 @@ export default function Home() {
       {!scrolled && (
         <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ bottom: 8 }}>
           <View className="flex items-center space-x-1.5">
-            {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => (
-              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-white' : 'bg-white/40'}`} />
-            ))}
+            {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
+              const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
+              return <View key={i} className={`${i === r ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === r ? 'bg-white' : 'bg-white/40'}`} />
+            })}
           </View>
         </View>
       )}
@@ -369,8 +370,13 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
           >
             {item.name}
           </Text>
-        ))}
-      </View>
+            ))}
+            {banners.length > 0 && (
+              <View key="clone-first" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
+                <Image src={banners[0].image_url} className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'top center' }} mode="aspectFit" />
+              </View>
+            )}
+          </View>
     </View>
   )
 }
