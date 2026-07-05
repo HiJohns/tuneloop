@@ -27,6 +27,7 @@ type CreateInstrumentRequest struct {
 	Pricing        map[string]interface{}   `json:"pricing"`
 	BaseDailyRate  *float64                 `json:"base_daily_rate"`
 	TotalPrice     *float64                 `json:"total_price"`
+	Deposit        *float64                 `json:"deposit"`
 	Description    string                   `json:"description"`
 	Images         []string                 `json:"images"`
 	Video          string                   `json:"video"`
@@ -50,6 +51,7 @@ type UpdateInstrumentRequest struct {
 	Pricing        map[string]interface{}   `json:"pricing"`
 	BaseDailyRate  *float64                 `json:"base_daily_rate"`
 	TotalPrice     *float64                 `json:"total_price"`
+	Deposit        *float64                 `json:"deposit"`
 	Specifications []map[string]interface{} `json:"specifications"`
 	Properties     map[string]interface{}   `json:"properties"`
 	Level          *string                  `json:"level"`
@@ -385,6 +387,10 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	// Handle Video field
+	if req.Deposit != nil {
+		instrument.Deposit = req.Deposit
+	}
+
 	instrument.Video = req.Video
 	instrument.Poster = req.Poster
 
@@ -465,6 +471,9 @@ func UpdateInstrument(c *gin.Context) {
 	}
 	if req.Poster != nil {
 		instrument.Poster = *req.Poster
+	}
+	if req.Deposit != nil {
+		instrument.Deposit = req.Deposit
 	}
 	log.Printf("[DEBUG] req.CategoryID = '%v', req.Level = '%v'", req.CategoryID, req.Level)
 
@@ -573,6 +582,10 @@ func UpdateInstrument(c *gin.Context) {
 
 	if req.Poster != nil {
 		updates["poster"] = *req.Poster
+	}
+
+	if req.Deposit != nil {
+		updates["deposit"] = *req.Deposit
 	}
 
 	if req.CategoryID != nil && *req.CategoryID != "" {

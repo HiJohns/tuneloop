@@ -341,7 +341,7 @@ export default function InstrumentDetail() {
                       <div>
                         <label className="text-sm text-gray-500">押金 (¥)</label>
                         <InputNumber
-                          defaultValue={pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0}
+                          defaultValue={instrument.deposit ?? pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0}
                           id="edit-deposit" min={0} className="w-full"
                         />
                       </div>
@@ -408,7 +408,7 @@ export default function InstrumentDetail() {
                       <Divider />
                       <Descriptions column={2} size="small" bordered>
                         <Descriptions.Item label="押金">
-                          ¥{(pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0).toFixed(2)}
+                          ¥{(instrument.deposit ?? pricingV2?.deposit ?? parsePricing(instrument.pricing)?.deposit ?? 0).toFixed(2)}
                         </Descriptions.Item>
                         <Descriptions.Item label="物流费">
                           ¥{(pricingV2?.shipping_fee ?? parsePricing(instrument.pricing)?.shipping_fee ?? 0).toFixed(2)}
