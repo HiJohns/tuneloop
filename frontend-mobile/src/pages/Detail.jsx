@@ -178,7 +178,7 @@ export default function Detail() {
           }
         }}
       >
-        <View className="w-full" style={{ height: `${Math.round(getWindowSize().width * 1.5)}px` }}>
+        <View className="w-full" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
           <View className="flex flex-row h-full" style={{
             width: `${bannerImages.length * 100}%`,
             transform: `translateX(-${currentBanner * (100 / bannerImages.length)}%)`,
