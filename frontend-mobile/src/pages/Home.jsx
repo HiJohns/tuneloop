@@ -279,8 +279,9 @@ export default function Home() {
                if (currentItem?.link_url) navigate(currentItem.link_url)
              }
            }}
-           onMouseDown={(e) => { bannerTouchStartXRef.current = e.clientX }}
+           onMouseDown={(e) => { console.log('[SWIPE] mouseDown x:', e.clientX); bannerTouchStartXRef.current = e.clientX }}
            onMouseUp={(e) => {
+             console.log('[SWIPE] mouseUp x:', e.clientX, 'startX:', bannerTouchStartXRef.current)
              const diff = e.clientX - bannerTouchStartXRef.current
              if (Math.abs(diff) > 50) {
                if (diff < 0) {
