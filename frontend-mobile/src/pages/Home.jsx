@@ -228,6 +228,11 @@ export default function Home() {
                 ) : null}
               </View>
             ))}
+            {banners.length > 0 && (
+              <View key="clone-first" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
+                <Image src={banners[0].image_url} className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'top center' }} mode="aspectFit" />
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -371,11 +376,6 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
             {item.name}
           </Text>
             ))}
-            {banners.length > 0 && (
-              <View key="clone-first" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
-                <Image src={banners[0].image_url} className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'top center' }} mode="aspectFit" />
-              </View>
-            )}
           </View>
     </View>
   )
