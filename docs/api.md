@@ -2654,6 +2654,47 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
+### 8.12 租金计算（v3 阶梯累加）
+
+**接口**: `POST /api/rental/calculate`
+
+**说明**: 计算租金阶梯明细、押金、物流费、积分上限。用户可在返回限额内选择赠点/预付点使用量以计算现金差额。
+
+**请求 Body**:
+```json
+{
+  "instrument_id": "uuid",
+  "days": 70
+}
+```
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "tiers": [
+      {"days_min": 1, "days_max": 30, "discount_percent": 0, "days_in_tier": 30, "effective_rate": 100, "subtotal": 3000},
+      {"days_min": 31, "days_max": 70, "discount_percent": 5, "days_in_tier": 40, "effective_rate": 95, "subtotal": 3800}
+    ],
+    "total_rent": 6800,
+    "member_discount_percent": 0,
+    "member_discount_amount": 0,
+    "deposit": 2000,
+    "shipping_fee": 50,
+    "gift_points_max": 100,
+    "prepaid_points_max": 500,
+    "gift_points_used": 0,
+    "prepaid_points_used": 0,
+    "cash_to_pay": 8850
+  }
+}
+```
+
+> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。预付点上限制 = 用户预付点余额。现金 = 总支付额 − 赠点 − 预付点。
+
+---
+
 ### 8.13 归还结算
 
 **接口**: `GET /api/user/settlements/:orderId/calculate`
