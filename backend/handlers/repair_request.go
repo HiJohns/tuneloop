@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"tuneloop-backend/database"
@@ -855,6 +856,7 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 
 	var amount float64
 	var newStatus string
+	checkFeeSnapshot := float64(0)
 
 	if quote.IsRenegotiation {
 		// Requote supplement: pay the difference
@@ -886,10 +888,14 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 			}
 		}
 
-		// Snapshot the system check_fee
+		// Snapshot the system check_fee (unscoped to bypass tenant auto-scoping)
 		var checkFeeSetting models.SystemSetting
-		db.Where("setting_key = ?", "repair_check_fee").First(&checkFeeSetting)
-		_ = checkFeeSetting // best-effort snapshot
+		database.GetDB().Where("tenant_id = ? AND setting_key = ?", systemTenantID, keyRepairCheckFee).First(&checkFeeSetting)
+		if checkFeeSetting.SettingValue != "" {
+			if v, err := strconv.ParseFloat(checkFeeSetting.SettingValue, 64); err == nil {
+				checkFeeSnapshot = v
+			}
+		}
 
 		newStatus = models.RepairReqStatusPendingShip
 	}
@@ -908,11 +914,15 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	db.Model(&localUser).Update("total_spending", gorm.Expr("total_spending + ?", amount))
 
 	// Update repair request
-	db.Model(&req).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"paid_amount": gorm.Expr("COALESCE(paid_amount, 0) + ?", amount),
 		"status":      newStatus,
 		"updated_at":  time.Now(),
-	})
+	}
+	if newStatus == models.RepairReqStatusPendingShip {
+		updates["check_fee_snapshot"] = checkFeeSnapshot
+	}
+	db.Model(&req).Updates(updates)
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"amount_paid": amount, "status": newStatus}})
 }
