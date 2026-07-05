@@ -143,9 +143,9 @@ export default function Home() {
   }, [fetchCategories, fetchInstruments, fetchBanners])
 
   useEffect(() => {
-    const bannerLen = Math.max(banners.length, 1)
+    if (!banners.length) return
     const timer = setInterval(() => {
-      setCurrentBanner(prev => (prev + 1) % bannerLen)
+      setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
     }, 4000)
     return () => clearInterval(timer)
   }, [banners.length])
@@ -192,16 +192,25 @@ export default function Home() {
       <View className="fixed inset-0 w-full h-full z-0">
         {banners.length > 0 && (
           <View className="flex flex-row h-full" style={{
-            width: `${banners.length * 100}%`,
-            transform: `translateX(-${currentBanner * (100 / banners.length)}%)`,
-            transition: 'transform 0.5s ease-in-out'
-          }}>
+            width: `${(banners.length + 2) * 100}%`,
+            transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`,
+            transition: currentBanner === -1 || currentBanner === banners.length ? 'none' : 'transform 0.5s ease-in-out'
+          }}
+            onTransitionEnd={() => {
+              if (currentBanner === -1) setCurrentBanner(banners.length - 1)
+              else if (currentBanner === banners.length) setCurrentBanner(0)
+            }}>
+            {banners.length > 0 && (
+              <View key="clone-last" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
+                <Image src={banners[banners.length - 1].image_url} className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'top center' }} mode="aspectFit" />
+              </View>
+            )}
             {banners.map((item, i) => (
               <View
                 key={i}
                 className="h-full"
                 style={{
-                  width: `${100 / banners.length}%`,
+                  width: `${100 / (banners.length + 2)}%`,
                   backgroundColor: item.bg_color || '#915F38'
                 }}
                 onClick={() => item.link_url && navigate(item.link_url)}

@@ -170,25 +170,43 @@ export default function Detail() {
         onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
         onTouchEnd={(e) => {
           const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
-          if (Math.abs(diff) > 50) {
+          if (Math.abs(diff) > 50 && bannerImages.length > 1) {
             setCurrentBanner(prev => {
-              if (diff < 0) return (prev + 1) % bannerImages.length
-              return (prev - 1 + bannerImages.length) % bannerImages.length
+              if (diff < 0) {
+                if (prev >= bannerImages.length - 1) return prev + 1
+                return prev + 1
+              }
+              if (prev <= 0) return prev - 1
+              return prev - 1
             })
           }
         }}
       >
-        <View className="w-full" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
+        <View className="w-full overflow-hidden" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
           <View className="flex flex-row h-full" style={{
-            width: `${bannerImages.length * 100}%`,
-            transform: `translateX(-${currentBanner * (100 / bannerImages.length)}%)`,
-            transition: 'transform 0.5s ease-in-out'
-          }}>
+            width: `${(bannerImages.length + 2) * 100}%`,
+            transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
+            transition: currentBanner === -1 || currentBanner === bannerImages.length ? 'none' : 'transform 0.5s ease-in-out'
+          }}
+            onTransitionEnd={() => {
+              if (currentBanner === -1) setCurrentBanner(bannerImages.length - 1)
+              else if (currentBanner === bannerImages.length) setCurrentBanner(0)
+            }}>
+            {bannerImages.length > 0 && (
+              <View key="clone-last" className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover" />
+              </View>
+            )}
             {bannerImages.map((img, i) => (
-              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / bannerImages.length}%` }}>
+              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
                 <Image src={img.url || img} className="w-full h-full object-cover" />
               </View>
             ))}
+            {bannerImages.length > 0 && (
+              <View key="clone-first" className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover" />
+              </View>
+            )}
           </View>
         </View>
         <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
