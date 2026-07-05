@@ -148,7 +148,6 @@ export default function Home() {
     const timer = setInterval(() => {
       setCurrentBanner(prev => {
         const next = prev >= banners.length ? 0 : prev < banners.length - 1 ? prev + 1 : banners.length
-        console.log('[CAROUSEL] auto-advance:', prev, '→', next, '| banners:', banners.length)
         return next
       })
     }, 4000)
@@ -202,7 +201,6 @@ export default function Home() {
             transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out'
           }}
             onTransitionEnd={() => {
-              console.log('[CAROUSEL] transitionEnd: currentBanner=', currentBanner)
               if (currentBanner === -1) {
                 setJumpReset(true)
                 setCurrentBanner(banners.length - 1)
@@ -252,8 +250,7 @@ export default function Home() {
 
       {/* Carousel dots — hide on scroll */}
       {!scrolled && (
-        <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ bottom: 8 }}
-          onMouseDown={(e) => console.log('[Z=40 dots] mouseDown x:', e.clientX)}>
+        <View className="absolute left-0 right-0 z-[40] flex items-center justify-center" style={{ bottom: 8 }}>
           <View className="flex items-center space-x-1.5">
             {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
               const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
@@ -280,9 +277,8 @@ export default function Home() {
                 if (currentItem?.link_url) navigate(currentItem.link_url)
               }
             }}
-            onMouseDownCapture={(e) => { console.log('[SWIPE] mouseDownCapture x:', e.clientX); bannerTouchStartXRef.current = e.clientX }}
+            onMouseDownCapture={(e) => { bannerTouchStartXRef.current = e.clientX }}
             onMouseUp={(e) => {
-              console.log('[SWIPE] mouseUp x:', e.clientX, 'startX:', bannerTouchStartXRef.current)
               const diff = e.clientX - bannerTouchStartXRef.current
               if (Math.abs(diff) > 50) {
                 if (diff < 0) {
@@ -296,12 +292,10 @@ export default function Home() {
         )}
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`}
-        onMouseDownCapture={(e) => console.log('[Z=5 backdrop] mouseDownCapture x:', e.clientX)} />
+      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`} />
 
       {/* A: Search bar — fixed above carousel */}
-      <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center pointer-events-none" style={{ top: '60px' }}
-        onMouseDownCapture={(e) => console.log('[Z=10000 search] mouseDownCapture x:', e.clientX)}>
+      <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center pointer-events-none" style={{ top: '60px' }}>
         <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 backdrop-blur-sm border border-white/10' : 'bg-white/10 backdrop-blur-sm border border-white/30'} pointer-events-auto`}>
           <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/50' : 'text-white/60'}`}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(90,59,36,0.35)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/80' : 'text-white'}`} />
@@ -316,8 +310,7 @@ export default function Home() {
       )}
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-      <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '94px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}
-        onMouseDownCapture={(e) => console.log('[Z=100 clip] mouseDownCapture x:', e.clientX)}>
+      <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '94px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
         {/* Menu bar with frosted glass */}
         <View className={`${scrolled ? 'bg-[rgba(90,59,36,0.85)]' : 'bg-transparent'} transition-colors duration-300`}
           style={{ backdropFilter: scrolled ? 'blur(10px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(10px)' : 'none', pointerEvents: 'auto' }}>
