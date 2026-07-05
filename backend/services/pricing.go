@@ -40,18 +40,19 @@ type TierDetail struct {
 
 // TieredPricingResult contains the full per-day tiered calculation result.
 type TieredPricingResult struct {
-	BaseDailyRate float64       `json:"base_daily_rate"`
-	TotalDays     int           `json:"total_days"`
-	Tiers         []TierDetail  `json:"tiers"`
-	TotalRent     float64       `json:"total_rent"`
+	BaseDailyRate float64      `json:"base_daily_rate"`
+	TotalDays     int          `json:"total_days"`
+	Tiers         []TierDetail `json:"tiers"`
+	TotalRent     float64      `json:"total_rent"`
 }
 
 // CalculateTieredPricing calculates rent by splitting days across discount tiers.
 // Each tier specifies days_max (max day in this tier) and discount_percent.
 // Example: 70 days, tiers=[{30,0},{180,5},{-1,10}] with base=100
-//   Tier 1: 30 days × 100 = 3000
-//   Tier 2: 40 days × 95 = 3800
-//   Total: 6800
+//
+//	Tier 1: 30 days × 100 = 3000
+//	Tier 2: 40 days × 95 = 3800
+//	Total: 6800
 func CalculateTieredPricing(days int, baseDailyRate float64, tiers []TierConfig) *TieredPricingResult {
 	result := &TieredPricingResult{
 		BaseDailyRate: baseDailyRate,
