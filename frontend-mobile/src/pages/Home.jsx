@@ -293,7 +293,7 @@ export default function Home() {
 
       {/* Z=1: Gradient overlay — darkens top of carousel for menu text readability */}
       <View className="fixed top-0 left-0 right-0 z-[1] pointer-events-none"
-        style={{ height: 220, background: 'linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.2) 60%, transparent)' }} />
+        style={{ height: 240, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.3) 50%, transparent)' }} />
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
       <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`} />
@@ -301,8 +301,9 @@ export default function Home() {
       {/* A: Search bar — fixed above carousel */}
       <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center pointer-events-none" style={{ top: '60px' }}>
         <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 backdrop-blur-sm border border-white/10' : 'bg-white/10 backdrop-blur-sm border border-white/30'} pointer-events-auto`}>
-          <Text className="text-base mr-2 text-white/70">🔍</Text>
-          <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-sm flex-1 bg-transparent text-white" />
+          <Text className="text-base mr-2 text-white/70" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
+          <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-sm flex-1 bg-transparent text-white"
+            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }} />
         </View>
       </View>
 
@@ -392,6 +393,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
           <Text
             key={item.id || 'all'}
             className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold text-white/80`}`}
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
             onClick={() => onCategoryChange(item.id)}
           >
             {item.name}
