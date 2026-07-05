@@ -145,8 +145,12 @@ export default function Home() {
   useEffect(() => {
     if (!banners.length) return
     const timer = setInterval(() => {
-      setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
-    }, 3000)
+      setCurrentBanner(prev => {
+        const next = prev < banners.length - 1 ? prev + 1 : banners.length
+        console.log('[CAROUSEL] auto-advance:', prev, '→', next, '| banners:', banners.length)
+        return next
+      })
+    }, 4000)
     return () => clearInterval(timer)
   }, [banners.length])
 
@@ -197,6 +201,7 @@ export default function Home() {
             transition: currentBanner === -1 || currentBanner === banners.length ? 'none' : 'transform 0.5s ease-in-out'
           }}
             onTransitionEnd={() => {
+              console.log('[CAROUSEL] transitionEnd: currentBanner=', currentBanner)
               if (currentBanner === -1) setCurrentBanner(banners.length - 1)
               else if (currentBanner === banners.length) setCurrentBanner(0)
             }}>
