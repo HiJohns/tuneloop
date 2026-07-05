@@ -146,7 +146,7 @@ export default function Home() {
     if (!banners.length) return
     const timer = setInterval(() => {
       setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
-    }, 4000)
+    }, 3000)
     return () => clearInterval(timer)
   }, [banners.length])
 
