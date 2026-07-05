@@ -187,7 +187,7 @@ export default function Detail() {
           <View className="flex flex-row h-full" style={{
             width: `${(bannerImages.length + 2) * 100}%`,
             transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
-            transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out'
+            transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out',
             onTransitionEnd={() => {
               if (currentBanner === -1) {
                 setJumpReset(true)
