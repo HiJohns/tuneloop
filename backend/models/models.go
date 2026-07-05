@@ -890,7 +890,7 @@ type SystemSetting struct {
 // TransitRoute maps a controlled site to its transit site.
 type TransitRoute struct {
 	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	ControlledSiteID string    `gorm:"type:uuid;index" json:"controlled_site_id"`
+	ControlledSiteID string    `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
 	TransitSiteID    string    `gorm:"type:uuid;index;not null" json:"transit_site_id"`
 	Priority         int       `gorm:"default:0" json:"priority"`
 	IsDefault        bool      `gorm:"default:false" json:"is_default"`
@@ -944,7 +944,7 @@ type RepairTransitOrder struct {
 	ID                   string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	RepairRequestID      string    `gorm:"type:uuid;index" json:"repair_request_id"`
 	TransitSiteID        string    `gorm:"type:uuid;index;not null" json:"transit_site_id"`
-	ControlledSiteID     string    `gorm:"type:uuid;index;not null" json:"controlled_site_id"`
+	ControlledSiteID     string    `gorm:"type:uuid;index" json:"controlled_site_id"`
 	Direction            string    `gorm:"type:varchar(10)" json:"direction"` // v3: in/out
 	Status               string    `gorm:"type:varchar(20);default:'pending_activation'" json:"status"`
 	TransitServiceFee    *float64  `gorm:"type:decimal(10,2)" json:"transit_service_fee"`   // v3
