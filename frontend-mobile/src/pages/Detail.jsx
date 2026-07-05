@@ -188,6 +188,7 @@ export default function Detail() {
             width: `${(bannerImages.length + 2) * 100}%`,
             transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
             transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out',
+          }}
             onTransitionEnd={() => {
               if (currentBanner === -1) {
                 setJumpReset(true)
