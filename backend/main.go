@@ -581,6 +581,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/orders/batch", userRentalHandler.BatchCreateOrder)
 				userOptionalAuth.GET("/user/rentals", userRentalHandler.ListRentals)
 				userOptionalAuth.POST("/user/rentals/:id/return", userRentalHandler.ReturnRental)
+				userOptionalAuth.POST("/rental/calculate", userRentalHandler.CalculateRental)
 				userOptionalAuth.GET("/user/contracts", userRentalHandler.ListContracts)
 				userOptionalAuth.GET("/user/contracts/:id", userRentalHandler.GetContract)
 				userOptionalAuth.GET("/user/orders/counts", userRentalHandler.GetOrderCounts)

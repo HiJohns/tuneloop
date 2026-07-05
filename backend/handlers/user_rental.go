@@ -1092,3 +1092,99 @@ func policyPriority(p models.PointsPolicy, tenantID string, orgID string) int {
 func floorFloat(v float64) float64 {
 	return float64(int(v))
 }
+
+// CalculateRental calculates pricing breakdown for a rental (v3 tiered + points caps).
+func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
+	var req struct {
+		InstrumentID string `json:"instrument_id" binding:"required"`
+		Days         int    `json:"days" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Days <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: instrument_id and positive days required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	// Load instrument
+	var instrument models.Instrument
+	if err := db.Where("id = ?", req.InstrumentID).First(&instrument).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "instrument not found"})
+		return
+	}
+
+	baseRate := float64(0)
+	if instrument.BaseDailyRate != nil {
+		baseRate = *instrument.BaseDailyRate
+	}
+
+	// Resolve tier config and calculate
+	tiers, _ := services.ResolvePricingConfig("")
+	pricingResult := services.CalculateTieredPricing(req.Days, baseRate, tiers)
+
+	// Deposit from instrument or pricing config
+	deposit := float64(0)
+	if instrument.Deposit != nil {
+		deposit = *instrument.Deposit
+	} else if instrument.BaseDailyRate != nil {
+		deposit = *instrument.BaseDailyRate * 2.0 // default fallback
+	}
+
+	// Shipping fee
+	shippingFee := float64(50) // system default
+
+	// Membership discount
+	memberDiscountPercent := float64(0)
+	memberDiscountAmount := float64(0)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil && localUser.MembershipLevelID != nil {
+		var rebate models.RebateConfig
+		if err := db.Where("level_id = ? AND is_active = ?", *localUser.MembershipLevelID, true).First(&rebate).Error; err == nil {
+			// RebateConfig.rent_ratio is a discount ratio (e.g., 0.95 = 5% off)
+			if rebate.RentRatio > 0 && rebate.RentRatio < 1 {
+				memberDiscountPercent = (1 - rebate.RentRatio) * 100
+				memberDiscountAmount = pricingResult.TotalRent * (1 - rebate.RentRatio)
+			}
+		}
+	}
+
+	// Points caps
+	giftPointsBalance := float64(0)
+	prepaidPointsBalance := float64(0)
+	if localUser.ID != "" {
+		giftPointsBalance = localUser.PromoPoints
+		prepaidPointsBalance = localUser.PrepaidPoints
+	}
+
+	// Gift points max = min(balance, total × max_pay_ratio)
+	var pointsPolicy models.PointsPolicy
+	giftPointsMax := float64(0)
+	totalPay := pricingResult.TotalRent + deposit + shippingFee
+	if err := db.Where("is_active = ?", true).First(&pointsPolicy).Error; err == nil {
+		giftPointsMax = giftPointsBalance
+		if pointsPolicy.MaxPayRatio > 0 {
+			maxByRatio := totalPay * pointsPolicy.MaxPayRatio
+			if maxByRatio < giftPointsMax {
+				giftPointsMax = maxByRatio
+			}
+		}
+	}
+
+	prepaidPointsMax := prepaidPointsBalance
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"tiers":                   pricingResult.Tiers,
+		"total_rent":              pricingResult.TotalRent,
+		"member_discount_percent": memberDiscountPercent,
+		"member_discount_amount":  memberDiscountAmount,
+		"deposit":                 deposit,
+		"shipping_fee":            shippingFee,
+		"gift_points_max":         giftPointsMax,
+		"prepaid_points_max":      prepaidPointsMax,
+		"gift_points_used":        0,
+		"prepaid_points_used":     0,
+		"cash_to_pay":             totalPay,
+	}})
+}
