@@ -37,7 +37,7 @@ function getDailyRate(instrument) {
 function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
   const dailyRate = getDailyRate(instrument)
-  const monthlyRent = Math.round(dailyRate * 25)
+  const monthlyRent = Math.round(dailyRate * 30)
   const levelName = instrument.level_name || ''
   const thumb = instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER
 

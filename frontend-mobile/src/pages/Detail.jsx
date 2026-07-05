@@ -246,7 +246,7 @@ export default function Detail() {
                 </View>
               )}
               <Text className="text-[#C21838] text-base tracking-tight">
-                月租 ¥{Math.round((dailyRent || instrument?.base_daily_rate || 0) * 25)}/月
+                月租 ¥{Math.round((dailyRent || instrument?.base_daily_rate || 0) * 30)}/月
               </Text>
             </View>
             <View className="border-t border-zinc-100 pt-3 flex justify-between items-center text-xs text-zinc-500 font-bold">
