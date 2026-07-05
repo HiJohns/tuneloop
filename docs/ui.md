@@ -199,6 +199,73 @@
 
 ---
 
+## 1.2.1 轮播图实现参考（Home.jsx / Detail.jsx）
+
+### 无限循环轮播（clone + transitionEnd 模式）
+
+**原理**：渲染 n 张真图片 + 首尾各一克隆图（共 n+2 张），自动/手动滑动到达克隆位置时触发 `transitionEnd` 瞬间跳回真图位置，实现无缝循环（无倒带）。
+
+**关键 state**：
+- `currentBanner` — 当前 `displayIndex - 1`。值域 `-1` ~ `n`。`-1` 为 clone-last 位，`n` 为 clone-first 位
+- `jumpReset` — 是否正在执行复位跳。为 `true` 时 `transition: 'none'`（瞬间跳），复位完成后 `setTimeout(50ms)` 恢复 transition
+
+**transition 驱动**：
+```jsx
+transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out'
+```
+> ⚠️ **常见 Bug**：不要在渲染时用 `currentBanner === -1 || currentBanner === n` 判断来设 `transition: 'none'`——这会导致 transitionEnd 永不触发、轮播卡死在 clone 位置。必须用独立 `jumpReset` state 控制。
+
+**transitionEnd 复位逻辑**：
+```jsx
+onTransitionEnd={() => {
+  if (currentBanner === -1) {
+    setJumpReset(true)
+    setCurrentBanner(n - 1)
+    setTimeout(() => setJumpReset(false), 50)
+  } else if (currentBanner === n) {
+    setJumpReset(true)
+    setCurrentBanner(0)
+    setTimeout(() => setJumpReset(false), 50)
+  }
+}}
+```
+
+**自动轮播定时器**：
+```jsx
+setInterval(() => {
+  setCurrentBanner(prev => prev >= n ? 0 : prev < n - 1 ? prev + 1 : n)
+}, 4000)
+```
+> `prev >= n` 安全阀：HMR 或异常时 state 残留在 clone 位，自动拉回。
+
+**圆点指示器**：用归一化索引 `r = currentBanner < 0 ? n-1 : currentBanner >= n ? 0 : currentBanner` 代替直接 `currentBanner`。
+
+### 拖拽/滑动支持（Home.jsx）
+
+**层级**：
+| Z | 元素 | pointer-events | 说明 |
+|----|------|----------------|------|
+| 10002 | `<div>` swipe 层 | auto（默认） | 最高，捕获鼠标/触摸 |
+| 10000 | 搜索栏外层 | `none`（容器）/ `auto`（输入框） | 穿透 |
+| 100 | 菜单+列表剪切层 | `none` | 穿透 |
+| 5 | 磨砂背景 | `none` | 穿透 |
+
+**鼠标/触摸事件**：
+- 必须用原生 `<div>` 而非 Taro `<View>`——H5 模式下 Taro View 不转发 `onMouseDown`/`onMouseUp`
+- 鼠标用 `onMouseDownCapture`（capture 阶段从 document 往下，swipe 在 DOM 序中先于 clip 层，故先截获）
+- 触摸保留 Taro View 的 `onTouchStart`/`onTouchEnd`（正常转发）
+- 阈值 `abs(diff) > 50px` 触发翻页，≤50px 视为点击
+
+**数据源**：
+- `Home.jsx`：`GET /public/banners` → `banners[]`（`image_url`, `bg_color`, `link_url`, `title`）
+- `Detail.jsx`：`GET /public/instruments/:id/display-media` → `displayMedia.images[]`（媒体 key 列表）
+
+### 轮播图宽高比
+
+- `Detail.jsx` 乐器展示图：3:4（`height = width × 4/3`）
+
+---
+
 ### 2.2 首页 (`/pages/index`)
 
 > **实际实现**：已从原设计重构为五层 Z 轴架构，详见 [`docs/frontpage.md`](./frontpage.md)。
