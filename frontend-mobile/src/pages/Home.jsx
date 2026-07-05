@@ -295,11 +295,11 @@ export default function Home() {
        )}
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'}`} />
+      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`} />
 
       {/* A: Search bar — fixed above carousel */}
-      <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center" style={{ top: '60px' }}>
-        <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 backdrop-blur-sm border border-white/10' : 'bg-white/10 backdrop-blur-sm border border-white/30'}`}>
+      <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center pointer-events-none" style={{ top: '60px' }}>
+        <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 backdrop-blur-sm border border-white/10' : 'bg-white/10 backdrop-blur-sm border border-white/30'} pointer-events-auto`}>
           <Text className={`text-base mr-2 transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/50' : 'text-white/60'}`}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle={`color: ${scrolled ? 'rgba(90,59,36,0.35)' : 'rgba(255,255,255,0.4)'}`} className={`text-sm flex-1 bg-transparent transition-colors duration-300 ${scrolled ? 'text-[#5A3B24]/80' : 'text-white'}`} />
         </View>
