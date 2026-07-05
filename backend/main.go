@@ -539,6 +539,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// v3 system-level check_fee (namespace_admin should be used when permission framework in place)
 			authRequired.GET("/config/repair/check-fee", handlers.GetCheckFee)
 			authRequired.PUT("/config/repair/check-fee", handlers.SetCheckFee)
+			// Home menu config (category visibility/sort for WeChat homepage)
+			authRequired.GET("/config/home-menu", handlers.GetHomeMenuConfig)
+			authRequired.PUT("/config/home-menu", handlers.SetHomeMenuConfig)
 			authRequired.GET("/sites/:id/config/shipping-fee", handlers.GetSiteShippingFee)
 			authRequired.PUT("/sites/:id/config/shipping-fee", handlers.SetSiteShippingFee)
 

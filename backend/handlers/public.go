@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
@@ -328,6 +329,61 @@ func GetPublicCategories(c *gin.Context) {
 			"message": "Failed to fetch categories",
 		})
 		return
+	}
+
+	// Check for home menu config (visible categories + sort order)
+	var homeConfig models.SystemSetting
+	if tenantID != "" {
+		db.Where("tenant_id = ? AND setting_key = ?", tenantID, "home_menu_config").First(&homeConfig)
+	} else {
+		db.Where("setting_key = ? AND setting_value IS NOT NULL", "home_menu_config").First(&homeConfig)
+	}
+	if homeConfig.SettingValue != "" {
+		type menuConfig struct {
+			VisibleIDs []string       `json:"visible_ids"`
+			SortOrder  map[string]int `json:"sort_order"`
+		}
+		var cfg menuConfig
+		if err := json.Unmarshal([]byte(homeConfig.SettingValue), &cfg); err == nil && len(cfg.VisibleIDs) > 0 {
+			idSet := make(map[string]bool, len(cfg.VisibleIDs))
+			for _, id := range cfg.VisibleIDs {
+				idSet[id] = true
+			}
+			filtered := make([]models.Category, 0, len(cfg.VisibleIDs))
+			for _, id := range cfg.VisibleIDs {
+				for _, cat := range categories {
+					if cat.ID == id {
+						filtered = append(filtered, cat)
+						break
+					}
+				}
+			}
+			// If sort_order provided, apply it
+			if cfg.SortOrder != nil && len(cfg.SortOrder) > 0 {
+				sorted := make([]models.Category, len(filtered))
+				for _, cat := range filtered {
+					pos := cfg.SortOrder[cat.ID]
+					if pos < 0 || pos >= len(filtered) {
+						pos = len(filtered) - 1
+					}
+					for sorted[pos].ID != "" {
+						pos++
+						if pos >= len(filtered) {
+							pos = 0
+						}
+					}
+					sorted[pos] = cat
+				}
+				filtered = sorted
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": gin.H{
+					"list": filtered,
+				},
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -682,4 +738,40 @@ func LookupInstrumentBySN(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"instrument": nil}})
+}
+
+// GetHomeMenuConfig returns the home page category menu configuration for a tenant.
+func GetHomeMenuConfig(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	var setting models.SystemSetting
+	db.Where("tenant_id = ? AND setting_key = ?", tenantID, "home_menu_config").First(&setting)
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"config": setting.SettingValue}})
+}
+
+// SetHomeMenuConfig saves the home page category menu configuration for a tenant.
+func SetHomeMenuConfig(c *gin.Context) {
+	var req struct {
+		Config string `json:"config"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "config required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+	key := "home_menu_config"
+
+	var setting models.SystemSetting
+	if err := db.Where("tenant_id = ? AND setting_key = ?", tenantID, key).First(&setting).Error; err == nil {
+		db.Model(&setting).Update("setting_value", req.Config)
+	} else {
+		db.Create(&models.SystemSetting{TenantID: tenantID, SettingKey: key, SettingValue: req.Config})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "home menu config saved"})
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Card, Select, List, Button, Modal, Form, Input, Switch, message, Spin, Empty, Space, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined } from '@ant-design/icons'
+import { Card, Select, List, Button, Modal, Form, Input, Switch, message, Spin, Empty, Space, Popconfirm, Checkbox } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, HomeOutlined } from '@ant-design/icons'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -52,6 +52,11 @@ export default function CategoryList() {
   const [formMode, setFormMode] = useState('create')
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
+  // Home menu config state
+  const [homeMenuVisible, setHomeMenuVisible] = useState(false)
+  const [homeMenuCats, setHomeMenuCats] = useState([])
+  const [homeMenuSelected, setHomeMenuSelected] = useState([])
+  const [homeMenuSaving, setHomeMenuSaving] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -218,7 +223,43 @@ export default function CategoryList() {
 
   const getParentCategoryName = () => {
     const parent = level1Categories.find(c => c.id === selectedParentId)
-    return parent?.name || ''
+    return parent ? parent.name : ''
+  }
+
+  // Home menu config handlers
+  const handleOpenHomeMenuConfig = async () => {
+    setHomeMenuVisible(true)
+    try {
+      const [catsRes, configRes] = await Promise.all([
+        api.get('/categories'),
+        api.get('/config/home-menu'),
+      ])
+      if (catsRes.code === 20000) {
+        const topLevel = (catsRes.data?.list || []).filter(c => !c.parent_id)
+        setHomeMenuCats(topLevel)
+      }
+      if (configRes.code === 20000 && configRes.data?.config) {
+        try {
+          const cfg = JSON.parse(configRes.data.config)
+          setHomeMenuSelected(cfg.visible_ids || [])
+        } catch { setHomeMenuSelected([]) }
+      } else {
+        setHomeMenuSelected([])
+      }
+    } catch { message.error('加载配置失败') }
+  }
+
+  const handleSaveHomeMenu = async () => {
+    setHomeMenuSaving(true)
+    try {
+      const config = JSON.stringify({ visible_ids: homeMenuSelected })
+      const res = await api.put('/config/home-menu', { config })
+      if (res.code === 20000) {
+        message.success('首页菜单配置已保存')
+        setHomeMenuVisible(false)
+      } else { message.error(res.message || '保存失败') }
+    } catch { message.error('保存失败') }
+    setHomeMenuSaving(false)
   }
 
   if (loading) {
@@ -328,6 +369,24 @@ export default function CategoryList() {
             </Form.Item>
           )}
         </Form>
+      </Modal>
+
+      {/* Home menu config button and modal */}
+      <Button icon={<HomeOutlined />} onClick={handleOpenHomeMenuConfig} className="mb-4 ml-2 mt-2">配置首页菜单</Button>
+      <Modal title="首页菜单配置" open={homeMenuVisible} onCancel={() => setHomeMenuVisible(false)}
+        onOk={handleSaveHomeMenu} confirmLoading={homeMenuSaving} okText="保存" cancelText="取消" width={500}>
+        <p className="mb-2 text-gray-500">选择哪些顶层分类显示在微信首页菜单中（「全部」始终显示），拖拽可排序。</p>
+        {homeMenuCats.length === 0 ? <Spin /> : (
+          <div className="space-y-2">
+            {homeMenuCats.map(cat => (
+              <div key={cat.id} className="flex items-center gap-3 p-2 border rounded hover:bg-gray-50">
+                <Checkbox checked={homeMenuSelected.includes(cat.id)}
+                  onChange={e => setHomeMenuSelected(prev => e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id))} />
+                <span>{cat.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   )
