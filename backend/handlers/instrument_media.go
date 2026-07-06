@@ -200,6 +200,8 @@ func CreateInstrumentMedia(c *gin.Context) {
 			if data, err := os.ReadFile(srcPath); err == nil {
 				if webpData, err := services.GenerateThumbnailWebP(data, 1080, 1440); err == nil {
 					storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp")
+				} else {
+					log.Printf("[InstrumentMedia] WebP generation failed for %s: %v", newKey, err)
 				}
 			}
 		}
@@ -551,9 +553,14 @@ func UploadDisplayImage(c *gin.Context) {
 	}
 
 	// Generate WebP display thumbnail (1080×1440)
-	if webpData, err := services.GenerateThumbnailWebP(buf.Bytes(), 1080, 1440); err == nil {
+	webpData, err := services.GenerateThumbnailWebP(buf.Bytes(), 1080, 1440)
+	if err != nil {
+		log.Printf("[UploadDisplay] WebP generation failed: %v", err)
+	} else {
 		displayKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_display.webp"
-		storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp")
+		if err := storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp"); err != nil {
+			log.Printf("[UploadDisplay] WebP upload failed: %v", err)
+		}
 	}
 
 	orgID := middleware.GetOrgID(ctx)
