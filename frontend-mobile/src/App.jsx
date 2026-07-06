@@ -95,6 +95,13 @@ function OAuthCallback() {
       return
     }
 
+    // Prevent re-exchanging the same code (persists across remounts)
+    if (session.getItem('oauth_code') === code) {
+      navigation.redirect('/')
+      return
+    }
+    session.setItem('oauth_code', code)
+
     const exchangeCodeForToken = async () => {
       try {
         const result = await request('/auth/callback', {
