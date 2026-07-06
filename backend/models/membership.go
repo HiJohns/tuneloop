@@ -17,6 +17,8 @@ type RebateConfig struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+func (RebateConfig) TableName() string { return "rebate_config" }
+
 type PromoPlan struct {
 	ID        string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	PlanType  string     `gorm:"type:varchar(20);not null;default:'promo_campaign'" json:"plan_type"`
