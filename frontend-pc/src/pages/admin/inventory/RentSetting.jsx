@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, InputNumber, Button, Space, Form, message, Card, Input, Select, Tabs, Modal, Tag, Tooltip } from 'antd'
-import { InfoCircleOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { Table, InputNumber, Button, Space, Form, message, Card, Input, Select, Tabs, Tag } from 'antd'
 import { inventoryApi, api } from '../../../services/api'
 
 const { Search } = Input
@@ -39,60 +38,6 @@ function PricingPreview({ baseDailyRate, config }) {
   )
 }
 
-function OverrideModal({ visible, record, onClose, onSave }) {
-  const [dailyRent, setDailyRent] = useState(null)
-  const [deposit, setDeposit] = useState(null)
-
-  useEffect(() => {
-    if (record) {
-      setDailyRent(record.base_daily_rate || null)
-      setDeposit(null)
-    }
-  }, [record])
-
-  const handleSave = () => {
-    onSave(record.id, { daily_rent: dailyRent, deposit })
-    onClose()
-  }
-
-  return (
-    <Modal
-      title={`手动覆盖 — ${record?.sn || ''}`}
-      open={visible}
-      onOk={handleSave}
-      onCancel={onClose}
-      okText="保存覆盖"
-      cancelText="取消"
-    >
-      <Form layout="vertical">
-        <Form.Item label="日均价（留空=按商户公式计算）">
-          <InputNumber
-            min={0}
-            precision={2}
-            value={dailyRent}
-            onChange={setDailyRent}
-            style={{ width: '100%' }}
-            formatter={(val) => val ? `¥ ${val}` : ''}
-            parser={(val) => parseFloat(val?.replace(/¥\s?/g, '') || '')}
-          />
-        </Form.Item>
-        <Form.Item label="押金（留空=按商户公式计算）">
-          <InputNumber
-            min={0}
-            precision={2}
-            value={deposit}
-            onChange={setDeposit}
-            style={{ width: '100%' }}
-            formatter={(val) => val ? `¥ ${val}` : ''}
-            parser={(val) => parseFloat(val?.replace(/¥\s?/g, '') || '')}
-          />
-        </Form.Item>
-        <p className="text-gray-400 text-xs">设置后该乐器不再按商户阶梯公式自动计算</p>
-      </Form>
-    </Modal>
-  )
-}
-
 export default function InventoryRentSetting() {
   const [activeTab, setActiveTab] = useState('instruments')
   const [loading, setLoading] = useState(false)
@@ -105,9 +50,8 @@ export default function InventoryRentSetting() {
   })
   const [filters, setFilters] = useState({ brand: '', model: '', category_id: '', level_id: '' })
   const [tableData, setTableData] = useState([])
-  const [overrideModal, setOverrideModal] = useState({ visible: false, record: null })
   const [merchantConfig, setMerchantConfig] = useState(null)
-  const [expandedRows, setExpandedRows] = useState([])
+  const businessRole = (localStorage.getItem('user_business_role') || '').toLowerCase()
 
   // Batch pricing state
   const [batchItems, setBatchItems] = useState([])
@@ -226,22 +170,6 @@ export default function InventoryRentSetting() {
     setLoading(false)
   }
 
-  const handleOverrideSave = async (id, overrides) => {
-    setLoading(true)
-    try {
-      const response = await api.put('/instruments/batch-pricing', {
-        items: [{ id, overrides }],
-      })
-      if (response.code === 20000) {
-        message.success('覆盖已保存')
-        loadData()
-      }
-    } catch (error) {
-      message.error('保存失败: ' + error.message)
-    }
-    setLoading(false)
-  }
-
   const loadBatchInstruments = async () => {
     setLoading(true)
     try {
@@ -269,9 +197,14 @@ export default function InventoryRentSetting() {
     { title: '识别码', dataIndex: 'sn', key: 'sn', width: 120 },
     { title: '分类', dataIndex: 'category_name', key: 'category_name', width: 100 },
     { title: '级别', dataIndex: 'level_name', key: 'level_name', width: 80 },
+    { title: '原价', dataIndex: 'total_price', key: 'total_price', width: 100,
+      render: (val) => val ? `¥${val}` : '-'
+    },
     { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100, render: (text) => text || '-' },
     { title: '型号', dataIndex: 'model', key: 'model', width: 100, render: (text) => text || '-' },
-    { title: '网点', dataIndex: 'site_name', key: 'site_name', width: 120 },
+    ...(businessRole === 'site_admin' || businessRole === 'site_member' ? [] : [
+      { title: '网点', dataIndex: 'site_name', key: 'site_name', width: 120 },
+    ]),
     {
       title: '第一阶梯日均价',
       dataIndex: 'daily_rent',
@@ -287,20 +220,6 @@ export default function InventoryRentSetting() {
           formatter={(val) => `¥ ${val}`}
           parser={(val) => val.replace(/\¥\s?/g, '')}
         />
-      ),
-    },
-    {
-      title: '阶梯价格',
-      key: 'tiers',
-      width: 100,
-      render: (_, record) => (
-        <Button type="link" size="small"
-          onClick={() => setExpandedRows(prev =>
-            prev.includes(record.id) ? prev.filter(id => id !== record.id) : [...prev, record.id]
-          )}
-        >
-          {expandedRows.includes(record.id) ? '收起' : '查看'} ▼
-        </Button>
       ),
     },
     {
@@ -333,16 +252,6 @@ export default function InventoryRentSetting() {
           style={{ width: '100%' }}
           formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
         />
-      ),
-    },
-    {
-      title: '操作', key: 'action', width: 100,
-      render: (_, record) => (
-        <Tooltip title="手动覆盖阶梯定价公式">
-          <Button type="link" icon={<EditOutlined />} onClick={() => setOverrideModal({ visible: true, record })}>
-            覆盖
-          </Button>
-        </Tooltip>
       ),
     },
   ]
@@ -380,12 +289,6 @@ export default function InventoryRentSetting() {
       },
     },
   ]
-
-  const expandedRowRender = (record) => {
-    const rate = parseFloat(record.daily_rent) || parseFloat(record.base_daily_rate) || 0
-    if (!rate || !merchantConfig) return <span className="text-gray-400">未设置日均价或无商户定价策略</span>
-    return <PricingPreview baseDailyRate={rate} config={merchantConfig} />
-  }
 
   return (
     <div className="p-6">
@@ -432,11 +335,6 @@ export default function InventoryRentSetting() {
               columns={instrumentColumns}
               dataSource={tableData}
               rowKey="id"
-              expandable={{
-                expandedRowRender,
-                expandedRowKeys: expandedRows,
-                onExpandedRowKeysChange: setExpandedRows,
-              }}
               pagination={{
                 ...pagination,
                 showSizeChanger: true, showQuickJumper: true,
@@ -511,13 +409,6 @@ export default function InventoryRentSetting() {
           </TabPane>
         </Tabs>
       </Card>
-
-      <OverrideModal
-        visible={overrideModal.visible}
-        record={overrideModal.record}
-        onClose={() => setOverrideModal({ visible: false, record: null })}
-        onSave={handleOverrideSave}
-      />
-    </div>
+    </div>  
   )
 }

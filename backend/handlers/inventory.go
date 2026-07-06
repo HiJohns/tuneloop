@@ -257,7 +257,8 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	query := db.Model(&models.Instrument{}).
 		Select(`instruments.id, instruments.sn, instruments.category_name, 
-				instruments.level_name, instruments.site_id, instruments.pricing`)
+				instruments.level_name, instruments.site_id, instruments.pricing,
+				instruments.total_price`)
 
 	query = query.Where("instruments.tenant_id = ?", tenantID)
 
@@ -305,6 +306,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		Deposit           float64 `json:"deposit"`
 		ShippingFee      float64 `json:"shipping_fee"`
 		OverdueDailyFee  float64 `json:"overdue_daily_fee"`
+		TotalPrice       *float64 `json:"total_price"`
 	}
 
 	var items []RentSettingItem
@@ -374,6 +376,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 			Deposit:          deposit,
 			ShippingFee:      shippingFee,
 			OverdueDailyFee:  overdueDailyFee,
+			TotalPrice:       inst.TotalPrice,
 		})
 	}
 
@@ -442,7 +445,24 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if item.DailyRent > 0 {
 			pricing["daily_rent"] = item.DailyRent
 		}
-		pricing["deposit"] = item.Deposit
+		if item.Deposit > 0 {
+			pricing["deposit"] = item.Deposit
+		} else if instrument.TotalPrice != nil && *instrument.TotalPrice > 0 {
+			// Fallback: calculate deposit from system ratio × total_price
+			depositRatio := 0.3
+			var config models.MerchantPricingConfig
+			if err := db.Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err == nil {
+				var cfgMap map[string]interface{}
+				if json.Unmarshal([]byte(config.Config), &cfgMap) == nil {
+					if r, ok := cfgMap["deposit_ratio"].(float64); ok && r > 0 {
+						depositRatio = r
+					}
+				}
+			}
+			pricing["deposit"] = *instrument.TotalPrice * depositRatio
+		} else {
+			pricing["deposit"] = float64(0)
+		}
 		pricing["shipping_fee"] = item.ShippingFee
 		if item.OverdueDailyFee > 0 {
 			pricing["overdue_daily_fee"] = item.OverdueDailyFee
