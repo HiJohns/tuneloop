@@ -284,11 +284,13 @@ export default function Detail() {
           {/* Card C: Specifications & properties */}
           <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
             <Text className="text-base font-black text-black">规格参数</Text>
-            {instrument.properties && typeof instrument.properties === 'object' && Object.keys(instrument.properties).length > 0 ? (
+            {instrument.properties && typeof instrument.properties === 'object' ? (
               Object.entries(instrument.properties).map(([key, vals]) => (
                 <View key={key} className="flex justify-between items-center">
                   <Text className="text-sm font-bold text-zinc-600">{key}</Text>
-                  <Text className="text-sm text-zinc-400">{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
+                  <Text className="text-sm text-zinc-400">
+                    {(Array.isArray(vals) ? vals : [vals]).join(', ') || '-'}
+                  </Text>
                 </View>
               ))
             ) : (

@@ -288,15 +288,24 @@ func GetPublicInstrumentByID(c *gin.Context) {
 
 	// Fetch dynamic properties from instrument_properties table
 	var instrumentProps []models.InstrumentProperty
-	if err := db.Where("instrument_id = ?", id).Find(&instrumentProps).Error; err == nil {
-		propsMap := make(map[string][]string)
-		for _, prop := range instrumentProps {
-			propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
-		}
-		response["properties"] = propsMap
-	} else {
-		response["properties"] = map[string]interface{}{}
+	db.Where("instrument_id = ?", id).Find(&instrumentProps)
+	propsMap := make(map[string][]string)
+	for _, prop := range instrumentProps {
+		propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
 	}
+
+	// Also include all property definitions (even without assigned values)
+	// so every defined property appears on the detail page
+	if instrument.CategoryID != nil {
+		var propDefs []models.Property
+		db.Where("scope_type = ? OR related_category_id = ?", "global", *instrument.CategoryID).Find(&propDefs)
+		for _, p := range propDefs {
+			if _, exists := propsMap[p.Name]; !exists {
+				propsMap[p.Name] = []string{}
+			}
+		}
+	}
+	response["properties"] = propsMap
 
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
 		response["transit_info"] = map[string]string{
