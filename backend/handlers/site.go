@@ -328,8 +328,22 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
 				if t.Code == "site_admin" {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminID, siteOrgID, t.Code); err != nil {
-						log.Printf("[CreateSite] AssignRoleTemplate failed for admin %s: %v", adminID, err)
+					// Retry loop: IAM may not yet propagate the user
+					var assignErr error
+					for attempt := 0; attempt < 3; attempt++ {
+						if attempt > 0 {
+							time.Sleep(500 * time.Millisecond)
+						}
+						if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminID, siteOrgID, t.Code); err != nil {
+							assignErr = err
+							log.Printf("[CreateSite] AssignRoleTemplate attempt %d failed for admin %s: %v", attempt+1, adminID, err)
+							continue
+						}
+						assignErr = nil
+						break
+					}
+					if assignErr != nil {
+						log.Printf("[CreateSite] AssignRoleTemplate failed after retries for admin %s: %v", adminID, assignErr)
 					}
 					break
 				}
