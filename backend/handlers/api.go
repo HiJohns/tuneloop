@@ -160,13 +160,15 @@ func GetInstrumentByID(c *gin.Context) {
 	}
 
 	// Merge with all property definitions (even unassigned)
+	var propDefs []models.Property
+	query := db.Where("scope_type = ?", "global")
 	if instrument.CategoryID != nil {
-		var propDefs []models.Property
-		db.Where("scope_type = ? OR related_category_id = ?", "global", *instrument.CategoryID).Find(&propDefs)
-		for _, p := range propDefs {
-			if _, exists := propsMap[p.Name]; !exists {
-				propsMap[p.Name] = []string{}
-			}
+		query = query.Or("related_category_id = ?", *instrument.CategoryID)
+	}
+	query.Find(&propDefs)
+	for _, p := range propDefs {
+		if _, exists := propsMap[p.Name]; !exists {
+			propsMap[p.Name] = []string{}
 		}
 	}
 	instrumentMap["properties"] = propsMap

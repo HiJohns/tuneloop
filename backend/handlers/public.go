@@ -295,14 +295,15 @@ func GetPublicInstrumentByID(c *gin.Context) {
 	}
 
 	// Also include all property definitions (even without assigned values)
-	// so every defined property appears on the detail page
+	var propDefs []models.Property
+	globalQuery := db.Where("scope_type = ?", "global")
 	if instrument.CategoryID != nil {
-		var propDefs []models.Property
-		db.Where("scope_type = ? OR related_category_id = ?", "global", *instrument.CategoryID).Find(&propDefs)
-		for _, p := range propDefs {
-			if _, exists := propsMap[p.Name]; !exists {
-				propsMap[p.Name] = []string{}
-			}
+		globalQuery = globalQuery.Or("related_category_id = ?", *instrument.CategoryID)
+	}
+	globalQuery.Find(&propDefs)
+	for _, p := range propDefs {
+		if _, exists := propsMap[p.Name]; !exists {
+			propsMap[p.Name] = []string{}
 		}
 	}
 	response["properties"] = propsMap

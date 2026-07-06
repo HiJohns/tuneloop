@@ -68,6 +68,7 @@ export default function InstrumentDetail() {
   const [savingCard, setSavingCard] = useState(false)
   const [propsDirty, setPropsDirty] = useState(false)
   const [propsSaving, setPropsSaving] = useState(false)
+  const [allProps, setAllProps] = useState([])
   const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
@@ -156,9 +157,15 @@ export default function InstrumentDetail() {
   const fetchInstrument = async () => {
     setLoading(true)
     try {
-      const data = await instrumentsApi.get(id)
+      const [data, propsRes] = await Promise.all([
+        instrumentsApi.get(id),
+        api.get('/properties'),
+      ])
       if (data.code === 20000) {
         setInstrument(data.data)
+      }
+      if (propsRes.code === 20000) {
+        setAllProps(propsRes.data?.list || propsRes.data || [])
       }
     } catch (error) {
       console.error('Failed to fetch instrument:', error)
@@ -590,20 +597,21 @@ export default function InstrumentDetail() {
             <Card title="动态属性"
               extra={propsDirty ? <Button type="primary" loading={propsSaving} onClick={handleSaveProps}>保存</Button> : <Button disabled>保存</Button>}
             >
-              {instrument.properties && typeof instrument.properties === 'object' ? (
+              {allProps.length === 0 ? (
+                <Empty description="暂无属性定义，请先到属性管理创建" />
+              ) : (
                 <Form layout="vertical">
-                  {Object.entries(instrument.properties).map(([key, vals]) => {
-                    const displayVal = Array.isArray(vals) ? vals.join(', ') : String(vals || '')
+                  {allProps.map(p => {
+                    const vals = instrument.properties?.[p.name]
+                    const displayVal = vals ? (Array.isArray(vals) ? vals.join(', ') : String(vals)) : ''
                     return (
-                      <Form.Item key={key} label={key}>
-                        <input className="property-input ant-input" defaultValue={displayVal} data-key={key}
+                      <Form.Item key={p.id} label={p.name}>
+                        <input className="property-input ant-input" defaultValue={displayVal} data-key={p.name}
                           onChange={() => setPropsDirty(true)} style={{ maxWidth: 400 }} />
                       </Form.Item>
                     )
                   })}
                 </Form>
-              ) : (
-                <Empty description="暂无动态属性" />
               )}
             </Card>
           )
