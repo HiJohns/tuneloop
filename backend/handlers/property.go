@@ -78,14 +78,14 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	unscopedDB := database.GetDB()
 
 	var req struct {
-		Name               string   `json:"name" binding:"required"`
-		PropertyType       string   `json:"property_type" binding:"required"`
-		Unit               string   `json:"unit"`
-		Description        string   `json:"description"`
-		Options            []string `json:"options"`
-		ScopeType          string   `json:"scope_type"`
-		RelatedCategoryID  string   `json:"related_category_id"`
-		RelatedPropertyID  string   `json:"related_property_id"`
+		Name              string   `json:"name" binding:"required"`
+		PropertyType      string   `json:"property_type" binding:"required"`
+		Unit              string   `json:"unit"`
+		Description       string   `json:"description"`
+		Options           []string `json:"options"`
+		ScopeType         string   `json:"scope_type"`
+		RelatedCategoryID string   `json:"related_category_id"`
+		RelatedPropertyID string   `json:"related_property_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -303,9 +303,10 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 	unscopedDB := database.GetDB()
 
 	var req struct {
-		PropertyID string `json:"property_id" binding:"required"`
-		Value      string `json:"value" binding:"required"`
-		NewValue   string `json:"new_value"`
+		PropertyID   string `json:"property_id"`
+		PropertyName string `json:"property_name"`
+		Value        string `json:"value" binding:"required"`
+		NewValue     string `json:"new_value"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -316,8 +317,20 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 		return
 	}
 
+	propName := req.PropertyName
+	if propName == "" {
+		propName = req.PropertyID
+	}
+	if propName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "property_name (or property_id as property name) is required",
+		})
+		return
+	}
+
 	var option models.PropertyOption
-	if err := unscopedDB.Where("property_name = ? AND value = ?", req.PropertyID, req.Value).First(&option).Error; err != nil {
+	if err := unscopedDB.Where("property_name = ? AND value = ?", propName, req.Value).First(&option).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"code":    40400,
@@ -375,7 +388,7 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 		}
 
 		if err := tx.Model(&models.InstrumentProperty{}).
-			Where("property_id = ? AND value = ? AND tenant_id = ?", req.PropertyID, req.Value, tenantID).
+			Where("property_name = ? AND value = ? AND tenant_id = ?", propName, req.Value, tenantID).
 			Update("value", req.NewValue).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -414,9 +427,10 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	unscopedDB := database.GetDB()
 
 	var req struct {
-		PropertyID  string `json:"property_id" binding:"required"`
-		SourceValue string `json:"source_value" binding:"required"`
-		TargetValue string `json:"target_value" binding:"required"`
+		PropertyID   string `json:"property_id"`
+		PropertyName string `json:"property_name"`
+		SourceValue  string `json:"source_value" binding:"required"`
+		TargetValue  string `json:"target_value" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -427,8 +441,20 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 		return
 	}
 
+	propName := req.PropertyName
+	if propName == "" {
+		propName = req.PropertyID
+	}
+	if propName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "property_name (or property_id as property name) is required",
+		})
+		return
+	}
+
 	var targetOption models.PropertyOption
-	if err := unscopedDB.Where("property_name = ? AND value = ? AND status = 'confirmed'", req.PropertyID, req.TargetValue).First(&targetOption).Error; err != nil {
+	if err := unscopedDB.Where("property_name = ? AND value = ? AND status = 'confirmed'", propName, req.TargetValue).First(&targetOption).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
 			"message": "target value must be in confirmed status",
@@ -439,7 +465,7 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	tx := unscopedDB.Begin()
 
 	var sourceOption models.PropertyOption
-	if err := tx.Where("property_name = ? AND value = ?", req.PropertyID, req.SourceValue).First(&sourceOption).Error; err != nil {
+	if err := tx.Where("property_name = ? AND value = ?", propName, req.SourceValue).First(&sourceOption).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    40400,
@@ -461,7 +487,7 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	}
 
 	if err := tx.Model(&models.InstrumentProperty{}).
-		Where("property_id = ? AND value = ? AND tenant_id = ?", req.PropertyID, req.SourceValue, tenantID).
+		Where("property_name = ? AND value = ? AND tenant_id = ?", propName, req.SourceValue, tenantID).
 		Update("value", req.TargetValue).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{
