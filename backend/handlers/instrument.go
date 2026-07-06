@@ -944,6 +944,14 @@ func DeleteInstrument(c *gin.Context) {
 		return
 	}
 
+	// Check for linked orders before deletion
+	var orderCount int64
+	db.Model(&models.Order{}).Where("instrument_id = ?", instrumentID).Count(&orderCount)
+	if orderCount > 0 {
+		c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "乐器有关联订单，无法删除"})
+		return
+	}
+
 	if err := db.Delete(&instrument).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "删除乐器失败"})
 		return
