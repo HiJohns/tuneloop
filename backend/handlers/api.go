@@ -1141,7 +1141,7 @@ func GetOverdueLeases(c *gin.Context) {
 		Joins("JOIN orders ON orders.id = overdue_charges.order_id").
 		Joins("JOIN instruments ON instruments.id = orders.instrument_id").
 		Joins("JOIN users ON users.id = orders.user_id").
-		Where("overdue_charges.tenant_id = ?", tenantID).
+		Where("orders.tenant_id = ?", tenantID).
 		Where("overdue_charges.status IN ?", []string{"failed", "partial"})
 
 	if orgID != "" {
