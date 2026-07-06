@@ -477,13 +477,28 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			continue
 		}
 
+		// Build pricing_overrides so CalculatePricing picks up manual values
+		overrides := map[string]interface{}{}
+		if item.DailyRent > 0 {
+			overrides["daily_rent"] = item.DailyRent
+		}
+		overrides["deposit"] = pricing["deposit"]
+		overrides["shipping_fee"] = item.ShippingFee
+		if item.OverdueDailyFee > 0 {
+			overrides["overdue_daily_fee"] = item.OverdueDailyFee
+		}
+		overridesJSON, _ := json.Marshal(overrides)
+
 		// Update database, scoped to user's org
 		updateQuery := db.WithContext(ctx).Model(&models.Instrument{}).
 			Where("id = ?", item.ID)
 		if scopedDB, err := middleware.ApplyOrgScope(updateQuery, ctx); err == nil {
 			updateQuery = scopedDB
 		}
-		if err := updateQuery.Update("pricing", string(updatedPricing)).Error; err != nil {
+		if err := updateQuery.Updates(map[string]interface{}{
+			"pricing":          string(updatedPricing),
+			"pricing_overrides": string(overridesJSON),
+		}).Error; err != nil {
 			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)
 			continue
 		}

@@ -423,7 +423,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/pricing/merchant-config", handlers.GetMerchantPricingConfig)
 		authRequired.PUT("/pricing/merchant-config", middleware.RequireRole("OWNER"), middleware.RequireCusPerm("instrument:price_config"), handlers.UpdateMerchantPricingConfig)
 		authRequired.GET("/instruments/:id/pricing-v2", handlers.GetInstrumentPricingV2)
-		authRequired.PUT("/instruments/batch-pricing", middleware.RequireRole("ADMIN", "OWNER"), handlers.BatchSetInstrumentPricing)
+		authRequired.PUT("/instruments/batch-pricing", middleware.RequireRole("ADMIN", "OWNER", "site_admin"), handlers.BatchSetInstrumentPricing)
 
 		userRequired := authRequired.Group("")
 		{
