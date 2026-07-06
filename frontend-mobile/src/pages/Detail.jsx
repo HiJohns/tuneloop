@@ -203,17 +203,17 @@ export default function Detail() {
               }
             }}>
             {bannerImages.length > 0 && (
-              <View key="clone-last" className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+              <View key="clone-last" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
                 <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover" />
               </View>
             )}
             {bannerImages.map((img, i) => (
-              <View key={i} className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+              <View key={i} className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
                 <Image src={img.url || img} className="w-full h-full object-cover" />
               </View>
             ))}
             {bannerImages.length > 0 && (
-              <View key="clone-first" className="h-full px-2 box-border" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+              <View key="clone-first" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
                 <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover" />
               </View>
             )}
