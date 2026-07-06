@@ -665,8 +665,8 @@ func UploadCoverImage(c *gin.Context) {
 		return
 	}
 
-	// Resize to square cover (72×72 max, no upscaling) → WebP Q0.8
-	coverData, err := services.ResizeToCoverSquare(fileData, 72)
+	// Fit within 72×72 (maintain aspect ratio, no crop) → WebP Q0.8
+	coverData, err := services.GenerateThumbnailWebP(fileData, 72, 72)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to process image"})
 		return
