@@ -66,6 +66,9 @@ export default function InstrumentDetail() {
   const [mediaLoading, setMediaLoading] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
   const [savingCard, setSavingCard] = useState(false)
+  const [propsDirty, setPropsDirty] = useState(false)
+  const [propsSaving, setPropsSaving] = useState(false)
+  const [propsValues, setPropsValues] = useState({})
   const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
@@ -128,6 +131,27 @@ export default function InstrumentDetail() {
     } finally {
       setSavingCard(false)
     }
+  }
+
+  const handleSaveProps = async () => {
+    setPropsSaving(true)
+    try {
+      const props = {}
+      document.querySelectorAll('.property-input').forEach(el => {
+        props[el.dataset.key] = el.value
+      })
+      const res = await api.put(`/instruments/${id}`, { properties: props })
+      if (res.code === 20000) {
+        message.success('属性已更新')
+        setPropsDirty(false)
+        fetchInstrument()
+      } else {
+        message.error(res.message || '保存失败')
+      }
+    } catch (err) {
+      message.error('保存失败: ' + (err.message || ''))
+    }
+    setPropsSaving(false)
   }
 
   const fetchInstrument = async () => {
@@ -564,23 +588,21 @@ export default function InstrumentDetail() {
           label: '动态属性',
           key: 'properties',
           children: (
-            <Card title="动态属性">
+            <Card title="动态属性"
+              extra={propsDirty ? <Button type="primary" loading={propsSaving} onClick={handleSaveProps}>保存</Button> : <Button disabled>保存</Button>}
+            >
               {instrument.properties && typeof instrument.properties === 'object' ? (
-                <Table
-                  dataSource={Object.entries(instrument.properties).map(([key, vals]) => ({
-                    key,
-                    name: key,
-                    value: Array.isArray(vals) ? vals.join(', ') : String(vals || ''),
-                  }))}
-                  columns={[
-                    { title: '属性名', dataIndex: 'name', key: 'name' },
-                    { title: '属性值', dataIndex: 'value', key: 'value',
-                      render: (text) => <Input defaultValue={text} size="small" style={{ width: 200 }} />
-                    },
-                  ]}
-                  pagination={false}
-                  size="small"
-                />
+                <Form layout="vertical">
+                  {Object.entries(instrument.properties).map(([key, vals]) => {
+                    const displayVal = Array.isArray(vals) ? vals.join(', ') : String(vals || '')
+                    return (
+                      <Form.Item key={key} label={key}>
+                        <input className="property-input ant-input" defaultValue={displayVal} data-key={key}
+                          onChange={() => setPropsDirty(true)} style={{ maxWidth: 400 }} />
+                      </Form.Item>
+                    )
+                  })}
+                </Form>
               ) : (
                 <Empty description="暂无动态属性" />
               )}
