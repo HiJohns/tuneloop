@@ -75,6 +75,8 @@ func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID strin
 			}
 			return err
 		}
+		// Use the property's own tenant_id (properties are platform-level, FK requires matching tenant)
+		effectiveTenantID := prop.TenantID
 
 		// Determine scope for this property
 		scopeCategoryID := ""
@@ -120,7 +122,7 @@ func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID strin
 				// 3. Create new property option with status=pending
 				propOption = models.PropertyOption{
 					ID:           uuid.New().String(),
-					TenantID:     tenantID,
+					TenantID:     effectiveTenantID,
 					PropertyName: prop.Name,
 					Value:        value,
 					Status:       "pending",
@@ -694,15 +696,13 @@ func UpdateInstrument(c *gin.Context) {
 	// Process properties if provided (delete existing and recreate)
 	if req.Properties != nil && len(req.Properties) > 0 {
 		// Delete existing properties for this instrument
-		if err := db.Where("instrument_id = ?", instrument.ID).Delete(&models.InstrumentProperty{}).Error; err != nil {
-			log.Printf("[ERROR] Failed to delete existing instrument_properties: %v", err)
-			// Continue, don't fail the update
-		}
+		db.Where("instrument_id = ?", instrument.ID).Delete(&models.InstrumentProperty{})
 
 		// Create new property associations
 		if err := processProperties(db, instrument.ID, tenantID, req.Properties); err != nil {
 			log.Printf("[ERROR] Failed to process properties: %v", err)
-			// Don't fail the request if properties processing fails
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save properties: " + err.Error()})
+			return
 		}
 	}
 
