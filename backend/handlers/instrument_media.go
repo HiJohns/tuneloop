@@ -540,27 +540,32 @@ func UploadDisplayImage(c *gin.Context) {
 	// Upload to storage
 	storage := services.MediaStorageFromContext(c)
 	storageKey := buildStructuredKey(ctx, fmt.Sprintf("%s%s", uuid.New().String()[:8], ".jpg"), "display", 1)
+
+	// Snapshot buffer before upload consumes it
+	imageBytes := make([]byte, buf.Len())
+	copy(imageBytes, buf.Bytes())
+
+	// Generate WebP thumbnail BEFORE upload (upload consumes the buffer)
+	webpData, webpErr := services.GenerateThumbnailWebP(imageBytes, 1080, 1440)
+
 	if err := storage.Upload(ctx, storageKey, &buf, "image/jpeg"); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50001, "message": "failed to upload image"})
 		return
 	}
 
-	// Generate thumbnail
-	thumbData, err := services.GenerateThumbnail(buf.Bytes(), 128)
+	// Upload WebP variant
+	if webpErr == nil {
+		displayKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_display.webp"
+		storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp")
+	} else {
+		log.Printf("[UploadDisplay] WebP generation failed: %v", webpErr)
+	}
+
+	// Generate thumbnail (use snapshot, buf already consumed)
+	thumbData, err := services.GenerateThumbnail(imageBytes, 128)
 	if err == nil {
 		thumbKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_thumb.jpg"
 		storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg")
-	}
-
-	// Generate WebP display thumbnail (1080×1440)
-	webpData, err := services.GenerateThumbnailWebP(buf.Bytes(), 1080, 1440)
-	if err != nil {
-		log.Printf("[UploadDisplay] WebP generation failed: %v", err)
-	} else {
-		displayKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_display.webp"
-		if err := storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp"); err != nil {
-			log.Printf("[UploadDisplay] WebP upload failed: %v", err)
-		}
 	}
 
 	orgID := middleware.GetOrgID(ctx)
