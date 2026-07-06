@@ -140,7 +140,7 @@ export default function PropertyList() {
   }
 
   const handleMerge = (option) => {
-    setSelectedProperty({ ...option, propertyId: option.property_id })
+    setSelectedProperty({ ...option, propertyId: option.property_name })
     setMergeModalVisible(true)
   }
 
@@ -162,7 +162,7 @@ export default function PropertyList() {
   }
 
   const handleRename = (option) => {
-    setSelectedProperty({ ...option, propertyId: option.property_id })
+    setSelectedProperty({ ...option, propertyId: option.property_name })
     renameForm.resetFields()
     setRenameModalVisible(true)
   }
@@ -268,7 +268,7 @@ export default function PropertyList() {
         }
         return (
           <Space>
-            <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => handleConfirm(record.property_id, record.value)}>
+            <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => handleConfirm(record.property_name, record.value)}>
               核定
             </Button>
             <Button size="small" icon={<EditOutlined />} onClick={() => handleRename(record)}>
