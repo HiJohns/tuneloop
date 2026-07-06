@@ -68,7 +68,6 @@ export default function InstrumentDetail() {
   const [savingCard, setSavingCard] = useState(false)
   const [propsDirty, setPropsDirty] = useState(false)
   const [propsSaving, setPropsSaving] = useState(false)
-  const [propsValues, setPropsValues] = useState({})
   const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
