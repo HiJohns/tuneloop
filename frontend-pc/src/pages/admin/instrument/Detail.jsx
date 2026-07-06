@@ -100,8 +100,14 @@ export default function InstrumentDetail() {
     }
   }
 
-  const handleDeleteVideo = async (batchId) => {
-    handleDeleteBatch(batchId)
+  const handleDeleteVideo = async () => {
+    try {
+      await api.put(`/instruments/${id}`, { video: '' })
+      message.success('视频已删除')
+      fetchInstrument()
+    } catch (e) {
+      message.error('删除失败: ' + (e.message || ''))
+    }
   }
 
   const handleDelete = async () => {
@@ -528,20 +534,7 @@ export default function InstrumentDetail() {
                         width="240"
                         className="rounded"
                       />
-                      <Popconfirm title="确定删除此视频？" onConfirm={async () => {
-                        const batchId = instrument.media?.video?.batch_id || mediaDetail?.video?.batch_id
-                        if (batchId) {
-                          handleDeleteVideo(batchId)
-                        } else {
-                          try {
-                            await api.put(`/instruments/${id}`, { video: '' })
-                            message.success('视频已删除')
-                            fetchInstrument()
-                          } catch (e) {
-                            message.error('删除失败: ' + (e.message || ''))
-                          }
-                        }
-                      }}>
+                      <Popconfirm title="确定删除此视频？" onConfirm={handleDeleteVideo}>
                         <Button danger size="small">删除</Button>
                       </Popconfirm>
                     </div>
