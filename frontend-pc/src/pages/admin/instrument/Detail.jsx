@@ -561,6 +561,33 @@ export default function InstrumentDetail() {
           )
         },
         {
+          label: '动态属性',
+          key: 'properties',
+          children: (
+            <Card title="动态属性">
+              {instrument.properties && typeof instrument.properties === 'object' ? (
+                <Table
+                  dataSource={Object.entries(instrument.properties).map(([key, vals]) => ({
+                    key,
+                    name: key,
+                    value: Array.isArray(vals) ? vals.join(', ') : String(vals || ''),
+                  }))}
+                  columns={[
+                    { title: '属性名', dataIndex: 'name', key: 'name' },
+                    { title: '属性值', dataIndex: 'value', key: 'value',
+                      render: (text) => <Input defaultValue={text} size="small" style={{ width: 200 }} />
+                    },
+                  ]}
+                  pagination={false}
+                  size="small"
+                />
+              ) : (
+                <Empty description="暂无动态属性" />
+              )}
+            </Card>
+          )
+        },
+        {
           label: '日志',
           key: 'log',
           children: (
