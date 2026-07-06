@@ -462,14 +462,11 @@ func GetInstruments(c *gin.Context) {
 			}
 		}
 
-		// If specs is empty, try parsing as object and convert to array
+		// If specs is empty, try parsing as object and convert to single-element array
 		if len(specs) == 0 && instrument.Specifications != "" && instrument.Specifications != "{}" {
 			var specObj map[string]interface{}
 			if err := json.Unmarshal([]byte(instrument.Specifications), &specObj); err == nil {
-				// Try to convert to array format
-				if _, ok := specObj["name"].(string); ok {
-					specs = []map[string]interface{}{specObj}
-				}
+				specs = []map[string]interface{}{specObj}
 			}
 		}
 
