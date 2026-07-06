@@ -79,7 +79,7 @@ func DownloadCSVTemplate(c *gin.Context) {
 	var properties []models.Property
 	db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&properties)
 
-	headers := []string{"识别码*", "分类名称*", "网点名称*", "级别名称*", "描述"}
+	headers := []string{"识别码*", "分类名称*", "网点名称*", "级别名称*", "描述", "原价", "日租金", "押金", "物流费", "逾期租金"}
 
 	for _, prop := range properties {
 		headers = append(headers, prop.Caption)
@@ -93,7 +93,7 @@ func DownloadCSVTemplate(c *gin.Context) {
 	writer := csv.NewWriter(c.Writer)
 	writer.Write(headers)
 
-	sampleData := []string{"SN001", "钢琴", "北京旗舰店", "入门", "测试描述"}
+	sampleData := []string{"SN001", "钢琴", "北京旗舰店", "入门", "测试描述", "", "", "", "", ""}
 	for range properties {
 		sampleData = append(sampleData, "")
 	}
@@ -224,6 +224,10 @@ func PreviewBatchImport(c *gin.Context) {
 			case "逾期租金", "逾期日费", "overdue_daily_fee":
 				if val != "" {
 					fields["overdue_daily_fee"] = val
+				}
+			case "原价", "total_price":
+				if val != "" {
+					fields["total_price"] = val
 				}
 			default:
 				if val != "" {
@@ -581,6 +585,11 @@ func ExecuteBatchImport(c *gin.Context) {
 			if rateStr, ok := instData["base_daily_rate"].(string); ok && rateStr != "" {
 				if rate, err := strconv.ParseFloat(rateStr, 64); err == nil {
 					instrument.BaseDailyRate = &rate
+				}
+			}
+			if priceStr, ok := instData["total_price"].(string); ok && priceStr != "" {
+				if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+					instrument.TotalPrice = &price
 				}
 			}
 			pricingMap := map[string]float64{}

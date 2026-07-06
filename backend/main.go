@@ -331,6 +331,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/import", handlers.ImportInstruments)
 		authRequired.GET("/instruments/export", handlers.ExportInstruments)
 		authRequired.GET("/instruments/import/template", handlers.DownloadCSVTemplate)
+		authRequired.GET("/instruments/batch-import/template", handlers.DownloadCSVTemplate)
 		authRequired.POST("/instruments/batch-import", handlers.ExecuteBatchImport)
 		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
