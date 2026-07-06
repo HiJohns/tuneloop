@@ -350,7 +350,6 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		UserInstrumentID: userInstrumentID,
 		Status:           status,
 		MerchantType:     merchantType,
-		TransitSiteID:    body.TransitSiteID,
 		ExpireAt:         expireAt,
 		Description:      body.Description,
 		Photos:           string(photosJSON),
@@ -359,6 +358,9 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 		TrackingNumber:   body.TrackingNumber,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
+	}
+	if body.TransitSiteID != "" {
+		req.TransitSiteID = &body.TransitSiteID
 	}
 
 	if err := db.Create(&req).Error; err != nil {
@@ -633,7 +635,7 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 	transitOrder := models.RepairTransitOrder{
 		ID:                  uuid.New().String(),
 		RepairRequestID:     id,
-		TransitSiteID:       req.TransitSiteID,
+		TransitSiteID:       *req.TransitSiteID,
 		Direction:           models.RepairTransitDirIn,
 		Status:              models.RepairTransitPendingActivation,
 		TransitServiceFee:   &body.TransitServiceFee,
@@ -788,8 +790,8 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 		transitOrder := models.RepairTransitOrder{
 			ID:               uuid.New().String(),
 			RepairRequestID:  id,
-			TransitSiteID:    req.TransitSiteID,
-			ControlledSiteID: req.ControlledSiteID,
+			TransitSiteID:    *req.TransitSiteID,
+			ControlledSiteID: *req.ControlledSiteID,
 			Direction:        models.RepairTransitDirOut,
 			Status:           models.RepairTransitActive, // activated immediately
 			CreatedAt:        time.Now(),
@@ -842,7 +844,7 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		return
 	}
 
-	if req.AcceptedQuoteID == "" {
+	if req.AcceptedQuoteID == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no accepted quote"})
 		return
 	}
@@ -1035,7 +1037,7 @@ func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
 
 	// Rollback settlement: refund = max(0, material+service - check_fee_snapshot)
 	// Logistics and transit fees are retained (lock-in at shipping time)
-	if req.AcceptedQuoteID == "" {
+	if req.AcceptedQuoteID == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no accepted quote for rollback calculation"})
 		return
 	}

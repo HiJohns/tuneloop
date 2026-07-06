@@ -426,9 +426,9 @@ type RepairRequest struct {
 	UserInstrumentID     string     `gorm:"type:uuid;index" json:"user_instrument_id"`
 	Status               string     `gorm:"type:varchar(20);default:'pending_ship'" json:"status"`
 	MerchantType         string     `gorm:"type:varchar(10);default:'full'" json:"merchant_type"` // v3: full / controlled
-	TransitSiteID        string     `gorm:"type:uuid;index" json:"transit_site_id"`               // v3: selected transit site (controlled path)
-	ControlledSiteID     string     `gorm:"type:uuid;index" json:"controlled_site_id"`            // v3: accepted quote's controlled site
-	AcceptedQuoteID      string     `gorm:"type:uuid;index" json:"accepted_quote_id"`             // v3
+	TransitSiteID        *string    `gorm:"type:uuid;index" json:"transit_site_id"`               // v3: selected transit site (controlled path)
+	ControlledSiteID     *string    `gorm:"type:uuid;index" json:"controlled_site_id"`            // v3: accepted quote's controlled site
+	AcceptedQuoteID      *string    `gorm:"type:uuid;index" json:"accepted_quote_id"`             // v3
 	CheckFeeSnapshot     *float64   `json:"check_fee_snapshot"`                                   // v3: system check_fee at payment time
 	PaidAmount           *float64   `gorm:"type:decimal(10,2)" json:"paid_amount"`                // v3: total amount paid
 	ExpireAt             *time.Time `json:"expire_at"`                                            // v3: pending_assessment expiry
@@ -710,9 +710,9 @@ type Appeal struct {
 	DamageReportID   *string    `gorm:"type:uuid;index" json:"damage_report_id,omitempty"`
 	UserID           *string    `gorm:"type:uuid;index" json:"user_id,omitempty"`
 	AppealReason     *string    `gorm:"type:text" json:"appeal_reason,omitempty"`
-	ReviewerID       string     `gorm:"type:varchar(255)" json:"reviewer_id,omitempty"`      // v3: transit site employee reviewing
-		DesensitizedDesc      string     `gorm:"type:text;column:desensitized_description" json:"desensitized_description,omitempty"` // v3: stripped of user contact info
-	ForwardedTo      string     `gorm:"type:varchar(255)" json:"forwarded_to,omitempty"`     // v3: controlled site admin
+	ReviewerID       string     `gorm:"type:varchar(255)" json:"reviewer_id,omitempty"`                                      // v3: transit site employee reviewing
+	DesensitizedDesc string     `gorm:"type:text;column:desensitized_description" json:"desensitized_description,omitempty"` // v3: stripped of user contact info
+	ForwardedTo      string     `gorm:"type:varchar(255)" json:"forwarded_to,omitempty"`                                     // v3: controlled site admin
 	Status           string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	SubmittedAt      time.Time  `json:"submitted_at"`
 	ResolvedAt       *time.Time `json:"resolved_at,omitempty"`
