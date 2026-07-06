@@ -307,11 +307,13 @@ func (h *RepairRequestHandler) Create(c *gin.Context) {
 
 	tenantID := middleware.GetTenantID(ctx)
 	orgID := middleware.GetOrgID(ctx)
+
+	if body.SiteID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "site_id is required"})
+		return
+	}
+
 	if tenantID == "" {
-		if body.SiteID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "site_id is required"})
-			return
-		}
 		var site models.Site
 		if err := db.Where("id = ?", body.SiteID).First(&site).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "site not found"})
