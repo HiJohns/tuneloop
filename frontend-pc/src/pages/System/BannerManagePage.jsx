@@ -124,8 +124,6 @@ export default function BannerManagePage() {
         url ? <Image src={url} width={60} height={60} style={{ objectFit: 'cover', borderRadius: 4 }} /> : '-'
       ),
     },
-    { title: '标题', dataIndex: 'title', key: 'title' },
-    { title: '跳转链接', dataIndex: 'link_url', key: 'link_url', ellipsis: true },
     { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 80 },
     {
       title: '状态',
