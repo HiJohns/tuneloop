@@ -136,7 +136,9 @@ export default function Detail() {
   }, [id])
 
   const bannerImagesSource = Array.isArray(displayMedia?.images) && displayMedia.images.length > 0
-    ? displayMedia.images.map(i => ({ url: i.url }))
+    ? displayMedia.images.map(i => ({
+        url: i.url?.replace(/\.\w+$/, '_display.webp') || i.url
+      }))
     : (parseImages(instrument?.images) || []).map(url => ({ url }))
   const bannerImages = bannerImagesSource.length > 0
     ? bannerImagesSource

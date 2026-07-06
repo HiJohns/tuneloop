@@ -191,6 +191,20 @@ func CreateInstrumentMedia(c *gin.Context) {
 		}
 	}
 
+	// Generate WebP display thumbnails (1080×1440 max) for all images
+	for i, f := range req.Files {
+		if f.FileType == "image" {
+			newKey := buildStructuredKey(ctx, f.FileKey, req.BatchType, i+1)
+			displayKey := strings.TrimSuffix(newKey, filepath.Ext(newKey)) + "_display.webp"
+			srcPath := filepath.Join(".", "uploads", "media", newKey)
+			if data, err := os.ReadFile(srcPath); err == nil {
+				if webpData, err := services.GenerateThumbnailWebP(data, 1080, 1440); err == nil {
+					storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp")
+				}
+			}
+		}
+	}
+
 	if hasVideo {
 		go generateVideoThumbnail(c, db, tenantID, instrumentID, batchID, storage)
 	}
@@ -534,6 +548,12 @@ func UploadDisplayImage(c *gin.Context) {
 	if err == nil {
 		thumbKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_thumb.jpg"
 		storage.Upload(ctx, thumbKey, bytes.NewReader(thumbData), "image/jpeg")
+	}
+
+	// Generate WebP display thumbnail (1080×1440)
+	if webpData, err := services.GenerateThumbnailWebP(buf.Bytes(), 1080, 1440); err == nil {
+		displayKey := strings.TrimSuffix(storageKey, filepath.Ext(storageKey)) + "_display.webp"
+		storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp")
 	}
 
 	orgID := middleware.GetOrgID(ctx)
