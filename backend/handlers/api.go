@@ -153,16 +153,23 @@ func GetInstrumentByID(c *gin.Context) {
 
 	// Fetch dynamic properties from instrument_properties table
 	var instrumentProps []models.InstrumentProperty
-	if err := db.Where("instrument_id = ?", instrumentID).Find(&instrumentProps).Error; err == nil {
-		// Group by property_name and collect values
-		propsMap := make(map[string][]string)
-		for _, prop := range instrumentProps {
-			propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
-		}
-		instrumentMap["properties"] = propsMap
-	} else {
-		instrumentMap["properties"] = map[string]interface{}{}
+	db.Where("instrument_id = ?", instrumentID).Find(&instrumentProps)
+	propsMap := make(map[string][]string)
+	for _, prop := range instrumentProps {
+		propsMap[prop.PropertyName] = append(propsMap[prop.PropertyName], prop.Value)
 	}
+
+	// Merge with all property definitions (even unassigned)
+	if instrument.CategoryID != nil {
+		var propDefs []models.Property
+		db.Where("scope_type = ? OR related_category_id = ?", "global", *instrument.CategoryID).Find(&propDefs)
+		for _, p := range propDefs {
+			if _, exists := propsMap[p.Name]; !exists {
+				propsMap[p.Name] = []string{}
+			}
+		}
+	}
+	instrumentMap["properties"] = propsMap
 
 	// Fetch booker info for reserved instruments (staff only)
 	if instrument.StockStatus == models.StockStatusRented {
