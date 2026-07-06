@@ -53,7 +53,7 @@ instrument_media
 
 | file_type | Description | Thumbnail |
 |-----------|------------|-----------|
-| `image` | JPEG/PNG/GIF/WebP | `_display.webp` (1080×1440 max) + `_thumb.jpg` (128px, legacy) auto-generated |
+| `image` | JPEG/PNG/GIF/WebP | `_display.webp` (1040×1400 max) + `_thumb.jpg` (128px, legacy) auto-generated |
 | `video` | MP4/WebM/MOV | via `video_thumb` entry in same batch |
 | `video_thumb` | Auto-generated video thumbnail | N/A |
 
@@ -100,16 +100,16 @@ See `AGENTS.md` → "Instrument Image Hierarchy" for per-field display rules.
 - **Display images** (`media.display`): instrument detail page carousel (uses `_display.webp` variant)
 - **Process images** (`media` by batch_type): activity log, repair panel
 - **Video**: instrument detail page, thumb URL in `video_thumb` entry
-- **Poster**: instrument detail page (max width 1080px, WebP Q0.8)
+- **Poster**: instrument detail page (max width 1040px, WebP Q0.8)
 
 ## Image Processing Variants (v3)
 
 | Variant | Format | Quality | Max Size | Purpose |
 |---------|--------|---------|----------|---------|
-| `{key}_display.webp` | WebP | 0.8 | 1080×1440px | Display thumbnail (carousel) |
+| `{key}_display.webp` | WebP | 0.8 | 1040×1400px | Display thumbnail (carousel) |
 | `{key}_thumb.jpg` | JPEG | 85 | 128×128px | Legacy list thumbnail |
 | `cover_{id}.webp` | WebP | 0.8 | 72×72px | Square cover image |
-| Poster | WebP | 0.8 | max-width 1080px | Detail page poster |
+| Poster | WebP | 0.8 | max-width 1040px | Detail page poster |
 
 ## Migration Status
 

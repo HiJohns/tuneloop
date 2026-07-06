@@ -116,6 +116,7 @@ export default function StaffInstrumentForm() {
     setLoading(true)
     try {
       let images = []
+      let fileKeys = []
 
       if (files.length > 0) {
         const uploaded = await Promise.all(files.map(async (file) => {
@@ -123,7 +124,10 @@ export default function StaffInstrumentForm() {
             headers: { Authorization: storage.getItem('token') ? `Bearer ${storage.getItem('token')}` : '' },
           })
           const result = await resp.json()
-          return result?.data?.url || ''
+          const url = result?.data?.url || ''
+          const key = result?.data?.file_key || ''
+          if (key) fileKeys.push(key)
+          return url
         }))
         images = uploaded.filter(Boolean)
       }
@@ -155,6 +159,26 @@ export default function StaffInstrumentForm() {
       })
       const result = await resp.json()
       if (result.code === 20000 || result.code === 20100) {
+        // Bind uploaded media to generate display thumbnails (align with PC)
+        const instrumentId = result.data?.id
+        if (instrumentId && fileKeys.length > 0) {
+          try {
+            await apiFetch(`${BASE_URL}/instruments/${instrumentId}/media`, {
+              method: 'POST',
+              body: JSON.stringify({
+                batch_type: 'shipping',
+                is_display: true,
+                files: fileKeys.map((key, i) => ({
+                  file_key: key,
+                  file_type: 'image',
+                  sort_order: i,
+                })),
+              }),
+            })
+          } catch (e) {
+            console.warn('[StaffInstrumentForm] Failed to bind media:', e)
+          }
+        }
         navigate('/staff/instruments')
       } else {
         dialog.alert(result.message || '创建失败')

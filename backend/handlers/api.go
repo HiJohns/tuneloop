@@ -1,16 +1,22 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/image/draw"
 	"gorm.io/gorm"
+	"image"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -1026,6 +1032,70 @@ func HandleUpload(c *gin.Context) {
 	defer reader.Close()
 
 	storage := services.NewMediaStorage()
+
+	if isImage {
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to read image"})
+			return
+		}
+
+		src, _, err := image.Decode(bytes.NewReader(data))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to decode image"})
+			return
+		}
+
+		bounds := src.Bounds()
+		w := bounds.Dx()
+
+		var final image.Image
+		if w > 1040 {
+			ratio := float64(1040) / float64(w)
+			newW := 1040
+			newH := int(float64(bounds.Dy()) * ratio)
+			if newH < 1 {
+				newH = 1
+			}
+			dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
+			draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+			final = dst
+		} else {
+			final = src
+		}
+
+		var buf bytes.Buffer
+		if err := webp.Encode(&buf, final, &webp.Options{Quality: 80}); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode WebP"})
+			return
+		}
+
+		webpFilename := strings.TrimSuffix(filename, ext) + ".webp"
+		if err := storage.Upload(c.Request.Context(), webpFilename, &buf, "image/webp"); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50003,
+				"message": "Failed to save file: " + err.Error(),
+			})
+			return
+		}
+
+		fileURL, _ := storage.GetURL(c.Request.Context(), webpFilename)
+		if fileURL == "" {
+			fileURL = fmt.Sprintf("/uploads/media/%s", webpFilename)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"url":      fileURL,
+				"file_key": webpFilename,
+				"fileName": file.Filename,
+				"size":     buf.Len(),
+			},
+		})
+		return
+	}
+
 	if err := storage.Upload(c.Request.Context(), filename, reader, mimeType); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50003,

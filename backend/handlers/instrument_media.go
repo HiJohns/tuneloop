@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/jpeg"
 	"io"
 	"log"
 	"net/http"
@@ -20,6 +19,7 @@ import (
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
+	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/image/draw"
@@ -198,7 +198,7 @@ func CreateInstrumentMedia(c *gin.Context) {
 			displayKey := strings.TrimSuffix(newKey, filepath.Ext(newKey)) + "_display.webp"
 			srcPath := filepath.Join(".", "uploads", "media", newKey)
 			if data, err := os.ReadFile(srcPath); err == nil {
-				if webpData, err := services.GenerateThumbnailWebP(data, 1080, 1440); err == nil {
+				if webpData, err := services.GenerateThumbnailWebP(data, 1040, 1400); err == nil {
 					storage.Upload(ctx, displayKey, bytes.NewReader(webpData), "image/webp")
 				} else {
 					log.Printf("[InstrumentMedia] WebP generation failed for %s: %v", newKey, err)
@@ -530,25 +530,25 @@ func UploadDisplayImage(c *gin.Context) {
 		final = src
 	}
 
-	// Encode to JPEG buffer
+	// Encode to WebP Q0.8 buffer
 	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, final, &jpeg.Options{Quality: 90}); err != nil {
+	if err := webp.Encode(&buf, final, &webp.Options{Quality: 80}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode image"})
 		return
 	}
 
 	// Upload to storage
 	storage := services.MediaStorageFromContext(c)
-	storageKey := buildStructuredKey(ctx, fmt.Sprintf("%s%s", uuid.New().String()[:8], ".jpg"), "display", 1)
+	storageKey := buildStructuredKey(ctx, fmt.Sprintf("%s%s", uuid.New().String()[:8], ".webp"), "display", 1)
 
 	// Snapshot buffer before upload consumes it
 	imageBytes := make([]byte, buf.Len())
 	copy(imageBytes, buf.Bytes())
 
-	// Generate WebP thumbnail BEFORE upload (upload consumes the buffer)
-	webpData, webpErr := services.GenerateThumbnailWebP(imageBytes, 1080, 1440)
+	// Generate WebP display thumbnail BEFORE upload (upload consumes the buffer)
+	webpData, webpErr := services.GenerateThumbnailWebP(imageBytes, 1040, 1400)
 
-	if err := storage.Upload(ctx, storageKey, &buf, "image/jpeg"); err != nil {
+	if err := storage.Upload(ctx, storageKey, &buf, "image/webp"); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50001, "message": "failed to upload image"})
 		return
 	}

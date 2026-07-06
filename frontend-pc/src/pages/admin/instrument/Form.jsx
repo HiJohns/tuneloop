@@ -119,6 +119,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [siteLocked, setSiteLocked] = useState(false)
   const [videoFileList, setVideoFileList] = useState([])
   const [videoUploading, setVideoUploading] = useState(false)
+  const [coverFile, setCoverFile] = useState(null)
   const [hasPricePerm, setHasPricePerm] = useState(false)
   const [merchantPricingConfig, setMerchantPricingConfig] = useState(null)
   const [baseDailyRate, setBaseDailyRate] = useState(null)
@@ -1034,6 +1035,29 @@ const loadCategoryChildren = async (node) => {
             console.warn('[Media] Failed to bind media:', mediaErr)
           }
         }
+
+        // Upload cover image after instrument creation
+        if (coverFile && instrumentId) {
+          try {
+            const coverFormData = new FormData()
+            coverFormData.append('file', coverFile)
+            const coverResp = await fetch(`${API_BASE_URL}/instruments/${instrumentId}/cover-image`, {
+              method: 'POST',
+              headers: { Authorization: api.defaults.headers.common['Authorization'] || '' },
+              body: coverFormData,
+            })
+            const coverResult = await coverResp.json()
+            if (coverResult.code === 20000) {
+              message.success('封面图已上传')
+            } else {
+              message.warning('封面图上传失败: ' + (coverResult.message || ''))
+            }
+          } catch (coverErr) {
+            message.warning('封面图上传异常: ' + coverErr.message)
+          }
+          setCoverFile(null)
+        }
+
         message.success(initialData ? '更新成功' : '创建成功')
         console.log('[DEBUG] onSubmit callback:', onSubmit, 'type:', typeof onSubmit, 'isPageMode:', isPageMode)
         // Check page mode first - in page mode, redirect regardless of onSubmit
@@ -1309,7 +1333,7 @@ const loadCategoryChildren = async (node) => {
         <Divider orientation="left">图片和视频</Divider>
         
         <Form.Item
-          label="图片"
+          label="展示图像"
           extra="拖拽可调整图片顺序，建议尺寸 800x600"
         >
           <div>
@@ -1400,6 +1424,25 @@ const loadCategoryChildren = async (node) => {
               <UploadOutlined style={{ cursor: 'pointer' }} />
             </Upload>
           } />
+        </Form.Item>
+
+        <Form.Item label="封面图" extra="72x72 缩略图，建议上传大于 72x72 的图片">
+          <Upload
+            maxCount={1}
+            accept="image/*"
+            showUploadList={false}
+            beforeUpload={(file) => {
+              setCoverFile(file)
+              return false
+            }}
+          >
+            <Button icon={<UploadOutlined />}>
+              {coverFile ? coverFile.name : '选择封面图'}
+            </Button>
+          </Upload>
+          {initialData?.cover_image && (
+            <img src={initialData.cover_image} alt="cover" className="mt-2 w-16 h-16 object-cover rounded" />
+          )}
         </Form.Item>
 
         <Form.Item>
