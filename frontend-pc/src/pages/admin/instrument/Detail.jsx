@@ -325,44 +325,25 @@ export default function InstrumentDetail() {
                 </Card>
               </Col>
 
-              <Col span={12}>
-                <Card title="封面图"
-                  extra={
-                    <label className="text-xs text-brand-primary cursor-pointer hover:underline">
-                      {instrument.cover_image ? '替换' : '上传'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          try {
-                            const formData = new FormData()
-                            formData.append('file', file)
-                            const res = await request(`/instruments/${id}/cover-image`, { method: 'POST', body: formData })
-                            if (res.code === 20000) {
-                              message.success('封面图更新成功')
-                              fetchInstrument()
-                            } else {
-                              message.error(res?.message || '上传失败')
-                            }
-                          } catch (err) {
-                            message.error('上传失败: ' + (err.message || ''))
-                          }
-                          e.target.value = ''
-                        }}
-                      />
-                    </label>
-                  }
-                >
-                  {instrument.cover_image ? (
-                    <img src={instrument.cover_image} alt="封面图" style={{ maxWidth: 120, maxHeight: 120, objectFit: 'cover', borderRadius: 8 }} />
-                  ) : (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无封面图" />
-                  )}
-                </Card>
-              </Col>
+              {activeStatuses.includes(instrument.stock_status) && leaseData && (
+                <Col span={16}>
+                  <Card title="当前租赁" className="mt-4">
+                    <Descriptions column={1} bordered size="small">
+                      <Descriptions.Item label="租赁人">
+                        <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="租期">
+                        <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
+                      </Descriptions.Item>
+                    </Descriptions>
+                    <div className="text-sm text-gray-500 space-y-1 mt-2">
+                      <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
+                      <p>押金: ¥{leaseData.order?.deposit || 0}</p>
+                    </div>
+                  </Card>
+                </Col>
+              )}
             </Row>
           )
         },
@@ -445,6 +426,34 @@ export default function InstrumentDetail() {
                   })()}
                 </Card>
 
+                <Card title="封面图" className="mt-4"
+                  extra={
+                    <label className="text-xs text-brand-primary cursor-pointer hover:underline">
+                      {instrument.cover_image ? '替换' : '上传'}
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            const res = await request(`/instruments/${id}/cover-image`, { method: 'POST', body: formData })
+                            if (res.code === 20000) {
+                              message.success('封面图更新成功')
+                              fetchInstrument()
+                            } else { message.error(res?.message || '上传失败') }
+                          } catch (err) { message.error('上传失败: ' + (err.message || '')) }
+                          e.target.value = ''
+                        }} />
+                    </label>
+                  }
+                >
+                  {instrument.cover_image ? (
+                    <img src={instrument.cover_image} alt="封面图" style={{ maxWidth: 120, maxHeight: 120, objectFit: 'cover', borderRadius: 8 }} />
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无封面图" />
+                  )}
+                </Card>
                 <Card title="视频" className="mt-4"
                   extra={
                     <label className="text-xs text-brand-primary cursor-pointer hover:underline">
@@ -549,37 +558,6 @@ export default function InstrumentDetail() {
                 </Card>
               </Col>
             </Row>
-          )
-        },
-        {
-          label: '当前租赁',
-          key: 'lease',
-          children: (
-            <>
-              {leaseLoading ? (
-                <Spin />
-              ) : !activeStatuses.includes(instrument.stock_status) ? (
-                <Empty description="当前无租赁信息" />
-              ) : !leaseData ? (
-                <Empty description="未找到关联订单" />
-              ) : (
-                <div className="space-y-4">
-                  <Descriptions column={1} bordered size="small">
-                    <Descriptions.Item label="租赁人">
-                      <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="租期">
-                      <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
-                    </Descriptions.Item>
-                  </Descriptions>
-                  <div className="text-sm text-gray-500 space-y-1">
-                    <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
-                    <p>押金: ¥{leaseData.order?.deposit || 0}</p>
-                  </div>
-                </div>
-              )}
-            </>
           )
         },
         {
