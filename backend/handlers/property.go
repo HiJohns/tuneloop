@@ -34,13 +34,22 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 
 	type PropertyOptionResponse struct {
 		models.PropertyOption
-		DisplayValue string `json:"display_value"`
+		DisplayValue  string `json:"display_value"`
+		SubmitterName string `json:"submitter_name,omitempty"`
+		SiteName      string `json:"site_name,omitempty"`
+		MerchantName  string `json:"merchant_name,omitempty"`
+		InstrumentLink string `json:"instrument_link,omitempty"`
 	}
 
 	type PropertyWithOptions struct {
 		models.Property
 		Options []PropertyOptionResponse `json:"options"`
 	}
+
+	// Cache for enriched names to avoid repeated queries
+	userCache := make(map[string]string)
+	siteCache := make(map[string]string)
+	tenantCache := make(map[string]string)
 
 	var result []PropertyWithOptions
 	for _, prop := range properties {
@@ -53,9 +62,58 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 			if opt.Status == "pending" {
 				displayValue = opt.Value + " (待审核)"
 			}
+
+			submitterName := ""
+			if opt.SubmitterID != "" {
+				if name, ok := userCache[opt.SubmitterID]; ok {
+					submitterName = name
+				} else {
+					var user struct{ Name string }
+					if err := db.Table("users").Where("iam_sub = ?", opt.SubmitterID).Select("name").First(&user).Error; err == nil {
+						submitterName = user.Name
+						userCache[opt.SubmitterID] = user.Name
+					}
+				}
+			}
+
+			siteName := ""
+			if opt.SiteID != "" {
+				if name, ok := siteCache[opt.SiteID]; ok {
+					siteName = name
+				} else {
+					var site struct{ Name string }
+					if err := db.Table("sites").Where("id = ?", opt.SiteID).Select("name").First(&site).Error; err == nil {
+						siteName = site.Name
+						siteCache[opt.SiteID] = site.Name
+					}
+				}
+			}
+
+			merchantName := ""
+			if opt.MerchantID != "" {
+				if name, ok := tenantCache[opt.MerchantID]; ok {
+					merchantName = name
+				} else {
+					var tenant struct{ Name string }
+					if err := db.Table("tenants").Where("id = ?", opt.MerchantID).Select("name").First(&tenant).Error; err == nil {
+						merchantName = tenant.Name
+						tenantCache[opt.MerchantID] = tenant.Name
+					}
+				}
+			}
+
+			instrumentLink := ""
+			if opt.InstrumentID != "" {
+				instrumentLink = "/instruments/" + opt.InstrumentID
+			}
+
 			options = append(options, PropertyOptionResponse{
 				PropertyOption: opt,
 				DisplayValue:   displayValue,
+				SubmitterName:  submitterName,
+				SiteName:       siteName,
+				MerchantName:   merchantName,
+				InstrumentLink: instrumentLink,
 			})
 		}
 

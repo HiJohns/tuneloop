@@ -1,0 +1,5 @@
+ALTER TABLE property_options
+  ADD COLUMN IF NOT EXISTS submitter_id VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS site_id UUID,
+  ADD COLUMN IF NOT EXISTS merchant_id UUID,
+  ADD COLUMN IF NOT EXISTS instrument_id UUID;

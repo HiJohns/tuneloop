@@ -461,6 +461,7 @@ func ExecuteBatchImport(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+	userID := middleware.GetUserID(c.Request.Context())
 
 	type ImportResult struct {
 		SN     string `json:"sn"`
@@ -620,7 +621,7 @@ func ExecuteBatchImport(c *gin.Context) {
 			}
 
 			if len(props) > 0 {
-				if err := processPropertiesWithScope(tx, instrument.ID, session.TenantID, props, categoryID, rowPropValues); err != nil {
+				if err := processPropertiesWithScope(tx, instrument.ID, session.TenantID, userID, props, categoryID, rowPropValues); err != nil {
 					log.Printf("[WARN] Properties processing failed for %s: %v", sn, err)
 				}
 			}

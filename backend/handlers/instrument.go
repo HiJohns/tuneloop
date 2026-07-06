@@ -58,12 +58,27 @@ type UpdateInstrumentRequest struct {
 }
 
 // processProperties handles the properties association logic for instruments
-func processProperties(db *gorm.DB, instrumentID string, tenantID string, properties map[string]interface{}) error {
-	return processPropertiesWithScope(db, instrumentID, tenantID, properties, "", nil)
+func processProperties(db *gorm.DB, instrumentID string, tenantID string, userID string, properties map[string]interface{}) error {
+	return processPropertiesWithScope(db, instrumentID, tenantID, userID, properties, "", nil)
 }
 
-func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID string,
+func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID string, userID string,
 	properties map[string]interface{}, categoryID string, rowPropValues map[string]string) error {
+
+	// Resolve audit fields from user info (for pending property options)
+	submitterID := userID
+	merchantID := tenantID
+	siteID := ""
+	if userID != "" {
+		var member struct{ SiteID string }
+		if err := database.GetDB().Table("site_members").
+			Joins("JOIN users ON users.id = site_members.user_id").
+			Where("users.iam_sub = ?", userID).
+			Select("site_members.site_id").First(&member).Error; err == nil {
+			siteID = member.SiteID
+		}
+	}
+
 	for propName, rawValues := range properties {
 
 		// 1. Find property definition by name (platform-wide, unscoped)
@@ -126,6 +141,10 @@ func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID strin
 					PropertyName: prop.Name,
 					Value:        value,
 					Status:       "pending",
+					SubmitterID:  submitterID,
+					SiteID:       siteID,
+					MerchantID:   merchantID,
+					InstrumentID: instrumentID,
 				}
 				if scopeCategoryID != "" {
 					propOption.ScopeCategoryID = &scopeCategoryID
@@ -411,7 +430,7 @@ func CreateInstrument(c *gin.Context) {
 
 	// Process properties if provided
 	if req.Properties != nil && len(req.Properties) > 0 {
-		if err := processProperties(db, instrument.ID, tenantID, req.Properties); err != nil {
+		if err := processProperties(db, instrument.ID, tenantID, userID, req.Properties); err != nil {
 			log.Printf("[ERROR] Failed to process properties: %v", err)
 			// Don't fail the request if properties processing fails
 			// The instrument was already created successfully
@@ -432,6 +451,7 @@ func UpdateInstrument(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
+	userID := middleware.GetUserID(ctx)
 
 	instrumentID := c.Param("id")
 	if instrumentID == "" {
@@ -699,7 +719,7 @@ func UpdateInstrument(c *gin.Context) {
 		db.Where("instrument_id = ?", instrument.ID).Delete(&models.InstrumentProperty{})
 
 		// Create new property associations
-		if err := processProperties(db, instrument.ID, tenantID, req.Properties); err != nil {
+		if err := processProperties(db, instrument.ID, tenantID, userID, req.Properties); err != nil {
 			log.Printf("[ERROR] Failed to process properties: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save properties: " + err.Error()})
 			return

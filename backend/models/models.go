@@ -529,6 +529,10 @@ type PropertyOption struct {
 	Alias            *string   `gorm:"type:uuid;index" json:"alias"`
 	ScopeCategoryID  *string   `gorm:"type:uuid;index" json:"scope_category_id"`
 	ScopeParentValue *string   `gorm:"type:varchar(255)" json:"scope_parent_value"`
+	SubmitterID      string    `gorm:"type:varchar(255)" json:"submitter_id"`
+	SiteID           string    `gorm:"type:uuid" json:"site_id"`
+	MerchantID       string    `gorm:"type:uuid" json:"merchant_id"`
+	InstrumentID     string    `gorm:"type:uuid" json:"instrument_id"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }

@@ -257,6 +257,35 @@ export default function PropertyList() {
       },
     },
     {
+      title: '提交人',
+      dataIndex: 'submitter_name',
+      key: 'submitter_name',
+      width: 100,
+      render: (val) => val || '-',
+    },
+    {
+      title: '网点',
+      dataIndex: 'site_name',
+      key: 'site_name',
+      width: 100,
+      render: (val) => val || '-',
+    },
+    {
+      title: '商户',
+      dataIndex: 'merchant_name',
+      key: 'merchant_name',
+      width: 100,
+      render: (val) => val || '-',
+    },
+    {
+      title: '乐器',
+      key: 'instrument_link',
+      width: 150,
+      render: (_, record) => record.instrument_link ? (
+        <a href={record.instrument_link} target="_blank" rel="noopener noreferrer">查看 →</a>
+      ) : '-',
+    },
+    {
       title: '操作',
       key: 'action',
       render: (_, record) => {
