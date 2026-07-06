@@ -69,6 +69,7 @@ export default function InstrumentDetail() {
   const [propsDirty, setPropsDirty] = useState(false)
   const [propsSaving, setPropsSaving] = useState(false)
   const [allProps, setAllProps] = useState([])
+  const [propValues, setPropValues] = useState({})
   const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
@@ -136,11 +137,7 @@ export default function InstrumentDetail() {
   const handleSaveProps = async () => {
     setPropsSaving(true)
     try {
-      const props = {}
-      document.querySelectorAll('.property-input').forEach(el => {
-        props[el.dataset.key] = el.value
-      })
-      const res = await api.put(`/instruments/${id}`, { properties: props })
+      const res = await api.put(`/instruments/${id}`, { properties: propValues })
       if (res.code === 20000) {
         message.success('属性已更新')
         setPropsDirty(false)
@@ -165,7 +162,14 @@ export default function InstrumentDetail() {
         setInstrument(data.data)
       }
       if (propsRes.code === 20000) {
-        setAllProps(propsRes.data?.list || propsRes.data || [])
+        const list = propsRes.data?.list || propsRes.data || []
+        setAllProps(list)
+        const vals = {}
+        list.forEach(p => {
+          const existing = data.data?.properties?.[p.name]
+          vals[p.name] = existing ? (Array.isArray(existing) ? existing.join(', ') : String(existing)) : ''
+        })
+        setPropValues(vals)
       }
     } catch (error) {
       console.error('Failed to fetch instrument:', error)
@@ -601,16 +605,14 @@ export default function InstrumentDetail() {
                 <Empty description="暂无属性定义，请先到属性管理创建" />
               ) : (
                 <Form layout="vertical">
-                  {allProps.map(p => {
-                    const vals = instrument.properties?.[p.name]
-                    const displayVal = vals ? (Array.isArray(vals) ? vals.join(', ') : String(vals)) : ''
-                    return (
-                      <Form.Item key={p.id} label={p.name}>
-                        <input className="property-input ant-input" defaultValue={displayVal} data-key={p.name}
-                          onChange={() => setPropsDirty(true)} style={{ maxWidth: 400 }} />
-                      </Form.Item>
-                    )
-                  })}
+                  {allProps.map(p => (
+                    <Form.Item key={p.id} label={p.name}>
+                      <Input value={propValues[p.name] || ''} onChange={e => {
+                        setPropValues(prev => ({ ...prev, [p.name]: e.target.value }))
+                        setPropsDirty(true)
+                      }} style={{ maxWidth: 400 }} />
+                    </Form.Item>
+                  ))}
                 </Form>
               )}
             </Card>
