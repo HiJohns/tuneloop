@@ -26,7 +26,6 @@ export default function InstrumentList() {
   const [batchPriceModalVisible, setBatchPriceModalVisible] = useState(false)
   const [batchPriceForm] = Form.useForm()
   const [expandedRowKeys, setExpandedRowKeys] = useState([])
-  const [videoModal, setVideoModal] = useState('')
   const API_BASE_URL = import.meta.env.VITE_API_BASE || '/api'
   
   const [pagination, setPagination] = useState({
@@ -132,15 +131,6 @@ export default function InstrumentList() {
       dataIndex: 'category_name',
       key: 'category_name',
       width: 120,
-    },
-    {
-      title: '视频',
-      dataIndex: 'video',
-      key: 'video',
-      width: 80,
-      render: (url, record) => url ? (
-        <a onClick={() => setVideoModal(url)}>▶ 播放</a>
-      ) : '-'
     },
     {
       title: '乐器分级',
@@ -637,19 +627,6 @@ export default function InstrumentList() {
             ))}
           </Row>
         </Checkbox.Group>
-      </Modal>
-
-      <Modal
-        title="视频播放"
-        open={!!videoModal}
-        onCancel={() => setVideoModal('')}
-        footer={null}
-        width={800}
-        destroyOnClose
-      >
-        {videoModal && (
-          <video src={videoModal} controls style={{ width: '100%', maxHeight: 500 }} />
-        )}
       </Modal>
 
       <InstrumentForm
