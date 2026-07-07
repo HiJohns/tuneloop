@@ -336,9 +336,38 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	deposit := pricingResult.Deposit
 	shippingFee := pricingResult.ShippingFee
 
-	// monthly rent = daily_rent * 25
-	monthlyRent := dailyRent * 25
-	totalAmount := monthlyRent + deposit + shippingFee
+	// Determine deposit calculation method for audit trail
+	depositMethod := "base_daily_rate"
+	depositRatio := 0.0
+	depositMultiplier := 0.0
+	{
+		var cfgMap map[string]interface{}
+		if json.Unmarshal([]byte(merchantConfigJSON), &cfgMap) == nil {
+			if v, ok := cfgMap["deposit_ratio"].(float64); ok {
+				depositRatio = v
+			}
+			if v, ok := cfgMap["deposit_multiplier"].(float64); ok {
+				depositMultiplier = v
+			}
+		}
+	}
+	if totalPrice > 0 {
+		depositMethod = "total_price"
+	}
+
+	// Build pricing tier snapshot
+	pricingTiers := make([]services.PricingTierConfig, 0, len(pricingResult.Tiers))
+	for _, t := range pricingResult.Tiers {
+		pricingTiers = append(pricingTiers, services.PricingTierConfig{
+			DaysMax:         t.DaysMax,
+			DailyRate:       t.DailyRate,
+			DiscountPercent: 0,
+		})
+	}
+
+	// Total = rent subtotal (from pricing_breakdown) + deposit + shipping
+	rentSubtotal := dailyRent * float64(days)
+	totalAmount := rentSubtotal + deposit + shippingFee
 
 	// Points wallet validation
 	var userWallet models.User
@@ -385,6 +414,13 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		InstrumentID:      req.InstrumentID,
 		TenantID:          effectiveTenantID,
 		OrgID:             &effectiveOrgID,
+		Deposit:           deposit,
+		DepositMethod:     depositMethod,
+		DepositRatio:      depositRatio,
+		DepositMultiplier: depositMultiplier,
+		TotalPrice:        totalPrice,
+		ShippingFee:       shippingFee,
+		PricingTiers:      pricingTiers,
 	})
 	pricingBreakdownJSON := ""
 	if err == nil && pricingBreakdown != nil {
@@ -402,7 +438,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		InstrumentID:      req.InstrumentID,
 		Level:             instrument.Level,
 		LeaseTerm:         months,
-		MonthlyRent:       monthlyRent,
+		MonthlyRent:       rentSubtotal,
 		Deposit:           deposit,
 		ShippingFee:       shippingFee,
 		Status:            models.OrderStatusReserved,
@@ -742,8 +778,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		deposit := pricingResult.Deposit
 		shippingFee := pricingResult.ShippingFee
 
-		monthlyRent := dailyRent * 25
-		orderAmount := monthlyRent + deposit + shippingFee
+		rentSubtotal := dailyRent * float64(days)
+		orderAmount := rentSubtotal + deposit + shippingFee
 
 		startDateStr := item.StartDate
 		endDateStr := item.EndDate
@@ -756,7 +792,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			InstrumentID: item.InstrumentID,
 			Level:        lockedInstrument.Level,
 			LeaseTerm:    months,
-			MonthlyRent:  monthlyRent,
+			MonthlyRent: rentSubtotal,
 			Deposit:      deposit,
 			ShippingFee:  shippingFee,
 			Status:       models.OrderStatusPaid,

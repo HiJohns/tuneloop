@@ -10,15 +10,35 @@ import (
 	"gorm.io/gorm"
 )
 
+type PricingTierConfig struct {
+	DaysMax         int     `json:"days_max"`
+	DailyRate       float64 `json:"daily_rate"`
+	DiscountPercent int     `json:"discount_percent"`
+}
+
 type PricingBreakdown struct {
-	BaseDailyRent       float64            `json:"base_daily_rent"`
-	TierDiscountRate    float64            `json:"tier_discount_rate"`
-	MembershipDiscountRate float64         `json:"membership_discount_rate,omitempty"`
-	PromoDiscountRates  []float64          `json:"promo_discount_rates,omitempty"`
-	FinalDailyRent      float64            `json:"final_daily_rent"`
-	RentDays            int                `json:"rent_days"`
-	TotalAmount         float64            `json:"total_amount"`
-	AppliedPolicies     []AppliedPolicy    `json:"applied_policies"`
+	// Rent calculation
+	BaseDailyRent         float64            `json:"base_daily_rent"`
+	RentDays              int                `json:"rent_days"`
+	TierDiscountRate      float64            `json:"tier_discount_rate"`
+	MembershipDiscountRate float64           `json:"membership_discount_rate,omitempty"`
+	PromoDiscountRates    []float64          `json:"promo_discount_rates,omitempty"`
+	FinalDailyRent        float64            `json:"final_daily_rent"`
+	TotalAmount           float64            `json:"total_amount"` // rent subtotal (before deposit + shipping)
+
+	// Deposit calculation evidence
+	Deposit           float64  `json:"deposit"`
+	DepositMethod     string   `json:"deposit_method"`              // "total_price" or "base_daily_rate"
+	DepositRatio      float64  `json:"deposit_ratio,omitempty"`     // config ratio when total_price-based
+	DepositMultiplier float64  `json:"deposit_multiplier,omitempty"` // config multiplier when daily-rate-based
+	TotalPrice        float64  `json:"total_price,omitempty"`       // instrument total_price (if used for deposit)
+	ShippingFee       float64  `json:"shipping_fee,omitempty"`
+
+	// Pricing strategy snapshot
+	PricingTiers    []PricingTierConfig `json:"pricing_tiers,omitempty"`
+
+	// All applied discounts
+	AppliedPolicies  []AppliedPolicy `json:"applied_policies"`
 }
 
 type AppliedPolicy struct {
@@ -28,12 +48,19 @@ type AppliedPolicy struct {
 }
 
 type RentCalcInput struct {
-	BaseDailyRate   float64
-	LeaseTerm       int
+	BaseDailyRate     float64
+	LeaseTerm         int
 	MembershipLevelID *int
-	InstrumentID    string
-	TenantID        string
-	OrgID           *string
+	InstrumentID      string
+	TenantID          string
+	OrgID             *string
+	Deposit           float64
+	DepositMethod     string
+	DepositRatio      float64
+	DepositMultiplier float64
+	TotalPrice        float64
+	ShippingFee       float64
+	PricingTiers      []PricingTierConfig
 }
 
 func GetTierDiscount(leaseTerm int) float64 {
@@ -109,6 +136,13 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 
 	result.FinalDailyRent = finalRate
 	result.TotalAmount = finalRate * float64(input.LeaseTerm)
+	result.Deposit = input.Deposit
+	result.DepositMethod = input.DepositMethod
+	result.DepositRatio = input.DepositRatio
+	result.DepositMultiplier = input.DepositMultiplier
+	result.TotalPrice = input.TotalPrice
+	result.ShippingFee = input.ShippingFee
+	result.PricingTiers = input.PricingTiers
 
 	return result, nil
 }
