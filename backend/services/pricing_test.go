@@ -5,9 +5,17 @@ import (
 )
 
 func TestCalculatePricing_Deposit(t *testing.T) {
-	config := `{"deposit_mode":"ratio","deposit_multiplier":7}`
+	config := `{"deposit_mode":"ratio","deposit_ratio":0.1,"deposit_multiplier":7}`
 
-	t.Run("uses baseDailyRate × deposit_multiplier", func(t *testing.T) {
+	t.Run("total_price > 0 uses total_price × deposit_ratio", func(t *testing.T) {
+		result := CalculatePricing(100, 50000, config, "{}")
+		expected := 50000.0 * 0.1
+		if result.Deposit != expected {
+			t.Errorf("expected deposit %.0f, got %.0f (totalPrice×ratio)", expected, result.Deposit)
+		}
+	})
+
+	t.Run("total_price = 0 uses baseDailyRate × deposit_multiplier", func(t *testing.T) {
 		result := CalculatePricing(100, 0, config, "{}")
 		expected := 100.0 * 7
 		if result.Deposit != expected {
@@ -15,28 +23,29 @@ func TestCalculatePricing_Deposit(t *testing.T) {
 		}
 	})
 
-	t.Run("zero multiplier yields zero deposit", func(t *testing.T) {
-		cfg := `{"deposit_mode":"ratio","deposit_multiplier":0}`
-		result := CalculatePricing(100, 0, cfg, "{}")
-		if result.Deposit != 0 {
-			t.Errorf("expected deposit 0 (zero multiplier), got %.0f", result.Deposit)
+	t.Run("total_price > 0 with custom deposit_ratio", func(t *testing.T) {
+		cfg := `{"deposit_mode":"ratio","deposit_ratio":0.5,"deposit_multiplier":7}`
+		result := CalculatePricing(100, 50000, cfg, "{}")
+		expected := 50000.0 * 0.5
+		if result.Deposit != expected {
+			t.Errorf("expected deposit %.0f, got %.0f (custom ratio)", expected, result.Deposit)
 		}
 	})
 
-	t.Run("custom multiplier from config", func(t *testing.T) {
-		cfg := `{"deposit_mode":"ratio","deposit_multiplier":1.5}`
+	t.Run("total_price = 0 custom deposit_multiplier", func(t *testing.T) {
+		cfg := `{"deposit_mode":"ratio","deposit_ratio":0.1,"deposit_multiplier":3}`
 		result := CalculatePricing(100, 0, cfg, "{}")
-		expected := 100.0 * 1.5
+		expected := 100.0 * 3
 		if result.Deposit != expected {
 			t.Errorf("expected deposit %.0f, got %.0f (custom multiplier)", expected, result.Deposit)
 		}
 	})
 
-	t.Run("missing multiplier yields zero deposit", func(t *testing.T) {
-		cfg := `{"deposit_mode":"ratio"}`
-		result := CalculatePricing(100, 0, cfg, "{}")
+	t.Run("zero ratio yields zero deposit", func(t *testing.T) {
+		cfg := `{"deposit_mode":"ratio","deposit_ratio":0,"deposit_multiplier":0}`
+		result := CalculatePricing(100, 50000, cfg, "{}")
 		if result.Deposit != 0 {
-			t.Errorf("expected deposit 0 (no multiplier), got %.0f", result.Deposit)
+			t.Errorf("expected deposit 0 (zero ratio), got %.0f", result.Deposit)
 		}
 	})
 

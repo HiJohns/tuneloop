@@ -182,8 +182,13 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 	case "fixed":
 		result.Deposit = getFloat(config, "deposit_fixed")
 	default:
-		multiplier := getFloat(config, "deposit_multiplier")
-		result.Deposit = baseDailyRate * multiplier
+		if totalPrice > 0 {
+			ratio := getFloat(config, "deposit_ratio")
+			result.Deposit = totalPrice * ratio
+		} else {
+			multiplier := getFloat(config, "deposit_multiplier")
+			result.Deposit = baseDailyRate * multiplier
+		}
 	}
 
 	// Check individual override fields
