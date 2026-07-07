@@ -82,6 +82,8 @@ export const uploadFile = (url, filePath, options = {}) => {
   })
 }
 
+export const previewImage = (args) => Taro.previewImage(args)
+
 export const dialog = {
   alert: (msg) => {
     Taro.showModal({ title: '提示', content: msg, showCancel: false })

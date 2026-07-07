@@ -98,6 +98,22 @@ export const scanQRCode = () => new Promise((resolve, reject) => {
   input.click()
 })
 
+export const previewImage = ({ urls = [], current = '' }) => {
+  const img = document.createElement('div')
+  img.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center'
+  const closeBtn = document.createElement('div')
+  closeBtn.textContent = '✕'
+  closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);border-radius:50%'
+  const imgEl = document.createElement('img')
+  imgEl.src = current
+  imgEl.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain'
+  closeBtn.onclick = () => document.body.removeChild(img)
+  img.onclick = () => document.body.removeChild(img)
+  img.appendChild(imgEl)
+  img.appendChild(closeBtn)
+  document.body.appendChild(img)
+}
+
 export const getLocation = () => new Promise((resolve, reject) => {
   if (!navigator.geolocation) {
     reject(new Error('Geolocation not supported'))

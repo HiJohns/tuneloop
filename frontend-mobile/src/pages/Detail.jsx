@@ -4,10 +4,9 @@ import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
 import { Switch, Tag, Modal, Button as AntButton } from 'antd'
 import dayjs from 'dayjs'
-import { env, storage, eventBus, getWindowSize } from '../platform'
+import { env, storage, eventBus, getWindowSize, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
-import Taro from '@tarojs/taro'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -209,8 +208,8 @@ export default function Detail() {
                   onClick={() => {
                     try {
                       const urls = bannerImages.map(img => img.url || img)
-                      Taro.previewImage({ urls, current: urls[urls.length - 1] })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                      previewImage({ urls, current: urls[urls.length - 1] })
+                    } catch (e) { console.warn('[Preview] failed:', e) }
                   }} />
               </View>
             )}
@@ -220,7 +219,7 @@ export default function Detail() {
                   onClick={() => {
                     try {
                       const urls = bannerImages.map(img => img.url || img)
-                      Taro.previewImage({ urls, current: img.url || img })
+                      previewImage({ urls, current: img.url || img })
                     } catch (e) { console.warn('[Preview] previewImage failed:', e) }
                   }} />
               </View>
@@ -231,7 +230,7 @@ export default function Detail() {
                   onClick={() => {
                     try {
                       const urls = bannerImages.map(img => img.url || img)
-                      Taro.previewImage({ urls, current: urls[0] })
+                      previewImage({ urls, current: urls[0] })
                     } catch (e) { console.warn('[Preview] previewImage failed:', e) }
                   }} />
               </View>
