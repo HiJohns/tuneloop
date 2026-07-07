@@ -248,14 +248,15 @@ function SingleCheckout({ id, navigate }) {
           <Text className="font-black text-black mb-2">租赁乐器</Text>
           <View className="flex gap-3">
             <Image
-              src={parseImages(instrument.images)?.[0] || ''}
+              src={instrument.cover_image || parseImages(instrument.images)?.[0] || ''}
               alt=""
-              className="w-16 h-16 object-cover rounded-lg bg-[#FDF4E7]"
+              className="w-20 h-20 object-cover rounded-lg bg-[#FDF4E7]"
               onError={(e) => { e.target.style.display = 'none' }}
             />
-            <View>
-              <Text className="font-black text-sm text-black">SN: {instrument.sn || id?.slice(0, 8)}</Text>
-              <Text className="text-xs text-zinc-400">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
+            <View className="flex-1 justify-center space-y-1">
+              <Text className="font-black text-sm text-black">{instrument.name || instrument.sn || id?.slice(0, 8)}</Text>
+              <Text className="text-xs text-zinc-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
+              <Text className="text-xs text-zinc-400">网点: {instrument.site_name || '-'}</Text>
             </View>
           </View>
         </View>
