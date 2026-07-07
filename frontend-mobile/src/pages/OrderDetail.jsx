@@ -196,16 +196,18 @@ export default function OrderDetail() {
   const rentalDays = (order.start_date && (order.end_date || order.returned_at))
     ? Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000)))
     : leaseTerm * 30
-  const deposit = order.deposit || 0
-  const monthlyRent = order.monthly_rent || 0
-  const shippingFee = order.shipping_fee || 0
+   const deposit = order.deposit || 0
+   const shippingFee = order.shipping_fee || 0
+   const pb = order.pricing_breakdown
+   const rentSubtotal = (pb && pb.total_amount) || order.monthly_rent || 0
+   const dailyRate = (pb && pb.final_daily_rent) || (pb && pb.base_daily_rent) || 0
 
-  const settlement = order.settlement
+   const settlement = order.settlement
 
-  const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(endDate) < new Date()
-  const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(endDate)) / (1000 * 60 * 60 * 24)) : 0
-  const overdueFee = isOverdue ? ((monthlyRent / 30) * overdueDaysCalc).toFixed(2) : 0
-  const totalAmount = monthlyRent + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
+   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(endDate) < new Date()
+   const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(endDate)) / (1000 * 60 * 60 * 24)) : 0
+   const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
+   const totalAmount = rentSubtotal + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
   const showPayButton = status === 'reserved'
   const showCancelButton = status === 'paid' || status === 'pending_shipment' || status === 'in_transit'
@@ -246,7 +248,7 @@ export default function OrderDetail() {
               <Text className="text-sm font-black text-red-700">租约已超期</Text>
               <Text className="text-xs text-red-600 mt-1">
                 超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{overdueFee}
-                <Text className="block mt-0.5">（¥{(monthlyRent / 30).toFixed(2)}/天）</Text>
+                <Text className="block mt-0.5">（¥{dailyRate.toFixed(2)}/天）</Text>
               </Text>
             </View>
           </View>
@@ -360,7 +362,7 @@ export default function OrderDetail() {
             <>
             <View className="flex justify-between text-sm">
               <Text className="text-zinc-500 font-medium">租金</Text>
-              <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{monthlyRent}</Text>
+              <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{rentSubtotal}</Text>
             </View>
             <View className="flex justify-between text-sm">
               <Text className="text-zinc-500 font-medium">押金</Text>
@@ -380,7 +382,7 @@ export default function OrderDetail() {
           </View>
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-400">  逾期日费</Text>
-            <Text className="text-zinc-400 flex-shrink-0 ml-auto whitespace-nowrap">¥{(monthlyRent / 30).toFixed(2)}/天</Text>
+            <Text className="text-zinc-400 flex-shrink-0 ml-auto whitespace-nowrap">¥{dailyRate.toFixed(2)}/天</Text>
           </View>
           </>
           )}
