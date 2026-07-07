@@ -532,6 +532,86 @@ ssh cadenza
 - `/opt/tuneloop/apps/tuneloop/` 内的 `service`/`www`/`mobile`/`database` 为指向版本快照的软链接
 - **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git -> CI/CD -> 生产部署流程。
 
+### 部署流程 (Deployment Flow)
+
+```bash
+# 1. 本地构建发布包（含 Go 二进制 + PC 前端 + 微信前端 + DB 迁移文件）
+make release
+# 产物: tuneloop_YYYYMMDD-HHMMSS_COMMITID.zip
+
+# 2. 上传到生产服 /opt/flow/
+# 注：scp 直传到 cadenza 链路不稳定（北京时间上班时段大概率失败）。
+# 上传 zip 到 /opt/flow 后，SSH 执行：
+ssh cadenza
+
+# 3. 解压并切换软链接（自动重启服务）
+cd /opt/flow
+./deploy.sh tuneloop_20*.zip
+
+# 4. 验证
+sudo journalctl -u tuneloop --since "30 seconds ago" --no-pager | grep -E "listening|error|FATAL"
+```
+
+### 远程数据库访问 (Remote Database Access)
+
+```bash
+# 获取 PostgreSQL 容器名
+ssh cadenza "docker ps | grep postgres"
+
+# 直接查询（单行 SQL）
+ssh cadenza "docker exec <container-name> psql -U tuneloop_user -d tuneloop -c 'SELECT ...'"
+
+# 管道 SQL 文件（复杂查询）
+cat query.sql | ssh cadenza "docker exec -i <container-name> psql -U tuneloop_user -d tuneloop"
+
+# 常用查询
+ssh cadenza "docker exec <container> psql -U tuneloop_user -d tuneloop -c '\dt'"  # 列出所有表
+ssh cadenza "docker exec <container> psql -U tuneloop_user -d tuneloop -c \"SELECT version, dirty FROM schema_migrations\""  # 迁移版本
+```
+
+### 迁移执行 (Running Migrations)
+
+```bash
+# 主二进制带迁移 flag，需要从 WorkingDirectory 执行以加载 .env 和 migrations/ 目录
+ssh cadenza 'cd /opt/tuneloop/apps/tuneloop && source .env && ./service/tuneloop --migrate-cover-images --dry-run'
+ssh cadenza 'cd /opt/tuneloop/apps/tuneloop && source .env && ./service/tuneloop --migrate-display-webp'
+
+# 迁移执行后要重启服务：
+ssh cadenza 'sudo systemctl restart tuneloop'
+```
+
+### 生产目录结构
+
+```
+/opt/tuneloop/apps/tuneloop/
+├── .env              ← 数据库凭据 + 环境变量
+├── service -> /opt/flow/tuneloop_.../tuneloop/service   ← 软链接
+├── database -> /opt/flow/tuneloop_.../tuneloop/database ← 含 migrations/
+├── www -> ...
+├── mobile -> ...
+└── uploads -> /opt/uploads
+```
+
+### 开发数据库访问 (Development Database Access)
+
+```bash
+# 开发服 PostgreSQL（Docker 容器 jobmaster-postgres）
+docker exec jobmaster-postgres psql -U tuneloop_user -d tuneloop_debug -c 'SELECT ...'
+```
+
+### IAM 数据库访问 (IAM Database Access)
+
+```bash
+# IAM 独立数据库，凭据在 ../beaconiam/.env
+PGPASSWORD=iam_secret_2026 psql -h localhost -U iam_user -d beaconiam_debug -c 'SELECT ...'
+
+# IAM 角色模板权限检查
+SELECT frt.code, frt.cus_perm, ns.name AS ns_name
+FROM functional_role_templates frt
+JOIN namespaces ns ON ns.id = frt.namespace_id
+WHERE frt.code = 'site_admin';
+```
+
 ---
 
 ## 🧪 调试效率经验 (Debugging Efficiency Lessons)
@@ -982,7 +1062,40 @@ done
 4. Comment commit hash 到 Issue
 
 
-> *Last updated: 2026-06-27*
+---
+
+### 2026-07-07: 生产服发布/调试/数据库操作经验总结
+
+#### 发布流程
+1. 本地 `make release` → 生成 `tuneloop_YYYYMMDD-HHMMSS_COMMITID.zip`
+2. 上传 zip 到 cadenza 的 `/opt/flow/`（scp 在上班时段大概率失败，用户会走迂回线路）
+3. SSH 执行 `cd /opt/flow && ./deploy.sh tuneloop_*.zip`（自动解压、切换软链接、重启）
+4. 验证：`sudo journalctl -u tuneloop --since "30 seconds ago" --no-pager | grep "listening"`
+
+#### 迁移执行注意事项
+- 迁移必须在 `WorkingDirectory` 下跑，否则找不到 `.env` 和 `database/migrations/`
+- 正确做法：`cd /opt/tuneloop/apps/tuneloop && source .env && ./service/tuneloop --migrate-cover-images`
+- 迁移后必须 `systemctl restart tuneloop`（迁移二进制执行后自动退出，不会启动服务）
+
+#### 数据库远程操作
+- 生产 DB 在 Docker 内：`docker exec <container> psql -U tuneloop_user -d tuneloop`
+- 开发 DB：`docker exec jobmaster-postgres psql -U tuneloop_user -d tuneloop_debug`
+- IAM DB：`PGPASSWORD=iam_secret_2026 psql -h localhost -U iam_user -d beaconiam_debug`
+- 生产 DB 表不全？先查 `schema_migrations` 确认哪些迁移跑过了
+
+#### 调试黄金法则
+- **前端页面路径决定调哪个文件**：用户粘贴的 HTML 里的 `费用信息` vs `费用明细`、URL 里 `/order/` vs `/checkout/` 是区分 OrderDetail vs Checkout 的关键线索
+- **改完代码没生效 → 先排查三件事**：1) 改对了文件吗 2) 服务重启了吗 3) 新二进制里有这个改动吗
+- **数据问题是码农的第一陷阱**：数据没录入（cover_image 为空）时前端显示 placeholder 是**正确的**，不是 Bug
+- **API 返回什么，前端才能显示什么**：加字段先看后端有没有返回
+
+#### 常见排障序列
+1. 生产日志：`sudo journalctl -u tuneloop --since "2 hours ago" --no-pager | grep "ERROR\|FATAL\|panic"`
+2. 数据库状态：`SELECT version, dirty FROM schema_migrations`（确认哪个迁移最后跑）
+3. API 验证：`curl -s https://wx.cadenzayueqi.com/api/public/instruments?page=1 | python3 -c "import json,sys; ..."`
+4. 单条数据：`SELECT ... FROM instruments WHERE id = '...'`（确认数据落库正确）
+
+> *Last updated: 2026-07-07*
 
 ---
 
