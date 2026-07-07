@@ -1293,15 +1293,22 @@ const loadCategoryChildren = async (node) => {
             </Form.Item>
              <Form.Item label="押金(¥)" name="deposit">
                 <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }}
-                  placeholder={merchantPricingConfig && typeof merchantPricingConfig === 'object'
-                    ? (merchantPricingConfig.deposit_mode === 'ratio'
-                        ? (totalPrice > 0
-                            ? `建议 ¥${(parseFloat(totalPrice) * (merchantPricingConfig.deposit_ratio || 0.3)).toFixed(0)} (总价×${merchantPricingConfig.deposit_ratio || 0.3})`
-                            : `建议 ¥${((baseDailyRate || 0) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)} (日租金×${merchantPricingConfig.deposit_multiplier || 7})`)
-                        : `固定 ¥${merchantPricingConfig.deposit_fixed || 0}`)
-                    : (totalPrice > 0
-                        ? `建议: ¥${(parseFloat(totalPrice) * 0.3).toFixed(0)} (总价×0.3)`
-                        : `建议: ¥${(baseDailyRate || 0) * 7} (日租金×7)`)} />
+                  placeholder={(() => {
+                    const fv = form.getFieldsValue()
+                    const fp = parseFloat(fv.total_price)
+                    const dr = parseFloat(fv.base_daily_rate) || 0
+                    if (merchantPricingConfig && typeof merchantPricingConfig === 'object') {
+                      if (merchantPricingConfig.deposit_mode === 'ratio') {
+                        return fp > 0
+                          ? `建议 ¥${(fp * (merchantPricingConfig.deposit_ratio || 0.3)).toFixed(0)} (总价×${merchantPricingConfig.deposit_ratio || 0.3})`
+                          : `建议 ¥${(dr * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)} (日租金×${merchantPricingConfig.deposit_multiplier || 7})`
+                      }
+                      return `固定 ¥${merchantPricingConfig.deposit_fixed || 0}`
+                    }
+                    return fp > 0
+                      ? `建议: ¥${(fp * 0.3).toFixed(0)} (总价×0.3)`
+                      : `建议: ¥${dr * 7} (日租金×7)`
+                  })()} />
              </Form.Item>
             <Form.Item label="物流费(¥)" name="shipping_fee">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
@@ -1310,35 +1317,41 @@ const loadCategoryChildren = async (node) => {
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
             </Form.Item>
 
-            {(baseDailyRate > 0 || totalPrice > 0) && merchantPricingConfig && merchantPricingConfig.tiers && (
-              <div className="pricing-preview" style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
-                <p style={{ fontWeight: 500, marginBottom: 8 }}>阶梯价格预览（基于商户定价策略）：</p>
-                {merchantPricingConfig.tiers.map((tier, i) => {
-                  const prevDays = i > 0 ? merchantPricingConfig.tiers[i - 1].days_max : 0
-                  const daysDisplay = tier.days_max === -1 ? `${prevDays + 1}天以上` : `1-${tier.days_max}天`
-                  const rate = tier.discount_percent > 0
-                    ? parseFloat(baseDailyRate) * (1 - tier.discount_percent / 100)
-                    : parseFloat(baseDailyRate)
-                  const dailyRateDisplay = baseDailyRate > 0 ? rate.toFixed(0) : '-'
-                  return (
-                    <div key={i} style={{ fontSize: 14, lineHeight: '28px' }}>
-                      <span style={{ fontWeight: 500 }}>{tier.name}</span>
-                      <span style={{ color: '#999', marginLeft: 8 }}>({daysDisplay})</span>
-                      <span style={{ marginLeft: 12 }}>¥{dailyRateDisplay}/天</span>
-                      {tier.discount_percent > 0 && <Tag color="green" style={{ marginLeft: 8 }}>{tier.discount_percent}%折扣</Tag>}
-                    </div>
-                  )
-                })}
-                <div style={{ borderTop: '1px solid #e8e8e8', marginTop: 8, paddingTop: 8, fontSize: 14 }}>
-                  押金: ¥{merchantPricingConfig.deposit_mode === 'ratio'
-                     ? (totalPrice > 0
-                         ? (parseFloat(totalPrice) * (merchantPricingConfig.deposit_ratio || 0.3)).toFixed(0)
-                         : (parseFloat(baseDailyRate || 0) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0))
-                     : (merchantPricingConfig.deposit_fixed || 0)}
-                </div>
-              </div>
-            )}
-            {!merchantPricingConfig && <span style={{ color: '#999' }}>商户尚未配置定价策略</span>}
+             {(() => {
+               const fv = form.getFieldsValue()
+               const fp = parseFloat(fv.total_price) || 0
+               const dr = parseFloat(fv.base_daily_rate) || 0
+               if ((dr <= 0 && fp <= 0) || !merchantPricingConfig || !merchantPricingConfig.tiers) return null
+               return (
+               <div className="pricing-preview" style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
+                 <p style={{ fontWeight: 500, marginBottom: 8 }}>阶梯价格预览（基于商户定价策略）：</p>
+                 {merchantPricingConfig.tiers.map((tier, i) => {
+                   const prevDays = i > 0 ? merchantPricingConfig.tiers[i - 1].days_max : 0
+                   const daysDisplay = tier.days_max === -1 ? `${prevDays + 1}天以上` : `1-${tier.days_max}天`
+                   const rate = tier.discount_percent > 0
+                     ? dr * (1 - tier.discount_percent / 100)
+                     : dr
+                   const dailyRateDisplay = dr > 0 ? rate.toFixed(0) : '-'
+                   return (
+                     <div key={i} style={{ fontSize: 14, lineHeight: '28px' }}>
+                       <span style={{ fontWeight: 500 }}>{tier.name}</span>
+                       <span style={{ color: '#999', marginLeft: 8 }}>({daysDisplay})</span>
+                       <span style={{ marginLeft: 12 }}>¥{dailyRateDisplay}/天</span>
+                       {tier.discount_percent > 0 && <Tag color="green" style={{ marginLeft: 8 }}>{tier.discount_percent}%折扣</Tag>}
+                     </div>
+                   )
+                 })}
+                 <div style={{ borderTop: '1px solid #e8e8e8', marginTop: 8, paddingTop: 8, fontSize: 14 }}>
+                   押金: ¥{merchantPricingConfig.deposit_mode === 'ratio'
+                      ? (fp > 0
+                          ? (fp * (merchantPricingConfig.deposit_ratio || 0.3)).toFixed(0)
+                          : (dr * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0))
+                      : (merchantPricingConfig.deposit_fixed || 0)}
+                 </div>
+               </div>
+               )
+             })()}
+             {!merchantPricingConfig && <span style={{ color: '#999' }}>商户尚未配置定价策略</span>}
           </Card>
         )}
 
