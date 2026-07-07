@@ -128,7 +128,11 @@ export default function Home() {
       const res = await apiFetch(`${baseUrl}/public/banners`)
       const result = await res.json()
       if (result.code === 20000 && result.data?.list?.length > 0) {
-        setBanners(result.data.list)
+        const list = result.data.list.map(b => ({
+          ...b,
+          image_url: b.image_url.startsWith('http') ? b.image_url : `https://wx.cadenzayueqi.com${b.image_url}`
+        }))
+        setBanners(list)
       } else {
         setBanners([])
       }
@@ -213,7 +217,7 @@ export default function Home() {
             }}>
             {banners.length > 0 && (
               <View key="clone-last" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
-                <Image src={banners[banners.length - 1].image_url} className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'top center' }} mode="aspectFit" />
+                <Image src={banners[banners.length - 1].image_url} className="w-full h-full" mode="aspectFill" />
               </View>
             )}
             {banners.map((item, i) => (
@@ -229,8 +233,7 @@ export default function Home() {
                 <Image
                   src={item.image_url}
                   className="w-full h-full"
-                  style={{ objectFit: 'contain', objectPosition: 'top center' }}
-                  mode="aspectFit"
+                  mode="aspectFill"
                 />
                 {item.title ? (
                   <View className="absolute bottom-0 left-0 right-0 bg-black/40 px-4 py-2">
@@ -241,7 +244,7 @@ export default function Home() {
             ))}
             {banners.length > 0 && (
               <View key="clone-first" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
-                <Image src={banners[0].image_url} className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'top center' }} mode="aspectFit" />
+                <Image src={banners[0].image_url} className="w-full h-full" mode="aspectFill" />
               </View>
             )}
           </View>
@@ -262,7 +265,7 @@ export default function Home() {
 
         {/* Swipe layer — intercepts touch and mouse over the banner area */}
         {banners.length > 0 && (
-          <div className="absolute top-0 left-0 right-0 z-[10002]" style={{ height: 240 }}
+          <View className="absolute top-0 left-0 right-0 z-[10002]" style={{ height: 240 }}
             onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
             onTouchEnd={(e) => {
               const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
@@ -291,16 +294,15 @@ export default function Home() {
           />
         )}
 
-      {/* Z=1: Gradient overlay — darkens top of carousel for menu text readability */}
-      <View className="fixed top-0 left-0 right-0 z-[1] pointer-events-none"
-        style={{ height: 240, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.3) 50%, transparent)' }} />
+      {/* Z=1: Dark solid overlay — ensures text readability on light banner images */}
+      <View className="fixed top-0 left-0 right-0 z-[1] bg-black/40" style={{ height: 160 }} />
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/15 backdrop-blur-md' : 'bg-transparent'} pointer-events-none`} />
+      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/80' : 'bg-transparent'}`} />
 
       {/* A: Search bar — fixed above carousel */}
-      <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center pointer-events-none" style={{ top: '60px' }}>
-        <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 backdrop-blur-sm border border-white/10' : 'bg-white/10 backdrop-blur-sm border border-white/30'} pointer-events-auto`}>
+      <View className="absolute left-0 right-0 z-[10000] flex items-center justify-center" style={{ top: '60px' }}>
+        <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 border border-white/10' : 'bg-white/20 border border-white/20'}`}>
           <Text className="text-base mr-2 text-white/70" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-sm flex-1 bg-transparent text-white"
             style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }} />
@@ -315,10 +317,10 @@ export default function Home() {
       )}
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-       <View className="fixed left-0 right-0 z-[100] flex flex-col pointer-events-none" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}>
-        <ScrollView className="flex-1 overflow-y-auto bg-transparent" style={{ pointerEvents: 'auto' }}
+       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}>
+        <ScrollView className="flex-1 overflow-y-auto bg-transparent"
           scrollY scrollWithAnimation enhanced showScrollbar={false}
-          onScroll={e => setScrollY(e.target.scrollTop)}>
+          onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
           <View style={{ height: '100px' }}></View>
 
           <View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
@@ -354,7 +356,7 @@ export default function Home() {
           </View>
         </View>
         </ScrollView>
-        <View style={{ pointerEvents: 'auto' }}>
+        <View>
         <BottomNav
           active="home"
           tabs={[
