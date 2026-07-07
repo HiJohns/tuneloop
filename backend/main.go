@@ -682,6 +682,8 @@ func main() {
 	// Parse command line flags
 	var envFile string
 	flag.StringVar(&envFile, "env", "", "Path to .env file to load")
+	migrateCover := flag.Bool("migrate-cover-images", false, "Generate cover images for instruments without one, then exit")
+	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode (for --migrate-cover-images)")
 	flag.Parse()
 
 	// Load environment file if specified
@@ -709,6 +711,21 @@ func main() {
 		fmt.Printf("FATAL: Database bootstrap failed: %v\n", err)
 		fmt.Println("Please check your database connection and migration files.")
 		os.Exit(1)
+	}
+
+	// One-off migration: generate cover images for instruments without one
+	if *migrateCover {
+		count, err := handlers.MigrateInstrumentCoverImages(*dryRunFlag)
+		if err != nil {
+			fmt.Printf("FATAL: Cover image migration failed: %v\n", err)
+			os.Exit(1)
+		}
+		if *dryRunFlag {
+			fmt.Printf("DRY RUN: %d instruments would get cover images\n", count)
+		} else {
+			fmt.Printf("Cover image migration complete: %d cover images generated\n", count)
+		}
+		os.Exit(0)
 	}
 
 	// Load persisted UUID IAM client credentials (from activation on previous restarts)
