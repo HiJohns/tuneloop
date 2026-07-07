@@ -408,7 +408,7 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	// Handle Video field
-	if req.Deposit != nil {
+	if req.Deposit != nil && *req.Deposit > 0 {
 		instrument.Deposit = req.Deposit
 	}
 
@@ -494,7 +494,7 @@ func UpdateInstrument(c *gin.Context) {
 	if req.Poster != nil {
 		instrument.Poster = *req.Poster
 	}
-	if req.Deposit != nil {
+	if req.Deposit != nil && *req.Deposit > 0 {
 		instrument.Deposit = req.Deposit
 	}
 	log.Printf("[DEBUG] req.CategoryID = '%v', req.Level = '%v'", req.CategoryID, req.Level)
@@ -606,7 +606,7 @@ func UpdateInstrument(c *gin.Context) {
 		updates["poster"] = *req.Poster
 	}
 
-	if req.Deposit != nil {
+	if req.Deposit != nil && *req.Deposit > 0 {
 		updates["deposit"] = *req.Deposit
 	}
 
