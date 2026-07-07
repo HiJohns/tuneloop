@@ -340,8 +340,8 @@ export default function OrderDetail() {
                 const rate = t.daily_rate || baseRate
                 const segAmount = segDays * rate
                 const startDay = prevMax + 1
-                const endDay = t.days_max > 0 ? prevMax + segDays : startDay + segDays - 1
-                const range = t.days_max > 0 ? `${startDay}-${endDay}天` : `${startDay}天以上`
+                const endDay = startDay + segDays - 1
+                const range = segDays === 1 ? `${startDay}天` : `${startDay}-${endDay}天`
                 rows.push({ range, rate, segDays, segAmount })
                 remaining -= segDays
                 prevMax = t.days_max > 0 ? t.days_max : prevMax + segDays
