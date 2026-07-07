@@ -156,6 +156,11 @@ func GetPublicInstruments(c *gin.Context) {
 			}
 		}
 
+		coverURL := instrument.CoverImage
+		if coverURL == "" {
+			coverURL = thumbMap[instrument.ID]
+		}
+
 		responseInstruments = append(responseInstruments, map[string]interface{}{
 			"id":              instrument.ID,
 			"sn":              instrument.SN,
@@ -164,6 +169,7 @@ func GetPublicInstruments(c *gin.Context) {
 			"level_name":      instrument.LevelName,
 			"level_id":        instrument.LevelID,
 			"images":          instrument.Images,
+			"cover_image":     coverURL,
 			"pricing":         instrument.Pricing,
 			"base_daily_rate": instrument.BaseDailyRate,
 			"total_price":     instrument.TotalPrice,
