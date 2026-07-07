@@ -310,7 +310,7 @@ function SingleCheckout({ id, navigate }) {
             )}
             <View className="flex justify-between items-center">
               <Text className="text-zinc-400">押金</Text>
-              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
+              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}{deposit === 0 ? <Text className="text-[10px] text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
             </View>
             <View className="flex justify-between items-center">
               <Text className="text-zinc-400">物流费</Text>
@@ -320,6 +320,7 @@ function SingleCheckout({ id, navigate }) {
               <Text className="text-zinc-900">合计</Text>
               <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(0)}</Text>
             </View>
+            <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(0)} + 押金 ¥{deposit} + 物流费 ¥{shippingFee}</Text>
           </View>
         </View>
 
