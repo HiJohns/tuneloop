@@ -147,6 +147,7 @@ func GetInstrumentByID(c *gin.Context) {
 		"images":          json.RawMessage(instrument.Images),
 		"video":           videoURL,
 		"poster":          instrument.Poster,
+		"cover_image":     instrument.CoverImage,
 		"base_daily_rate": instrument.BaseDailyRate,
 		"total_price":     instrument.TotalPrice,
 		"stock_status":    instrument.StockStatus,
@@ -279,7 +280,7 @@ func GetInstrumentByID(c *gin.Context) {
 			"batches": batches,
 			"video":   videoItem,
 		}
-		if len(displayItems) > 0 {
+		if len(displayItems) > 0 && instrumentMap["cover_image"] == "" {
 			instrumentMap["cover_image"] = displayItems[0].URL
 		}
 	} else {

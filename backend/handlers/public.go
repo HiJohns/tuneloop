@@ -240,6 +240,7 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		"level_name":      instrument.LevelName,
 		"level_id":        instrument.LevelID,
 		"images":          instrument.Images,
+		"cover_image":     instrument.CoverImage,
 		"video":           instrument.Video,
 		"poster":          instrument.Poster,
 		"pricing":         instrument.Pricing,
@@ -267,6 +268,10 @@ func GetPublicInstrumentByID(c *gin.Context) {
 			url = "/uploads/media/" + key
 		}
 		response["thumbnail"] = url
+		// Fallback: use first display image as cover if none set
+		if response["cover_image"] == "" {
+			response["cover_image"] = url
+		}
 	}
 
 	// Resolve video URL from instrument_media storage_key (more reliable than instrument.Video)
