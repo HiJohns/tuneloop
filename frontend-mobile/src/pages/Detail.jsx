@@ -330,6 +330,12 @@ export default function Detail() {
                   )}
                 </View>
               )}
+              <View className="border-t border-zinc-100 pt-2 mt-1 space-y-1">
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500">合计金额</Text>
+                  <Text className="text-black font-bold">预付全款租金 + 固定押金 + 往返运费</Text>
+                </View>
+              </View>
               <View className="border-t border-zinc-100 pt-2 mt-1">
                 <Text className="text-xs text-orange-600 font-medium">
                   ⚠️ 逾期后每日自动扣款 ¥{overdueDailyFee}/日；押金归还质检通过后退还
@@ -412,9 +418,6 @@ export default function Detail() {
                 <Text className="text-white font-black text-base">立即租赁</Text>
               </View>
             </View>
-            <Text className="block text-center text-xs font-bold text-zinc-400 tracking-wide">
-              合计金额：预付全款租金 + 固定押金 + 往返运费
-            </Text>
           </>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
