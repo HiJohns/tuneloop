@@ -174,7 +174,8 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
     if (!hasPricePerm) return
     api.get('/pricing/merchant-config').then(res => {
       if (res.code === 20000 && res.data.configured) {
-        setMerchantPricingConfig(res.data.config)
+        const cfg = typeof res.data.config === 'string' ? JSON.parse(res.data.config) : res.data.config
+        setMerchantPricingConfig(cfg)
       }
     }).catch(() => {})
   }, [hasPricePerm])
@@ -1292,11 +1293,11 @@ const loadCategoryChildren = async (node) => {
             </Form.Item>
              <Form.Item label="押金(¥)" name="deposit">
                <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }}
-                 placeholder={merchantPricingConfig ? (
-                   merchantPricingConfig.deposit_mode === 'ratio'
-                     ? `建议 ¥${((baseDailyRate || 0) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)}`
-                     : `固定 ¥${merchantPricingConfig.deposit_fixed || 0}`
-                 ) : '输入押金金额'} />
+                 placeholder={merchantPricingConfig && typeof merchantPricingConfig === 'object'
+                   ? (merchantPricingConfig.deposit_mode === 'ratio'
+                       ? `建议 ¥${((baseDailyRate || 0) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)} (日租金×${merchantPricingConfig.deposit_multiplier || 7})`
+                       : `固定 ¥${merchantPricingConfig.deposit_fixed || 0}`)
+                   : `建议: ¥${(baseDailyRate || 0) * 7} (日租金×7)`} />
              </Form.Item>
             <Form.Item label="物流费(¥)" name="shipping_fee">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
