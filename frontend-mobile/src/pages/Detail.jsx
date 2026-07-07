@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import { env, storage, eventBus, getWindowSize } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 
 const SERVICE_ITEMS = [
   { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
@@ -204,17 +205,35 @@ export default function Detail() {
             }}>
             {bannerImages.length > 0 && (
               <View key="clone-last" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover" />
+                <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover"
+                  onClick={() => {
+                    try {
+                      const urls = bannerImages.map(img => img.url || img)
+                      Taro.previewImage({ urls, current: urls[urls.length - 1] })
+                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                  }} />
               </View>
             )}
             {bannerImages.map((img, i) => (
               <View key={i} className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={img.url || img} className="w-full h-full object-cover" />
+                <Image src={img.url || img} className="w-full h-full object-cover"
+                  onClick={() => {
+                    try {
+                      const urls = bannerImages.map(img => img.url || img)
+                      Taro.previewImage({ urls, current: img.url || img })
+                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                  }} />
               </View>
             ))}
             {bannerImages.length > 0 && (
               <View key="clone-first" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover" />
+                <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover"
+                  onClick={() => {
+                    try {
+                      const urls = bannerImages.map(img => img.url || img)
+                      Taro.previewImage({ urls, current: urls[0] })
+                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                  }} />
               </View>
             )}
           </View>
