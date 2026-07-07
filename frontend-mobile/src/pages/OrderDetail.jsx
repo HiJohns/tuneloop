@@ -363,6 +363,7 @@ export default function OrderDetail() {
               </View>
             )}
             {deposit > 0 && (
+              <>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">押金</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
@@ -374,6 +375,7 @@ export default function OrderDetail() {
                     : `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier || 7}`}
                 </Text>
               )}
+              </>
             )}
             {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
               <View className="flex justify-between text-sm">
