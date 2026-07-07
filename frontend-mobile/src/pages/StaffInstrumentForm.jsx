@@ -271,7 +271,8 @@ export default function StaffInstrumentForm() {
             </View>
             <View>
               <label className={labelClass}>押金(¥)</label>
-              <input className={inputClass} type="number" min="0" step="1" value={form.deposit} onChange={e => handleChange('deposit', e.target.value)} placeholder="0" />
+               <input className={inputClass} type="number" min="0" step="1" value={form.deposit} onChange={e => handleChange('deposit', e.target.value)}
+                 placeholder={form.base_daily_rate ? `建议: ¥${(parseFloat(form.base_daily_rate) * 7).toFixed(0)}` : '输入押金金额'} />
             </View>
             <View>
               <label className={labelClass}>逾期日费(¥/天)</label>

@@ -1290,9 +1290,14 @@ const loadCategoryChildren = async (node) => {
             <Form.Item label="总价(¥)" name="total_price">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} placeholder="乐器总价" onChange={(val) => setTotalPrice(val)} />
             </Form.Item>
-            <Form.Item label="押金(¥)" name="deposit">
-              <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
-            </Form.Item>
+             <Form.Item label="押金(¥)" name="deposit">
+               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }}
+                 placeholder={merchantPricingConfig ? (
+                   merchantPricingConfig.deposit_mode === 'ratio'
+                     ? `建议 ¥${((baseDailyRate || 0) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)}`
+                     : `固定 ¥${merchantPricingConfig.deposit_fixed || 0}`
+                 ) : '输入押金金额'} />
+             </Form.Item>
             <Form.Item label="物流费(¥)" name="shipping_fee">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
             </Form.Item>
@@ -1321,8 +1326,8 @@ const loadCategoryChildren = async (node) => {
                 })}
                 <div style={{ borderTop: '1px solid #e8e8e8', marginTop: 8, paddingTop: 8, fontSize: 14 }}>
                   押金: ¥{merchantPricingConfig.deposit_mode === 'ratio'
-                    ? ((totalPrice > 0 ? parseFloat(totalPrice) : parseFloat(baseDailyRate)) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)
-                    : (merchantPricingConfig.deposit_fixed || 0)}
+                     ? (parseFloat(baseDailyRate || 0) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)
+                     : (merchantPricingConfig.deposit_fixed || 0)}
                 </div>
               </div>
             )}
