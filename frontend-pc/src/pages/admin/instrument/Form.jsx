@@ -1408,27 +1408,32 @@ const loadCategoryChildren = async (node) => {
           )}
         </Form.Item>
 
-        <Form.Item
-          name="poster"
-          label="海报"
-          extra="建议宽度不超过 750px，适配手机阅读"
-        >
-          <Input placeholder="输入海报图片 URL" style={{ maxWidth: 400 }} addonAfter={
-            <Upload
-              maxCount={1}
-              accept="image/*"
-              showUploadList={false}
-              action={`${API_BASE_URL}/upload`}
-              onChange={(info) => {
-                if (info.file.status === 'done') {
-                  const url = info.file.response?.data?.url || info.file.response?.url || ''
-                  form.setFieldsValue({ poster: url })
-                }
-              }}
-            >
-              <UploadOutlined style={{ cursor: 'pointer' }} />
-            </Upload>
-          } />
+        <Form.Item label="海报" extra="建议宽度不超过 750px，适配手机阅读">
+          <Upload
+            maxCount={1}
+            accept="image/*"
+            showUploadList={false}
+            action={`${API_BASE_URL}/upload`}
+            onChange={(info) => {
+              if (info.file.status === 'done') {
+                const url = info.file.response?.data?.url || info.file.response?.url || ''
+                form.setFieldsValue({ poster: url })
+              }
+            }}
+          >
+            {form.getFieldValue('poster') ? (
+              <div className="relative">
+                <img src={form.getFieldValue('poster')} alt="poster" className="w-32 h-20 object-cover rounded border" />
+                <div className="absolute top-0 right-0 -mt-1 -mr-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); form.setFieldsValue({ poster: '' }) }}>×</div>
+              </div>
+            ) : (
+              <Button icon={<UploadOutlined />}>选择海报图片</Button>
+            )}
+          </Upload>
+          {form.getFieldValue('poster') && (
+            <div className="mt-1 text-xs text-gray-400">点击缩略图可替换</div>
+          )}
         </Form.Item>
 
         <Form.Item label="封面图" extra="72x72 缩略图，建议上传大于 72x72 的图片">
@@ -1441,13 +1446,18 @@ const loadCategoryChildren = async (node) => {
               return false
             }}
           >
-            <Button icon={<UploadOutlined />}>
-              {coverFile ? coverFile.name : '选择封面图'}
-            </Button>
+            {coverFile ? (
+              <img src={URL.createObjectURL(coverFile)} alt="cover" className="w-16 h-16 object-cover rounded border" />
+            ) : initialData?.cover_image ? (
+              <div className="relative">
+                <img src={initialData.cover_image} alt="cover" className="w-16 h-16 object-cover rounded border" />
+                <div className="absolute top-0 right-0 -mt-1 -mr-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); setCoverFile(null); initialData.cover_image = '' }}>×</div>
+              </div>
+            ) : (
+              <Button icon={<UploadOutlined />}>选择封面图</Button>
+            )}
           </Upload>
-          {initialData?.cover_image && (
-            <img src={initialData.cover_image} alt="cover" className="mt-2 w-16 h-16 object-cover rounded" />
-          )}
         </Form.Item>
 
         <Form.Item>
