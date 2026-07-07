@@ -448,18 +448,22 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 		if item.Deposit > 0 {
 			pricing["deposit"] = item.Deposit
 		} else if instrument.TotalPrice != nil && *instrument.TotalPrice > 0 {
-			// Fallback: calculate deposit from system ratio × total_price
-			depositRatio := 0.3
+			// Fallback: calculate deposit from system multiplier × daily_rate
+			depositMultiplier := 7.0
 			var config models.MerchantPricingConfig
 			if err := db.Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err == nil {
 				var cfgMap map[string]interface{}
 				if json.Unmarshal([]byte(config.Config), &cfgMap) == nil {
-					if r, ok := cfgMap["deposit_ratio"].(float64); ok && r > 0 {
-						depositRatio = r
+					if r, ok := cfgMap["deposit_multiplier"].(float64); ok && r > 0 {
+						depositMultiplier = r
 					}
 				}
 			}
-			pricing["deposit"] = *instrument.TotalPrice * depositRatio
+			dailyRate, _ := pricing["daily_rent"].(float64)
+			if dailyRate <= 0 {
+				dailyRate = 0
+			}
+			pricing["deposit"] = dailyRate * depositMultiplier
 		} else {
 			pricing["deposit"] = float64(0)
 		}

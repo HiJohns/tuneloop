@@ -31,7 +31,7 @@ function PricingPreview({ baseDailyRate, config }) {
       })}
       <div className="border-t mt-1 pt-1 text-gray-500">
         押金: ¥{config.deposit_mode === 'ratio'
-          ? (baseDailyRate * (config.deposit_ratio || 2)).toFixed(0)
+          ? (baseDailyRate * (config.deposit_multiplier || 7)).toFixed(0)
           : (config.deposit_fixed || 0)}
       </div>
     </div>
@@ -396,7 +396,7 @@ export default function InventoryRentSetting() {
                 })}
                 <Card size="small" title="押金" className="mt-2">
                   {merchantConfig.deposit_mode === 'ratio'
-                    ? `第一阶梯日均价 × ${merchantConfig.deposit_ratio || 2}倍`
+                    ? `第一阶梯日均价 × ${merchantConfig.deposit_multiplier || 7}倍`
                     : `固定 ¥${merchantConfig.deposit_fixed || 0}`}
                 </Card>
               </div>

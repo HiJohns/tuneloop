@@ -10,7 +10,7 @@ const DEFAULT_CONFIG = {
     { name: '长期租赁', days_max: -1, discount_percent: 10 },
   ],
   deposit_mode: 'ratio',
-  deposit_ratio: 0.3,
+  deposit_multiplier: 7,
   deposit_fixed: 0,
 }
 
@@ -18,7 +18,7 @@ export default function MerchantPricingConfig() {
   const [loading, setLoading] = useState(false)
   const [tiers, setTiers] = useState([])
   const [depositMode, setDepositMode] = useState('ratio')
-  const [depositRatio, setDepositRatio] = useState(2.0)
+  const [depositRatio, setDepositRatio] = useState(7.0)
   const [depositFixed, setDepositFixed] = useState(0)
   const [templateId, setTemplateId] = useState(null)
   const [configured, setConfigured] = useState(false)
@@ -60,7 +60,7 @@ export default function MerchantPricingConfig() {
     }))
     setTiers(tiers)
     setDepositMode(config.deposit_mode || 'ratio')
-    setDepositRatio(config.deposit_ratio || 2.0)
+    setDepositRatio(config.deposit_multiplier || 7.0)
     setDepositFixed(config.deposit_fixed || 0)
   }
 
@@ -107,7 +107,7 @@ export default function MerchantPricingConfig() {
     const config = {
       tiers,
       deposit_mode: depositMode,
-      deposit_ratio: depositMode === 'ratio' ? depositRatio : 0,
+      deposit_multiplier: depositMode === 'ratio' ? depositRatio : 0,
       deposit_fixed: depositMode === 'fixed' ? depositFixed : 0,
     }
 

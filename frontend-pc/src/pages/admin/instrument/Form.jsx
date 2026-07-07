@@ -1321,7 +1321,7 @@ const loadCategoryChildren = async (node) => {
                 })}
                 <div style={{ borderTop: '1px solid #e8e8e8', marginTop: 8, paddingTop: 8, fontSize: 14 }}>
                   押金: ¥{merchantPricingConfig.deposit_mode === 'ratio'
-                    ? ((totalPrice > 0 ? parseFloat(totalPrice) : parseFloat(baseDailyRate)) * (merchantPricingConfig.deposit_ratio || 0.3)).toFixed(0)
+                    ? ((totalPrice > 0 ? parseFloat(totalPrice) : parseFloat(baseDailyRate)) * (merchantPricingConfig.deposit_multiplier || 7)).toFixed(0)
                     : (merchantPricingConfig.deposit_fixed || 0)}
                 </div>
               </div>
