@@ -122,6 +122,7 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [coverFile, setCoverFile] = useState(null)
   const [hasPricePerm, setHasPricePerm] = useState(false)
   const [merchantPricingConfig, setMerchantPricingConfig] = useState(null)
+  const [usingDefaultConfig, setUsingDefaultConfig] = useState(false)
   const [baseDailyRate, setBaseDailyRate] = useState(null)
   const [totalPrice, setTotalPrice] = useState(null)
   const snCheckTimer = useRef(null)
@@ -176,6 +177,9 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
       if (res.code === 20000 && res.data.configured) {
         const cfg = typeof res.data.config === 'string' ? JSON.parse(res.data.config) : res.data.config
         setMerchantPricingConfig(cfg)
+        setUsingDefaultConfig(false)
+      } else if (res.code === 20000 && !res.data.configured) {
+        setUsingDefaultConfig(true)
       }
     }).catch(() => {})
   }, [hasPricePerm])
@@ -1351,7 +1355,8 @@ const loadCategoryChildren = async (node) => {
                </div>
                )
              })()}
-             {!merchantPricingConfig && <span style={{ color: '#999' }}>商户尚未配置定价策略</span>}
+             {usingDefaultConfig && <span style={{ color: '#999' }}>使用系统默认定价策略</span>}
+             {merchantPricingConfig && <span style={{ color: '#999' }}>使用商户定价策略</span>}
           </Card>
         )}
 
