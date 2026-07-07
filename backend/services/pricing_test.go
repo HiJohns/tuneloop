@@ -5,11 +5,11 @@ import (
 )
 
 func TestCalculatePricing_Deposit(t *testing.T) {
-	config := `{"deposit_mode":"ratio","deposit_ratio":0.1,"deposit_multiplier":7}`
+	config := `{"deposit_mode":"ratio","deposit_ratio":0.3,"deposit_multiplier":7}`
 
 	t.Run("total_price > 0 uses total_price × deposit_ratio", func(t *testing.T) {
 		result := CalculatePricing(100, 50000, config, "{}")
-		expected := 50000.0 * 0.1
+		expected := 50000.0 * 0.3
 		if result.Deposit != expected {
 			t.Errorf("expected deposit %.0f, got %.0f (totalPrice×ratio)", expected, result.Deposit)
 		}

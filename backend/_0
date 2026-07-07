@@ -1,0 +1,15 @@
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestCalculatePricing_Deposit
+=== RUN   TestCalculatePricing_Deposit/total_price_>_0_uses_total_price_×_deposit_ratio
+    pricing_test.go:14: expected deposit 5000, got 15000 (totalPrice×ratio)
+=== RUN   TestCalculatePricing_Deposit/total_price_=_0_uses_baseDailyRate_×_deposit_multiplier
+=== RUN   TestCalculatePricing_Deposit/total_price_>_0_with_custom_deposit_ratio
+=== RUN   TestCalculatePricing_Deposit/total_price_=_0_custom_deposit_multiplier
+--- FAIL: TestCalculatePricing_Deposit (0.00s)
+    --- FAIL: TestCalculatePricing_Deposit/total_price_>_0_uses_total_price_×_deposit_ratio (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_=_0_uses_baseDailyRate_×_deposit_multiplier (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_>_0_with_custom_deposit_ratio (0.00s)
+    --- PASS: TestCalculatePricing_Deposit/total_price_=_0_custom_deposit_multiplier (0.00s)
+FAIL
+FAIL	tuneloop-backend/services	0.024s
+FAIL

@@ -449,7 +449,7 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			pricing["deposit"] = item.Deposit
 		} else if instrument.TotalPrice != nil && *instrument.TotalPrice > 0 {
 			// Fallback: use deposit_ratio × total_price when total_price exists
-			depositRatio := 0.1
+			depositRatio := 0.3
 			var config models.MerchantPricingConfig
 			if err := db.Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err == nil {
 				var cfgMap map[string]interface{}
