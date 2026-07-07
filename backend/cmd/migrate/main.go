@@ -36,6 +36,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nAvailable commands (pass as arg):\n")
 		fmt.Fprintf(os.Stderr, "  migrate-display-webp    Convert all display images to WebP\n")
 		fmt.Fprintf(os.Stderr, "  preview-webp             Preview how many images would be converted\n")
+		fmt.Fprintf(os.Stderr, "  migrate-cover-images     Generate cover images for instruments without one\n")
 	}
 
 	flag.Parse()
@@ -65,6 +66,18 @@ func main() {
 			log.Fatalf("Preview failed: %v", err)
 		}
 		fmt.Printf("Display images: %d total, %d already WebP, %d need conversion\n", total, already, needs)
+
+	case "migrate-cover-images":
+		dryRun := len(args) > 1 && args[1] == "--dry-run"
+		count, err := handlers.MigrateInstrumentCoverImages(dryRun)
+		if err != nil {
+			log.Fatalf("Cover migration failed: %v", err)
+		}
+		if dryRun {
+			log.Printf("DRY RUN: would generate %d cover images", count)
+		} else {
+			log.Printf("Generated %d cover images", count)
+		}
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", args[0])
