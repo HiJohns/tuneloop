@@ -845,7 +845,12 @@
 
 > **注**: `days_max=0` 表示无上限（即超过 365 天后按此费率）。
 >
-> **押金计算**：ratio 模式下 `deposit = total_price × deposit_ratio`（`deposit_ratio` 默认定价策略为 0.3，即总价 30%）。若 `total_price` 未设置，回退为 `base_daily_rate × deposit_ratio`。网点管理员可通过批零价覆盖手动修改押金金额。
+> **押金计算**：ratio 模式下优先级为：
+> 1. 用户手动录入押金（最高优先级）
+> 2. 有总价时：`deposit = total_price × deposit_ratio`（`deposit_ratio` 默认 0.3，即总价 30%）
+> 3. 仅日租金时：`deposit = base_daily_rate × deposit_multiplier`（`deposit_multiplier` 默认 7，即 7 倍日租金）
+>
+> 两参数可在商户定价策略中分别配置。网点管理员可通过批零价覆盖手动修改押金金额。
 
 ---
 
