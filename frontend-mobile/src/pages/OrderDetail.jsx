@@ -324,23 +324,42 @@ export default function OrderDetail() {
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.pricing_breakdown.rent_days}</Text>
               </View>
             )}
+            {/* Tier-by-tier breakdown */}
+            {(order.pricing_breakdown.pricing_tiers?.length > 0 || (pb?.rent_days && pb?.base_daily_rent)) && (() => {
+              const tiers = order.pricing_breakdown.pricing_tiers || []
+              const days = order.pricing_breakdown.rent_days
+              const baseRate = order.pricing_breakdown.base_daily_rent || order.pricing_breakdown.final_daily_rent || 0
+              let remaining = days
+              let prevMax = 0
+              const rows = []
+              const tierList = tiers.length > 0 ? tiers : [{ days_max: -1, daily_rate: baseRate }]
+              for (const t of tierList) {
+                const tierDays = t.days_max > 0 ? t.days_max - prevMax : remaining
+                const segDays = Math.min(tierDays, remaining)
+                if (segDays <= 0) break
+                const rate = t.daily_rate || baseRate
+                const segAmount = segDays * rate
+                const startDay = prevMax + 1
+                const endDay = t.days_max > 0 ? prevMax + segDays : startDay + segDays - 1
+                const range = t.days_max > 0 ? `${startDay}-${endDay}天` : `${startDay}天以上`
+                rows.push({ range, rate, segDays, segAmount })
+                remaining -= segDays
+                prevMax = t.days_max > 0 ? t.days_max : prevMax + segDays
+              }
+              return (
+                <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
+                  {rows.map((r, i) => (
+                    <Text key={i} className="block">
+                      {r.range}: ¥{r.rate}/天 × {r.segDays}天 = ¥{r.segAmount.toFixed(0)}
+                    </Text>
+                  ))}
+                </View>
+              )
+            })()}
             {order.pricing_breakdown.total_amount && (
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">总金额</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
-              </View>
-            )}
-            {order.pricing_breakdown.final_daily_rent && order.pricing_breakdown.base_daily_rent && order.pricing_breakdown.final_daily_rent !== order.pricing_breakdown.base_daily_rent && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">折扣后日租金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.final_daily_rent}</Text>
-              </View>
-            )}
-            {order.pricing_breakdown.applied_policies && order.pricing_breakdown.applied_policies.length > 0 && (
-              <View className="text-xs text-zinc-400 mt-1 space-y-1">
-                {order.pricing_breakdown.applied_policies.map((p, i) => (
-                  <Text key={i} className="block">{p.plan_name}: {Math.round((1 - (p.rate || 1)) * 100)}% 折扣</Text>
-                ))}
               </View>
             )}
             {deposit > 0 && (
@@ -348,6 +367,13 @@ export default function OrderDetail() {
                 <Text className="text-zinc-500 font-medium">押金</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
               </View>
+              {order.pricing_breakdown.deposit_method && (
+                <Text className="text-[10px] text-zinc-400 text-right -mt-1">
+                  {order.pricing_breakdown.deposit_method === 'total_price'
+                    ? `原价 ¥${order.pricing_breakdown.total_price || 0} × ${order.pricing_breakdown.deposit_ratio || 0}`
+                    : `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier || 7}`}
+                </Text>
+              )}
             )}
             {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
               <View className="flex justify-between text-sm">
