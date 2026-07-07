@@ -200,12 +200,29 @@ export default function OrderDetail() {
   const monthlyRent = order.monthly_rent || 0
   const shippingFee = order.shipping_fee || 0
 
+  console.log('[OrderDetail DEBUG] order fields:', {
+    id: order.order_id || order.id,
+    monthlyRent: order.monthly_rent,
+    deposit: order.deposit,
+    shippingFee: order.shipping_fee,
+    pricingBreakdown: order.pricing_breakdown,
+  })
+
   const settlement = order.settlement
 
   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(endDate) < new Date()
   const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(endDate)) / (1000 * 60 * 60 * 24)) : 0
   const overdueFee = isOverdue ? ((monthlyRent / 30) * overdueDaysCalc).toFixed(2) : 0
   const totalAmount = monthlyRent + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
+
+  console.log('[OrderDetail DEBUG] totalAmount calc:', {
+    monthlyRent,
+    deposit,
+    shippingFee,
+    overdueFee,
+    totalAmount,
+    formula: `${monthlyRent} + ${deposit} + ${shippingFee} = ${totalAmount}`,
+  })
 
   const showPayButton = status === 'reserved'
   const showCancelButton = status === 'paid' || status === 'pending_shipment' || status === 'in_transit'
@@ -310,6 +327,7 @@ export default function OrderDetail() {
           {/* Pricing breakdown (if available) */}
           {order.pricing_breakdown && typeof order.pricing_breakdown === 'object' && (
             <>
+            {console.log('[OrderDetail DEBUG] pricing_breakdown fields:', Object.keys(order.pricing_breakdown), order.pricing_breakdown)}
             {order.pricing_breakdown.base_daily_rent && (
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">日租金</Text>
@@ -336,6 +354,11 @@ export default function OrderDetail() {
             )}
             {order.pricing_breakdown.applied_policies && order.pricing_breakdown.applied_policies.length > 0 && (
               <View className="text-xs text-zinc-400 mt-1 space-y-1">
+                {console.log('[OrderDetail DEBUG] discounts applied:', order.pricing_breakdown.applied_policies, '→ dailys:', {
+                  base: order.pricing_breakdown.base_daily_rent,
+                  final: order.pricing_breakdown.final_daily_rent,
+                  total: order.pricing_breakdown.total_amount,
+                })}
                 {order.pricing_breakdown.applied_policies.map((p, i) => (
                   <Text key={i} className="block">{p.plan_name}: {Math.round((1 - (p.rate || 1)) * 100)}% 折扣</Text>
                 ))}
