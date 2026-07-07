@@ -341,10 +341,10 @@ export default function OrderDetail() {
                 ))}
               </View>
             )}
-            {order.pricing_breakdown.deposit !== undefined && Number(order.pricing_breakdown.deposit) > 0 && (
+            {deposit > 0 && (
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">押金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.pricing_breakdown.deposit).toFixed(0)}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
               </View>
             )}
             {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
