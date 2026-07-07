@@ -282,16 +282,7 @@ func GetInstrumentPricingV2(c *gin.Context) {
 	var config models.MerchantPricingConfig
 	if err := db.Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Fallback to system default template
-			var defaultTemplate models.PricingTemplate
-			if err2 := db.Where("is_system_default = ? AND is_active = ?", true, true).First(&defaultTemplate).Error; err2 != nil {
-				c.JSON(http.StatusNotFound, gin.H{
-					"code":    40400,
-					"message": "no pricing template found",
-				})
-				return
-			}
-			config.Config = defaultTemplate.ConfigSchema
+			config.Config = `{"deposit_mode":"ratio","deposit_multiplier":7,"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20},{"days_max":-1,"discount_percent":40}]}`
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
