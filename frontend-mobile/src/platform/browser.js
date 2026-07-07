@@ -99,19 +99,23 @@ export const scanQRCode = () => new Promise((resolve, reject) => {
 })
 
 export const previewImage = ({ urls = [], current = '' }) => {
-  const img = document.createElement('div')
-  img.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center'
+  const container = document.createElement('div')
+  container.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;overflow:auto;-webkit-overflow-scrolling:touch'
   const closeBtn = document.createElement('div')
   closeBtn.textContent = '✕'
   closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);border-radius:50%'
-  const imgEl = document.createElement('img')
-  imgEl.src = current
-  imgEl.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain'
-  closeBtn.onclick = () => document.body.removeChild(img)
-  img.onclick = () => document.body.removeChild(img)
-  img.appendChild(imgEl)
-  img.appendChild(closeBtn)
-  document.body.appendChild(img)
+  const img = document.createElement('img')
+  img.src = current
+  img.style.cssText = 'display:block;max-width:none;max-height:none'
+  // Keep original size but make viewport scrollable
+  img.onload = () => {
+    img.style.width = img.naturalWidth + 'px'
+    img.style.height = img.naturalHeight + 'px'
+  }
+  closeBtn.onclick = () => document.body.removeChild(container)
+  container.appendChild(img)
+  container.appendChild(closeBtn)
+  document.body.appendChild(container)
 }
 
 export const getLocation = () => new Promise((resolve, reject) => {
