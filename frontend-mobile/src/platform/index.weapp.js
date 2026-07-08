@@ -165,7 +165,7 @@ export const onPageScroll = (handler) => {
 }
 
 export const env = {
-  apiBaseUrl: 'https://wx.cadenzayueqi.com/api',
+  apiBaseUrl: '/api',
   iamExternalUrl: '',
   isDev: process.env.NODE_ENV === 'development',
   isWechatBrowser: false,

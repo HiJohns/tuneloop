@@ -1,6 +1,5 @@
 export default {
   pages: [
-    'pages/test-minimal/index',
     'pages/home/index',
     'pages/detail/index',
     'pages/booking/index',
