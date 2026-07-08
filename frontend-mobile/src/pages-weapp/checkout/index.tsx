@@ -1,3 +1,2 @@
-import { View } from '@tarojs/components'
-
-export default function CheckoutPlaceholder() { return <View /> }
+import Checkout from '../Checkout'
+export default Checkout
