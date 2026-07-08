@@ -259,7 +259,7 @@ export default function Home() {
       <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, backgroundColor: scrolled ? 'rgba(90,59,36,0.8)' : 'transparent', transition: 'background-color 0.3s' }} />
 
       {/* A: Search bar — fixed above carousel */}
-      <View style={{ position: 'absolute', left: 0, right: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
         <View style={{ width: 250, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxShadow: scrolled ? '0 1px 2px rgba(0,0,0,0.05)' : '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: scrolled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.2)', border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.2)' }}>
           <Text style={{ fontSize: 16, marginRight: 8, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)"
