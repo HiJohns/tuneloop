@@ -5,6 +5,7 @@ const weappPages = [
   'pages-weapp/detail/index',
   'pages-weapp/checkout/index',
   'pages-weapp/success/index',
+  'pages-weapp/my-leases/index',
 ]
 
 const h5Pages = [
