@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, ScrollView, Button, Image, Video } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { View, Text, ScrollView, Button, Image, Video, Input, Textarea } from '@tarojs/components'
+import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import RepairRecordPanel from '../components/RepairRecordPanel'
 
@@ -13,22 +13,41 @@ export default function RepairRequestDetail() {
 
   const [request, setRequest] = useState(null)
   const [records, setRecords] = useState([])
-  const [quoteAmount, setQuoteAmount] = useState('')
+  const [roles, setRoles] = useState([])
+  const [quotes, setQuotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [quoteForm, setQuoteForm] = useState({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' })
+
+  const token = getToken()
+  const isCustomer = (() => {
+    if (!token) return true
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return payload?.role === 'USER' || !payload?.role
+    } catch { return true }
+  })()
+  const isTechnician = roles.includes('repair_technician')
+  const isSiteStaff = roles.some(r => ['site_admin', 'site_member', 'worker'].includes(r))
 
   const fetchData = async () => {
     if (!requestId) return
     setLoading(true)
     try {
-      const [reqRes, recRes] = await Promise.all([
+      const [reqRes, recRes, roleRes, quoteRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-requests/${requestId}`),
         apiFetch(`${baseUrl}/repair-requests/${requestId}/records`),
+        apiFetch(`${baseUrl}/site-members/me`),
+        apiFetch(`${baseUrl}/repair-requests/${requestId}/quotes`),
       ])
       const req = await reqRes.json()
       const rec = await recRes.json()
+      const role = await roleRes.json()
+      const q = await quoteRes.json()
       if (req.code === 20000) setRequest(req.data)
       if (rec.code === 20000) setRecords(rec.data?.records || [])
+      if (role.code === 20000) setRoles(role.data?.roles || [])
+      if (q.code === 20000) setQuotes(q.data?.list || [])
     } catch {}
     setLoading(false)
   }
@@ -44,9 +63,68 @@ export default function RepairRequestDetail() {
         body: JSON.stringify(body),
       })
       const r = await resp.json()
+      if (r.code === 20000) {
+        setQuoteForm({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' })
+        await fetchData()
+      } else {
+        alert(r.message || '操作失败')
+      }
+    } catch (err) { alert('操作失败') }
+    setActionLoading(false)
+  }
+
+  const handleRepairAction = async (action) => {
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair/${requestId}/${action}`, { method: 'POST' })
+      const r = await resp.json()
       if (r.code === 20000) { await fetchData() }
       else { alert(r.message || '操作失败') }
-    } catch (err) { alert('操作失败') }
+    } catch { alert('操作失败') }
+    setActionLoading(false)
+  }
+
+  const handleAcceptQuote = async (quoteId) => {
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/quotes/${quoteId}/accept`, { method: 'POST' })
+      const r = await resp.json()
+      if (r.code === 20000) { await fetchData() }
+      else { alert(r.message || '操作失败') }
+    } catch { alert('操作失败') }
+    setActionLoading(false)
+  }
+
+  const handleAppeal = async () => {
+    setActionLoading(true)
+    try {
+      const reason = prompt('请输入申诉原因')
+      if (!reason) { setActionLoading(false); return }
+      const resp = await apiFetch(`${baseUrl}/repair-appeals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'repair',
+          object_type: 'repair_request',
+          object_id: requestId,
+          description: reason,
+        }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) { await fetchData() }
+      else { alert(r.message || '申诉提交失败') }
+    } catch { alert('操作失败') }
+    setActionLoading(false)
+  }
+
+  const handleConfirmReceipt = async () => {
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/receive`, { method: 'POST' })
+      const r = await resp.json()
+      if (r.code === 20000) { await fetchData() }
+      else { alert(r.message || '操作失败') }
+    } catch { alert('操作失败') }
     setActionLoading(false)
   }
 
@@ -92,10 +170,12 @@ export default function RepairRequestDetail() {
               <Text className="text-xs text-zinc-400">描述</Text>
               <Text className="text-xs text-zinc-600">{request.description || '-'}</Text>
             </View>
+            {isCustomer && (
             <View className="flex justify-between items-center">
               <Text className="text-xs text-zinc-400">报修人</Text>
               <Text className="text-xs text-zinc-600">{request.reporter_name || '-'}</Text>
             </View>
+            )}
             <View className="flex justify-between items-center">
               <Text className="text-xs text-zinc-400">商户</Text>
               <Text className="text-xs text-zinc-600">{request.merchant_name || '-'}</Text>
@@ -108,30 +188,6 @@ export default function RepairRequestDetail() {
               <Text className="text-xs text-zinc-400">创建时间</Text>
               <Text className="text-xs text-zinc-600">{request.created_at ? new Date(request.created_at).toLocaleString() : '-'}</Text>
             </View>
-            {request.quote_amount != null && (
-            <View className="flex justify-between items-center">
-              <Text className="text-xs text-zinc-400">报价</Text>
-              <Text className="text-xs text-zinc-600">¥{request.quote_amount}</Text>
-            </View>
-            )}
-            {request.inspection_fee != null && (
-            <View className="flex justify-between items-center">
-              <Text className="text-xs text-zinc-400">检测费</Text>
-              <Text className="text-xs text-zinc-600">¥{request.inspection_fee}</Text>
-            </View>
-            )}
-            {request.shipping_fee != null && (
-            <View className="flex justify-between items-center">
-              <Text className="text-xs text-zinc-400">运费</Text>
-              <Text className="text-xs text-zinc-600">¥{request.shipping_fee}</Text>
-            </View>
-            )}
-            {request.tracking_number && (
-            <View className="flex justify-between items-center">
-              <Text className="text-xs text-zinc-400">物流单号</Text>
-              <Text className="text-xs text-zinc-600">{request.tracking_number}</Text>
-            </View>
-            )}
           </View>
         </View>
 
@@ -153,32 +209,161 @@ export default function RepairRequestDetail() {
         </View>
         )}
 
-        {/* Repair records */}
-        <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
-          onRecordAdded={fetchData} />
+        {/* Repair records panel — only for the repair requester */}
+        {isCustomer && (
+          <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
+            onRecordAdded={fetchData} />
+        )}
 
-        {/* Actions for inspecting */}
-        {status === 'inspecting' && (
+        {/* ========== PENDING ASSESSMENT ========== */}
+        {status === 'pending_assessment' && isTechnician && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-sm font-bold text-black mb-2">提交报价</Text>
-            <Text className="text-xs text-red-500 mb-2">* 请拍摄乐器识别码特写照片</Text>
-            <input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-              value={quoteAmount} onChange={e => setQuoteAmount(e.target.value)} placeholder="报价金额（元）" type="number" />
-            <Button onClick={() => handleAction('quote', { quote_amount: quoteAmount })}
-              disabled={actionLoading || !quoteAmount}
+            <Text className="text-sm font-bold text-black mb-3">提交报价</Text>
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
+              placeholder="材料费（元）" type="number" />
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
+              placeholder="服务费（元）" type="number" />
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
+              placeholder="物流费（元）" type="number" />
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
+              placeholder="工期（如：3个工作日）" />
+            <Textarea className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2 min-h-[60px]"
+              value={quoteForm.comment} onInput={e => setQuoteForm(p => ({ ...p, comment: e.detail?.value || e.target?.value || '' }))}
+              placeholder="报价备注（禁止含联系方式）" />
+            <Button onClick={() => handleAction('quotes', {
+              material_fee: Number(quoteForm.material_fee),
+              service_fee: Number(quoteForm.service_fee),
+              logistics_fee: Number(quoteForm.logistics_fee),
+              duration: quoteForm.duration,
+              comment: quoteForm.comment,
+            })}
+              disabled={actionLoading || !quoteForm.material_fee || !quoteForm.service_fee}
               className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               提交报价
             </Button>
           </View>
         )}
 
-        {/* Actions for repairing */}
-        {status === 'repairing' && (
+        {status === 'pending_assessment' && isCustomer && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-xs text-red-500 mb-2">* 维修完成前请拍摄识别码特写照片作为记录</Text>
-            <Button onClick={() => handleAction('complete')} disabled={actionLoading}
-              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center">
+            <Text className="text-sm font-bold text-black mb-3">报价列表</Text>
+            {quotes.length === 0 ? (
+              <Text className="text-xs text-zinc-400">暂无报价</Text>
+            ) : (
+              quotes.filter(q => q.status === 'pending').map(q => (
+                <View key={q.id} className="border border-zinc-200 rounded-xl p-3 mb-3">
+                  <View className="space-y-1">
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">报价单号</Text>
+                      <Text className="text-xs text-zinc-700">{q.quote_no}</Text>
+                    </View>
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">材料费</Text>
+                      <Text className="text-xs text-zinc-700">¥{q.material_fee}</Text>
+                    </View>
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">服务费</Text>
+                      <Text className="text-xs text-zinc-700">¥{q.service_fee}</Text>
+                    </View>
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">物流费</Text>
+                      <Text className="text-xs text-zinc-700">¥{q.logistics_fee}</Text>
+                    </View>
+                    {q.duration && (
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">工期</Text>
+                      <Text className="text-xs text-zinc-700">{q.duration}</Text>
+                    </View>
+                    )}
+                    {q.comment && (
+                    <View className="mt-1">
+                      <Text className="text-xs text-zinc-500">备注：{q.comment}</Text>
+                    </View>
+                    )}
+                  </View>
+                  <Button onClick={() => handleAcceptQuote(q.id)} disabled={actionLoading}
+                    className="w-full mt-2 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm text-center">
+                    接受此报价
+                  </Button>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* ========== REPAIRING ========== */}
+        {status === 'repairing' && isTechnician && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">维修操作</Text>
+            <Button onClick={() => handleRepairAction('complete')} disabled={actionLoading}
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center mb-3">
               维修完成
+            </Button>
+            <View className="border-t border-zinc-200 pt-3">
+              <Text className="text-xs text-zinc-500 mb-2">如需调整报价，可重新报价一次：</Text>
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
+                placeholder="材料费（元）" type="number" />
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
+                placeholder="服务费（元）" type="number" />
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
+                placeholder="物流费（元）" type="number" />
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
+                placeholder="工期（如：3个工作日）" />
+              <Button onClick={() => handleAction('requote', {
+                material_fee: Number(quoteForm.material_fee),
+                service_fee: Number(quoteForm.service_fee),
+                logistics_fee: Number(quoteForm.logistics_fee),
+                duration: quoteForm.duration,
+              })}
+                disabled={actionLoading || !quoteForm.material_fee || !quoteForm.service_fee}
+                className="w-full py-2 bg-yellow-600 text-white rounded-xl font-bold text-sm text-center">
+                重新报价
+              </Button>
+            </View>
+          </View>
+        )}
+
+        {/* ========== RETURNED ========== */}
+        {status === 'returned' && isCustomer && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">已发回</Text>
+            <Text className="text-xs text-zinc-500 mb-3">乐器已发回，请确认收货。</Text>
+            <Button onClick={handleConfirmReceipt} disabled={actionLoading}
+              className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center mb-3">
+              确认收货
+            </Button>
+            <Button onClick={handleAppeal} disabled={actionLoading}
+              className="w-full py-2 bg-red-500 text-white rounded-xl font-bold text-sm text-center">
+              申诉
+            </Button>
+          </View>
+        )}
+
+        {/* ========== TRANSIT PROCESSING (transit staff) ========== */}
+        {status === 'transit_processing' && isSiteStaff && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">中转处理</Text>
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
+              placeholder="中转服务费（元）" type="number" />
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
+              placeholder="中转物流费（元）" type="number" />
+            <Button onClick={() => handleAction('transit-process', {
+              transit_service_fee: Number(quoteForm.material_fee),
+              transit_logistics_fee: Number(quoteForm.service_fee),
+            })}
+              disabled={actionLoading || !quoteForm.material_fee}
+              className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+              提交中转处理
             </Button>
           </View>
         )}
