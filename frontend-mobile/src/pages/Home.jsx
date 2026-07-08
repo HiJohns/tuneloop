@@ -218,7 +218,7 @@ export default function Home() {
             }}>
             {banners.length > 0 && (
               <View key="clone-last" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
-                <Image src={banners[banners.length - 1].image_url} className="w-full h-full" mode="aspectFill" />
+                <Image src={banners[banners.length - 1].image_url} className="w-full h-full object-contain object-top" mode="aspectFill" />
               </View>
             )}
             {banners.map((item, i) => (
@@ -233,7 +233,7 @@ export default function Home() {
               >
                 <Image
                   src={item.image_url}
-                  className="w-full h-full"
+                  className="w-full h-full object-contain object-top"
                   mode="aspectFill"
                 />
                 {item.title ? (
@@ -245,7 +245,7 @@ export default function Home() {
             ))}
             {banners.length > 0 && (
               <View key="clone-first" className="h-full" style={{ width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
-                <Image src={banners[0].image_url} className="w-full h-full" mode="aspectFill" />
+                <Image src={banners[0].image_url} className="w-full h-full object-contain object-top" mode="aspectFill" />
               </View>
             )}
           </View>
