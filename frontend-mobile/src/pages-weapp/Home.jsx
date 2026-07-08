@@ -281,8 +281,8 @@ export default function Home() {
       )}
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, display: 'flex', flexDirection: 'column', top: '142px', bottom: 0, overflow: 'hidden' }}>
-        <ScrollView style={{ flex: '1 1 0%', overflowY: 'auto', backgroundColor: 'transparent' }}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, display: 'flex', flexDirection: 'column', top: '142px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <ScrollView style={{ flex: '1 1 0%', overflowY: 'auto', backgroundColor: 'transparent', pointerEvents: 'auto' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
           <View style={{ height: '100px' }}></View>
@@ -291,7 +291,7 @@ export default function Home() {
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
           </View>
 
-          <View>
+      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101 }}>
             <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
             {loading ? (
               Array(3).fill(0).map((_, i) => (
@@ -322,17 +322,17 @@ export default function Home() {
             </View>
           </View>
         </ScrollView>
-        <View>
-          <BottomNav
-            active="home"
-            tabs={[
-              { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-              { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
-              { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
-              { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
-            ]}
-          />
-        </View>
+      </View>
+      <View>
+        <BottomNav
+          active="home"
+          tabs={[
+            { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
+            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
+            { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
+          ]}
+        />
       </View>
     </View>
   )
