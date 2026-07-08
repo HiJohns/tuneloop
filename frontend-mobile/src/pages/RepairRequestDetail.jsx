@@ -18,6 +18,8 @@ export default function RepairRequestDetail() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [quoteForm, setQuoteForm] = useState({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' })
+  const [editingQuoteId, setEditingQuoteId] = useState(null)
+  const [showQuoteForm, setShowQuoteForm] = useState(false)
 
   const token = getToken()
   const isCustomer = (() => {
@@ -65,6 +67,8 @@ export default function RepairRequestDetail() {
       const r = await resp.json()
       if (r.code === 20000) {
         setQuoteForm({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' })
+        setEditingQuoteId(null)
+        setShowQuoteForm(false)
         await fetchData()
       } else {
         alert(r.message || '操作失败')
@@ -217,35 +221,117 @@ export default function RepairRequestDetail() {
 
         {/* ========== PENDING ASSESSMENT ========== */}
         {status === 'pending_assessment' && isTechnician && (
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-sm font-bold text-black mb-3">提交报价</Text>
-            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-              value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
-              placeholder="材料费（元）" type="number" />
-            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-              value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
-              placeholder="服务费（元）" type="number" />
-            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-              value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
-              placeholder="物流费（元）" type="number" />
-            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-              value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
-              placeholder="工期（如：3个工作日）" />
-            <Textarea className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2 min-h-[60px]"
-              value={quoteForm.comment} onInput={e => setQuoteForm(p => ({ ...p, comment: e.detail?.value || e.target?.value || '' }))}
-              placeholder="报价备注（禁止含联系方式）" />
-            <Button onClick={() => handleAction('quotes', {
-              material_fee: Number(quoteForm.material_fee),
-              service_fee: Number(quoteForm.service_fee),
-              logistics_fee: Number(quoteForm.logistics_fee),
-              duration: quoteForm.duration,
-              comment: quoteForm.comment,
-            })}
-              disabled={actionLoading || !quoteForm.material_fee || !quoteForm.service_fee}
-              className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
-              提交报价
-            </Button>
-          </View>
+          <>
+          {/* Quote list (always shown) */}
+          {quotes.length > 0 && (
+            <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+              <Text className="text-sm font-bold text-black mb-3">本网点报价 ({quotes.filter(q => q.status === 'pending').length})</Text>
+              {quotes.filter(q => q.status === 'pending').map(q => (
+                <View key={q.id} className="border border-zinc-200 rounded-xl p-3 mb-3">
+                  <View className="space-y-1">
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">报价单号</Text>
+                      <Text className="text-xs text-zinc-700">{q.quote_no}</Text>
+                    </View>
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">材料费</Text>
+                      <Text className="text-xs text-zinc-700">¥{q.material_fee}</Text>
+                    </View>
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">服务费</Text>
+                      <Text className="text-xs text-zinc-700">¥{q.service_fee}</Text>
+                    </View>
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">物流费</Text>
+                      <Text className="text-xs text-zinc-700">¥{q.logistics_fee}</Text>
+                    </View>
+                    {q.duration && (
+                    <View className="flex justify-between">
+                      <Text className="text-xs text-zinc-500">工期</Text>
+                      <Text className="text-xs text-zinc-700">{q.duration}</Text>
+                    </View>
+                    )}
+                    {q.comment && (
+                    <View className="mt-1">
+                      <Text className="text-xs text-zinc-500">备注：{q.comment}</Text>
+                    </View>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Quote form (hidden by default, shown when adding/editing) */}
+          {showQuoteForm && (
+            <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+              <Text className="text-sm font-bold text-black mb-3">
+                {editingQuoteId ? '编辑报价' : '提交报价'}
+              </Text>
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
+                placeholder="材料费（元）" type="number" />
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
+                placeholder="服务费（元）" type="number" />
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
+                placeholder="物流费（元）" type="number" />
+              <View className="flex items-center gap-2 mb-2">
+                <Input className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+                  value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
+                  placeholder="工期" type="number" />
+                <Text className="text-sm text-zinc-500">天</Text>
+              </View>
+              <Textarea className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2 min-h-[60px]"
+                value={quoteForm.comment} onInput={e => setQuoteForm(p => ({ ...p, comment: e.detail?.value || e.target?.value || '' }))}
+                placeholder="报价备注（禁止含联系方式）" />
+              <View className="flex gap-2">
+                <Button onClick={() => handleAction('quotes', {
+                  material_fee: Number(quoteForm.material_fee),
+                  service_fee: Number(quoteForm.service_fee),
+                  logistics_fee: Number(quoteForm.logistics_fee),
+                  duration: quoteForm.duration ? quoteForm.duration + '天' : '',
+                  comment: quoteForm.comment,
+                })}
+                  disabled={actionLoading || !quoteForm.material_fee || !quoteForm.service_fee}
+                  className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+                  {editingQuoteId ? '保存修改' : '提交报价'}
+                </Button>
+                <Button onClick={() => { setShowQuoteForm(false); setEditingQuoteId(null); setQuoteForm({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' }) }}
+                  className="py-3 px-4 border border-zinc-300 rounded-xl font-bold text-sm text-zinc-600 text-center">
+                  取消
+                </Button>
+              </View>
+            </View>
+          )}
+
+          {/* Add / Edit buttons */}
+          {!showQuoteForm && (
+            <View className="space-y-2 mt-2 mb-4">
+              <Button onClick={() => { setShowQuoteForm(true); setEditingQuoteId(null); setQuoteForm({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' }) }}
+                className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+                添加报价
+              </Button>
+              {quotes.filter(q => q.status === 'pending').slice(-1).map(q => (
+                <Button key={q.id} onClick={() => {
+                  setEditingQuoteId(q.id)
+                  setQuoteForm({
+                    material_fee: String(q.material_fee || ''),
+                    service_fee: String(q.service_fee || ''),
+                    logistics_fee: String(q.logistics_fee || ''),
+                    duration: q.duration ? q.duration.replace('天', '') : '',
+                    comment: q.comment || '',
+                  })
+                  setShowQuoteForm(true)
+                }}
+                  className="w-full py-2 border border-zinc-300 rounded-xl font-bold text-sm text-zinc-600 text-center">
+                  编辑最新报价
+                </Button>
+              ))}
+            </View>
+          )}
+          </>
         )}
 
         {status === 'pending_assessment' && isCustomer && (
