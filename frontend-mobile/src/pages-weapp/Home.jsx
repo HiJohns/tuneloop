@@ -99,6 +99,7 @@ export default function Home() {
   const topCategories = categories.filter(c => !c.parent_id)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
+  const lastSwipeRef = useRef(0)
 
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
@@ -154,6 +155,7 @@ export default function Home() {
   useEffect(() => {
     if (!banners.length) return
     const timer = setInterval(() => {
+      if (Date.now() - lastSwipeRef.current < 4000) return
       setCurrentBanner(prev => {
         const next = prev >= banners.length ? 0 : prev < banners.length - 1 ? prev + 1 : banners.length
         return next
@@ -242,6 +244,7 @@ export default function Home() {
           onTouchEnd={(e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
             if (Math.abs(diff) > 50) {
+              lastSwipeRef.current = Date.now()
               if (diff < 0) {
                 setCurrentBanner(prev => prev < banners.length - 1 ? prev + 1 : banners.length)
               } else {
