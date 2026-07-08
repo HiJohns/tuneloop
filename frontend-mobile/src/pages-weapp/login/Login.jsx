@@ -80,10 +80,10 @@ export default function Login() {
 
       {/* Channel 1: WeChat one-click */}
       <View style={{ width: '100%', padding: 0 }}>
-        <Button onClick={handleWxLogin}
-          style={{ marginLeft: 0, marginRight: 0, width: 'auto', height: 48, backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingLeft: 32, paddingRight: 32 }}>
-          📱 微信用户一键登录
-        </Button>
+        <View onClick={handleWxLogin}
+          style={{ backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24, textAlign: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
+        </View>
       </View>
 
       {/* Divider */}

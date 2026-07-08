@@ -93,8 +93,11 @@ export default function RepairRequestDetail() {
     try {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/quotes/${quoteId}/accept`, { method: 'POST' })
       const r = await resp.json()
-      if (r.code === 20000) { await fetchData() }
-      else { alert(r.message || '操作失败') }
+      if (r.code === 20000) {
+        navigate(`/repair-quote?request_id=${requestId}`)
+      } else {
+        alert(r.message || '操作失败')
+      }
     } catch { alert('操作失败') }
     setActionLoading(false)
   }

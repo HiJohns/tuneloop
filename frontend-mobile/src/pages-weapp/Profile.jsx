@@ -124,6 +124,7 @@ export default function Profile() {
   const claims = token ? parseJWT(token) : {}
   const isStaff = claims.role === 'STAFF'
   const isGuest = claims.role === 'GUEST' || (!token && user === null)
+  const hasGuestToken = claims.role === 'GUEST'
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -166,7 +167,7 @@ export default function Profile() {
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
               <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={() => nav('/pages-weapp/login/index')}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>👉 登录查看资产</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : '👉 登录查看资产'}</Text>
               </View>
             ) : (
               <>
