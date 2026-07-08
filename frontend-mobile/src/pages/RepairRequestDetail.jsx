@@ -384,6 +384,17 @@ export default function RepairRequestDetail() {
           </View>
         )}
 
+        {status === 'pending_payment' && isCustomer && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">待付款</Text>
+            <Text className="text-xs text-zinc-500 mb-3">您已接受报价，请前往支付。</Text>
+            <Button onClick={() => navigate(`/repair-quote?request_id=${requestId}`)}
+              className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+              去支付
+            </Button>
+          </View>
+        )}
+
         {/* ========== REPAIRING ========== */}
         {status === 'repairing' && isTechnician && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">

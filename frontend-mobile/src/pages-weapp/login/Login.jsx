@@ -21,14 +21,20 @@ async function handleWxLogin() {
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
-      eventBus.emit('loginSuccess')
-      Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+      const role = result.data?.user?.role
+      if (role === 'GUEST') {
+        // New user — go to registration
+        Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
+      } else {
+        eventBus.emit('loginSuccess')
+        Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+      }
     } else {
-      Taro.showToast({ title: (result.message || '登录失败') + ' [WX1]', icon: 'none' })
+      Taro.showToast({ title: (result.message || '请先注册') + ' [WX1]', icon: 'none', duration: 3000 })
     }
   } catch (err) {
     Taro.hideLoading()
-    Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
+    Taro.showToast({ title: '网络错误, 请重试', icon: 'none', duration: 2000 })
   }
 }
 

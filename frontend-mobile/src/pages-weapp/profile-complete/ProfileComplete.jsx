@@ -1,44 +1,59 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Button } from '@tarojs/components'
-import { storage, env, request } from '../../platform'
+import { View, Text, Input } from '@tarojs/components'
+import { storage, env, request, eventBus } from '../../platform'
 
 export default function ProfileComplete() {
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const handleSave = async () => {
+  const handleRegister = async () => {
+    if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
+    if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
+    if (!password.trim() || password.length < 6) { Taro.showToast({ title: '密码至少6位', icon: 'none' }); return }
     setSaving(true)
     try {
-      const token = storage.getItem('token')
-      await request(`${env.apiBaseUrl}/users/me`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email }),
+      const res = await request(`${env.apiBaseUrl}/auth/register`, {
+        method: 'POST',
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }),
       })
-      Taro.navigateBack()
+      const result = await res.json()
+      if (result.code === 20000 && result.data?.access_token) {
+        storage.setItem('token', result.data.access_token)
+        storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
+        eventBus.emit('loginSuccess')
+        Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+      } else {
+        Taro.showToast({ title: result.message || '注册失败, 请重试', icon: 'none', duration: 3000 })
+      }
     } catch (err) {
-      console.error('[ProfileComplete] save failed:', err)
+      Taro.showToast({ title: '网络错误, 请重试', icon: 'none' })
     }
     setSaving(false)
   }
 
   return (
     <View style={{ height: '100vh', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 32 }}>
-      <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>完善个人资料</Text>
-      <Text style={{ fontSize: 14, color: '#a1a1aa', marginBottom: 32 }}>租赁需要真实姓名</Text>
+      <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>注册账号</Text>
+      <Text style={{ fontSize: 14, color: '#a1a1aa', marginBottom: 32 }}>填写信息即可开始租赁</Text>
 
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
-      <Input placeholder="邮箱" value={email} onInput={e => setEmail(e.detail.value)}
+      <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
+      <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
+      <Input placeholder="密码（至少6位）" password value={password} onInput={e => setPassword(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 24 }} />
 
-      <Button onClick={handleSave} disabled={saving}
-        style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '44px', marginBottom: 12 }}>
-        {saving ? '保存中...' : '保存'}
-      </Button>
-      <Text style={{ fontSize: 14, color: '#a1a1aa' }} onClick={() => Taro.navigateBack()}>跳过</Text>
+      <View onClick={handleRegister}
+        style={{ width: '100%', height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '注册中...' : '注册'}</Text>
+      </View>
+      <Text style={{ fontSize: 14, color: '#a1a1aa' }} onClick={() => Taro.navigateBack()}>返回</Text>
     </View>
   )
 }
