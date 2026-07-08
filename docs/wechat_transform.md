@@ -1,6 +1,49 @@
 # 微信小程序 Tailwind 类名转义改造
 
-## 背景
+## 核心结论：H5 → 小程序 实现对照表
+
+| 维度 | H5 版本 | 小程序等效方案 |
+|------|---------|--------------|
+| 图片缩放 | `mode="aspectFit"` + `objectFit: contain` | `mode="widthFix"`（weapp 专属模式，等宽保比例）|
+| 尺寸定位 | `className="w-full h-full"` `fixed inset-0` | `style={{ width:'100%', height:'100%' }}` |
+| z-index 任意值 | `z-[40]` `z-[10000]` | ❌ `[` `]` 被当属性选择器 → `style={{ zIndex: 40 }}` |
+| opacity 修饰符 | `bg-black/40` `text-white/70` | ✅ 同写法，post-build `sed` 去掉 `\` |
+| 小数 spacing | `py-0.5` `space-x-1.5` | ❌ `.5` 变数字开头类名 → 改为 `py-1` `space-x-2` |
+| hex 颜色 | `bg-[#915F38]` | ❌ `#` 被当 ID 选择器 → 改 `style={{ backgroundColor }}` |
+| 变体伪类 | `hover:` `focus:` | ❌ weapp 无 `:hover`，丢弃不用 |
+| | `active:` `last:` | 待验证（`:active` `:last-child` 可能支持）|
+| Tailwind 生成 | `@tailwind base/components/utilities` | 生成后需 `sed` 清除 `*` `~` `:not` `\` 四种不兼容规则 |
+| 动画/滑动 | `translateX` + `transition` + clone 技术 | ✅ 完全相同（`transform`/`transition` 在 weapp 生效）|
+| 触摸事件 | `onTouchStart/onTouchEnd` + `clientX` | ✅ 完全相同 |
+
+### weapp WXS 不支持清单
+
+| 特性 | 说明 |
+|------|------|
+| `\` 转义 | 任何 CSS `\` 都会导致上传验证失败 |
+| `*` 通用选择器 | `*,::after,::before{...}` 在 WXS 中报错 |
+| `~` 兄弟选择器 | `space-x-*` `divide-*` 依赖的 `A ~ B` 模式不支持 |
+| `:not()` 取反伪类 | `:not([hidden])` 不支持，已改为 `view` 标签 |
+| `[` `]` 属性选择器 | `.z-[10000]` 中的 `[10000]` 被当属性选择器 |
+| `::after` `::before` | 伪元素不支持 |
+| `hover:` `focus:` | 伪类不支持（触屏设备无鼠标） |
+
+### 构建后处理脚本
+
+`scripts/weapp-post-build.sh`：
+
+```bash
+WXSS="dist-weapp/app.wxss"
+sed -i 's|\\||g' "$WXSS"            # 去掉所有 \ 转义
+sed -i '/> :not/d' "$WXSS"           # 去掉 :not() 规则
+sed -i '/> view ~/d' "$WXSS"         # 去掉 ~ 兄弟选择器规则
+sed -i '/~ view/d' "$WXSS"
+sed -i 's/\*,::after,::before{[^}]*}::backdrop{[^}]*}//' "$WXSS"  # 去掉 Tailwind 全局变量块
+```
+
+---
+
+## 背景（实验前）
 
 微信小程序 WXS 引擎不支持 CSS 转义字符（`\`）。Tailwind v3 生成的类名中含有特殊字符，在标准 CSS 中需要通过 `\` 转义。
 
@@ -251,3 +294,94 @@ frontend-mobile/src/pages/Onboarding.jsx
 - `bg-black/40`、`text-white/70` 等 opacity 修饰符 → 可用（post-build sed 处理）
 - `active:opacity-80`、`last:border-b-0` 等变体 → **待验证**（`:active` `:last-child` 伪类在 weapp 中的支持情况不明）
 - `hover:xxx`、`focus:xxx` → 禁止（weapp 不支持鼠标交互）
+
+---
+
+## 实战踩坑记录 (2026-07-07)
+
+### 1. Tailwind 根本生成不了 CSS
+
+**现象**：`app.wxss` 只有 `body{margin:0}`，页面样式全塌。
+
+**根因**：`app.css` 缺 `@tailwind base/components/utilities` 指令 + 缺 `tailwind.config.js` 的 `content` 扫描路径。
+
+**解决**：
+- `app.css` 顶部加入 `@tailwind base; @tailwind components; @tailwind utilities;`
+- 创建 `tailwind.config.js`：`content: ['./src/**/*.{js,jsx,ts,tsx}']`, `preflight: false`
+
+### 2. 上传验证器拒绝 `\` → csso 拒绝 `/` → WXS 拒绝 `!` `.` `*` `~` `:not` `[ ]`
+
+**完整排除过程**（每次上传一个错误，逐个踩）：
+
+| 尝试 | 错误 | 解决 |
+|------|------|------|
+| 保留 `\` | `unexpected \` | 必须全量 `sed 's|\\||g'` |
+| 全去 `\` | `unexpected !` | `blocklist: ['!visible']` + `sed '/\.!visible/d'` |
+| 去 `\`+`!` | `unexpected *` | `sed 's/\*,::after,::before{[^}]*}::backdrop{[^}]*}//'` |
+| 去 `\`+`!`+`*` | `error token [` | `[` `]` 在 CSS 中是属性选择器 → 源码改用 `style` |
+| 去 `\`+`!`+`*`+`[ ]` | `error token :` | `:not()` 不支持 → `sed '/> :not/d'` |
+| 去 `\`+`!`+`*`+`[ ]`+`:not` | `error token ~` | `~` 兄弟选择器不支持 → `sed '/~ view/d'` |
+
+**最终 post-build 脚本**（`scripts/weapp-post-build.sh`）：
+```bash
+WXSS="dist-weapp/app.wxss"
+sed -i 's|\\||g' "$WXSS"                              # 1. 去掉所有 CSS 转义
+sed -i '/\.!visible/d' "$WXSS"                         # 2. 去掉 !important 变体
+sed -i 's/\*,::after,::before{[^}]*}::backdrop{[^}]*}//' "$WXSS"  # 3. 去掉 Tailwind 变量块
+sed -i '/> :not/d' "$WXSS"                              # 4. 去掉 :not() 伪类规则
+sed -i '/> view ~/d' "$WXSS"                            # 5. 去掉 ~ 兄弟选择器规则
+sed -i '/~ view/d' "$WXSS"
+```
+
+### 3. API 域名白名单
+
+**现象**：`Taro.request` 返回 `request:fail invalid url`，所有 API 调用失败。
+
+**根因**：微信小程序要求所有网络请求域名在后台登记。`index.weapp.js:168` 中 `apiBaseUrl` 为相对路径 `/api`，在小程序中无法解析。
+
+**解决**：
+- `apiBaseUrl` 改为绝对路径 `https://wx.cadenzayueqi.com/api`
+- mp.weixin.qq.com → 开发 → 服务器域名 → request 合法域名 添加 `https://wx.cadenzayueqi.com`
+
+### 4. API 响应数据取层错误
+
+**现象**：调试层显示 API 调用成功（200），但页面不渲染数据。
+
+**根因**：`Taro.request` 的 `success` 回调中 `res.data` 是完整 API 响应体 `{code: 20000, data: {list: [...]}}`，需要再取 `.data` 层。
+
+**解决**：`r1.data?.list` → `r1.data?.data?.list`
+
+### 5. ScrollView 必须用显式高度
+
+**现象**：列表无法滚动，内容卡住不动。
+
+**根因**：`ScrollView` 不能用 `flex: 1` 撑开高度，在小程序中必须显式指定 `height`。
+
+**解决**：`style={{ height: '100%' }}` 替代 `style={{ flex: 1 }}`
+
+### 6. 图片缩放模式差异
+
+**现象**：`mode="aspectFill"` 在 H5 填满容器，在小程序中等高缩放导致部分图片模糊。
+
+**根因**：`aspectFill` 在小程序中是"等比例缩放、裁剪溢出"——裁的是宽度的溢出部分，不符合"等宽展示"需求。
+
+**解决**：改用 `mode="widthFix"`——等宽缩放、自动计算高度。
+
+### 7. 页面导航差异
+
+**现象**：`useNavigate()` / `react-router-dom` 在小程序中不工作。
+
+**根因**：`react-router-dom` 在小程序构建时被 alias 到 stub 文件，URL 路由不可用。小程序使用原生页面栈导航。
+
+**解决**：
+- 跳转：`Taro.navigateTo({ url: '/pages/X/index?id=xxx' })`
+- 返回：`Taro.navigateBack()`
+- 获取参数：`Taro.getCurrentInstance().router?.params?.id`
+
+### 8. CSS 不能有空格在数字和单位之间
+
+**现象**：`style={{ marginTop: '10 px' }}` 或 `style={{ fontSize: 10 }}`（weapp 期望 rpx 或 px 后缀）。
+
+**根因**：小程序内联样式对数值类型的处理与 H5 不同，`fontSize: 10` 在小程序中被忽略。
+
+**解决**：所有尺寸值加 `rpx` 或 `px` 后缀：`style={{ fontSize: '10px' }}`、`style={{ height: '42px' }}`
