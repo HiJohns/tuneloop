@@ -239,13 +239,131 @@ export const getPhoneNumber = (e) => {
 
 > **多角色切换**：STAFF 通过开发者模式或 IAM 账号密码登录切换到其他测试账号。
 
-## 七、注意事项
+## 七、注册流程
+
+### 7.1 微信一键登录 → 自动注册
+
+微信一键登录**无需独立注册页面**。首次 `getPhoneNumber` 授权时，后端自动完成注册：
+
+```
+新用户首次点击"微信一键登录"
+  → getPhoneNumber 返回 encryptedData + iv
+  → POST /api/auth/wx-login { code, encryptedData, iv }
+  → 后端解密 → 手机号、openid
+  → 查 openid + phone → 未找到
+  → 创建新用户：
+      - role = USER
+      - name = "微信用户" + phone 后 4 位  ← 临时占位
+      - phone = 解密后的手机号
+      - openid = 微信 openid
+  → 签发 JWT
+  → 返回 { token, user, is_new: true }
+```
+
+**返回 `is_new: true` 时**，前端引导进入"完善资料"页：
+
+```
+┌──────────────────────────┐
+│      完善个人资料         │
+│                          │
+│   姓名: [________]       │
+│   邮箱: [________]       │
+│                          │
+│   [跳过]  [保存]         │
+│                          │
+│   ⚠️ 租赁需要真实姓名     │
+└──────────────────────────┘
+```
+
+- 用户可跳过 → 保留默认名称，后续下单时提示补全
+- 用户保存 → `PUT /api/users/me { name, email }`
+
+### 7.2 IAM 注册（备用通道）
+
+账号密码登录的用户如需注册新账号，通过后端中转 IAM：
+
+```
+POST /api/auth/register
+→ tuneloop backend → beaconiam POST /api/v1/auth/register
+→ 创建 IAM 用户 + tuneloop 本地同步
+→ 返回 JWT
+```
+
+注册页可在登录页中通过 "没有账号？注册" 链接切入。
+
+### 7.3 完整新用户旅程
+
+```
+游客打开小程序
+  → 静默 wx.login → role=GUEST
+  → 浏览首页、详情，观看乐器
+  → 想租赁 → 点"下单" → 检测到 GUEST
+  → 弹登录页
+  → 选择"微信一键登录"
+  → 微信弹窗授权
+  → 后端自动创建账号（is_new: true）
+  → 弹出"完善资料"页
+  → 用户填写姓名/邮箱（可跳过）
+  → role=USER → 可以下单
+```
+
+### 7.4 注册相关的后端变更
+
+**POST `/api/auth/wx-login` 响应扩展**：
+
+```json
+{
+  "code": 20000,
+  "data": {
+    "token": "jwt_token",
+    "user": { "id": "...", "name": "...", "role": "USER" },
+    "is_new": true
+  }
+}
+```
+
+**POST `/api/auth/register`**（新增，IAM 中转）：
+
+```json
+// Request
+{
+  "name": "用户名",
+  "phone": "手机号",
+  "email": "email@example.com",
+  "password": "密码"
+}
+
+// Response（透传 beaconiam）
+{
+  "code": 20000,
+  "data": {
+    "token": "jwt_token",
+    "user": { "id": "...", "name": "...", "role": "USER" }
+  }
+}
+```
+
+### 7.5 身份绑定与合并
+
+用户可能通过多个渠道创建账号（微信 openid A、微信 openid B、邮箱 C），需支持身份合并：
+
+| 场景 | 处理 |
+|------|------|
+| 同一手机号，不同 openid | 合并 openid → 同一用户 |
+| 微信登录后，又用 IAM 登录 | 如果手机号匹配 → 更新 openid 绑定 |
+| 已通过按钮注册，无 openid | 暂不绑定，后续并入 |
+
+---
+
+## 八、注意事项
 
 1. **wx.login code 有效期 5 分钟**，后端需及时调用微信服务器换取 session
 2. **session_key 不应传到前端**，仅后端持有，用于解密 encryptedData
 3. **静默登录在前端无感**，`app.tsx` `componentDidMount` 中即可调用
 4. **JWT 过期处理**：`role=GUEST` 的 JWT 可设置较长过期时间（如 30 天），减少静默刷新频率
 5. **调试**：微信开发者工具中 `wx.login` 返回的 code 可用于测试，但 `getPhoneNumber` 需真机
+6. **`is_new` 标记**：首次微信授权后返回 `is_new: true`，前端据此引导完善资料，不强制阻塞
+7. **身份合并**：同一手机号出现于多个 openid 时，后端应在 `wx-login` 中检测并合并，避免重复账户
 
 ---
 
