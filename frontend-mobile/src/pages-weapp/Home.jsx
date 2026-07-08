@@ -290,10 +290,9 @@ export default function Home() {
         <ScrollView style={{ height: listHeight, backgroundColor: 'transparent' }}
           scrollY showScrollbar={false}
           onScroll={e => {
-            const newY = e.detail?.scrollTop ?? e.target?.scrollTop ?? 0
+            const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
-            const ns = newY > 50
-            const nm = newY > 130
+            const ns = newY > 50, nm = newY > 130
             if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
             if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
           }}>
