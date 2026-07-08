@@ -18,6 +18,7 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/permissions.md` - 权限-人员矩阵
 - `docs/account-lifecycle.md` - 账户生命周期与数据完整性
 - `docs/weapp.md` - 微信小程序架构与部署（Taro 构建策略、三端架构、登录流程、发布流程）
+- `docs/wechat-login.md` - 微信小程序登录架构（三通道登录、注册流程、身份合并、安全审计）
 - `docs/media_directory.md` - 媒体存储架构（instrument_media 表结构、batch_type 全集、目录体系）
 
 ## Environment Guide
