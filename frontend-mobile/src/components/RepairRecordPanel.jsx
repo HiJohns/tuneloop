@@ -4,6 +4,23 @@ import { apiFetch } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
+const RECORD_TYPE_LABELS = {
+  created: '报修单已创建',
+  quote_submitted: '师傅提交报价',
+  quote_accepted: '接受报价',
+  paid: '支付完成',
+  shipped: '已发货',
+  received: '已收货',
+  requoted: '师傅重新报价',
+  requote_rejected: '拒绝重新报价',
+  progress: '维修进展',
+  completed: '维修完成',
+  return_shipped: '已发还',
+  receipt_confirmed: '确认收货',
+  transit_processed: '中转处理',
+  transit_relayed: '中转转发',
+}
+
 const uploadFile = async (file, baseUrl) => {
   const fd = new FormData()
   fd.append('file', file)
@@ -78,9 +95,18 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         ) : (
           <View className="space-y-2">
             {records.map(r => (
-              <View key={r.id} className="border-b border-zinc-50 pb-2">
-                <Text className="text-xs text-zinc-400">{formatDisplayDate(r.created_at)}</Text>
-                {r.comment && <Text className="text-sm text-black mt-1">{r.comment}</Text>}
+              <View key={r.id} className="border-b border-zinc-100 pb-3 mb-1">
+                <View className="flex justify-between items-center">
+                  <Text className="text-sm font-bold text-black">{RECORD_TYPE_LABELS[r.record_type] || r.comment || r.record_type}</Text>
+                  <Text className="text-xs text-zinc-400">{formatDisplayDate(r.created_at)}</Text>
+                </View>
+                <Text className="text-xs text-zinc-400 mt-0.5">{r.worker_name || '系统'}</Text>
+                {r.comment && r.record_type !== 'progress' && (
+                  <Text className="text-xs text-zinc-600 mt-1">{r.comment}</Text>
+                )}
+                {r.record_type === 'progress' && r.comment && (
+                  <Text className="text-sm text-black mt-1">{r.comment}</Text>
+                )}
                 {renderPhotos(r.photos)}
               </View>
             ))}
