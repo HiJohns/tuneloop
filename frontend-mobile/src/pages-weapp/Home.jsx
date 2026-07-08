@@ -280,9 +280,9 @@ export default function Home() {
         </View>
       )}
 
-      {/* B: clip layer — overflow:hidden clips content at edges */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, overflow: 'hidden' }}>
-        <ScrollView style={{ position: 'absolute', top: 0, bottom: 50, left: 0, right: 0, backgroundColor: 'transparent' }}
+      {/* B: clip layer */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <ScrollView style={{ flex: 1, height: 0, backgroundColor: 'transparent' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
           <View style={{ height: '100px' }}></View>
@@ -291,7 +291,7 @@ export default function Home() {
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
           </View>
 
-          <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
+          <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
