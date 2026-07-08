@@ -20,6 +20,8 @@ export default function RepairRequestDetail() {
   const [quoteForm, setQuoteForm] = useState({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' })
   const [editingQuoteId, setEditingQuoteId] = useState(null)
   const [showQuoteForm, setShowQuoteForm] = useState(false)
+  const [trackingCompany, setTrackingCompany] = useState('')
+  const [trackingNumber, setTrackingNumber] = useState('')
 
   const token = getToken()
   const isCustomer = (() => {
@@ -99,6 +101,27 @@ export default function RepairRequestDetail() {
         alert(r.message || '操作失败')
       }
     } catch { alert('操作失败') }
+    setActionLoading(false)
+  }
+
+  const handleSubmitTracking = async () => {
+    if (!trackingCompany || !trackingNumber) { alert('请填写物流公司和单号'); return }
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/tracking`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracking_company: trackingCompany, tracking_number: trackingNumber }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        setTrackingCompany('')
+        setTrackingNumber('')
+        await fetchData()
+      } else {
+        alert(r.message || '提交失败')
+      }
+    } catch { alert('提交失败') }
     setActionLoading(false)
   }
 
@@ -391,6 +414,33 @@ export default function RepairRequestDetail() {
             <Button onClick={() => navigate(`/repair-quote?request_id=${requestId}`)}
               className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               去支付
+            </Button>
+          </View>
+        )}
+
+        {status === 'pending_ship' && isCustomer && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">待发送</Text>
+            <View className="bg-zinc-50 rounded-xl p-3 mb-3">
+              <Text className="text-xs text-zinc-500 mb-1">收货信息</Text>
+              <Text className="text-sm text-zinc-700">{request.site_name || '-'}</Text>
+              {request.merchant_type === 'controlled' && (
+                <Text className="text-xs text-zinc-500 mt-1">请将乐器寄至中转网点（地址见物流留言）</Text>
+              )}
+              {request.transit_order_number && (
+                <Text className="text-xs text-zinc-700 mt-1">转入单号：{request.transit_order_number}</Text>
+              )}
+            </View>
+            <Text className="text-xs text-red-500 mb-2">* 请将转入单号写入物流留言</Text>
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={trackingCompany} onInput={e => setTrackingCompany(e.detail?.value || e.target?.value || '')}
+              placeholder="物流公司" />
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={trackingNumber} onInput={e => setTrackingNumber(e.detail?.value || e.target?.value || '')}
+              placeholder="物流单号" />
+            <Button onClick={handleSubmitTracking} disabled={actionLoading || !trackingCompany || !trackingNumber}
+              className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+              {actionLoading ? '提交中...' : '提交发货'}
             </Button>
           </View>
         )}
