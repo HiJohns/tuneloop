@@ -238,9 +238,8 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 
 func (h *AuthHandler) PostLogin(c *gin.Context) {
 	var req struct {
-		Username    string `json:"username" binding:"required"`
-		Password    string `json:"password" binding:"required"`
-		RedirectURI string `json:"redirect_uri"`
+		Identifier string `json:"identifier" binding:"required"`
+		Password   string `json:"password" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -251,22 +250,81 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 		return
 	}
 
-	// For now, return a simple authorization code
-	// In production, this would validate credentials and generate a proper code
-	authCode := "auth-code-" + req.Username + "-" + middleware.GetTenantID(c.Request.Context())
+	tokenResp, err := h.iamService.IAMLogin(req.Identifier, req.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40001,
+			"message": "IAM login failed: " + err.Error(),
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": gin.H{
-			"code":         authCode,
-			"redirect_uri": req.RedirectURI,
-		},
+		"data": tokenResp,
+	})
+}
+
+func (h *AuthHandler) PostRegister(c *gin.Context) {
+	var req struct {
+		Name     string `json:"name" binding:"required"`
+		Phone    string `json:"phone" binding:"required"`
+		Email    string `json:"email"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	tokenResp, err := h.iamService.IAMRegister(req.Name, req.Phone, req.Email, req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "IAM register failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Sync to local users table
+	if tokenResp != nil && tokenResp.AccessToken != "" {
+		claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
+		if parseErr == nil && claims.UserID != "" {
+			var existing models.User
+			if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
+				newUser := models.User{
+					IAMSub:             claims.UserID,
+					TenantID:           claims.TenantID,
+					OrgID:              claims.OrgID,
+					Name:               req.Name,
+					Phone:              req.Phone,
+					Email:              req.Email,
+					Role:               "USER",
+					Status:             "active",
+					IsProfileCompleted: true,
+				}
+				if createErr := h.db.Create(&newUser).Error; createErr != nil {
+					log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": tokenResp,
 	})
 }
 
 func (h *AuthHandler) WxLogin(c *gin.Context) {
 	var req struct {
-		Code string `json:"code" binding:"required"`
+		Code          string `json:"code" binding:"required"`
+		EncryptedData string `json:"encrypted_data"`
+		IV            string `json:"iv"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -277,42 +335,160 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 		return
 	}
 
-	tokenResp, err := h.iamService.WxLogin(req.Code)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "wx-login failed: " + err.Error(),
+	// Channel 1 (weapp one-click): has encryptedData + iv → decrypt phone → find/create USER
+	if req.EncryptedData != "" && req.IV != "" {
+		phoneResp, err := h.iamService.WxPhone(req.EncryptedData, req.IV)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "wx-phone decrypt failed: " + err.Error(),
+			})
+			return
+		}
+
+		phone, _ := phoneResp["purePhoneNumber"].(string)
+		if phone == "" {
+			phone, _ = phoneResp["phoneNumber"].(string)
+		}
+
+		if phone == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "unable to extract phone number",
+			})
+			return
+		}
+
+		// Try IAM wx-login to get/authenticate existing user
+		tokenResp, wxErr := h.iamService.WxLogin(req.Code)
+		isNew := false
+
+		if wxErr != nil {
+			// IAM doesn't know this user yet — create locally
+			user := models.User{
+				Name:               "微信用户" + phone[len(phone)-4:],
+				Phone:              phone,
+				Role:               "USER",
+				Status:             "active",
+				IsProfileCompleted: false,
+			}
+			if err := h.db.Create(&user).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    50000,
+					"message": "failed to create user: " + err.Error(),
+				})
+				return
+			}
+
+			// Issue local JWT for this new user
+			guestToken, tokenErr := h.iamService.CreateGuestToken()
+			if tokenErr != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    50000,
+					"message": "failed to issue token: " + tokenErr.Error(),
+				})
+				return
+			}
+			isNew = true
+
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": gin.H{
+					"token":      guestToken.AccessToken,
+					"token_type": guestToken.TokenType,
+					"expires_in": guestToken.ExpiresIn,
+					"user": gin.H{
+						"id":                   user.ID,
+						"name":                 user.Name,
+						"phone":                user.Phone,
+						"role":                 "USER",
+						"is_profile_completed": false,
+					},
+					"is_new": isNew,
+				},
+			})
+			return
+		}
+
+		if tokenResp != nil && tokenResp.AccessToken != "" {
+			claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
+			if parseErr == nil && claims.UserID != "" {
+				var existingUser models.User
+				if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
+					h.db.Create(&models.User{
+						IAMSub:   claims.UserID,
+						TenantID: claims.TenantID,
+						OrgID:    claims.OrgID,
+						Name:     claims.Name,
+						Phone:    phone,
+						Role:     "USER",
+						Status:   "active",
+					})
+				}
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"token":      tokenResp.AccessToken,
+				"token_type": tokenResp.TokenType,
+				"expires_in": tokenResp.ExpiresIn,
+				"is_new":     isNew,
+			},
 		})
 		return
 	}
 
-	// Sync IAM user to local users table
-	if tokenResp != nil && tokenResp.AccessToken != "" {
+	// Channel 3 (silent guest): only code, no encryptedData → try IAM, fallback to GUEST
+	tokenResp, err := h.iamService.WxLogin(req.Code)
+	if err == nil && tokenResp != nil && tokenResp.AccessToken != "" {
+		// IAM recognized this user — sync and return IAM token
 		claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
 		if parseErr == nil && claims.UserID != "" {
-			var user models.User
-			result := h.db.Where("iam_sub = ?", claims.UserID).First(&user)
-			if result.Error != nil {
-				newUser := models.User{
+			var existingUser models.User
+			if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
+				h.db.Create(&models.User{
 					IAMSub:   claims.UserID,
 					TenantID: claims.TenantID,
 					OrgID:    claims.OrgID,
 					Name:     claims.Name,
 					Role:     "USER",
 					Status:   "active",
-				}
-				if err := h.db.Create(&newUser).Error; err != nil {
-					log.Printf("[WxLogin] Failed to create local user for iam_sub %s: %v", claims.UserID, err)
-				}
+				})
 			}
-		} else if parseErr != nil {
-			log.Printf("[WxLogin] Failed to parse JWT for local sync: %v", parseErr)
 		}
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"token":      tokenResp.AccessToken,
+				"token_type": tokenResp.TokenType,
+				"expires_in": tokenResp.ExpiresIn,
+			},
+		})
+		return
+	}
+
+	// IAM doesn't know this user → create GUEST locally
+	guestToken, tokenErr := h.iamService.CreateGuestToken()
+	if tokenErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to issue guest token: " + tokenErr.Error(),
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": tokenResp,
+		"data": gin.H{
+			"token":      guestToken.AccessToken,
+			"token_type": guestToken.TokenType,
+			"expires_in": guestToken.ExpiresIn,
+			"user": gin.H{
+				"role": "GUEST",
+			},
+		},
 	})
 }
 

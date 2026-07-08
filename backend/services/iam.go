@@ -205,12 +205,10 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 		if strings.Contains(err.Error(), "crypto/rsa: verification error") || strings.Contains(err.Error(), "signature is invalid") {
 			log.Printf("[ValidateToken] Signature verification failed, attempting public key refresh and retry")
 
-			// Force refresh by clearing lastRefresh and reloading
 			s.keyMutex.Lock()
-			s.lastRefresh = time.Time{} // Force refresh on next load
+			s.lastRefresh = time.Time{}
 			s.keyMutex.Unlock()
 
-			// Retry validation with refreshed key
 			token, err = jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
 					if err := s.loadPublicKey(); err != nil {
@@ -236,6 +234,87 @@ func (s *IAMService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+// CreateGuestToken issues a locally-signed GUEST JWT (HS256)
+func (s *IAMService) CreateGuestToken() (*TokenResponse, error) {
+	now := time.Now()
+	claims := JWTClaims{
+		Role: "GUEST",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        fmt.Sprintf("guest-%d", now.UnixNano()),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(720 * time.Hour)), // 30 days
+			Issuer:    "tuneloop",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(s.clientSecret))
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign GUEST token: %w", err)
+	}
+	return &TokenResponse{
+		AccessToken: signed,
+		TokenType:   "Bearer",
+		ExpiresIn:   720 * 3600,
+	}, nil
+}
+
+// IAMLogin proxies email/password login to beaconiam
+func (s *IAMService) IAMLogin(identifier, password string) (*TokenResponse, error) {
+	payload := map[string]string{
+		"identifier": identifier,
+		"password":   password,
+		"client_id":  s.clientID,
+	}
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/login", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM login: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IAM login returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+	var tokenResp TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse IAM login response: %w", err)
+	}
+	return &tokenResp, nil
+}
+
+// IAMRegister proxies user registration to beaconiam
+func (s *IAMService) IAMRegister(name, phone, email, password string) (*TokenResponse, error) {
+	payload := map[string]string{
+		"name":     name,
+		"phone":    phone,
+		"email":    email,
+		"password": password,
+	}
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/register", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM register: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IAM register returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+	var tokenResp TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse IAM register response: %w", err)
+	}
+	return &tokenResp, nil
 }
 
 func (s *IAMService) ExchangeCode(code string) (*TokenResponse, error) {

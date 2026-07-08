@@ -24,6 +24,8 @@ type User struct {
 	Role                string     `gorm:"type:varchar(50)" json:"role"`
 	ForcePasswordChange bool       `gorm:"default:false" json:"force_password_change"`
 	WxOpenid            string     `gorm:"type:varchar(128);index" json:"wx_openid"`
+	WxUnionid           string     `gorm:"type:varchar(128)" json:"wx_unionid"`
+	IsProfileCompleted  bool       `gorm:"default:false" json:"is_profile_completed"`
 	MembershipLevelID   *int       `gorm:"type:int" json:"membership_level_id"`
 	TotalSpending       float64    `gorm:"type:decimal;default:0" json:"total_spending"`
 	PrepaidPoints       float64    `gorm:"type:decimal;default:0" json:"prepaid_points"`
