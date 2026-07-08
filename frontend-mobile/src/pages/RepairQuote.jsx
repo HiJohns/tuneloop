@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, ScrollView, Button } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
+import { apiFetch } from '../services/api'
 import { env } from '../platform'
 
 export default function RepairQuote() {
@@ -10,102 +10,189 @@ export default function RepairQuote() {
   const requestId = searchParams.get('request_id')
   const baseUrl = env.apiBaseUrl
 
-  const [quotes, setQuotes] = useState([])
   const [request, setRequest] = useState(null)
-  const [selectedQuote, setSelectedQuote] = useState(null)
+  const [acceptedQuote, setAcceptedQuote] = useState(null)
+  const [transitFees, setTransitFees] = useState(null)
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
+  const [trackingCompany, setTrackingCompany] = useState('')
+  const [trackingNumber, setTrackingNumber] = useState('')
 
   const fetchData = async () => {
     if (!requestId) return
     setLoading(true)
     try {
-      const [qRes, rRes] = await Promise.all([
-        apiFetch(`${baseUrl}/quotes/${requestId}`),
+      const [rRes, qRes] = await Promise.all([
         apiFetch(`${baseUrl}/repair-requests/${requestId}`),
+        apiFetch(`${baseUrl}/repair-requests/${requestId}/quotes`),
       ])
-      const q = await qRes.json()
       const r = await rRes.json()
-      if (q.code === 20000) setQuotes(q.data?.list || [])
+      const q = await qRes.json()
       if (r.code === 20000) setRequest(r.data)
+      if (q.code === 20000) {
+        const all = q.data?.list || []
+        const accepted = all.find(qq => qq.status === 'accepted')
+        setAcceptedQuote(accepted || null)
+        // Check for transit fees (controlled)
+        if (accepted?.site_id) {
+          const transitRes = await apiFetch(`${baseUrl}/repair-requests/${requestId}/transit-process`)
+          const transit = await transitRes.json()
+          if (transit.code === 20000) setTransitFees(transit.data)
+        }
+      }
     } catch {}
     setLoading(false)
   }
 
   useEffect(() => { fetchData() }, [requestId])
 
-  // Determine merchant type: check if site is transit
-  const isTransit = request?.site_id || false
-
   const handlePay = async () => {
-    if (!selectedQuote) { alert('请选择报价'); return }
     setPaying(true)
     try {
-      // Accept quote
-      const acceptRes = await apiFetch(`${baseUrl}/quotes/${selectedQuote}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repair_request_id: requestId }),
-      })
-      const accept = await acceptRes.json()
-      if (accept.code !== 20000) { alert(accept.message); return }
-
-      // Pay
       const payRes = await apiFetch(`${baseUrl}/repair-requests/${requestId}/pay`, { method: 'POST' })
       const pay = await payRes.json()
       if (pay.code === 20000) {
-        alert('支付成功，请填写物流信息')
-        navigate(`/create-repair?request_id=${requestId}`)
+        await fetchData()
       } else {
         alert(pay.message || '支付失败')
       }
-    } catch {}
+    } catch { alert('支付失败') }
     setPaying(false)
   }
 
-  if (loading) return <View><Text>加载中...</Text></View>
-  if (!request) return <View><Text>报修单不存在</Text></View>
+  const handleSubmitTracking = async () => {
+    if (!trackingCompany || !trackingNumber) { alert('请填写物流公司和单号'); return }
+    setPaying(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/tracking`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracking_company: trackingCompany, tracking_number: trackingNumber }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        await fetchData()
+      } else {
+        alert(r.message || '提交失败')
+      }
+    } catch { alert('提交失败') }
+    setPaying(false)
+  }
+
+  if (loading) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
+  if (!request) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">报修单不存在</Text></View>
+
+  const status = request.status
+  const isControlled = request.merchant_type === 'controlled'
+
+  const materialFee = acceptedQuote?.material_fee || 0
+  const serviceFee = acceptedQuote?.service_fee || 0
+  const logisticsFee = acceptedQuote?.logistics_fee || 0
+  const transitServiceFee = transitFees?.transit_service_fee || 0
+  const transitLogisticsFee = transitFees?.transit_logistics_fee || 0
+  const total = materialFee + serviceFee + logisticsFee + (isControlled ? transitServiceFee + transitLogisticsFee : 0)
 
   return (
-    <View className="h-screen bg-zinc-50">
-      <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center">
-        <Text className="text-lg font-bold flex-1">报价选择</Text>
+    <View className="flex flex-col h-screen bg-zinc-50">
+      <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
+        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg font-bold flex-1">维修报价</Text>
       </View>
+
       <ScrollView scrollY className="flex-1 px-4 min-h-0">
-        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-3">
-          <Text className="text-sm font-bold text-black">维修报价 ({quotes.length})</Text>
-          {quotes.length === 0 ? (
-            <Text className="text-xs text-zinc-400">暂无报价</Text>
-          ) : quotes.map(q => (
-            <View key={q.id}
-              className={`p-3 border rounded-xl ${selectedQuote === q.id ? 'border-black bg-zinc-50' : 'border-zinc-200'}`}
-              onClick={() => setSelectedQuote(q.id)}>
+        {/* Fee breakdown */}
+        <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+          <Text className="text-sm font-bold text-black mb-3">费用明细</Text>
+          {acceptedQuote ? (
+            <View className="space-y-2">
               <View className="flex justify-between">
-                <Text className="text-sm font-bold text-black">¥{q.quote_amount}</Text>
-                <Text className="text-xs text-zinc-400">{q.timeframe || ''}</Text>
+                <Text className="text-xs text-zinc-500">材料费</Text>
+                <Text className="text-xs text-zinc-700">¥{materialFee}</Text>
               </View>
-              {q.comment && <Text className="text-xs text-zinc-500 mt-1">{q.comment}</Text>}
+              <View className="flex justify-between">
+                <Text className="text-xs text-zinc-500">服务费</Text>
+                <Text className="text-xs text-zinc-700">¥{serviceFee}</Text>
+              </View>
+              <View className="flex justify-between">
+                <Text className="text-xs text-zinc-500">物流费 (C段)</Text>
+                <Text className="text-xs text-zinc-700">¥{logisticsFee}</Text>
+              </View>
+              {isControlled && (
+                <>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-500">中转服务费</Text>
+                    <Text className="text-xs text-zinc-700">¥{transitServiceFee}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-500">中转物流费 (B+D段)</Text>
+                    <Text className="text-xs text-zinc-700">¥{transitLogisticsFee}</Text>
+                  </View>
+                </>
+              )}
+              <View className="border-t border-zinc-200 pt-2 mt-2">
+                <View className="flex justify-between">
+                  <Text className="text-sm font-bold text-black">合计</Text>
+                  <Text className="text-sm font-bold text-red-600">¥{total}</Text>
+                </View>
+              </View>
+              {acceptedQuote.duration && (
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-500">工期</Text>
+                  <Text className="text-xs text-zinc-700">{acceptedQuote.duration}</Text>
+                </View>
+              )}
+              {acceptedQuote.comment && (
+                <Text className="text-xs text-zinc-500 mt-1">备注：{acceptedQuote.comment}</Text>
+              )}
             </View>
-          ))}
+          ) : (
+            <Text className="text-xs text-zinc-400">暂无报价信息</Text>
+          )}
         </View>
 
-        {selectedQuote && (
+        {/* PENDING PAYMENT: Pay button */}
+        {status === 'pending_payment' && acceptedQuote && (
           <Button onClick={handlePay} disabled={paying}
             className="w-full mt-4 py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
-            {paying ? '处理中...' : '选择此报价并支付'}
+            {paying ? '处理中...' : '确认支付'}
           </Button>
         )}
 
-        {/* Shipping info panel */}
-        {(request.status === 'pending_payment' || request.status === 'pending_ship') && (
-          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-sm font-bold text-black mb-2">发往地址</Text>
-            {isTransit ? (
-              <Text className="text-xs text-zinc-500">中转网点地址（受控商户）</Text>
-            ) : (
-              <Text className="text-xs text-zinc-500">网点地址（全权商户）</Text>
-            )}
-          </View>
+        {/* PENDING SHIP: Shipping info + tracking form */}
+        {status === 'pending_ship' && (
+          <>
+            <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+              <Text className="text-sm font-bold text-black mb-2">收货信息</Text>
+              {isControlled ? (
+                <View className="space-y-1">
+                  <Text className="text-xs text-zinc-500">请将乐器寄至中转网点（地址见物流留言）</Text>
+                  {request.transit_order_number && (
+                    <Text className="text-xs text-zinc-700 mt-1">转入单号：{request.transit_order_number}</Text>
+                  )}
+                </View>
+              ) : (
+                <View className="space-y-1">
+                  <Text className="text-xs text-zinc-500">请将乐器寄至目标网点</Text>
+                  <Text className="text-xs text-zinc-700">{request.site_name || '-'}</Text>
+                </View>
+              )}
+            </View>
+
+            <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+              <Text className="text-sm font-bold text-black mb-3">填写物流信息</Text>
+              <Text className="text-xs text-red-500 mb-2">* 请将转入单号写入物流留言</Text>
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={trackingCompany} onInput={e => setTrackingCompany(e.detail?.value || e.target?.value || '')}
+                placeholder="物流公司" />
+              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                value={trackingNumber} onInput={e => setTrackingNumber(e.detail?.value || e.target?.value || '')}
+                placeholder="物流单号" />
+              <Button onClick={handleSubmitTracking} disabled={paying || !trackingCompany || !trackingNumber}
+                className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+                提交发货
+              </Button>
+            </View>
+          </>
         )}
       </ScrollView>
     </View>
