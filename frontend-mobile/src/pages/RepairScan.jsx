@@ -1,165 +1,128 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'
-import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components';
-import { apiFetch, api } from '../services/api';
-import { env } from '../platform';
-import { ArrowLeft, Camera, Scan } from 'lucide-react';
-import { message } from 'antd';
+import { useState, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { View, Text, Button, Image, Input } from '@tarojs/components'
+import { apiFetch } from '../services/api'
+import { env } from '../platform'
 
 export default function RepairScan() {
   const navigate = useNavigate()
-  const [snCode, setSnCode] = useState('');
-  const [instrument, setInstrument] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [problem, setProblem] = useState('');
-  const [images, setImages] = useState([]);
-  const baseUrl = env.apiBaseUrl;
+  const [searchParams] = useSearchParams()
+  const baseUrl = env.apiBaseUrl
 
-  const handleScan = async () => {
-    if (typeof wx !== 'undefined' && wx.scanQRCode) {
-      wx.scanQRCode({
-        needResult: 1,
-        scanType: ['qrCode', 'barCode'],
-        success: (res) => {
-          const result = res.resultStr;
-          setSnCode(result);
-          fetchInstrument(result);
-        },
-        fail: () => {
-          message.error('扫码失败');
+  // Transit-out relay mode
+  const [orderNumber, setOrderNumber] = useState('')
+  const [relayRequest, setRelayRequest] = useState(null)
+  const [unpackPhotos, setUnpackPhotos] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const photoInputRef = useRef(null)
+
+  const handleSearchOrder = async () => {
+    if (!orderNumber.trim()) return
+    setSearching(true)
+    setRelayRequest(null)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests?status=transit_out`)
+      const data = await resp.json()
+      if (data.code === 20000) {
+        const matches = (data.data?.list || []).filter(r =>
+          r.transit_order_number === orderNumber.trim()
+        )
+        if (matches.length > 0) {
+          setRelayRequest(matches[0])
+        } else {
+          alert('未找到匹配的转出单')
         }
-      });
-    } else {
-      message.info('请输入SN码手动查询');
-    }
-  };
-
-  const fetchInstrument = async (sn) => {
-    try {
-      const response = await apiFetch(`${baseUrl}/instruments?sn=${sn}`);
-      const result = await response.json();
-      
-      if (result.code === 20000 && result.data.list?.length > 0) {
-        setInstrument(result.data.list[0]);
-        message.success('乐器信息已回显');
-      } else {
-        message.info('未找到乐器，请确认SN码');
       }
-    } catch {
-      message.error('查询失败');
-    }
-  };
+    } catch {}
+    setSearching(false)
+  }
 
-  const handleSubmit = async () => {
-    if (!instrument || !problem) {
-      message.error('请填写完整信息');
-      return;
-    }
-
-    setSubmitting(true);
+  const handlePhotoUpload = async (e) => {
+    const file = e.target?.files?.[0] || e.detail?.value?.[0]
+    if (!file) return
+    const fd = new FormData()
+    fd.append('file', file)
     try {
-      const response = await apiFetch(`${baseUrl}/maintenance`, {
+      const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        setUnpackPhotos(p => [...p, r.data.file_key])
+      }
+    } catch {}
+  }
+
+  const handleSubmitRelay = async () => {
+    if (!relayRequest) return
+    if (unpackPhotos.length === 0) { alert('请至少拍摄一张拆箱照片'); return }
+    setSubmitting(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${relayRequest.id}/transit-relay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instrument_id: instrument.id,
-          problem_description: problem,
-          images: images,
-          service_type: 'repair'
-        })
-      });
-
-      const result = await response.json();
-      if (result.code === 20000) {
-        message.success('报修提交成功');
-        setSnCode('');
-        setInstrument(null);
-        setProblem('');
-        setImages([]);
+          direction: 'out',
+          transit_order_number: orderNumber.trim(),
+          unpack_photos: unpackPhotos,
+        }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        alert('转出中转处理成功')
+        navigate(`/repair-request?request_id=${relayRequest.id}`)
       } else {
-        message.error(result.message || '提交失败');
+        alert(r.message || '操作失败')
       }
-    } catch {
-      message.error('提交失败');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    } catch { alert('操作失败') }
+    setSubmitting(false)
+  }
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-20">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-bold">报修扫码</Text>
+    <View className="flex flex-col h-screen bg-zinc-50 p-4">
+      <View className="flex items-center mb-4">
+        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg font-bold flex-1">转出中转处理</Text>
       </View>
 
-      <View className="p-4 space-y-4">
-        {/* SN Code Input */}
-        <View className="bg-white rounded-xl p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">SN码</label>
-          <View className="flex gap-2">
-            <input
-              className="flex-1 border rounded-lg px-3 py-2 text-sm"
-              placeholder="扫描或输入SN码"
-              value={snCode}
-              onChange={(e) => setSnCode(e.target.value)}
-            />
-            <Button
-              onClick={handleScan}
-              className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm flex items-center gap-1"
-            >
-              <Scan size={16} /> 扫码
-            </Button>
-          </View>
+      <View className="bg-white rounded-2xl shadow-sm p-4 mb-4">
+        <Text className="text-sm font-bold text-black mb-2">输入转出单号</Text>
+        <View className="flex gap-2">
+          <input className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+            value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder="扫描或输入转出单号" />
+          <Button onClick={handleSearchOrder} disabled={searching}
+            className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold">
+            查询
+          </Button>
         </View>
+      </View>
 
-        {/* Instrument Info */}
-        {instrument && (
-          <View className="bg-white rounded-xl p-4">
-            <Text className="text-sm font-medium text-gray-900 mb-2">乐器信息</Text>
-            <Text className="font-medium">{instrument.name}</Text>
-            {instrument.brand && <Text className="text-sm text-gray-500 mt-1">品牌: {instrument.brand}</Text>}
-            {instrument.level_name && <Text className="text-sm text-gray-500">级别: {instrument.level_name}</Text>}
-            <Text className="text-sm text-gray-500">SN: {instrument.sn}</Text>
+      {relayRequest && (
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="text-sm font-bold text-green-700 mb-2">已匹配报修单</Text>
+          <View className="space-y-1 mb-3">
+            <Text className="text-xs text-zinc-500">乐器：{relayRequest.instrument_type} {relayRequest.brand}</Text>
+            <Text className="text-xs text-zinc-500">描述：{relayRequest.description}</Text>
+            <Text className="text-xs text-zinc-500">目标地址：{relayRequest.site_name || '-'}</Text>
           </View>
-        )}
 
-        {/* Problem Description */}
-        <View className="bg-white rounded-xl p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">故障描述</label>
-          <textarea
-            className="w-full p-3 border rounded-lg text-sm"
-            rows={4}
-            placeholder="请详细描述故障情况..."
-            value={problem}
-            onChange={(e) => setProblem(e.target.value)}
-          />
-        </View>
-
-        {/* Photo Upload */}
-        <View className="bg-white rounded-xl p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">故障部位照片</label>
-          <View className="flex flex-wrap gap-2">
-            {images.map((img, idx) => (
-              <View key={idx} className="w-20 h-20 bg-gray-200 rounded overflow-hidden">
-                <Image src={img} alt="" className="w-full h-full object-cover" />
-              </View>
+          <Text className="text-xs text-zinc-500 mb-2">拆箱拍照（转出）：</Text>
+          <View className="flex flex-wrap gap-2 mb-3">
+            {unpackPhotos.map((p, i) => (
+              <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
             ))}
-            <View className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400">
-              <Camera size={24} />
+            <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center"
+              onClick={() => photoInputRef.current?.click()}>
+              <Text className="text-2xl text-zinc-300">+</Text>
             </View>
           </View>
-        </View>
+          <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
 
-        {/* Submit Button */}
-        <Button
-          onClick={handleSubmit}
-          disabled={!instrument || !problem || submitting}
-          className="w-full py-3 bg-brand-primary text-white rounded-lg font-medium disabled:opacity-50"
-        >
-          {submitting ? '提交中...' : '提交报修'}
-        </Button>
-      </View>
+          <Button onClick={handleSubmitRelay} disabled={submitting || unpackPhotos.length === 0}
+            className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm text-center">
+            提交转出处理
+          </Button>
+        </View>
+      )}
     </View>
-  );
+  )
 }
