@@ -79,38 +79,37 @@ export async function initializeApp() {
   }
 
   const token = storage.getItem('token')
-  const tokenExpiry = storage.getItem('token_expiry')
-  const hasValidToken = token && tokenExpiry && parseInt(tokenExpiry) > Date.now()
-
-  if (!hasValidToken && config && env.isMiniProgram) {
-    try {
-      const code = await wxLogin()
-      const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
-        method: 'POST',
-        body: JSON.stringify({ code }),
-      })
-      const result = await res.json()
-      if (result.code === 20000 && result.data?.token) {
-        storage.setItem('token', result.data.token)
-        storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
-      }
-    } catch {
-      // silent guest login failed — app still usable
-    }
-  }
-
-  const finalToken = storage.getItem('token')
   const path = navigation.getCurrentPath()
 
-  if (!finalToken && _publicRoutes && !_publicRoutes.includes(path)) {
+  if (!token && _publicRoutes && !_publicRoutes.includes(path)) {
     session.setItem('post_auth_redirect', path)
   }
 
-  if (finalToken) {
-    cachePermissions(parseJWT(finalToken))
+  if (token) {
+    cachePermissions(parseJWT(token))
+  } else if (config && env.isMiniProgram) {
+    // Defer silent guest login to avoid blocking page mount lifecycle
+    setTimeout(() => ensureGuestToken(), 100)
   }
 
   return config
+}
+
+async function ensureGuestToken() {
+  try {
+    const code = await wxLogin()
+    const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    })
+    const result = await res.json()
+    if (result.code === 20000 && result.data?.token) {
+      storage.setItem('token', result.data.token)
+      storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
+    }
+  } catch {
+    // silent guest login failed — app still usable
+  }
 }
 
 export function showLoginReason() {
