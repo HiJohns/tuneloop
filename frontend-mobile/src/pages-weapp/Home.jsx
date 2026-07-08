@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
-import { env, getWindowSize } from '../platform'
+import { env, getWindowSize, dialog } from '../platform'
 import BottomNav from '../components-weapp/BottomNav'
 import * as S from '../styles-weapp'
 
@@ -101,6 +101,7 @@ export default function Home() {
   const bannerTouchStartXRef = useRef(0)
 
   const baseUrl = env.apiBaseUrl
+  const imageBaseUrl = baseUrl.replace(/\/api$/, '')
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -132,7 +133,7 @@ export default function Home() {
       if (result.code === 20000 && result.data?.list?.length > 0) {
         const list = result.data.list.map(b => ({
           ...b,
-          image_url: b.image_url.startsWith('http') ? b.image_url : `https://wx.cadenzayueqi.com${b.image_url}`
+          image_url: b.image_url.startsWith('http') ? b.image_url : `${imageBaseUrl}${b.image_url}`
         }))
         setBanners(list)
       } else {
@@ -141,7 +142,7 @@ export default function Home() {
     } catch {
       setBanners([])
     }
-  }, [baseUrl])
+  }, [baseUrl, imageBaseUrl])
 
   useEffect(() => {
     fetchCategories()
@@ -162,19 +163,6 @@ export default function Home() {
 
   const handleCategoryChange = (catId) => {
     setSelectedCategory(catId)
-  }
-
-  const navigateToList = () => {
-    const token = getToken()
-    let isStaff = false
-    try {
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        isStaff = payload?.role && payload.role !== 'USER'
-      }
-    } catch {}
-    const url = isStaff ? '/pages-weapp/staff-orders/index' : '/pages-weapp/my-leases/index'
-    nav(url)
   }
 
   return (
@@ -333,9 +321,9 @@ export default function Home() {
             active="home"
             tabs={[
               { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-              { key: 'rent', icon: '🪕', label: '租赁', onClick: navigateToList },
-              { key: 'service', icon: '🛠️', label: '维修', onClick: () => { const url = tenant ? `/pages-weapp/my-repairs/index?tenant=${tenant}` : '/pages-weapp/my-repairs/index'; nav(url) } },
-              { key: 'profile', icon: '👤', label: '我的', onClick: () => { const url = tenant ? `/pages-weapp/profile/index?tenant=${tenant}` : '/pages-weapp/profile/index'; nav(url) } },
+              { key: 'rent', icon: '🪕', label: '租赁', onClick: () => dialog.toast('功能开发中') },
+              { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
+              { key: 'profile', icon: '👤', label: '我的', onClick: () => dialog.toast('功能开发中') },
             ]}
           />
         </View>

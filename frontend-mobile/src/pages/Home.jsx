@@ -99,6 +99,7 @@ export default function Home() {
   const bannerTouchStartXRef = useRef(0)
 
   const baseUrl = env.apiBaseUrl
+  const imageBaseUrl = baseUrl.replace(/\/api$/, '')
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -130,7 +131,7 @@ export default function Home() {
       if (result.code === 20000 && result.data?.list?.length > 0) {
         const list = result.data.list.map(b => ({
           ...b,
-          image_url: b.image_url.startsWith('http') ? b.image_url : `https://wx.cadenzayueqi.com${b.image_url}`
+          image_url: b.image_url.startsWith('http') ? b.image_url : `${imageBaseUrl}${b.image_url}`
         }))
         setBanners(list)
       } else {
@@ -139,7 +140,7 @@ export default function Home() {
     } catch {
       setBanners([])
     }
-  }, [baseUrl])
+  }, [baseUrl, imageBaseUrl])
 
   useEffect(() => {
     fetchCategories()
