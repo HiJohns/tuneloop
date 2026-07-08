@@ -627,6 +627,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/repair-requests/:id/quotes", handlers.SubmitQuote)
 				userOptionalAuth.GET("/repair-requests/:id/quotes", handlers.ListQuotes)
 				userOptionalAuth.POST("/repair-requests/:id/quotes/:qid/accept", handlers.AcceptQuote)
+				userOptionalAuth.POST("/repair-requests/:id/confirm-receipt", repairReqHandler.ConfirmReceipt)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)

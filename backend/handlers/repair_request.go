@@ -123,6 +123,18 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 		}
 	}
 
+	// Batch lookup RepairTransitOrder for transit fees and order number
+	reqIDs := make([]string, len(requests))
+	for i, r := range requests {
+		reqIDs[i] = r.ID
+	}
+	var transitOrders []models.RepairTransitOrder
+	db.Where("repair_request_id IN ?", reqIDs).Find(&transitOrders)
+	transitByReqID := make(map[string]models.RepairTransitOrder)
+	for _, to := range transitOrders {
+		transitByReqID[to.RepairRequestID] = to
+	}
+
 	// Build enriched response
 	result := make([]gin.H, len(requests))
 	for i, r := range requests {
@@ -186,6 +198,15 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 			"site_name":              siteName,
 			"merchant_name":          merchantName,
 			"reporter_name":          reporterName,
+			"merchant_type":          r.MerchantType,
+			"accepted_quote_id":      r.AcceptedQuoteID,
+			"check_fee_snapshot":     r.CheckFeeSnapshot,
+			"paid_amount":            r.PaidAmount,
+		}
+		if to, ok := transitByReqID[r.ID]; ok {
+			result[i]["transit_service_fee"] = to.TransitServiceFee
+			result[i]["transit_logistics_fee"] = to.TransitLogisticsFee
+			result[i]["transit_order_number"] = to.TransitOrderNumber
 		}
 	}
 	return result
@@ -219,6 +240,10 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 
 	instrumentSN, instrumentType, brand, model, siteName, merchantName, reporterName := resolveRepairMeta(db, req)
 
+	// Look up transit order for this repair request
+	var transitOrder models.RepairTransitOrder
+	db.Where("repair_request_id = ?", req.ID).Limit(1).Find(&transitOrder)
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":                     req.ID,
 		"tenant_id":              req.TenantID,
@@ -247,6 +272,13 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		"site_name":              siteName,
 		"merchant_name":          merchantName,
 		"reporter_name":          reporterName,
+		"merchant_type":          req.MerchantType,
+		"accepted_quote_id":      req.AcceptedQuoteID,
+		"check_fee_snapshot":     req.CheckFeeSnapshot,
+		"paid_amount":            req.PaidAmount,
+		"transit_service_fee":    transitOrder.TransitServiceFee,
+		"transit_logistics_fee":  transitOrder.TransitLogisticsFee,
+		"transit_order_number":   transitOrder.TransitOrderNumber,
 	}})
 }
 
@@ -758,6 +790,36 @@ func (h *RepairRequestHandler) TransitRelay(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "transit relay completed"})
+}
+
+// ConfirmReceipt handles customer confirming receipt of returned instrument (returned → closed).
+func (h *RepairRequestHandler) ConfirmReceipt(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+
+	if req.Status != models.RepairReqStatusReturned {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "only returned requests can be confirmed"})
+		return
+	}
+
+	now := time.Now()
+	if err := db.Model(&req).Updates(map[string]interface{}{
+		"status":     models.RepairReqStatusClosed,
+		"closed_at":  now,
+		"updated_at": now,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to confirm receipt"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "receipt confirmed"})
 }
 
 // ReturnShipping sets return tracking info, transitions repair request to returned/transit_out, and activates outbound transit order (v3).
