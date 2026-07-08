@@ -1,4 +1,4 @@
-import { storage, session, request, navigation } from './index'
+import { storage, session, request, navigation, env } from './index'
 
 let initCalled = false
 let _initPermissionMapping = null
@@ -51,7 +51,7 @@ export function getWXConfig() {
 async function fetchConfig(retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await request('/api/config')
+      const res = await request(`${env.apiBaseUrl}/config`)
       const data = await res.json()
       if (data.code === 20000) {
         storage.setJSON('app_config', data.data)
