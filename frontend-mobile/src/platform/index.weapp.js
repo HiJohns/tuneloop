@@ -181,3 +181,12 @@ export const getWindowSize = () => {
     return { width: 375, height: 667 }
   }
 }
+
+export const wxLogin = () => new Promise((resolve, reject) => {
+  Taro.login({ success: (res) => resolve(res.code), fail: (err) => reject(err) })
+})
+
+export const getPhoneNumber = (e) => {
+  const { encryptedData, iv } = e.detail || {}
+  return { encryptedData, iv, errMsg: e.detail?.errMsg }
+}

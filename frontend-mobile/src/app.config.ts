@@ -7,6 +7,8 @@ const weappPages = [
   'pages-weapp/success/index',
   'pages-weapp/my-leases/index',
   'pages-weapp/profile/index',
+  'pages-weapp/login/index',
+  'pages-weapp/profile-complete/index',
 ]
 
 const h5Pages = [

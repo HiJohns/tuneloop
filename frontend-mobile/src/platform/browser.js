@@ -148,3 +148,5 @@ export const env = {
   isMiniProgram,
   isWechat: isWechatBrowser || isMiniProgram,
 }
+export const wxLogin = () => Promise.resolve('')
+export const getPhoneNumber = () => ({ encryptedData: '', iv: '' })
