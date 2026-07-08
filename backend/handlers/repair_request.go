@@ -488,6 +488,7 @@ func (h *RepairRequestHandler) UpdateTracking(c *gin.Context) {
 		"status":           models.RepairReqStatusShipping,
 		"updated_at":       time.Now(),
 	})
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "shipped", "已发货（"+body.TrackingCompany+" "+body.TrackingNumber+"）", nil)
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
 }
@@ -504,7 +505,45 @@ func (h *RepairRequestHandler) ListRecords(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": records}})
+	// Batch lookup worker names
+	workerIDs := make([]string, 0)
+	for _, r := range records {
+		if r.WorkerID != "" {
+			workerIDs = append(workerIDs, r.WorkerID)
+		}
+	}
+	workerNameMap := make(map[string]string)
+	if len(workerIDs) > 0 {
+		var users []models.User
+		db.Where("iam_sub IN ?", workerIDs).Find(&users)
+		for _, u := range users {
+			name := u.Name
+			if name == "" {
+				name = u.Username
+			}
+			if name == "" {
+				name = u.Phone
+			}
+			workerNameMap[u.IAMSub] = name
+		}
+	}
+
+	result := make([]gin.H, len(records))
+	for i, r := range records {
+		item := gin.H{
+			"id":           r.ID,
+			"repair_request_id": r.RepairRequestID,
+			"worker_id":    r.WorkerID,
+			"worker_name":  workerNameMap[r.WorkerID],
+			"comment":      r.Comment,
+			"photos":       r.Photos,
+			"record_type":  r.RecordType,
+			"created_at":   r.CreatedAt,
+		}
+		result[i] = item
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"records": result}})
 }
 
 func (h *RepairRequestHandler) AddRecord(c *gin.Context) {
@@ -700,6 +739,7 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 		}
 	}
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "transit_processed", "中转处理完成", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "transit process completed, repair request fanned out to controlled sites"})
 }
 
@@ -730,6 +770,8 @@ func (h *RepairRequestHandler) Receive(c *gin.Context) {
 		"status":     newStatus,
 		"updated_at": time.Now(),
 	})
+
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "received", "已收货", nil)
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair request received", "data": gin.H{"status": newStatus}})
 }
@@ -789,6 +831,8 @@ func (h *RepairRequestHandler) TransitRelay(c *gin.Context) {
 		"updated_at": time.Now(),
 	})
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "transit_relayed", "中转转发完成", body.UnpackPhotos)
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "transit relay completed"})
 }
 
@@ -819,6 +863,7 @@ func (h *RepairRequestHandler) ConfirmReceipt(c *gin.Context) {
 		return
 	}
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "receipt_confirmed", "确认收货", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "receipt confirmed"})
 }
 
@@ -1186,4 +1231,25 @@ func resolveRepairMeta(db *gorm.DB, req models.RepairRequest) (instrumentSN, ins
 	}
 
 	return
+}
+
+// createRepairRecord inserts an automated repair_request_record entry.
+func createRepairRecord(db *gorm.DB, reqID, workerID, recordType, comment string, photos []string) {
+	photosJSON := []byte("[]")
+	if len(photos) > 0 {
+		pj, err := json.Marshal(photos)
+		if err == nil {
+			photosJSON = pj
+		}
+	}
+	rec := models.RepairRequestRecord{
+		ID:              uuid.New().String(),
+		RepairRequestID: reqID,
+		WorkerID:        workerID,
+		Comment:         comment,
+		Photos:          string(photosJSON),
+		RecordType:      recordType,
+		CreatedAt:       time.Now(),
+	}
+	db.Create(&rec)
 }
