@@ -1,3 +1,2 @@
-import { View } from '@tarojs/components'
-
-export default function HomePlaceholder() { return <View /> }
+import Home from '../Home'
+export default Home
