@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
-import { wxLogin, storage, env, request } from '../../platform'
+import { wxLogin, storage, env, request, eventBus } from '../../platform'
 
 async function handleWxLogin() {
   Taro.showLoading({ title: '正在登录...' })
@@ -21,7 +21,8 @@ async function handleWxLogin() {
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
-      Taro.navigateBack()
+      eventBus.emit('loginSuccess')
+      Taro.reLaunch({ url: '/pages-weapp/profile/index' })
     } else {
       Taro.showToast({ title: (result.message || '登录失败') + ' [WX1]', icon: 'none' })
     }
@@ -43,7 +44,8 @@ async function handleIAMLogin(identifier, password) {
     if (result.code === 20000 && result.data?.access_token) {
       storage.setItem('token', result.data.access_token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
-      Taro.navigateBack()
+      eventBus.emit('loginSuccess')
+      Taro.reLaunch({ url: '/pages-weapp/profile/index' })
     } else {
       Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
     }
@@ -79,7 +81,7 @@ export default function Login() {
       {/* Channel 1: WeChat one-click */}
       <View style={{ width: '100%', padding: 0 }}>
         <Button onClick={handleWxLogin}
-          style={{ width: '100%', height: 48, backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16 }}>
+          style={{ marginLeft: 0, marginRight: 0, width: 'auto', height: 48, backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingLeft: 32, paddingRight: 32 }}>
           📱 微信用户一键登录
         </Button>
       </View>
