@@ -55,7 +55,7 @@ function InstrumentCard({ instrument, onClick }) {
       <View style={{ flex: '1 1 0%', marginLeft: 12, height: 80, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: 16, overflow: 'hidden' }}>
         <View style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, minWidth: 0, flex: '1 1 0%' }}>
           <View style={{ width: '100%', minWidth: 0 }}>
-            <Text style={{ fontSize: '1.4rem', lineHeight: '1.6rem', fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
+            <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
             <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.category_name}</Text>
           </View>
           {levelName && (

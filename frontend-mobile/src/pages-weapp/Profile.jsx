@@ -147,7 +147,7 @@ export default function Profile() {
 
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <ScrollView style={{ width: '100%', flex: '1 1 0%', paddingBottom: 80 }} scrollY showScrollbar={false}>
+      <ScrollView style={{ width: '100%', flex: '1 1 0%' }} scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
         <View style={{ width: '100%', background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 24, paddingRight: 24, paddingTop: 32, paddingBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
