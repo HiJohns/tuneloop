@@ -10,72 +10,135 @@ frontend-mobile/src/
 ├── pages-weapp/        # 小程序专属页面（纯 inline style）
 ├── components/         # H5 版组件（Tailwind）
 ├── components-weapp/   # 小程序版组件（inline style）
+├── styles-weapp.js     # 共享样式常量（避免重复）
 ├── services/           # 共享 API 调用 ← 两边一样
 ├── platform/           # 共享平台抽象层 ← 两边一样
 └── utils/              # 共享工具函数 ← 两边一样
 ```
 
-样式层分离的理由：H5 用 Tailwind（标准 CSS），小程序 WXS 不支持 CSS 转义、伪类、通用选择器等大量标准特性，同源无法兼顾。
+### 关键决策：weapp 不加载 Tailwind
+
+weapp 页面**零 Tailwind 类名**，构建时也不加载 `@tailwind` 指令。这样 `app.wxss` 只有 `body{margin:0}`，不需要任何 post-build sed 清理。
+
+实现方式——`app.tsx` 条件导入：
+```tsx
+if (process.env.TARO_ENV !== 'weapp') {
+  import './app.css'  // 只有 H5 加载 Tailwind
+}
+```
+
+### app.config.ts 条件页面
+
+```ts
+const isWeapp = process.env.TARO_ENV === 'weapp'
+const weappPages = [
+  'pages-weapp/home/index',
+  'pages-weapp/detail/index',
+  'pages-weapp/checkout/index',
+  // ...
+]
+const h5Pages = [
+  'pages/home/index',
+  'pages/detail/index',
+  // ...
+]
+export default { pages: isWeapp ? weappPages : h5Pages, ... }
+```
 
 ---
 
-## 第一阶段：完美复刻（Phase 1）
+## 第一阶段：直接迁移（Phase 1）
 
-### 目标
+### 策略
 
-把 H5 首页在小程序上 1:1 还原——轮播图、搜索框、分类菜单、乐器卡片列表、底栏导航，所有视觉效果与 H5 一致。
+**从 H5 源码直接转换**，不从测试页"生长"。每个页面复制到 `pages-weapp/`，然后逐行将 Tailwind className 替换为 inline style。这样保留 H5 已有的全部视觉细节。
 
-### 实现方式
+### 迁移步骤（每个页面通用）
 
-**不使用任何 Tailwind className**。全部用 `style={{...}}` 内联样式。已验证的映射规则：
+1. **复制** `pages/Home.jsx` → `pages-weapp/Home.jsx`
+2. **替换路由** `import { useNavigate } from 'react-router-dom'` → `import Taro from '@tarojs/taro'`，`navigate(url)` → `Taro.navigateTo({ url })`
+3. **替换图标** `import { ArrowLeft } from 'lucide-react'` → emoji 或 `<Text>←</Text>`
+4. **替换 antd** `import { Modal } from 'antd'` → 自定义 inline style 组件
+5. **逐行替换 className** → `style={{...}}`，从 `styles-weapp.js` 引用常量
+6. **替换 Image mode** `aspectFit` → `widthFix`
+7. **构建验证** `npm run build:weapp` + 上传 + 真机查看
 
-| H5 Tailwind | 小程序等效 |
-|------------|-----------|
-| `className="w-full h-full"` | `style={{ width: '100%', height: '100%' }}` |
-| `className="flex items-center"` | `style={{ display: 'flex', alignItems: 'center' }}` |
-| `className="fixed inset-0"` | `style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}` |
-| `className="z-[40]"` | `style={{ zIndex: 40 }}` |
-| `className="bg-[#915F38]"` | `style={{ backgroundColor: '#915F38' }}` |
-| `className="rounded-2xl"` | `style={{ borderRadius: 16 }}` |
-| `className="text-xl font-black"` | `style={{ fontSize: 20, fontWeight: '900' }}` |
-| `className="shadow-md"` | `style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}` |
-| `<Image mode="aspectFill">` | `<Image mode="widthFix">` |
+### 共享样式常量
 
-> 完整 CSS 对照表见前一版本文档的 Tailwind → inline style 映射。
+`styles-weapp.js` 避免重复内联样式：
 
-### 构建流程
+```js
+export const card = { backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }
+export const cardThumb = { width: 80, height: 80, borderRadius: 12, overflow: 'hidden', flexShrink: 0 }
+export const textLg = { fontSize: 22, fontWeight: '900', color: '#000' }
+export const textSm = { fontSize: 14, color: '#71717a', fontWeight: '700' }
+export const levelBadge = (bg) => ({ backgroundColor: bg, color: '#fff', fontSize: 14, padding: '2px 10px', borderRadius: 999, fontWeight: '900', alignSelf: 'flex-start' })
+export const priceText = { color: '#C21838', fontWeight: '900', fontSize: 26 }
+export const navBar = { display: 'flex', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#5A3B24', borderTop: '1px solid #4E321E', paddingTop: 10, paddingBottom: 10, position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 50 }
+export const searchBar = { width: 250, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }
+// ... 按需扩展
+```
 
-1. `npm run build:weapp`（Taro 编译 JSX → 小程序代码）
-2. 运行 `scripts/weapp-post-build.sh` 清理不兼容 CSS（后续追加）
-3. `miniprogram-ci upload` 上传到微信服务器
+### Tailwind → inline style 速查
 
-### 涉及页面
+| Tailwind | inline style |
+|----------|-------------|
+| `w-full h-full` | `{ width: '100%', height: '100%' }` |
+| `flex items-center justify-between` | `{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }` |
+| `fixed inset-0` | `{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }` |
+| `z-[40]` | `{ zIndex: 40 }` |
+| `bg-[#915F38]` | `{ backgroundColor: '#915F38' }` |
+| `bg-black/40` | `{ backgroundColor: 'rgba(0,0,0,0.4)' }` |
+| `text-white/70` | `{ color: 'rgba(255,255,255,0.7)' }` |
+| `rounded-2xl` | `{ borderRadius: 16 }` |
+| `rounded-full` | `{ borderRadius: 999 }` |
+| `text-xl font-black` | `{ fontSize: 20, fontWeight: '900' }` |
+| `shadow-md` | `{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }` |
+| `px-4 py-2` | `{ paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }` |
+| `py-0.5` | `{ paddingTop: 2, paddingBottom: 2 }` |
+| `space-x-1.5` | 给子元素加 `{ marginLeft: 6 }`（weapp 不支持 `~` 选择器） |
+| `truncate` | `{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }` |
+| `overflow-hidden` | `{ overflow: 'hidden' }` |
+| `flex-1` | `{ flex: '1 1 0%' }` |
+| `flex-shrink-0` | `{ flexShrink: 0 }` |
 
-从 H5 首页 `Home.jsx` 逐组件复刻到 `pages-weapp/`：
+### 第三方依赖替换
 
-| 序号 | 组件 | 说明 |
-|------|------|------|
-| 1 | Banner 轮播图 | 无限循环 + 触摸滑动 + 自动播放 |
-| 2 | 搜索框 | 半透明圆角，仅展示 UI |
-| 3 | 分类菜单 | 水平滚动，高亮当前 |
-| 4 | 乐器卡片 | 封面图 + 名称 + 类别 + 级别标签 + 价格 |
-| 5 | 底栏导航 | 四个 tab，当前页高亮 |
-| 6 | 加载骨架 | 数据加载中显示占位卡片 |
-| 7 | 空状态 | 无数据时显示占位图 |
+| H5 依赖 | 用途 | weapp 替代 |
+|---------|------|-----------|
+| `react-router-dom` | `useNavigate` `useSearchParams` | `Taro.navigateTo` / `Taro.navigateBack` / `Taro.getCurrentInstance().router?.params` |
+| `lucide-react` | 箭头、关闭、设置等图标 | emoji（← ✕ ⚙）或 `<Text>` 字符 |
+| `antd` | Modal / Upload / Steps / InputNumber | 自定义 inline style 组件 |
 
-### 已验证的技术栈
+### 页面优先级
+
+| 优先级 | 页面 | 理由 |
+|--------|------|------|
+| P0 | Home | 首页入口 |
+| P0 | Detail | 乐器详情 |
+| P0 | Checkout | 支付确认 |
+| P0 | Success | 支付完成 |
+| P1 | Profile | 个人中心 |
+| P1 | MyLeases | 我的租赁 |
+| P2 | StaffInstrumentForm | 员工录入乐器 |
+| P2 | CreateRepairRequest | 用户报修 |
+| P2 | MyRepairs | 我的报修 |
+| P3 | 其余所有页面 | 后续迭代 |
+
+### 已验证技术栈
 
 | 功能 | 实现方案 | 验证状态 |
 |------|---------|:---:|
 | 页面路由 | `Taro.navigateTo` / `Taro.navigateBack` | ✅ |
 | 参数传递 | `Taro.getCurrentInstance().router?.params?.id` | ✅ |
-| API 调用 | `Taro.request` 直接调用 | ✅ |
+| API 调用 | `Taro.request` | ✅ |
 | 图片加载 | `<Image mode="widthFix" src="https://...">` | ✅ |
 | 滑动切换 | `onTouchStart/onTouchEnd` + `clientX` | ✅ |
 | CSS transform | `transform: translateX(-XX%)` | ✅ |
 | CSS transition | `transition: transform 0.5s ease-in-out` | ✅ |
-| ScrollView | 必须显式 `height: '100%'`（不能用 `flex: 1`） | ✅ |
-| 调试面板 | `Taro.setEnableDebug({ enableDebug: true })` → 微信原生 vConsole | ✅ |
+| ScrollView | 必须显式 `height`（不能用 `flex: 1`） | ✅ |
+| 调试面板 | `Taro.setEnableDebug({ enableDebug: true })` | ✅ |
+| 轮播图无限循环 | clone 技术 + `onTransitionEnd` 无动画跳转 | ✅ |
 
 ### API 配置
 
@@ -83,17 +146,19 @@ frontend-mobile/src/
 |------|-----|-------|
 | apiBaseUrl | `/api`（浏览器自动补齐域名） | `https://wx.cadenzayueqi.com/api`（必须绝对 HTTPS） |
 | 域名白名单 | 不需要 | mp.weixin.qq.com → 服务器域名 必须登记 |
+| 图片 URL | 相对路径 `/uploads/...` 可用 | 必须绝对 `https://wx.cadenzayueqi.com/uploads/...` |
 
 ### 排障速查
 
 | 现象 | 常见原因 | 检查项 |
 |------|---------|--------|
-| 页面全白 | 整份 WXSS 被拒绝 | `*`, `~`, `:not`, `\`, `[ ]` 任一残留即失败 |
+| 页面全白 | CSS 被拒绝 或 JS 报错 | 检查 WXSS 是否有 `*` `~` `:not` `\` 残留；用 `setEnableDebug` 看 Console |
 | API 报 `request:fail invalid url` | 域名不在白名单 | 检查 `apiBaseUrl` 是否为绝对路径 + 微信后台域名登记 |
 | 列表不滚动 | ScrollView 高度为 0 | `height` 改为显式像素值 |
 | 图片模糊/变形 | 模式不对 | 改用 `mode="widthFix"` |
 | 数据不渲染 | API 取层错误 | `res.data.data.list` 注意双层 `data` 嵌套 |
 | 跳转失败 | `react-router-dom` 在小程序中被 alias | 改用 `Taro.navigateTo` |
+| 样式细节不对 | inline style 写法与 Tailwind 有差异 | 逐项对照速查表，注意 `alignSelf`、`flexShrink` 等细节 |
 
 ---
 
@@ -103,69 +168,75 @@ frontend-mobile/src/
 
 将微信平台独有能力的入口接入小程序——拍照、扫码、支付、位置等。
 
-### 现有 H5 功能 vs 小程序对接
+### 功能清单
 
-从代码库扫描所有 H5 端使用的平台抽象函数，逐项列出小程序端的微信 API 对接方案：
+| 功能 | H5 实现 | 小程序实现 | 外部依赖 | 状态 |
+|------|--------|-----------|---------|:---:|
+| **拍照/选图** | `<input type="file" accept="image/*">` | `Taro.chooseImage` | 无 | 待开发 |
+| **扫码** | `new BarcodeDetector()` | `Taro.scanCode` | 无 | 待开发 |
+| **支付** | mock / H5 支付 | `Taro.requestPayment` | **微信支付商户号** | 阻塞 |
+| **位置** | `navigator.geolocation` | `Taro.chooseLocation` | 无 | 待开发 |
+| **手机号授权** | `<Button openType="getPhoneNumber">` | 微信原生能力 | 无 | 待开发 |
+| **分享** | Web Share API | `Taro.showShareMenu` | 无 | 待开发 |
+| **文件上传** | `fetch` + FormData | `Taro.uploadFile` | 无 | 待开发 |
+| **登录** | OAuth 重定向 → `/callback` | `wx.login()` → code → 后端换 JWT | **beaconiam wx-login 端点** | 阻塞 |
+| **推送通知** | 轮询 | `Taro.requestSubscribeMessage` | **微信模板消息 ID** | 阻塞 |
+| **客服消息** | 独立聊天页面 | `<Button openType="contact">` | 无 | 待开发 |
 
-| 功能 | H5 实现 | 小程序实现 | 状态 |
-|------|--------|-----------|:---:|
-| **拍照/选图** | `<input type="file" accept="image/*">` | `wx.chooseImage` / `Taro.chooseImage` | 待开发 |
-| **扫码** | `new BarcodeDetector()` | `wx.scanCode` / `Taro.scanCode` | 待开发 |
-| **支付** | mock / H5 支付 | `wx.requestPayment` / `Taro.requestPayment` | 待开发 |
-| **位置** | `navigator.geolocation` / 地址选择器 | `wx.chooseLocation` / `Taro.chooseLocation` | 待开发 |
-| **手机号授权** | `<Button openType="getPhoneNumber">` | 微信原生能力 | 待开发 |
-| **分享** | Web Share API | `wx.showShareMenu` / `Taro.showShareMenu` | 待开发 |
-| **文件上传** | `fetch` + FormData | `wx.uploadFile` / `Taro.uploadFile` | 待开发 |
-| **登录** | OAuth 重定向 | `wx.login()` → 获取 code → 后端换 JWT | ✅ (weapp.md 已设计) |
-| **推送通知** | Web Push / 轮询 | `wx.requestSubscribeMessage` | 待开发 |
-| **客服消息** | 独立聊天页面 | `<Button openType="contact">` | 待开发 |
+### 阻塞项
 
-### 平台抽象层对接
+| 阻塞 | 说明 | 解决方式 |
+|------|------|---------|
+| 微信支付商户号 | 需要在微信支付平台申请 mch_id + API key | 运营层面操作，开发无法推进 |
+| beaconiam wx-login | `POST /api/v1/auth/wx-login` 端点未实现 | beaconiam 仓库建 Issue |
+| 微信模板消息 | 需在 mp.weixin.qq.com 配置订阅消息模板 | 运营层面操作 |
 
-`brandon-mobile/src/platform/` 已有平台抽象层：
-- `browser.js` — H5 实现（`navigator.geolocation`、`fetch`、存量逻辑）
-- `index.weapp.js` — 已实现存储、请求、对话框
-- **待补充**：`chooseImage`、`scanCode`、`requestPayment`、`chooseLocation`、`login`、`share`、`uploadFile`、`subscribeMessage`
+### 平台抽象层补充
 
-每个函数需要在 `browser.js`（已有逻辑）和 `index.weapp.js`（接微信 API）中同时实现。
+`src/platform/index.weapp.js` 需新增以下函数：
 
-### 对接要点
+```js
+// 拍照/选图
+export const chooseImage = (count = 1) => Taro.chooseImage({ count, sizeType: ['compressed'], sourceType: ['album', 'camera'] })
 
-**支付**：
-- 下单接口不变（`POST /api/user/rental`）
-- 支付通道从 H5 模拟改为调用 `wx.requestPayment({ timeStamp, nonceStr, package, signType, paySign })`
-- 后端需返回微信支付参数（需微信支付商户号配置）
+// 扫码
+export const scanCode = () => Taro.scanCode({ onlyFromCamera: false })
 
-**扫码**：
-- 目前 `BarcodeDetector` 是 H5 API，部分浏览器不支持
-- 小程序直接用 `Taro.scanCode({ onlyFromCamera: false })` 返回 `{ result, scanType }`
+// 支付
+export const requestPayment = (params) => Taro.requestPayment(params)
 
-**拍照**：
-- H5 用 `<input type="file">` 选择本地文件
-- 小程序用 `Taro.chooseImage({ count, sizeType, sourceType })` 返回 `{ tempFilePaths }`
-- 上传使用 `Taro.uploadFile` 或转 base64 后走 `request`
+// 位置
+export const chooseLocation = () => Taro.chooseLocation()
 
-**登录**：
-- H5 用 OAuth 重定向 → `/callback` 页
-- 小程序用 `wx.login()` → `Taro.login()` 获取临时 code
-- `POST /api/wx/login { code }` → IAM 换取 JWT
-- 已在 `docs/weapp.md` 设计完毕，需落实后端实现
+// 分享
+export const showShareMenu = () => Taro.showShareMenu({ withShareTicket: true })
+
+// 文件上传
+export const uploadFile = (url, filePath, name = 'file') => Taro.uploadFile({ url, filePath, name })
+```
+
+`src/platform/browser.js` 对应的 H5 实现保持现有逻辑不变。
 
 ---
 
 ## 执行计划
 
-1. **建目录**：`src/pages-weapp/` `src/components-weapp/`
-2. **逐组件迁移**：按 Phase 1 清单，从 `Home.jsx` 复刻到 `pages-weapp/Home.jsx`（全 inline style）
-3. **验证**：每个组件完成后 build + 上传 + 真机查看
-4. **完善平台层**：按 Phase 2 清单，在 `index.weapp.js` 中补全 `chooseImage`/`scanCode`/`requestPayment` 等函数
-5. **对接后端**：支付参数、wx-login 端点
-6. **提交审核**：全功能通过后提交微信审核
+| 步骤 | 内容 | 产出 |
+|------|------|------|
+| 1 | 建 `pages-weapp/` `components-weapp/` 目录 + `styles-weapp.js` | 骨架 |
+| 2 | 修改 `app.tsx` 条件导入 + `app.config.ts` 条件页面 | 双端构建 |
+| 3 | 迁移 P0 页面（Home → Detail → Checkout → Success） | 核心流程可用 |
+| 4 | 迁移 P1 页面（Profile → MyLeases） | 用户中心可用 |
+| 5 | 补充平台层 `chooseImage` / `scanCode` / `uploadFile` | 原生能力可用 |
+| 6 | 对接后端 wx-login + 支付（解除阻塞后） | 登录+支付闭环 |
+| 7 | 迁移 P2/P3 页面 | 全功能 |
+| 8 | 提交微信审核 | 上线 |
 
 ## 维护规范
 
 - `pages-weapp/` 中**禁止**使用 Tailwind className
-- 所有样式用 `style={{...}}` 内联
-- 新功能先在 H5 完成，再复刻到小程序
+- 所有样式用 `style={{...}}` 内联，或从 `styles-weapp.js` 引用常量
+- 新功能先在 H5 完成（`pages/`），再复刻到小程序（`pages-weapp/`）
 - `services/` 和 `utils/` 两端共享，任何修改自动影响两边
-- 每次提交前跑 `npm run build:weapp` 确保编译通过
+- 每次提交前 `npm run build:weapp` 确保编译通过
+- 图片 URL 在 `pages-weapp/` 中必须用绝对路径 `https://wx.cadenzayueqi.com/...`
