@@ -172,7 +172,7 @@ export default function Home() {
   }
 
   return (
-    <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <View style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Z=0: Full-screen carousel background */}
       <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
         {banners.length > 0 && (
@@ -284,7 +284,7 @@ export default function Home() {
       )}
 
       {/* B: clip layer */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, overflow: 'hidden' }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0 }}>
         <ScrollView style={{ height: listHeight, backgroundColor: 'transparent' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
