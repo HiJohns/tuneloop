@@ -5,14 +5,24 @@ import { wxLogin, storage, env, request } from '../../platform'
 
 async function handleGetPhoneNumber(e) {
   const { encryptedData, iv } = e.detail || {}
-  if (!encryptedData || !iv) return
+  if (!encryptedData || !iv) {
+    Taro.showToast({ title: '授权已取消', icon: 'none' })
+    return
+  }
+  Taro.showLoading({ title: '正在登录...' })
   try {
     const code = await wxLogin()
+    if (!code) {
+      Taro.hideLoading()
+      Taro.showToast({ title: '微信登录失败', icon: 'none' })
+      return
+    }
     const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
       method: 'POST',
       body: JSON.stringify({ code, encrypted_data: encryptedData, iv }),
     })
     const result = await res.json()
+    Taro.hideLoading()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
@@ -21,26 +31,34 @@ async function handleGetPhoneNumber(e) {
       } else {
         Taro.navigateBack()
       }
+    } else {
+      Taro.showToast({ title: (result.message || '登录失败') + ' [WX1]', icon: 'none' })
     }
   } catch (err) {
-    console.error('[Login] wx-login failed:', err)
+    Taro.hideLoading()
+    Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
   }
 }
 
 async function handleIAMLogin(identifier, password) {
+  Taro.showLoading({ title: '正在登录...' })
   try {
     const res = await request(`${env.apiBaseUrl}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ identifier, password }),
     })
     const result = await res.json()
+    Taro.hideLoading()
     if (result.code === 20000 && result.data?.access_token) {
       storage.setItem('token', result.data.access_token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
       Taro.navigateBack()
+    } else {
+      Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
     }
   } catch (err) {
-    console.error('[Login] IAM login failed:', err)
+    Taro.hideLoading()
+    Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
   }
 }
 

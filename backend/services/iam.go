@@ -260,18 +260,20 @@ func (s *IAMService) CreateGuestToken() (*TokenResponse, error) {
 	}, nil
 }
 
-// IAMLogin proxies email/password login to beaconiam
+// IAMLogin proxies email/password login to beaconiam via OAuth password grant
 func (s *IAMService) IAMLogin(identifier, password string) (*TokenResponse, error) {
 	payload := map[string]string{
-		"identifier": identifier,
-		"password":   password,
-		"client_id":  s.clientID,
+		"grant_type":    "password",
+		"username":      identifier,
+		"password":      password,
+		"client_id":     s.clientID,
+		"client_secret": s.clientSecret,
 	}
-	jsonPayload, _ := json.Marshal(payload)
+	jsonBody, _ := json.Marshal(payload)
 	resp, err := s.httpClient.Post(
-		fmt.Sprintf("%s/api/v1/auth/login", s.baseURL),
+		fmt.Sprintf("%s/api/v1/auth/token", s.baseURL),
 		"application/json",
-		bytes.NewBuffer(jsonPayload),
+		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call IAM login: %w", err)
