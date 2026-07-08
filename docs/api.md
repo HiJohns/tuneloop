@@ -3443,7 +3443,7 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 **请求 Body**:
 ```json
 {
-  "role_code": "worker"
+  "role_code": "repair_technician"
 }
 ```
 
@@ -3864,7 +3864,7 @@ Content-Disposition: attachment; filename="statement_202603.xlsx"
 | username | string | 否 | 用户名（不传时自动使用 email 前缀） |
 | position | string | 否 | 职位 |
 | site_id | string | 否 | 归属网点 ID |
-| role | string | 否 | 角色：site_member / site_admin / worker |
+| role | string | 否 | 角色：site_member / site_admin / repair_technician |
 | password | string | 否 | 管理员设置的初始密码（8位+大写+小写+数字） |
 | auto_generate | bool | 否 | 自动生成密码（true时忽略 password 字段） |
 | force_password_change | bool | 否 | 首次登录强制修改密码 |

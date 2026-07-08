@@ -687,7 +687,7 @@ func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID 
 		"merchant_admin": {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
 		"site_admin":     {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
 		"site_member":    {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
-		"worker":         {"instrument:read", "instrument:maintain"},
+		"repair_technician": {"instrument:read", "instrument:maintain"},
 	}
 	for code, codes := range systemRoles {
 		role := models.Role{

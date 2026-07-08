@@ -28,7 +28,7 @@ export default function RepairRequestDetail() {
     } catch { return true }
   })()
   const isTechnician = roles.includes('repair_technician')
-  const isSiteStaff = roles.some(r => ['site_admin', 'site_member', 'worker'].includes(r))
+  const isSiteStaff = roles.some(r => ['site_admin', 'site_member'].includes(r))
 
   const fetchData = async () => {
     if (!requestId) return

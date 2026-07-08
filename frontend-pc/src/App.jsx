@@ -550,7 +550,7 @@ function onMenuClick(e) {
                     {userInfo.businessRole === 'system_admin' ? '命名空间管理员' :
                      userInfo.businessRole === 'merchant_admin' ? '管理员' :
                      userInfo.businessRole === 'site_admin' ? '管理员' :
-                     userInfo.businessRole === 'worker' ? '维修工程师' : '员工'}
+                     userInfo.businessRole === 'repair_technician' ? '维修师傅' : '员工'}
                   </span>
                 </div>
               ) : (

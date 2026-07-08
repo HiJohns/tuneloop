@@ -224,8 +224,8 @@ func toIAMRole(tuneloopCode string) string {
 		return "ADMIN"
 	case "site_member":
 		return "STAFF"
-	case "worker":
-		return "WORKER"
+	case "repair_technician":
+		return "repair_technician"
 	default:
 		return tuneloopCode
 	}

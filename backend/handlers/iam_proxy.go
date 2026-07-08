@@ -1042,7 +1042,7 @@ func mapIAMRoleToSiteRole(iamRole string) string {
 	case "STAFF":
 		return "site_member"
 	case "repair_technician":
-		return "worker"
+		return "repair_technician"
 	default:
 		return "site_member"
 	}

@@ -45,7 +45,7 @@ export default function MyRepairs() {
       const roles = role.code === 20000 ? (role.data?.roles || []) : []
       setRoles(roles)
 
-      const hasSiteRole = roles.some(r => ['site_admin', 'site_member', 'worker'].includes(r))
+      const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
       const isPureTech = roles.includes('repair_technician') && !hasSiteRole
 
       const fetches = []
@@ -80,7 +80,7 @@ export default function MyRepairs() {
 
   useEffect(() => { fetchRepairs() }, [])
 
-  const hasSiteRole = roles.some(r => ['site_admin', 'site_member', 'worker'].includes(r))
+  const hasSiteRole = roles.some(r => ['site_admin', 'site_member'].includes(r))
   const isPureTech = roles.includes('repair_technician') && !hasSiteRole
 
   const handleSearch = () => {

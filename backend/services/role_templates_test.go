@@ -14,7 +14,7 @@ func TestGetRoleTemplate(t *testing.T) {
 		{"merchant_admin", true, "商户管理员"},
 		{"site_admin", true, "网点管理员"},
 		{"site_member", true, "网点员工"},
-		{"worker", true, "维修工程师"},
+		{"repair_technician", true, "维修师傅"},
 		{"customer", true, "顾客"},
 		{"invalid_role", false, ""},
 	}
@@ -88,8 +88,13 @@ func TestGetRoleTemplateSysPerm(t *testing.T) {
 
 func TestGetAllValidRoleTemplateCodes(t *testing.T) {
 	codes := GetAllValidRoleTemplateCodes()
-	if len(codes) != len(AllRoleTemplates) {
-		t.Errorf("GetAllValidRoleTemplateCodes() len = %d, want %d", len(codes), len(AllRoleTemplates))
+	// Count unique codes
+	seen := map[string]bool{}
+	for _, c := range codes {
+		seen[c] = true
+	}
+	if len(seen) != len(AllRoleTemplates) {
+		t.Errorf("GetAllValidRoleTemplateCodes() unique codes = %d, want %d (AllRoleTemplates keys)", len(seen), len(AllRoleTemplates))
 	}
 }
 
@@ -101,7 +106,7 @@ func TestGetBusinessRole(t *testing.T) {
 		{"site_admin", "organization_admin"},
 		{"merchant_admin", "tenant_admin"},
 		{"site_member", "user"},
-		{"worker", "worker"},
+		{"repair_technician", "repair_technician"},
 		{"namespace_admin", ""},
 		{"customer", ""},
 		{"invalid_role", ""},

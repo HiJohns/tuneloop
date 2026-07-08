@@ -58,8 +58,8 @@ var AllRoleTemplates = map[string]RoleTemplate{
 		CusPermCodes: []string{"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:maintain", "instrument:media_upload", "instrument:media_delete", "order:create", "order:read", "order:update", "audit_log:read"},
 		Description:  "网点员工基础权限",
 	},
-	"worker": {
-		Name:         "维修工程师",
+	"repair_technician": {
+		Name:         "维修师傅",
 		SysPermBits:  []int{},
 		CusPermCodes: []string{"instrument:read", "instrument:maintain"},
 		Description:  "维修权限",
@@ -73,8 +73,8 @@ var AllRoleTemplates = map[string]RoleTemplate{
 }
 
 var CustomRoleTemplates = map[string]RoleTemplate{
-	"worker": {
-		Name:         "维修工程师",
+	"repair_technician": {
+		Name:         "维修师傅",
 		SysPermBits:  []int{},
 		CusPermCodes: []string{"instrument:read", "instrument:maintain"},
 		Description:  "维修权限",
@@ -101,7 +101,7 @@ var BusinessRoleMapping = map[string]string{
 	"merchant_admin": "tenant_admin",
 	"site_admin":     "organization_admin",
 	"site_member":    "user",
-	"worker":         "worker",
+	"repair_technician": "repair_technician",
 }
 
 func GetBusinessRole(roleTemplate string) string {
