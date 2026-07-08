@@ -327,9 +327,9 @@ export default function Home() {
             active="home"
             tabs={[
               { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-              { key: 'rent', icon: '🪕', label: '租赁', onClick: () => dialog.toast('功能开发中') },
+              { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
               { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
-              { key: 'profile', icon: '👤', label: '我的', onClick: () => dialog.toast('功能开发中') },
+              { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
             ]}
           />
         </View>
