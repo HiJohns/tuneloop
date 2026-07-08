@@ -1,4 +1,4 @@
-import { storage, session, request, navigation, env, wxLogin } from './index'
+import { storage, session, request, navigation, env } from './index'
 
 let initCalled = false
 let _initPermissionMapping = null
