@@ -3,12 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
 import { wxLogin, storage, env, request } from '../../platform'
 
-async function handleGetPhoneNumber(e) {
-  const { encryptedData, iv } = e.detail || {}
-  if (!encryptedData || !iv) {
-    Taro.showToast({ title: '授权已取消', icon: 'none' })
-    return
-  }
+async function handleWxLogin() {
   Taro.showLoading({ title: '正在登录...' })
   try {
     const code = await wxLogin()
@@ -19,18 +14,14 @@ async function handleGetPhoneNumber(e) {
     }
     const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
       method: 'POST',
-      body: JSON.stringify({ code, encrypted_data: encryptedData, iv }),
+      body: JSON.stringify({ code }),
     })
     const result = await res.json()
     Taro.hideLoading()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
-      if (result.data.is_new) {
-        Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
-      } else {
-        Taro.navigateBack()
-      }
+      Taro.navigateBack()
     } else {
       Taro.showToast({ title: (result.message || '登录失败') + ' [WX1]', icon: 'none' })
     }
@@ -86,10 +77,12 @@ export default function Login() {
       <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>登录</Text>
 
       {/* Channel 1: WeChat one-click */}
-      <Button openType="getPhoneNumber" onGetPhoneNumber={handleGetPhoneNumber}
-        style={{ width: '100%', height: 48, backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, lineHeight: '48px' }}>
-        📱 微信用户一键登录
-      </Button>
+      <View style={{ width: '100%', padding: 0 }}>
+        <Button onClick={handleWxLogin}
+          style={{ width: '100%', height: 48, backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16 }}>
+          📱 微信用户一键登录
+        </Button>
+      </View>
 
       {/* Divider */}
       <View style={{ display: 'flex', alignItems: 'center', width: '100%', marginBottom: 16 }}>
