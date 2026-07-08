@@ -155,10 +155,48 @@ export const searchBar = { width: 250, height: 42, borderRadius: 999, display: '
 | 页面全白 | CSS 被拒绝 或 JS 报错 | 检查 WXSS 是否有 `*` `~` `:not` `\` 残留；用 `setEnableDebug` 看 Console |
 | API 报 `request:fail invalid url` | 域名不在白名单 | 检查 `apiBaseUrl` 是否为绝对路径 + 微信后台域名登记 |
 | 列表不滚动 | ScrollView 高度为 0 | `height` 改为显式像素值 |
+| 列表滚动后回弹复位 | `onScroll` → `setState` 触发 re-render → ScrollView 滚动位重置 | 见下方 §滚动回弹案例 |
 | 图片模糊/变形 | 模式不对 | 改用 `mode="widthFix"` |
 | 数据不渲染 | API 取层错误 | `res.data.data.list` 注意双层 `data` 嵌套 |
 | 跳转失败 | `react-router-dom` 在小程序中被 alias | 改用 `Taro.navigateTo` |
 | 样式细节不对 | inline style 写法与 Tailwind 有差异 | 逐项对照速查表，注意 `alignSelf`、`flexShrink` 等细节 |
+
+### 滚动回弹案例（#Home.jsx 2026-07-08）
+
+**现象**：ScrollView 中乐器列表向上滚动约 10px 后自动弹回原位，无法正常浏览。
+
+**排查过程**：
+1. 先用 `flex: 1` → weapp ScrollView 不解析 flex 高度（无效）
+2. 换成 `position: absolute, top: 0, bottom: 50` → 仍然回弹
+3. 移除 `overflow: hidden`（weapp `<View>` 不支持 CSS overflow 属性，会阻断 ScrollView 触摸事件）→ 无效
+4. **最终定位**：移除 ScrollView 的 `onScroll` handler 后立即恢复
+
+**根因**：
+
+| 层 | 问题 | 说明 |
+|----|------|------|
+| **主因** | `onScroll` → `setState` → re-render 死循环 | 每次手指滚动触发 `onScroll` → `setScrollY(value)` → React state 更新 → `Home` 组件 re-render → weapp 中 ScrollView re-render 时内部滚动位置被重置为 0 → UI 回到原位。手指持续拖动形成"滚一点→复位→滚一点→复位"的 ping-pong 效果 |
+| 次因 | `overflow: hidden` 阻断事件 | weapp `<View>` 不支持 CSS `overflow` 属性，设置后会干扰 ScrollView 的触摸事件传递链 |
+| 次因 | `flex: 1` 不适用 ScrollView | weapp ScrollView 必须使用显式像素高度（从 `Taro.getSystemInfoSync().windowHeight` 计算），`flex: 1` 及 `height: 0` 技巧部分版本无效 |
+
+**修复**：
+```jsx
+// ❌ 错误：onScroll 触发 setState → re-render → 滚动位重置
+<ScrollView onScroll={e => setScrollY(e.detail.scrollTop)} ...>
+
+// ✅ 正确：需要滚动监听时使用 useRef 避免 re-render
+const scrollYRef = useRef(0)
+<ScrollView onScroll={e => { scrollYRef.current = e.detail.scrollTop }} ...>
+
+// ✅ ScrollView 高度用显式像素值
+const wh = Taro.getSystemInfoSync().windowHeight
+<ScrollView style={{ height: wh - 192 }} scrollY showScrollbar={false}>
+```
+
+**教训**：
+- ScrollView 的 `onScroll` 必须使用 `useRef` 而非 `useState`。任何触发 re-render 的操作都会导致 weapp 重置滚动位置。
+- `overflow: hidden` 在 weapp `<View>` 上无效果且有害。
+- ScrollView 高度一律用显式像素计算，不依赖 CSS flex。
 
 ---
 
