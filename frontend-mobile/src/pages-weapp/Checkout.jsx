@@ -200,6 +200,19 @@ function SingleCheckout({ id, nav }) {
       return
     }
 
+    const token = getToken()
+    let role = ''
+    try {
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        role = payload.role || ''
+      }
+    } catch {}
+    if (role === 'GUEST') {
+      dialog.alert('请先登录才能下单')
+      return
+    }
+
     setSubmitting(true)
     try {
       let deliveryAddress = null
@@ -615,6 +628,20 @@ function BatchCheckout({ nav }) {
       dialog.alert('请填写收货人')
       return
     }
+
+    const token = getToken()
+    let role = ''
+    try {
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        role = payload.role || ''
+      }
+    } catch {}
+    if (role === 'GUEST') {
+      dialog.alert('请先登录才能下单')
+      return
+    }
+
     setSubmitting(true)
     try {
       let deliveryAddress = null

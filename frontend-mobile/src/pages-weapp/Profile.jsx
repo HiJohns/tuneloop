@@ -119,6 +119,7 @@ export default function Profile() {
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
   const isStaff = claims.role === 'STAFF'
+  const isGuest = claims.role === 'GUEST' || (!token && user === null)
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -151,38 +152,61 @@ export default function Profile() {
         {/* 1. 头部渐变身份区 */}
         <View style={{ width: '100%', background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 24, paddingRight: 24, paddingTop: 32, paddingBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
           <View style={{ display: 'flex', alignItems: 'center' }}>
-            <View style={{ width: 80, height: 80, borderRadius: 999, overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0, backgroundColor: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowEdit(true)}>
-              {user?.avatar ? (
+            <View style={{ width: 80, height: 80, borderRadius: 999, overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0, backgroundColor: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => !isGuest && setShowEdit(true)}>
+              {!isGuest && user?.avatar ? (
                 <Image src={user.avatar} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
               ) : (
                 <Text style={{ fontSize: 30 }}>👤</Text>
               )}
             </View>
             <View style={{ marginLeft: 16 }}>
-            <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
-            {user?.membership_level_id && (
-              <Text style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
-                {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
-              </Text>
+            {isGuest ? (
+              <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={() => nav('/pages-weapp/login/index')}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>👉 登录查看资产</Text>
+              </View>
+            ) : (
+              <>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
+              {user?.membership_level_id && (
+                <Text style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
+                  {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
+                </Text>
+              )}
+              {!isStaff && (
+                <Text style={{ fontSize: 14, color: '#71717a', marginTop: 6 }}>{user?.phone || '未绑定手机'}</Text>
+              )}
+              </>
             )}
-
-            {!isStaff && (
-              <Text style={{ fontSize: 14, color: '#71717a', marginTop: 6 }}>{user?.phone || '未绑定手机'}</Text>
-            )}
-
           </View>
           </View>
+          {!isGuest && (
           <View
             style={{ backgroundColor: 'rgba(255,255,255,0.8)', border: '1px solid #f4f4f5', color: '#92400e', fontSize: 12, fontWeight: '700', padding: '0 16px', height: 32, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={handleLogout}
           >
             退出登录
           </View>
+          )}
         </View>
 
-        {/* 2. 金刚过滤区 — 员工 vs 顾客 */}
+        {/* 2. 金刚过滤区 */}
         <View style={{ marginLeft: 16, marginRight: 16, backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginTop: 12, padding: 16, display: 'flex', justifyContent: 'space-around' }}>
-          {isStaff ? (
+          {isGuest ? (
+            <>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12, opacity: 0.5 }}>
+                <View style={{ fontSize: 24, marginBottom: 4 }}>🔒</View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>待付款</Text>
+              </View>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12, opacity: 0.5 }}>
+                <View style={{ fontSize: 24, marginBottom: 4 }}>🔒</View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>服务中</Text>
+              </View>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12, opacity: 0.5 }}>
+                <View style={{ fontSize: 24, marginBottom: 4 }}>🔒</View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>已完成</Text>
+              </View>
+            </>
+          ) : isStaff ? (
             <>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/staff-instruments/index')}>
                 <View style={{ fontSize: 24, marginBottom: 4 }}>🎸</View>
