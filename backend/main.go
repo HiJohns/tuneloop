@@ -684,8 +684,9 @@ func main() {
 	flag.StringVar(&envFile, "env", "", "Path to .env file to load")
 	migrateCover := flag.Bool("migrate-cover-images", false, "Generate cover images for instruments without one, then exit")
 	migrateWebP := flag.Bool("migrate-display-webp", false, "Convert all display images to WebP, then exit")
+	migrateBannerWebP := flag.Bool("migrate-banner-webp", false, "Convert legacy banner images to WebP, then exit")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
-	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode (for --migrate-cover-images or --migrate-display-webp)")
+	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode (for --migrate-cover-images, --migrate-display-webp, or --migrate-banner-webp)")
 	flag.Parse()
 
 	// Load environment file if specified
@@ -752,6 +753,21 @@ func main() {
 			fmt.Printf("DRY RUN: %d display images would be converted to WebP\n", count)
 		} else {
 			fmt.Printf("WebP migration complete: %d display images converted\n", count)
+		}
+		os.Exit(0)
+	}
+
+	// One-off migration: convert legacy banner images to WebP
+	if *migrateBannerWebP {
+		count, err := handlers.MigrateBannerImagesToWebP(*dryRunFlag)
+		if err != nil {
+			fmt.Printf("FATAL: Banner WebP migration failed: %v\n", err)
+			os.Exit(1)
+		}
+		if *dryRunFlag {
+			fmt.Printf("DRY RUN: %d banners would be converted to WebP\n", count)
+		} else {
+			fmt.Printf("Banner WebP migration complete: %d banners converted\n", count)
 		}
 		os.Exit(0)
 	}

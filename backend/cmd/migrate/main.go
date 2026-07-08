@@ -35,6 +35,7 @@ func main() {
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nAvailable commands (pass as arg):\n")
 		fmt.Fprintf(os.Stderr, "  migrate-display-webp    Convert all display images to WebP\n")
+		fmt.Fprintf(os.Stderr, "  migrate-banner-webp     Convert legacy banner images to WebP\n")
 		fmt.Fprintf(os.Stderr, "  preview-webp             Preview how many images would be converted\n")
 		fmt.Fprintf(os.Stderr, "  migrate-cover-images     Generate cover images for instruments without one\n")
 	}
@@ -58,6 +59,18 @@ func main() {
 			log.Printf("DRY RUN: %d images would be converted", count)
 		} else {
 			log.Printf("Successfully converted %d images to WebP", count)
+		}
+
+	case "migrate-banner-webp":
+		dryRun := len(args) > 1 && args[1] == "--dry-run"
+		count, err := handlers.MigrateBannerImagesToWebP(dryRun)
+		if err != nil {
+			log.Fatalf("Banner migration failed: %v", err)
+		}
+		if dryRun {
+			log.Printf("DRY RUN: %d banners would be converted to WebP", count)
+		} else {
+			log.Printf("Successfully converted %d banner images to WebP", count)
 		}
 
 	case "preview-webp":

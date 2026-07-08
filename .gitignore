@@ -12,6 +12,7 @@
 backend/tuneloop
 backend/tuneloop-backend
 backend/main
+backend/migrate
 backend/handlers.test
 
 # Frontend build output
