@@ -926,6 +926,7 @@ func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 		services.Notify(db, req.TenantID, customerUser.ID, "returned", title, content, req.ID, "repair_request")
 	}
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "return_shipped", "已发还（"+body.ReturnCompany+" "+body.ReturnTrackingNumber+"）", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "return shipping updated"})
 }
 
@@ -1035,6 +1036,7 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	}
 	db.Model(&req).Updates(updates)
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "paid", "支付完成", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"amount_paid": amount, "status": newStatus}})
 }
 
@@ -1125,6 +1127,7 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 		services.Notify(db, req.TenantID, customerUser.ID, "requote", title, content, req.ID, "repair_request")
 	}
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "requoted", "师傅重新报价", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": quote})
 }
 
@@ -1183,6 +1186,7 @@ func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
 
 	db.Model(&req).Updates(updates)
 
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "requote_rejected", "拒绝重新报价", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "rollback settlement complete", "data": gin.H{
 		"refund":        refund,
 		"retained_fees": checkFee + quote.LogisticsFee,

@@ -89,6 +89,7 @@ func SubmitQuote(c *gin.Context) {
 		}
 	}
 
+	createRepairRecord(db, repairRequestID, userID, "quote_submitted", "师傅提交报价", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": quote})
 }
 
@@ -225,5 +226,6 @@ func AcceptQuote(c *gin.Context) {
 		}
 	}
 
+	createRepairRecord(db, repairRequestID, middleware.GetUserID(ctx), "quote_accepted", "接受报价", nil)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "quote accepted"})
 }
