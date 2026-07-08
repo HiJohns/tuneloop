@@ -85,6 +85,14 @@ export default function Home() {
   const tenant = routerParams.tenant || null
   const categoryFromUrl = routerParams.category_id || null
 
+  const [categories, setCategories] = useState([])
+  const [instruments, setInstruments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl)
+  const [banners, setBanners] = useState([])
+  const [currentBanner, setCurrentBanner] = useState(0)
+  const [jumpReset, setJumpReset] = useState(false)
+  const [catOffsetX, setCatOffsetX] = useState(0)
   const scrollYRef = useRef(0)
   const [scrolled, setScrolled] = useState(false)
   const [menuStuck, setMenuStuck] = useState(false)
@@ -274,7 +282,7 @@ export default function Home() {
         </View>
       )}
 
-      {/* C: ScrollView — independent fixed, no wrapper intercepting touch */}
+      {/* C: ScrollView — independent fixed positioning */}
       <ScrollView style={{ position: 'fixed', top: '142px', bottom: 50, left: 0, right: 0, backgroundColor: 'transparent' }}
         scrollY showScrollbar={false}
         onScroll={e => {
@@ -284,52 +292,52 @@ export default function Home() {
           if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
           if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
         }}>
-          <View style={{ height: '100px' }}></View>
+        <View style={{ height: '100px' }}></View>
 
-          <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent' }}>
-            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
-          </View>
-
-          <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
-          {loading ? (
-            Array(3).fill(0).map((_, i) => (
-              <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
-                <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
-                  <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
-                </View>
-                <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
-                  <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
-                  <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
-                </View>
-              </View>
-            ))
-          ) : instruments.length > 0 ? (
-            instruments.map(instrument => (
-              <InstrumentCard
-                key={instrument.id}
-                instrument={instrument}
-                onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
-              />
-            ))
-          ) : (
-            <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
-              <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
-              <Text style={{ fontSize: 18 }}>暂无乐器</Text>
-            </View>
-          )}
-          </View>
-        </ScrollView>
-        <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101 }}>
-        <BottomNav
-          active="home"
-          tabs={[
-            { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
-            { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
-          ]}
-        />
+        <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent' }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
         </View>
+
+        <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+              <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
+                <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
+              </View>
+              <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
+                <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
+                <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
+              </View>
+            </View>
+          ))
+        ) : instruments.length > 0 ? (
+          instruments.map(instrument => (
+            <InstrumentCard
+              key={instrument.id}
+              instrument={instrument}
+              onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
+            />
+          ))
+        ) : (
+          <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
+            <Text style={{ fontSize: 18 }}>暂无乐器</Text>
+          </View>
+        )}
+        </View>
+      </ScrollView>
+      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101 }}>
+      <BottomNav
+        active="home"
+        tabs={[
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
+        ]}
+      />
+      </View>
     </View>
   )
 }
