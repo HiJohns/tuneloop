@@ -120,7 +120,7 @@ export default function RepairRequestDetail() {
   const handleConfirmReceipt = async () => {
     setActionLoading(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/receive`, { method: 'POST' })
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/confirm-receipt`, { method: 'POST' })
       const r = await resp.json()
       if (r.code === 20000) { await fetchData() }
       else { alert(r.message || '操作失败') }
