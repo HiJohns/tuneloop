@@ -96,9 +96,11 @@ export default function Home() {
   const [currentBanner, setCurrentBanner] = useState(0)
   const [jumpReset, setJumpReset] = useState(false)
   const [catOffsetX, setCatOffsetX] = useState(0)
-  const [scrollY, setScrollY] = useState(0)
-  const scrolled = scrollY > 50
-  const menuStuck = scrollY > 130
+  const scrollYRef = useRef(0)
+  const [scrolled, setScrolled] = useState(false)
+  const [menuStuck, setMenuStuck] = useState(false)
+  const scrolledRef = useRef(false)
+  const menuStuckRef = useRef(false)
   const topCategories = categories.filter(c => !c.parent_id)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
@@ -286,72 +288,15 @@ export default function Home() {
       {/* B: clip layer */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0 }}>
         <ScrollView style={{ height: listHeight, backgroundColor: 'transparent' }}
-          scrollY showScrollbar={false}>
-          <View style={{ height: '100px' }}></View>
-
-          <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent' }}>
-            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
-          </View>
-
-          <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
-          {loading ? (
-            Array(3).fill(0).map((_, i) => (
-              <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
-                <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
-                  <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
-                </View>
-                <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
-                  <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
-                  <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
-                </View>
-              </View>
-            ))
-          ) : instruments.length > 0 ? (
-            instruments.map(instrument => (
-              <InstrumentCard
-                key={instrument.id}
-                instrument={instrument}
-                onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
-              />
-            ))
-          ) : (
-            <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
-              <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
-              <Text style={{ fontSize: 18 }}>暂无乐器</Text>
-            </View>
-          )}
-          </View>
-        </ScrollView>
-        <BottomNav
-          active="home"
-          tabs={[
-            { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
-            { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
-            { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
-          ]}
-        />
-      </View>
-    </View>
-  )
-}
-
-function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
-  const items = [{ id: null, name: '全部' }, ...(categories || [])]
-  const localTouchRef = useRef({ x: 0, offset: 0 })
-
-  return (
-    <View style={{ width: '100%', overflow: 'hidden', paddingLeft: 28, backgroundColor: 'rgba(0,0,0,0.2)', paddingTop: 4, paddingBottom: 4 }}
-      onTouchStart={e => {
-        localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
-      }}
-      onTouchMove={e => {
-        const dx = e.touches[0].clientX - localTouchRef.current.x
-        if (Math.abs(dx) > 5) {
-          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(items.length * 120 - 375))))
-        }
-      }}
-    >
+          scrollY showScrollbar={false}
+          onScroll={e => {
+            const newY = e.detail?.scrollTop ?? e.target?.scrollTop ?? 0
+            scrollYRef.current = newY
+            const ns = newY > 50
+            const nm = newY > 130
+            if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+          }}>
       <View style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', transform: `translateX(${catOffsetX}px)` }}>
         {items.map(item => (
           <Text
