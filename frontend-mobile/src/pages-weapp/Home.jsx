@@ -168,49 +168,51 @@ export default function Home() {
   return (
     <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Z=0: Full-screen carousel background */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 0, height: 240 }}>
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
         {banners.length > 0 && (
-          <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(banners.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
-            onTransitionEnd={() => {
-              if (currentBanner === -1) {
-                setJumpReset(true)
-                setCurrentBanner(banners.length - 1)
-                setTimeout(() => setJumpReset(false), 50)
-              } else if (currentBanner === banners.length) {
-                setJumpReset(true)
-                setCurrentBanner(0)
-                setTimeout(() => setJumpReset(false), 50)
-              }
-            }}>
-            {banners.length > 0 && (
-              <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
-                <Image src={banners[banners.length - 1].image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
-              </View>
-            )}
-            {banners.map((item, i) => (
-              <View
-                key={i}
-                style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: item.bg_color || '#915F38' }}
-                onClick={() => item.link_url && nav(item.link_url)}
-              >
-                <Image
-                  src={item.image_url}
-                  style={{ width: '100%', height: '100%' }}
-                  mode="aspectFill"
-                />
-                {item.title ? (
-                  <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
-                    <Text style={{ color: '#fff', fontSize: 14 }}>{item.title}</Text>
+          <View style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Image track: 220px clipped */}
+            <View style={{ height: 220, overflow: 'hidden' }}>
+              <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(banners.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
+                onTransitionEnd={() => {
+                  if (currentBanner === -1) {
+                    setJumpReset(true)
+                    setCurrentBanner(banners.length - 1)
+                    setTimeout(() => setJumpReset(false), 50)
+                  } else if (currentBanner === banners.length) {
+                    setJumpReset(true)
+                    setCurrentBanner(0)
+                    setTimeout(() => setJumpReset(false), 50)
+                  }
+                }}>
+                {banners.length > 0 && (
+                  <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
+                    <Image src={banners[banners.length - 1].image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
                   </View>
-                ) : null}
+                )}
+                {banners.map((item, i) => (
+                  <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }} onClick={() => item.link_url && nav(item.link_url)}>
+                    <Image src={item.image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+                    {item.title ? (
+                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
+                        <Text style={{ color: '#fff', fontSize: 14 }}>{item.title}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+                {banners.length > 0 && (
+                  <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
+                    <Image src={banners[0].image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+                  </View>
+                )}
               </View>
-            ))}
-            {banners.length > 0 && (
-              <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
-                <Image src={banners[0].image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
-              </View>
-            )}
+            </View>
+            {/* Background color fill: extends to full viewport */}
+            <View style={{ flex: '1 1 0%', backgroundColor: banners[currentBanner >= 0 && currentBanner < banners.length ? banners[currentBanner].bg_color || '#915F38' : '#915F38' }} />
           </View>
+        )}
+        {banners.length === 0 && (
+          <View style={{ width: '100%', height: '100%', backgroundColor: '#915F38' }} />
         )}
       </View>
 
@@ -259,7 +261,7 @@ export default function Home() {
       <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, backgroundColor: scrolled ? 'rgba(90,59,36,0.8)' : 'transparent', transition: 'background-color 0.3s' }} />
 
       {/* A: Search bar — fixed above carousel */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
         <View style={{ width: 250, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxShadow: scrolled ? '0 1px 2px rgba(0,0,0,0.05)' : '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: scrolled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.2)', border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.2)' }}>
           <Text style={{ fontSize: 16, marginRight: 8, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)"

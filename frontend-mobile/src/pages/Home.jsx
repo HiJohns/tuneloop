@@ -302,7 +302,7 @@ export default function Home() {
       <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/80' : 'bg-transparent'}`} />
 
       {/* A: Search bar — fixed above carousel */}
-      <View className="fixed left-0 right-0 z-[10000] flex items-center justify-center" style={{ top: '60px' }}>
+      <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '60px' }}>
         <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 border border-white/10' : 'bg-white/20 border border-white/20'}`}>
           <Text className="text-base mr-2 text-white/70" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-sm flex-1 bg-transparent text-white"
