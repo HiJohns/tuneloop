@@ -168,7 +168,7 @@ export default function Home() {
   return (
     <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Z=0: Full-screen carousel background */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 0 }}>
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 0, height: 240 }}>
         {banners.length > 0 && (
           <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(banners.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
             onTransitionEnd={() => {
