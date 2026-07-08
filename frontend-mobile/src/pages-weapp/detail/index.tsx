@@ -1,3 +1,2 @@
-import { View } from '@tarojs/components'
-
-export default function DetailPlaceholder() { return <View /> }
+import Detail from '../Detail'
+export default Detail
