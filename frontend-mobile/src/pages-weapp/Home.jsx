@@ -280,9 +280,9 @@ export default function Home() {
         </View>
       )}
 
-      {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, display: 'flex', flexDirection: 'column', top: '142px', bottom: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <ScrollView style={{ flex: '1 1 0%', overflowY: 'auto', backgroundColor: 'transparent', pointerEvents: 'auto' }}
+      {/* B: clip layer — overflow:hidden clips content at edges */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, overflow: 'hidden' }}>
+        <ScrollView style={{ position: 'absolute', top: 0, bottom: 50, left: 0, right: 0, backgroundColor: 'transparent' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
           <View style={{ height: '100px' }}></View>
@@ -291,39 +291,35 @@ export default function Home() {
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
           </View>
 
-      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101 }}>
-            <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
-            {loading ? (
-              Array(3).fill(0).map((_, i) => (
-                <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
-                  <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
-                    <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
-                  </View>
-                  <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
-                    <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
-                    <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
-                  </View>
+          <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
+          {loading ? (
+            Array(3).fill(0).map((_, i) => (
+              <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+                <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
+                  <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
                 </View>
-              ))
-            ) : instruments.length > 0 ? (
-              instruments.map(instrument => (
-                <InstrumentCard
-                  key={instrument.id}
-                  instrument={instrument}
-                  onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
-                />
-              ))
-            ) : (
-              <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
-                <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
-                <Text style={{ fontSize: 18 }}>暂无乐器</Text>
+                <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
+                  <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
+                  <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
+                </View>
               </View>
-            )}
+            ))
+          ) : instruments.length > 0 ? (
+            instruments.map(instrument => (
+              <InstrumentCard
+                key={instrument.id}
+                instrument={instrument}
+                onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
+              />
+            ))
+          ) : (
+            <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
+              <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
+              <Text style={{ fontSize: 18 }}>暂无乐器</Text>
             </View>
+          )}
           </View>
         </ScrollView>
-      </View>
-      <View>
         <BottomNav
           active="home"
           tabs={[
