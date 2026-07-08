@@ -67,7 +67,7 @@ export default function MyRepairs() {
 
       // Staff: also fetch site repair requests
       if (hasSiteRole || isPureTech) {
-        const statusFilter = isPureTech ? '?status=inspecting,repairing' : '?status=pending_assessment,return_pending,pending_ship,shipping,repairing,quoted,inspecting'
+        const statusFilter = isPureTech ? '?status=pending_assessment,repairing,return_pending' : '?status=pending_assessment,shipping,transit_in,repairing,return_pending,transit_out,returned,appealing'
         fetches.push(apiFetch(`${baseUrl}/repair-requests${statusFilter}`).then(r => r.json()).then(r => {
           if (r.code === 20000) setRepairRequests(r.data?.list || [])
         }))
@@ -178,7 +178,7 @@ export default function MyRepairs() {
           </>
         )}
 
-        {/* Pure repair technician: My repairs + inspecting/repairing requests */}
+        {/* Pure repair technician: My repairs + pending_assessment/repairing requests */}
         {isPureTech && (
           <>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-1">
