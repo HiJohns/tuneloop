@@ -12,7 +12,6 @@ export default function RepairQuote() {
 
   const [request, setRequest] = useState(null)
   const [acceptedQuote, setAcceptedQuote] = useState(null)
-  const [transitFees, setTransitFees] = useState(null)
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
   const [trackingCompany, setTrackingCompany] = useState('')
@@ -33,12 +32,6 @@ export default function RepairQuote() {
         const all = q.data?.list || []
         const accepted = all.find(qq => qq.status === 'accepted')
         setAcceptedQuote(accepted || null)
-        // Check for transit fees (controlled)
-        if (accepted?.site_id) {
-          const transitRes = await apiFetch(`${baseUrl}/repair-requests/${requestId}/transit-process`)
-          const transit = await transitRes.json()
-          if (transit.code === 20000) setTransitFees(transit.data)
-        }
       }
     } catch {}
     setLoading(false)
@@ -88,8 +81,8 @@ export default function RepairQuote() {
   const materialFee = acceptedQuote?.material_fee || 0
   const serviceFee = acceptedQuote?.service_fee || 0
   const logisticsFee = acceptedQuote?.logistics_fee || 0
-  const transitServiceFee = transitFees?.transit_service_fee || 0
-  const transitLogisticsFee = transitFees?.transit_logistics_fee || 0
+  const transitServiceFee = request?.transit_service_fee || 0
+  const transitLogisticsFee = request?.transit_logistics_fee || 0
   const total = materialFee + serviceFee + logisticsFee + (isControlled ? transitServiceFee + transitLogisticsFee : 0)
 
   return (
