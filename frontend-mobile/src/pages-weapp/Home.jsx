@@ -102,6 +102,7 @@ export default function Home() {
 
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
+  const normalizedBannerIdx = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -208,7 +209,7 @@ export default function Home() {
               </View>
             </View>
             {/* Background color fill: extends to full viewport */}
-            <View style={{ flex: '1 1 0%', backgroundColor: banners[currentBanner >= 0 && currentBanner < banners.length ? banners[currentBanner].bg_color || '#915F38' : '#915F38' }} />
+            <View style={{ flex: '1 1 0%', backgroundColor: (banners[normalizedBannerIdx]?.bg_color || '#915F38') }} />
           </View>
         )}
         {banners.length === 0 && (
