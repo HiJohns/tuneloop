@@ -85,6 +85,9 @@ export default function Home() {
   const tenant = routerParams.tenant || null
   const categoryFromUrl = routerParams.category_id || null
 
+  const wnd = getWindowSize()
+  const listHeight = wnd.height - 192 // 142(container top) + 50(BottomNav)
+
   const [categories, setCategories] = useState([])
   const [instruments, setInstruments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -281,8 +284,8 @@ export default function Home() {
       )}
 
       {/* B: clip layer */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <ScrollView style={{ flex: 1, height: 0, backgroundColor: 'transparent' }}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, overflow: 'hidden' }}>
+        <ScrollView style={{ height: listHeight, backgroundColor: 'transparent' }}
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
           <View style={{ height: '100px' }}></View>
