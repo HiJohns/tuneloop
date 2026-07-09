@@ -528,7 +528,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Repair request routes (Issue #1110)
 			repairReqRequired := authRequired
-			repairReqRequired.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
 			repairReqRequired.PUT("/repair-requests/:id/return-shipping", repairReqHandler.ReturnShipping)
 			// v3 repair-request transit routes
 			repairReqRequired.POST("/repair-requests/:id/transit-process", repairReqHandler.TransitProcess)
@@ -622,6 +621,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)
 				userOptionalAuth.POST("/repair-requests/:id/records", repairReqHandler.AddRecord)
 				userOptionalAuth.POST("/repair-requests/:id/pay", repairReqHandler.PayRepairRequest)
+				userOptionalAuth.PUT("/repair-requests/:id/tracking", repairReqHandler.UpdateTracking)
 				userOptionalAuth.POST("/repair-requests/:id/requote", repairReqHandler.Requote)
 				userOptionalAuth.POST("/repair-requests/:id/requote-reject", repairReqHandler.RejectRequote)
 				// v3 quoting subsystem (nested under repair-requests)
