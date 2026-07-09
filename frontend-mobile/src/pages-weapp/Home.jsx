@@ -333,11 +333,12 @@ export default function Home() {
             const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
 
-            // Blur: show 300ms after scroll starts, hide instantly at top
-            if (newY > 0 && !blurTimerRef.current) {
+            // Blur: show 300ms after scroll starts
+            if (newY >= 20 && !blurTimerRef.current) {
               blurTimerRef.current = setTimeout(() => setBlurVisible(true), 300)
             }
-            if (newY <= 0) {
+            // Hide blur when back near top (< 20px)
+            if (newY < 20) {
               if (blurTimerRef.current) { clearTimeout(blurTimerRef.current); blurTimerRef.current = null }
               if (blurVisible) setBlurVisible(false)
             }
