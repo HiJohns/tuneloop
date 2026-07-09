@@ -378,6 +378,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// Staff/User management routes (Issue #333)
 			authRequired.GET("/staff", middleware.RequireRole("ADMIN", "OWNER"), staffHandler.ListStaff)
 			authRequired.PUT("/users/me", staffHandler.UpdateCurrentUser)
+			authRequired.POST("/users/me/avatar", handlers.UploadUserAvatar)
 			authRequired.POST("/users/me/resend-email-confirmation", staffHandler.ResendEmailConfirmation)
 			authRequired.POST("/user/reset-password", handlers.ResetPasswordSelf)
 			authRequired.POST("/user/change-password", handlers.ChangePasswordSelf)

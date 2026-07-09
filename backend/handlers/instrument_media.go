@@ -701,3 +701,44 @@ func UploadCoverImage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"cover_image": coverURL}})
 }
+
+func UploadUserAvatar(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	userID := middleware.GetUserID(ctx)
+
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "file required"})
+		return
+	}
+	defer file.Close()
+
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to read file"})
+		return
+	}
+
+	// Resize to 256×256 (square crop via CoverSquare) → WebP Q80
+	avatarData, err := services.GenerateThumbnailWebP(fileData, 256, 256)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to process image"})
+		return
+	}
+
+	storage := services.NewMediaStorage()
+	avatarKey := "avatar_" + userID + ".webp"
+	if err := storage.Upload(ctx, avatarKey, bytes.NewReader(avatarData), "image/webp"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload avatar"})
+		return
+	}
+
+	avatarURL := "/uploads/media/" + avatarKey
+	if err := db.Model(&models.User{}).Where("id = ?", userID).Update("avatar_url", avatarURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save avatar"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"avatar": avatarURL}})
+}
