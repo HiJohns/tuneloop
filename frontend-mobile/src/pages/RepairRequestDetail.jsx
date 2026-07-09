@@ -82,17 +82,6 @@ export default function RepairRequestDetail() {
     setActionLoading(false)
   }
 
-  const handleRepairAction = async (action) => {
-    setActionLoading(true)
-    try {
-      const resp = await apiFetch(`${baseUrl}/repair/${requestId}/${action}`, { method: 'POST' })
-      const r = await resp.json()
-      if (r.code === 20000) { await fetchData() }
-      else { alert(r.message || '操作失败') }
-    } catch { alert('操作失败') }
-    setActionLoading(false)
-  }
-
   const handleAcceptQuote = async (quoteId) => {
     setActionLoading(true)
     try {
@@ -515,7 +504,7 @@ export default function RepairRequestDetail() {
         {status === 'repairing' && isTechnician && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">维修操作</Text>
-            <Button onClick={() => handleRepairAction('complete')} disabled={actionLoading}
+            <Button onClick={() => handleAction('complete')} disabled={actionLoading}
               className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center mb-3">
               维修完成
             </Button>

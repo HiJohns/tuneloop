@@ -889,6 +889,35 @@ func (h *RepairRequestHandler) ConfirmReceipt(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "receipt confirmed"})
 }
 
+// CompleteRepairRequest transitions a repair request from repairing to return_pending (v3).
+func (h *RepairRequestHandler) CompleteRepairRequest(c *gin.Context) {
+	id := c.Param("id")
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var req models.RepairRequest
+	if err := db.Where("id = ?", id).First(&req).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "not found"})
+		return
+	}
+
+	if req.Status != models.RepairReqStatusRepairing {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "only repairing requests can be completed"})
+		return
+	}
+
+	if err := db.Model(&req).Updates(map[string]interface{}{
+		"status":     models.RepairReqStatusReturnPend,
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to complete repair"})
+		return
+	}
+
+	createRepairRecord(db, id, middleware.GetUserID(ctx), "completed", "维修完成", nil)
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "repair completed"})
+}
+
 // ReturnShipping sets return tracking info, transitions repair request to returned/transit_out, and activates outbound transit order (v3).
 func (h *RepairRequestHandler) ReturnShipping(c *gin.Context) {
 	id := c.Param("id")

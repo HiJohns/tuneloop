@@ -532,6 +532,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			// v3 repair-request transit routes
 			repairReqRequired.POST("/repair-requests/:id/transit-process", repairReqHandler.TransitProcess)
 			repairReqRequired.POST("/repair-requests/:id/receive", repairReqHandler.Receive)
+			repairReqRequired.POST("/repair-requests/:id/complete", repairReqHandler.CompleteRepairRequest)
 			repairReqRequired.POST("/repair-requests/:id/transit-relay", repairReqHandler.TransitRelay)
 
 			// Repair config routes (Issue #1118) — merchant_admin only
