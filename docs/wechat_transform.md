@@ -163,40 +163,68 @@ export const searchBar = { width: 250, height: 42, borderRadius: 999, display: '
 
 ### 滚动回弹案例（#Home.jsx 2026-07-08）
 
-**现象**：ScrollView 中乐器列表向上滚动约 10px 后自动弹回原位，无法正常浏览。
+**现象**：ScrollView 中乐器列表向上滚动约 10px 后自动弹回原位；快速大力划动正常，慢速划动回弹。
 
-**排查过程**：
-1. 先用 `flex: 1` → weapp ScrollView 不解析 flex 高度（无效）
-2. 换成 `position: absolute, top: 0, bottom: 50` → 仍然回弹
-3. 移除 `overflow: hidden`（weapp `<View>` 不支持 CSS overflow 属性，会阻断 ScrollView 触摸事件）→ 无效
-4. **最终定位**：移除 ScrollView 的 `onScroll` handler 后立即恢复
+**排查过程（约 20 轮迭代）**：
+1. `flex: 1` → weapp ScrollView 不解析 flex 高度（无效）
+2. `position: absolute` → 仍回弹
+3. 移除 `overflow: hidden` → 无效
+4. 移除 `onScroll` handler → **立即恢复，确定是 re-render 引起**
+5. `useRef` 代替 `useState` 存 scrollY → 无效（`setScrolled`/`setMenuStuck` 仍触发 re-render）
+6. `useMemo` 包裹 ScrollView → 无效
+7. `React.memo` 子组件 → 无效（Taro weapp 环境不支持 memo 隔离）
+8. debounce 500ms → 慢划仍弹回（500ms 內触发了 re-render）
+9. 去除 B 层容器 → ScrollView 完全推不动（`position:fixed` 不适用于 ScrollView）
+10. `scrollTop` prop 恢复位置 + debounce → ✅ 最终可用
 
-**根因**：
+**根因矩阵**：
 
-| 层 | 问题 | 说明 |
-|----|------|------|
-| **主因** | `onScroll` → `setState` → re-render 死循环 | 每次手指滚动触发 `onScroll` → `setScrollY(value)` → React state 更新 → `Home` 组件 re-render → weapp 中 ScrollView re-render 时内部滚动位置被重置为 0 → UI 回到原位。手指持续拖动形成"滚一点→复位→滚一点→复位"的 ping-pong 效果 |
-| 次因 | `overflow: hidden` 阻断事件 | weapp `<View>` 不支持 CSS `overflow` 属性，设置后会干扰 ScrollView 的触摸事件传递链 |
-| 次因 | `flex: 1` 不适用 ScrollView | weapp ScrollView 必须使用显式像素高度（从 `Taro.getSystemInfoSync().windowHeight` 计算），`flex: 1` 及 `height: 0` 技巧部分版本无效 |
+| # | 问题 | 详细 | 修复 |
+|---|------|------|------|
+| 1 | re-render → 滚动位重置 | React state 更新导致 ScrollView DOM 重建 → scrollTop 归零 | debounce state 更新 + `scrollTop` prop 即时恢复 |
+| 2 | ScrollView 不支持 `position:fixed` | weapp 原生组件 scroll-view 不能自身 fixed 定位 | 外层 View 用 `position:fixed`，内层 ScrollView 用 `height:100%` |
+| 3 | `overflow:hidden` 无效且有害 | weapp `<View>` 不支持 CSS overflow | 直接移除 |
+| 4 | `flex:1` 不适用 ScrollView | weapp scroll-view 不支持 flex 高度计算 | 用 `height:100%` 在固定高度容器内 |
+| 5 | `React.memo` 无效 | Taro 的 VDOM 层无法隔离原生组件 re-render | 不用 |
+| 6 | slow scroll still triggers debounce | 500ms 内滚屏事件可能被较长的 touch 暂停覆盖 | 用 clearTimeout + 重新计时（每次 onScroll 重置时钟） |
 
-**修复**：
+**最终修复**：
+
 ```jsx
-// ❌ 错误：onScroll 触发 setState → re-render → 滚动位重置
-<ScrollView onScroll={e => setScrollY(e.detail.scrollTop)} ...>
-
-// ✅ 正确：需要滚动监听时使用 useRef 避免 re-render
+// ✅ 正确做法
 const scrollYRef = useRef(0)
-<ScrollView onScroll={e => { scrollYRef.current = e.detail.scrollTop }} ...>
+const [scrolled, setScrolled] = useState(false)
+const [menuStuck, setMenuStuck] = useState(false)
+const scrollTimerRef = useRef(null)
 
-// ✅ ScrollView 高度用显式像素值
-const wh = Taro.getSystemInfoSync().windowHeight
-<ScrollView style={{ height: wh - 192 }} scrollY showScrollbar={false}>
+// 容器：外层 View fixed，内层 ScrollView height:100%
+<View style={{ position: 'fixed', top: '142px', bottom: 0, left: 0, right: 0 }}>
+  <ScrollView
+    style={{ height: '100%' }}
+    scrollY showScrollbar={false}
+    scrollTop={scrollYRef.current}  // ← 关键：re-render 后恢复位置
+    onScroll={e => {
+      scrollYRef.current = e.detail.scrollTop
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+      scrollTimerRef.current = setTimeout(() => {
+        const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
+        if (ns !== scrolled) setScrolled(ns)    // 停后才更新 UI
+        if (nm !== menuStuck) setMenuStuck(nm)
+      }, 500)
+    }}
+  >
+    ... content ...
+  </ScrollView>
+</View>
 ```
 
 **教训**：
-- ScrollView 的 `onScroll` 必须使用 `useRef` 而非 `useState`。任何触发 re-render 的操作都会导致 weapp 重置滚动位置。
-- `overflow: hidden` 在 weapp `<View>` 上无效果且有害。
-- ScrollView 高度一律用显式像素计算，不依赖 CSS flex。
+- Taro weapp 中 **ScrollView re-render 必然重置 scrollTop**，不存在"保留滚动位置"的机制。
+- 唯一解法：**双保险** —— debounce 延迟 state 更新（减少 re-render 次数） + `scrollTop` prop 在每次 re-render 后即时恢复位置。
+- ScrollView 高度用 `height:'100%'`（在固定高度父容器内），不用 `flex:1`、不用 `position:fixed`。
+- `<View>` 不支持 `overflow`、`pointerEvents` 等 CSS 属性，不要在这上面花时间。
+- `React.memo` / `useMemo` 在 Taro weapp 中对原生组件（ScrollView）不生效。
+- 快速 vs 慢速滚动行为的差异是诊断关键：快速能触发惯性滚动绕过 re-render，慢速无惯性则每次 touch 都触发 onScroll → debounce → re-render → 回弹。
 
 ---
 
