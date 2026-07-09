@@ -150,8 +150,12 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 		}
 
 		siteName := ""
+		siteAddress := ""
+		sitePhone := ""
 		if s, ok := siteMap[r.SiteID]; ok {
 			siteName = s.Name
+			siteAddress = s.Address
+			sitePhone = s.Phone
 		}
 
 		merchantName := ""
@@ -196,6 +200,8 @@ func enrichRepairRequestList(db *gorm.DB, requests []models.RepairRequest) []gin
 			"brand":                  brand,
 			"model":                  model,
 			"site_name":              siteName,
+			"site_address":           siteAddress,
+			"site_phone":             sitePhone,
 			"merchant_name":          merchantName,
 			"reporter_name":          reporterName,
 			"merchant_type":          r.MerchantType,
@@ -238,11 +244,22 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		return
 	}
 
-	instrumentSN, instrumentType, brand, model, siteName, merchantName, reporterName := resolveRepairMeta(db, req)
+	instrumentSN, instrumentType, brand, model, siteName, siteAddress, sitePhone, merchantName, reporterName := resolveRepairMeta(db, req)
 
 	// Look up transit order for this repair request
 	var transitOrder models.RepairTransitOrder
 	db.Where("repair_request_id = ?", req.ID).Limit(1).Find(&transitOrder)
+
+	// Look up transit site info for controlled repairs
+	var transitSiteName, transitSiteAddress, transitSitePhone string
+	if req.TransitSiteID != nil && *req.TransitSiteID != "" {
+		var transitSite models.Site
+		if err := db.Where("id = ?", *req.TransitSiteID).First(&transitSite).Error; err == nil {
+			transitSiteName = transitSite.Name
+			transitSiteAddress = transitSite.Address
+			transitSitePhone = transitSite.Phone
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":                     req.ID,
@@ -270,6 +287,8 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		"brand":                  brand,
 		"model":                  model,
 		"site_name":              siteName,
+		"site_address":           siteAddress,
+		"site_phone":             sitePhone,
 		"merchant_name":          merchantName,
 		"reporter_name":          reporterName,
 		"merchant_type":          req.MerchantType,
@@ -279,6 +298,9 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		"transit_service_fee":    transitOrder.TransitServiceFee,
 		"transit_logistics_fee":  transitOrder.TransitLogisticsFee,
 		"transit_order_number":   transitOrder.TransitOrderNumber,
+		"transit_site_name":      transitSiteName,
+		"transit_site_address":   transitSiteAddress,
+		"transit_site_phone":     transitSitePhone,
 	}})
 }
 
@@ -1196,7 +1218,7 @@ func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
 // resolveRepairMeta enriches a RepairRequest with resolved names for instrument, site,
 // merchant, and reporter. All lookups are best-effort (errors silently return empty strings).
 // Shared by the Get and List handlers.
-func resolveRepairMeta(db *gorm.DB, req models.RepairRequest) (instrumentSN, instrumentType, brand, model, siteName, merchantName, reporterName string) {
+func resolveRepairMeta(db *gorm.DB, req models.RepairRequest) (instrumentSN, instrumentType, brand, model, siteName, siteAddress, sitePhone, merchantName, reporterName string) {
 	if req.UserInstrumentID != "" {
 		var ui models.UserInstrument
 		if err := db.Where("id = ?", req.UserInstrumentID).First(&ui).Error; err == nil {
@@ -1211,6 +1233,8 @@ func resolveRepairMeta(db *gorm.DB, req models.RepairRequest) (instrumentSN, ins
 		var site models.Site
 		if err := db.Where("id = ?", req.SiteID).First(&site).Error; err == nil {
 			siteName = site.Name
+			siteAddress = site.Address
+			sitePhone = site.Phone
 		}
 	}
 

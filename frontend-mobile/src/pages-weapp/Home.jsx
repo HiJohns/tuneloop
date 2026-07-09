@@ -282,17 +282,18 @@ export default function Home() {
         </View>
       )}
 
-      {/* C: ScrollView — independent fixed positioning */}
-      <ScrollView style={{ position: 'fixed', top: '142px', bottom: 50, left: 0, right: 0, backgroundColor: 'transparent' }}
-        scrollY showScrollbar={false}
-        onScroll={e => {
-          const newY = e.detail?.scrollTop ?? 0
-          scrollYRef.current = newY
-          const ns = newY > 50, nm = newY > 130
-          if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-          if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
-        }}>
-        <View style={{ height: '100px' }}></View>
+      {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0 }}>
+        <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
+          scrollY showScrollbar={false}
+          onScroll={e => {
+            const newY = e.detail?.scrollTop ?? 0
+            scrollYRef.current = newY
+            const ns = newY > 50, nm = newY > 130
+            if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+          }}>
+          <View style={{ height: '100px' }}></View>
 
         <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
@@ -327,7 +328,6 @@ export default function Home() {
         )}
         </View>
       </ScrollView>
-      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 101 }}>
       <BottomNav
         active="home"
         tabs={[
@@ -337,7 +337,7 @@ export default function Home() {
           { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
         ]}
       />
-      </View>
+    </View>
     </View>
   )
 }
