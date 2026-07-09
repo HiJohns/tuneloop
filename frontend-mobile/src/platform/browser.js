@@ -51,7 +51,7 @@ export const dialog = {
 
 export const navigation = {
   redirect: (url) => { window.location.href = url },
-  getCurrentPath: () => window.location.pathname,
+  getCurrentPath: () => window.location.pathname + window.location.search,
   getOrigin: () => window.location.origin,
   getQueryParams: () => Object.fromEntries(new URLSearchParams(window.location.search)),
 }
