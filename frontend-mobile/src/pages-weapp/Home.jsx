@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
-import { env, dialog } from '../platform'
+import { env, dialog, getWindowSize } from '../platform'
 import BottomNav from '../components-weapp/BottomNav'
 
 const IMG_BASE = 'https://wx.cadenzayueqi.com'
@@ -25,6 +25,33 @@ function parseImages(images) {
     try { return JSON.parse(images) } catch { return [] }
   }
   return []
+}
+
+// Banner image with aspect-ratio-aware sizing.
+// If image W/H >= screen W/H → fill height, center (aspectFill)
+// If image W/H < screen W/H → fill width, top align (widthFix)
+function BannerImage({ src, style, onClick }) {
+  const [imgRatio, setImgRatio] = useState(null)
+  const scrW = getWindowSize().width, scrH = getWindowSize().height
+  const scrRatio = scrW / scrH
+  const isWide = imgRatio !== null && imgRatio >= scrRatio
+
+  return (
+    <Image src={fixImg(src)}
+      style={{
+        width: isWide ? '100%' : '100%',
+        height: isWide ? '100%' : 'auto',
+        position: isWide ? 'absolute' : 'relative',
+        top: 0, left: 0,
+      }}
+      mode={isWide ? 'aspectFill' : 'widthFix'}
+      onLoad={(e) => {
+        const d = e.detail
+        if (d?.width && d?.height) setImgRatio(d.width / d.height)
+      }}
+      onClick={onClick}
+    />
+  )
 }
 
 function getDailyRate(instrument) {
@@ -188,7 +215,7 @@ export default function Home() {
         {banners.length > 0 && (
           <View style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {/* Image track: 220px clipped */}
-            <View style={{ height: 220, overflow: 'hidden' }}>
+            <View style={{ flex: 1 }}>
               <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(banners.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (banners.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
                 onTransitionEnd={() => {
                   if (currentBanner === -1) {
