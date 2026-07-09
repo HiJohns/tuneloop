@@ -124,7 +124,7 @@ export default function Login() {
       <View style={{ width: '100%', padding: 0 }}>
       <View onClick={handleWxLogin}>
         <Button openType="getPhoneNumber" onGetPhoneNumber={handleGetPhoneNumber}
-          style={{ backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24, border: 'none' }}>
+          style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
         </Button>
       </View>
@@ -140,11 +140,11 @@ export default function Login() {
       {/* Channel 2: IAM account login */}
       <View style={{ width: '100%', marginBottom: 12 }}>
         <Input placeholder="邮箱/手机号" value={identifier} onInput={e => setIdentifier(e.detail.value)}
-          style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
         <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
-          style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 16 }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }} />
         <Button onClick={() => handleIAMLogin(identifier, password)}
-          style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '44px' }}>
+          style={{ margin: 0, width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
           登录
         </Button>
       </View>
