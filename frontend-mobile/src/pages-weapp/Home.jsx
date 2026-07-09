@@ -253,7 +253,6 @@ export default function Home() {
       {/* Blur layer — visible on scroll */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
-        {banners.length > 0 && (
           <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
             style={{ width: '100%', height: '100%' }} mode="aspectFill" />
         )}
