@@ -29,7 +29,8 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
     setSaving(true)
     setMsg('')
     try {
-      const baseUrl = env.apiBaseUrl
+  const baseUrl = env.apiBaseUrl
+  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
       const resp = await apiFetch(`${baseUrl}/users/me`, {
         method: 'PUT',
         body: JSON.stringify({ name: form.name, phone: form.phone, email: form.email }),
@@ -159,7 +160,7 @@ export default function Profile() {
           <View style={{ display: 'flex', alignItems: 'center' }}>
             <View style={{ width: 80, height: 80, borderRadius: 999, overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0, backgroundColor: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => !isGuest && setShowEdit(true)}>
               {!isGuest && user?.avatar ? (
-                <Image src={user.avatar} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+                <Image src={fixImg(user.avatar)} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
               ) : (
                 <Text style={{ fontSize: 30 }}>👤</Text>
               )}

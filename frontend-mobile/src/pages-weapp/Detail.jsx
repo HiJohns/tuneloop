@@ -61,6 +61,7 @@ export default function Detail() {
   const isRentable = instrument?.stock_status === 'available'
   const isCustomer = !currentUser || currentUser?.role === 'USER'
   const baseUrl = env.apiBaseUrl
+  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
   const liveVideo = displayMedia?.video
@@ -137,7 +138,7 @@ export default function Detail() {
 
   const bannerImagesSource = Array.isArray(displayMedia?.images) && displayMedia.images.length > 0
     ? displayMedia.images.map(i => ({
-        url: i.url?.replace(/\.\w+$/, '_display.webp') || i.url
+        url: fixImg(i.url?.replace(/\.\w+$/, '_display.webp') || i.url)
       }))
     : (parseImages(instrument?.images) || []).map(url => ({ url }))
   const bannerImages = bannerImagesSource.length > 0
@@ -285,8 +286,8 @@ export default function Detail() {
           {liveVideo && (
             <View style={{ marginBottom: 12 }}>
               <Video
-                src={liveVideo.url}
-                poster={liveVideo.thumb_url || ''}
+                src={fixImg(liveVideo.url)}
+                poster={fixImg(liveVideo.thumb_url || '')}
                 controls
                 style={{ width: '100%', borderRadius: 16, maxHeight: 400 }}
               />
@@ -297,7 +298,7 @@ export default function Detail() {
           {instrument?.poster && (
             <View style={{ marginBottom: 12 }}>
               <Image
-                src={instrument.poster}
+                src={fixImg(instrument.poster)}
                 style={{ width: '100%', borderRadius: 16, maxWidth: 750 }}
                 mode="widthFix"
               />
@@ -559,9 +560,9 @@ export default function Detail() {
       {fullscreenImage && (
         <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setFullscreenImage(null)}>
           {liveVideo && fullscreenImage === liveVideo.url ? (
-            <Video src={liveVideo.url} poster={liveVideo.thumb_url} controls style={{ width: '100%', maxHeight: '100%' }} />
+            <Video src={fixImg(liveVideo.url)} poster={fixImg(liveVideo.thumb_url)} controls style={{ width: '100%', maxHeight: '100%' }} />
           ) : (
-            <Image src={fullscreenImage} style={{ maxWidth: '100%', maxHeight: '100%' }} mode="aspectFit" />
+            <Image src={fixImg(fullscreenImage)} style={{ maxWidth: '100%', maxHeight: '100%' }} mode="aspectFit" />
           )}
         </View>
       )}

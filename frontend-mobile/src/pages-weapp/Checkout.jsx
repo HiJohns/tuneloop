@@ -6,6 +6,9 @@ import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import regions from '../data/regions.json'
 
+const IMG_BASE = 'https://wx.cadenzayueqi.com'
+const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
+
 function parseImages(images) {
   if (!images) return []
   if (Array.isArray(images)) return images
@@ -270,7 +273,7 @@ function SingleCheckout({ id, nav }) {
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 8 }}>租赁乐器</Text>
           <View style={{ display: 'flex' }}>
             <Image
-              src={instrument.cover_image || parseImages(instrument.images)?.[0] || ''}
+              src={fixImg(instrument.cover_image || parseImages(instrument.images)?.[0] || '')}
               style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#FDF4E7', marginRight: 12, flexShrink: 0 }}
             />
             <View style={{ flex: '1 1 0%', justifyContent: 'center' }}>
@@ -735,7 +738,7 @@ function BatchCheckout({ nav }) {
                   {group.items.map((item) => {
                     const p = getItemPricing(item)
                     const images = parseImages(item.images)
-                    const imgSrc = images[0] || item.cover || ''
+                    const imgSrc = fixImg(images[0] || item.cover || '')
                     return (
                       <View key={item.instrument_id || item.id} style={{ display: 'flex', alignItems: 'center', paddingTop: 6, paddingBottom: 6, borderBottom: '1px solid #f4f4f5' }}>
                         {imgSrc && (

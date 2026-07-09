@@ -40,7 +40,7 @@ function InstrumentCard({ instrument, onClick }) {
   const dailyRate = getDailyRate(instrument)
   const monthlyRent = Math.round(dailyRate * 30)
   const levelName = instrument.level_name || ''
-  const thumb = instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER
+  const thumb = fixImg(instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER)
 
   const levelBg = levelName.includes('大师') ? '#8A2BE2'
     : levelName.includes('专业') ? '#0084FF'
@@ -106,6 +106,7 @@ export default function Home() {
 
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
+  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? imageBaseUrl + url : url
   const normalizedBannerIdx = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
 
   const fetchCategories = useCallback(async () => {

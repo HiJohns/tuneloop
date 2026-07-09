@@ -81,6 +81,7 @@ export default function MyLeases() {
   const [hasMore, setHasMore] = useState(true)
 
   const baseUrl = env.apiBaseUrl
+  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
 
   const token = getToken()
   const isStaff = (() => {
@@ -236,7 +237,7 @@ export default function MyLeases() {
                   </View>
                 </View>
                   </View>
-                  {order.cover_image && <Image src={order.cover_image} style={{ width: 80, height: 80, borderRadius: 8, marginLeft: 12 }} mode="aspectFill" />}
+                  {order.cover_image && <Image src={fixImg(order.cover_image)} style={{ width: 80, height: 80, borderRadius: 8, marginLeft: 12 }} mode="aspectFill" />}
                 </View>
                 <View style={{ marginTop: 12, display: 'flex' }}>
                   {!isTerminal && (
