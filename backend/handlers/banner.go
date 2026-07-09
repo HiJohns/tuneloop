@@ -2,6 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"log"
 	"net/http"
 	"os"
@@ -261,11 +265,33 @@ func (h *BannerHandler) GetPublicBanners(c *gin.Context) {
 		return
 	}
 
+	// Compute aspect ratio for each banner from image file
+	type BannerWithRatio struct {
+		models.Banner
+		AspectRatio float64 `json:"aspect_ratio"`
+	}
+	result := make([]BannerWithRatio, len(banners))
+	for i, b := range banners {
+		result[i].Banner = b
+		if b.ImageURL != "" && strings.HasPrefix(b.ImageURL, "/uploads/media/") {
+			key := strings.TrimPrefix(b.ImageURL, "/uploads/media/")
+			filePath := filepath.Join("./uploads/media", key)
+			f, err := os.Open(filePath)
+			if err == nil {
+				cfg, _, err := image.DecodeConfig(f)
+				f.Close()
+				if err == nil && cfg.Height > 0 {
+					result[i].AspectRatio = float64(cfg.Width) / float64(cfg.Height)
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"list": banners,
+			"list": result,
 		},
 	})
 }

@@ -30,24 +30,16 @@ function parseImages(images) {
 // Banner image with aspect-ratio-aware sizing.
 // If image W/H >= screen W/H → fill height, center (aspectFill)
 // If image W/H < screen W/H → fill width, top align (widthFix)
-function BannerImage({ src, style, onClick }) {
-  const [imgRatio, setImgRatio] = useState(null)
+function BannerImage({ src, aspectRatio, onClick }) {
   const scrW = getWindowSize().width, scrH = getWindowSize().height
   const scrRatio = scrW / scrH
-  // Start with aspectFill (fill container). If onLoad confirms image is narrow,
-  // switch to widthFix (100% width, auto height, no crop).
-  const loaded = imgRatio !== null
-  const isNarrow = loaded && imgRatio < scrRatio
+  const isNarrow = aspectRatio && aspectRatio < scrRatio
 
   return (
     <Image src={fixImg(src)}
       style={isNarrow ? { width: '100%', height: 'auto', position: 'relative' }
         : { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
       mode={isNarrow ? 'widthFix' : 'aspectFill'}
-      onLoad={(e) => {
-        const d = e.detail
-        if (d?.width && d?.height) setImgRatio(d.width / d.height)
-      }}
       onClick={onClick}
     />
   )
@@ -229,12 +221,12 @@ export default function Home() {
                 }}>
                 {banners.length > 0 && (
                   <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
-                    <BannerImage src={banners[banners.length - 1].image_url} />
+                    <BannerImage src={banners[banners.length - 1].image_url} aspectRatio={banners[banners.length - 1].aspect_ratio} />
                   </View>
                 )}
                 {banners.map((item, i) => (
                   <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }} onClick={() => item.link_url && nav(item.link_url)}>
-                    <BannerImage src={item.image_url} />
+                    <BannerImage src={item.image_url} aspectRatio={item.aspect_ratio} />
                     {item.title ? (
                       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
                         <Text style={{ color: '#fff', fontSize: 14 }}>{item.title}</Text>
@@ -244,7 +236,7 @@ export default function Home() {
                 ))}
                 {banners.length > 0 && (
                   <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
-                    <BannerImage src={banners[0].image_url} />
+                    <BannerImage src={banners[0].image_url} aspectRatio={banners[0].aspect_ratio} />
                   </View>
                 )}
               </View>
@@ -261,7 +253,10 @@ export default function Home() {
       {/* Blur layer — visible on scroll */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
-          <BannerImage src={blurUrl(banners[normalizedBannerIdx]?.image_url)} />
+        {banners.length > 0 && (
+          <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
+            style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+        )}
         )}
       </View>
     </View>
