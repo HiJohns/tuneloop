@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -16,6 +17,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rwcarlsen/goexif/exif"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -228,6 +230,12 @@ func GenerateBlurBanner(imagePath string) error {
 	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 		return fmt.Errorf("source file not found: %s", srcPath)
 	}
+
+	// Fix EXIF orientation before processing
+	if err := FixEXIFFile(srcPath); err != nil {
+		log.Printf("[GenerateBlurBanner] FixEXIFFile warning for %s: %v", srcPath, err)
+	}
+
 	src, err := imaging.Open(srcPath)
 	if err != nil {
 		return fmt.Errorf("imaging.Open failed for %s: %w", srcPath, err)
@@ -309,4 +317,54 @@ func MigrateBannerBlur(db *gorm.DB) {
 		}
 	}
 	log.Printf("[BannerBlur] migration complete: %d banners processed", count)
+}
+
+// FixEXIFFile opens a JPEG file, checks EXIF orientation, and rotates the file in-place if needed.
+func FixEXIFFile(path string) error {
+	if !strings.HasSuffix(strings.ToLower(path), ".jpg") && !strings.HasSuffix(strings.ToLower(path), ".jpeg") {
+		return nil
+	}
+	f, err := os.Open(path)
+	if err != nil { return err }
+	orient := readEXIFOrientation(f)
+	f.Close()
+	if orient == 0 || orient == 1 { return nil }
+	img, err := imaging.Open(path)
+	if err != nil { return err }
+	switch orient {
+	case 3:  img = imaging.Rotate180(img)
+	case 6:  img = imaging.Rotate270(img) // CW 90°
+	case 8:  img = imaging.Rotate90(img)  // CCW 90°
+	default: return nil
+	}
+	return imaging.Save(img, path)
+}
+
+// readEXIFOrientation returns the EXIF Orientation value (0 if not found).
+func readEXIFOrientation(f *os.File) int {
+	if f == nil { return 0 }
+	x, err := exif.Decode(f)
+	if err != nil { return 0 }
+	tag, err := x.Get(exif.Orientation)
+	if err != nil { return 0 }
+	val, err := tag.Int(0)
+	if err != nil { return 0 }
+	return val
+}
+
+// RotateByEXIF decodes EXIF orientation from raw JPEG bytes and rotates the image accordingly.
+func RotateByEXIF(img image.Image, rawData []byte) image.Image {
+	r := bytes.NewReader(rawData)
+	x, err := exif.Decode(r)
+	if err != nil { return img }
+	tag, err := x.Get(exif.Orientation)
+	if err != nil { return img }
+	val, err := tag.Int(0)
+	if err != nil { return img }
+	switch val {
+	case 3:  return imaging.Rotate180(img)
+	case 6:  return imaging.Rotate270(img)
+	case 8:  return imaging.Rotate90(img)
+	default: return img
+	}
 }

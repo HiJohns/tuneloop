@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/jpeg"
 	"io"
 	"log"
 	"net/http"
@@ -663,6 +664,19 @@ func UploadCoverImage(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to read file"})
 		return
+	}
+
+	// Auto-rotate based on EXIF orientation (portrait phone photos)
+	if len(fileData) > 2 && fileData[0] == 0xFF && fileData[1] == 0xD8 {
+		src, _, decErr := image.Decode(bytes.NewReader(fileData))
+		if decErr == nil {
+			rotated := RotateByEXIF(src, fileData)
+			if rotated != src {
+				var buf bytes.Buffer
+				jpeg.Encode(&buf, rotated, nil)
+				fileData = buf.Bytes()
+			}
+		}
 	}
 
 	// Fit within 72×72 (maintain aspect ratio, no crop) → WebP Q0.8
