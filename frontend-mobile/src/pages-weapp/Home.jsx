@@ -98,7 +98,7 @@ export default function Home() {
   const [menuStuck, setMenuStuck] = useState(false)
   const scrolledRef = useRef(false)
   const menuStuckRef = useRef(false)
-  const pendingUpdateRef = useRef(false)
+  const scrollTimerRef = useRef(null)
   const topCategories = categories.filter(c => !c.parent_id)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
@@ -290,15 +290,12 @@ export default function Home() {
           onScroll={e => {
             const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
-            if (!pendingUpdateRef.current) {
-              pendingUpdateRef.current = true
-              setTimeout(() => {
-                pendingUpdateRef.current = false
-                const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
-                if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-                if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
-              }, 300)
-            }
+            if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+            scrollTimerRef.current = setTimeout(() => {
+              const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
+              if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+              if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+            }, 500)
           }}>
           <View style={{ height: '100px' }}></View>
 
