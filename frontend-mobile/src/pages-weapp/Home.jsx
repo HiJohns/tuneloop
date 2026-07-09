@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
@@ -98,6 +98,7 @@ export default function Home() {
   const [menuStuck, setMenuStuck] = useState(false)
   const scrolledRef = useRef(false)
   const menuStuckRef = useRef(false)
+  const pendingUpdateRef = useRef(false)
   const topCategories = categories.filter(c => !c.parent_id)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
@@ -289,13 +290,19 @@ export default function Home() {
           onScroll={e => {
             const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
-            const ns = newY > 50, nm = newY > 130
-            if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+            if (!pendingUpdateRef.current) {
+              pendingUpdateRef.current = true
+              setTimeout(() => {
+                pendingUpdateRef.current = false
+                const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
+                if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+                if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+              }, 300)
+            }
           }}>
           <View style={{ height: '100px' }}></View>
 
-        <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent' }}>
+        <View style={{ backgroundColor: 'transparent' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
         </View>
 
