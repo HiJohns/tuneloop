@@ -122,9 +122,11 @@ export default function Home() {
   const scrollYRef = useRef(0)
   const [scrolled, setScrolled] = useState(false)
   const [menuStuck, setMenuStuck] = useState(false)
+  const [blurVisible, setBlurVisible] = useState(false)
   const scrolledRef = useRef(false)
   const menuStuckRef = useRef(false)
   const scrollTimerRef = useRef(null)
+  const blurTimerRef = useRef(null)
   const topCategories = categories.filter(c => !c.parent_id)
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
@@ -251,7 +253,7 @@ export default function Home() {
       </View>
 
       {/* Blur layer — visible on scroll */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s' }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: blurVisible ? 1 : 0, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
           <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
             style={{ width: '100%', height: '100%' }} mode="aspectFill" />
@@ -322,6 +324,17 @@ export default function Home() {
           onScroll={e => {
             const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
+
+            // Blur: show 300ms after scroll starts, hide instantly at top
+            if (newY > 0 && !blurTimerRef.current) {
+              blurTimerRef.current = setTimeout(() => setBlurVisible(true), 300)
+            }
+            if (newY <= 0) {
+              if (blurTimerRef.current) { clearTimeout(blurTimerRef.current); blurTimerRef.current = null }
+              if (blurVisible) setBlurVisible(false)
+            }
+
+            // Search, dots, sticky menu: debounced after scroll stops
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
             scrollTimerRef.current = setTimeout(() => {
               const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
