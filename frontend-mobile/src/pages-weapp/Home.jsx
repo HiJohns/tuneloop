@@ -34,17 +34,16 @@ function BannerImage({ src, style, onClick }) {
   const [imgRatio, setImgRatio] = useState(null)
   const scrW = getWindowSize().width, scrH = getWindowSize().height
   const scrRatio = scrW / scrH
-  const isWide = imgRatio !== null && imgRatio >= scrRatio
+  // Start with aspectFill (fill container). If onLoad confirms image is narrow,
+  // switch to widthFix (100% width, auto height, no crop).
+  const loaded = imgRatio !== null
+  const isNarrow = loaded && imgRatio < scrRatio
 
   return (
     <Image src={fixImg(src)}
-      style={{
-        width: isWide ? '100%' : '100%',
-        height: isWide ? '100%' : 'auto',
-        position: isWide ? 'absolute' : 'relative',
-        top: 0, left: 0,
-      }}
-      mode={isWide ? 'aspectFill' : 'widthFix'}
+      style={isNarrow ? { width: '100%', height: 'auto', position: 'relative' }
+        : { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+      mode={isNarrow ? 'widthFix' : 'aspectFill'}
       onLoad={(e) => {
         const d = e.detail
         if (d?.width && d?.height) setImgRatio(d.width / d.height)
