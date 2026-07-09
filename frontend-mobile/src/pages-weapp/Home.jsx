@@ -71,6 +71,7 @@ function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
   const dailyRate = getDailyRate(instrument)
   const monthlyRent = Math.round(dailyRate * 30)
+  const rentDisplay = monthlyRent.toLocaleString()
   const levelName = instrument.level_name || ''
   const thumb = fixImg(instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER)
 
@@ -91,16 +92,17 @@ function InstrumentCard({ instrument, onClick }) {
             <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.category_name}</Text>
           </View>
           {levelName && (
-            <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 14, padding: '2px 10px', borderRadius: 999, fontWeight: '900', alignSelf: 'flex-start', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginTop: -2 }}>
+            <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 14, padding: '2px 10px', borderRadius: 999, fontWeight: '900', alignSelf: 'flex-start', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginTop: -2, whiteSpace: 'nowrap' }}>
               {levelName}
             </View>
           )}
         </View>
         <View style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', textAlign: 'right', alignSelf: 'flex-end', marginLeft: 8, flexShrink: 0, whiteSpace: 'nowrap' }}>
           {instrument.stock_status === 'available' ? (
-            <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>
-              ¥{monthlyRent}<Text style={{ fontSize: 16, fontWeight: '700', color: 'rgba(194,24,56,0.7)' }}> / 月</Text>
-            </Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>¥{rentDisplay}</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(194,24,56,0.7)', fontWeight: '700' }}>/ 月</Text>
+            </View>
           ) : (
             <Text style={{ color: '#a1a1aa', fontWeight: '700', fontSize: 16 }}>租赁中</Text>
           )}
