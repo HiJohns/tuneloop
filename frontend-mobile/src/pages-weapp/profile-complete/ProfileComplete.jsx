@@ -44,9 +44,12 @@ export default function ProfileComplete() {
     if (!password.trim() || password.length < 6) { Taro.showToast({ title: '密码至少6位', icon: 'none' }); return }
     setSaving(true)
     try {
+      const body = { username: username.trim(), name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }
+      const wxCode = storage.getItem('wx_code')
+      if (wxCode) { body.wx_code = wxCode }
       const res = await request(`${env.apiBaseUrl}/auth/register`, {
         method: 'POST',
-        body: JSON.stringify({ username: username.trim(), name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }),
+        body: JSON.stringify(body),
       })
       const result = await res.json()
       if (result.code === 20000 && result.data?.access_token) {

@@ -16,6 +16,7 @@ async function handleWxLogin() {
     Taro.hideLoading()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
+      storage.setItem('wx_code', code)
       Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
     }
   } catch {}

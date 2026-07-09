@@ -275,6 +275,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		Phone    string `json:"phone" binding:"required"`
 		Email    string `json:"email"`
 		Password string `json:"password" binding:"required"`
+		WxCode   string `json:"wx_code"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -306,6 +307,20 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 			"message": "IAM register failed: " + createErr.Error(),
 		})
 		return
+	}
+
+	// If wx_code provided, bind WeChat to this user
+	if req.WxCode != "" {
+		// Get WeChat openid from beaconiam
+		if tokenResp, wxErr := h.iamService.WxLogin(req.WxCode); wxErr == nil && tokenResp != nil && tokenResp.AccessToken != "" {
+			// The user was created/returned by beaconiam — merge the JWT
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": tokenResp,
+			})
+			return
+		}
+		// If WxLogin fails (code expired etc.), fall through to password login
 	}
 
 	// Login to get JWT via password grant
