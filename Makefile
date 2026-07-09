@@ -93,7 +93,7 @@ clean-prerelease:
 	@echo "Cleaning build cache..."
 	rm -rf $(RELEASE_BUILD)
 
-release: weapp-check clean-prerelease
+release: clean-prerelease
 	@echo "=========================================="
 	@echo "Release: $(PKG_NAME)"
 	@echo "=========================================="
@@ -105,9 +105,6 @@ release: weapp-check clean-prerelease
 	# Mobile frontend (Vite H5)
 	$(NVM22) cd frontend-mobile && npm run build -- --mode prerelease
 	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop/mobile/
-	# Mobile weapp (Taro)
-	$(NVM22) cd frontend-mobile && npm run build:weapp
-	cp -r frontend-mobile/dist-weapp $(RELEASE_BUILD)/tuneloop/weapp/
 	# Backend
 	cd backend && go build -o $(RELEASE_BUILD)/tuneloop/service/tuneloop .
 	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop/database/
