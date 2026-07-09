@@ -7,10 +7,7 @@ async function handleWxLogin() {
   Taro.showLoading({ title: '正在登录...' })
   try {
     const code = await wxLogin()
-    if (!code) {
-      Taro.hideLoading()
-      return
-    }
+    if (!code) { Taro.hideLoading(); return }
     const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
       method: 'POST',
       body: JSON.stringify({ code }),
@@ -19,68 +16,9 @@ async function handleWxLogin() {
     Taro.hideLoading()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
+      Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
     }
   } catch {}
-}
-
-async function handleGetPhoneNumber(e) {
-  const detail = e.detail || {}
-  const errMsg = detail.errMsg || JSON.stringify(detail)
-
-  // User declined
-  if (errMsg.includes('fail') || errMsg.includes('cancel')) {
-    Taro.showModal({ title: '授权失败', content: '错误: ' + errMsg + '\n\ndetail: ' + JSON.stringify(detail), showCancel: false })
-    return
-  }
-
-  const phoneCode = detail.code
-  const encryptedData = detail.encryptedData
-  const iv = detail.iv
-
-  if (!phoneCode && !encryptedData) {
-    Taro.showModal({ title: '授权失败', content: '未获取到凭证\n\n' + JSON.stringify(detail), showCancel: false })
-    return
-  }
-
-  Taro.showLoading({ title: '获取手机号...' })
-  try {
-    const token = storage.getItem('token')
-
-    // New API: getPhoneNumber returns code directly
-    if (phoneCode) {
-      const res = await request(`${env.apiBaseUrl}/auth/wx-phone-code`, {
-        method: 'POST',
-        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
-        body: JSON.stringify({ code: phoneCode }),
-      })
-      const result = await res.json()
-      Taro.hideLoading()
-      if (result.code === 20000 && result.data?.phone) {
-        Taro.navigateTo({ url: '/pages-weapp/profile-complete/index?phone=' + encodeURIComponent(result.data.phone) })
-      } else {
-        Taro.showToast({ title: result.message || '获取手机号失败', icon: 'none' })
-      }
-      return
-    }
-
-    // Old API: getPhoneNumber returns encryptedData + iv
-    const code = await wxLogin()
-    const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
-      method: 'POST',
-      body: JSON.stringify({ code, encrypted_data: encryptedData, iv }),
-    })
-    const result = await res.json()
-    Taro.hideLoading()
-    if (result.code === 20000 && result.data?.token) {
-      storage.setItem('token', result.data.token)
-      Taro.navigateTo({ url: '/pages-weapp/profile-complete/index?phone=' + encodeURIComponent('') })
-    } else {
-      Taro.showToast({ title: result.message || '登录失败', icon: 'none' })
-    }
-  } catch {
-    Taro.hideLoading()
-    Taro.showToast({ title: '网络错误', icon: 'none' })
-  }
 }
 
 async function handleIAMLogin(identifier, password) {
@@ -131,8 +69,7 @@ export default function Login() {
 
       {/* Channel 1: WeChat one-click */}
       <View style={{ width: '80%', padding: 0 }}>
-        <Button openType="getPhoneNumber" onGetPhoneNumber={handleGetPhoneNumber}
-          onClick={handleWxLogin}
+        <Button onClick={handleWxLogin}
           style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
         </Button>
