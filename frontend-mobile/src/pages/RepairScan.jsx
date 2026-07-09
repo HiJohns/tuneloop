@@ -26,7 +26,7 @@ export default function RepairScan() {
       const data = await resp.json()
       if (data.code === 20000) {
         const matches = (data.data?.list || []).filter(r =>
-          r.transit_order_number === orderNumber.trim()
+          r.return_tracking_number === orderNumber.trim()
         )
         if (matches.length > 0) {
           setRelayRequest(matches[0])
@@ -85,10 +85,10 @@ export default function RepairScan() {
       </View>
 
       <View className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-        <Text className="text-sm font-bold text-black mb-2">输入转出单号</Text>
+        <Text className="text-sm font-bold text-black mb-2">输入返回运单号</Text>
         <View className="flex gap-2">
           <input className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm"
-            value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder="扫描或输入转出单号" />
+            value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder="扫描或输入返回运单号" />
           <Button onClick={handleSearchOrder} disabled={searching}
             className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold">
             查询
