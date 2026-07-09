@@ -284,35 +284,50 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		return
 	}
 
-	tokenResp, err := h.iamService.IAMRegister(req.Name, req.Phone, req.Email, req.Password)
-	if err != nil {
+	// Create user in beaconiam via IAMClient (uses client credentials internally)
+	iamClient := services.NewIAMClient()
+	_, createErr := iamClient.CreateUser(&services.CreateUserRequest{
+		Name:     req.Name,
+		Phone:    req.Phone,
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if createErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "IAM register failed: " + err.Error(),
+			"message": "IAM register failed: " + createErr.Error(),
+		})
+		return
+	}
+
+	// Login to get JWT via password grant
+	tokenResp, loginErr := h.iamService.IAMLogin(req.Phone, req.Password)
+	if loginErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "IAM login after register failed: " + loginErr.Error(),
 		})
 		return
 	}
 
 	// Sync to local users table
-	if tokenResp != nil && tokenResp.AccessToken != "" {
-		claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
-		if parseErr == nil && claims.UserID != "" {
-			var existing models.User
-			if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
-				newUser := models.User{
-					IAMSub:             claims.UserID,
-					TenantID:           claims.TenantID,
-					OrgID:              claims.OrgID,
-					Name:               req.Name,
-					Phone:              req.Phone,
-					Email:              req.Email,
-					Role:               "USER",
-					Status:             "active",
-					IsProfileCompleted: true,
-				}
-				if createErr := h.db.Create(&newUser).Error; createErr != nil {
-					log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
-				}
+	claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
+	if parseErr == nil && claims.UserID != "" {
+		var existing models.User
+		if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
+			newUser := models.User{
+				IAMSub:             claims.UserID,
+				TenantID:           claims.TenantID,
+				OrgID:              claims.OrgID,
+				Name:               req.Name,
+				Phone:              req.Phone,
+				Email:              req.Email,
+				Role:               "USER",
+				Status:             "active",
+				IsProfileCompleted: true,
+			}
+			if createErr := h.db.Create(&newUser).Error; createErr != nil {
+				log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
 			}
 		}
 	}
