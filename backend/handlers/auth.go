@@ -270,6 +270,7 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 func (h *AuthHandler) PostRegister(c *gin.Context) {
 	var req struct {
+		Username string `json:"username"`
 		Name     string `json:"name" binding:"required"`
 		Phone    string `json:"phone" binding:"required"`
 		Email    string `json:"email"`
@@ -284,10 +285,15 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		return
 	}
 
+	userName := req.Username
+	if userName == "" {
+		userName = req.Phone
+	}
+
 	// Create user in beaconiam via IAMClient (uses client credentials internally)
 	iamClient := services.NewIAMClient()
 	_, createErr := iamClient.CreateUser(&services.CreateUserRequest{
-		Username:       req.Phone,
+		Username:       userName,
 		Name:           req.Name,
 		Phone:          req.Phone,
 		Email:          req.Email,
@@ -303,7 +309,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	}
 
 	// Login to get JWT via password grant
-	tokenResp, loginErr := h.iamService.IAMLogin(req.Phone, req.Password)
+	tokenResp, loginErr := h.iamService.IAMLogin(userName, req.Password)
 	if loginErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
@@ -317,10 +323,15 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	if parseErr == nil && claims.UserID != "" {
 		var existing models.User
 		if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
+			tenantID := claims.TenantID
+			if tenantID == "" { tenantID = "00000000-0000-0000-0000-000000000000" }
+			orgID := claims.OrgID
+			if orgID == "" { orgID = "00000000-0000-0000-0000-000000000000" }
 			newUser := models.User{
 				IAMSub:             claims.UserID,
-				TenantID:           claims.TenantID,
-				OrgID:              claims.OrgID,
+				TenantID:           tenantID,
+				OrgID:              orgID,
+				Username:           userName,
 				Name:               req.Name,
 				Phone:              req.Phone,
 				Email:              req.Email,
