@@ -423,15 +423,43 @@ export default function RepairRequestDetail() {
             <Text className="text-sm font-bold text-black mb-3">待发送</Text>
             <View className="bg-zinc-50 rounded-xl p-3 mb-3">
               <Text className="text-xs text-zinc-500 mb-1">收货信息</Text>
-              <Text className="text-sm text-zinc-700">{request.site_name || '-'}</Text>
-              {request.merchant_type === 'controlled' && (
-                <Text className="text-xs text-zinc-500 mt-1">请将乐器寄至中转网点（地址见物流留言）</Text>
-              )}
-              {request.transit_order_number && (
-                <Text className="text-xs text-zinc-700 mt-1">转入单号：{request.transit_order_number}</Text>
+              {request.merchant_type === 'controlled' ? (
+                <View className="space-y-1">
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">地址</Text>
+                    <Text className="text-xs text-zinc-700 text-right">{request.transit_site_address || '-'}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">电话</Text>
+                    <Text className="text-xs text-zinc-700">{request.transit_site_phone || '-'}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">中转单号</Text>
+                    <Text className="text-xs text-zinc-700">{request.transit_order_number || '-'}</Text>
+                  </View>
+                </View>
+              ) : (
+                <View className="space-y-1">
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">商户</Text>
+                    <Text className="text-xs text-zinc-700">{request.merchant_name || '-'}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">网点</Text>
+                    <Text className="text-xs text-zinc-700">{request.site_name || '-'}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">地址</Text>
+                    <Text className="text-xs text-zinc-700 text-right">{request.site_address || '-'}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-400">电话</Text>
+                    <Text className="text-xs text-zinc-700">{request.site_phone || '-'}</Text>
+                  </View>
+                </View>
               )}
             </View>
-            <Text className="text-xs text-red-500 mb-2">* 请将转入单号写入物流留言</Text>
+            <Text className="text-xs text-red-500 mb-2">* 请将{request.merchant_type === 'controlled' ? '中转单号' : '物流单号'}写入物流留言</Text>
             <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
               value={trackingCompany} onInput={e => setTrackingCompany(e.detail?.value || e.target?.value || '')}
               placeholder="物流公司" />
