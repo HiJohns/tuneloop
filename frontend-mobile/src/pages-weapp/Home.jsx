@@ -4,7 +4,9 @@ import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env, dialog } from '../platform'
 import BottomNav from '../components-weapp/BottomNav'
-import * as S from '../styles-weapp'
+
+const IMG_BASE = 'https://wx.cadenzayueqi.com'
+const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
@@ -106,7 +108,6 @@ export default function Home() {
 
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
-  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? imageBaseUrl + url : url
   const normalizedBannerIdx = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
 
   const fetchCategories = useCallback(async () => {
