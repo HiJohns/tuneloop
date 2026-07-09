@@ -25,11 +25,11 @@ async function handleWxLogin() {
 
 async function handleGetPhoneNumber(e) {
   const detail = e.detail || {}
-  const errMsg = detail.errMsg || ''
+  const errMsg = detail.errMsg || JSON.stringify(detail)
 
   // User declined
   if (errMsg.includes('fail') || errMsg.includes('cancel')) {
-    Taro.showToast({ title: '授权已取消', icon: 'none' })
+    Taro.showModal({ title: '授权失败', content: '错误: ' + errMsg + '\n\ndetail: ' + JSON.stringify(detail), showCancel: false })
     return
   }
 
@@ -38,7 +38,7 @@ async function handleGetPhoneNumber(e) {
   const iv = detail.iv
 
   if (!phoneCode && !encryptedData) {
-    Taro.showToast({ title: '授权已取消', icon: 'none' })
+    Taro.showModal({ title: '授权失败', content: '未获取到凭证\n\n' + JSON.stringify(detail), showCancel: false })
     return
   }
 
@@ -130,10 +130,10 @@ export default function Login() {
       <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>登录</Text>
 
       {/* Channel 1: WeChat one-click */}
-      <View style={{ padding: 0 }}>
+      <View style={{ width: '80%', padding: 0 }}>
         <Button openType="getPhoneNumber" onGetPhoneNumber={handleGetPhoneNumber}
           onClick={handleWxLogin}
-          style={{ margin: 0, width: '80%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
+          style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
         </Button>
       </View>
@@ -146,13 +146,13 @@ export default function Login() {
       </View>
 
       {/* Channel 2: IAM account login */}
-      <View style={{ width: '100%', marginBottom: 12 }}>
+      <View style={{ width: '80%', marginBottom: 12 }}>
         <Input placeholder="邮箱/手机号" value={identifier} onInput={e => setIdentifier(e.detail.value)}
-          style={{ margin: 0, width: '80%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
         <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
-          style={{ margin: 0, width: '80%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }} />
         <Button onClick={() => handleIAMLogin(identifier, password)}
-          style={{ margin: 0, width: '80%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
+          style={{ margin: 0, width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
           登录
         </Button>
       </View>
