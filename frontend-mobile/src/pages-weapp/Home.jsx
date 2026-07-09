@@ -251,6 +251,7 @@ export default function Home() {
                 )}
               </View>
             </View>
+          </View>
         )}
         {banners.length === 0 && (
           <View style={{ width: '100%', height: '100%', backgroundColor: '#915F38' }} />
