@@ -263,7 +263,6 @@ export default function Home() {
           <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
             style={{ width: '100%', height: '100%' }} mode="aspectFill" />
         )}
-        )}
       </View>
     </View>
 
