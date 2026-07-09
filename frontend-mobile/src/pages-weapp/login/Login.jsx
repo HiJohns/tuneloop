@@ -25,24 +25,48 @@ async function handleWxLogin() {
 
 async function handleGetPhoneNumber(e) {
   const phoneCode = e.detail?.code
-  if (!phoneCode) {
+  const encryptedData = e.detail?.encryptedData
+  const iv = e.detail?.iv
+
+  if (!phoneCode && (!encryptedData || !iv)) {
     Taro.showToast({ title: '授权已取消', icon: 'none' })
     return
   }
+
   Taro.showLoading({ title: '获取手机号...' })
   try {
     const token = storage.getItem('token')
-    const res = await request(`${env.apiBaseUrl}/auth/wx-phone-code`, {
+
+    // New API: getPhoneNumber returns code directly
+    if (phoneCode) {
+      const res = await request(`${env.apiBaseUrl}/auth/wx-phone-code`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        body: JSON.stringify({ code: phoneCode }),
+      })
+      const result = await res.json()
+      Taro.hideLoading()
+      if (result.code === 20000 && result.data?.phone) {
+        Taro.navigateTo({ url: '/pages-weapp/profile-complete/index?phone=' + encodeURIComponent(result.data.phone) })
+      } else {
+        Taro.showToast({ title: result.message || '获取手机号失败', icon: 'none' })
+      }
+      return
+    }
+
+    // Old API: getPhoneNumber returns encryptedData + iv
+    const code = await wxLogin()
+    const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
       method: 'POST',
-      headers: token ? { 'Authorization': 'Bearer ' + token } : {},
-      body: JSON.stringify({ code: phoneCode }),
+      body: JSON.stringify({ code, encrypted_data: encryptedData, iv }),
     })
     const result = await res.json()
     Taro.hideLoading()
-    if (result.code === 20000 && result.data?.phone) {
-      Taro.navigateTo({ url: '/pages-weapp/profile-complete/index?phone=' + encodeURIComponent(result.data.phone) })
+    if (result.code === 20000 && result.data?.token) {
+      storage.setItem('token', result.data.token)
+      Taro.navigateTo({ url: '/pages-weapp/profile-complete/index?phone=' + encodeURIComponent('') })
     } else {
-      Taro.showToast({ title: result.message || '获取手机号失败', icon: 'none' })
+      Taro.showToast({ title: result.message || '登录失败', icon: 'none' })
     }
   } catch {
     Taro.hideLoading()
