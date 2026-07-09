@@ -67,7 +67,7 @@ export default function ProfileComplete() {
         }
         if (province && city && district && detail) {
           try {
-            await request(`${env.apiBaseUrl}/addresses`, {
+            await request(`${env.apiBaseUrl}/user/addresses`, {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + result.data.access_token, 'Content-Type': 'application/json' },
               body: JSON.stringify({
