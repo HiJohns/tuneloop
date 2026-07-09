@@ -33,15 +33,21 @@ function parseImages(images) {
 function BannerImage({ src, aspectRatio, onClick }) {
   const scrW = getWindowSize().width, scrH = getWindowSize().height
   const scrRatio = scrW / scrH
-  const isNarrow = aspectRatio && aspectRatio < scrRatio
+  const isWide = aspectRatio && aspectRatio >= scrRatio
 
+  if (isWide) {
+    return (
+      <Image src={fixImg(src)}
+        style={{ width: '100%', height: 'auto', position: 'relative' }}
+        mode="widthFix" onClick={onClick} />
+    )
+  }
   return (
-    <Image src={fixImg(src)}
-      style={isNarrow ? { width: '100%', height: 'auto', position: 'relative' }
-        : { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
-      mode={isNarrow ? 'widthFix' : 'aspectFill'}
-      onClick={onClick}
-    />
+    <View style={{ height: '100%', display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
+      <Image src={fixImg(src)}
+        style={{ height: '100%' }}
+        mode="heightFix" onClick={onClick} />
+    </View>
   )
 }
 
