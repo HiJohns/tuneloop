@@ -251,9 +251,6 @@ export default function Home() {
                 )}
               </View>
             </View>
-            {/* Background color fill: extends to full viewport */}
-            <View style={{ flex: '1 1 0%', backgroundColor: (banners[normalizedBannerIdx]?.bg_color || '#915F38') }} />
-          </View>
         )}
         {banners.length === 0 && (
           <View style={{ width: '100%', height: '100%', backgroundColor: '#915F38' }} />

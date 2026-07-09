@@ -240,9 +240,9 @@ func GenerateBlurBanner(imagePath string) error {
 	if err != nil {
 		return fmt.Errorf("imaging.Open failed for %s: %w", srcPath, err)
 	}
-	blur := imaging.Blur(src, 15)
+	blur := imaging.Blur(src, 8)
 	blurPath := strings.Replace(srcPath, filepath.Ext(srcPath), "_blur.jpg", 1)
-	if err := imaging.Save(blur, blurPath, imaging.JPEGQuality(60)); err != nil {
+	if err := imaging.Save(blur, blurPath, imaging.JPEGQuality(80)); err != nil {
 		return fmt.Errorf("imaging.Save blur failed: %w", err)
 	}
 	return nil
