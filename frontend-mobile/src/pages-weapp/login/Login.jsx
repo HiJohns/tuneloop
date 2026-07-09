@@ -9,7 +9,6 @@ async function handleWxLogin() {
     const code = await wxLogin()
     if (!code) {
       Taro.hideLoading()
-      Taro.showToast({ title: '微信登录失败', icon: 'none' })
       return
     }
     const res = await request(`${env.apiBaseUrl}/auth/wx-login`, {
@@ -20,21 +19,34 @@ async function handleWxLogin() {
     Taro.hideLoading()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
-      storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 2592000) * 1000).toString())
-      const role = result.data?.user?.role
-      if (role === 'GUEST') {
-        // New user — go to registration
-        Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
-      } else {
-        eventBus.emit('loginSuccess')
-        Taro.reLaunch({ url: '/pages-weapp/profile/index' })
-      }
-    } else {
-      Taro.showToast({ title: (result.message || '请先注册') + ' [WX1]', icon: 'none', duration: 3000 })
     }
-  } catch (err) {
+  } catch {}
+}
+
+async function handleGetPhoneNumber(e) {
+  const phoneCode = e.detail?.code
+  if (!phoneCode) {
+    Taro.showToast({ title: '授权已取消', icon: 'none' })
+    return
+  }
+  Taro.showLoading({ title: '获取手机号...' })
+  try {
+    const token = storage.getItem('token')
+    const res = await request(`${env.apiBaseUrl}/auth/wx-phone-code`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+      body: JSON.stringify({ code: phoneCode }),
+    })
+    const result = await res.json()
     Taro.hideLoading()
-    Taro.showToast({ title: '网络错误, 请重试', icon: 'none', duration: 2000 })
+    if (result.code === 20000 && result.data?.phone) {
+      Taro.navigateTo({ url: '/pages-weapp/profile-complete/index?phone=' + encodeURIComponent(result.data.phone) })
+    } else {
+      Taro.showToast({ title: result.message || '获取手机号失败', icon: 'none' })
+    }
+  } catch {
+    Taro.hideLoading()
+    Taro.showToast({ title: '网络错误', icon: 'none' })
   }
 }
 
@@ -86,10 +98,12 @@ export default function Login() {
 
       {/* Channel 1: WeChat one-click */}
       <View style={{ width: '100%', padding: 0 }}>
-        <View onClick={handleWxLogin}
-          style={{ backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24, textAlign: 'center' }}>
+      <View onClick={handleWxLogin}>
+        <Button openType="getPhoneNumber" onGetPhoneNumber={handleGetPhoneNumber}
+          style={{ backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24, border: 'none' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
-        </View>
+        </Button>
+      </View>
       </View>
 
       {/* Divider */}

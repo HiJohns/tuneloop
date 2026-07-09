@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -518,6 +521,86 @@ func (h *AuthHandler) WxPhone(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": resp,
+	})
+}
+
+func (h *AuthHandler) WxPhoneCode(c *gin.Context) {
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "code required"})
+		return
+	}
+
+	// Read WeChat credentials from env
+	appID := os.Getenv("WX_APPID")
+	appSecret := os.Getenv("WX_APPSECRET")
+	if appID == "" || appSecret == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WX_APPID or WX_APPSECRET not configured"})
+		return
+	}
+
+	// Get WeChat access token
+	tokenResp, err := http.Get(fmt.Sprintf("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s", appID, appSecret))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to get WeChat token: " + err.Error()})
+		return
+	}
+	defer tokenResp.Body.Close()
+	var tokenResult struct {
+		AccessToken string `json:"access_token"`
+		ErrCode     int    `json:"errcode"`
+		ErrMsg      string `json:"errmsg"`
+	}
+	if err := json.NewDecoder(tokenResp.Body).Decode(&tokenResult); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to parse WeChat token"})
+		return
+	}
+	if tokenResult.AccessToken == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WeChat token error: " + tokenResult.ErrMsg})
+		return
+	}
+
+	// Call getuserphonenumber API
+	phoneReq := map[string]string{"code": req.Code}
+	phoneBody, _ := json.Marshal(phoneReq)
+	phoneResp, err := http.Post(
+		fmt.Sprintf("https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=%s", tokenResult.AccessToken),
+		"application/json",
+		bytes.NewBuffer(phoneBody),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to call WeChat phone API: " + err.Error()})
+		return
+	}
+	defer phoneResp.Body.Close()
+	var phoneResult struct {
+		ErrCode int `json:"errcode"`
+		ErrMsg  string `json:"errmsg"`
+		PhoneInfo struct {
+			PhoneNumber     string `json:"phoneNumber"`
+			PurePhoneNumber string `json:"purePhoneNumber"`
+			CountryCode     string `json:"countryCode"`
+		} `json:"phone_info"`
+	}
+	if err := json.NewDecoder(phoneResp.Body).Decode(&phoneResult); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to parse phone response"})
+		return
+	}
+	if phoneResult.ErrCode != 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WeChat phone error: " + phoneResult.ErrMsg})
+		return
+	}
+
+	phone := phoneResult.PhoneInfo.PurePhoneNumber
+	if phone == "" {
+		phone = phoneResult.PhoneInfo.PhoneNumber
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{"phone": phone},
 	})
 }
 

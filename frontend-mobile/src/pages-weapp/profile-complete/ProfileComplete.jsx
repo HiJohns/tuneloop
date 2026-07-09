@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
 import { storage, env, request, eventBus } from '../../platform'
@@ -9,6 +9,11 @@ export default function ProfileComplete() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const params = Taro.getCurrentInstance().router?.params || {}
+    if (params.phone) setPhone(params.phone)
+  }, [])
 
   const handleRegister = async () => {
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
