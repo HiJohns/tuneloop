@@ -64,11 +64,12 @@ export default function Login() {
   }
 
   return (
-    <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+    <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa' }}>
+      <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', paddingLeft: 32, paddingRight: 32 }}>
       <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>登录</Text>
 
       {/* Channel 1: WeChat one-click */}
-      <View style={{ width: '80%', padding: 0 }}>
+      <View style={{ width: '100%', paddingLeft: 0, paddingRight: 0 }}>
         <Button onClick={handleWxLogin}
           style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
@@ -83,7 +84,7 @@ export default function Login() {
       </View>
 
       {/* Channel 2: IAM account login */}
-      <View style={{ width: '80%', marginBottom: 12 }}>
+      <View style={{ width: '100%', marginBottom: 12 }}>
         <Input placeholder="邮箱/手机号" value={identifier} onInput={e => setIdentifier(e.detail.value)}
           style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
         <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
@@ -109,6 +110,7 @@ export default function Login() {
           </Button>
         </View>
       )}
+    </View>
     </View>
   )
 }
