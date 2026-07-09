@@ -7,6 +7,12 @@ import BottomNav from '../components-weapp/BottomNav'
 
 const IMG_BASE = 'https://wx.cadenzayueqi.com'
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
+const blurUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('data:')) return url
+  const base = url.startsWith('http') ? '' : IMG_BASE
+  return base + url.replace(/\.\w+$/, '_blur.webp')
+}
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect fill="#f0f0f0" width="96" height="96"/><text x="48" y="54" text-anchor="middle" fill="#ccc" font-size="24">🎸</text></svg>'
@@ -175,8 +181,10 @@ export default function Home() {
 
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
-      {/* Z=0: Full-screen carousel background */}
+      {/* Z=0: Carousel — original visible on top, blur replaces on scroll */}
       <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
+        {/* Original carousel */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 0 : 1, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
           <View style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {/* Image track: 220px clipped */}
@@ -224,6 +232,15 @@ export default function Home() {
         )}
       </View>
 
+      {/* Blur layer — visible on scroll */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s' }}>
+        {banners.length > 0 && (
+          <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
+            style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+        )}
+      </View>
+    </View>
+
       {/* Carousel dots — hide on scroll */}
       {!scrolled && (
         <View style={{ position: 'absolute', left: 0, right: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 8 }}>
@@ -262,12 +279,6 @@ export default function Home() {
           }}
         />
       )}
-
-      {/* Z=1: Dark solid overlay — ensures text readability on light banner images */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1, backgroundColor: 'rgba(0,0,0,0.4)', height: 160 }} />
-
-      {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, backgroundColor: scrolled ? 'rgba(90,59,36,0.15)' : 'transparent', transition: 'background-color 0.3s' }} />
 
       {/* A: Search bar — fixed above carousel */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
