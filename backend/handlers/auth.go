@@ -287,11 +287,12 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	// Create user in beaconiam via IAMClient (uses client credentials internally)
 	iamClient := services.NewIAMClient()
 	_, createErr := iamClient.CreateUser(&services.CreateUserRequest{
-		Username: req.Phone,
-		Name:     req.Name,
-		Phone:    req.Phone,
-		Email:    req.Email,
-		Password: req.Password,
+		Username:       req.Phone,
+		Name:           req.Name,
+		Phone:          req.Phone,
+		Email:          req.Email,
+		Password:       req.Password,
+		SkipActivation: true,
 	})
 	if createErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
