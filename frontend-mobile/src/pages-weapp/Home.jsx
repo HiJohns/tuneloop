@@ -230,12 +230,12 @@ export default function Home() {
                 }}>
                 {banners.length > 0 && (
                   <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
-                    <Image src={banners[banners.length - 1].image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+                    <BannerImage src={banners[banners.length - 1].image_url} />
                   </View>
                 )}
                 {banners.map((item, i) => (
                   <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }} onClick={() => item.link_url && nav(item.link_url)}>
-                    <Image src={item.image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+                    <BannerImage src={item.image_url} />
                     {item.title ? (
                       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
                         <Text style={{ color: '#fff', fontSize: 14 }}>{item.title}</Text>
@@ -245,7 +245,7 @@ export default function Home() {
                 ))}
                 {banners.length > 0 && (
                   <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
-                    <Image src={banners[0].image_url} style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+                    <BannerImage src={banners[0].image_url} />
                   </View>
                 )}
               </View>
@@ -262,8 +262,7 @@ export default function Home() {
       {/* Blur layer — visible on scroll */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
-          <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
-            style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+          <BannerImage src={blurUrl(banners[normalizedBannerIdx]?.image_url)} />
         )}
       </View>
     </View>
