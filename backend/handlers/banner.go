@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -85,6 +87,13 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 		return
 	}
 
+	// Async blur generation
+	go func() {
+		if err := GenerateBlurBanner(banner.ImageURL); err != nil {
+			log.Printf("[Banner] blur generation failed for %s: %v", banner.ImageURL, err)
+		}
+	}()
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code":    20000,
 		"message": "success",
@@ -121,6 +130,8 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 		return
 	}
 
+	newImage := req.ImageURL != "" && req.ImageURL != existing.ImageURL
+
 	updates := map[string]interface{}{
 		"updated_at": time.Now(),
 	}
@@ -144,6 +155,15 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 	if err := db.Model(&existing).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update banner: " + err.Error()})
 		return
+	}
+
+	// Regenerate blur if image changed
+	if newImage {
+		go func() {
+			if err := GenerateBlurBanner(req.ImageURL); err != nil {
+				log.Printf("[Banner] blur regeneration failed for %s: %v", req.ImageURL, err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -175,6 +195,11 @@ func (h *BannerHandler) DeleteBanner(c *gin.Context) {
 		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
 			log.Printf("[Banner] failed to delete file %s: %v", filePath, err)
 		}
+		// Delete blur version
+		blurFile := strings.Replace(filePath, filepath.Ext(filePath), "_blur.webp", 1)
+		if err := os.Remove(blurFile); err != nil && !os.IsNotExist(err) {
+			log.Printf("[Banner] failed to delete blur file %s: %v", blurFile, err)
+		}
 	}
 
 	result := db.Where("id = ?", id).Delete(&banner)
@@ -187,6 +212,28 @@ func (h *BannerHandler) DeleteBanner(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 	})
+}
+
+// GenerateBlurBanner creates a blurred _blur.webp version of the banner image.
+func GenerateBlurBanner(imagePath string) error {
+	if !strings.HasPrefix(imagePath, "/uploads/media/") {
+		return nil // not a file-based image
+	}
+	key := strings.TrimPrefix(imagePath, "/uploads/media/")
+	srcPath := filepath.Join("./uploads/media", key)
+	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		return fmt.Errorf("source file not found: %s", srcPath)
+	}
+	src, err := imaging.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("imaging.Open failed for %s: %w", srcPath, err)
+	}
+	blur := imaging.Blur(src, 15)
+	blurPath := strings.Replace(srcPath, filepath.Ext(srcPath), "_blur.webp", 1)
+	if err := imaging.Save(blur, blurPath); err != nil {
+		return fmt.Errorf("imaging.Save blur failed: %w", err)
+	}
+	return nil
 }
 
 func ValidateBannerFiles(db *gorm.DB) {
@@ -221,4 +268,19 @@ func (h *BannerHandler) GetPublicBanners(c *gin.Context) {
 			"list": banners,
 		},
 	})
+}
+
+// MigrateBannerBlur scans all active banners and generates _blur.webp for any that are missing it.
+func MigrateBannerBlur(db *gorm.DB) {
+	var banners []models.Banner
+	db.Where("status = ?", "active").Find(&banners)
+	count := 0
+	for _, b := range banners {
+		if err := GenerateBlurBanner(b.ImageURL); err != nil {
+			log.Printf("[BannerBlur] migration failed for %s: %v", b.ImageURL, err)
+		} else {
+			count++
+		}
+	}
+	log.Printf("[BannerBlur] migration complete: %d banners processed", count)
 }

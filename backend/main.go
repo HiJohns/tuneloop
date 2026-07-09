@@ -687,6 +687,7 @@ func main() {
 	migrateCover := flag.Bool("migrate-cover-images", false, "Generate cover images for instruments without one, then exit")
 	migrateWebP := flag.Bool("migrate-display-webp", false, "Convert all display images to WebP, then exit")
 	migrateBannerWebP := flag.Bool("migrate-banner-webp", false, "Convert legacy banner images to WebP, then exit")
+	migrateBannerBlur := flag.Bool("migrate-banner-blur", false, "Generate blurred _blur.webp for banner images, then exit")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode (for --migrate-cover-images, --migrate-display-webp, or --migrate-banner-webp)")
 	flag.Parse()
@@ -771,6 +772,13 @@ func main() {
 		} else {
 			fmt.Printf("Banner WebP migration complete: %d banners converted\n", count)
 		}
+		os.Exit(0)
+	}
+
+	// One-off migration: generate blurred _blur.webp for banner images
+	if *migrateBannerBlur {
+		db := database.GetDB()
+		handlers.MigrateBannerBlur(db)
 		os.Exit(0)
 	}
 
