@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/chai2010/webp"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/image/draw"
 	"gorm.io/gorm"
@@ -1038,7 +1039,7 @@ func HandleUpload(c *gin.Context) {
 			return
 		}
 
-		src, _, err := image.Decode(bytes.NewReader(data))
+		src, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to decode image"})
 			return

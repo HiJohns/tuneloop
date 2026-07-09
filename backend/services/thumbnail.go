@@ -6,13 +6,14 @@ import (
 	"image/jpeg"
 
 	"github.com/chai2010/webp"
+	"github.com/disintegration/imaging"
 	"golang.org/x/image/draw"
 )
 
 // GenerateThumbnail decodes an image, scales it to fit within maxSize (maintaining aspect ratio),
 // and returns JPEG-encoded bytes (quality 85).
 func GenerateThumbnail(data []byte, maxSize int) ([]byte, error) {
-	src, _, err := image.Decode(bytes.NewReader(data))
+	src, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func GenerateThumbnail(data []byte, maxSize int) ([]byte, error) {
 // GenerateThumbnailWebP resizes an image to fit within maxWidth × maxHeight (maintaining aspect ratio,
 // no upscaling) and encodes as WebP with quality 0.8.
 func GenerateThumbnailWebP(data []byte, maxWidth, maxHeight int) ([]byte, error) {
-	src, _, err := image.Decode(bytes.NewReader(data))
+	src, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func GenerateThumbnailWebP(data []byte, maxWidth, maxHeight int) ([]byte, error)
 // ResizeToCoverSquare crops the image to a centered square and resizes to coverSize × coverSize.
 // If the image is smaller than coverSize, it is not upscaled. Encodes as WebP quality 0.8.
 func ResizeToCoverSquare(data []byte, coverSize int) ([]byte, error) {
-	src, _, err := image.Decode(bytes.NewReader(data))
+	src, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
 	}
