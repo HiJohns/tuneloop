@@ -11,7 +11,7 @@ const blurUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('data:')) return url
   const base = url.startsWith('http') ? '' : IMG_BASE
-  return base + url.replace(/\.\w+$/, '_blur.webp')
+  return base + url.replace(/\.\w+$/, '_blur.jpg')
 }
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(

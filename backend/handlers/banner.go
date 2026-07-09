@@ -196,7 +196,7 @@ func (h *BannerHandler) DeleteBanner(c *gin.Context) {
 			log.Printf("[Banner] failed to delete file %s: %v", filePath, err)
 		}
 		// Delete blur version
-		blurFile := strings.Replace(filePath, filepath.Ext(filePath), "_blur.webp", 1)
+		blurFile := strings.Replace(filePath, filepath.Ext(filePath), "_blur.jpg", 1)
 		if err := os.Remove(blurFile); err != nil && !os.IsNotExist(err) {
 			log.Printf("[Banner] failed to delete blur file %s: %v", blurFile, err)
 		}
@@ -229,8 +229,8 @@ func GenerateBlurBanner(imagePath string) error {
 		return fmt.Errorf("imaging.Open failed for %s: %w", srcPath, err)
 	}
 	blur := imaging.Blur(src, 15)
-	blurPath := strings.Replace(srcPath, filepath.Ext(srcPath), "_blur.webp", 1)
-	if err := imaging.Save(blur, blurPath); err != nil {
+	blurPath := strings.Replace(srcPath, filepath.Ext(srcPath), "_blur.jpg", 1)
+	if err := imaging.Save(blur, blurPath, imaging.JPEGQuality(60)); err != nil {
 		return fmt.Errorf("imaging.Save blur failed: %w", err)
 	}
 	return nil
