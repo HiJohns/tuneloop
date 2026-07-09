@@ -22,6 +22,9 @@ export default function RepairRequestDetail() {
   const [showQuoteForm, setShowQuoteForm] = useState(false)
   const [trackingCompany, setTrackingCompany] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
+  const [returnCompany, setReturnCompany] = useState('')
+  const [returnNumber, setReturnNumber] = useState('')
+  const [unpackPhotos, setUnpackPhotos] = useState([])
 
   const token = getToken()
   const isCustomer = (() => {
@@ -156,6 +159,41 @@ export default function RepairRequestDetail() {
       else { alert(r.message || '操作失败') }
     } catch { alert('操作失败') }
     setActionLoading(false)
+  }
+
+  const handleReturnShipping = async () => {
+    if (!returnCompany || !returnNumber) { alert('请填写物流公司和单号'); return }
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/return-shipping`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ return_company: returnCompany, return_tracking_number: returnNumber }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        setReturnCompany('')
+        setReturnNumber('')
+        await fetchData()
+      } else {
+        alert(r.message || '提交失败')
+      }
+    } catch { alert('提交失败') }
+    setActionLoading(false)
+  }
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target?.files?.[0] || e.detail?.value?.[0]
+    if (!file) return
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        setUnpackPhotos(p => [...p, r.data.file_key])
+      }
+    } catch {}
   }
 
   if (!requestId) return <View className="h-screen flex items-center justify-center"><Text>请选择报修单</Text></View>
@@ -542,6 +580,89 @@ export default function RepairRequestDetail() {
               disabled={actionLoading || !quoteForm.material_fee}
               className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               提交中转处理
+            </Button>
+          </View>
+        )}
+
+        {/* ========== SHIPPING (staff receive) ========== */}
+        {status === 'shipping' && isSiteStaff && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">收货处理</Text>
+            <View className="bg-zinc-50 rounded-xl p-3 mb-3 space-y-1">
+              <Text className="text-xs text-zinc-500">物流信息</Text>
+              {request.tracking_company && <Text className="text-xs text-zinc-700">物流公司：{request.tracking_company}</Text>}
+              {request.tracking_number && <Text className="text-xs text-zinc-700">物流单号：{request.tracking_number}</Text>}
+              {!request.tracking_company && <Text className="text-xs text-zinc-400">暂无物流信息</Text>}
+            </View>
+            {request.merchant_type === 'controlled' ? (
+              <>
+                <View className="flex flex-wrap gap-2 mb-3">
+                  {unpackPhotos.length > 0 && unpackPhotos.map((p, i) => (
+                    <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
+                  ))}
+                  <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.onchange=e=>handlePhotoUpload(e); el.click() }}>
+                    <Text className="text-2xl text-zinc-300">+</Text>
+                  </View>
+                </View>
+                <Button onClick={() => handleAction('transit-relay', { direction: 'in', transit_order_number: request.transit_order_number || '', unpack_photos: unpackPhotos })}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm text-center">
+                  中转处理
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => handleAction('receive')} disabled={actionLoading}
+                className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center">
+                确认收货
+              </Button>
+            )}
+          </View>
+        )}
+
+        {/* ========== TRANSIT IN (staff receive) ========== */}
+        {status === 'transit_in' && isSiteStaff && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">转入收货</Text>
+            <Button onClick={() => handleAction('receive')} disabled={actionLoading}
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center">
+              确认收货
+            </Button>
+          </View>
+        )}
+
+        {/* ========== RETURN PENDING (staff fill return logistics) ========== */}
+        {status === 'return_pending' && isSiteStaff && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">发回物流</Text>
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={returnCompany} onInput={e => setReturnCompany(e.detail?.value || e.target?.value || '')}
+              placeholder="物流公司" />
+            <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+              value={returnNumber} onInput={e => setReturnNumber(e.detail?.value || e.target?.value || '')}
+              placeholder="物流单号" />
+            <Button onClick={handleReturnShipping} disabled={actionLoading || !returnCompany || !returnNumber}
+              className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
+              提交发回
+            </Button>
+          </View>
+        )}
+
+        {/* ========== TRANSIT OUT (staff relay out) ========== */}
+        {status === 'transit_out' && isSiteStaff && (
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
+            <Text className="text-sm font-bold text-black mb-3">转出中转</Text>
+            <View className="flex flex-wrap gap-2 mb-3">
+              {unpackPhotos.length > 0 && unpackPhotos.map((p, i) => (
+                <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
+              ))}
+              <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.onchange=e=>handlePhotoUpload(e); el.click() }}>
+                <Text className="text-2xl text-zinc-300">+</Text>
+              </View>
+            </View>
+            <Button onClick={() => handleAction('transit-relay', { direction: 'out', transit_order_number: request.transit_order_number || '', unpack_photos: unpackPhotos })}
+              disabled={actionLoading}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm text-center">
+              转出处理
             </Button>
           </View>
         )}
