@@ -267,7 +267,7 @@ export default function Home() {
       <View style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1, backgroundColor: 'rgba(0,0,0,0.4)', height: 160 }} />
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, backgroundColor: scrolled ? 'rgba(90,59,36,0.8)' : 'transparent', transition: 'background-color 0.3s' }} />
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5, backgroundColor: scrolled ? 'rgba(90,59,36,0.15)' : 'transparent', transition: 'background-color 0.3s' }} />
 
       {/* A: Search bar — fixed above carousel */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
