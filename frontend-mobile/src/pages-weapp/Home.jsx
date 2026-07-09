@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
@@ -77,6 +77,56 @@ function InstrumentCard({ instrument, onClick }) {
     </View>
   )
 }
+
+const ScrollListMemo = memo(function ScrollList({ loading, instruments, tenant, nav, topCategories, selectedCategory, handleCategoryChange, catOffsetX, setCatOffsetX, scrollYRef, scrolledRef, menuStuckRef, setScrolled, setMenuStuck, scrollTimerRef }) {
+  return (
+    <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
+      scrollY showScrollbar={false}
+      onScroll={e => {
+        const newY = e.detail?.scrollTop ?? 0
+        scrollYRef.current = newY
+        if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+        scrollTimerRef.current = setTimeout(() => {
+          const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
+          if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+          if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+        }, 500)
+      }}>
+      <View style={{ height: '100px' }}></View>
+      <View style={{ backgroundColor: 'transparent' }}>
+        <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
+      </View>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
+      {loading ? (
+        Array(3).fill(0).map((_, i) => (
+          <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+            <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
+              <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
+            </View>
+            <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
+              <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
+              <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
+            </View>
+          </View>
+        ))
+      ) : instruments.length > 0 ? (
+        instruments.map(instrument => (
+          <InstrumentCard
+            key={instrument.id}
+            instrument={instrument}
+            onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
+          />
+        ))
+      ) : (
+        <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
+          <Text style={{ fontSize: 18 }}>暂无乐器</Text>
+        </View>
+      )}
+      </View>
+    </ScrollView>
+  )
+})
 
 export default function Home() {
   const nav = (url) => { Taro.navigateTo({ url }) }
@@ -285,53 +335,7 @@ export default function Home() {
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0 }}>
-        <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
-          scrollY showScrollbar={false}
-          onScroll={e => {
-            const newY = e.detail?.scrollTop ?? 0
-            scrollYRef.current = newY
-            if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-            scrollTimerRef.current = setTimeout(() => {
-              const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
-              if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-              if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
-            }, 500)
-          }}>
-          <View style={{ height: '100px' }}></View>
-
-        <View style={{ backgroundColor: 'transparent' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
-        </View>
-
-        <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
-        {loading ? (
-          Array(3).fill(0).map((_, i) => (
-            <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
-              <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
-                <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
-              </View>
-              <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
-                <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
-                <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
-              </View>
-            </View>
-          ))
-        ) : instruments.length > 0 ? (
-          instruments.map(instrument => (
-            <InstrumentCard
-              key={instrument.id}
-              instrument={instrument}
-              onClick={() => { const url = tenant ? `/pages-weapp/detail/index?id=${instrument.id}&tenant=${tenant}` : `/pages-weapp/detail/index?id=${instrument.id}`; nav(url) }}
-            />
-          ))
-        ) : (
-          <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: 'rgba(255,255,255,0.6)' }}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>🎵</Text>
-            <Text style={{ fontSize: 18 }}>暂无乐器</Text>
-          </View>
-        )}
-        </View>
-      </ScrollView>
+        <ScrollListMemo loading={loading} instruments={instruments} tenant={tenant} nav={nav} topCategories={topCategories} selectedCategory={selectedCategory} handleCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrollYRef={scrollYRef} scrolledRef={scrolledRef} menuStuckRef={menuStuckRef} setScrolled={setScrolled} setMenuStuck={setMenuStuck} scrollTimerRef={scrollTimerRef} />
       <BottomNav
         active="home"
         tabs={[
