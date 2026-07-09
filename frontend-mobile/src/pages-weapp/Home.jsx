@@ -260,8 +260,7 @@ export default function Home() {
 
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: blurVisible ? 1 : 0, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
-          <Image src={blurUrl(banners[normalizedBannerIdx]?.image_url)}
-            style={{ width: '100%', height: '100%' }} mode="aspectFill" />
+            <BannerImage src={blurUrl(banners[normalizedBannerIdx]?.image_url)} aspectRatio={banners[normalizedBannerIdx]?.aspect_ratio} />
         )}
       </View>
     </View>
@@ -306,8 +305,8 @@ export default function Home() {
       )}
 
       {/* A: Search bar — fixed above carousel */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
-        <View style={{ width: 250, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxShadow: scrolled ? '0 1px 2px rgba(0,0,0,0.05)' : '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: (scrolled || blurVisible) ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.2)' }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
+        <View style={{ width: 180, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxShadow: scrolled ? '0 1px 2px rgba(0,0,0,0.05)' : '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: (scrolled || blurVisible) ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.2)' }}>
           <Text style={{ fontSize: 16, marginRight: 8, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)"
             style={{ fontSize: 14, flex: '1 1 0%', backgroundColor: 'transparent', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }} />
@@ -316,7 +315,7 @@ export default function Home() {
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10001, backgroundColor: 'transparent', top: '102px' }}>
+        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10001, backgroundColor: 'transparent', top: '112px' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
         </View>
       )}
@@ -342,14 +341,14 @@ export default function Home() {
             // Search, dots, sticky menu: debounced after scroll stops
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
             scrollTimerRef.current = setTimeout(() => {
-              const ns = scrollYRef.current > 50, nm = scrollYRef.current > 130
+              const ns = scrollYRef.current > 50, nm = scrollYRef.current > 100
               if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
               if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
             }, 500)
           }}>
           <View style={{ height: '100px' }}></View>
 
-        <View style={{ backgroundColor: 'transparent' }}>
+        <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent', transition: 'opacity 0.3s' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
         </View>
 
