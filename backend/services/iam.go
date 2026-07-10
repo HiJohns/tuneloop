@@ -50,6 +50,7 @@ type TokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int    `json:"expires_in"`
 	TokenType    string `json:"token_type"`
+	WxOpenid     string `json:"wx_openid"`
 }
 
 type PublicKeyResponse struct {

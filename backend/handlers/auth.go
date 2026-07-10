@@ -311,16 +311,40 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 
 	// If wx_code provided, bind WeChat to this user
 	if req.WxCode != "" {
-		// Get WeChat openid from beaconiam
 		if tokenResp, wxErr := h.iamService.WxLogin(req.WxCode); wxErr == nil && tokenResp != nil && tokenResp.AccessToken != "" {
-			// The user was created/returned by beaconiam — merge the JWT
+			// Sync to local users table
+			claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
+			if parseErr == nil && claims.UserID != "" {
+				var existing models.User
+				if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
+					tenantID := claims.TenantID
+					if tenantID == "" { tenantID = "00000000-0000-0000-0000-000000000000" }
+					orgID := claims.OrgID
+					if orgID == "" { orgID = "00000000-0000-0000-0000-000000000000" }
+					newUser := models.User{
+						IAMSub:             claims.UserID,
+						TenantID:           tenantID,
+						OrgID:              orgID,
+						Username:           userName,
+						Name:               req.Name,
+						Phone:              req.Phone,
+						Email:              req.Email,
+						Role:               "USER",
+						Status:             "active",
+						IsProfileCompleted: true,
+						WxOpenid:           tokenResp.WxOpenid,
+					}
+					if createErr := h.db.Create(&newUser).Error; createErr != nil {
+						log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
+					}
+				}
+			}
 			c.JSON(http.StatusOK, gin.H{
 				"code": 20000,
 				"data": tokenResp,
 			})
 			return
 		}
-		// If WxLogin fails (code expired etc.), fall through to password login
 	}
 
 	// Login to get JWT via password grant

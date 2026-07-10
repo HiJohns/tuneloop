@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
-import { storage, env, request, eventBus } from '../../platform'
+import { storage, env, request, eventBus, wxLogin } from '../../platform'
 import regions from '../../data/regions.json'
 
 export default function ProfileComplete() {
@@ -45,7 +45,7 @@ export default function ProfileComplete() {
     setSaving(true)
     try {
       const body = { username: username.trim(), name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }
-      const wxCode = storage.getItem('wx_code')
+      const wxCode = await wxLogin()
       if (wxCode) { body.wx_code = wxCode }
       const res = await request(`${env.apiBaseUrl}/auth/register`, {
         method: 'POST',

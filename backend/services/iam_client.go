@@ -458,18 +458,19 @@ func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 }
 
 type CreateUserRequest struct {
-	Username              string `json:"username"`
-	Name                  string `json:"name"`
-	Email                 string `json:"email"`
-	Phone                 string `json:"phone"`
-	Password              string `json:"password,omitempty"`
-	SkipActivation        bool   `json:"skip_activation"`
-	SendNotificationEmail bool   `json:"send_notification_email,omitempty"`
-	NotificationLang      string `json:"notification_lang,omitempty"`
-	ForcePasswordChange   bool   `json:"force_password_change,omitempty"`
-	CallbackURL           string `json:"callback_url,omitempty"`
-	Reason                string `json:"reason,omitempty"`
-	OperatorID            string `json:"operator_id,omitempty"`
+	Username              string  `json:"username"`
+	Name                  string  `json:"name"`
+	Email                 string  `json:"email"`
+	Phone                 string  `json:"phone"`
+	Password              string  `json:"password,omitempty"`
+	SkipActivation        bool    `json:"skip_activation"`
+	SendNotificationEmail bool    `json:"send_notification_email,omitempty"`
+	NotificationLang      string  `json:"notification_lang,omitempty"`
+	ForcePasswordChange   bool    `json:"force_password_change,omitempty"`
+	CallbackURL           string  `json:"callback_url,omitempty"`
+	Reason                string  `json:"reason,omitempty"`
+	OperatorID            string  `json:"operator_id,omitempty"`
+	WxOpenid              *string `json:"wx_openid,omitempty"`
 }
 
 type CreateUserResponse struct {
@@ -813,12 +814,13 @@ func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*
 }
 
 type UpdateUserRequest struct {
-	Name        string `json:"name,omitempty"`
-	Email       string `json:"email,omitempty"`
-	Phone       string `json:"phone,omitempty"`
-	Password    string `json:"password,omitempty"`
-	CallbackURL string `json:"callback_url,omitempty"`
-	OperatorID  string `json:"operator_id,omitempty"`
+	Name        string  `json:"name,omitempty"`
+	Email       string  `json:"email,omitempty"`
+	Phone       string  `json:"phone,omitempty"`
+	Password    string  `json:"password,omitempty"`
+	CallbackURL string  `json:"callback_url,omitempty"`
+	OperatorID  string  `json:"operator_id,omitempty"`
+	WxOpenid    *string `json:"wx_openid,omitempty"`
 }
 
 func (c *IAMClient) UpdateUser(userID string, req *UpdateUserRequest) error {
