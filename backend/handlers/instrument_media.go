@@ -19,6 +19,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"github.com/disintegration/imaging"
 
 	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
@@ -508,7 +509,7 @@ func UploadDisplayImage(c *gin.Context) {
 	}
 
 	// Decode image
-	src, _, err := image.Decode(file)
+	src, err := imaging.Decode(file, imaging.AutoOrientation(true))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "failed to decode image: " + err.Error()})
 		return
