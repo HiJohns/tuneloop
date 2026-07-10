@@ -66,7 +66,7 @@ export default function Login() {
 
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa' }}>
-      <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', paddingLeft: 32, paddingRight: 32 }}>
+      <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', paddingLeft: 32, paddingRight: 32, boxSizing: 'border-box' }}>
       <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>登录</Text>
 
       {/* Channel 1: WeChat one-click */}
