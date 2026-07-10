@@ -420,12 +420,13 @@ function SingleCheckout({ id, nav }) {
               <View style={{ display: 'flex', marginBottom: 8 }}>
                 <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>收货人</Text>
-                    <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder="姓名"
-                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
-                    </View>
-                    <View style={{ flex: '1 1 0%' }}>
-                      <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                  <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder="姓名"
+                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </View>
+                <View style={{ flex: '1 1 0%' }}>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话</Text>
+                  <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
                 </View>
               </View>
               <View style={{ display: 'flex', marginBottom: 8 }}>
