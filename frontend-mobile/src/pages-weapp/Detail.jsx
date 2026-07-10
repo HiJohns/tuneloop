@@ -162,13 +162,6 @@ export default function Detail() {
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', paddingBottom: 140, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Nav bar */}
-      <View style={{ width: '100%', paddingTop: 12, paddingBottom: 8, paddingLeft: 16, paddingRight: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f4f4f5' }}>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#000' }} onClick={() => Taro.navigateBack()}>❮</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>乐器详情</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#3f3f46' }}>★ 收藏</Text>
-      </View>
-
       {/* Banner carousel */}
       <View style={{ width: '100%', overflow: 'hidden' }}
         onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
