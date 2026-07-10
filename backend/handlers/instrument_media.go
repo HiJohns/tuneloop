@@ -736,7 +736,7 @@ func UploadUserAvatar(c *gin.Context) {
 	}
 
 	avatarURL := "/uploads/media/" + avatarKey
-	if err := db.Model(&models.User{}).Where("id = ?", userID).Update("avatar_url", avatarURL).Error; err != nil {
+	if err := db.Model(&models.User{}).Where("iam_sub = ?", userID).Update("avatar_url", avatarURL).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save avatar"})
 		return
 	}
