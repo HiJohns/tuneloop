@@ -66,32 +66,32 @@ export default function Login() {
 
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa' }}>
-      <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '70%', paddingLeft: 32, paddingRight: 32 }}>
+      <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', paddingLeft: 32, paddingRight: 32 }}>
       <Text style={{ fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 48 }}>登录</Text>
 
       {/* Channel 1: WeChat one-click */}
-      <View style={{ width: '70%', paddingLeft: 0, paddingRight: 0 }}>
+      <View style={{ width: '100%', paddingLeft: 0, paddingRight: 0 }}>
         <Button onClick={handleWxLogin}
-          style={{ margin: 0, width: '70%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
+          style={{ margin: 0, width: '100%', backgroundColor: '#07c160', color: '#fff', borderRadius: 24, fontSize: 16, fontWeight: '700', marginBottom: 16, paddingTop: 12, paddingBottom: 12, border: 'none', boxSizing: 'border-box' }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>📱 微信用户一键登录</Text>
         </Button>
       </View>
 
       {/* Divider */}
-      <View style={{ display: 'flex', alignItems: 'center', width: '70%', marginBottom: 16 }}>
+      <View style={{ display: 'flex', alignItems: 'center', width: '100%', marginBottom: 16 }}>
         <View style={{ flex: 1, height: 1, backgroundColor: '#e4e4e7' }} />
         <Text style={{ paddingLeft: 12, paddingRight: 12, fontSize: 14, color: '#a1a1aa' }}>其他方式</Text>
         <View style={{ flex: 1, height: 1, backgroundColor: '#e4e4e7' }} />
       </View>
 
       {/* Channel 2: IAM account login */}
-      <View style={{ width: '70%', marginBottom: 12 }}>
+      <View style={{ width: '100%', marginBottom: 12 }}>
         <Input placeholder="邮箱/手机号" value={identifier} onInput={e => setIdentifier(e.detail.value)}
-          style={{ margin: 0, width: '70%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
         <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
-          style={{ margin: 0, width: '70%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' }} />
         <Button onClick={() => handleIAMLogin(identifier, password)}
-          style={{ margin: 0, width: '70%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
+          style={{ margin: 0, width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
           登录
         </Button>
       </View>
@@ -104,9 +104,9 @@ export default function Login() {
       {/* Developer mode toggle */}
       <Text style={{ fontSize: 10, color: '#d4d4d8', marginTop: 32 }} onClick={handleVersionTap}>版本 v1.0.0</Text>
       {showDevMode && (
-        <View style={{ marginTop: 12, width: '70%' }}>
+        <View style={{ marginTop: 12, width: '100%' }}>
           <Button onClick={() => { storage.removeItem('token'); storage.removeItem('token_expiry'); Taro.navigateBack() }}
-            style={{ width: '70%', height: 36, backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '36px' }}>
+            style={{ width: '100%', height: 36, backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '36px' }}>
             清除 Token
           </Button>
         </View>
