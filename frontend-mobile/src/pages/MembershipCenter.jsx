@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button } from '@tarojs/components'
 import { apiFetch, addressesApi } from '../services/api'
 import { env } from '../platform'
@@ -8,7 +8,6 @@ import regions from '../data/regions.json'
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
 
 export default function MembershipCenter() {
-  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const baseUrl = env.apiBaseUrl
@@ -97,7 +96,7 @@ export default function MembershipCenter() {
     <ScrollView className="h-screen w-screen bg-zinc-50">
       {/* Navigation bar */}
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">
-        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg mr-2" onClick={() => Taro.navigateBack()}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center mr-4">会员中心</Text>
       </View>
 
