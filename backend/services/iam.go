@@ -361,22 +361,28 @@ func (s *IAMService) ExchangeCodeWithRedirect(code string, redirectURI string) (
 
 func (s *IAMService) WxLogin(code string) (*TokenResponse, error) {
 	payload := map[string]string{
-		"code": code,
+		"code":      code,
+		"client_id": s.clientID,
 	}
 
 	jsonPayload, _ := json.Marshal(payload)
+	wxURL := fmt.Sprintf("%s/api/v1/auth/wx-login", s.baseURL)
+	log.Printf("[IAM DEBUG] WxLogin calling %s with code len=%d", wxURL, len(code))
 	resp, err := s.httpClient.Post(
-		fmt.Sprintf("%s/api/v1/auth/wx-login", s.baseURL),
+		wxURL,
 		"application/json",
 		bytes.NewBuffer(jsonPayload),
 	)
 	if err != nil {
+		log.Printf("[IAM DEBUG] WxLogin HTTP error: %v", err)
 		return nil, fmt.Errorf("failed to call IAM wx-login endpoint: %w", err)
 	}
 	defer resp.Body.Close()
 
+	log.Printf("[IAM DEBUG] WxLogin response status: %d", resp.StatusCode)
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		log.Printf("[IAM DEBUG] WxLogin non-200 body: %s", string(body))
 		return nil, fmt.Errorf("IAM wx-login returned status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
