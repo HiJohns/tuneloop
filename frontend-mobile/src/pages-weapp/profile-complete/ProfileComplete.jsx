@@ -10,6 +10,7 @@ export default function ProfileComplete() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [avatar, setAvatar] = useState('')
 
   const [province, setProvince] = useState('')
@@ -42,6 +43,7 @@ export default function ProfileComplete() {
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
     if (!password.trim() || password.length < 6) { Taro.showToast({ title: '密码至少6位', icon: 'none' }); return }
+    if (password !== confirmPassword) { Taro.showToast({ title: '两次密码不一致', icon: 'none' }); return }
     setSaving(true)
     try {
       const body = { username: username.trim(), name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }
@@ -112,6 +114,8 @@ export default function ProfileComplete() {
       <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="密码（至少6位）" password value={password} onInput={e => setPassword(e.detail.value)}
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
+      <Input placeholder="确认密码" password value={confirmPassword} onInput={e => setConfirmPassword(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
