@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
 import dayjs from 'dayjs'
-import { env, storage, eventBus, getWindowSize, previewImage } from '../platform'
+import { env, storage, session, eventBus, getWindowSize, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 import * as S from '../styles-weapp'
@@ -432,7 +432,22 @@ export default function Detail() {
                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>加入购物车</Text>
               </View>
               <View
-                onClick={() => nav(`/pages-weapp/checkout/index?id=${id}`)}
+                onClick={() => {
+                  const token = getToken()
+                  let role = ''
+                  try {
+                    if (token) {
+                      const payload = JSON.parse(atob(token.split('.')[1]))
+                      role = payload.role || ''
+                    }
+                  } catch {}
+                  if (!token || role === 'GUEST') {
+                    session.setItem('post_auth_redirect', `/pages-weapp/detail/index?id=${id}`)
+                    Taro.navigateTo({ url: '/pages-weapp/login/index' })
+                    return
+                  }
+                  nav(`/pages-weapp/checkout/index?id=${id}`)
+                }}
                 style={{ flex: '1 1 0%', height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #FA5E3C, #E63917)' }}
               >
                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>立即租赁</Text>

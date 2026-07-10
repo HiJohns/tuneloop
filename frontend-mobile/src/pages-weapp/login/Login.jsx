@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
-import { wxLogin, storage, env, request, eventBus } from '../../platform'
+import { wxLogin, storage, env, request, eventBus, session } from '../../platform'
 
 async function handleWxLogin() {
   Taro.showLoading({ title: '正在登录...' })
@@ -34,7 +34,9 @@ async function handleIAMLogin(identifier, password) {
       storage.setItem('token', result.data.access_token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
       eventBus.emit('loginSuccess')
-      Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+      const postAuth = session.getItem('post_auth_redirect')
+      Taro.reLaunch({ url: postAuth || '/pages-weapp/profile/index' })
+      if (postAuth) session.removeItem('post_auth_redirect')
     } else {
       Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
     }
