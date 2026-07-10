@@ -266,8 +266,8 @@ export default function RepairRequestDetail() {
         </View>
         )}
 
-        {/* Repair records panel — only for the repair requester */}
-        {isCustomer && (
+        {/* Repair records panel — for repair requester and technician */}
+        {(isCustomer || isTechnician) && (
           <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
             onRecordAdded={fetchData} />
         )}
