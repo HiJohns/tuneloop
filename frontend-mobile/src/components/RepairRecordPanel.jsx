@@ -30,7 +30,7 @@ const uploadFile = async (file, baseUrl) => {
   throw new Error(r.message || 'upload failed')
 }
 
-export default function RepairRecordPanel({ instrumentId, records, onRecordAdded, baseUrl: customUrl }) {
+export default function RepairRecordPanel({ instrumentId, records, onRecordAdded, baseUrl: customUrl, hideForm }) {
   const [comment, setComment] = useState('')
   const [photoFiles, setPhotoFiles] = useState([])
   const [videoFile, setVideoFile] = useState(null)
@@ -114,6 +114,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         )}
       </View>
 
+      {!hideForm && (
       <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
         <Text className="text-sm font-bold text-black mb-2">添加记录</Text>
         <textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm" rows={3}
@@ -131,6 +132,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         <input type="file" accept="video/*" className="hidden" ref={videoInputRef}
           onChange={e => { const f = e.target.files?.[0]; if (f) setVideoFile(f) }} />
       </View>
+      )}
     </View>
   )
 }

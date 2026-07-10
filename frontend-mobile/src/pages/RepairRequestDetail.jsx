@@ -25,6 +25,10 @@ export default function RepairRequestDetail() {
   const [returnCompany, setReturnCompany] = useState('')
   const [returnNumber, setReturnNumber] = useState('')
   const [unpackPhotos, setUnpackPhotos] = useState([])
+  const [techTab, setTechTab] = useState('complete')
+  const [completeComment, setCompleteComment] = useState('')
+  const [completePhotos, setCompletePhotos] = useState([])
+  const [completeVideo, setCompleteVideo] = useState(null)
 
   const token = getToken()
   const isCustomer = (() => {
@@ -185,6 +189,48 @@ export default function RepairRequestDetail() {
     } catch {}
   }
 
+  const uploadFile = async (file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
+    const r = await resp.json()
+    if (r.code === 20000) return r.data.file_key
+    throw new Error(r.message || 'upload failed')
+  }
+
+  const handleTechComplete = async () => {
+    setActionLoading(true)
+    try {
+      const photoKeys = []
+      for (const f of completePhotos) {
+        const key = await uploadFile(f)
+        photoKeys.push(key)
+      }
+      let videoKey = ''
+      if (completeVideo) {
+        videoKey = await uploadFile(completeVideo)
+      }
+      // Save progress record first
+      await apiFetch(`${baseUrl}/repair-requests/${requestId}/records`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: completeComment, photos: photoKeys, video_url: videoKey || undefined }),
+      })
+      // Then complete the repair
+      const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/complete`, { method: 'POST' })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        setCompleteComment('')
+        setCompletePhotos([])
+        setCompleteVideo(null)
+        await fetchData()
+      } else {
+        alert(r.message || '操作失败')
+      }
+    } catch { alert('操作失败') }
+    setActionLoading(false)
+  }
+
   if (!requestId) return <View className="h-screen flex items-center justify-center"><Text>请选择报修单</Text></View>
   if (loading) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
   if (!request) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">报修单不存在</Text></View>
@@ -269,7 +315,7 @@ export default function RepairRequestDetail() {
         {/* Repair records panel — for repair requester and technician */}
         {(isCustomer || isTechnician) && (
           <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
-            onRecordAdded={fetchData} />
+            onRecordAdded={fetchData} hideForm={isTechnician} />
         )}
 
         {/* ========== PENDING ASSESSMENT ========== */}
@@ -500,39 +546,72 @@ export default function RepairRequestDetail() {
           </View>
         )}
 
-        {/* ========== REPAIRING ========== */}
+        {/* ========== REPAIRING (technician) ========== */}
         {status === 'repairing' && isTechnician && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
-            <Text className="text-sm font-bold text-black mb-3">维修操作</Text>
-            <Button onClick={() => handleAction('complete')} disabled={actionLoading}
-              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center mb-3">
-              维修完成
-            </Button>
-            <View className="border-t border-zinc-200 pt-3">
-              <Text className="text-xs text-zinc-500 mb-2">如需调整报价，可重新报价一次：</Text>
-              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-                value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
-                placeholder="材料费（元）" type="number" />
-              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-                value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
-                placeholder="服务费（元）" type="number" />
-              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-                value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
-                placeholder="物流费（元）" type="number" />
-              <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
-                value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
-                placeholder="工期（如：3个工作日）" />
-              <Button onClick={() => handleAction('requote', {
-                material_fee: Number(quoteForm.material_fee),
-                service_fee: Number(quoteForm.service_fee),
-                logistics_fee: Number(quoteForm.logistics_fee),
-                duration: quoteForm.duration,
-              })}
-                disabled={actionLoading || !quoteForm.material_fee || !quoteForm.service_fee}
-                className="w-full py-2 bg-yellow-600 text-white rounded-xl font-bold text-sm text-center">
-                重新报价
-              </Button>
+            <View className="flex border-b border-zinc-200 mb-4">
+              <View className={`flex-1 pb-2 text-center font-bold text-sm ${techTab === 'complete' ? 'border-b-2 border-black text-black' : 'text-zinc-400'}`} onClick={() => setTechTab('complete')}>
+                <Text>维修完成</Text>
+              </View>
+              <View className={`flex-1 pb-2 text-center font-bold text-sm ${techTab === 'requote' ? 'border-b-2 border-black text-black' : 'text-zinc-400'}`} onClick={() => setTechTab('requote')}>
+                <Text>重新报价</Text>
+              </View>
             </View>
+
+            {techTab === 'complete' && (
+              <View>
+                <textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm" rows={3}
+                  value={completeComment} onChange={e => setCompleteComment(e.target.value)} placeholder="输入维修备注..." />
+                <View className="flex flex-wrap gap-2 mt-3 mb-3">
+                  {completePhotos.map((f, i) => (
+                    <View key={i} className="relative">
+                      <Image src={URL.createObjectURL(f)} className="w-16 h-16 rounded object-cover" />
+                      <Text className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full text-center leading-4" onClick={() => setCompletePhotos(p => p.filter((_, j) => j !== i))}>×</Text>
+                    </View>
+                  ))}
+                  <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.multiple=true; el.onchange=e => setCompletePhotos(p => [...p, ...Array.from(e.target.files || [])]); el.click() }}>
+                    <Text className="text-2xl text-zinc-300">+</Text>
+                  </View>
+                  {!completeVideo && (
+                    <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='video/*'; el.onchange=e => { const f=e.target.files?.[0]; if(f) setCompleteVideo(f) }; el.click() }}>
+                      <Text className="text-xs text-zinc-300">视频</Text>
+                    </View>
+                  )}
+                  {completeVideo && <Text className="text-xs text-zinc-500 self-center">✓ 已选视频</Text>}
+                </View>
+                <Button onClick={handleTechComplete} disabled={actionLoading}
+                  className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm text-center">
+                  维修完成
+                </Button>
+              </View>
+            )}
+
+            {techTab === 'requote' && (
+              <View>
+                <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                  value={quoteForm.material_fee} onInput={e => setQuoteForm(p => ({ ...p, material_fee: e.detail?.value || e.target?.value || '' }))}
+                  placeholder="材料费（元）" type="number" />
+                <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                  value={quoteForm.service_fee} onInput={e => setQuoteForm(p => ({ ...p, service_fee: e.detail?.value || e.target?.value || '' }))}
+                  placeholder="服务费（元）" type="number" />
+                <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                  value={quoteForm.logistics_fee} onInput={e => setQuoteForm(p => ({ ...p, logistics_fee: e.detail?.value || e.target?.value || '' }))}
+                  placeholder="物流费（元）" type="number" />
+                <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
+                  value={quoteForm.duration} onInput={e => setQuoteForm(p => ({ ...p, duration: e.detail?.value || e.target?.value || '' }))}
+                  placeholder="工期（如：3个工作日）" />
+                <Button onClick={() => handleAction('requote', {
+                  material_fee: Number(quoteForm.material_fee),
+                  service_fee: Number(quoteForm.service_fee),
+                  logistics_fee: Number(quoteForm.logistics_fee),
+                  duration: quoteForm.duration,
+                })}
+                  disabled={actionLoading || !quoteForm.material_fee || !quoteForm.service_fee}
+                  className="w-full py-3 bg-yellow-600 text-white rounded-xl font-bold text-sm text-center">
+                  重新报价
+                </Button>
+              </View>
+            )}
           </View>
         )}
 
