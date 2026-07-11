@@ -24,7 +24,7 @@ func (h *UserAddressHandler) ListAddresses(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	db := database.GetDB().WithContext(ctx)
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+	if err := database.GetDB().Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
 
@@ -60,6 +60,7 @@ func (h *UserAddressHandler) CreateAddress(c *gin.Context) {
 		City          string `json:"city"`
 		District      string `json:"district"`
 		Detail        string `json:"detail"`
+		PostalCode    string `json:"postal_code"`
 		IsDefault     bool   `json:"is_default"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -99,6 +100,7 @@ func (h *UserAddressHandler) CreateAddress(c *gin.Context) {
 		City:          req.City,
 		District:      req.District,
 		Detail:        req.Detail,
+		PostalCode:    req.PostalCode,
 		IsDefault:     req.IsDefault,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -126,7 +128,7 @@ func (h *UserAddressHandler) UpdateAddress(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+	if err := database.GetDB().Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
 
@@ -137,6 +139,7 @@ func (h *UserAddressHandler) UpdateAddress(c *gin.Context) {
 		City          string `json:"city"`
 		District      string `json:"district"`
 		Detail        string `json:"detail"`
+		PostalCode    string `json:"postal_code"`
 		IsDefault     bool   `json:"is_default"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -167,6 +170,7 @@ func (h *UserAddressHandler) UpdateAddress(c *gin.Context) {
 		"city":           req.City,
 		"district":       req.District,
 		"detail":         req.Detail,
+		"postal_code":    req.PostalCode,
 		"is_default":     req.IsDefault,
 		"updated_at":     time.Now(),
 	}
@@ -192,7 +196,7 @@ func (h *UserAddressHandler) SetDefaultAddress(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+	if err := database.GetDB().Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
 
@@ -231,7 +235,7 @@ func (h *UserAddressHandler) DeleteAddress(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+	if err := database.GetDB().Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
 
