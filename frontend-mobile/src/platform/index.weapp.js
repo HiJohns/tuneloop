@@ -183,7 +183,11 @@ export const getWindowSize = () => {
 }
 
 export const wxLogin = () => new Promise((resolve, reject) => {
-  Taro.login({ success: (res) => resolve(res.code), fail: (err) => reject(err) })
+  const timer = setTimeout(() => reject(new Error('wxLogin timeout')), 5000)
+  Taro.login({
+    success: (res) => { clearTimeout(timer); resolve(res.code) },
+    fail: (err) => { clearTimeout(timer); reject(err) },
+  })
 })
 
 export const getPhoneNumber = (e) => {
