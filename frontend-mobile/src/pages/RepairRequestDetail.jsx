@@ -312,10 +312,10 @@ export default function RepairRequestDetail() {
         </View>
         )}
 
-        {/* Repair records panel — for repair requester and technician */}
-        {(isCustomer || isTechnician) && (
+        {/* Repair records panel — visible to customer, technician, and staff */}
+        {(isCustomer || isTechnician || isSiteStaff) && (
           <RepairRecordPanel instrumentId={requestId} records={records} baseUrl={baseUrl}
-            onRecordAdded={fetchData} hideForm={isTechnician} />
+            onRecordAdded={fetchData} hideForm={!isCustomer} />
         )}
 
         {/* ========== PENDING ASSESSMENT ========== */}
@@ -700,6 +700,45 @@ export default function RepairRequestDetail() {
 
         {/* ========== RETURN PENDING (staff fill return logistics) ========== */}
         {status === 'return_pending' && isSiteStaff && (
+          <>
+          <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
+            <Text className="text-sm font-bold text-black mb-3">收件人信息</Text>
+            {request.merchant_type === 'controlled' ? (
+              <View className="bg-zinc-50 rounded-xl p-3 space-y-1">
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">中转网点</Text>
+                  <Text className="text-xs text-zinc-700">{request.transit_site_name || '-'}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">地址</Text>
+                  <Text className="text-xs text-zinc-700 text-right">{request.transit_site_address || '-'}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">电话</Text>
+                  <Text className="text-xs text-zinc-700">{request.transit_site_phone || '-'}</Text>
+                </View>
+              </View>
+            ) : (
+              <View className="bg-zinc-50 rounded-xl p-3 space-y-1">
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">姓名</Text>
+                  <Text className="text-xs text-zinc-700">{request.reporter_name || '-'}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">电话</Text>
+                  <Text className="text-xs text-zinc-700">{request.reporter_phone || '-'}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">地址</Text>
+                  <Text className="text-xs text-zinc-700 text-right">{request.reporter_address || '-'}</Text>
+                </View>
+                <View className="flex justify-between">
+                  <Text className="text-xs text-zinc-400">邮编</Text>
+                  <Text className="text-xs text-zinc-700">{request.reporter_postal_code || '-'}</Text>
+                </View>
+              </View>
+            )}
+          </View>
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">发回物流</Text>
             <Input className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm mb-2"
@@ -713,6 +752,7 @@ export default function RepairRequestDetail() {
               提交发回
             </Button>
           </View>
+          </>
         )}
 
         {/* ========== TRANSIT OUT (staff relay out) ========== */}

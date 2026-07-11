@@ -261,6 +261,24 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		}
 	}
 
+	// Look up reporter's default address for return shipping
+	var reporterPhone, reporterAddress, reporterPostalCode string
+	if req.UserID != "" {
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", req.UserID).First(&localUser).Error; err == nil {
+			reporterPhone = localUser.Phone
+			var addr models.UserAddress
+			if err := db.Where("user_id = ?", localUser.ID).Order("is_default DESC, created_at DESC").First(&addr).Error; err == nil {
+				reporterPhone = addr.Phone
+				reporterAddress = addr.Province + addr.City + addr.District + addr.Detail
+				reporterPostalCode = addr.PostalCode
+				if addr.RecipientName != "" {
+					reporterName = addr.RecipientName
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"id":                     req.ID,
 		"tenant_id":              req.TenantID,
@@ -291,6 +309,9 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 		"site_phone":             sitePhone,
 		"merchant_name":          merchantName,
 		"reporter_name":          reporterName,
+		"reporter_phone":         reporterPhone,
+		"reporter_address":       reporterAddress,
+		"reporter_postal_code":   reporterPostalCode,
 		"merchant_type":          req.MerchantType,
 		"accepted_quote_id":      req.AcceptedQuoteID,
 		"check_fee_snapshot":     req.CheckFeeSnapshot,
