@@ -7,6 +7,11 @@ export default defineConfig({
   define: {
     'process.env': {},
     global: 'globalThis',
+    ENABLE_INNER_HTML: false,
+    ENABLE_MUTATION_OBSERVER: false,
+    ENABLE_CLONE_NODE: false,
+    ENABLE_SIZE_APIS: false,
+    ENABLE_TEMPLATE_CONTENT: false,
   },
   base: '/',
   resolve: {
