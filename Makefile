@@ -52,6 +52,7 @@ mobile-weapp-dev: weapp-check
 
 weapp-upload: weapp-check
 	@cd frontend-mobile && \
+	sed -i 's/\\!//g; s/!important//g; s/\\//g' dist-weapp/app.wxss && \
 	node_modules/.bin/miniprogram-ci upload \
 		--pp dist-weapp \
 		--pkp private*.key \
