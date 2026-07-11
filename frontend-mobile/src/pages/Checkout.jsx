@@ -220,7 +220,7 @@ function SingleCheckout({ id, navigate }) {
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
-        navigate(`/order/${resp.data.order_id}`)
+        navigate('/success')
       } else {
         dialog.alert('下单失败: ' + (resp.message || '未知错误'))
       }
