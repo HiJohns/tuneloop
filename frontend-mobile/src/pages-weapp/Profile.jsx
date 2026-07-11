@@ -175,7 +175,7 @@ export default function Profile() {
               <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
               {user?.membership_level_id && (
                 <Text style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
-                  {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
+                  {['', '初级会员', '中级会员', '高级会员'][user?.membership_level_id] || `Level ${user?.membership_level_id}`}
                 </Text>
               )}
               {!isStaff && (
