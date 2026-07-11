@@ -5,6 +5,7 @@ import { apiFetch, getToken, notificationApi } from '../services/api'
 import { env, storage, eventBus } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
+import ErrorBoundary from '../components-weapp/ErrorBoundary'
 
 function Badge({ count }) {
   return (
@@ -14,7 +15,7 @@ function Badge({ count }) {
   )
 }
 
-function EditProfileModal({ visible, user, onClose, onSave }) {
+function EditProfileModal({ visible, user, onClose, onSave, baseUrl }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '' })
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
@@ -29,8 +30,6 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
     setSaving(true)
     setMsg('')
     try {
-  const baseUrl = env.apiBaseUrl
-  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
       const resp = await apiFetch(`${baseUrl}/users/me`, {
         method: 'PUT',
         body: JSON.stringify({ name: form.name, phone: form.phone, email: form.email }),
@@ -89,6 +88,7 @@ export default function Profile() {
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
 
   const baseUrl = env.apiBaseUrl
+  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -152,6 +152,7 @@ export default function Profile() {
   }
 
   return (
+    <ErrorBoundary>
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <ScrollView style={{ width: '100%', flex: '1 1 0%' }} scrollY showScrollbar={false}>
 
@@ -319,9 +320,11 @@ export default function Profile() {
       <EditProfileModal
         visible={showEdit}
         user={user}
+        baseUrl={baseUrl}
         onClose={() => setShowEdit(false)}
         onSave={(updated) => { setUser({ ...user, ...updated }); setShowEdit(false) }}
       />
     </View>
+    </ErrorBoundary>
   )
 }
