@@ -1652,7 +1652,7 @@ type ActivateNamespaceResponse struct {
 
 // ActivateNamespace activates a namespace and creates OAuth apps + same-name org.
 // Uses X-Namespace-Secret auth. Requires beaconiam #169 + #177.
-func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration, allowRegister bool, callbackURL string) (*ActivateNamespaceResponse, error) {
+func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration, allowRegister bool, callbackURL string, wxAppid, wxSecret string) (*ActivateNamespaceResponse, error) {
 	nsSecret := os.Getenv("IAM_SECRET")
 	if nsSecret == "" {
 		return nil, fmt.Errorf("ActivateNamespace: IAM_SECRET not set")
@@ -1664,6 +1664,12 @@ func (c *IAMClient) ActivateNamespace(namespaceID string, apps []AppRegistration
 	}
 	if callbackURL != "" {
 		reqBody["callback_url"] = callbackURL
+	}
+	if wxAppid != "" {
+		reqBody["wx_appid"] = wxAppid
+	}
+	if wxSecret != "" {
+		reqBody["wx_secret"] = wxSecret
 	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {

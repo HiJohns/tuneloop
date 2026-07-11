@@ -58,7 +58,9 @@ func BootstrapIAM(db *gorm.DB) error {
 
 		// Try ActivateNamespace (beaconiam #177 — also creates org, returns org_id + apps)
 		// Fatal on failure — silent fallback hides configuration issues.
-		activateResp, actErr := iamClient.ActivateNamespace(iamNs, apps, true, iamCallbackURL)
+		wxAppid := os.Getenv("WX_APPID")
+		wxSecret := os.Getenv("WX_SECRET")
+		activateResp, actErr := iamClient.ActivateNamespace(iamNs, apps, true, iamCallbackURL, wxAppid, wxSecret)
 		if actErr != nil {
 			return fmt.Errorf("namespace activation failed (check IAM server and namespace secret): %w", actErr)
 		}
