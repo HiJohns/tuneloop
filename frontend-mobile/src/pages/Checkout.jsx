@@ -220,7 +220,7 @@ function SingleCheckout({ id, navigate }) {
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
-        navigate('/success')
+        navigate('/success', { replace: true })
       } else {
         dialog.alert('下单失败: ' + (resp.message || '未知错误'))
       }
@@ -640,7 +640,7 @@ function BatchCheckout({ navigate }) {
           }
           storage.removeItem('cart')
           eventBus.emit('cartUpdated')
-          navigate('/success')
+          navigate('/success', { replace: true })
         } else {
           dialog.alert('下单失败: ' + (orderResp.message || '未知错误'))
         }

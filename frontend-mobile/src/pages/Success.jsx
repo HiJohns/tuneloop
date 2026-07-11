@@ -21,7 +21,7 @@ export default function Success() {
         <Text className="text-base text-zinc-400 font-medium mb-8">感谢您的租赁，祝您使用愉快</Text>
         <Text
           className="text-blue-600 font-bold text-sm border-b border-blue-600 pb-0.5"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/', { replace: true })}
         >
           返回首页
         </Text>

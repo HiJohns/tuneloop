@@ -19,7 +19,7 @@ export default function Success() {
         <Text style={{ fontSize: 16, color: '#a1a1aa', fontWeight: '500', marginBottom: 32 }}>感谢您的租赁，祝您使用愉快</Text>
         <Text
           style={{ color: '#2563eb', fontWeight: '700', fontSize: 14, borderBottom: '1px solid #2563eb', paddingBottom: 2 }}
-          onClick={() => { Taro.navigateTo({ url: '/pages-weapp/home/index' }) }}
+          onClick={() => { Taro.redirectTo({ url: '/pages-weapp/home/index' }) }}
         >
           返回首页
         </Text>

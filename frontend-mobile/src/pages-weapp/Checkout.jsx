@@ -248,7 +248,7 @@ function SingleCheckout({ id, nav }) {
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
         eventBus.emit('cartUpdated')
-        nav('/pages-weapp/success/index')
+        Taro.redirectTo({ url: '/pages-weapp/success/index' })
       } else {
         dialog.alert('下单失败: ' + (resp.message || '未知错误'))
       }
@@ -680,7 +680,7 @@ function BatchCheckout({ nav }) {
         }
         storage.removeItem('cart')
         eventBus.emit('cartUpdated')
-        nav('/pages-weapp/success/index')
+        Taro.redirectTo({ url: '/pages-weapp/success/index' })
       } else {
         dialog.alert('下单失败: ' + (orderResp.message || '未知错误'))
       }
