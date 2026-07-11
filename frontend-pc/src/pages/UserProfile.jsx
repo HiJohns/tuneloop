@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, Button, Descriptions, Tag, message, Modal, Spin } from 'antd'
 import { UserOutlined, SafetyOutlined, BankOutlined, KeyOutlined } from '@ant-design/icons'
 import api from '../services/api'
+import WechatBinding from '../components/WechatBinding'
 
 export default function UserProfile() {
   const navigate = useNavigate()
@@ -91,6 +92,8 @@ export default function UserProfile() {
           </Descriptions.Item>
         </Descriptions>
       </Card>
+
+      <WechatBinding />
 
       <Card
         title={<span><SafetyOutlined /> 账户安全</span>}

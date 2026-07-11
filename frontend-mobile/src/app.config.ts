@@ -10,6 +10,7 @@ const weappPages = [
   'pages-weapp/login/index',
   'pages-weapp/profile-complete/index',
   'pages-weapp/membership/index',
+  'pages-weapp/bind/index',
 ]
 
 const h5Pages = [

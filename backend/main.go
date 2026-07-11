@@ -201,6 +201,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/banners", bannerHandler.GetPublicBanners)
 	api.GET("/public/merchants", handlers.ListPublicMerchants)
 	api.GET("/public/merchants/:id/transit-sites", handlers.ListTransitSites)
+	bindHandler := handlers.NewWechatBindHandler()
+	api.POST("/wechat-bind/confirm", bindHandler.ConfirmBind)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())
@@ -636,6 +638,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				referralHandler := handlers.NewReferralHandler()
 				userOptionalAuth.GET("/users/me/promo-qrcode", referralHandler.GetPromoQR)
 				userOptionalAuth.GET("/users/me/referrals", referralHandler.ListReferrals)
+				// WeChat binding (PC → WeChat scan)
+				userOptionalAuth.POST("/users/me/wechat-bind", bindHandler.GenBindToken)
+				userOptionalAuth.GET("/users/me/wechat-bind/:token", bindHandler.PollBindToken)
+				userOptionalAuth.POST("/users/me/wechat-unbind", bindHandler.Unbind)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)
