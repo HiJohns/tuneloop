@@ -102,11 +102,10 @@ export default function Profile() {
       setLoading(false)
     }
     fetchUser()
-    const safetyTimer = setTimeout(() => setLoading(false), 15000)
 
     const refreshUser = () => { setLoading(true); fetchUser() }
     eventBus.on('loginSuccess', refreshUser)
-    return () => { eventBus.off('loginSuccess', refreshUser); clearTimeout(safetyTimer) }
+    return () => eventBus.off('loginSuccess', refreshUser)
   }, [])
 
   useEffect(() => {

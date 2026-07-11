@@ -189,8 +189,6 @@ export default function Home() {
     fetchCategories()
     fetchInstruments().finally(() => setLoading(false))
     fetchBanners()
-    const safetyTimer = setTimeout(() => setLoading(false), 15000)
-    return () => clearTimeout(safetyTimer)
   }, [fetchCategories, fetchInstruments, fetchBanners])
 
   useEffect(() => {
