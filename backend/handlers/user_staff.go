@@ -727,6 +727,7 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"name":          user.Name,
 		"phone":         user.Phone,
 		"email":         user.Email,
+		"avatar":        user.AvatarURL,
 		"position":      user.Position,
 		"force_password_change": user.ForcePasswordChange,
 		"role":          middleware.GetRole(ctx),

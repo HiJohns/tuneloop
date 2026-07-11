@@ -534,6 +534,7 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 				"token":      tokenResp.AccessToken,
 				"token_type": tokenResp.TokenType,
 				"expires_in": tokenResp.ExpiresIn,
+				"is_new":     false,
 			},
 		})
 		return
