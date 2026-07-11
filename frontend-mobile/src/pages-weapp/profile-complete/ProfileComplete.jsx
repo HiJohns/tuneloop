@@ -70,7 +70,7 @@ export default function ProfileComplete() {
             })
           } catch {}
         }
-        if (province && city && district && detail) {
+        if (province && city && detail) {
           try {
             await request(`${env.apiBaseUrl}/user/addresses`, {
               method: 'POST',
