@@ -13,16 +13,18 @@ async function handleWxLogin() {
       body: JSON.stringify({ code }),
     })
     const result = await res.json()
-    Taro.hideLoading()
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
+      Taro.hideLoading()
       if (result.data.is_new === false) {
         Taro.reLaunch({ url: '/pages-weapp/home/index' })
       } else {
         Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
       }
+      return
     }
   } catch {}
+  Taro.hideLoading()
 }
 
 async function handleIAMLogin(identifier, password) {
@@ -33,21 +35,21 @@ async function handleIAMLogin(identifier, password) {
       body: JSON.stringify({ identifier, password }),
     })
     const result = await res.json()
-    Taro.hideLoading()
     if (result.code === 20000 && result.data?.access_token) {
       storage.setItem('token', result.data.access_token)
       storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
       eventBus.emit('loginSuccess')
+      Taro.hideLoading()
       const postAuth = session.getItem('post_auth_redirect')
       Taro.reLaunch({ url: postAuth || '/pages-weapp/profile/index' })
       if (postAuth) session.removeItem('post_auth_redirect')
-    } else {
-      Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
+      return
     }
+    Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
   } catch (err) {
-    Taro.hideLoading()
     Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
   }
+  Taro.hideLoading()
 }
 
 function handleGuestBrowse() {
