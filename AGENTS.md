@@ -1145,3 +1145,58 @@ done
 - **Both**：同时涉及前后端的修改，两组验证都要做。
 - 验证结果必须写入 Work Summary Comment。
 
+---
+
+### 2026-07-11: WeChat mini-program 调试方法论
+
+> 来源：Profile.jsx `fixImg` 作用域 bug，耗时 ~20 轮迭代。
+
+#### 核心教训：React 静默吞错
+
+当渲染阶段抛出 `ReferenceError`（如变量未定义），React **不报错**，而是**静默回退到上一次有效渲染**。这导致：
+- 症状表现为「页面卡在加载中」
+- API 日志显示 200（请求成功）
+- `setLoading(false)` 确实执行了
+- 但渲染崩溃被 React 吞掉，用户看不到任何错误
+
+**排查规则**：当页面卡在 loading 且后端日志显示 200，第一反应应该是**渲染崩溃**，不是 API 超时。
+
+#### 最小渲染测试法（终极二分法）
+
+```jsx
+// 替换整个 return，只渲染最简单的 JSX
+if (loading) return <LoadingView />
+return <View><Text>loaded user={user ? 'yes' : 'no'}</Text></View>
+// ↑ 如果这个能显示 → 渲染逻辑有问题，逐步加回 JSX 定位崩溃点
+// ↑ 如果仍然卡住 → setLoading(false) 根本没执行
+```
+
+#### Taro.showModal 是真机唯一调试手段
+
+微信真机无法看 `console.log`。`Taro.showModal` 是唯一能在真机上确认执行路径的方法。
+
+```jsx
+Taro.showModal({ title: 'Debug', content: 'step 1: before API call', showCancel: false })
+const resp = await apiFetch(...)
+Taro.showModal({ title: 'Debug', content: 'step 2: API returned ' + resp.status, showCancel: false })
+```
+
+#### 常见 WeChat mini-program 渲染崩溃原因
+
+| 原因 | 检查方法 |
+|------|---------|
+| 变量作用域错误（函数定义在使用者的作用域外） | `grep -n "function\|const.*=" 检查定义位置 |
+| `user.property` 缺少可选链 | `grep -n "user\." 确认所有访问用 `user?.` |
+| Webpack 缓存导致旧代码被使用 | `rm -rf node_modules/.cache` 后重新编译 |
+| Taro.reLaunch 导致框架内部错误 | 改用 `navigateBack` 或 `redirectTo` |
+
+#### Webpack 缓存陷阱
+
+Taro v4 的 `cache: { type: 'filesystem' }` 可能缓存旧版模块。修改源码后如果构建产物不含新代码：
+```bash
+rm -rf frontend-mobile/node_modules/.cache frontend-mobile/dist-weapp
+npm run build:weapp
+```
+
+> *Last updated: 2026-07-11*
+
