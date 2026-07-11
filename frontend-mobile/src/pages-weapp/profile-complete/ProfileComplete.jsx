@@ -81,7 +81,12 @@ export default function ProfileComplete() {
           } catch (e) { console.error('[Register] address save failed', e) }
         }
         eventBus.emit('loginSuccess')
-        Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+        const pages = Taro.getCurrentPages()
+        if (pages.length > 1) {
+          Taro.navigateBack()
+        } else {
+          Taro.redirectTo({ url: '/pages-weapp/profile/index' })
+        }
       } else {
         Taro.showToast({ title: result.message || '注册失败, 请重试', icon: 'none', duration: 3000 })
       }
