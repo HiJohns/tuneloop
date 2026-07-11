@@ -553,6 +553,21 @@ cd /opt/flow
 sudo journalctl -u tuneloop --since "30 seconds ago" --no-pager | grep -E "listening|error|FATAL"
 ```
 
+### scp/二进制部署陷阱
+
+- **scp 常超时**（上班时段几乎必然失败）：scp 多个文件单独复制时，混合在 ssh 命令链中会导致整体超时。
+- **binary 升级失败后必须验证**：即使 scp 显示完成，也应 SSH 登录 `md5sum` 比对二进制是否真的被覆盖。
+- **正确的部署顺序**：
+  ```bash
+  scp BINARY cadenza:/tmp/          # 先单独上传
+  ssh cadenza                       # 再 SSH 登录执行
+  sudo systemctl stop SERVICE       # 停止服务
+  cp OLD NEW_BACKUP                 # 备份旧版
+  cp /tmp/BINARY TARGET             # 复制新版
+  sudo systemctl start SERVICE      # 启动服务
+  ```
+- **看不到日志不等于成功**：scp 完成后不验证二进制 hash 和 service 重启状态，可能跑着旧版。`sudo journalctl -u SERVICE --since "1 min ago"` 确认新进程已启动。
+
 ### 远程数据库访问 (Remote Database Access)
 
 ```bash
@@ -1072,6 +1087,20 @@ done
 2. 上传 zip 到 cadenza 的 `/opt/flow/`（scp 在上班时段大概率失败，用户会走迂回线路）
 3. SSH 执行 `cd /opt/flow && ./deploy.sh tuneloop_*.zip`（自动解压、切换软链接、重启）
 4. 验证：`sudo journalctl -u tuneloop --since "30 seconds ago" --no-pager | grep "listening"`
+
+#### scp/二进制部署陷阱
+- **scp 常超时**（上班时段几乎必然失败）：scp 多个文件单独复制时，混合在 ssh 命令链中会导致整体超时。
+- **binary 升级失败后必须验证**：即使 scp 显示完成，也应 SSH 登录 `md5sum` 比对二进制是否真的被覆盖。
+- **正确的部署顺序**：
+  ```bash
+  scp BINARY cadenza:/tmp/          # 先单独上传
+  ssh cadenza                       # 再 SSH 登录执行
+  sudo systemctl stop SERVICE       # 停止服务
+  cp OLD NEW_BACKUP                 # 备份旧版
+  cp /tmp/BINARY TARGET             # 复制新版
+  sudo systemctl start SERVICE      # 启动服务
+  ```
+- **看不到日志不等于成功**：scp 完成后不验证二进制 hash 和 service 重启状态，可能跑着旧版。`sudo journalctl -u SERVICE --since "1 min ago"` 确认新进程已启动。
 
 #### 迁移执行注意事项
 - 迁移必须在 `WorkingDirectory` 下跑，否则找不到 `.env` 和 `database/migrations/`
