@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
-import { wxLogin, storage, env, request, eventBus, session } from '../../platform'
+import { wxLogin, storage, session, env, request, eventBus } from '../../platform'
 
 async function handleWxLogin() {
   Taro.showLoading({ title: '正在登录...' })
@@ -16,8 +16,14 @@ async function handleWxLogin() {
     if (result.code === 20000 && result.data?.token) {
       storage.setItem('token', result.data.token)
       Taro.hideLoading()
+      eventBus.emit('loginSuccess')
       if (result.data.is_new === false) {
-        Taro.reLaunch({ url: '/pages-weapp/home/index' })
+        const pages = Taro.getCurrentPages()
+        if (pages.length > 1) {
+          Taro.navigateBack()
+        } else {
+          Taro.redirectTo({ url: '/pages-weapp/home/index' })
+        }
       } else {
         Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
       }
@@ -41,8 +47,17 @@ async function handleIAMLogin(identifier, password) {
       eventBus.emit('loginSuccess')
       Taro.hideLoading()
       const postAuth = session.getItem('post_auth_redirect')
-      Taro.reLaunch({ url: postAuth || '/pages-weapp/profile/index' })
-      if (postAuth) session.removeItem('post_auth_redirect')
+      if (postAuth) {
+        session.removeItem('post_auth_redirect')
+        Taro.redirectTo({ url: postAuth })
+      } else {
+        const pages = Taro.getCurrentPages()
+        if (pages.length > 1) {
+          Taro.navigateBack()
+        } else {
+          Taro.redirectTo({ url: '/pages-weapp/profile/index' })
+        }
+      }
       return
     }
     Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
