@@ -265,10 +265,10 @@ func (h *RepairRequestHandler) Get(c *gin.Context) {
 	var reporterPhone, reporterAddress, reporterPostalCode string
 	if req.UserID != "" {
 		var localUser models.User
-		if err := db.Where("iam_sub = ?", req.UserID).First(&localUser).Error; err == nil {
+		if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&localUser).Error; err == nil {
 			reporterPhone = localUser.Phone
 			var addr models.UserAddress
-			if err := db.Where("user_id = ?", localUser.ID).Order("is_default DESC, created_at DESC").First(&addr).Error; err == nil {
+			if err := database.GetDB().Where("user_id = ?", localUser.ID).Order("is_default DESC, created_at DESC").First(&addr).Error; err == nil {
 				reporterPhone = addr.Phone
 				reporterAddress = addr.Province + addr.City + addr.District + addr.Detail
 				reporterPostalCode = addr.PostalCode
