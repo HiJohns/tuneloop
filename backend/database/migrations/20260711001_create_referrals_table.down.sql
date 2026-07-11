@@ -1,0 +1,3 @@
+DROP INDEX IF EXISTS idx_users_ref_code;
+ALTER TABLE users DROP COLUMN IF EXISTS ref_code;
+DROP TABLE IF EXISTS referrals;

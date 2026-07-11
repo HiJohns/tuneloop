@@ -632,6 +632,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/repair-requests/:id/quotes", handlers.ListQuotes)
 				userOptionalAuth.POST("/repair-requests/:id/quotes/:qid/accept", handlers.AcceptQuote)
 				userOptionalAuth.POST("/repair-requests/:id/confirm-receipt", repairReqHandler.ConfirmReceipt)
+				// Referral / promo QR code system
+				referralHandler := handlers.NewReferralHandler()
+				userOptionalAuth.GET("/users/me/promo-qrcode", referralHandler.GetPromoQR)
+				userOptionalAuth.GET("/users/me/referrals", referralHandler.ListReferrals)
 			}
 
 			// Permission Management (merchant admin only, sys_perm bit 26)

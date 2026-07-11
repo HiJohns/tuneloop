@@ -276,6 +276,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		Email    string `json:"email"`
 		Password string `json:"password" binding:"required"`
 		WxCode   string `json:"wx_code"`
+		Ref      string `json:"ref"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -336,6 +337,20 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 					}
 					if createErr := h.db.Create(&newUser).Error; createErr != nil {
 						log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
+					} else {
+						refCode := newUser.ID[:8]
+						h.db.Model(&newUser).Update("ref_code", refCode)
+						if req.Ref != "" && req.Ref != refCode {
+							var referrer models.User
+							if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
+								h.db.Create(&models.Referral{
+									ReferrerID: referrer.ID,
+									RefereeID:  newUser.ID,
+									RefCode:    req.Ref,
+									Status:     "registered",
+								})
+							}
+						}
 					}
 				}
 			}
@@ -380,6 +395,20 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {
 				log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
+			} else {
+				refCode := newUser.ID[:8]
+				h.db.Model(&newUser).Update("ref_code", refCode)
+				if req.Ref != "" && req.Ref != refCode {
+					var referrer models.User
+					if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
+						h.db.Create(&models.Referral{
+							ReferrerID: referrer.ID,
+							RefereeID:  newUser.ID,
+							RefCode:    req.Ref,
+							Status:     "registered",
+						})
+					}
+				}
 			}
 		}
 	}

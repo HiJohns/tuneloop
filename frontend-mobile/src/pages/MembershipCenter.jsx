@@ -1,23 +1,40 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Button } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Image } from '@tarojs/components'
 import { apiFetch, addressesApi } from '../services/api'
 import { env } from '../platform'
 import regions from '../data/regions.json'
+import QRCode from 'qrcode'
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
 
 export default function MembershipCenter() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const baseUrl = env.apiBaseUrl
-
-  // Address state
   const [addresses, setAddresses] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
+  const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const [showQR, setShowQR] = useState(false)
+  const [refCode, setRefCode] = useState('')
+  const baseUrl = env.apiBaseUrl
+
+  const handleGetPromo = async () => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/users/me/promo-qrcode`)
+      const result = await resp.json()
+      if (result.code === 20000) {
+        setRefCode(result.data.ref_code)
+        const url = (env.isMiniProgram ? '' : window.location.origin) + result.data.url
+        QRCode.toDataURL(url, { width: 256 }).then(dataUrl => {
+          setQrDataUrl(dataUrl)
+          setShowQR(true)
+        })
+      }
+    } catch {}
+  }
 
   const fetchUser = async () => {
     try {
@@ -132,6 +149,30 @@ export default function MembershipCenter() {
           </View>
         </View>
       </View>
+
+      {/* Promo QR code */}
+      <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
+        <View className="items-center">
+          <Button onClick={handleGetPromo} className="bg-black text-white px-6 py-2 rounded-full font-bold text-sm">
+            获取推广二维码
+          </Button>
+          <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励点数</Text>
+        </View>
+      </View>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowQR(false)}>
+          <View className="bg-white rounded-2xl p-6 mx-8" onClick={e => e.stopPropagation()}>
+            <Text className="text-sm font-bold text-center mb-4">推广二维码</Text>
+            {qrDataUrl && <Image src={qrDataUrl} className="w-48 h-48 mx-auto" mode="aspectFit" />}
+            <Text className="text-xs text-zinc-400 text-center mt-2">好友扫码注册，你获得奖励</Text>
+            <Button onClick={() => setShowQR(false)} className="mt-4 py-2 bg-zinc-100 rounded-xl font-bold text-sm text-zinc-600 w-full">
+              关闭
+            </Button>
+          </View>
+        </View>
+      )}
 
       {/* Address management section */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">

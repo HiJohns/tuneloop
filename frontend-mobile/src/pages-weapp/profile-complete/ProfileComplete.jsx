@@ -30,6 +30,7 @@ export default function ProfileComplete() {
   useEffect(() => {
     const params = Taro.getCurrentInstance().router?.params || {}
     if (params.phone) setPhone(params.phone)
+    if (params.ref) storage.setItem('ref_code', params.ref)
   }, [])
 
   const handleChooseAvatar = () => {
@@ -49,6 +50,8 @@ export default function ProfileComplete() {
       const body = { username: username.trim(), name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }
       const wxCode = await wxLogin()
       if (wxCode) { body.wx_code = wxCode }
+      const refCode = storage.getItem('ref_code')
+      if (refCode) { body.ref = refCode }
       const res = await request(`${env.apiBaseUrl}/auth/register`, {
         method: 'POST',
         body: JSON.stringify(body),

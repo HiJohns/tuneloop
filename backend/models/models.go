@@ -32,6 +32,7 @@ type User struct {
 	PrepaidPoints       float64    `gorm:"type:decimal;default:0" json:"prepaid_points"`
 	PromoPoints         float64    `gorm:"type:decimal;default:0" json:"promo_points"`
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
+	RefCode            string     `gorm:"type:varchar(16)" json:"ref_code"`
 	DeletedAt           *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
@@ -81,8 +82,17 @@ type Instrument struct {
 	RepairWorkerID     *string    `gorm:"type:uuid;index" json:"repair_worker_id"`
 	Properties         string     `gorm:"type:jsonb;default:'{}'" json:"properties"`
 	MinMembershipLevel *int       `gorm:"type:int" json:"min_membership_level"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Referral struct {
+	ID         string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ReferrerID string    `gorm:"type:uuid;not null" json:"referrer_id"`
+	RefereeID  string    `gorm:"type:uuid;not null;uniqueIndex" json:"referee_id"`
+	RefCode    string    `gorm:"size:16;not null" json:"ref_code"`
+	Status     string    `gorm:"size:20;not null;default:registered" json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 const (
