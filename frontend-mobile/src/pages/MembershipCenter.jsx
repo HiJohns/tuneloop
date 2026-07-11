@@ -221,7 +221,7 @@ export default function MembershipCenter() {
                 <input className={inputClass} value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="手机号" />
               </View>
             </View>
-            <View className="grid grid-cols-3 gap-2">
+            <View className={`grid gap-2 ${(() => { const prov = regions.find(r => r.name === form.province); if (!prov) return 'grid-cols-2'; const city = prov.children.find(c => c.name === form.city); return (city && city.children && city.children.length > 0) ? 'grid-cols-3' : 'grid-cols-2' })()}`}>
               <select className={inputClass} value={form.province} onChange={e => setForm(p => ({ ...p, province: e.target.value, city: '', district: '' }))}>
                 <option value="">省</option>
                 {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
@@ -233,15 +233,19 @@ export default function MembershipCenter() {
                   return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
                 })()}
               </select>
-              <select className={inputClass} value={form.district} onChange={e => setForm(p => ({ ...p, district: e.target.value }))}>
-                <option value="">区</option>
-                {(() => {
-                  const prov = regions.find(r => r.name === form.province)
-                  if (!prov) return null
-                  const city = prov.children.find(c => c.name === form.city)
-                  return city ? city.children.map((d, i) => <option key={i} value={d.name}>{d.name}</option>) : null
-                })()}
-              </select>
+              {(() => {
+                const prov = regions.find(r => r.name === form.province)
+                if (!prov) return null
+                const city = prov.children.find(c => c.name === form.city)
+                const districts = city ? city.children || [] : []
+                if (districts.length === 0) return null
+                return (
+                  <select className={inputClass} value={form.district} onChange={e => setForm(p => ({ ...p, district: e.target.value }))}>
+                    <option value="">区</option>
+                    {districts.map((d, i) => <option key={i} value={d.name}>{d.name}</option>)}
+                  </select>
+                )
+              })()}
             </View>
             <input className={inputClass} value={form.detail} onChange={e => setForm(p => ({ ...p, detail: e.target.value }))} placeholder="详细地址" />
             <input className={inputClass} value={form.postal_code} onChange={e => setForm(p => ({ ...p, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
