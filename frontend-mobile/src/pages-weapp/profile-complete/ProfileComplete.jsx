@@ -70,18 +70,23 @@ export default function ProfileComplete() {
             })
           } catch {}
         }
-        if (province && city && detail) {
-          try {
-            await request(`${env.apiBaseUrl}/user/addresses`, {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + result.data.access_token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                recipient_name: name.trim(), phone: phone.trim(),
-                province, city, district, detail,
-                postal_code: postalCode, is_default: true,
-              }),
-            })
-          } catch (e) { console.error('[Register] address save failed', e) }
+        if (province || city || detail) {
+          if (!province || !city || !detail) {
+            Taro.showToast({ title: '收货地址信息不完整，未保存', icon: 'none', duration: 2500 })
+          } else {
+            try {
+              await request(`${env.apiBaseUrl}/user/addresses`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + result.data.access_token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  recipient_name: name.trim(), phone: phone.trim(),
+                  province, city, district, detail,
+                  postal_code: postalCode, is_default: true,
+                }),
+              })
+              Taro.showToast({ title: '收货地址已保存', icon: 'success', duration: 1500 })
+            } catch (e) { console.error('[Register] address save failed', e) }
+          }
         }
         eventBus.emit('loginSuccess')
         const pages = Taro.getCurrentPages()
@@ -144,6 +149,7 @@ export default function ProfileComplete() {
             </View>
           </Picker>
         </View>
+        {districtNames.length > 0 && (
         <View style={{ flex: 1 }}>
           <Picker mode="selector" range={districtNames} value={district ? districtNames.indexOf(district) : 0}
             onChange={e => setDistrict(districtNames[e.detail.value])}>
@@ -152,6 +158,7 @@ export default function ProfileComplete() {
             </View>
           </Picker>
         </View>
+        )}
       </View>
       <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />

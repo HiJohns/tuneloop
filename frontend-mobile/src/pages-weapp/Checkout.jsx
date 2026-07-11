@@ -421,12 +421,12 @@ function SingleCheckout({ id, nav }) {
                 <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>收货人</Text>
                   <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder="姓名"
-                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
                 <View style={{ flex: '1 1 0%' }}>
                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话</Text>
                   <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
-                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
               </View>
               <View style={{ display: 'flex', marginBottom: 8 }}>
@@ -448,19 +448,21 @@ function SingleCheckout({ id, nav }) {
                     </View>
                   </Picker>
                 </View>
-                <View style={{ flex: '1 1 0%' }}>
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>区</Text>
-                  <Picker mode="selector" range={districtNames} value={districtIdx >= 0 ? districtIdx : 0}
-                    onChange={e => setNewAddress(prev => ({ ...prev, district: districtNames[e.detail.value] }))}>
-                    <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.district ? '#000' : '#9ca3af' }}>
-                      {newAddress.district || '区'}
-                    </View>
-                  </Picker>
-                </View>
-              </View>
-              <View style={{ marginBottom: 8 }}>
-                <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>详细地址</Text>
-                <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder="详细地址"
+                 {districtNames.length > 0 && (
+                 <View style={{ flex: '1 1 0%' }}>
+                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>区</Text>
+                   <Picker mode="selector" range={districtNames} value={districtIdx >= 0 ? districtIdx : 0}
+                     onChange={e => setNewAddress(prev => ({ ...prev, district: districtNames[e.detail.value] }))}>
+                     <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.district ? '#000' : '#9ca3af' }}>
+                       {newAddress.district || '区'}
+                     </View>
+                   </Picker>
+                 </View>
+                 )}
+               </View>
+               <View style={{ marginBottom: 8 }}>
+                 <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>详细地址</Text>
+                 <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder="详细地址"
                   style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%' }} />
               </View>
               <View style={{ marginBottom: 8 }}>
@@ -799,12 +801,12 @@ function BatchCheckout({ nav }) {
                   <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                     <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>收货人</Text>
                   <Input value={newAddress.recipient_name} onInput={e => setNewAddress(prev => ({ ...prev, recipient_name: e.detail.value }))} placeholder="姓名"
-                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
                 <View style={{ flex: '1 1 0%' }}>
                   <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话</Text>
                   <Input value={newAddress.phone} onInput={e => setNewAddress(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
-                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                    style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                 </View>
               </View>
               <View style={{ display: 'flex', marginBottom: 8 }}>
@@ -820,12 +822,14 @@ function BatchCheckout({ nav }) {
                       <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.city ? '#000' : '#9ca3af' }}>{newAddress.city || '市'}</View>
                     </Picker>
                   </View>
+                  {districtNames.length > 0 && (
                   <View style={{ flex: '1 1 0%' }}>
                     <Picker mode="selector" range={districtNames} value={districtIdx >= 0 ? districtIdx : 0}
                       onChange={e => setNewAddress(prev => ({ ...prev, district: districtNames[e.detail.value] }))}>
                       <View style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: newAddress.district ? '#000' : '#9ca3af' }}>{newAddress.district || '区'}</View>
                     </Picker>
                   </View>
+                  )}
                 </View>
                 <Input value={newAddress.detail} onInput={e => setNewAddress(prev => ({ ...prev, detail: e.detail.value }))} placeholder="详细地址"
                   style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', marginBottom: 8 }} />
