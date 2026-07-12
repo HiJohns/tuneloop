@@ -31,9 +31,11 @@ export default function MembershipCenter() {
         QRCode.toDataURL(url, { width: 256 }).then(dataUrl => {
           setQrDataUrl(dataUrl)
           setShowQR(true)
-        })
+        }).catch(() => Taro.showToast({ title: '二维码生成失败', icon: 'none' }))
       }
-    } catch {}
+    } catch {
+      Taro.showToast({ title: '获取推广二维码失败', icon: 'none' })
+    }
   }
 
   const fetchUser = async () => {
@@ -153,7 +155,8 @@ export default function MembershipCenter() {
       {/* Promo QR code */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
         <View className="items-center">
-          <Button onClick={handleGetPromo} className="bg-black text-white px-6 py-2 rounded-full font-bold text-sm">
+          <Button onClick={handleGetPromo}
+            style={{ backgroundColor: '#000', color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 14, fontWeight: '700', border: 'none' }}>
             获取推广二维码
           </Button>
           <Text className="text-xs text-zinc-400 mt-2">邀请好友注册，赚取奖励点数</Text>
