@@ -791,3 +791,45 @@ func SetHomeMenuConfig(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "home menu config saved"})
 }
+
+// SearchInstruments searches instruments by SN or name.
+func SearchInstruments(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}}})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var instruments []models.Instrument
+	db.Model(&models.Instrument{}).Where("sn ILIKE ?", "%"+q+"%").Or("category_name ILIKE ?", "%"+q+"%").Find(&instruments)
+	if len(instruments) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}}})
+		return
+	}
+
+	type SearchResult struct {
+		ID             string  `json:"id"`
+		SN             string  `json:"sn"`
+		CategoryName   string  `json:"category_name"`
+		LevelName      string  `json:"level_name"`
+		StockStatus    string  `json:"stock_status"`
+		BaseDailyRate  *float64 `json:"base_daily_rate"`
+		CoverImage     string  `json:"cover_image"`
+	}
+	list := make([]SearchResult, len(instruments))
+	for i, inst := range instruments {
+		list[i] = SearchResult{
+			ID:            inst.ID,
+			SN:            inst.SN,
+			CategoryName:  inst.CategoryName,
+			LevelName:     inst.LevelName,
+			StockStatus:   inst.StockStatus,
+			BaseDailyRate: inst.BaseDailyRate,
+			CoverImage:    inst.CoverImage,
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list}})
+}

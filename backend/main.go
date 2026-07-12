@@ -202,6 +202,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/banners", bannerHandler.GetPublicBanners)
 	api.GET("/public/merchants", handlers.ListPublicMerchants)
 	api.GET("/public/merchants/:id/transit-sites", handlers.ListTransitSites)
+	api.GET("/public/instruments/search", handlers.SearchInstruments)
 	bindHandler := handlers.NewWechatBindHandler()
 	api.POST("/wechat-bind/confirm", bindHandler.ConfirmBind)
 	authRequired := api.Group("")
