@@ -157,6 +157,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				},
 				"appName": "TuneLoop",
 				"version": "1.0.0",
+				"debug_mode": os.Getenv("DEBUG_MODE") == "true",
 			},
 		})
 	})

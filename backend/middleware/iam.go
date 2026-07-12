@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -601,8 +602,7 @@ func contains(items []string, target string) bool {
 // Exempts /api/user/change-password itself.
 func RequirePasswordNotForceChange() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		path := c.Request.URL.Path
-		if path == "/api/user/change-password" || path == "/api/users/me" {
+		if c.Request.URL.Path == "/api/user/reset-password" || c.Request.URL.Path == "/api/user/change-password" {
 			c.Next()
 			return
 		}
@@ -618,6 +618,23 @@ func RequirePasswordNotForceChange() gin.HandlerFunc {
 				"code":    40302,
 				"message": "请先修改密码后再使用系统功能",
 			})
+			return
+		}
+		c.Next()
+	}
+}
+
+// IsDebugMode returns true if DEBUG_MODE env is enabled.
+func IsDebugMode() bool {
+	return os.Getenv("DEBUG_MODE") == "true"
+}
+
+// RequireDebugMode checks that DEBUG_MODE is enabled before processing.
+func RequireDebugMode() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !IsDebugMode() {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "debug mode not enabled"})
+			c.Abort()
 			return
 		}
 		c.Next()
