@@ -11,6 +11,7 @@ const weappPages = [
   'pages-weapp/profile-complete/index',
   'pages-weapp/membership/index',
   'pages-weapp/bind/index',
+  'pages-weapp/profile/edit/index',
 ]
 
 const h5Pages = [
