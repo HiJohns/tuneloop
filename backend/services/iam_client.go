@@ -459,6 +459,7 @@ func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 
 type CreateUserRequest struct {
 	Username              string  `json:"username"`
+	Nickname              *string `json:"nickname,omitempty"`
 	Name                  string  `json:"name"`
 	Email                 string  `json:"email"`
 	Phone                 string  `json:"phone"`
@@ -814,6 +815,7 @@ func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*
 }
 
 type UpdateUserRequest struct {
+	Nickname    *string `json:"nickname,omitempty"`
 	Name        string  `json:"name,omitempty"`
 	Email       string  `json:"email,omitempty"`
 	Phone       string  `json:"phone,omitempty"`

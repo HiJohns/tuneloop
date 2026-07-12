@@ -7,6 +7,7 @@ import regions from '../../data/regions.json'
 export default function ProfileComplete() {
   const [username, setUsername] = useState('')
   const [name, setName] = useState('')
+  const [nickname, setNickname] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,7 +48,7 @@ export default function ProfileComplete() {
     if (password !== confirmPassword) { Taro.showToast({ title: '两次密码不一致', icon: 'none' }); return }
     setSaving(true)
     try {
-      const body = { username: username.trim(), name: name.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }
+      const body = { username: username.trim(), name: name.trim(), nickname: nickname.trim(), phone: phone.trim(), email: email.trim(), password: password.trim() }
       const wxCode = await wxLogin()
       if (wxCode) { body.wx_code = wxCode }
       const refCode = storage.getItem('ref_code')
@@ -121,6 +122,8 @@ export default function ProfileComplete() {
       <Input placeholder="用户名" value={username} onInput={e => setUsername(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
+      <Input type="nickname" placeholder="微信昵称（选填）" value={nickname} onInput={e => setNickname(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />
       <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', fontSize: 14, marginBottom: 12 }} />

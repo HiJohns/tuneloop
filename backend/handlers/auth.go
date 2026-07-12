@@ -271,6 +271,7 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 func (h *AuthHandler) PostRegister(c *gin.Context) {
 	var req struct {
 		Username string `json:"username"`
+		Nickname string `json:"nickname"`
 		Name     string `json:"name" binding:"required"`
 		Phone    string `json:"phone" binding:"required"`
 		Email    string `json:"email"`
@@ -294,14 +295,19 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 
 	// Create user in beaconiam via IAMClient (uses client credentials internally)
 	iamClient := services.NewIAMClient()
-	_, createErr := iamClient.CreateUser(&services.CreateUserRequest{
+	createReq := &services.CreateUserRequest{
 		Username:       userName,
 		Name:           req.Name,
 		Phone:          req.Phone,
 		Email:          req.Email,
 		Password:       req.Password,
 		SkipActivation: true,
-	})
+	}
+	if req.Nickname != "" {
+		n := req.Nickname
+		createReq.Nickname = &n
+	}
+	_, createErr := iamClient.CreateUser(createReq)
 	if createErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
