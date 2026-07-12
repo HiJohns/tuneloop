@@ -441,7 +441,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		MonthlyRent:       rentSubtotal,
 		Deposit:           deposit,
 		ShippingFee:       shippingFee,
-		Status:            models.OrderStatusReserved,
+		Status:            models.OrderStatusPaid, // No WeChat Pay integration yet — directly mark as paid
 		StartDate:         &startDateStr,
 		EndDate:           &endDateStr,
 		CashPaid:          cashPaid,
