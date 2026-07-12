@@ -345,6 +345,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
 		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
+		authRequired.GET("/merchant/orders", handlers.ListMerchantOrders)
 
 		// Forwarding session routes
 		authRequired.GET("/forwarding/sessions", handlers.ListForwardingSessions)

@@ -18,6 +18,7 @@ import { SysPermBits, checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKe
 import Dashboard from './pages/Dashboard'
 import FinanceConfig from './pages/FinanceConfig'
 import WorkOrderList from './pages/WorkOrderList'
+import OrderManagement from './pages/OrderManagement'
 import LeaseLedger from './pages/LeaseLedger'
 import IAMSyncPage from './pages/IAMSyncPage'
 import DepositFlow from './pages/DepositFlow'
@@ -428,6 +429,7 @@ function onMenuClick(e) {
     '/repair/settings': { title: '报修设置', parent: '经营策略' },
     '/system/rebate-config': { title: '返点配置', parent: '经营策略' },
     '/system/membership-levels': { title: '会员级别管理', parent: '经营策略' },
+    '/orders': { title: '订单管理', parent: '经营策略' },
     '/instruments/list': { title: '乐器列表', parent: '运营管理' },
     '/site/stock': { title: '库存监控', parent: '运营管理' },
     '/warehouse': { title: '库管工作台', parent: '运营管理' },
@@ -613,6 +615,7 @@ function onMenuClick(e) {
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
             <Route path="/instruments/:id" element={<ProtectedRoute><InstrumentDetailUser /></ProtectedRoute>} />
             <Route path="/orders/:id/payment" element={<ProtectedRoute><OrderPayment /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute><OrderManagement /></ProtectedRoute>} />
             <Route path="/user/contracts/:id" element={<ProtectedRoute><ContractView /></ProtectedRoute>} />
             <Route path="/user/rentals/:id/return" element={<ProtectedRoute><ReturnProcess /></ProtectedRoute>} />
           

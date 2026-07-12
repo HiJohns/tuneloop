@@ -1,0 +1,100 @@
+package handlers
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
+)
+
+// ListMerchantOrders returns orders filtered by the current user's scope.
+func ListMerchantOrders(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	role := middleware.GetBusinessRole(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+	orgID := middleware.GetOrgID(ctx)
+
+	q := db.Model(&models.Order{}).Order("created_at DESC")
+
+	// Role-based scope
+	if role == "site_admin" || role == "site_member" {
+		q = q.Where("orders.org_id = ?", orgID)
+	} else {
+		q = q.Where("orders.tenant_id = ?", tenantID)
+	}
+
+	// Optional filters
+	if status := c.Query("status"); status != "" {
+		q = q.Where("orders.status = ?", status)
+	}
+	if sn := c.Query("sn"); sn != "" {
+		q = q.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
+			Where("instruments.sn ILIKE ?", "%"+sn+"%")
+	}
+	if siteID := c.Query("site_id"); siteID != "" {
+		q = q.Where("orders.site_id = ?", siteID)
+	}
+
+	// Pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	var total int64
+	q.Count(&total)
+
+	var orders []models.Order
+	q.Offset(offset).Limit(pageSize).Find(&orders)
+
+	// Build response list
+	type OrderItem struct {
+		ID             string  `json:"id"`
+		Status         string  `json:"status"`
+		InstrumentName string  `json:"instrument_name"`
+		InstrumentSN   string  `json:"instrument_sn"`
+		SiteName       string  `json:"site_name"`
+		StartDate      string  `json:"start_date"`
+		EndDate        string  `json:"end_date"`
+		TotalAmount    float64 `json:"total_amount"`
+		CreatedAt      string  `json:"created_at"`
+	}
+	list := make([]OrderItem, 0, len(orders))
+	for _, o := range orders {
+		startStr, endStr := "", ""
+		if o.StartDate != nil { startStr = *o.StartDate }
+		if o.EndDate != nil { endStr = *o.EndDate }
+		item := OrderItem{
+			ID:        o.ID,
+			Status:    o.Status,
+			StartDate: startStr,
+			EndDate:   endStr,
+			CreatedAt: o.CreatedAt.Format("2006-01-02 15:04"),
+		}
+		// Fetch instrument name/SN
+		var inst models.Instrument
+		if db.First(&inst, "id = ?", o.InstrumentID).Error == nil {
+			item.InstrumentName = inst.CategoryName
+			item.InstrumentSN = inst.SN
+		}
+		list = append(list, item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list":  list,
+			"total": total,
+		},
+	})
+}
