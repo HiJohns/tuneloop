@@ -774,3 +774,46 @@ func GetOrderLogs(c *gin.Context) {
 		},
 	})
 }
+
+// AdminUpdateOrder allows merchant/site admins (in DEBUG_MODE) to override order dates and status.
+func AdminUpdateOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order id required"})
+		return
+	}
+
+	var req struct {
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+		Status    string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	updates := map[string]interface{}{}
+	if req.Status != "" {
+		updates["status"] = req.Status
+	}
+	if req.StartDate != "" {
+		updates["start_date"] = req.StartDate
+	}
+	if req.EndDate != "" {
+		updates["end_date"] = req.EndDate
+	}
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no fields to update"})
+		return
+	}
+
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "update failed: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
+}
