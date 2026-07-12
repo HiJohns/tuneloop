@@ -1120,3 +1120,22 @@ checkRule() - 权限位过滤
 
 > 中断回退（维修中师傅重新报价被拒）：仅收 检查费+物流(C)+中转服务+中转物流(B+D)，多余退款封底 0，乐器按上方发回路径返还。
 
+---
+
+## 调试模式（DEBUG_MODE=true）
+
+启用后商户管理员和网点管理员在管理后台额外可操作：
+
+### 乐器状态修改
+- 乐器详情/列表页 → 点击状态标签 → 下拉修改（可租/租赁中/维护中/库存/报废）
+- `PUT /instruments/:id/status`
+
+### 订单修改
+- 订单详情页 → 可修改起止时间（start_date / end_date）
+- 订单状态（reserved/paid/in_lease/completed 等）
+- `PUT /orders/:id/admin-update`
+
+### 角色
+- merchant_admin: 本商户
+- site_admin: 本网点
+

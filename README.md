@@ -116,6 +116,12 @@ frontend-mobile:
 
 注册用户超时后点击「微信一键登录」即可恢复会话（无需重新注册，wx_openid 已绑定）。
 
+### DEBUG 模式
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `DEBUG_MODE` | `false` | 设为 `true` 开启调试功能（库存/订单状态编辑等） |
+
 ### 白标化 (White-labeling)
 - **动态主题**: 根据 `client_id` 加载品牌色和 Logo
 - **配置端点**: `GET /api/common/brand-config`
