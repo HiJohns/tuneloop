@@ -69,13 +69,44 @@ export default function OrderDetail() {
   const handlePay = async () => {
     setActionLoading(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/pay`, { method: 'POST' })
+      const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
+        method: 'POST',
+        body: JSON.stringify({
+          order_id: id,
+          order_type: 'rent',
+          amount: totalAmount,
+        }),
+      })
       const result = await resp.json()
       if (result.code === 20000) {
-        Taro.showToast({ title: '支付成功', icon: 'success' })
-        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
-        const r = await reload.json()
-        if (r.code === 20000) setOrder(r.data)
+        const d = result.data
+        if (d.mock) {
+          Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
+          const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+          const r = await reload.json()
+          if (r.code === 20000) setOrder(r.data)
+        } else if (d.data?.prepay_id && typeof Taro.requestPayment === 'function') {
+          Taro.requestPayment({
+            timeStamp: d.data.time_stamp,
+            nonceStr: d.data.nonce_str,
+            package: d.data.package,
+            signType: d.data.sign_type,
+            paySign: d.data.pay_sign,
+            success: async () => {
+              Taro.showToast({ title: '支付成功', icon: 'success' })
+              setTimeout(() => {
+                const reload = apiFetch(`${baseUrl}/orders/${id}`).then(r => r.json()).then(r => {
+                  if (r.code === 20000) setOrder(r.data)
+                })
+              }, 2000)
+            },
+            fail: (err) => {
+              Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false })
+            },
+          })
+        } else {
+          Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
+        }
       } else {
         Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
       }
