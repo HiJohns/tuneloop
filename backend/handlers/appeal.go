@@ -285,11 +285,39 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			notifTitle = "申诉结果"
 			notifContent = fmt.Sprintf("调整后金额等于押金，订单关闭")
 		} else {
-			nextOrderStatus = models.OrderStatusCompleted
+			// Payment needed: adjusted amount > deposit
+			nextOrderStatus = order.Status // keep current, wait for payment
 			notifType = "payment"
 			notifActionType = "payment"
 			notifTitle = "申诉结果：需支付"
 			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", req.AdjustAmount, order.Deposit, req.AdjustAmount-order.Deposit)
+
+			payDiff := req.AdjustAmount - order.Deposit
+			cfg := wechatpay.GetConfig()
+			outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
+
+			record := models.OrderPaymentRecord{
+				ID:         uuid.New().String(),
+				TenantID:   tenantID,
+				UserID:     userID,
+				OrderID:    &order.ID,
+				OrderType:  "damage",
+				OutTradeNo: &outTradeNo,
+				Amount:     payDiff,
+				Type:       "payment",
+				Status:     "pending",
+				Method:     strPtr("jsapi"),
+				CreatedAt:  time.Now(),
+				UpdatedAt:  time.Now(),
+			}
+
+			if cfg.MockMode {
+				record.Status = "paid"
+				db.Create(&record)
+				nextOrderStatus = models.OrderStatusCompleted
+			} else {
+				notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%.2f,"out_trade_no":"%s"}`, payDiff, outTradeNo)
+			}
 		}
 		damageReport.Status = "resolved"
 

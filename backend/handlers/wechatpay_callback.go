@@ -226,6 +226,12 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 				Where("status = ?", models.RepairReqStatusPendingPay).
 				Update("status", models.RepairReqStatusClosed)
 		}
+	case "damage":
+		if rec.OrderID != nil {
+			db.Model(&models.Order{}).Where("id = ?", *rec.OrderID).
+				Where("status != ?", models.OrderStatusCompleted).
+				Update("status", models.OrderStatusDamageAppealing)
+		}
 	}
 
 	log.Printf("[PaymentScheduler] closed timed-out payment: %s", *rec.OutTradeNo)
