@@ -839,11 +839,6 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 
 	if err := iamClient.UpdateUser(userID, iamReq); err != nil {
 		log.Printf("[UpdateCurrentUser] IAM UpdateUser failed for %s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to update user in IAM: " + err.Error(),
-		})
-		return
 	}
 
 	db := database.GetDB().WithContext(ctx)
