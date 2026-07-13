@@ -100,8 +100,8 @@ function InstrumentCard({ instrument, onClick }) {
         <View style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', textAlign: 'right', alignSelf: 'flex-end', marginLeft: 8, flexShrink: 0, whiteSpace: 'nowrap' }}>
           {instrument.stock_status === 'available' ? (
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>{rentDisplay}/日</Text>
-              <Text style={{ fontSize: 12, color: 'rgba(194,24,56,0.7)', fontWeight: '700' }}>/ 月</Text>
+              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>{rentDisplay}</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(194,24,56,0.7)', fontWeight: '700' }}>/日</Text>
             </View>
           ) : (
             <Text style={{ color: '#a1a1aa', fontWeight: '700', fontSize: 16 }}>租赁中</Text>
