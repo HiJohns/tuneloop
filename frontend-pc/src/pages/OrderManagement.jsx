@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Card, Tag, Input, Select, Space, Spin } from 'antd'
+import { Table, Card, Tag, Input, Select, Space, Spin, Button, Modal, message } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
@@ -22,6 +22,11 @@ export default function OrderManagement() {
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
   const [snSearch, setSnSearch] = useState('')
+  const [debugMode, setDebugMode] = useState(false)
+  const [editModal, setEditModal] = useState({ open: false, order: null, status: '', startDate: '', endDate: '' })
+  const [editSaving, setEditSaving] = useState(false)
+
+  useEffect(() => { api.get('/config').then(r => { if (r.code === 20000 && r.data?.debug_mode) setDebugMode(true) }).catch(() => {}) }, [])
 
   useEffect(() => { fetchOrders() }, [page, statusFilter])
 
@@ -50,6 +55,11 @@ export default function OrderManagement() {
     }},
     { title: '租期', dataIndex: 'start_date', key: 'start_date', render: (_, r) => `${r.start_date || '?'} ~ ${r.end_date || '?'}` },
     { title: '下单时间', dataIndex: 'created_at', key: 'created_at' },
+    ...(debugMode ? [{
+      title: '操作', key: 'action', render: (_, r) => (
+        <Button size="small" onClick={() => setEditModal({ open: true, order: r, status: r.status, startDate: r.start_date || '', endDate: r.end_date || '' })}>编辑</Button>
+      )
+    }] : []),
   ]
 
   return (
@@ -71,6 +81,43 @@ export default function OrderManagement() {
           pagination={{ current: page, total, pageSize: 20, onChange: setPage }}
         />
       </Spin>
+      <Modal title="编辑订单" open={editModal.open} onCancel={() => setEditModal(p => ({ ...p, open: false }))}
+        onOk={async () => {
+          setEditSaving(true)
+          try {
+            const res = await api.put(`/orders/${editModal.order.id}/admin-update`, {
+              start_date: editModal.startDate,
+              end_date: editModal.endDate,
+              status: editModal.status,
+            })
+            if (res.code === 20000) {
+              message.success('订单已更新')
+              setEditModal(p => ({ ...p, open: false }))
+              fetchOrders()
+            } else {
+              message.error(res.message || '更新失败')
+            }
+          } catch { message.error('更新失败') }
+          setEditSaving(false)
+        }}
+        confirmLoading={editSaving}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>订单状态</div>
+          <Select value={editModal.status} onChange={v => setEditModal(p => ({ ...p, status: v }))} style={{ width: '100%' }}>
+            {Object.entries(STATUS_MAP).map(([k, v]) => (
+              <Select.Option key={k} value={k}>{v.text}</Select.Option>
+            ))}
+          </Select>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>开始日期</div>
+          <Input value={editModal.startDate} onChange={e => setEditModal(p => ({ ...p, startDate: e.target.value }))} placeholder="YYYY-MM-DD" />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>结束日期</div>
+          <Input value={editModal.endDate} onChange={e => setEditModal(p => ({ ...p, endDate: e.target.value }))} placeholder="YYYY-MM-DD" />
+        </div>
+      </Modal>
     </Card>
   )
 }
