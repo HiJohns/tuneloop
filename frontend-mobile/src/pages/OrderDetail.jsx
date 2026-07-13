@@ -280,7 +280,15 @@ export default function OrderDetail() {
       </View>
 
       {/* Lease Info */}
-      <LeaseInfo startDate={startDate} endDate={endDate} leaseTerm={leaseTerm} rentalDays={rentalDays} />
+      <LeaseInfo
+        status={status}
+        startDate={startDate}
+        endDate={endDate}
+        dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || 0}
+        rentDays={pb?.rent_days || 0}
+        actualDays={rentalDays}
+        createdAt={formatDisplayDate(order.created_at)}
+      />
 
       {/* Return Info */}
       {returnedAt && (

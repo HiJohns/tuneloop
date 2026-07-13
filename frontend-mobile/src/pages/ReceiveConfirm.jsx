@@ -5,6 +5,7 @@ import { apiFetch } from '../services/api'
 import { ArrowLeft, CheckCircle, Camera } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { dialog, env, storage, session, uploadFile } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
@@ -108,7 +109,15 @@ export default function ReceiveConfirm() {
       <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
-        <LeaseInfo startDate={startDate} endDate={endDate} leaseTerm={leaseTerm} rentalDays={rentalDays} />
+        <LeaseInfo
+          status={order.status}
+          startDate={startDate}
+          endDate={endDate}
+          dailyRate={order.pricing_breakdown?.final_daily_rent || order.pricing_breakdown?.base_daily_rent || 0}
+          rentDays={order.pricing_breakdown?.rent_days || 0}
+          actualDays={rentalDays}
+          createdAt={order.created_at ? formatDisplayDate(order.created_at) : '-'}
+        />
       )}
 
       {/* Order Info summary */}

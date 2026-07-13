@@ -232,9 +232,23 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	// 3. Update order status and record delivery time as lease start (must be in shipped status)
+	//    Also recalculate start_date/end_date based on actual delivery time
+	newStartDate := req.DeliveredAt.Format("2006-01-02")
+	originalDays := 30 // default fallback
+	if order.StartDate != nil && order.EndDate != nil {
+		sd, err1 := time.Parse("2006-01-02", *order.StartDate)
+		ed, err2 := time.Parse("2006-01-02", *order.EndDate)
+		if err1 == nil && err2 == nil && ed.After(sd) {
+			originalDays = int(ed.Sub(sd).Hours() / 24)
+		}
+	}
+	newEndDate := req.DeliveredAt.AddDate(0, 0, originalDays).Format("2006-01-02")
+
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, order.TenantID, models.OrderStatusShipped).Updates(map[string]interface{}{
 		"status":       models.OrderStatusInLease,
 		"delivered_at": req.DeliveredAt,
+		"start_date":   newStartDate,
+		"end_date":     newEndDate,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to confirm delivery: " + err.Error()})
 		return
