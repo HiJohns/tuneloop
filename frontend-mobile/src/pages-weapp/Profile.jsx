@@ -256,44 +256,54 @@ export default function Profile() {
 
         {/* 4. 下方通用抽屉式列表 */}
         <View style={{ marginLeft: 16, marginRight: 16, backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginTop: 12, padding: 16 }}>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/messages/index')}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>✉️</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>系统信息</Text>
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/messages/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>✉️</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>系统信息</Text>
+              </View>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                {unreadCount > 0 && <Text style={{ fontSize: 12, color: '#FF2A55', fontWeight: '700', marginRight: 4 }}>{unreadCount}条未读</Text>}
+                <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
+              </View>
             </View>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              {unreadCount > 0 && <Text style={{ fontSize: 12, color: '#FF2A55', fontWeight: '700', marginRight: 4 }}>{unreadCount}条未读</Text>}
+          )}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>收藏</Text>
+              </View>
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
-          </View>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>收藏</Text>
+          )}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/membership/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>👑</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>会员中心</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/membership/index')}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>👑</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>会员中心</Text>
+          )}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>✏️</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>编辑资料</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>✏️</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>编辑资料</Text>
+          )}
+          {!isGuest && (
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
+              <View style={{ display: 'flex', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 8 }}>⚙️</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>设置</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
-            <View style={{ display: 'flex', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, marginRight: 8 }}>⚙️</Text>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>设置</Text>
-            </View>
-            <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-          </View>
+          )}
           <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>💼</Text>
