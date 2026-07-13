@@ -349,7 +349,7 @@ export default function InstrumentDetail() {
                     <Descriptions.Item label="状态">
                       <Tag color={statusConfig.color}>{statusConfig.text}</Tag>
                       {debugMode && (
-                        <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setNewStatus(instrument.stock_status); setStatusEditOpen(true) }} />
+                        <Button type="link" size="small" onClick={() => { setNewStatus(instrument.stock_status || 'available'); setStatusEditOpen(true) }}>编辑</Button>
                       )}
                     </Descriptions.Item>
                     <Descriptions.Item label="评分" span={2}>

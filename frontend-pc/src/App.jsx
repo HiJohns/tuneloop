@@ -323,6 +323,7 @@ function MainLayout() {
       { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
       { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
+      { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
     ]
   },
   {
