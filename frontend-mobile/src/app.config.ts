@@ -13,6 +13,7 @@ const weappPages = [
   'pages-weapp/bind/index',
   'pages-weapp/profile/edit/index',
   'pages-weapp/order-detail/index',
+  'pages-weapp/search/index',
 ]
 
 const h5Pages = [

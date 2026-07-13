@@ -304,12 +304,11 @@ export default function Home() {
         />
       )}
 
-      {/* A: Search bar — fixed above carousel */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', top: '60px' }}>
-        <View style={{ width: 180, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxShadow: scrolled ? '0 1px 2px rgba(0,0,0,0.05)' : '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: (scrolled || blurVisible) ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)', border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.2)' }}>
-          <Text style={{ fontSize: 16, marginRight: 8, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
-          <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)"
-            style={{ fontSize: 14, flex: '1 1 0%', backgroundColor: 'transparent', color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }} />
+      {/* A: Search button — fixed near top */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: '10px' }}>
+        <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 180, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
+          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>搜索乐器</Text>
         </View>
       </View>
 
