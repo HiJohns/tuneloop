@@ -275,7 +275,7 @@ type OrderPaymentRecord struct {
 type OrderRefundRecord struct {
 	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID        string    `gorm:"type:uuid;not null" json:"tenant_id"`
-	PaymentRecordID string    `gorm:"type:uuid;index;not null" json:"payment_record_id"`
+	PaymentRecordID *string   `gorm:"type:uuid;index" json:"payment_record_id,omitempty"`
 	OutRefundNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_refund_no"`
 	RefundID        *string   `gorm:"type:varchar(64)" json:"refund_id"`
 	Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`

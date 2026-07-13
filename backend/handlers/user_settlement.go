@@ -296,12 +296,11 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 
 		if cfg.MockMode || !paymentFound {
 			refundRecord.Status = "refunded"
-			refundRecord.PaymentRecordID = ""
 			settlement.RefundStatus = "completed"
 		} else {
-			refundRecord.PaymentRecordID = paymentRecord.ID
+			refundRecord.PaymentRecordID = &paymentRecord.ID
 			client := wechatpay.GetClient()
-			result, err := client.Refund(nil, wechatpay.RefundParams{
+			result, err := client.Refund(c.Request.Context(), wechatpay.RefundParams{
 				OutTradeNo:   outTradeNo,
 				OutRefundNo:  outRefundNo,
 				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),

@@ -81,9 +81,9 @@ func (s *DepositRefundScheduler) closeOrder(order models.Order) error {
 
 	// Find the original payment record for this order
 	var paymentRecord models.OrderPaymentRecord
-	var paymentRecordID string
+	var paymentRecordID *string
 	if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&paymentRecord).Error; err == nil {
-		paymentRecordID = paymentRecord.ID
+		paymentRecordID = &paymentRecord.ID
 	}
 
 	outRefundNo := fmt.Sprintf("refund_%s_%d", order.ID[:8], time.Now().Unix())
