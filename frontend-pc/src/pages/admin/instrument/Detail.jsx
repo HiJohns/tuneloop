@@ -359,7 +359,7 @@ export default function InstrumentDetail() {
                           <Button size="small" type="primary" loading={statusUpdating} onClick={async () => {
                             setStatusUpdating(true)
                             try {
-                              const res = await api.put(`/instruments/${id}/status`, { status: statusEditValue })
+                              const res = await api.put(`/instruments/${id}/status`, { stock_status: statusEditValue })
                               if (res.code === 20000) {
                                 message.success('状态已更新')
                                 setStatusEditing(false)
