@@ -28,10 +28,11 @@ export default function MembershipCenter() {
       if (result.code === 20000) {
         setRefCode(result.data.ref_code)
         const url = (env.isMiniProgram ? '' : window.location.origin) + result.data.url
-        QRCode.toDataURL(url, { width: 256 }).then(dataUrl => {
-          setQrDataUrl(dataUrl)
+        QRCode.toString(url, { type: 'svg', width: 256 }, (err, svg) => {
+          if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+          setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
           setShowQR(true)
-        }).catch(() => Taro.showToast({ title: '二维码生成失败', icon: 'none' }))
+        })
       }
     } catch {
       Taro.showToast({ title: '获取推广二维码失败', icon: 'none' })

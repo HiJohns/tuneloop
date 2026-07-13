@@ -71,7 +71,7 @@ function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
   const dailyRate = getDailyRate(instrument)
   const monthlyRent = Math.round(dailyRate * 30)
-  const rentDisplay = monthlyRent.toLocaleString()
+  const rentDisplay = Math.round(dailyRate)
   const levelName = instrument.level_name || ''
   const thumb = fixImg(instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER)
 
@@ -100,7 +100,7 @@ function InstrumentCard({ instrument, onClick }) {
         <View style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', textAlign: 'right', alignSelf: 'flex-end', marginLeft: 8, flexShrink: 0, whiteSpace: 'nowrap' }}>
           {instrument.stock_status === 'available' ? (
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>{Math.round(rentDisplay)}/日</Text>
+              <Text style={{ color: '#C21838', fontWeight: '900', fontSize: 26, letterSpacing: '-0.025em' }}>{rentDisplay}/日</Text>
               <Text style={{ fontSize: 12, color: 'rgba(194,24,56,0.7)', fontWeight: '700' }}>/ 月</Text>
             </View>
           ) : (
