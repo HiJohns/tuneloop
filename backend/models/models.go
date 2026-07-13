@@ -249,6 +249,44 @@ type OrderLog struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+// OrderPaymentRecord 支付记录表（包含完整审计字段）
+type OrderPaymentRecord struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index:idx_payment_tenant;not null" json:"tenant_id"`
+	OrgID          *string    `gorm:"type:uuid" json:"org_id,omitempty"`
+	UserID         string     `gorm:"type:uuid;index:idx_payment_user;not null" json:"user_id"`
+	OrderID        *string    `gorm:"type:uuid;index:idx_payment_order" json:"order_id,omitempty"`
+	OrderType      string     `gorm:"type:varchar(20);not null" json:"order_type"`
+	OutTradeNo     *string    `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
+	TransactionID  *string    `gorm:"type:varchar(64)" json:"transaction_id"`
+	Amount         float64    `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Type           string     `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
+	Status         string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	Method         *string    `gorm:"type:varchar(20)" json:"method"`
+	PrepayID       *string    `gorm:"type:varchar(64)" json:"prepay_id"`
+	CodeURL        *string    `gorm:"type:text" json:"code_url"`
+	FailReason     *string    `gorm:"type:text" json:"fail_reason"`
+	RawResponse    *string    `gorm:"type:jsonb" json:"raw_response"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// OrderRefundRecord 退款记录表（支持部分退款，与支付记录一对多）
+type OrderRefundRecord struct {
+	ID              string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID        string    `gorm:"type:uuid;not null" json:"tenant_id"`
+	PaymentRecordID string    `gorm:"type:uuid;index;not null" json:"payment_record_id"`
+	OutRefundNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_refund_no"`
+	RefundID        *string   `gorm:"type:varchar(64)" json:"refund_id"`
+	Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Reason          *string   `gorm:"type:varchar(200)" json:"reason"`
+	Status          string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	FailReason      *string   `gorm:"type:text" json:"fail_reason"`
+	RawResponse     *string   `gorm:"type:jsonb" json:"raw_response"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
 type Site struct {
 	ID               string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID         string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
