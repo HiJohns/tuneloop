@@ -187,6 +187,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.POST("/auth/refresh", authHandler.Refresh)
 	api.POST("/wx/login", authHandler.WxLogin)
 	api.POST("/wx/phone", authHandler.WxPhone)
+	api.POST("/wechatpay/notify", handlers.WechatPayCallback)
+	api.POST("/wechatpay/refund-notify", handlers.WechatPayCallback)
 	// Setup routes (public, no auth required)
 	api.GET("/setup/status", setupHandler.GetSetupStatus)
 	api.POST("/setup/init", setupHandler.InitializeSystem)
@@ -988,6 +990,8 @@ func main() {
 	overdueDeductionScheduler := services.NewOverdueDeductionScheduler()
 	overdueDeductionScheduler.Start()
 	defer overdueDeductionScheduler.Stop()
+
+	go handlers.StartPaymentScheduler(db)
 
 	_ = wwwURL
 	_ = wxURL
