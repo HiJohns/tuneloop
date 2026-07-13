@@ -331,13 +331,6 @@ function MainLayout() {
     label: '运营管理',
     children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
-    ]
-  },
-  {
-    key: 'operations',
-    icon: <AppstoreOutlined />,
-    label: '运营管理',
-    children: [
       { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
       { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
