@@ -323,6 +323,13 @@ function MainLayout() {
       { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
       { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
+    ]
+  },
+  {
+    key: 'operations',
+    icon: <AppstoreOutlined />,
+    label: '运营管理',
+    children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
     ]
   },
@@ -430,7 +437,7 @@ function onMenuClick(e) {
     '/repair/settings': { title: '报修设置', parent: '经营策略' },
     '/system/rebate-config': { title: '返点配置', parent: '经营策略' },
     '/system/membership-levels': { title: '会员级别管理', parent: '经营策略' },
-    '/orders': { title: '订单管理', parent: '经营策略' },
+    '/orders': { title: '订单管理', parent: '运营管理' },
     '/instruments/list': { title: '乐器列表', parent: '运营管理' },
     '/site/stock': { title: '库存监控', parent: '运营管理' },
     '/warehouse': { title: '库管工作台', parent: '运营管理' },
