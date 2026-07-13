@@ -85,8 +85,8 @@ function InstrumentCard({ instrument, onClick }) {
       <View style={{ width: 80, height: 80, backgroundColor: '#fafafa', borderRadius: 12, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Image src={thumb} style={{ width: 72, height: 72 }} mode="widthFix" />
       </View>
-      <View style={{ flex: '1 1 0%', marginLeft: 12, height: 80, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: 16, overflow: 'hidden' }}>
-        <View style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, minWidth: 0, flex: '1 1 0%' }}>
+      <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: 16 }}>
+        <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, minWidth: 0, flex: '1 1 0%' }}>
           <View style={{ width: '100%', minWidth: 0 }}>
             <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
             <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.category_name}</Text>

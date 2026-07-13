@@ -13,7 +13,6 @@ export default defineConfig({
     ENABLE_CLONE_NODE: false,
     ENABLE_CONTAINS: false,
     ENABLE_SIZE_APIS: false,
-    ENABLE_SIZE_APIS: false,
     ENABLE_TEMPLATE_CONTENT: false,
   },
   base: '/',
