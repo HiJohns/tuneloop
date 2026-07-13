@@ -22,8 +22,8 @@ export default function InstrumentDetail() {
   const [leaseData, setLeaseData] = useState(null)
   const [leaseLoading, setLeaseLoading] = useState(false)
   const [debugMode, setDebugMode] = useState(false)
-  const [statusEditOpen, setStatusEditOpen] = useState(false)
-  const [newStatus, setNewStatus] = useState('')
+  const [statusEditing, setStatusEditing] = useState(false)
+  const [statusEditValue, setStatusEditValue] = useState('')
   const [statusUpdating, setStatusUpdating] = useState(false)
 
   useEffect(() => {
@@ -347,9 +347,37 @@ export default function InstrumentDetail() {
                       <Tag color="blue">{instrument.level_name || levelMap[instrument.level] || '未设置'}</Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label="状态">
-                      <Tag color={statusConfig.color}>{statusConfig.text}</Tag>
-                      {debugMode && (
-                        <Button type="link" size="small" onClick={() => { setNewStatus(instrument.stock_status || 'available'); setStatusEditOpen(true) }}>编辑</Button>
+                      {statusEditing ? (
+                        <Space>
+                          <Select value={statusEditValue} onChange={setStatusEditValue} style={{ width: 120 }} size="small">
+                            <Select.Option value="available">可租</Select.Option>
+                            <Select.Option value="rented">租赁中</Select.Option>
+                            <Select.Option value="maintenance">维修中</Select.Option>
+                            <Select.Option value="archived">已下架</Select.Option>
+                            <Select.Option value="lost">已丢失</Select.Option>
+                          </Select>
+                          <Button size="small" type="primary" loading={statusUpdating} onClick={async () => {
+                            setStatusUpdating(true)
+                            try {
+                              const res = await api.put(`/instruments/${id}/status`, { status: statusEditValue })
+                              if (res.code === 20000) {
+                                message.success('状态已更新')
+                                setStatusEditing(false)
+                                const instrRes = await api.get(`/instruments/${id}`)
+                                if (instrRes.code === 20000) setInstrument(instrRes.data)
+                              } else {
+                                message.error(res.message || '更新失败')
+                              }
+                            } catch { message.error('更新失败') }
+                            setStatusUpdating(false)
+                          }}>保存</Button>
+                          <Button size="small" onClick={() => setStatusEditing(false)}>取消</Button>
+                        </Space>
+                      ) : (
+                        <Space>
+                          <Tag color={statusConfig.color}>{statusConfig.text}</Tag>
+                          {debugMode && <Button size="small" onClick={() => { setStatusEditValue(instrument.stock_status); setStatusEditing(true) }}>编辑</Button>}
+                        </Space>
                       )}
                     </Descriptions.Item>
                     <Descriptions.Item label="评分" span={2}>
@@ -773,7 +801,6 @@ function PromoOverrideTab({ instrumentId }) {
   if (loading) return <Spin />
 
   return (
-    <>
     <Card title="乐器促销覆盖" size="small">
       <div className="space-y-4">
         <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
@@ -792,33 +819,5 @@ function PromoOverrideTab({ instrumentId }) {
         </div>
       </div>
     </Card>
-      <Modal title="修改状态" open={statusEditOpen} onCancel={() => setStatusEditOpen(false)}
-        onOk={async () => {
-          if (!newStatus) return
-          setStatusUpdating(true)
-          try {
-            const res = await api.put(`/instruments/${id}/status`, { status: newStatus })
-            if (res.code === 20000) {
-              message.success('状态已更新')
-              setStatusEditOpen(false)
-              // Refresh instrument data
-              const instrRes = await api.get(`/instruments/${id}`)
-              if (instrRes.code === 20000) setInstrument(instrRes.data)
-            } else {
-              message.error(res.message || '更新失败')
-            }
-          } catch { message.error('更新失败') }
-          setStatusUpdating(false)
-        }}
-        confirmLoading={statusUpdating}>
-        <Select value={newStatus} onChange={setNewStatus} style={{ width: '100%' }}>
-          <Select.Option value="available">可租</Select.Option>
-          <Select.Option value="rented">租赁中</Select.Option>
-          <Select.Option value="maintenance">维修中</Select.Option>
-          <Select.Option value="archived">已下架</Select.Option>
-          <Select.Option value="lost">已丢失</Select.Option>
-        </Select>
-      </Modal>
-    </>
   )
 }
