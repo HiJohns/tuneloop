@@ -7,6 +7,7 @@ import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive, Clock 
 import { dialog, env, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
+import LeaseInfo from '../components/LeaseInfo'
 
 const eventLabels = {
   'pending_shipment → shipped': '寄出乐器',
@@ -235,25 +236,15 @@ export default function StaffInstrumentDetail() {
 
         {/* Lease Info - Only for reserved/returning */}
         {activeOrder && (
-          <View className="bg-white rounded-xl p-4">
-            <Text className="font-medium mb-3">租期信息</Text>
-            <View className="space-y-2 text-sm">
-              <View className="flex justify-between">
-                <Text className="text-gray-500">租期</Text>
-                <Text>{formatDisplayDate(activeOrder.start_date)} 至 {formatDisplayDate(activeOrder.end_date)}</Text>
-              </View>
-              <View className="flex justify-between">
-                <Text className="text-gray-500">状态</Text>
-                <Text className="font-medium">{statusLabel[instrument.stock_status] || instrument.stock_status}</Text>
-              </View>
-              {activeOrder.monthly_rent && (
-                <View className="flex justify-between">
-                  <Text className="text-gray-500">月租金</Text>
-                  <Text>¥{activeOrder.monthly_rent}</Text>
-                </View>
-              )}
-            </View>
-          </View>
+          <LeaseInfo
+            status={activeOrder.status}
+            startDate={activeOrder.start_date ? formatDisplayDate(activeOrder.start_date) : '-'}
+            endDate={activeOrder.end_date ? formatDisplayDate(activeOrder.end_date) : '-'}
+            dailyRate={activeOrder.pricing_breakdown?.final_daily_rent || activeOrder.pricing_breakdown?.base_daily_rent || 0}
+            rentDays={activeOrder.pricing_breakdown?.rent_days || 0}
+            actualDays={activeOrder.start_date && activeOrder.returned_at ? Math.max(1, Math.round(((new Date(activeOrder.returned_at) - new Date(activeOrder.start_date)) / 86400000))) : activeOrder.start_date && activeOrder.end_date ? Math.max(1, Math.round(((new Date(activeOrder.end_date) - new Date(activeOrder.start_date)) / 86400000))) : 0}
+            createdAt={activeOrder.created_at ? formatDisplayDate(activeOrder.created_at) : '-'}
+          />
         )}
 
         {/* Pricing Info */}

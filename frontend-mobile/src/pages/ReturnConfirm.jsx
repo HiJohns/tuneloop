@@ -7,6 +7,7 @@ import { getToken, redirectToLogin } from '../services/api'
 import { dialog, env, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
+import LeaseInfo from '../components/LeaseInfo'
 
 export default function ReturnConfirm() {
   const { orderId } = useParams()
@@ -104,27 +105,15 @@ export default function ReturnConfirm() {
       <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3">租赁信息</Text>
-          <View className="space-y-2">
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">租期</Text>
-              <Text className="text-black font-black">{formatDisplayDate(order.start_date)} 至 {formatDisplayDate(order.end_date)}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">月租金</Text>
-              <Text className="text-black font-black">¥{order.monthly_rent || 0}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">押金</Text>
-              <Text className="text-black font-black">¥{order.deposit || 0}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">租赁人</Text>
-              <Text className="text-black font-black">{order.user_name || '-'}</Text>
-            </View>
-          </View>
-        </View>
+        <LeaseInfo
+          status={order.status}
+          startDate={order.start_date ? formatDisplayDate(order.start_date) : '-'}
+          endDate={order.end_date ? formatDisplayDate(order.end_date) : '-'}
+          dailyRate={order.pricing_breakdown?.final_daily_rent || order.pricing_breakdown?.base_daily_rent || 0}
+          rentDays={order.pricing_breakdown?.rent_days || 0}
+          actualDays={order.start_date && order.returned_at ? Math.max(1, Math.round(((new Date(order.returned_at) - new Date(order.start_date)) / 86400000))) : order.start_date && order.end_date ? Math.max(1, Math.round(((new Date(order.end_date) - new Date(order.start_date)) / 86400000))) : 0}
+          createdAt={order.created_at ? formatDisplayDate(order.created_at) : '-'}
+        />
       )}
 
       {order && order.delivery_address && (
