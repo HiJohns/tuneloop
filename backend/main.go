@@ -322,6 +322,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/instruments/:id", middleware.RequireCusPerm("instrument:read"), handlers.GetInstrumentByID)
 		authRequired.PUT("/instruments/:id", middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrument)
 		authRequired.GET("/reports/assessment/:order_id", handlers.HandleAssessmentReport(database.GetDB()))
+		authRequired.GET("/admin/payments", handlers.ListPayments)
+		authRequired.GET("/admin/payments/export", handlers.ExportPayments)
+		authRequired.POST("/admin/payments/:out_trade_no/query", handlers.QueryPaymentByTradeNo)
 
 		// Instrument CRUD
 		authRequired.POST("/instruments", middleware.RequireCusPerm("instrument:create"), handlers.CreateInstrument)

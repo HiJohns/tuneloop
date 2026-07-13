@@ -39,6 +39,7 @@ import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import WarningManagement from './pages/admin/warnings/WarningManagement'
 import WarningSettings from './pages/admin/warnings/WarningSettings'
 import TransitRouteConfig from './pages/admin/transit/TransitRouteConfig'
+import PaymentList from './pages/admin/payments/PaymentList'
 import WarehouseManagement from './pages/WarehouseManagement'
 import LogoutPage from './pages/LogoutPage'
 import UserRental from './pages/UserRental'
@@ -609,8 +610,9 @@ function onMenuClick(e) {
             <Route path="/inventory/rent-setting" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price'] }}><RentSetting /></ProtectedRoute>} />
             <Route path="/pricing/config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:price_config'] }}><MerchantPricingConfig /></ProtectedRoute>} />
             <Route path="/warehouse" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read', 'instrument:update'] }}><WarehouseManagement /></ProtectedRoute>} />
-            <Route path="/overdue-alerts" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><OverdueAlerts /></ProtectedRoute>} />
-            <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
+             <Route path="/overdue-alerts" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><OverdueAlerts /></ProtectedRoute>} />
+             <Route path="/admin/payments" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><PaymentList /></ProtectedRoute>} />
+             <Route path="/user/rentals" element={<ProtectedRoute><UserRental /></ProtectedRoute>} />
             <Route path="/user/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
             <Route path="/user/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             <Route path="/instruments" element={<ProtectedRoute><InstrumentListUser /></ProtectedRoute>} />
