@@ -68,6 +68,7 @@ export default function OrderDetail() {
 
   const handlePay = async () => {
     setActionLoading(true)
+    let outTradeNo = ''
     try {
       const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
         method: 'POST',
@@ -85,25 +86,52 @@ export default function OrderDetail() {
           const reload = await apiFetch(`${baseUrl}/orders/${id}`)
           const r = await reload.json()
           if (r.code === 20000) setOrder(r.data)
+          setActionLoading(false)
+          return
         } else if (d.data?.prepay_id && typeof Taro.requestPayment === 'function') {
-          Taro.requestPayment({
-            timeStamp: d.data.time_stamp,
-            nonceStr: d.data.nonce_str,
-            package: d.data.package,
-            signType: d.data.sign_type,
-            paySign: d.data.pay_sign,
-            success: async () => {
-              Taro.showToast({ title: '支付成功', icon: 'success' })
-              setTimeout(() => {
-                const reload = apiFetch(`${baseUrl}/orders/${id}`).then(r => r.json()).then(r => {
-                  if (r.code === 20000) setOrder(r.data)
-                })
-              }, 2000)
-            },
-            fail: (err) => {
-              Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false })
-            },
+          outTradeNo = d.data.out_trade_no
+
+          const payPromise = new Promise((resolve, reject) => {
+            Taro.requestPayment({
+              timeStamp: d.data.time_stamp,
+              nonceStr: d.data.nonce_str,
+              package: d.data.package,
+              signType: d.data.sign_type,
+              paySign: d.data.pay_sign,
+              success: () => resolve('success'),
+              fail: (err) => reject(err),
+            })
           })
+
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('timeout')), 30000)
+          })
+
+          const payResult = await Promise.race([payPromise, timeoutPromise]).catch(err => {
+            if (err.message === 'timeout') return 'timeout'
+            throw err
+          })
+
+          if (payResult === 'timeout') {
+            setActionLoading(false)
+            Taro.showModal({
+              title: '处理中',
+              content: '支付请求已发出，请在微信中完成支付。如已支付请点击查询',
+              confirmText: '查询支付状态',
+              cancelText: '稍后查看',
+              success: (res) => {
+                if (res.confirm) {
+                  handleQueryPayment(outTradeNo)
+                }
+              },
+            })
+            return
+          }
+
+          Taro.showToast({ title: '支付成功', icon: 'success' })
+          setTimeout(() => {
+            Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${id}&status=check` })
+          }, 1500)
         } else {
           Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
         }
@@ -111,7 +139,43 @@ export default function OrderDetail() {
         Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
       }
     } catch (err) {
-      Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
+      if (err.message === 'timeout') {
+        // Already handled above, just in case
+      } else {
+        Taro.showModal({ title: '支付失败', content: err.message || '请重试', showCancel: false })
+      }
+    }
+    setActionLoading(false)
+  }
+
+  const handleQueryPayment = async (tradeNo) => {
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/pay/query`, {
+        method: 'POST',
+        body: JSON.stringify({ out_trade_no: tradeNo }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        if (result.data?.paid) {
+          Taro.showToast({ title: '支付成功', icon: 'success' })
+          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${id}` }), 1500)
+        } else {
+          Taro.showModal({
+            title: '未支付',
+            content: `当前状态: ${result.data.trade_state || '待支付'}`,
+            confirmText: '重新查询',
+            cancelText: '关闭',
+            success: (res) => {
+              if (res.confirm) handleQueryPayment(tradeNo)
+            },
+          })
+        }
+      } else {
+        Taro.showModal({ title: '查询失败', content: result.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '查询失败', content: err.message, showCancel: false })
     }
     setActionLoading(false)
   }
