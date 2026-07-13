@@ -14,6 +14,7 @@ import (
 	"tuneloop-backend/internal/tasks"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -736,6 +737,10 @@ func main() {
 		fmt.Println("Please check your database connection and migration files.")
 		os.Exit(1)
 	}
+
+	// Initialize WeChat Pay client (mock mode if no MCH_ID configured)
+	wechatpay.InitGlobal(wechatpay.LoadConfig())
+	log.Printf("[INFO] WeChat Pay mode: mock=%v", wechatpay.GetConfig().MockMode)
 
 	// One-off migration: generate cover images for instruments without one
 	if *migrateCover {

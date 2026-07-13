@@ -413,6 +413,15 @@ IAM_CLIENT_SECRET=your_secret_key
 # Service URLs
 TUNELOOP_WWW_URL=http://localhost:5554  # PC Web service URL (default)
 TUNELOOP_WX_URL=http://localhost:5553   # WeChat mobile service URL (default)
+
+# WeChat Pay (optional, leave empty for mock/test mode)
+WECHAT_PAY_MCH_ID=                     # Merchant ID (empty = mock mode)
+WECHAT_PAY_API_V3_KEY=                 # API v3 key (32 chars)
+WECHAT_PAY_CERT_SERIAL_NO=             # Certificate serial number
+WECHAT_PAY_PRIVATE_KEY_PATH=           # Path to apiclient_key.pem
+WECHAT_PAY_NOTIFY_URL=                 # Payment callback URL
+WECHAT_PAY_REFUND_NOTIFY_URL=          # Refund callback URL
+WECHAT_PAY_MOCK_MODE=true              # Set false for real payments
 ```
 
 ### 前端 (.env)
