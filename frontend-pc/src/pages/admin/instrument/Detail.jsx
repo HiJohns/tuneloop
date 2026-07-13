@@ -100,6 +100,19 @@ export default function InstrumentDetail() {
     }
   }
 
+  const handleDeleteSingle = async (storageKey) => {
+    try {
+      const res = await instrumentsApi.deleteMediaKey(id, storageKey)
+      if (res.code === 20000) {
+        message.success('图片已删除')
+        fetchInstrument()
+        instrumentsApi.getMedia(id).then(r => { if (r.code === 20000) setMediaDetail(r.data) })
+      }
+    } catch (e) {
+      message.error('删除失败: ' + e.message)
+    }
+  }
+
   const handleDeleteVideo = async () => {
     try {
       await api.put(`/instruments/${id}`, { video: '' })
@@ -439,8 +452,8 @@ export default function InstrumentDetail() {
                               height={120}
                               className="object-cover rounded"
                             />
-                            {item.batch_id ? (
-                              <Popconfirm title="删除此图片？" onConfirm={() => handleDeleteBatch(item.batch_id)}>
+                            {item.storage_key ? (
+                              <Popconfirm title="删除此图片？" onConfirm={() => handleDeleteSingle(item.storage_key)}>
                                 <Button size="small" danger className="absolute top-0 right-0 opacity-0 group-hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
                               </Popconfirm>
                             ) : (

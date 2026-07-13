@@ -330,6 +330,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/:id/media", middleware.RequireCusPerm("instrument:media_upload"), handlers.CreateInstrumentMedia)
 		authRequired.PUT("/instruments/:id/media/display", middleware.RequireCusPerm("instrument:media_display"), handlers.SetMediaDisplay)
 		authRequired.DELETE("/instruments/:id/media/:batch_id", middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteMediaBatch)
+		authRequired.DELETE("/instruments/:id/media/key/:storage_key", middleware.RequireCusPerm("instrument:media_delete"), handlers.DeleteSingleMedia)
 		authRequired.GET("/instruments/:id/media", handlers.GetInstrumentMedia)
 		authRequired.POST("/instruments/:id/display-image", middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadDisplayImage)
 		authRequired.POST("/instruments/:id/cover-image", middleware.RequireCusPerm("instrument:media_upload"), handlers.UploadCoverImage)

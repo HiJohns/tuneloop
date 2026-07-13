@@ -346,6 +346,7 @@ export const instrumentsApi = {
   createMedia: (id, data) => api.post(`/instruments/${id}/media`, data),
   setMediaDisplay: (id, data) => api.put(`/instruments/${id}/media/display`, data),
   deleteMediaBatch: (id, batchId) => api.delete(`/instruments/${id}/media/${batchId}`),
+  deleteMediaKey: (id, storageKey) => api.delete(`/instruments/${id}/media/key/${storageKey}`),
   getMedia: (id) => api.get(`/instruments/${id}/media`),
   displayImageUpload: (id, file) => {
     const formData = new FormData()

@@ -348,6 +348,37 @@ func DeleteMediaBatch(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "batch deleted"})
 }
 
+// DeleteSingleMedia deletes a single media item by storage_key.
+func DeleteSingleMedia(c *gin.Context) {
+	instrumentID := c.Param("id")
+	storageKey := c.Param("storage_key")
+	if instrumentID == "" || storageKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id and storage_key are required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+	storage := services.MediaStorageFromContext(c)
+
+	var media models.InstrumentMedia
+	if err := db.Where("instrument_id = ? AND tenant_id = ? AND storage_key = ?", instrumentID, tenantID, storageKey).First(&media).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "media not found"})
+		return
+	}
+
+	if err := storage.Delete(ctx, storageKey); err != nil {
+		log.Printf("[InstrumentMedia] Failed to delete file %s: %v", storageKey, err)
+	}
+	if err := db.Delete(&media).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete media"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "deleted"})
+}
+
 func GetInstrumentMedia(c *gin.Context) {
 	instrumentID := c.Param("id")
 	if instrumentID == "" {

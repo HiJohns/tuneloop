@@ -120,6 +120,18 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
   const [videoFileList, setVideoFileList] = useState([])
   const [videoUploading, setVideoUploading] = useState(false)
   const [coverFile, setCoverFile] = useState(null)
+  
+  // Warn before leaving while uploads are in progress
+  useEffect(() => {
+    const handler = (e) => {
+      if (uploadStatus.isUploading) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [uploadStatus.isUploading])
   const [hasPricePerm, setHasPricePerm] = useState(false)
   const [merchantPricingConfig, setMerchantPricingConfig] = useState(null)
   const [usingDefaultConfig, setUsingDefaultConfig] = useState(false)
