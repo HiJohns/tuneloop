@@ -12,6 +12,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -264,6 +265,71 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		}).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to refund prepaid points"})
+			return
+		}
+	}
+
+	// Cash refund via WeChat Pay (if cash was paid on this order)
+	if cashRefundable > 0 {
+		var paymentRecord models.OrderPaymentRecord
+		paymentFound := false
+		var outTradeNo string
+		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").First(&paymentRecord).Error; err == nil && paymentRecord.ID != "" {
+			paymentFound = true
+			if paymentRecord.OutTradeNo != nil {
+				outTradeNo = *paymentRecord.OutTradeNo
+			}
+		}
+
+		cfg := wechatpay.GetConfig()
+		outRefundNo := fmt.Sprintf("sttl_%s_%d", orderID[:8], time.Now().Unix())
+
+		refundRecord := models.OrderRefundRecord{
+			ID:              uuid.New().String(),
+			TenantID:        order.TenantID,
+			Amount:          cashRefundable,
+			Reason:          strPtr("租赁结算退款"),
+			Status:          "pending",
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		if cfg.MockMode || !paymentFound {
+			refundRecord.Status = "refunded"
+			refundRecord.PaymentRecordID = ""
+			settlement.RefundStatus = "completed"
+		} else {
+			refundRecord.PaymentRecordID = paymentRecord.ID
+			client := wechatpay.GetClient()
+			result, err := client.Refund(nil, wechatpay.RefundParams{
+				OutTradeNo:   outTradeNo,
+				OutRefundNo:  outRefundNo,
+				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
+				RefundAmount: cfg.AmountToCents(cashRefundable),
+				Reason:       "租赁结算退款",
+				NotifyURL:    cfg.RefundNotifyURL,
+			})
+			if err != nil {
+				refundRecord.Status = "failed"
+				fr := err.Error()
+				refundRecord.FailReason = &fr
+				log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, err)
+				settlement.RefundStatus = "failed"
+			} else {
+				refundRecord.RefundID = &result.RefundID
+				settlement.RefundStatus = "refunding"
+			}
+		}
+		refundRecord.OutRefundNo = &outRefundNo
+
+		if err := tx.Create(&refundRecord).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create refund record"})
+			return
+		}
+		if err := tx.Model(&settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update settlement status"})
 			return
 		}
 	}
