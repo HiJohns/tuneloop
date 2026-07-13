@@ -15,7 +15,6 @@ const MAIN_TABS = [
 const SUB_FILTERS = {
   active: [
     { key: '', label: '全部' },
-    { key: 'reserved', label: '未支付' },
     { key: 'paid', label: '待发货' },
     { key: 'shipped', label: '已发货' },
     { key: 'in_lease', label: '租赁中' },
@@ -59,7 +58,7 @@ const isScheduledPeriod = (status) =>
   ['completed', 'returned', 'returning', 'cancelled'].includes(status)
 
 const MAIN_INCLUDE = {
-  active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
+  active: ['paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
   completed: ['returned', 'completed', 'cancelled', 'transferred'],
 }
 
@@ -183,7 +182,6 @@ export default function MyLeases() {
           <View className="space-y-3">
               {orders.map(order => {
               const showReturn = order.status === 'in_lease'
-              const showPay = order.status === 'reserved'
               const showCancel = ['paid', 'pending_shipment'].includes(order.status)
               const showConfirm = order.status === 'shipped'
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
@@ -198,7 +196,7 @@ export default function MyLeases() {
                   <Text className="text-sm font-black text-black flex-1 min-w-0 truncate">
                     订单 #{order.id?.slice(0, 8)}
                   </Text>
-                  <Text className={`text-xs px-2 py-1 rounded-full font-bold flex-shrink-0 ml-2 ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
+                  <Text className={`text-xs px-2 py-1 rounded-full font-bold flex-shrink-0 ml-2 text-center inline-flex items-center justify-center ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
@@ -227,14 +225,6 @@ export default function MyLeases() {
                 <View className="mt-3 flex gap-2">
                   {!isTerminal && (
                     <>
-                      {showPay && (
-                        <Button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
-                          className="flex-1 py-2.5 bg-black text-white rounded-xl font-black text-sm"
-                        >
-                          立即支付
-                        </Button>
-                      )}
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
@@ -262,7 +252,7 @@ export default function MyLeases() {
                           取消订单
                         </Button>
                       )}
-                      {!showPay && !showConfirm && !showReturn && !showCancel && (
+                      {!showConfirm && !showReturn && !showCancel && (
                         <View className="w-full py-2.5 bg-zinc-100 rounded-xl text-center">
                           <Text className="text-zinc-400 font-black text-sm">等待处理</Text>
                         </View>

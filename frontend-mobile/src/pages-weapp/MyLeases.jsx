@@ -14,7 +14,6 @@ const MAIN_TABS = [
 const SUB_FILTERS = {
   active: [
     { key: '', label: '全部' },
-    { key: 'reserved', label: '未支付' },
     { key: 'paid', label: '待发货' },
     { key: 'shipped', label: '已发货' },
     { key: 'in_lease', label: '租赁中' },
@@ -62,7 +61,7 @@ const isScheduledPeriod = (status) =>
   ['completed', 'returned', 'returning', 'cancelled'].includes(status)
 
 const MAIN_INCLUDE = {
-  active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
+  active: ['paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
   completed: ['returned', 'completed', 'cancelled', 'transferred'],
 }
 
@@ -198,7 +197,6 @@ export default function MyLeases() {
           <View>
               {orders.map(order => {
               const showReturn = order.status === 'in_lease'
-              const showPay = order.status === 'reserved'
               const showCancel = ['paid', 'pending_shipment'].includes(order.status)
               const showConfirm = order.status === 'shipped'
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
@@ -213,7 +211,7 @@ export default function MyLeases() {
                   <Text style={{ fontSize: 14, fontWeight: '900', color: '#000', flex: '1 1 0%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     订单 #{order.id?.slice(0, 8)}
                   </Text>
-                  <Text style={{ fontSize: 12, padding: '2px 8px', borderRadius: 999, fontWeight: '700', flexShrink: 0, marginLeft: 8, ...(STATUS_COLORS[order.status] || { backgroundColor: '#f3f4f6', color: '#4b5563' }) }}>
+                  <Text style={{ fontSize: 12, padding: '2px 8px', borderRadius: 999, fontWeight: '700', flexShrink: 0, marginLeft: 8, textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1.4, ...(STATUS_COLORS[order.status] || { backgroundColor: '#f3f4f6', color: '#4b5563' }) }}>
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
@@ -242,14 +240,6 @@ export default function MyLeases() {
                 <View style={{ marginTop: 12, display: 'flex' }}>
                   {!isTerminal && (
                     <>
-                      {showPay && (
-                        <Button
-                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
-                        >
-                          立即支付
-                        </Button>
-                      )}
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
@@ -277,7 +267,7 @@ export default function MyLeases() {
                           取消订单
                         </Button>
                       )}
-                      {!showPay && !showConfirm && !showReturn && !showCancel && (
+                      {!showConfirm && !showReturn && !showCancel && (
                         <View style={{ width: '100%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', borderRadius: 12, textAlign: 'center' }}>
                           <Text style={{ color: '#a1a1aa', fontWeight: '900', fontSize: 14, textAlign: 'center' }}>等待处理</Text>
                         </View>

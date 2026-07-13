@@ -139,18 +139,23 @@
 ```json
 {
   "base_daily_rent": 10.00,
-  "tier_discount_rate": 0.7,
+  "rent_days": 30,
   "membership_discount_rate": 0.9,
   "promo_discount_rates": [0.95],
-  "final_daily_rent": 5.99,
-  "rent_days": 30,
-  "total_amount": 179.70,
+  "final_daily_rent": 8.55,
+  "total_amount": 256.50,
+  "tier_segments": [
+    {"tier": 1, "days": 30, "rate": 10.00, "discount": 0.855, "subtotal": 256.50}
+  ],
   "applied_policies": [
+    {"type": "tier_discount", "plan_name": "阶梯折扣"},
     {"type": "membership_discount", "plan_name": "系统默认", "rate": 0.9},
     {"type": "promo_campaign", "plan_name": "夏日促销", "rate": 0.95}
   ]
 }
 ```
+
+> 注：`tier_segments[i].discount` 为含所有折扣的累计系数（阶梯折扣 × 会员折扣 × 促销折扣）。`final_daily_rent` 为加权平均日租金。`total_amount` = Σ(segment.rate × segment.discount × segment.days)。
 
 ---
 

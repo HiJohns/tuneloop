@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"math"
 	"time"
 
 	"tuneloop-backend/database"
@@ -16,29 +17,33 @@ type PricingTierConfig struct {
 	DiscountPercent int     `json:"discount_percent"`
 }
 
-type PricingBreakdown struct {
-	// Rent calculation
-	BaseDailyRent         float64            `json:"base_daily_rent"`
-	RentDays              int                `json:"rent_days"`
-	TierDiscountRate      float64            `json:"tier_discount_rate"`
-	MembershipDiscountRate float64           `json:"membership_discount_rate,omitempty"`
-	PromoDiscountRates    []float64          `json:"promo_discount_rates,omitempty"`
-	FinalDailyRent        float64            `json:"final_daily_rent"`
-	TotalAmount           float64            `json:"total_amount"` // rent subtotal (before deposit + shipping)
+type TierSegment struct {
+	Tier  int     `json:"tier"`
+	Days  int     `json:"days"`
+	Rate  float64 `json:"rate"`
+	Discount float64 `json:"discount"`
+	Subtotal  float64 `json:"subtotal"`
+}
 
-	// Deposit calculation evidence
+type PricingBreakdown struct {
+	BaseDailyRent          float64            `json:"base_daily_rent"`
+	RentDays               int                `json:"rent_days"`
+	MembershipDiscountRate float64            `json:"membership_discount_rate,omitempty"`
+	PromoDiscountRates     []float64          `json:"promo_discount_rates,omitempty"`
+	FinalDailyRent         float64            `json:"final_daily_rent"`
+	TotalAmount            float64            `json:"total_amount"`
+
 	Deposit           float64  `json:"deposit"`
-	DepositMethod     string   `json:"deposit_method"`              // "total_price" or "base_daily_rate"
-	DepositRatio      float64  `json:"deposit_ratio,omitempty"`     // config ratio when total_price-based
-	DepositMultiplier float64  `json:"deposit_multiplier,omitempty"` // config multiplier when daily-rate-based
-	TotalPrice        float64  `json:"total_price,omitempty"`       // instrument total_price (if used for deposit)
+	DepositMethod     string   `json:"deposit_method"`
+	DepositRatio      float64  `json:"deposit_ratio,omitempty"`
+	DepositMultiplier float64  `json:"deposit_multiplier,omitempty"`
+	TotalPrice        float64  `json:"total_price,omitempty"`
 	ShippingFee       float64  `json:"shipping_fee,omitempty"`
 
-	// Pricing strategy snapshot
 	PricingTiers    []PricingTierConfig `json:"pricing_tiers,omitempty"`
+	TierSegments    []TierSegment       `json:"tier_segments"`
 
-	// All applied discounts
-	AppliedPolicies  []AppliedPolicy `json:"applied_policies"`
+	AppliedPolicies []AppliedPolicy `json:"applied_policies"`
 }
 
 type AppliedPolicy struct {
@@ -63,37 +68,68 @@ type RentCalcInput struct {
 	PricingTiers      []PricingTierConfig
 }
 
-func GetTierDiscount(leaseTerm int) float64 {
-	switch {
-	case leaseTerm <= 30:
-		return 1.0
-	case leaseTerm <= 180:
-		return 0.95
-	case leaseTerm <= 365:
-		return 0.70
-	default:
-		return 0.50
+var defaultTiers = []PricingTierConfig{
+	{DaysMax: 30, DiscountPercent: 0},
+	{DaysMax: 180, DiscountPercent: 5},
+	{DaysMax: 365, DiscountPercent: 30},
+	{DaysMax: -1, DiscountPercent: 50},
+}
+
+func computeTierSegments(totalDays int, tiers []PricingTierConfig) []TierSegment {
+	if len(tiers) == 0 {
+		tiers = defaultTiers
 	}
+	var segments []TierSegment
+	prevMax := 0
+	tierIndex := 1
+	for _, t := range tiers {
+		remaining := totalDays - prevMax
+		if remaining <= 0 {
+			break
+		}
+		var segDays int
+		if t.DaysMax < 0 {
+			segDays = remaining
+		} else {
+			segDays = t.DaysMax - prevMax
+			if segDays > remaining {
+				segDays = remaining
+			}
+		}
+		if segDays <= 0 {
+			prevMax = t.DaysMax
+			continue
+		}
+		discount := 1.0 - float64(t.DiscountPercent)/100.0
+		segments = append(segments, TierSegment{
+			Tier:     tierIndex,
+			Days:     segDays,
+			Discount: discount,
+		})
+		tierIndex++
+		prevMax += segDays
+	}
+	return segments
 }
 
 func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	db := database.GetDB().WithContext(nil)
-	_ = db
 
 	result := &PricingBreakdown{
 		BaseDailyRent:    input.BaseDailyRate,
-		TierDiscountRate: GetTierDiscount(input.LeaseTerm),
 		RentDays:         input.LeaseTerm,
 		PromoDiscountRates: []float64{},
 		AppliedPolicies:  []AppliedPolicy{},
+		PricingTiers:     input.PricingTiers,
+		TierSegments:     computeTierSegments(input.LeaseTerm, input.PricingTiers),
 	}
 
-	finalRate := input.BaseDailyRate * result.TierDiscountRate
+	membershipRate := 1.0
+	promoRate := 1.0
 
 	result.AppliedPolicies = append(result.AppliedPolicies, AppliedPolicy{
 		Type:     "tier_discount",
 		PlanName: "阶梯折扣",
-		Rate:     result.TierDiscountRate,
 	})
 
 	if input.MembershipLevelID != nil {
@@ -101,8 +137,8 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 		if err == nil && discountRate > 0 && discountRate < 1.0 {
 			overrideEnabled, err := getInstrumentPromoOverride(db, input.InstrumentID, "discount")
 			if err == nil && overrideEnabled {
+				membershipRate = discountRate
 				result.MembershipDiscountRate = discountRate
-				finalRate *= discountRate
 				if planName == "" {
 					planName = "会员折扣"
 				}
@@ -119,7 +155,7 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	if err == nil {
 		for i, rate := range promoRates {
 			if rate > 0 && rate < 1.0 {
-				finalRate *= rate
+				promoRate *= rate
 				result.PromoDiscountRates = append(result.PromoDiscountRates, rate)
 				planName := promoPlans[i]
 				if planName == "" {
@@ -134,15 +170,29 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 		}
 	}
 
-	result.FinalDailyRent = finalRate
-	result.TotalAmount = finalRate * float64(input.LeaseTerm)
+	cumulativeDiscount := membershipRate * promoRate
+	totalAmount := 0.0
+	weightedSum := 0.0
+	for i := range result.TierSegments {
+		s := &result.TierSegments[i]
+		s.Rate = input.BaseDailyRate
+		s.Discount = s.Discount * cumulativeDiscount
+		s.Subtotal = s.Rate * s.Discount * float64(s.Days)
+		totalAmount += s.Subtotal
+		weightedSum += s.Rate * s.Discount * float64(s.Days)
+	}
+
+	effectiveDailyRate := totalAmount / float64(input.LeaseTerm)
+	effectiveDailyRate = math.Round(effectiveDailyRate*100) / 100
+
+	result.FinalDailyRent = effectiveDailyRate
+	result.TotalAmount = math.Round(totalAmount*100) / 100
 	result.Deposit = input.Deposit
 	result.DepositMethod = input.DepositMethod
 	result.DepositRatio = input.DepositRatio
 	result.DepositMultiplier = input.DepositMultiplier
 	result.TotalPrice = input.TotalPrice
 	result.ShippingFee = input.ShippingFee
-	result.PricingTiers = input.PricingTiers
 
 	return result, nil
 }
@@ -164,8 +214,6 @@ func getMembershipDiscount(db *gorm.DB, levelID int, tenantID string) (float64, 
 	for _, plan := range plans {
 		if plan.ScopeType == "merchant" && (plan.ScopeID == nil || *plan.ScopeID != tenantID) {
 			continue
-		}
-		if plan.ScopeType == "system" {
 		}
 
 		var detail models.PromoPlanDetail

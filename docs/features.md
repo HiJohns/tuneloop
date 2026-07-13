@@ -134,21 +134,7 @@
 
 系统支持三级会员（初级/中级/高级），按跨商户累计消费金额自动升级，仅升级不降级。会员级别影响乐器租赁价格计算（会员折扣）。
 
-### 5.2 会员折扣政策
-
-由系统管理员（sys_admin）设置系统级默认折扣方案，商户管理员（merchant_admin）可采纳系统方案或创建本商户方案覆盖。折扣政策按会员级别定义不同的租金/押金折扣率。
-
-### 5.3 返点政策
-
-系统管理员按会员级别设置不同的租金→点数返还比例。商户管理员仅可决定本商户是否参与返点。网点管理员可逐乐器决定是否适用返点。
-
-### 5.4 乐器级促销覆盖
-
-网点管理员可为每件乐器独立开启/关闭折扣政策和返点政策的适用性（不影响政策本身）。
-
-### 5.5 点数政策
-
-促销点数政策三级可覆盖（网点＞商户＞系统），定义点数可支付上限和有效期。
+详细设计见 `docs/features/membership.md`。
 
 ---
 
@@ -183,51 +169,13 @@
 ### 折扣要素
 | 折扣类型 | 来源 | 说明 |
 |---------|------|------|
-| 阶梯折扣 | 阶梯定义 | 按天数分段累加（非统一折扣率） |
-| 会员折扣 | membership_levels | 通过 `RebateConfig.RentRatio` 或 `PromoPlanDetail.RentDiscount` |
+| 阶梯折扣 | 阶梯定义 | 按天数分段累加（非统一折扣率），见 `docs/features/membership.md §2.2` |
+| 会员折扣 | membership_levels | 通过 `PromoPlanDetail.RentDiscount`，见 `docs/features/membership.md §2.2` |
 | 促销折扣 | promo_plan_details | 按 instrument_promo_overrides 判断是否适用 |
 | 逾期费率 | promo_plan_details (overdue_discount) | 默认 1.5× 日租金 |
 
-### 6.2 点数钱包
+### 6.2 租金结算与点数
 
-`backend/handlers/user_points.go` 提供三点管理：
-- **预付点**（prepaid_points）— 用户充值购买，可用于租金抵扣
-- **赠点**（promo_points）— 系统赠送/返点，仅按 points_policy.cap_rate 比例抵扣
-- 还款时优先扣预付点，赠点受上限限制
-
-### 6.3 订单支付点数抵扣
-
-`POST /api/user/orders`（CreateOrder）在创建订单时：
-1. 接收 `prepaid_points_used`、`gift_points_used` 参数
-2. 校验预付点余额 ≥ 提议使用量
-3. 校验赠点使用量 ≤ `floor(总实付 × cap_rate / 100)`
-4. 扣减对应余额（prepaid_points / promo_points）
-5. 记录 `PointsTransaction`（type=prepaid_deduction / gift_deduction）
-6. 保存 `pricing_breakdown` 和 `points_policy_snapshot` JSON 快照
-
-### 6.4 逾期自动扣款
-
-定时任务（每日凌晨 0:05）扫描 `status=in_lease AND end_date < today` 订单：
-1. 逾期租金 = `monthly_rent / 30 × overdue_discount_rate`
-2. 优先从 prepaid_points 扣款，不足部分记 `remaining_balance`
-3. 状态：success / partial / failed
-4. 失败/部分 → 通知用户 + 网点经理
-
-### 6.5 归还结算
-
-用户归还乐器时触发结算（`backend/handlers/user_settlement.go`）：
-1. 按实际租期重算租金（使用 pricing_breakdown 中的 final_daily_rent）
-2. 赠点调整：`gift_used > floor(actual_rent × cap_rate / 100)` → 退回差额
-3. 退款拆解：可提现 ≤ 原实付现金，余款退回预付点
-4. 逾期扣款计入 settlement.overdue_charges_total
-5. 确认后更新 order.status = completed，调整用户余额
-
-### 6.6 首次登录引导
-
-OAuth 登录后未完成引导的用户跳转 `/onboarding`，可选：
-- 设置昵称
-- 添加收货地址（通过 `POST /api/user/addresses`）
-- 上传身份证照片
-- 预购点数（调用 `POST /api/user/points/purchase`）
+点数钱包、订单支付点数抵扣、逾期自动扣款、归还结算详见 `docs/features/membership.md §2.4-2.5 及代码实现`。
 
 ---
