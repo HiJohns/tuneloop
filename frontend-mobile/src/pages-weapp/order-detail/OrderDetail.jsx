@@ -4,6 +4,7 @@ import { View, Text, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
+import LeaseInfo from '../../components/LeaseInfo'
 
 const STATUS = {
   reserved: { color: '#f59e0b', label: '未支付' },
@@ -369,67 +370,24 @@ export default function OrderDetail() {
         </View>
 
         {/* Order Info */}
-        <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>订单信息</Text>
-          {(() => {
-            const created = order.created_at ? formatDisplayDate(order.created_at) : '-'
-            const baseRate = pb?.final_daily_rent || pb?.base_daily_rent || order.base_daily_rate || instrument?.base_daily_rate || 0
-            const rentDays = pb?.rent_days || 0
-            const actualDays = (() => {
-              if (order.returned_at && order.start_date) {
-                const sd = new Date(order.start_date)
-                const rd = new Date(order.returned_at)
-                return Math.max(1, Math.round((rd - sd) / 86400000))
-              }
-              if (order.delivered_at && order.start_date) {
-                const sd = new Date(order.delivered_at)
-                const ed = order.end_date ? new Date(order.end_date) : new Date()
-                return Math.max(1, Math.round((ed - sd) / 86400000))
-              }
-              return 0
-            })()
-            const inLease = status === 'in_lease'
-            const returning = status === 'returning'
-            const ended = ['returned', 'completed'].includes(status)
-            const notStarted = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_transit'].includes(status)
-
-            return (
-              <>
-                {notStarted && (
-                  <>
-                    <Row label="📅 创建日期" value={created} />
-                    {rentDays > 0 && <Row label="📆 预计天数" value={`${rentDays} 天`} />}
-                    <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
-                  </>
-                )}
-                {inLease && (
-                  <>
-                    <Row label="📅 起始日期" value={startDate} />
-                    {rentDays > 0 && <Row label="📆 预计天数" value={`${rentDays} 天`} />}
-                    {actualDays > 0 && <Row label="📊 租赁天数" value={`${actualDays} 天`} />}
-                    <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
-                  </>
-                )}
-                {returning && (
-                  <>
-                    <Row label="📅 起始日期" value={startDate} />
-                    <Row label="📅 结束日期" value={returnedAt || endDate} />
-                    {actualDays > 0 && <Row label="📊 租赁天数" value={`${actualDays} 天`} />}
-                    <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
-                  </>
-                )}
-                {ended && (
-                  <>
-                    <Row label="📅 起始日期" value={startDate} />
-                    <Row label="📅 结束日期" value={endDate} />
-                    {actualDays > 0 && <Row label="📊 租赁天数" value={`${actualDays} 天`} />}
-                    <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
-                  </>
-                )}
-              </>
-            )
+        <LeaseInfo
+          status={status}
+          startDate={startDate}
+          endDate={endDate}
+          dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || order.base_daily_rate || instrument?.base_daily_rate || 0}
+          rentDays={pb?.rent_days || 0}
+          actualDays={(() => {
+            if (order.returned_at && order.start_date) {
+              return Math.max(1, Math.round((new Date(order.returned_at) - new Date(order.start_date)) / 86400000))
+            }
+            if (order.delivered_at && order.start_date) {
+              const ed = order.end_date ? new Date(order.end_date) : new Date()
+              return Math.max(1, Math.round((ed - new Date(order.delivered_at)) / 86400000))
+            }
+            return 0
           })()}
-        </View>
+          createdAt={order.created_at ? formatDisplayDate(order.created_at) : '-'}
+        />
 
         {/* Return Info */}
         {returnedAt && (

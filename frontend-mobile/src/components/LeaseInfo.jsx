@@ -1,5 +1,14 @@
 import { View, Text } from '@tarojs/components'
-import { Calendar, Clock } from 'lucide-react'
+
+function Row({ icon, label, value }) {
+  return (
+    <View style={{ display: 'flex', alignItems: 'center', paddingVertical: 5 }}>
+      <Text style={{ fontSize: 16, width: 24, textAlign: 'center', marginRight: 4 }}>{icon}</Text>
+      <Text style={{ fontSize: 13, color: '#71717a', width: 72, flexShrink: 0 }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: '#000', flex: 1, textAlign: 'right' }}>{value}</Text>
+    </View>
+  )
+}
 
 export default function LeaseInfo({ status, startDate, endDate, dailyRate, rentDays, actualDays, createdAt }) {
   const notStarted = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_transit'].includes(status)
@@ -8,189 +17,39 @@ export default function LeaseInfo({ status, startDate, endDate, dailyRate, rentD
   const ended = ['returned', 'completed'].includes(status)
 
   return (
-    <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-      <Text className="text-base font-black text-black mb-3">订单信息</Text>
-      <View className="space-y-3">
-        {notStarted && (
-          <>
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">创建日期</Text>
-                <Text className="text-sm font-black text-black">{createdAt || '-'}</Text>
-              </View>
-            </View>
-            {rentDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Clock size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计天数</Text>
-                <Text className="text-sm font-black text-black">{rentDays} 天</Text>
-              </View>
-            </View>
-            )}
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">日租金</Text>
-                <Text className="text-sm font-black text-black">¥{Number(dailyRate || 0).toFixed(2)}</Text>
-              </View>
-            </View>
-          </>
-        )}
-        {inLease && (
-          <>
-            {startDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">起始日期</Text>
-                <Text className="text-sm font-black text-black">{startDate}</Text>
-              </View>
-            </View>
-            )}
-            {rentDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Clock size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计天数</Text>
-                <Text className="text-sm font-black text-black">{rentDays} 天</Text>
-              </View>
-            </View>
-            )}
-            {actualDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租赁天数</Text>
-                <Text className="text-sm font-black text-black">{actualDays} 天</Text>
-              </View>
-            </View>
-            )}
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">日租金</Text>
-                <Text className="text-sm font-black text-black">¥{Number(dailyRate || 0).toFixed(2)}</Text>
-              </View>
-            </View>
-          </>
-        )}
-        {returning && (
-          <>
-            {startDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">起始日期</Text>
-                <Text className="text-sm font-black text-black">{startDate}</Text>
-              </View>
-            </View>
-            )}
-            {endDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">结束日期</Text>
-                <Text className="text-sm font-black text-black">{endDate}</Text>
-              </View>
-            </View>
-            )}
-            {actualDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Clock size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租赁天数</Text>
-                <Text className="text-sm font-black text-black">{actualDays} 天</Text>
-              </View>
-            </View>
-            )}
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">日租金</Text>
-                <Text className="text-sm font-black text-black">¥{Number(dailyRate || 0).toFixed(2)}</Text>
-              </View>
-            </View>
-          </>
-        )}
-        {ended && (
-          <>
-            {startDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">起始日期</Text>
-                <Text className="text-sm font-black text-black">{startDate}</Text>
-              </View>
-            </View>
-            )}
-            {rentDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Clock size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">预计天数</Text>
-                <Text className="text-sm font-black text-black">{rentDays} 天</Text>
-              </View>
-            </View>
-            )}
-            {actualDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租赁天数</Text>
-                <Text className="text-sm font-black text-black">{actualDays} 天</Text>
-              </View>
-            </View>
-            )}
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">日租金</Text>
-                <Text className="text-sm font-black text-black">¥{Number(dailyRate || 0).toFixed(2)}</Text>
-              </View>
-            </View>
-          </>
-        )}
-        {ended && (
-          <>
-            {startDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">起始日期</Text>
-                <Text className="text-sm font-black text-black">{startDate}</Text>
-              </View>
-            </View>
-            )}
-            {endDate && (
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">结束日期</Text>
-                <Text className="text-sm font-black text-black">{endDate}</Text>
-              </View>
-            </View>
-            )}
-            {actualDays > 0 && (
-            <View className="flex items-start gap-3">
-              <Clock size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">租赁天数</Text>
-                <Text className="text-sm font-black text-black">{actualDays} 天</Text>
-              </View>
-            </View>
-            )}
-            <View className="flex items-start gap-3">
-              <Calendar size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">日租金</Text>
-                <Text className="text-sm font-black text-black">¥{Number(dailyRate || 0).toFixed(2)}</Text>
-              </View>
-            </View>
-          </>
-        )}
-      </View>
+    <View style={{ backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>订单信息</Text>
+      {notStarted && (
+        <>
+          <Row icon="📅" label="创建日期" value={createdAt || '-'} />
+          {rentDays > 0 ? <Row icon="📆" label="预计天数" value={`${rentDays} 天`} /> : null}
+          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
+        </>
+      )}
+      {inLease && (
+        <>
+          <Row icon="📅" label="起始日期" value={startDate || '-'} />
+          {rentDays > 0 ? <Row icon="📆" label="预计天数" value={`${rentDays} 天`} /> : null}
+          {actualDays > 0 ? <Row icon="📊" label="租赁天数" value={`${actualDays} 天`} /> : null}
+          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
+        </>
+      )}
+      {returning && (
+        <>
+          <Row icon="📅" label="起始日期" value={startDate || '-'} />
+          <Row icon="📅" label="结束日期" value={endDate || '-'} />
+          {actualDays > 0 ? <Row icon="📊" label="租赁天数" value={`${actualDays} 天`} /> : null}
+          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
+        </>
+      )}
+      {ended && (
+        <>
+          <Row icon="📅" label="起始日期" value={startDate || '-'} />
+          <Row icon="📅" label="结束日期" value={endDate || '-'} />
+          {actualDays > 0 ? <Row icon="📊" label="租赁天数" value={`${actualDays} 天`} /> : null}
+          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
+        </>
+      )}
     </View>
   )
 }
