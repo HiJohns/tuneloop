@@ -9,6 +9,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -532,10 +533,10 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", damageAmount, order.Deposit, order.Deposit-damageAmount)
 	} else {
 		// Payment needed: damage >= deposit
-		nextOrderStatus = models.OrderStatusCompleted
+		nextOrderStatus = order.Status // keep current status, wait for payment
 		damageReport.DepositDeducted = order.Deposit
 		notifType = "payment"
-		notifActionType = "info"
+		notifActionType = "payment"
 		notifTitle = "定损付款通知"
 		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", damageAmount, order.Deposit, damageAmount-order.Deposit)
 	}
@@ -546,13 +547,55 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		return
 	}
 
-	// Update order status
+	// Update order status (only change for deposit refund, keep current for payment-needed)
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", order.ID, tenantID).Update("status", nextOrderStatus).Error; err != nil {
 		log.Printf("[AgreeDamage] Failed to update order status: %v", err)
 	}
 
-	// Update instrument if order completed
-	if nextOrderStatus == models.OrderStatusCompleted {
+	// For payment-needed damage, create payment record
+	if damageAmount >= order.Deposit && damageAmount > 0 {
+		payDiff := damageAmount - order.Deposit
+		cfg := wechatpay.GetConfig()
+		outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
+
+		record := models.OrderPaymentRecord{
+			ID:        uuid.New().String(),
+			TenantID:  tenantID,
+			UserID:    userID,
+			OrderID:   &order.ID,
+			OrderType: "damage",
+			OutTradeNo: &outTradeNo,
+			Amount:    payDiff,
+			Type:      "payment",
+			Status:    "pending",
+			Method:    strPtr("jsapi"),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		if cfg.MockMode {
+			record.Status = "paid"
+			db.Create(&record)
+			db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", order.ID, tenantID).
+				Update("status", models.OrderStatusCompleted)
+		} else {
+			db.Create(&record)
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"message": "请完成支付",
+				"data": gin.H{
+					"payment_required": true,
+					"amount":          payDiff,
+					"out_trade_no":    outTradeNo,
+					"damage_report_id": damageID,
+				},
+			})
+			return
+		}
+	}
+
+	// Update instrument if order completed (only reached in mock mode or when no payment needed)
+	if nextOrderStatus == models.OrderStatusCompleted || nextOrderStatus == models.OrderStatusDepositRefunding {
 		if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
 			log.Printf("[AgreeDamage] Failed to update instrument status: %v", err)
 		}
