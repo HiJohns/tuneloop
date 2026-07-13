@@ -143,6 +143,11 @@ export default function OverdueAlerts() {
           dataSource={data}
           loading={loading}
           rowKey="id"
+          rowClassName={(record) => {
+            if (record.status === 'failed') return 'bg-red-50 hover:bg-red-100';
+            if (record.status === 'partial') return 'bg-orange-50 hover:bg-orange-100';
+            return '';
+          }}
           pagination={{
             current: page,
             pageSize,

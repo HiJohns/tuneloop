@@ -223,6 +223,10 @@ func (s *OverdueDeductionScheduler) processOverdueOrder(order models.Order, toda
 				if err := s.db.Create(&mgrAlert).Error; err != nil {
 					log.Printf("[OverdueDeductionScheduler] failed to create manager alert: %v", err)
 				}
+				// Email notification stub — actual SMTP integration is future work
+				if mgr.Email != "" {
+					log.Printf("[OverdueDeductionScheduler] email notification for %s would be sent (stub): overdue order %s, amount %.2f", mgr.Email, order.ID, remaining)
+				}
 			}
 		}
 	}
