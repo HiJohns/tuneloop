@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -81,6 +84,7 @@ func (h *UserPointsHandler) ListTransactions(c *gin.Context) {
 func (h *UserPointsHandler) PurchasePoints(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
+	tenantID := middleware.GetTenantID(ctx)
 	db := database.GetDB().WithContext(ctx)
 
 	var req struct {
@@ -96,55 +100,66 @@ func (h *UserPointsHandler) PurchasePoints(c *gin.Context) {
 		return
 	}
 
-	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+	cfg := wechatpay.GetConfig()
+	outTradeNo := fmt.Sprintf("pts_%s_%d", userID[:8], time.Now().Unix())
+
+	record := models.OrderPaymentRecord{
+		ID:         uuid.New().String(),
+		TenantID:   tenantID,
+		UserID:     userID,
+		OrderID:    &userID,
+		OrderType:  "points",
+		OutTradeNo: &outTradeNo,
+		Amount:     req.Amount,
+		Type:       "payment",
+		Status:     "pending",
+		Method:     strPtr("jsapi"),
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+
+	if cfg.MockMode {
+		record.Status = "paid"
+		if err := db.Create(&record).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
+			return
+		}
+
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+			return
+		}
+		newPrepaid := localUser.PrepaidPoints + req.Amount
+		if err := db.Model(&localUser).Updates(map[string]interface{}{
+			"prepaid_points": newPrepaid,
+			"updated_at":     time.Now(),
+		}).Error; err != nil {
+			log.Printf("[PurchasePoints] failed to add points: %v", err)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": gin.H{
+				"mock":        true,
+				"prepaid_points": newPrepaid,
+			},
+		})
 		return
 	}
 
-	oldPrepaid := localUser.PrepaidPoints
-	oldPromo := localUser.PromoPoints
-	newPrepaid := oldPrepaid + req.Amount
-	now := time.Now()
-
-	tx := db.Begin()
-
-	if err := tx.Model(&localUser).Updates(map[string]interface{}{
-		"prepaid_points":  newPrepaid,
-		"total_spending":  localUser.TotalSpending + req.Amount,
-		"updated_at": now,
-	}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update points"})
+	if err := db.Create(&record).Error; err != nil {
+		log.Printf("[PurchasePoints] failed to create payment record: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
 		return
 	}
-
-	transaction := models.PointsTransaction{
-		ID:                  uuid.New().String(),
-		UserID:              localUser.ID,
-		TenantID:            localUser.TenantID,
-		Type:                "prepaid_purchase",
-		Amount:              req.Amount,
-		BalanceAfterPrepaid: newPrepaid,
-		BalanceAfterPromo:   oldPromo,
-		Description:         "预购点数",
-		CreatedAt:           now,
-	}
-
-	if err := tx.Create(&transaction).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record transaction"})
-		return
-	}
-
-	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"prepaid_points": newPrepaid,
-			"promo_points":   oldPromo,
-			"transaction_id": transaction.ID,
+			"payment_required": true,
+			"amount":           req.Amount,
+			"out_trade_no":     outTradeNo,
 		},
 	})
 }
