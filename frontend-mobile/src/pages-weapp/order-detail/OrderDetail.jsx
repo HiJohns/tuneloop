@@ -388,7 +388,8 @@ export default function OrderDetail() {
               }
               return 0
             })()
-            const inProgress = ['in_lease', 'returning'].includes(status)
+            const inLease = status === 'in_lease'
+            const returning = status === 'returning'
             const ended = ['returned', 'completed'].includes(status)
             const notStarted = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_transit'].includes(status)
 
@@ -401,10 +402,18 @@ export default function OrderDetail() {
                     <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
                   </>
                 )}
-                {inProgress && (
+                {inLease && (
                   <>
                     <Row label="📅 起始日期" value={startDate} />
                     {rentDays > 0 && <Row label="📆 预计天数" value={`${rentDays} 天`} />}
+                    {actualDays > 0 && <Row label="📊 租赁天数" value={`${actualDays} 天`} />}
+                    <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
+                  </>
+                )}
+                {returning && (
+                  <>
+                    <Row label="📅 起始日期" value={startDate} />
+                    <Row label="📅 结束日期" value={returnedAt || endDate} />
                     {actualDays > 0 && <Row label="📊 租赁天数" value={`${actualDays} 天`} />}
                     <Row label="💰 日租金" value={`¥${Number(baseRate).toFixed(2)}`} />
                   </>
