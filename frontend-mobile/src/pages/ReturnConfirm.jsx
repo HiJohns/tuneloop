@@ -107,12 +107,12 @@ export default function ReturnConfirm() {
       {order && (
         <LeaseInfo
           status={order.status}
-          startDate={order.start_date ? formatDisplayDate(order.start_date) : '-'}
-          endDate={order.end_date ? formatDisplayDate(order.end_date) : '-'}
+          startDate={order.start_date}
+          endDate={order.end_date}
+          deliveredAt={order.delivered_at}
           dailyRate={order.pricing_breakdown?.final_daily_rent || order.pricing_breakdown?.base_daily_rent || 0}
           rentDays={order.pricing_breakdown?.rent_days || 0}
-          actualDays={order.start_date && order.returned_at ? Math.max(1, Math.round(((new Date(order.returned_at) - new Date(order.start_date)) / 86400000))) : order.start_date && order.end_date ? Math.max(1, Math.round(((new Date(order.end_date) - new Date(order.start_date)) / 86400000))) : 0}
-          createdAt={order.created_at ? formatDisplayDate(order.created_at) : '-'}
+          createdAt={order.created_at}
         />
       )}
 

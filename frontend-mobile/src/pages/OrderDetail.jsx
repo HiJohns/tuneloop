@@ -193,8 +193,9 @@ export default function OrderDetail() {
   const endDate = formatDisplayDate(order.end_date)
   const returnedAt = order.returned_at ? formatDisplayDate(order.returned_at) : null
   const leaseTerm = order.lease_term || 0
-  const rentalDays = (order.start_date && (order.end_date || order.returned_at))
-    ? Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000)))
+  const effStartDate = order.delivered_at || order.start_date
+  const rentalDays = (effStartDate && (order.end_date || order.returned_at))
+    ? Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(effStartDate)) / 86400000)))
     : leaseTerm * 30
    const deposit = order.deposit || 0
    const shippingFee = order.shipping_fee || 0
@@ -282,12 +283,12 @@ export default function OrderDetail() {
       {/* Lease Info */}
       <LeaseInfo
         status={status}
-        startDate={startDate}
-        endDate={endDate}
+        startDate={order.start_date}
+        endDate={order.end_date}
+        deliveredAt={order.delivered_at}
         dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || 0}
         rentDays={pb?.rent_days || 0}
-        actualDays={rentalDays}
-        createdAt={formatDisplayDate(order.created_at)}
+        createdAt={order.created_at}
       />
 
       {/* Return Info */}

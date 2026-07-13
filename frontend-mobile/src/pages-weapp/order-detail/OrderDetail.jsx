@@ -372,21 +372,12 @@ export default function OrderDetail() {
         {/* Order Info */}
         <LeaseInfo
           status={status}
-          startDate={startDate}
-          endDate={endDate}
+          startDate={order.start_date}
+          endDate={order.end_date}
+          deliveredAt={order.delivered_at}
           dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || order.base_daily_rate || instrument?.base_daily_rate || 0}
           rentDays={pb?.rent_days || 0}
-          actualDays={(() => {
-            if (order.returned_at && order.start_date) {
-              return Math.max(1, Math.round((new Date(order.returned_at) - new Date(order.start_date)) / 86400000))
-            }
-            if (order.delivered_at && order.start_date) {
-              const ed = order.end_date ? new Date(order.end_date) : new Date()
-              return Math.max(1, Math.round((ed - new Date(order.delivered_at)) / 86400000))
-            }
-            return 0
-          })()}
-          createdAt={order.created_at ? formatDisplayDate(order.created_at) : '-'}
+          createdAt={order.created_at}
         />
 
         {/* Return Info */}

@@ -238,12 +238,12 @@ export default function StaffInstrumentDetail() {
         {activeOrder && (
           <LeaseInfo
             status={activeOrder.status}
-            startDate={activeOrder.start_date ? formatDisplayDate(activeOrder.start_date) : '-'}
-            endDate={activeOrder.end_date ? formatDisplayDate(activeOrder.end_date) : '-'}
+            startDate={activeOrder.start_date}
+            endDate={activeOrder.end_date}
+            deliveredAt={activeOrder.delivered_at}
             dailyRate={activeOrder.pricing_breakdown?.final_daily_rent || activeOrder.pricing_breakdown?.base_daily_rent || 0}
             rentDays={activeOrder.pricing_breakdown?.rent_days || 0}
-            actualDays={activeOrder.start_date && activeOrder.returned_at ? Math.max(1, Math.round(((new Date(activeOrder.returned_at) - new Date(activeOrder.start_date)) / 86400000))) : activeOrder.start_date && activeOrder.end_date ? Math.max(1, Math.round(((new Date(activeOrder.end_date) - new Date(activeOrder.start_date)) / 86400000))) : 0}
-            createdAt={activeOrder.created_at ? formatDisplayDate(activeOrder.created_at) : '-'}
+            createdAt={activeOrder.created_at}
           />
         )}
 

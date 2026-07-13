@@ -111,12 +111,12 @@ export default function ReceiveConfirm() {
       {order && (
         <LeaseInfo
           status={order.status}
-          startDate={startDate}
-          endDate={endDate}
+          startDate={order.start_date}
+          endDate={order.end_date}
+          deliveredAt={order.delivered_at}
           dailyRate={order.pricing_breakdown?.final_daily_rent || order.pricing_breakdown?.base_daily_rent || 0}
           rentDays={order.pricing_breakdown?.rent_days || 0}
-          actualDays={rentalDays}
-          createdAt={order.created_at ? formatDisplayDate(order.created_at) : '-'}
+          createdAt={order.created_at}
         />
       )}
 
