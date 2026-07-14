@@ -144,7 +144,7 @@ export default function MembershipCenter() {
       {/* Navigation bar — H5 only, weapp uses native nav */}
       {!env.isMiniProgram && (
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">
-        <Text className="text-lg mr-2" onClick={() => Taro.navigateBack()}>{'<'}</Text>
+        <Text className="text-lg mr-2" onClick={() => window.history.back()}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center mr-4">会员中心</Text>
       </View>
       )}
