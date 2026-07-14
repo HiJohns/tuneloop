@@ -200,7 +200,7 @@ export default function OrderDetail() {
    const deposit = order.deposit || 0
    const shippingFee = order.shipping_fee || 0
    const pb = order.pricing_breakdown
-   const rentSubtotal = (pb && pb.total_amount) || order.monthly_rent || 0
+   const rentSubtotal = (pb && pb.total_amount) || 0
    const dailyRate = (pb && pb.final_daily_rent) || (pb && pb.base_daily_rent) || 0
 
    const settlement = order.settlement

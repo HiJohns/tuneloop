@@ -277,7 +277,7 @@ export default function OrderDetail() {
   const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(order.end_date)) / 86400000) : 0
   const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : 0).toFixed(2) : 0
 
-  const totalAmount = (pb?.total_amount || order.monthly_rent || 0) + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
+  const totalAmount = (pb?.total_amount || 0) + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
   const showPayButton = status === 'reserved'
   const showCancelButton = status === 'paid' || status === 'pending_shipment' || status === 'in_transit'
@@ -473,7 +473,7 @@ export default function OrderDetail() {
             </>
           ) : (
             <>
-              <Row label="租金" value={`¥${order.monthly_rent || 0}`} />
+              <Row label="租金" value={`¥${Number(pb?.total_amount || 0).toFixed(2)}`} />
               <Row label="押金" value={`¥${deposit}`} />
               <Row label="物流费" value={`¥${shippingFee}`} />
             </>

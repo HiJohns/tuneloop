@@ -59,8 +59,13 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 	}
 
 	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
-	if finalDailyRent == 0 && order.MonthlyRent > 0 {
-		finalDailyRent = order.MonthlyRent / 25
+	if finalDailyRent == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb map[string]interface{}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
+				finalDailyRent = v
+			}
+		}
 	}
 	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
@@ -82,7 +87,16 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 
 	totalPaid := order.CashPaid + order.PrepaidPointsUsed
 	if totalPaid == 0 {
-		totalPaid = order.MonthlyRent + order.Deposit + order.ShippingFee
+		rentPaid := 0.0
+		if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+			var pb map[string]interface{}
+			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+				if v, ok := pb["total_amount"].(float64); ok {
+					rentPaid = v
+				}
+			}
+		}
+		totalPaid = rentPaid + order.Deposit + order.ShippingFee
 	}
 
 	giftCap := math.Floor(actualRentAmount * capRate / 100)
@@ -188,7 +202,16 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 
 	totalPaid := order.CashPaid + order.PrepaidPointsUsed
 	if totalPaid == 0 {
-		totalPaid = order.MonthlyRent + order.Deposit + order.ShippingFee
+		rentPaid := 0.0
+		if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+			var pb map[string]interface{}
+			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+				if v, ok := pb["total_amount"].(float64); ok {
+					rentPaid = v
+				}
+			}
+		}
+		totalPaid = rentPaid + order.Deposit + order.ShippingFee
 	}
 	totalRefund := 0.0
 	if totalPaid > actualRentAmount {

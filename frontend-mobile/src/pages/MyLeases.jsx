@@ -46,13 +46,13 @@ const STATUS_COLORS = {
 }
 
 const getActualRent = (order) => {
-  if (!order.pricing_breakdown) return order.monthly_rent
+  if (!order.pricing_breakdown) return 0
   try {
     const pb = typeof order.pricing_breakdown === 'string'
       ? JSON.parse(order.pricing_breakdown)
       : order.pricing_breakdown
-    return pb?.actual_rent_amount || order.monthly_rent
-  } catch { return order.monthly_rent }
+    return pb?.total_amount || pb?.actual_rent_amount || 0
+  } catch { return 0 }
 }
 
 const isScheduledPeriod = (status) =>
@@ -218,7 +218,7 @@ export default function MyLeases() {
                   )}
                   <View className="flex items-center gap-2">
                     <Text className="text-zinc-400 font-medium">总金额:</Text>
-                    <Text className="text-black font-black">¥{(order.monthly_rent || 0) + (order.deposit || 0) + (order.shipping_fee || 0)}</Text>
+                    <Text className="text-black font-black">¥{(getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)}</Text>
                   </View>
                 </View>
                   </View>

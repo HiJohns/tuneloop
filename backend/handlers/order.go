@@ -269,7 +269,6 @@ func GetOrder(c *gin.Context) {
 		"level":                 order.Level,
 		"lease_term":            order.LeaseTerm,
 		"deposit_mode":          order.DepositMode,
-		"monthly_rent":          order.MonthlyRent,
 		"deposit":               order.Deposit,
 		"shipping_fee":          order.ShippingFee,
 		"accumulated_months":    order.AccumulatedMonths,
@@ -729,7 +728,6 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 			"instrument_sn":  sn,
 			"start_date":     order.StartDate,
 			"end_date":       order.EndDate,
-			"monthly_rent":   order.MonthlyRent,
 			"deposit":        order.Deposit,
 		},
 	})

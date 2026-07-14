@@ -63,7 +63,8 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 
 	// Placeholder for total revenue (to be calculated from orders)
 	var totalRevenue float64
-	db.Model(&models.Order{}).Where("tenant_id = ? AND status = ?", tenantID, "completed").Select("SUM(monthly_rent)").Scan(&totalRevenue)
+	db.Raw("SELECT COALESCE(SUM((pricing_breakdown->>'total_amount')::numeric), 0) FROM orders WHERE tenant_id = ? AND status = ? AND pricing_breakdown IS NOT NULL",
+		tenantID, "completed").Scan(&totalRevenue)
 	stats.TotalRevenue = totalRevenue
 
 	c.JSON(http.StatusOK, gin.H{

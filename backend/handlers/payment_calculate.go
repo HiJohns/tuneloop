@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"math"
 	"net/http"
@@ -105,7 +106,16 @@ func loadRentPayment(db *gorm.DB, userID, id string, resp *PaymentCalculateRespo
 		return
 	}
 	resp.Title = "租赁支付"
-	resp.Amount = order.MonthlyRent + order.Deposit + order.ShippingFee
+	resp.Amount = 0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb map[string]interface{}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			if v, ok := pb["total_amount"].(float64); ok {
+				resp.Amount = v
+			}
+		}
+	}
+	resp.Amount += order.Deposit + order.ShippingFee
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		resp.Details = map[string]interface{}{
 			"pricing_breakdown": *order.PricingBreakdown,

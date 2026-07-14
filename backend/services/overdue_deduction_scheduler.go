@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -87,7 +88,21 @@ func (s *OverdueDeductionScheduler) processOverdueOrder(order models.Order, toda
 	}
 
 	overdueRate := s.getOverdueRate(order)
-	overdueAmount := order.MonthlyRent / 30 * overdueRate
+	dailyRate := 0.0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb map[string]interface{}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			if v, ok := pb["final_daily_rent"].(float64); ok && v > 0 {
+				dailyRate = v
+			} else if v, ok := pb["base_daily_rent"].(float64); ok {
+				dailyRate = v
+			}
+		}
+	}
+	if dailyRate <= 0 {
+		dailyRate = order.MonthlyRent / 30
+	}
+	overdueAmount := dailyRate * overdueRate
 
 	var user models.User
 	if err := s.db.Where("id = ?", order.UserID).First(&user).Error; err != nil {

@@ -438,7 +438,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		InstrumentID:      req.InstrumentID,
 		Level:             instrument.Level,
 		LeaseTerm:         months,
-		MonthlyRent:       rentSubtotal,
+		MonthlyRent:       0,
 		Deposit:           deposit,
 		ShippingFee:       shippingFee,
 		Status:            models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
@@ -813,7 +813,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			InstrumentID: item.InstrumentID,
 			Level:        lockedInstrument.Level,
 			LeaseTerm:    months,
-			MonthlyRent: rentSubtotal,
+			MonthlyRent: 0,
 			Deposit:      deposit,
 			ShippingFee:  shippingFee,
 			Status:       models.OrderStatusReserved,
