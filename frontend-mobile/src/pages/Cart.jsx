@@ -211,42 +211,44 @@ export default function Cart() {
                       const pricing = getItemPricing(item)
                       const itemSubtotal = pricing.rent + pricing.deposit + (pricing.shippingFee || 0)
                       return (
-                        <View key={itemId} className="py-4 flex flex-col space-y-3">
-                          <View className="flex items-center justify-between w-full">
+                        <View key={itemId} className="py-4 flex space-y-3">
+                          {/* Left column: image + delete */}
+                          <View className="flex flex-col items-center flex-shrink-0" style={{ width: 80 }}>
                             <View
-                              className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex flex-col items-center"
+                              className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center"
+                              onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)}
                             >
-                              <View onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)} className="w-full h-16 flex items-center justify-center">
-                                <Image src={imgSrc} className="w-16 h-16 object-contain" />
-                              </View>
-                              <Text className="text-[10px] text-red-500 font-bold mt-0.5" onClick={() => handleRemove(itemId)}>删除</Text>
+                              <Image src={imgSrc} className="w-16 h-16 object-contain" />
                             </View>
-
-                            <View className="flex-1 ml-3 flex flex-col space-y-1 min-w-0">
-                              <View className="flex items-center space-x-1.5 min-w-0">
-                                <Text className="text-xl font-black text-black tracking-wide truncate">{item.sn || item.name || '未知乐器'}</Text>
-                              </View>
-                              <View className="flex items-center space-x-1">
-                                {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
-                                <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
-                              </View>
-                            </View>
-
-                            <View className="flex-shrink-0 flex items-center ml-2">
-                              <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
-                                <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
-                                <Text className="px-2 text-black font-black text-xs">{item.rent_qty || item.days || 30}天</Text>
-                                <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
-                              </View>
-                            </View>
+                            <Text className="text-xs text-red-500 font-bold mt-1" onClick={() => handleRemove(itemId)}>删除</Text>
                           </View>
 
-                          {/* Per-item pricing breakdown — right aligned */}
-                          <View className="text-[10px] text-right space-y-0.5 pr-2">
-                            <Text className="block text-zinc-400">租金 ¥{pricing.rent.toFixed(0)}（¥{pricing.dailyRent}/天 × {item.rent_qty || 30}天）</Text>
-                            <Text className="block text-zinc-400">押金 ¥{pricing.deposit}</Text>
-                            <Text className="block text-zinc-400">物流费 ¥{pricing.shippingFee || 0}</Text>
-                            <Text className="block font-bold text-zinc-500 pt-0.5">小计 ¥{itemSubtotal.toFixed(0)}</Text>
+                          {/* Right column: info + pricing */}
+                          <View className="flex-1 flex flex-col space-y-2 min-w-0">
+                            <View className="flex items-center justify-between">
+                              <View className="flex-1 min-w-0">
+                                <Text className="text-xl font-black text-black tracking-wide truncate block">{item.sn || item.name || '未知乐器'}</Text>
+                                <View className="flex items-center space-x-1 mt-1">
+                                  {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
+                                  <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
+                                </View>
+                              </View>
+                              <View className="flex-shrink-0 ml-2">
+                                <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
+                                  <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
+                                  <Text className="px-2 text-black font-black text-xs">{item.rent_qty || item.days || 30}天</Text>
+                                  <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
+                                </View>
+                              </View>
+                            </View>
+
+                            {/* Pricing breakdown */}
+                            <View className="text-[10px] text-right space-y-0.5 pr-2">
+                              <Text className="block text-zinc-400">租金 ¥{pricing.rent.toFixed(0)}（¥{pricing.dailyRent}/天 × {item.rent_qty || 30}天）</Text>
+                              <Text className="block text-zinc-400">押金 ¥{pricing.deposit}</Text>
+                              <Text className="block text-zinc-400">物流费 ¥{pricing.shippingFee || 0}</Text>
+                              <Text className="block font-bold text-zinc-500 pt-0.5">小计 ¥{itemSubtotal.toFixed(0)}</Text>
+                            </View>
                           </View>
                         </View>
                       )
