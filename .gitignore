@@ -44,3 +44,4 @@ backend/backend.log
 # Node.js modules (build artifacts)
 node_modules/
 .vite/
+certs/
