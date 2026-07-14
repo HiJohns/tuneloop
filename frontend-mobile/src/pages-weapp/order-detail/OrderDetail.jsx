@@ -189,7 +189,7 @@ export default function OrderDetail() {
         if (!res.confirm) return
         setActionLoading(true)
         try {
-          const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel`, { method: 'POST' })
+          const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, { method: 'POST' })
           const result = await resp.json()
           if (result.code === 20000) {
             setOrder(prev => ({ ...prev, status: 'cancelled' }))

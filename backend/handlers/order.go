@@ -16,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // GetOrders retrieves order list with pagination and status filter
@@ -616,6 +617,71 @@ func CancelOrder(c *gin.Context) {
 			"old_status": order.Status,
 			"new_status": models.OrderStatusCancelled,
 			"updated_at": time.Now().Format(time.RFC3339),
+		},
+	})
+}
+
+// CancelOrderByCustomer allows a customer to cancel their own reserved (unpaid) order.
+// Registered in userOptionalAuth — customer JWT has no tenant/org context.
+func CancelOrderByCustomer(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order_id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	if order.Status != models.OrderStatusReserved {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "only unpaid (reserved) orders can be cancelled",
+		})
+		return
+	}
+
+	// Verify ownership: resolve local user from IAM sub
+	userID := middleware.GetUserID(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
+	if order.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "not your order"})
+		return
+	}
+
+	// Restore instrument availability
+	db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable)
+
+	if err := db.Model(&order).Update("status", models.OrderStatusCancelled).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to cancel order"})
+		return
+	}
+
+	// Refund prepaid points if used
+	if order.PrepaidPointsUsed > 0 {
+		db.Model(&models.User{}).Where("id = ?", localUser.ID).
+			Update("prepaid_points", gorm.Expr("prepaid_points + ?", order.PrepaidPointsUsed))
+	}
+	if order.GiftPointsUsed > 0 {
+		db.Model(&models.User{}).Where("id = ?", localUser.ID).
+			Update("promo_points", gorm.Expr("promo_points + ?", order.GiftPointsUsed))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":   orderID,
+			"old_status": models.OrderStatusReserved,
+			"new_status": models.OrderStatusCancelled,
 		},
 	})
 }
