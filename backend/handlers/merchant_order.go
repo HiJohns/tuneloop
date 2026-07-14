@@ -64,8 +64,12 @@ func ListMerchantOrders(c *gin.Context) {
 		InstrumentName string  `json:"instrument_name"`
 		InstrumentSN   string  `json:"instrument_sn"`
 		SiteName       string  `json:"site_name"`
+		UserName       string  `json:"user_name"`
 		StartDate      string  `json:"start_date"`
 		EndDate        string  `json:"end_date"`
+		DeliveredAt    string  `json:"delivered_at"`
+		ShippedAt      string  `json:"shipped_at"`
+		ReturnedAt     string  `json:"returned_at"`
 		TotalAmount    float64 `json:"total_amount"`
 		CreatedAt      string  `json:"created_at"`
 	}
@@ -81,6 +85,19 @@ func ListMerchantOrders(c *gin.Context) {
 			EndDate:   endStr,
 			CreatedAt: o.CreatedAt.Format("2006-01-02 15:04"),
 		}
+		// Resolve user name
+		var user models.User
+		if o.UserID != "" {
+			if err := db.Where("id = ?", o.UserID).First(&user).Error; err == nil {
+				item.UserName = user.Name
+				if item.UserName == "" { item.UserName = user.Username }
+				if item.UserName == "" { item.UserName = user.Phone }
+			}
+		}
+		// Timestamps
+		if o.DeliveredAt != nil { item.DeliveredAt = o.DeliveredAt.Format("2006-01-02") }
+		if o.ShippedAt != nil { item.ShippedAt = o.ShippedAt.Format("2006-01-02") }
+		if o.ReturnedAt != nil { item.ReturnedAt = o.ReturnedAt.Format("2006-01-02") }
 		// Fetch instrument name/SN
 		var inst models.Instrument
 		if db.First(&inst, "id = ?", o.InstrumentID).Error == nil {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Table, Card, Tag, Input, Select, Space, Spin, Button, Modal, message } from 'antd'
+import { Table, Card, Tag, Input, Select, Space, Spin, Button, Modal, message, DatePicker } from 'antd'
 import { useNavigate } from 'react-router-dom'
+import dayjs from 'dayjs'
 import api from '../services/api'
 
 const STATUS_MAP = {
@@ -15,6 +16,26 @@ const STATUS_MAP = {
   cancelled: { color: 'red', text: '已取消' },
 }
 
+const NOT_STARTED = ['reserved', 'paid', 'in_transit', 'shipped']
+
+const formatMD = (s) => {
+  if (!s) return '-'
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return s
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+const calcDays = (r) => {
+  if (NOT_STARTED.includes(r.status)) return '-'
+  if (!r.start_date) return '-'
+  const start = new Date(r.start_date)
+  if (isNaN(start.getTime())) return '-'
+  const end = r.returned_at ? new Date(r.returned_at) : new Date()
+  if (isNaN(end.getTime())) return '-'
+  const diff = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1
+  return `${diff}天`
+}
+
 export default function OrderManagement() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -23,7 +44,7 @@ export default function OrderManagement() {
   const [statusFilter, setStatusFilter] = useState('')
   const [snSearch, setSnSearch] = useState('')
   const [debugMode, setDebugMode] = useState(false)
-  const [editModal, setEditModal] = useState({ open: false, order: null, status: '', startDate: '', endDate: '' })
+  const [editModal, setEditModal] = useState({ open: false, order: null, status: '', startDate: null, endDate: null })
   const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => { api.get('/config').then(r => { if (r.code === 20000 && r.data?.debug_mode) setDebugMode(true) }).catch(() => {}) }, [])
@@ -53,11 +74,14 @@ export default function OrderManagement() {
       const m = STATUS_MAP[s] || { color: 'default', text: s }
       return <Tag color={m.color}>{m.text}</Tag>
     }},
-    { title: '租期', dataIndex: 'start_date', key: 'start_date', render: (_, r) => `${r.start_date || '?'} ~ ${r.end_date || '?'}` },
-    { title: '下单时间', dataIndex: 'created_at', key: 'created_at' },
+    { title: '租期起始', key: 'start_date', render: (_, r) => formatMD(r.start_date) },
+    { title: '租期结束', key: 'end_date', render: (_, r) => NOT_STARTED.includes(r.status) ? '-' : formatMD(r.returned_at || r.end_date) },
+    { title: '租赁天数', key: 'days', render: (_, r) => calcDays(r) },
+    { title: '租赁人', dataIndex: 'user_name', key: 'user_name', render: (v) => v || '-' },
+    { title: '下单时间', dataIndex: 'created_at', key: 'created_at', render: (v) => v ? formatMD(v) : '-' },
     ...(debugMode ? [{
       title: '操作', key: 'action', render: (_, r) => (
-        <Button size="small" onClick={() => setEditModal({ open: true, order: r, status: r.status, startDate: r.start_date || '', endDate: r.end_date || '' })}>编辑</Button>
+        <Button size="small" onClick={() => setEditModal({ open: true, order: r, status: r.status, startDate: r.start_date ? dayjs(r.start_date) : null, endDate: r.end_date ? dayjs(r.end_date) : null })}>编辑</Button>
       )
     }] : []),
   ]
@@ -85,9 +109,11 @@ export default function OrderManagement() {
         onOk={async () => {
           setEditSaving(true)
           try {
+            const startDateStr = editModal.startDate ? editModal.startDate.format('YYYY-MM-DD') : ''
+            const endDateStr = editModal.endDate ? editModal.endDate.format('YYYY-MM-DD') : ''
             const res = await api.put(`/orders/${editModal.order.id}/admin-update`, {
-              start_date: editModal.startDate,
-              end_date: editModal.endDate,
+              start_date: startDateStr,
+              end_date: endDateStr,
               status: editModal.status,
             })
             if (res.code === 20000) {
@@ -110,12 +136,12 @@ export default function OrderManagement() {
           </Select>
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>开始日期</div>
-          <Input value={editModal.startDate} onChange={e => setEditModal(p => ({ ...p, startDate: e.target.value }))} placeholder="YYYY-MM-DD" />
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>起始日期</div>
+          <DatePicker value={editModal.startDate} onChange={d => setEditModal(p => ({ ...p, startDate: d }))} style={{ width: '100%' }} placeholder="选择日期" />
         </div>
         <div style={{ marginBottom: 12 }}>
           <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>结束日期</div>
-          <Input value={editModal.endDate} onChange={e => setEditModal(p => ({ ...p, endDate: e.target.value }))} placeholder="YYYY-MM-DD" />
+          <DatePicker value={editModal.endDate} onChange={d => setEditModal(p => ({ ...p, endDate: d }))} style={{ width: '100%' }} placeholder="选择日期" />
         </div>
       </Modal>
     </Card>
