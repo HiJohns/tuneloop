@@ -15,7 +15,8 @@
 | 2 | **APIv3 密钥** | 账户中心 → API 安全 → APIv3 密钥 → 设置 | 回调签名验证 |
 | 3 | **商户证书** | 账户中心 → API 安全 → API 证书 → 下载证书 | API 请求签名 |
 | 4 | **证书序列号** | 证书下载页显示（或用 `openssl x509 -in apiclient_cert.pem -noout -serial`） | Authorization 头 |
-| 5 | **支付回调 URL** | 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名 | 固定值 `https://wx.cadenzayueqi.com/api/wechatpay/notify`（支付和退款共用） |
+| 5 | **支付回调域名（域名白名单）** | 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名 | 填入 `wx.cadenzayueqi.com`（仅域名，非完整 URL）。**
+完整回调 URL 由代码在调用微信统一下单/退款 API 时通过 `notify_url` 参数动态传入，不需也无法在平台预配置。** |
 | 7 | **产品授权：JSAPI 支付** | 产品中心 → JSAPI 支付 → 申请开通 | 小程序内支付 |
 | 8 | **产品授权：H5 支付** | 产品中心 → H5 支付 → 申请开通 | 微信外浏览器支付 |
 | 9 | **产品授权：Native 支付** | 产品中心 → Native 支付 → 申请开通 | PC 端扫码支付 |
@@ -290,7 +291,7 @@ WECHAT_PAY_PRIVATE_KEY_PATH=      # 商户私钥文件路径（apiclient_key.pem
 WECHAT_PAY_MOCK_MODE=true         # 测试环境下设为 true，走模拟支付流程
 ```
 
-> **回调 URL 不在 .env 中配置**：路径 `/api/wechatpay/notify` 和 `/api/wechatpay/refund-notify` 由 tuneloop 代码固定，域名源自 `TUNELOOP_WX_URL`。完整 URL 见 `README.md §WeChat Pay 回调 URL`，管理员需将其填入微信商户平台。
+> **回调 URL 不是微信平台配置项**：完整 URL（如 `https://wx.cadenzayueqi.com/api/wechatpay/notify`）由 tuneloop 代码在调用微信统一下单和退款 API 时通过 `notify_url` 参数动态传递。微信商户平台只需要配置 **域名白名单**（仅 `wx.cadenzayueqi.com`，不加路径），见 §一。
 ```
 
 ### 6.2 测试模式设计
