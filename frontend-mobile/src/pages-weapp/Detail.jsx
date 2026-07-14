@@ -66,6 +66,7 @@ export default function Detail() {
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
   const liveVideo = displayMedia?.video
   const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
+  const shippingFee = pricingV2?.shipping_fee || 0
 
   const cartItemCount = (() => {
     try {
