@@ -39,12 +39,20 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   const inLease = status === 'in_lease'
   const notStarted = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_transit'].includes(status)
 
-  const endDt = parseDate(effEnd)
   const startDt = parseDate(effStart)
+  const endDt = parseDate(effEnd)
   const nowDt = parseDate(today())
+  const deliveredDt = parseDate(deliveredAt)
 
-  const isOverdue = endDt && nowDt ? nowDt > endDt : false
-  const overdueDays = endDt && nowDt && isOverdue ? Math.round((nowDt - endDt) / 86400000) : 0
+  // 预期归还日 = 到货日 + rentDays（而非 order.end_date，后者按下单日计算）
+  const computedEndDt = deliveredDt && rentDays > 0
+    ? new Date(deliveredDt.getTime() + rentDays * 86400000)
+    : endDt
+
+  const displayEndDt = inLease ? computedEndDt : endDt
+
+  const isOverdue = displayEndDt && nowDt ? nowDt > displayEndDt : false
+  const overdueDays = displayEndDt && nowDt && isOverdue ? Math.round((nowDt - displayEndDt) / 86400000) : 0
 
   const leaseDays = startDt && endDt
     ? Math.max(1, Math.round((endDt - startDt) / 86400000))
@@ -56,7 +64,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
 
   return (
     <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>订单信息</Text>
+      <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>订单信息</Text>
       {notStarted && (
         <>
           <Row icon="📅" label="创建日期" value={fmt(createdAt)} />
@@ -68,11 +76,11 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
         <>
           <Row icon="📅" label="起始日期" value={fmt(effStart)} />
           {rentDays > 0 ? <Row icon="⏳" label="预期天数" value={`${rentDays} 天`} /> : null}
-          {effEnd ? (
+          {displayEndDt ? (
             <Row
               icon="🎯"
               label="预期归还"
-              value={isOverdue ? `${fmt(effEnd)}（已过期 ${overdueDays} 天）` : fmt(effEnd)}
+              value={`${fmt(displayEndDt.toISOString().slice(0, 10))}${isOverdue ? `（已过期 ${overdueDays} 天）` : ''}`}
               valueColor={isOverdue ? '#ef4444' : undefined}
             />
           ) : null}

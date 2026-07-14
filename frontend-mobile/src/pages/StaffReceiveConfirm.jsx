@@ -122,6 +122,7 @@ export default function StaffReceiveConfirm() {
           rentDays={order.pricing_breakdown?.rent_days || 0}
           createdAt={order.created_at}
         />
+      )}
 
       {/* Photo Upload */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">

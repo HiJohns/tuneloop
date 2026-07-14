@@ -299,13 +299,6 @@ export default function OrderDetail() {
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 120 }}>
-      {/* Header */}
-      <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', padding: '16px 16px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Text style={{ fontSize: 20 }} onClick={() => Taro.navigateBack()}>❮</Text>
-        <Text style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>订单详情</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: statusDef.color }}>{statusDef.label}</Text>
-      </View>
-
       <ScrollView style={{ width: '100%' }}>
         {/* Order ID + Status */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
