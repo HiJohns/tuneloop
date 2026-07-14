@@ -43,7 +43,7 @@ func LoadConfig() *Config {
 		CertSerialNo:    os.Getenv("WECHAT_PAY_CERT_SERIAL_NO"),
 		PrivateKeyPath:  os.Getenv("WECHAT_PAY_PRIVATE_KEY_PATH"),
 		NotifyURL:       baseURL + "/api/wechatpay/notify",
-		RefundNotifyURL: baseURL + "/api/wechatpay/refund-notify",
+		RefundNotifyURL: baseURL + "/api/wechatpay/notify", // same URL, WeChat distinguishes by event_type
 		MockMode:        mockMode,
 	}
 }

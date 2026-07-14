@@ -161,12 +161,13 @@ frontend-mobile:
 
 #### 回调 URL（填入微信商户平台）
 
+WeChat Pay 商户平台只提供一个回调 URL 字段，支付和退款通知均发往同一地址：
+
 | 用途 | URL |
 |------|-----|
-| 支付回调 | `https://wx.cadenzayueqi.com/api/wechatpay/notify` |
-| 退款回调 | `https://wx.cadenzayueqi.com/api/wechatpay/refund-notify` |
+| 支付/退款回调 | `https://wx.cadenzayueqi.com/api/wechatpay/notify` |
 
-> 路径由 `backend/main.go` 注册，域名随部署变化。填入位置：商户平台 → 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名。
+> 填入位置：商户平台 → 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名。
 
 ### 后端启动
 ```bash
