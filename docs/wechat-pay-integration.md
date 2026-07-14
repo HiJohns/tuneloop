@@ -15,8 +15,7 @@
 | 2 | **APIv3 密钥** | 账户中心 → API 安全 → APIv3 密钥 → 设置 | 回调签名验证 |
 | 3 | **商户证书** | 账户中心 → API 安全 → API 证书 → 下载证书 | API 请求签名 |
 | 4 | **证书序列号** | 证书下载页显示（或用 `openssl x509 -in apiclient_cert.pem -noout -serial`） | Authorization 头 |
-| 5 | **支付回调 URL** | 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名 | 固定值见 `README.md §WeChat Pay 回调 URL` |
-| 6 | **退款回调 URL** | 交易中心 → 退款配置 → 退款结果通知 URL | 同上 |
+| 5 | **支付回调 URL** | 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名 | 固定值 `https://wx.cadenzayueqi.com/api/wechatpay/notify`（支付和退款共用） |
 | 7 | **产品授权：JSAPI 支付** | 产品中心 → JSAPI 支付 → 申请开通 | 小程序内支付 |
 | 8 | **产品授权：H5 支付** | 产品中心 → H5 支付 → 申请开通 | 微信外浏览器支付 |
 | 9 | **产品授权：Native 支付** | 产品中心 → Native 支付 → 申请开通 | PC 端扫码支付 |
