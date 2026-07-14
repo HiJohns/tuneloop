@@ -441,7 +441,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		MonthlyRent:       rentSubtotal,
 		Deposit:           deposit,
 		ShippingFee:       shippingFee,
-		Status:            models.OrderStatusPaid, // No WeChat Pay integration yet — directly mark as paid
+		Status:            models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
 		StartDate:         &startDateStr,
 		EndDate:           &endDateStr,
 		CashPaid:          cashPaid,
@@ -816,7 +816,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			MonthlyRent: rentSubtotal,
 			Deposit:      deposit,
 			ShippingFee:  shippingFee,
-			Status:       models.OrderStatusPaid,
+			Status:       models.OrderStatusReserved,
 			StartDate:    &startDateStr,
 			EndDate:      &endDateStr,
 			CreatedAt:    time.Now(),
@@ -899,7 +899,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		results = append(results, orderResult{
 			OrderID: order.ID,
 			Amount:  orderAmount,
-			Status:  models.OrderStatusPaid,
+			Status:  models.OrderStatusReserved,
 		})
 		totalAmount += orderAmount
 	}
