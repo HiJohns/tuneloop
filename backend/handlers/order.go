@@ -471,13 +471,8 @@ func ReturnOrder(c *gin.Context) {
 		TrackingNumber string   `json:"tracking_number"`
 		Photos         []string `json:"photos"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
-		})
-		return
-	}
+	// Body is optional for weapp (will fill logistics later)
+	c.ShouldBindJSON(&req)
 
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)

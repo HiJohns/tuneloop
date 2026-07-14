@@ -229,7 +229,10 @@ export default function OrderDetail() {
   const handleReturn = async () => {
     setActionLoading(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/return`, { method: 'POST' })
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/return`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '归还申请已提交', icon: 'success' })
