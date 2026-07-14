@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Button, Image } from '@tarojs/components'
+import { View, Text, ScrollView, Button, Image, Canvas } from '@tarojs/components'
 import { apiFetch, addressesApi } from '../services/api'
 import { env } from '../platform'
 import regions from '../data/regions.json'
@@ -17,6 +17,7 @@ export default function MembershipCenter() {
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
+  const [qrSrc, setQrSrc] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [refCode, setRefCode] = useState('')
   const baseUrl = env.apiBaseUrl
@@ -28,15 +29,41 @@ export default function MembershipCenter() {
       if (result.code === 20000) {
         setRefCode(result.data.ref_code)
         const url = (env.isMiniProgram ? '' : window.location.origin) + result.data.url
-        QRCode.toString(url, { type: 'svg', width: 256 }, (err, svg) => {
-          if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
-          setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
-          setShowQR(true)
-        })
+        if (env.isMiniProgram) {
+          generateQRCanvas(url)
+        } else {
+          QRCode.toString(url, { type: 'svg', width: 256 }, (err, svg) => {
+            if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+            setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
+            setShowQR(true)
+          })
+        }
       }
     } catch {
       Taro.showToast({ title: '获取推广二维码失败', icon: 'none' })
     }
+  }
+
+  const generateQRCanvas = (url) => {
+    const query = Taro.createSelectorQuery()
+    query.select('#qrCanvas').fields({ node: true, size: true }).exec((res) => {
+      if (!res || !res[0] || !res[0].node) {
+        Taro.showToast({ title: '二维码生成失败', icon: 'none' })
+        return
+      }
+      const canvas = res[0].node
+      const ctx = canvas.getContext('2d')
+      canvas.width = 256
+      canvas.height = 256
+      QRCode.toCanvas(canvas, url, { width: 256, margin: 1 }, (err) => {
+        if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+        Taro.canvasToTempFilePath({
+          canvas,
+          success: (r) => { setQrSrc(r.tempFilePath); setShowQR(true) },
+          fail: () => { Taro.showToast({ title: '二维码生成失败', icon: 'none' }) },
+        })
+      })
+    })
   }
 
   const fetchUser = async () => {
@@ -171,7 +198,8 @@ export default function MembershipCenter() {
         <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowQR(false)}>
           <View className="bg-white rounded-2xl p-6 mx-8" onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-center mb-4">推广二维码</Text>
-            {qrDataUrl && <Image src={qrDataUrl} className="w-48 h-48 mx-auto" mode="aspectFit" />}
+            {env.isMiniProgram && <Canvas type="2d" id="qrCanvas" style="width:256px;height:256px;position:fixed;left:-999px;top:-999px" />}
+            {env.isMiniProgram ? (qrSrc && <Image src={qrSrc} className="w-48 h-48 mx-auto" mode="aspectFit" />) : (qrDataUrl && <Image src={qrDataUrl} className="w-48 h-48 mx-auto" mode="aspectFit" />)}
             <Text className="text-xs text-zinc-400 text-center mt-2">好友扫码注册，你获得奖励</Text>
             <Button onClick={() => setShowQR(false)} className="mt-4 py-2 bg-zinc-100 rounded-xl font-bold text-sm text-zinc-600 w-full">
               关闭
