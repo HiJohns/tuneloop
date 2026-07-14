@@ -26,12 +26,11 @@ function parsePricing(pricing) {
 }
 
 function getItemPricing(item) {
-  const pricing = parsePricing(item.pricing)
-  const dailyRent = pricing[0]?.daily_rent || item.base_daily_rate || 0
-  const deposit = pricing[0]?.deposit || 0
-  const rentQty = item.rent_qty || 1
-  const rent = item.calculated_rent !== undefined ? item.calculated_rent : dailyRent * rentQty
-  return { dailyRent, deposit, rent, shippingFee: pricing[0]?.shipping_fee || 0 }
+  const dailyRent = item.daily_rent || 0
+  const deposit = item.deposit || 0
+  const rentQty = item.rent_qty || 30
+  const rent = dailyRent * rentQty
+  return { dailyRent, deposit, rent, shippingFee: item.shipping_fee || 0 }
 }
 
 function SingleCheckout({ id, navigate }) {
@@ -563,17 +562,18 @@ function BatchCheckout({ navigate }) {
     cartItems.forEach(item => {
       const key = `${item.tenant_id || 'unknown'}-${item.site_id || 'unknown'}`
       if (!map[key]) {
-        const itemShipping = parsePricing(item.pricing)[0]?.shipping_fee || 0
         map[key] = {
           tenant_id: item.tenant_id,
           tenant_name: item.tenant_name || '',
           site_name: item.site_name || '',
           site_address: item.site_address || '',
           site_phone: item.site_phone || '',
-          shippingFee: itemShipping,
+          shippingFee: 0,
           items: [],
         }
       }
+      const itemShipping = item.shipping_fee || 0
+      if (itemShipping > map[key].shippingFee) map[key].shippingFee = itemShipping
       map[key].items.push(item)
     })
     return Object.values(map)
@@ -700,7 +700,7 @@ function BatchCheckout({ navigate }) {
                   {group.items.map((item) => {
                     const p = getItemPricing(item)
                     const images = parseImages(item.images)
-                    const imgSrc = images[0] || item.cover || ''
+                        const imgSrc = item.cover_image || images[0] || ''
                     return (
                       <View key={item.instrument_id || item.id} className="flex items-center py-1.5 border-b border-zinc-100 last:border-b-0">
                         {imgSrc && (

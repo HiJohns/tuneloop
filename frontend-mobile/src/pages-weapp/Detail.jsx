@@ -88,9 +88,11 @@ export default function Detail() {
           deposit,
           site_id: instrument?.site_id || '',
           site_name: instrument?.site_name || '',
+          site_address: instrument?.site_address || '',
           tenant_id: instrument?.tenant_id || '',
           tenant_name: instrument?.tenant_name || '',
           level_name: levelName || '',
+          shipping_fee: pricingV2?.shipping_fee || 0,
         })
         storage.setJSON('cart', cartData)
       }

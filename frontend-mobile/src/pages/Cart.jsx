@@ -48,12 +48,12 @@ function computeTieredRent(pricingV2, days, baseDailyRate) {
 }
 
 function getItemPricing(item) {
-  const days = item.rent_qty || item.days || 30
-  const baseDailyRate = parsePricing(item.pricing)[0]?.daily_rent || item.base_daily_rate || 0
-  const rent = computeTieredRent(item.pricing_v2, days, baseDailyRate)
-  const deposit = item.pricing_v2?.deposit ?? parsePricing(item.pricing)[0]?.deposit ?? 0
-  const shippingFee = item.pricing_v2?.shipping_fee ?? parsePricing(item.pricing)[0]?.shipping_fee ?? 0
-  return { dailyRent: baseDailyRate, deposit, rent, shippingFee }
+  const days = item.rent_qty || 30
+  const dailyRent = item.daily_rent || 0
+  const rent = dailyRent * days
+  const deposit = item.deposit || 0
+  const shippingFee = item.shipping_fee || 0
+  return { dailyRent, deposit, rent, shippingFee }
 }
 
 export default function Cart() {
@@ -206,7 +206,7 @@ export default function Cart() {
                   <View className="divide-y divide-zinc-50 px-4">
                     {group.items.map((item) => {
                       const images = parseImages(item.images)
-                      const imgSrc = images[0] || item.cover || PLACEHOLDER_IMAGE
+                      const imgSrc = images[0] || item.cover_image || PLACEHOLDER_IMAGE
                       const itemId = getItemId(item)
                       const pricing = getItemPricing(item)
                       return (
@@ -221,15 +221,13 @@ export default function Cart() {
 
                             <View className="flex-1 ml-3 flex flex-col space-y-1 min-w-0">
                               <View className="flex items-center space-x-1.5 min-w-0">
-                                <Text className="text-xl font-black text-black tracking-wide truncate max-w-[140px]">{item.sn || item.name || '未知乐器'}</Text>
-                                <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">
-                                  {item.level_name || '标准'}
-                                </Text>
+                                <Text className="text-xl font-black text-black tracking-wide truncate">{item.sn || item.name || '未知乐器'}</Text>
                               </View>
-                              <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold self-start">
-                                🔶 {item.category_name || item.brand || '乐器'}
-                              </Text>
-                              <Text className="text-[10px] text-zinc-400 font-medium">租金: ¥{pricing.rent}/期 · 押金: ¥{pricing.deposit}</Text>
+                              <View className="flex items-center space-x-1">
+                                {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
+                                <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
+                              </View>
+                              <Text className="text-[10px] text-zinc-400 font-medium">¥{pricing.dailyRent}/天 · 押金 ¥{pricing.deposit} · 租期 {item.rent_qty || 30}天</Text>
                             </View>
 
                             <View className="flex-shrink-0 items-end ml-2">
@@ -257,11 +255,8 @@ export default function Cart() {
 
                   <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end w-full mt-auto">
                     <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold max-w-[60%]">
-                      <Text className="truncate">🗺️ 发货仓: {group.site_address || '地址待确认'}</Text>
+                      <Text className="truncate">🗺️ 发货仓: {group.site_address || group.site_name || '-'}</Text>
                       {group.site_phone && <Text>📞 电话: {group.site_phone}</Text>}
-                      <View className="text-[10px] text-zinc-400/80 mt-1 pt-1 border-t border-zinc-200/60">
-                        含租金全款 ¥{totalRent} + 累计押金 ¥{totalDeposit} + 运费 ¥{group.shippingFee || 0}
-                      </View>
                     </View>
 
                     <View className="text-right flex-shrink-0 whitespace-nowrap">
