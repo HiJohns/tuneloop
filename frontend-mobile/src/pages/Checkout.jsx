@@ -518,7 +518,7 @@ function BatchCheckout({ navigate }) {
       return
     }
     const loadData = async () => {
-      const data = storage.getJSON('cart', { items: [] }) || { items: [] }
+      const data = storage.getJSON('cart_checkout', storage.getJSON('cart', { items: [] })) || { items: [] }
       setCartItems(data.items)
       try {
         const addrRes = await addressesApi.list()
@@ -638,7 +638,10 @@ function BatchCheckout({ navigate }) {
           if (orderId) {
             await apiFetch(`${env.apiBaseUrl}/orders/${orderId}/pay`, { method: 'POST' })
           }
-          storage.removeItem('cart')
+          const ids = new Set(cartItems.map(item => item.instrument_id || item.id))
+          const cart = storage.getJSON('cart', { items: [] }) || { items: [] }
+          storage.setJSON('cart', { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
+          storage.removeItem('cart_checkout')
           eventBus.emit('cartUpdated')
           navigate('/success', { replace: true })
         } else {

@@ -61,12 +61,25 @@ export default function Cart() {
   const [cartItems, setCartItems] = useState([])
   const [previewImages, setPreviewImages] = useState([])
   const [previewIndex, setPreviewIndex] = useState(-1)
+  const [selected, setSelected] = useState(new Set())
   const previewTouchStartX = useRef(0)
+
+  const getItemId = (item) => item.instrument_id || item.id
 
   useEffect(() => {
     const data = storage.getJSON('cart', { items: [] }) || { items: [] }
     setCartItems(data.items)
+    const sel = new Set(data.items.map(i => getItemId(i)))
+    setSelected(sel)
   }, [])
+
+  const toggleSelect = (itemId) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) next.delete(itemId); else next.add(itemId)
+      return next
+    })
+  }
 
   const groups = useMemo(() => {
     const map = {}
@@ -92,26 +105,28 @@ export default function Cart() {
 
   const grandTotal = useMemo(() => {
     let total = 0
-    for (const group of groups) {
-      let groupRent = 0
-      let groupDeposit = 0
-      for (const item of group.items) {
+    groups.forEach(group => {
+      let grpRent = 0
+      let grpDeposit = 0
+      group.items.forEach(item => {
+        if (!selected.has(getItemId(item))) return
         const p = getItemPricing(item)
-        groupRent += p.rent
-        groupDeposit += p.deposit
+        grpRent += p.rent
+        grpDeposit += p.deposit
+      })
+      if (grpRent + grpDeposit > 0) {
+        total += grpRent + grpDeposit + (group.shippingFee || 0)
       }
-      total += groupRent + groupDeposit + (group.shippingFee || 0)
-    }
+    })
     return total
-  }, [groups])
-
-  const getItemId = (item) => item.instrument_id || item.id
+  }, [groups, selected])
 
   const handleRemove = (itemId) => {
     if (dialog.confirm('确定要删除该乐器吗？')) {
       const updated = cartItems.filter(item => getItemId(item) !== itemId)
       setCartItems(updated)
       storage.setJSON('cart', { items: updated })
+      setSelected(prev => { const next = new Set(prev); next.delete(itemId); return next })
       eventBus.emit('cartUpdated')
     }
   }
@@ -153,7 +168,9 @@ export default function Cart() {
   }
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) return
+    const selItems = cartItems.filter(item => selected.has(getItemId(item)))
+    if (selItems.length === 0) return
+    storage.setJSON('cart_checkout', { items: selItems })
     navigate('/checkout')
   }
 
@@ -185,11 +202,13 @@ export default function Cart() {
               let totalRent = 0
               let totalDeposit = 0
               group.items.forEach(item => {
+                if (!selected.has(getItemId(item))) return
                 const p = getItemPricing(item)
                 totalRent += p.rent
                 totalDeposit += p.deposit
               })
-              const groupSubtotal = totalRent + totalDeposit + (group.shippingFee || 0)
+              const groupHasSelection = totalRent + totalDeposit > 0
+              const groupSubtotal = totalRent + totalDeposit + (groupHasSelection ? (group.shippingFee || 0) : 0)
 
               return (
                 <View key={group.tenant_id || 'unknown'} className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
@@ -213,6 +232,21 @@ export default function Cart() {
                       const itemSubtotal = pricing.rent + pricing.deposit + (pricing.shippingFee || 0)
                       return (
                         <View key={itemId} className="py-4 flex space-y-3">
+                          {/* Checkbox column */}
+                          <View className="flex-shrink-0 flex items-center" style={{ width: 28 }}>
+                            <View
+                              onClick={() => toggleSelect(itemId)}
+                              style={{
+                                width: 20, height: 20, borderRadius: 4, borderWidth: 2,
+                                borderColor: selected.has(itemId) ? '#B98E5F' : '#d1d5db',
+                                backgroundColor: selected.has(itemId) ? '#B98E5F' : 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
+                            >
+                              {selected.has(itemId) && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                            </View>
+                          </View>
+
                           {/* Left column: image + delete */}
                           <View className="flex flex-col items-center flex-shrink-0" style={{ width: 80 }}>
                             <View
@@ -282,8 +316,11 @@ export default function Cart() {
           <Text className="text-xl font-black text-black tracking-wide">¥{grandTotal.toFixed(0)}</Text>
         </View>
         <Button
-          className="m-0 bg-[#B98E5F] text-white font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"
+          className={grandTotal <= 0
+            ? "m-0 bg-zinc-300 text-zinc-500 font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"
+            : "m-0 bg-[#B98E5F] text-white font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"}
           onClick={handleCheckout}
+          disabled={grandTotal <= 0}
         >
           去结算
         </Button>
