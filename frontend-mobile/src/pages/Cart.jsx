@@ -259,10 +259,10 @@ export default function Cart() {
                     <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold max-w-[60%]">
                       <Text className="truncate">🗺️ 发货仓: {group.site_address || group.site_name || '-'}</Text>
                       {group.site_phone && <Text>📞 电话: {group.site_phone}</Text>}
-                      <Text className="text-[10px] text-zinc-400/80 mt-1 pt-1 border-t border-zinc-200/60">网点小计</Text>
                     </View>
 
                     <View className="text-right flex-shrink-0 whitespace-nowrap ml-4">
+                      <Text className="text-[10px] text-zinc-400 font-bold block mb-0.5">网点小计</Text>
                       <Text className="text-black font-black text-2xl tracking-tight">
                         ¥{groupSubtotal}
                       </Text>
