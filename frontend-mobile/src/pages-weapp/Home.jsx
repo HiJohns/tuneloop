@@ -85,7 +85,7 @@ function InstrumentCard({ instrument, onClick }) {
       <View style={{ width: 80, height: 80, backgroundColor: '#fafafa', borderRadius: 12, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Image src={thumb} style={{ width: 72, height: 72 }} mode="widthFix" />
       </View>
-      <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: 16 }}>
+      <View style={{ flex: '1 1 0%', marginLeft: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, minWidth: 0, flex: '1 1 0%' }}>
           <View style={{ width: '100%', minWidth: 0 }}>
             <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
@@ -358,7 +358,7 @@ export default function Home() {
               <View style={{ width: 80, height: 80, backgroundColor: '#e4e4e7', borderRadius: 12, flexShrink: 0 }}>
                 <View style={{ width: 80, height: 80, backgroundColor: '#d4d4d8', borderRadius: 12 }} />
               </View>
-              <View style={{ flex: '1 1 0%', marginLeft: 12, paddingRight: 16 }}>
+              <View style={{ flex: '1 1 0%', marginLeft: 12 }}>
                 <View style={{ height: 20, backgroundColor: '#e4e4e7', borderRadius: 4, width: '75%', marginBottom: 8 }} />
                 <View style={{ height: 16, backgroundColor: '#e4e4e7', borderRadius: 4, width: '50%' }} />
               </View>
