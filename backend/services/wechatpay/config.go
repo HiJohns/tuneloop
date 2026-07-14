@@ -30,14 +30,20 @@ func LoadConfig() *Config {
 		mockMode = true
 	}
 
+	// Callback URLs are fixed paths, domain derived from TUNELOOP_WX_URL
+	baseURL := os.Getenv("TUNELOOP_WX_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:5553"
+	}
+
 	return &Config{
 		MchID:           mchID,
 		AppID:           appID,
 		APIv3Key:        os.Getenv("WECHAT_PAY_API_V3_KEY"),
 		CertSerialNo:    os.Getenv("WECHAT_PAY_CERT_SERIAL_NO"),
 		PrivateKeyPath:  os.Getenv("WECHAT_PAY_PRIVATE_KEY_PATH"),
-		NotifyURL:       os.Getenv("WECHAT_PAY_NOTIFY_URL"),
-		RefundNotifyURL: os.Getenv("WECHAT_PAY_REFUND_NOTIFY_URL"),
+		NotifyURL:       baseURL + "/api/wechatpay/notify",
+		RefundNotifyURL: baseURL + "/api/wechatpay/refund-notify",
 		MockMode:        mockMode,
 	}
 }

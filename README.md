@@ -443,10 +443,21 @@ WECHAT_PAY_MCH_ID=                     # Merchant ID (empty = mock mode)
 WECHAT_PAY_API_V3_KEY=                 # API v3 key (32 chars)
 WECHAT_PAY_CERT_SERIAL_NO=             # Certificate serial number
 WECHAT_PAY_PRIVATE_KEY_PATH=           # Path to apiclient_key.pem
-WECHAT_PAY_NOTIFY_URL=                 # Payment callback URL
-WECHAT_PAY_REFUND_NOTIFY_URL=          # Refund callback URL
 WECHAT_PAY_MOCK_MODE=true              # Set false for real payments
+
+# 回调 URL 由 tuneloop 代码固定，不需在 .env 中配置
+# 需将以下 URL 填入微信商户平台（见下方 §WeChat Pay 回调 URL）
 ```
+
+### WeChat Pay 回调 URL（固定值，填到微信商户平台）
+
+| 用途 | URL |
+|------|-----|
+| 支付回调 | `https://wx.cadenzayueqi.com/api/wechatpay/notify` |
+| 退款回调 | `https://wx.cadenzayueqi.com/api/wechatpay/refund-notify` |
+
+> 路径由 `backend/main.go`（第 189-190 行）注册，域名随部署环境变化。
+> 将此 URL 填入微信商户平台：产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名。
 
 ### 前端 (.env)
 ```bash
