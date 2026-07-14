@@ -215,10 +215,31 @@ export default function Cart() {
                           <View className="flex items-center justify-between w-full">
                             <View
                               className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center"
+                              onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)}
+                            >
+                              <Image src={imgSrc} className="w-16 h-16 object-contain" />
+                            </View>
 
-... (rest of the card header same as before)
+                            <View className="flex-1 ml-3 flex flex-col space-y-1 min-w-0">
+                              <View className="flex items-center space-x-1.5 min-w-0">
+                                <Text className="text-xl font-black text-black tracking-wide truncate">{item.sn || item.name || '未知乐器'}</Text>
+                              </View>
+                              <View className="flex items-center space-x-1">
+                                {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
+                                <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
+                              </View>
+                              <Text className="text-[10px] text-zinc-400 font-medium">¥{pricing.dailyRent}/天 · 押金 ¥{pricing.deposit} · 租期 {item.rent_qty || 30}天</Text>
+                            </View>
 
+                            <View className="flex-shrink-0 items-end ml-2">
+                              <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
+                                <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
+                                <Text className="px-2 text-black font-black text-xs">{item.rent_qty || item.days || 30}天</Text>
+                                <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
+                              </View>
+                            </View>
                           </View>
+
                           <View className="flex items-start">
                             <View className="flex-1 min-w-0">
                               {/* Per-item pricing breakdown */}
