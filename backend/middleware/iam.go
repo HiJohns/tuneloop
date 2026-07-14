@@ -121,7 +121,7 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 			return
 		}
 
-		log.Printf("[IAM DEBUG] Token validated, claims: sub=%s, tid=%s, oid=%s, role=%s, iss=%s", claims.Subject, claims.TenantID, claims.OrgID, claims.Role, claims.Issuer)
+		log.Printf("[IAM DEBUG] Token validated, claims: sub=%s, tid=%s, oid=%s, role=%s, iss=%s", claims.UserID, claims.TenantID, claims.OrgID, claims.Role, claims.Issuer)
 
 		issuerValid := false
 		for _, issuer := range validIssuers {
@@ -155,7 +155,7 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 
 		if tenantID == "" {
 			log.Printf("[IAM] Token rejected: user %s has no organization binding (tid=%q, oid=%q, iss=%q)",
-				claims.Subject, claims.TenantID, claims.OrgID, claims.Issuer)
+				claims.UserID, claims.TenantID, claims.OrgID, claims.Issuer)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"code":    40104,
 				"message": "no organization binding in token, please contact your system administrator",
@@ -203,7 +203,7 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 			timeUntilExpiry := time.Until(claims.ExpiresAt.Time)
 			// If token expires in less than 10 minutes, set header to indicate soon expiration
 			if timeUntilExpiry < 10*time.Minute {
-				log.Printf("[IAM] Token for user %s expires in %v", claims.Subject, timeUntilExpiry)
+				log.Printf("[IAM] Token for user %s expires in %v", claims.UserID, timeUntilExpiry)
 				c.Header("X-Token-Expires-Soon", "true")
 				c.Header("X-Token-Expires-At", claims.ExpiresAt.Time.Format(time.RFC3339))
 			}
@@ -243,7 +243,7 @@ func OptionalIAMInterceptor(iamService *services.IAMService, iamClient *services
 			return
 		}
 
-		log.Printf("[IAM DEBUG] OptionalIAMInterceptor: sub=%s, tid=%s, oid=%s, role=%s, iss=%s", claims.Subject, claims.TenantID, claims.OrgID, claims.Role, claims.Issuer)
+		log.Printf("[IAM DEBUG] OptionalIAMInterceptor: sub=%s, tid=%s, oid=%s, role=%s, iss=%s", claims.UserID, claims.TenantID, claims.OrgID, claims.Role, claims.Issuer)
 
 		issuerValid := len(validIssuers) == 0
 		for _, issuer := range validIssuers {
@@ -293,7 +293,7 @@ func OptionalIAMInterceptor(iamService *services.IAMService, iamClient *services
 		if claims.ExpiresAt != nil {
 			timeUntilExpiry := time.Until(claims.ExpiresAt.Time)
 			if timeUntilExpiry < 10*time.Minute {
-				log.Printf("[IAM] Token for user %s expires in %v", claims.Subject, timeUntilExpiry)
+				log.Printf("[IAM] Token for user %s expires in %v", claims.UserID, timeUntilExpiry)
 				c.Header("X-Token-Expires-Soon", "true")
 				c.Header("X-Token-Expires-At", claims.ExpiresAt.Time.Format(time.RFC3339))
 			}
