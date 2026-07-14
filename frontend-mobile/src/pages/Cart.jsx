@@ -214,10 +214,12 @@ export default function Cart() {
                         <View key={itemId} className="py-4 flex flex-col space-y-3">
                           <View className="flex items-center justify-between w-full">
                             <View
-                              className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center"
-                              onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)}
+                              className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex-shrink-0 flex flex-col items-center"
                             >
-                              <Image src={imgSrc} className="w-16 h-16 object-contain" />
+                              <View onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)} className="w-full h-16 flex items-center justify-center">
+                                <Image src={imgSrc} className="w-16 h-16 object-contain" />
+                              </View>
+                              <Text className="text-[10px] text-red-500 font-bold mt-0.5" onClick={() => handleRemove(itemId)}>删除</Text>
                             </View>
 
                             <View className="flex-1 ml-3 flex flex-col space-y-1 min-w-0">
@@ -230,26 +232,20 @@ export default function Cart() {
                               </View>
                             </View>
 
-                            <View className="flex-shrink-0 flex items-center ml-2 space-x-2">
+                            <View className="flex-shrink-0 flex items-center ml-2">
                               <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
                                 <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
                                 <Text className="px-2 text-black font-black text-xs">{item.rent_qty || item.days || 30}天</Text>
                                 <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
                               </View>
-                              <Button
-                                className="m-0 bg-white border border-red-100 text-red-400 rounded-full w-6 h-6 text-[10px] font-bold flex items-center justify-center shadow-sm flex-shrink-0"
-                                onClick={() => handleRemove(itemId)}
-                              >
-                                <Text className="text-red-600 font-black">×</Text>
-                              </Button>
                             </View>
                           </View>
 
-                          {/* Per-item pricing breakdown */}
-                          <View className="text-[10px] text-zinc-400 space-y-0.5 pl-[92px]">
-                            <Text className="block">租金 ¥{pricing.rent.toFixed(0)}（¥{pricing.dailyRent}/天 × {item.rent_qty || 30}天）</Text>
-                            {pricing.deposit > 0 && <Text className="block">押金 ¥{pricing.deposit}</Text>}
-                            {pricing.shippingFee > 0 && <Text className="block">物流费 ¥{pricing.shippingFee}</Text>}
+                          {/* Per-item pricing breakdown — right aligned */}
+                          <View className="text-[10px] text-right space-y-0.5 pr-2">
+                            <Text className="block text-zinc-400">租金 ¥{pricing.rent.toFixed(0)}（¥{pricing.dailyRent}/天 × {item.rent_qty || 30}天）</Text>
+                            <Text className="block text-zinc-400">押金 ¥{pricing.deposit}</Text>
+                            <Text className="block text-zinc-400">物流费 ¥{pricing.shippingFee || 0}</Text>
                             <Text className="block font-bold text-zinc-500 pt-0.5">小计 ¥{itemSubtotal.toFixed(0)}</Text>
                           </View>
                         </View>
