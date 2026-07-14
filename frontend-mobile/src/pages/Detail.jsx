@@ -80,6 +80,7 @@ export default function Detail() {
       if (!cartData.items.find(i => i.id === id)) {
         cartData.items.push({
           id,
+          instrument_id: id,
           name: instrument?.name,
           sn: instrument?.sn,
           cover_image: instrument?.cover_image || '',
@@ -94,6 +95,7 @@ export default function Detail() {
           tenant_name: instrument?.tenant_name || '',
           level_name: instrument?.level_name || '',
           shipping_fee: shippingFee || 0,
+          rent_qty: 30,
         })
         storage.setJSON('cart', cartData)
       }

@@ -626,7 +626,7 @@ function BatchCheckout({ navigate }) {
       }
 
       const items = cartItems.map(item => ({
-        instrument_id: item.instrument_id,
+        instrument_id: item.instrument_id || item.id,
         start_date: dayjs().format('YYYY-MM-DD'),
         end_date: dayjs().add(item.rent_qty || 30, 'day').format('YYYY-MM-DD'),
       }))
@@ -698,7 +698,6 @@ function BatchCheckout({ navigate }) {
                       <Text>📍</Text>
                       <Text className="text-sm text-zinc-600">{group.site_name}</Text>
                     </View>
-                    <Text className="text-xs text-zinc-400">{group.items.length}件</Text>
                   </View>
                   {group.items.map((item) => {
                     const p = getItemPricing(item)
@@ -714,7 +713,7 @@ function BatchCheckout({ navigate }) {
                           <Text className="text-[10px] text-zinc-400">{item.category_name || ''}</Text>
                         </View>
                         <Text className="text-[10px] text-zinc-500 flex-shrink-0 ml-2">
-                          {item.rent_qty || 1}天 · ¥{p.rent}
+                          {item.rent_qty || 30}天 · ¥{p.rent}
                         </Text>
                       </View>
                     )
