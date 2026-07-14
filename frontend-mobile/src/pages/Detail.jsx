@@ -88,6 +88,7 @@ export default function Detail() {
           site_id: instrument?.site_id || '',
           site_name: instrument?.site_name || '',
           site_address: instrument?.site_address || '',
+          site_phone: instrument?.site_phone || '',
           tenant_id: instrument?.tenant_id || '',
           tenant_name: instrument?.tenant_name || '',
           level_name: instrument?.level_name || '',

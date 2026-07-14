@@ -257,6 +257,8 @@ export default function Cart() {
 
                   <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end w-full mt-auto">
                     <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold max-w-[60%]">
+                      <Text className="truncate">🗺️ 发货仓: {group.site_address || group.site_name || '-'}</Text>
+                      {group.site_phone && <Text>📞 电话: {group.site_phone}</Text>}
                       <Text className="text-[10px] text-zinc-400/80 mt-1 pt-1 border-t border-zinc-200/60">网点小计</Text>
                     </View>
 
