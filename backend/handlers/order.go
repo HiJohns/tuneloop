@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -628,7 +630,9 @@ func CancelOrder(c *gin.Context) {
 	})
 }
 
-// CancelOrderByCustomer allows a customer to cancel their own reserved (unpaid) order.
+// CancelOrderByCustomer allows a customer to cancel their own order.
+// Reserved orders: direct cancel + refund points.
+// Paid/pending_shipment orders: cancel + create refund session.
 // Registered in userOptionalAuth — customer JWT has no tenant/org context.
 func CancelOrderByCustomer(c *gin.Context) {
 	orderID := c.Param("id")
@@ -646,14 +650,6 @@ func CancelOrderByCustomer(c *gin.Context) {
 		return
 	}
 
-	if order.Status != models.OrderStatusReserved {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40002,
-			"message": "only unpaid (reserved) orders can be cancelled",
-		})
-		return
-	}
-
 	// Verify ownership: resolve local user from IAM sub
 	userID := middleware.GetUserID(ctx)
 	var localUser models.User
@@ -664,6 +660,9 @@ func CancelOrderByCustomer(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "not your order"})
 		return
 	}
+
+	// Remember old status before updating
+	oldStatus := order.Status
 
 	// Restore instrument availability
 	db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable)
@@ -681,6 +680,38 @@ func CancelOrderByCustomer(c *gin.Context) {
 	if order.GiftPointsUsed > 0 {
 		db.Model(&models.User{}).Where("id = ?", localUser.ID).
 			Update("promo_points", gorm.Expr("promo_points + ?", order.GiftPointsUsed))
+	}
+
+	// For paid/pending_shipment orders, create refund session and return navigation
+	if oldStatus == models.OrderStatusPaid || oldStatus == models.OrderStatusPendingShipment {
+		refundAmount := order.CashPaid
+		if refundAmount > 0 {
+			outRefundNo := fmt.Sprintf("can_%s_%d", orderID[:8], time.Now().Unix())
+			refundRecord := models.OrderRefundRecord{
+				ID:          uuid.New().String(),
+				TenantID:    order.TenantID,
+				Amount:      refundAmount,
+				OutRefundNo: &outRefundNo,
+				Reason:      strPtr("顾客取消订单"),
+				Status:      "pending",
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			}
+			if wechatpay.GetConfig().MockMode {
+				refundRecord.Status = "refunded"
+			}
+			db.Create(&refundRecord)
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"data": gin.H{
+				"order_id":      orderID,
+				"old_status":    order.Status,
+				"new_status":    models.OrderStatusCancelled,
+				"refund_amount": refundAmount,
+			},
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
