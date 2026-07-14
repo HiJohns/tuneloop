@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { getToken, redirectToLogin } from '../services/api'
 import { dialog, env, uploadFile } from '../platform'
-import { formatDisplayDate } from '../utils/format'
+import { formatDisplayDate, formatDeliveryAddress } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
@@ -18,6 +18,7 @@ export default function ReturnConfirm() {
 
   const [instrument, setInstrument] = useState(null)
   const [order, setOrder] = useState(null)
+  const [site, setSite] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [photoFiles, setPhotoFiles] = useState([])
@@ -35,7 +36,17 @@ export default function ReturnConfirm() {
         ])
         const orderResult = await orderResp.json()
         const instResult = await instResp.json()
-        if (orderResult.code === 20000) setOrder(orderResult.data)
+        if (orderResult.code === 20000) {
+          setOrder(orderResult.data)
+          // Fetch site info for return address
+          if (orderResult.data.org_id) {
+            try {
+              const siteResp = await fetch(`${baseUrl}/common/sites/${orderResult.data.org_id}`, { headers })
+              const siteResult = await siteResp.json()
+              if (siteResult.code === 20000) setSite(siteResult.data)
+            } catch {}
+          }
+        }
         if (instResult.code === 20000) setInstrument(instResult.data)
       } catch (err) {
         console.error('Failed to load data:', err)
@@ -116,13 +127,20 @@ export default function ReturnConfirm() {
         />
       )}
 
-      {order && order.delivery_address && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3">发回地址</Text>
-          <Text className="text-sm text-zinc-600">{order.delivery_address}</Text>
-          <Text className="text-xs text-red-500 mt-2">* 请确保在物流留言中填写中转单号（若有）</Text>
-        </View>
-      )}
+      {/* Return Address — use site address, not customer delivery_address */}
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+        <Text className="text-base font-black text-black mb-3">发回地址</Text>
+        {site ? (
+          <View className="text-sm text-zinc-600 space-y-1">
+            <Text className="block">{site.name}</Text>
+            <Text className="block">{site.phone || ''}</Text>
+            <Text className="block">{site.address || ''}</Text>
+          </View>
+        ) : (
+          <Text className="text-sm text-zinc-600">{order.delivery_address ? formatDeliveryAddress(order.delivery_address) : '-'}</Text>
+        )}
+        <Text className="text-xs text-red-500 mt-2 block">* 请确保在物流留言中填写中转单号（若有）</Text>
+      </View>
 
       {/* Logistics Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
