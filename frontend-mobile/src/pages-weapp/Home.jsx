@@ -399,7 +399,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
   const localTouchRef = useRef({ x: 0, offset: 0 })
 
   return (
-    <View style={{ width: '100%', overflow: 'hidden', paddingLeft: 28, backgroundColor: 'rgba(0,0,0,0.2)', paddingTop: 4, paddingBottom: 4 }}
+    <View style={{ width: '100%', overflow: 'hidden', paddingLeft: 28, paddingRight: 28, backgroundColor: 'rgba(0,0,0,0.2)', paddingTop: 4, paddingBottom: 4 }}
       onTouchStart={e => {
         localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
       }}
