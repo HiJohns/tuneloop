@@ -263,11 +263,6 @@ function SingleCheckout({ id, nav }) {
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 112 }}>
-      <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <Text style={{ fontSize: 20, color: '#000', cursor: 'pointer', marginRight: 8 }} onClick={() => Taro.navigateBack()}>←</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>确认订单</Text>
-      </View>
-
       <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 8 }}>租赁乐器</Text>
@@ -700,12 +695,6 @@ function BatchCheckout({ nav }) {
 
   return (
     <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <View style={{ width: '100%', paddingTop: 12, paddingBottom: 8, paddingLeft: 16, paddingRight: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderBottom: '1px solid #f4f4f5', flexShrink: 0 }}>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#000' }} onClick={() => Taro.navigateBack()}>❮</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>确认支付</Text>
-        <View style={{ width: 24 }}></View>
-      </View>
-
       <ScrollView style={{ width: '100%', flex: '1 1 0%', paddingBottom: 112 }} scrollY showScrollbar={false}>
         <View style={{ padding: 16, margin: 16, backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', border: '1px solid #f4f4f5', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <View style={{ textAlign: 'center' }}>

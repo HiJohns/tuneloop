@@ -38,7 +38,6 @@ export default function Search() {
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
       {/* Search bar */}
       <View style={{ backgroundColor: '#fff', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #e4e4e7' }}>
-        <Text style={{ fontSize: 20 }} onClick={() => Taro.navigateBack()}>❮</Text>
         <Input value={query} onInput={e => setQuery(e.detail.value)} confirmType="search" onConfirm={e => handleSearch(e.detail.value)}
           placeholder="搜索乐器 SN" style={{ flex: 1, height: 40, border: '1px solid #d4d4d8', borderRadius: 20, padding: '0 16px', fontSize: 14 }} />
         <Text onClick={() => handleSearch()} style={{ fontSize: 14, fontWeight: '700', color: '#915F38', padding: '4px 8px' }}>搜索</Text>

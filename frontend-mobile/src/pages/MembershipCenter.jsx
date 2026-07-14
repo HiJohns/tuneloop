@@ -114,11 +114,13 @@ export default function MembershipCenter() {
 
   return (
     <ScrollView className="h-screen w-screen bg-zinc-50">
-      {/* Navigation bar */}
+      {/* Navigation bar — H5 only, weapp uses native nav */}
+      {!env.isMiniProgram && (
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">
         <Text className="text-lg mr-2" onClick={() => Taro.navigateBack()}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center mr-4">会员中心</Text>
       </View>
+      )}
 
       {/* Membership level card */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-6">

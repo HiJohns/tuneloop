@@ -49,10 +49,6 @@ export default function EditProfile() {
 
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
-      <View style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', backgroundColor: '#fff', borderBottom: '1px solid #e4e4e7' }}>
-        <Text style={{ fontSize: 20, color: '#000' }} onClick={() => Taro.navigateBack()}>❮</Text>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', flex: 1, textAlign: 'center', marginRight: 20 }}>编辑资料</Text>
-      </View>
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
         <View style={{ marginBottom: 16 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>微信昵称</Text>
