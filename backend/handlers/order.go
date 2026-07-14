@@ -90,19 +90,34 @@ func GetOrders(c *gin.Context) {
 	storageSvc := services.MediaStorageFromContext(c)
 	for _, o := range orders {
 		item := orderListItem{Order: o}
-		var instr models.Instrument
-		if err := db.Raw("SELECT sn, category_name FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
+		var instr struct {
+			SN           string `gorm:"column:sn"`
+			CategoryName string `gorm:"column:category_name"`
+			CoverImage   string `gorm:"column:cover_image"`
+		}
+		if err := db.Raw("SELECT sn, category_name, cover_image FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
 			item.InstrumentName = instr.SN
 			item.InstrumentCategory = instr.CategoryName
+			if instr.CoverImage != "" {
+				url, _ := storageSvc.GetURL(ctx, instr.CoverImage)
+				if url != "" {
+					item.CoverImage = url
+				} else {
+					item.CoverImage = instr.CoverImage
+				}
+			}
 		}
-		var media models.InstrumentMedia
-		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
-			thumbKey := strings.TrimSuffix(media.StorageKey, filepath.Ext(media.StorageKey)) + "_thumb.jpg"
-			url, _ := storageSvc.GetURL(ctx, thumbKey)
-			if url != "" {
-				item.CoverImage = url
-			} else {
-				item.CoverImage = "/uploads/media/" + thumbKey
+		// Fallback: if no dedicated cover, use first display media
+		if item.CoverImage == "" {
+			var media models.InstrumentMedia
+			if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
+				thumbKey := strings.TrimSuffix(media.StorageKey, filepath.Ext(media.StorageKey)) + "_thumb.jpg"
+				url, _ := storageSvc.GetURL(ctx, thumbKey)
+				if url != "" {
+					item.CoverImage = url
+				} else {
+					item.CoverImage = "/uploads/media/" + thumbKey
+				}
 			}
 		}
 		var user models.User
