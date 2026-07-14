@@ -78,7 +78,20 @@ export default function Detail() {
     try {
       const cartData = storage.getJSON('cart', {items: []}) || {items: []}
       if (!cartData.items.find(i => i.id === id)) {
-        cartData.items.push({ id, name: instrument?.name, sn: instrument?.sn })
+        cartData.items.push({
+          id,
+          name: instrument?.name,
+          sn: instrument?.sn,
+          cover_image: instrument?.cover_image || '',
+          category_name: instrument?.category_name || '',
+          daily_rent: dailyRent,
+          deposit,
+          site_id: instrument?.site_id || '',
+          site_name: instrument?.site_name || '',
+          tenant_id: instrument?.tenant_id || '',
+          tenant_name: instrument?.tenant_name || '',
+          level_name: levelName || '',
+        })
         storage.setJSON('cart', cartData)
       }
       setCartToast(true)
