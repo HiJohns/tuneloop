@@ -143,7 +143,7 @@ export default function OrderDetail() {
     if (!dialog.confirm('确认取消该订单？取消后不可恢复。')) return
     setActionLoading(true)
     try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel`, {
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, {
         method: 'POST',
       })
       const result = await resp.json()
