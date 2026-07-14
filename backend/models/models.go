@@ -207,6 +207,7 @@ type Order struct {
 	PrepaidPointsUsed    float64    `gorm:"type:decimal(10,2);not null;default:0" json:"prepaid_points_used"`
 	GiftPointsUsed       float64    `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_used"`
 	PointsPolicySnapshot *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
+	CurrentPaymentSessionID *string  `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
 	CreatedAt            time.Time  `json:"created_at"`
 	UpdatedAt            time.Time  `json:"updated_at"`
 }
@@ -249,7 +250,33 @@ type OrderLog struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-// OrderPaymentRecord 支付记录表（包含完整审计字段）
+// PaymentSession 统一支付会话表（替代 OrderPaymentRecord + OrderRefundRecord）
+type PaymentSession struct {
+	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string     `gorm:"type:uuid;index:idx_payment_sessions_tenant;not null" json:"tenant_id"`
+	UserID         string     `gorm:"type:uuid;index:idx_payment_sessions_user;not null" json:"user_id"`
+	Type           string     `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
+	Status         string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	Amount         float64    `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Breakdown      *string    `gorm:"type:jsonb" json:"breakdown,omitempty"`
+	WalletSnapshot *string    `gorm:"type:jsonb" json:"wallet_snapshot,omitempty"`
+	OutTradeNo     *string    `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
+	TransactionID  *string    `gorm:"type:varchar(64)" json:"transaction_id"`
+	Method         *string    `gorm:"type:varchar(20)" json:"method"`
+	FailReason     *string    `gorm:"type:text" json:"fail_reason"`
+	RawResponse    *string    `gorm:"type:jsonb" json:"raw_response"`
+	RefundFromID   *string    `gorm:"type:uuid" json:"refund_from_id,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// SessionOrderLink 支付会话与订单的多对多关联（支持合并付款）
+type SessionOrderLink struct {
+	SessionID string `gorm:"type:uuid;primaryKey;not null" json:"session_id"`
+	OrderID   string `gorm:"type:varchar(32);primaryKey;not null" json:"order_id"`
+}
+
+// OrderPaymentRecord 支付记录表（包含完整审计字段）— 已废弃，由 PaymentSession 替代
 type OrderPaymentRecord struct {
 	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID       string     `gorm:"type:uuid;index:idx_payment_tenant;not null" json:"tenant_id"`
