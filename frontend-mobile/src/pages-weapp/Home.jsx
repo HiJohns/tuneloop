@@ -81,7 +81,7 @@ function InstrumentCard({ instrument, onClick }) {
     : '#71717a'
 
   return (
-    <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '100%', marginBottom: 16 }} onClick={onClick}>
+    <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }} onClick={onClick}>
       <View style={{ width: 80, height: 80, backgroundColor: '#fafafa', borderRadius: 12, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Image src={thumb} style={{ width: 72, height: 72 }} mode="widthFix" />
       </View>
