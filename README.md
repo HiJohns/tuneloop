@@ -137,6 +137,30 @@ frontend-mobile:
 - PostgreSQL 14+
 - 微信开发者工具（用于 weapp 预览和调试）
 
+### WeChat Pay 配置
+
+当前开发环境使用 mock 模式（`WECHAT_PAY_MOCK_MODE=true`），无需真实商户配置即可开发测试。
+
+上线前需在微信平台完成以下配置，详见 `docs/wechat-pay-integration.md §一`：
+
+**商户平台 `pay.weixin.qq.com`**：
+| 配置项 | 路径 |
+|--------|------|
+| 商户号 mchID | 账户中心 → 商户信息 |
+| APIv3 密钥 | 账户中心 → API 安全 → APIv3 密钥 |
+| 商户证书 | 账户中心 → API 安全 → API 证书 |
+| 回调 URL | 产品中心 → JSAPI 支付 → 开发配置 |
+| 产品授权 JSAPI/H5/Native | 产品中心 → 对应产品 → 申请开通 |
+
+**小程序后台 `mp.weixin.qq.com`**：
+| 配置项 | 路径 |
+|--------|------|
+| 开通微信支付 + 关联商户号 | 功能 → 微信支付 |
+| request 合法域名 | 开发 → 开发设置 → 服务器域名（已有） |
+
+**开放平台（H5 支付） `open.weixin.qq.com`**：
+- AppID 与商户号关联 → 管理中心 → 网站应用 → 开发 → 微信支付
+
 ### 后端启动
 ```bash
 cd backend
