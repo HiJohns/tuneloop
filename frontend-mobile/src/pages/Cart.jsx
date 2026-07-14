@@ -73,17 +73,18 @@ export default function Cart() {
     cartItems.forEach(item => {
       const key = `${item.tenant_id || 'unknown'}-${item.site_id || 'unknown'}`
       if (!map[key]) {
-        const itemShipping = parsePricing(item.pricing)[0]?.shipping_fee || 0
         map[key] = {
           tenant_id: item.tenant_id,
           tenant_name: item.tenant_name || '',
           site_name: item.site_name || '',
           site_address: item.site_address || '',
           site_phone: item.site_phone || '',
-          shippingFee: itemShipping,
+          shippingFee: 0,
           items: [],
         }
       }
+      const itShip = item.shipping_fee || 0
+      if (itShip > map[key].shippingFee) map[key].shippingFee = itShip
       map[key].items.push(item)
     })
     return Object.values(map)
