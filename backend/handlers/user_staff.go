@@ -816,6 +816,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 
 	var req struct {
 		Name     string `json:"name"`
+		Nickname string `json:"nickname"`
 		Phone    string `json:"phone"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -827,9 +828,14 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 
 	callbackURL := fmt.Sprintf("https://%s/api/iam/confirmation-callback", c.Request.Host)
 
+	var nicknamePtr *string
+	if req.Nickname != "" {
+		nicknamePtr = &req.Nickname
+	}
 	iamClient := services.NewIAMClient()
 	iamReq := &services.UpdateUserRequest{
 		Name:        req.Name,
+		Nickname:    nicknamePtr,
 		Email:       req.Email,
 		Phone:       req.Phone,
 		Password:    req.Password,
@@ -848,6 +854,9 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	}
 	if req.Phone != "" {
 		localUpdates["phone"] = req.Phone
+	}
+	if req.Nickname != "" {
+		localUpdates["nickname"] = req.Nickname
 	}
 	if len(localUpdates) > 0 {
 		db.Model(&models.User{}).Where("iam_sub = ? AND tenant_id = ?", userID, tenantID).Updates(localUpdates)
