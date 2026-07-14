@@ -98,14 +98,7 @@ func GetOrders(c *gin.Context) {
 		if err := db.Raw("SELECT sn, category_name, cover_image FROM instruments WHERE id = ? LIMIT 1", o.InstrumentID).Scan(&instr).Error; err == nil {
 			item.InstrumentName = instr.SN
 			item.InstrumentCategory = instr.CategoryName
-			if instr.CoverImage != "" {
-				url, _ := storageSvc.GetURL(ctx, instr.CoverImage)
-				if url != "" {
-					item.CoverImage = url
-				} else {
-					item.CoverImage = instr.CoverImage
-				}
-			}
+			item.CoverImage = instr.CoverImage
 		}
 		// Fallback: if no dedicated cover, use first display media
 		if item.CoverImage == "" {
