@@ -141,25 +141,32 @@ frontend-mobile:
 
 当前开发环境使用 mock 模式（`WECHAT_PAY_MOCK_MODE=true`），无需真实商户配置即可开发测试。
 
-上线前需在微信平台完成以下配置，详见 `docs/wechat-pay-integration.md §一`：
+上线前需完成以下操作，详见 `docs/wechat-pay-integration.md §一`：
 
-**商户平台 `pay.weixin.qq.com`**：
-| 配置项 | 路径 |
-|--------|------|
-| 商户号 mchID | 账户中心 → 商户信息 |
-| APIv3 密钥 | 账户中心 → API 安全 → APIv3 密钥 |
-| 商户证书 | 账户中心 → API 安全 → API 证书 |
-| 回调 URL | 产品中心 → JSAPI 支付 → 开发配置 |
-| 产品授权 JSAPI/H5/Native | 产品中心 → 对应产品 → 申请开通 |
+#### .env 配置（tuneloop 侧）
 
-**小程序后台 `mp.weixin.qq.com`**：
-| 配置项 | 路径 |
-|--------|------|
-| 开通微信支付 + 关联商户号 | 功能 → 微信支付 |
-| request 合法域名 | 开发 → 开发设置 → 服务器域名（已有） |
+| 变量 | 说明 | 从哪获取 |
+|------|------|---------|
+| `WECHAT_PAY_MCH_ID` | 商户号 | 商户平台 → 账户中心 → 商户信息 |
+| `WECHAT_PAY_API_V3_KEY` | APIv3 密钥 | 商户平台 → API 安全 → APIv3 密钥（自己设置 32 位随机串） |
+| `WECHAT_PAY_CERT_SERIAL_NO` | 证书序列号 | 商户平台 → API 安全 → API 证书（下载后提取） |
+| `WECHAT_PAY_PRIVATE_KEY_PATH` | 私钥路径 | 同上，`apiclient_key.pem` 文件路径 |
+| `WECHAT_PAY_MOCK_MODE=false` | 关闭模拟模式 | 设为 `true` 可在无真实商户时开发测试 |
 
-**开放平台（H5 支付） `open.weixin.qq.com`**：
-- AppID 与商户号关联 → 管理中心 → 网站应用 → 开发 → 微信支付
+#### 微信平台操作（不需修改 tuneloop 代码）
+
+- **产品授权**：商户平台 → 产品中心 → 分别申请开通 **JSAPI / H5 / Native 支付**（审核通过即生效，无值需填写）
+- **关联商户号**：小程序后台 → 功能 → 微信支付 → 关联商户号（绑定 `wxcb44a1be70e356ed`）
+- **H5 支付**：开放平台 → 管理中心 → 网站应用 → 开发 → 微信支付 → 关联商户号
+
+#### 回调 URL（填入微信商户平台）
+
+| 用途 | URL |
+|------|-----|
+| 支付回调 | `https://wx.cadenzayueqi.com/api/wechatpay/notify` |
+| 退款回调 | `https://wx.cadenzayueqi.com/api/wechatpay/refund-notify` |
+
+> 路径由 `backend/main.go` 注册，域名随部署变化。填入位置：商户平台 → 产品中心 → JSAPI 支付 → 开发配置 → 支付回调域名。
 
 ### 后端启动
 ```bash
