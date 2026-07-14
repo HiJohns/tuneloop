@@ -672,6 +672,19 @@ func CancelOrderByCustomer(c *gin.Context) {
 		return
 	}
 
+	// Record status history
+	history := models.OrderStatusHistory{
+		ID:         uuid.New().String(),
+		TenantID:   order.TenantID,
+		OrderID:    orderID,
+		StatusFrom: oldStatus,
+		StatusTo:   models.OrderStatusCancelled,
+		Notes:      "顾客取消订单",
+		ChangedBy:  stringPtr(userID),
+		ChangedAt:  time.Now(),
+	}
+	db.Create(&history)
+
 	// Refund prepaid points if used
 	if order.PrepaidPointsUsed > 0 {
 		db.Model(&models.User{}).Where("id = ?", localUser.ID).

@@ -192,7 +192,11 @@ export default function OrderDetail() {
           const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, { method: 'POST' })
           const result = await resp.json()
           if (result.code === 20000) {
-            setOrder(prev => ({ ...prev, status: 'cancelled' }))
+            if (result.data?.refund_amount > 0) {
+              Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` })
+            } else {
+              setOrder(prev => ({ ...prev, status: 'cancelled' }))
+            }
           } else {
             Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
           }
