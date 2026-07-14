@@ -89,10 +89,10 @@ function InstrumentCard({ instrument, onClick }) {
         <View style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 2, paddingBottom: 2, minWidth: 0, flex: '1 1 0%' }}>
           <View style={{ width: '100%', minWidth: 0 }}>
             <Text style={{ fontSize: 22, lineHeight: '26px', fontWeight: '900', color: '#000', letterSpacing: '0.025em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.name || instrument.sn}</Text>
-            <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{instrument.category_name}</Text>
+            <Text style={{ fontSize: 14, color: '#71717a', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 16 }}>{instrument.category_name}</Text>
           </View>
           {levelName && (
-            <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 14, padding: '2px 10px', borderRadius: 999, fontWeight: '900', alignSelf: 'flex-start', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginTop: -2, whiteSpace: 'nowrap' }}>
+            <View style={{ backgroundColor: levelBg, color: '#fff', fontSize: 14, padding: '2px 10px', borderRadius: 999, fontWeight: '900', alignSelf: 'flex-start', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginTop: 3, whiteSpace: 'nowrap' }}>
               {levelName}
             </View>
           )}
