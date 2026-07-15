@@ -244,7 +244,7 @@ export default function MyLeases() {
                     <>
                       {showPay && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${order.id}` }) }}
                           style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
                         >
                           立即支付

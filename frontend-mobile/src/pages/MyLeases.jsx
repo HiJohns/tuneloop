@@ -227,9 +227,9 @@ export default function MyLeases() {
                 <View className="mt-3 flex gap-2">
                   {!isTerminal && (
                     <>
-                      {showPay && (
+                       {showPay && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/payment?type=rent&id=${order.id}`, { replace: true }) }}
                           className="flex-1 py-2.5 bg-black text-white rounded-xl font-black text-sm"
                         >
                           立即支付
