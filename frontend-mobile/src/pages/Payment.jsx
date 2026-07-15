@@ -57,9 +57,11 @@ export default function Payment() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] pb-[100px]">
       <div className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 py-3 flex items-center">
+        <span className="text-xl font-bold text-black cursor-pointer" onClick={() => navigate(-1)}>❮</span>
         <span className="text-lg font-bold flex-1 text-center">
           {isRefund ? '退款确认' : '支付确认'}
         </span>
+        <span className="w-6" />
       </div>
 
       <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
