@@ -126,6 +126,31 @@ export default function MyLeases() {
     fetchOrders()
   }, [page, baseUrl, mainTab, subFilter])
 
+  const handleCancelFromList = (orderId, status) => {
+    Taro.showModal({
+      title: '取消订单',
+      content: '确认取消该订单？取消后不可恢复。',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          const resp = await apiFetch(`${baseUrl}/orders/${orderId}/cancel-by-user`, { method: 'POST' })
+          const result = await resp.json()
+          if (result.code === 20000) {
+            if (result.data?.refund_amount > 0) {
+              Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${orderId}` })
+            } else {
+              setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+            }
+          } else {
+            Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
+          }
+        } catch (err) {
+          Taro.showModal({ title: '取消失败', content: err.message, showCancel: false })
+        }
+      },
+    })
+  }
+
   return (
     <View style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#FDFBF7' }}>
       <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
@@ -199,7 +224,7 @@ export default function MyLeases() {
               {orders.map(order => {
               const showReturn = order.status === 'in_lease'
               const showPay = order.status === 'reserved'
-              const showCancel = ['paid', 'pending_shipment'].includes(order.status)
+              const showCancel = ['reserved', 'paid', 'pending_shipment'].includes(order.status)
               const showConfirm = order.status === 'shipped'
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
 
@@ -271,7 +296,7 @@ export default function MyLeases() {
                       )}
                       {showCancel && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
                           style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', color: '#52525b', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
                         >
                           取消订单

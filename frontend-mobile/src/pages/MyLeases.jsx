@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
-import { env } from '../platform'
+import { env, dialog } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { Package } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
@@ -123,6 +123,25 @@ export default function MyLeases() {
     fetchOrders()
   }, [page, baseUrl, mainTab, subFilter])
 
+  const handleCancelFromList = async (orderId, status) => {
+    if (!dialog.confirm('确认取消该订单？取消后不可恢复。')) return
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/cancel-by-user`, { method: 'POST' })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        if (result.data?.refund_amount > 0) {
+          navigate(`/payment?type=refund&id=${orderId}`, { replace: true })
+        } else {
+          setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+        }
+      } else {
+        dialog.alert('取消失败: ' + result.message)
+      }
+    } catch (err) {
+      dialog.alert('取消失败: ' + err.message)
+    }
+  }
+
   return (
     <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4">
@@ -184,7 +203,7 @@ export default function MyLeases() {
               {orders.map(order => {
               const showReturn = order.status === 'in_lease'
               const showPay = order.status === 'reserved'
-              const showCancel = ['paid', 'pending_shipment'].includes(order.status)
+              const showCancel = ['reserved', 'paid', 'pending_shipment'].includes(order.status)
               const showConfirm = order.status === 'shipped'
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
 
@@ -256,7 +275,7 @@ export default function MyLeases() {
                       )}
                       {showCancel && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
                           className="flex-1 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl font-black text-sm"
                         >
                           取消订单

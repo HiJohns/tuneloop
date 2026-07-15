@@ -284,7 +284,7 @@ export default function OrderDetail() {
   const totalAmount = (pb?.total_amount || 0) + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
   const showPayButton = status === 'reserved'
-  const showCancelButton = status === 'paid' || status === 'pending_shipment' || status === 'in_transit'
+  const showCancelButton = status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit'
   const showReceiveButton = status === 'shipped'
   const showReturnButton = status === 'in_lease' || status === 'expired'
   const terminal = ['returning', 'returned', 'completed', 'cancelled', 'transferred']
