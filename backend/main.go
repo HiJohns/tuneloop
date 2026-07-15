@@ -682,6 +682,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)
 			authRequired.GET("/admin/dashboard/near-transfers", dashboardHandler.GetNearTransfers)
+			authRequired.GET("/admin/billing/report", handlers.GetBillingReport)
 
 			// Audit Log routes (Issue #598)
 			authRequired.GET("/admin/audit-logs", handlers.ListAuditLogs)
