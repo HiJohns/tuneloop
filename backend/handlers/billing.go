@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"log"
 	"math"
 	"net/http"
@@ -111,6 +112,7 @@ func GetBillingReport(c *gin.Context) {
 
 	var rows []OrderRow
 	offset := (page - 1) * pageSize
+	isCSV := c.Query("format") == "csv"
 
 	listQuery := baseQuery.Select(`
 		orders.id as order_id,
@@ -124,11 +126,37 @@ func GetBillingReport(c *gin.Context) {
 		orders.status`).
 		Joins("LEFT JOIN instruments ON instruments.id = orders.instrument_id").
 		Joins("LEFT JOIN users ON users.id = orders.user_id").
-		Order("orders.created_at DESC").
-		Offset(offset).Limit(pageSize)
+		Order("orders.created_at DESC")
+
+	if !isCSV {
+		listQuery = listQuery.Offset(offset).Limit(pageSize)
+	}
 
 	if err := listQuery.Scan(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query billing: " + err.Error()})
+		return
+	}
+
+	// CSV export
+	if c.Query("format") == "csv" {
+		c.Header("Content-Type", "text/csv")
+		c.Header("Content-Disposition", "attachment; filename=billing_report.csv")
+		writer := csv.NewWriter(c.Writer)
+		writer.Write([]string{"订单号", "时间", "用户", "乐器", "实付", "预付点抵扣", "赠点抵扣", "押金", "状态"})
+		for _, r := range rows {
+			writer.Write([]string{
+				r.OrderID,
+				r.CreatedAt[:10],
+				r.UserName,
+				r.InstrumentName,
+				strconv.FormatFloat(r.CashPaid, 'f', 2, 64),
+				strconv.FormatFloat(r.PrepaidUsed, 'f', 2, 64),
+				strconv.FormatFloat(r.GiftUsed, 'f', 2, 64),
+				strconv.FormatFloat(r.Deposit, 'f', 2, 64),
+				r.Status,
+			})
+		}
+		writer.Flush()
 		return
 	}
 
