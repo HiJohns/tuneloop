@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, pointsApi } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
@@ -45,10 +45,6 @@ function SingleCheckout({ id, navigate }) {
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
   const [days, setDays] = useState(30)
-  const [pointsBalance, setPointsBalance] = useState({ prepaid_points: 0, promo_points: 0 })
-  const [prepaidPointsUsed, setPrepaidPointsUsed] = useState(0)
-  const [giftPointsUsed, setGiftPointsUsed] = useState(0)
-  const [usePoints, setUsePoints] = useState(false)
   const [rentalCalc, setRentalCalc] = useState(null)
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
 
@@ -109,10 +105,7 @@ function SingleCheckout({ id, navigate }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const [userRes, pointsRes] = await Promise.all([
-          apiFetch(`${env.apiBaseUrl}/users/me`),
-          pointsApi.balance(),
-        ])
+        const userRes = await apiFetch(`${env.apiBaseUrl}/users/me`)
         const userResult = await userRes.json()
         if (userResult.code === 20000) {
           setUser(userResult.data)
@@ -121,9 +114,6 @@ function SingleCheckout({ id, navigate }) {
             recipient_name: prev.recipient_name || userResult.data.name || '',
             phone: prev.phone || userResult.data.phone || '',
           }))
-        }
-        if (pointsRes?.code === 20000) {
-          setPointsBalance(pointsRes.data)
         }
       } catch {}
     }
@@ -212,10 +202,6 @@ function SingleCheckout({ id, navigate }) {
         end_date: returnDate,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      if (usePoints) {
-        body.prepaid_points_used = prepaidPointsUsed
-        body.gift_points_used = giftPointsUsed
-      }
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -328,51 +314,6 @@ function SingleCheckout({ id, navigate }) {
           </View>
         </View>
 
-        {/* Points selection section */}
-        <View className="bg-white rounded-2xl shadow-sm p-4">
-          <Text className="font-black text-black mb-3">点数使用</Text>
-          {pointsBalance.prepaid_points > 0 || pointsBalance.promo_points > 0 ? (
-            <>
-              <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
-                <input type="checkbox" checked={usePoints} onChange={e => { setUsePoints(e.target.checked); if (!e.target.checked) { setPrepaidPointsUsed(0); setGiftPointsUsed(0) } }} />
-                使用点数抵扣
-              </label>
-              {usePoints && (
-                <View className="space-y-2">
-                  {pointsBalance.prepaid_points > 0 && (
-                    <View className="flex items-center justify-between">
-                      <Text className="text-sm text-gray-500">预付点数 (余额: {pointsBalance.prepaid_points})</Text>
-                      <input
-                        type="number"
-                        min={0}
-                        max={pointsBalance.prepaid_points}
-                        value={prepaidPointsUsed}
-                        onChange={e => setPrepaidPointsUsed(Math.max(0, Math.min(pointsBalance.prepaid_points, parseInt(e.target.value) || 0)))}
-                        className="w-24 text-right border rounded px-2 py-1 text-sm"
-                      />
-                    </View>
-                  )}
-                  {pointsBalance.promo_points > 0 && (
-                    <View className="flex items-center justify-between">
-                      <Text className="text-sm text-gray-500">赠送点数 (余额: {pointsBalance.promo_points})</Text>
-                      <input
-                        type="number"
-                        min={0}
-                        max={pointsBalance.promo_points}
-                        value={giftPointsUsed}
-                        onChange={e => setGiftPointsUsed(Math.max(0, Math.min(pointsBalance.promo_points, parseInt(e.target.value) || 0)))}
-                        className="w-24 text-right border rounded px-2 py-1 text-sm"
-                      />
-                    </View>
-                  )}
-                </View>
-              )}
-            </>
-          ) : (
-            <Text className="text-sm text-gray-400">暂无可用点数</Text>
-          )}
-        </View>
-
         <View className="bg-white rounded-2xl shadow-sm p-4">
           <Text className="font-black text-black mb-3 flex items-center gap-2">
             <MapPin size={16} className="text-brand-primary" />
@@ -483,14 +424,9 @@ function SingleCheckout({ id, navigate }) {
 
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb">
         <View className="flex items-center justify-between mb-2">
-          <Text className="text-sm text-zinc-400">{usePoints && (prepaidPointsUsed > 0 || giftPointsUsed > 0) ? '实付金额' : '应付总额'}</Text>
-          <Text className="text-xl font-black text-brand-primary">¥{(totalAmount - (usePoints ? prepaidPointsUsed + giftPointsUsed : 0)).toFixed(0)}</Text>
+          <Text className="text-sm text-zinc-400">应付总额</Text>
+          <Text className="text-xl font-black text-brand-primary">¥{totalAmount.toFixed(0)}</Text>
         </View>
-        {usePoints && (prepaidPointsUsed > 0 || giftPointsUsed > 0) && (
-          <Text className="text-xs text-zinc-400 text-right -mt-1 mb-1">
-            点数抵扣 ¥{(prepaidPointsUsed + giftPointsUsed).toFixed(0)}
-          </Text>
-        )}
         <Button
           onClick={handleSubmit}
           disabled={submitting}

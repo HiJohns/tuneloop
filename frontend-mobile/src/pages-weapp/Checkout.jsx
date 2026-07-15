@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, pointsApi } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import regions from '../data/regions.json'
@@ -48,10 +48,6 @@ function SingleCheckout({ id, nav }) {
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
   const [days, setDays] = useState(30)
-  const [pointsBalance, setPointsBalance] = useState({ prepaid_points: 0, promo_points: 0 })
-  const [prepaidPointsUsed, setPrepaidPointsUsed] = useState(0)
-  const [giftPointsUsed, setGiftPointsUsed] = useState(0)
-  const [usePoints, setUsePoints] = useState(false)
   const [rentalCalc, setRentalCalc] = useState(null)
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
   const [daysInputText, setDaysInputText] = useState('30')
@@ -123,10 +119,7 @@ function SingleCheckout({ id, nav }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const [userRes, pointsRes] = await Promise.all([
-          apiFetch(`${env.apiBaseUrl}/users/me`),
-          pointsApi.balance(),
-        ])
+        const userRes = await apiFetch(`${env.apiBaseUrl}/users/me`)
         const userResult = await userRes.json()
         if (userResult.code === 20000) {
           setUser(userResult.data)
@@ -240,10 +233,6 @@ function SingleCheckout({ id, nav }) {
         end_date: returnDate,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
-      if (usePoints) {
-        body.prepaid_points_used = prepaidPointsUsed
-        body.gift_points_used = giftPointsUsed
-      }
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -343,49 +332,6 @@ function SingleCheckout({ id, nav }) {
             </View>
             <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(0)} + 押金 ¥{deposit} + 物流费 ¥{shippingFee}</Text>
           </View>
-        </View>
-
-        {/* Points selection */}
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
-          <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12 }}>点数使用</Text>
-          {pointsBalance.prepaid_points > 0 || pointsBalance.promo_points > 0 ? (
-            <>
-              <View style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }} onClick={() => { setUsePoints(!usePoints); if (usePoints) { setPrepaidPointsUsed(0); setGiftPointsUsed(0) } }}>
-                <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: usePoints ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
-                  {usePoints && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
-                </View>
-                <Text style={{ fontSize: 14 }}>使用点数抵扣</Text>
-              </View>
-              {usePoints && (
-                <View>
-                  {pointsBalance.prepaid_points > 0 && (
-                    <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ fontSize: 14, color: '#6b7280' }}>预付点数 (余额: {pointsBalance.prepaid_points})</Text>
-                      <Input
-                        type="number"
-                        value={String(prepaidPointsUsed)}
-                        onInput={e => setPrepaidPointsUsed(Math.max(0, Math.min(pointsBalance.prepaid_points, parseInt(e.detail.value) || 0)))}
-                        style={{ width: 96, textAlign: 'right', border: '1px solid #d4d4d8', borderRadius: 4, padding: '4px 8px', fontSize: 14 }}
-                      />
-                    </View>
-                  )}
-                  {pointsBalance.promo_points > 0 && (
-                    <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 14, color: '#6b7280' }}>赠送点数 (余额: {pointsBalance.promo_points})</Text>
-                      <Input
-                        type="number"
-                        value={String(giftPointsUsed)}
-                        onInput={e => setGiftPointsUsed(Math.max(0, Math.min(pointsBalance.promo_points, parseInt(e.detail.value) || 0)))}
-                        style={{ width: 96, textAlign: 'right', border: '1px solid #d4d4d8', borderRadius: 4, padding: '4px 8px', fontSize: 14 }}
-                      />
-                    </View>
-                  )}
-                </View>
-              )}
-            </>
-          ) : (
-            <Text style={{ fontSize: 14, color: '#9ca3af' }}>暂无可用点数</Text>
-          )}
         </View>
 
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
@@ -500,13 +446,9 @@ function SingleCheckout({ id, nav }) {
 
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
         <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Text style={{ fontSize: 14, color: '#a1a1aa' }}>{usePoints && (prepaidPointsUsed > 0 || giftPointsUsed > 0) ? '实付金额' : '应付总额'}</Text>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{(totalAmount - (usePoints ? prepaidPointsUsed + giftPointsUsed : 0)).toFixed(0)}</Text>
+          <Text style={{ fontSize: 14, color: '#a1a1aa' }}>应付总额</Text>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{totalAmount.toFixed(0)}</Text>
         </View>
-        {usePoints && (prepaidPointsUsed > 0 || giftPointsUsed > 0) && (
-          <Text style={{ fontSize: 12, color: '#a1a1aa', textAlign: 'right', marginBottom: 4 }}>
-            点数抵扣 ¥{(prepaidPointsUsed + giftPointsUsed).toFixed(0)}
-          </Text>
         )}
         <Button
           onClick={handleSubmit}
