@@ -634,16 +634,17 @@ function BatchCheckout({ navigate }) {
         if (deliveryAddress) body.delivery_address = deliveryAddress
         const orderResp = await ordersApi.batchCreate(body)
         if (orderResp.code === 20000) {
-          const orderId = orderResp.data?.order_id
-          if (orderId) {
-            await apiFetch(`${env.apiBaseUrl}/orders/${orderId}/pay`, { method: 'POST' })
+          const orders = orderResp.data?.orders || []
+          if (orders.length > 0) {
+            const ids = new Set(cartItems.map(item => item.instrument_id || item.id))
+            const cart = storage.getJSON('cart', { items: [] }) || { items: [] }
+            storage.setJSON('cart', { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
+            storage.removeItem('cart_checkout')
+            eventBus.emit('cartUpdated')
+            navigate(`/payment?type=rent&id=${orders[0].order_id}`, { replace: true })
+          } else {
+            dialog.alert('下单成功，但未生成订单')
           }
-          const ids = new Set(cartItems.map(item => item.instrument_id || item.id))
-          const cart = storage.getJSON('cart', { items: [] }) || { items: [] }
-          storage.setJSON('cart', { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
-          storage.removeItem('cart_checkout')
-          eventBus.emit('cartUpdated')
-          navigate('/success', { replace: true })
         } else {
           dialog.alert('下单失败: ' + (orderResp.message || '未知错误'))
         }
