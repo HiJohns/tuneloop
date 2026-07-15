@@ -126,14 +126,22 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid or expired token"})
 		return
 	}
-	entry.Status = "bound"
 	entry.WxOpenid = req.WxOpenid
 	userID := entry.UserID
 	bindTokensMu.Unlock()
 
-	// Update IAM user's wx_openid
+	// Lookup user's iam_sub for IAM API call
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	var user models.User
+	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "message": "user not found"})
+		return
+	}
+
+	// Update IAM user's wx_openid (IAM expects iam_sub as user identifier)
 	iamClient := services.NewIAMClient()
-	updErr := iamClient.UpdateUser(userID, &services.UpdateUserRequest{
+	updErr := iamClient.UpdateUser(user.IAMSub, &services.UpdateUserRequest{
 		WxOpenid: &req.WxOpenid,
 	})
 	if updErr != nil {
@@ -142,9 +150,12 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	}
 
 	// Update local user
-	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
 	db.Model(&models.User{}).Where("id = ?", userID).Update("wx_openid", req.WxOpenid)
+
+	// Mark token as bound (triggers PC polling success)
+	bindTokensMu.Lock()
+	entry.Status = "bound"
+	bindTokensMu.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "binding success"})
 }
@@ -163,7 +174,7 @@ func (h *WechatBindHandler) Unbind(c *gin.Context) {
 
 	empty := ""
 	iamClient := services.NewIAMClient()
-	if err := iamClient.UpdateUser(user.ID, &services.UpdateUserRequest{WxOpenid: &empty}); err != nil {
+	if err := iamClient.UpdateUser(user.IAMSub, &services.UpdateUserRequest{WxOpenid: &empty}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "unbind failed: " + err.Error()})
 		return
 	}
