@@ -686,14 +686,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 	db.Create(&history)
 
 	// Refund prepaid points if used
-	if order.PrepaidPointsUsed > 0 {
-		db.Model(&models.User{}).Where("id = ?", localUser.ID).
-			Update("prepaid_points", gorm.Expr("prepaid_points + ?", order.PrepaidPointsUsed))
-	}
-	if order.GiftPointsUsed > 0 {
-		db.Model(&models.User{}).Where("id = ?", localUser.ID).
-			Update("promo_points", gorm.Expr("promo_points + ?", order.GiftPointsUsed))
-	}
+	refundOrderPoints(db, &order)
 
 	// For paid/pending_shipment orders, create refund session and return navigation
 	if oldStatus == models.OrderStatusPaid || oldStatus == models.OrderStatusPendingShipment {
@@ -927,4 +920,16 @@ func AdminUpdateOrder(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "updated"})
+}
+
+// refundOrderPoints returns prepaid and gift points used in an order to the user's wallet.
+func refundOrderPoints(db *gorm.DB, order *models.Order) {
+	if order.PrepaidPointsUsed > 0 {
+		db.Model(&models.User{}).Where("id = ?", order.UserID).
+			Update("prepaid_points", gorm.Expr("prepaid_points + ?", order.PrepaidPointsUsed))
+	}
+	if order.GiftPointsUsed > 0 {
+		db.Model(&models.User{}).Where("id = ?", order.UserID).
+			Update("promo_points", gorm.Expr("promo_points + ?", order.GiftPointsUsed))
+	}
 }

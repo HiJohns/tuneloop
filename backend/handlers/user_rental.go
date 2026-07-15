@@ -449,6 +449,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		GiftPointsUsed:    req.GiftPointsUsed,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
+		PaymentDeadline:   computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
 	}
 	if pricingBreakdownJSON != "" {
 		order.PricingBreakdown = &pricingBreakdownJSON
@@ -849,6 +850,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			Status:             models.OrderStatusReserved,
 			StartDate:          &startDateStr,
 			EndDate:            &endDateStr,
+			PaymentDeadline:    computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
 			CreatedAt:          time.Now(),
 			UpdatedAt:          time.Now(),
 			PricingBreakdown:   pricingBreakdownJSON,
@@ -1296,4 +1298,35 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 		"prepaid_points_used":     0,
 		"cash_to_pay":             totalPay,
 	}})
+}
+
+// computePaymentDeadline returns the deadline for payment.
+// Priority: merchant_setting → system_setting → default 10 minutes.
+func computePaymentDeadline(db *gorm.DB, tenantID, orgID string) *time.Time {
+	defaultMin := 10
+
+	// Check merchant-level override
+	if tenantID != "" {
+		var cfg struct{ PaymentTimeout *int }
+		if err := db.Table("merchant_settlement_configs").
+			Select("payment_timeout").
+			Where("tenant_id = ? AND is_enabled = ?", tenantID, true).
+			First(&cfg).Error; err == nil && cfg.PaymentTimeout != nil && *cfg.PaymentTimeout > 0 {
+			deadline := time.Now().Add(time.Duration(*cfg.PaymentTimeout) * time.Minute)
+			return &deadline
+		}
+	}
+
+	// Check system-wide setting
+	var setting models.SystemSetting
+	if err := db.Where("setting_key = ?", "payment_timeout_minutes").First(&setting).Error; err == nil && setting.SettingValue != "" {
+		if val, err2 := strconv.Atoi(setting.SettingValue); err2 == nil && val > 0 {
+			deadline := time.Now().Add(time.Duration(val) * time.Minute)
+			return &deadline
+		}
+	}
+
+	// Default
+	deadline := time.Now().Add(time.Duration(defaultMin) * time.Minute)
+	return &deadline
 }

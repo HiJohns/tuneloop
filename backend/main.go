@@ -1001,6 +1001,7 @@ func main() {
 	defer overdueDeductionScheduler.Stop()
 
 	go handlers.StartPaymentScheduler(db)
+	go handlers.StartReservedOrderScheduler()
 
 	_ = wwwURL
 	_ = wxURL
