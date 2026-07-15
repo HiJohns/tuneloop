@@ -99,13 +99,6 @@ export default function Payment() {
               <Row label="退款金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
             </View>
           )}
-
-          {/* Total line for non-refund */}
-          {!isRefund && (
-            <View style={{ borderTop: '1px solid #e4e4e7', marginTop: 8, paddingTop: 8 }}>
-              <Row label="应付金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
-            </View>
-          )}
         </View>
 
         {/* Points usage (only for non-refund) */}
@@ -208,11 +201,11 @@ function Button({ children, onClick, style }) {
   )
 }
 
-function Row({ label, value, color, bold }) {
+function Row({ label, value, color, bold, valueSize }) {
   return (
     <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4 }}>
       <Text style={{ fontSize: 13, color: '#71717a' }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: bold ? '700' : '500', color: color || '#000' }}>{value}</Text>
+      <Text style={{ fontSize: valueSize || 13, fontWeight: bold ? '700' : '500', color: color || '#000' }}>{value}</Text>
     </View>
   )
 }
@@ -226,10 +219,10 @@ function renderDetailsBlock(details, type) {
         <View>
           <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 4 }}>阶梯定价</Text>
           {pb.tier_segments.map((seg, i) => (
-            <View key={i} style={{ paddingLeft: 16 }}>
-              <Row label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${Number(seg.days * seg.rate).toFixed(2)}`} />
+            <View key={i} style={{ paddingLeft: 16, paddingRight: 36 }}>
+              <Row label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${Number(seg.days * seg.rate).toFixed(2)}`} valueSize={11} />
               {seg.discount < 1.0 && (
-                <Row label="  折扣" value={`-¥${Number(seg.days * seg.rate - seg.subtotal).toFixed(2)}`} color="#16a34a" />
+                <Row label="  折扣" value={`-¥${Number(seg.days * seg.rate - seg.subtotal).toFixed(2)}`} color="#16a34a" valueSize={11} />
               )}
             </View>
           ))}

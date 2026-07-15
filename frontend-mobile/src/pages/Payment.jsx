@@ -98,12 +98,6 @@ export default function Payment() {
             <Row label="退款金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
           </div>
         )}
-
-        {!isRefund && (
-          <div className="border-t border-zinc-200 mt-2 pt-2">
-            <Row label="应付金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
-          </div>
-        )}
       </div>
 
       {!isRefund && pType !== 'points' && data.amount > 0 && (
@@ -235,11 +229,11 @@ export default function Payment() {
   }
 }
 
-function Row({ label, value, color, bold }) {
+function Row({ label, value, color, bold, valueSize }) {
   return (
     <div className="flex justify-between py-1">
       <span className="text-[13px] text-zinc-500">{label}</span>
-      <span className="text-[13px]" style={{ fontWeight: bold ? 700 : 500, color: color || '#000' }}>
+      <span className="text-[13px]" style={{ fontWeight: bold ? 700 : 500, color: color || '#000', fontSize: valueSize }}>
         {value}
       </span>
     </div>
@@ -255,11 +249,11 @@ function renderDetailsBlock(details, type) {
         <div>
           <span className="text-[13px] font-semibold text-zinc-600 mb-1">阶梯定价</span>
           {pb.tier_segments.map((seg, i) => (
-            <div key={i} className="pl-4">
+            <div key={i} className="pl-4 pr-5">
               <Row label={`第${seg.tier}阶 ${seg.days}天`}
-                value={`¥${Number(seg.days * seg.rate).toFixed(2)}`} />
+                value={`¥${Number(seg.days * seg.rate).toFixed(2)}`} valueSize="11px" />
               {seg.discount < 1.0 && (
-                <Row label="  折扣" value={`-¥${Number(seg.days * seg.rate - seg.subtotal).toFixed(2)}`} color="#16a34a" />
+                <Row label="  折扣" value={`-¥${Number(seg.days * seg.rate - seg.subtotal).toFixed(2)}`} color="#16a34a" valueSize="11px" />
               )}
             </div>
           ))}
