@@ -188,9 +188,9 @@ function SingleCheckout({ id, nav }) {
   const returnDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
 
   const handleDaysChange = (value) => {
-    const v = parseInt(value) || 30
-    setDays(Math.max(1, Math.min(730, v)))
-    setDaysInputText(String(Math.max(1, Math.min(730, v))))
+    const v = parseInt(value) || 0
+    setDays(Math.max(0, Math.min(730, v)))
+    setDaysInputText(String(Math.max(0, Math.min(730, v))))
   }
 
   const handleSubmit = async () => {
@@ -248,7 +248,12 @@ function SingleCheckout({ id, nav }) {
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
         eventBus.emit('cartUpdated')
-        Taro.redirectTo({ url: '/pages-weapp/success/index' })
+        const orderId = resp.data?.order_id
+        if (orderId) {
+          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${orderId}` })
+        } else {
+          Taro.redirectTo({ url: '/pages-weapp/success/index' })
+        }
       } else {
         dialog.alert('下单失败: ' + (resp.message || '未知错误'))
       }

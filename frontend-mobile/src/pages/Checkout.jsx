@@ -175,7 +175,7 @@ function SingleCheckout({ id, navigate }) {
   const returnDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
 
   const handleDaysChange = (value) => {
-    setDays(Math.max(1, Math.min(730, parseInt(value) || 30)))
+    setDays(Math.max(0, Math.min(730, parseInt(value) || 0)))
   }
 
   const handleSubmit = async () => {
@@ -219,7 +219,12 @@ function SingleCheckout({ id, navigate }) {
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
-        navigate('/success', { replace: true })
+        const orderId = resp.data?.order_id
+        if (orderId) {
+          navigate(`/payment?type=rent&id=${orderId}`, { replace: true })
+        } else {
+          navigate('/success', { replace: true })
+        }
       } else {
         dialog.alert('下单失败: ' + (resp.message || '未知错误'))
       }
@@ -272,7 +277,7 @@ function SingleCheckout({ id, navigate }) {
             >−</Button>
             <input
               type="number"
-              min={1}
+              min={0}
               max={730}
               value={days}
               onChange={e => handleDaysChange(e.target.value)}
