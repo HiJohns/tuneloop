@@ -705,6 +705,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 	}
 
+	// Fetch user wallet for membership_level_id (needed for pricing_breakdown)
+	var userWallet models.User
+	db.Where("id = ?", userID).First(&userWallet)
+
 	// Resolve merchant pricing config once (used for all items)
 	var merchantConfigJSON string
 	var config models.MerchantPricingConfig
@@ -799,6 +803,32 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		deposit := pricingResult.Deposit
 		shippingFee := pricingResult.ShippingFee
 
+		// Calculate pricing_breakdown (needed for payment page display)
+		pricingTiers := make([]services.PricingTierConfig, 0, len(pricingResult.Tiers))
+		for _, t := range pricingResult.Tiers {
+			pricingTiers = append(pricingTiers, services.PricingTierConfig{
+				DaysMax:   t.DaysMax,
+				DailyRate: t.DailyRate,
+			})
+		}
+		var pricingBreakdownJSON *string
+		pb, calcErr := services.CalculatePricingBreakdown(services.RentCalcInput{
+			BaseDailyRate:     baseRate,
+			LeaseTerm:         days,
+			MembershipLevelID: userWallet.MembershipLevelID,
+			InstrumentID:      item.InstrumentID,
+			TenantID:          effectiveTenantID,
+			OrgID:             &effectiveOrgID,
+			Deposit:           deposit,
+			ShippingFee:       shippingFee,
+			TotalPrice:        totalPrice,
+			PricingTiers:      pricingTiers,
+		})
+		if calcErr == nil && pb != nil {
+			pbJSON := services.FormatPricingBreakdownJSON(pb)
+			pricingBreakdownJSON = &pbJSON
+		}
+
 		rentSubtotal := dailyRent * float64(days)
 		orderAmount := rentSubtotal + deposit + shippingFee
 
@@ -816,11 +846,12 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			MonthlyRent: 0,
 			Deposit:      deposit,
 			ShippingFee:  shippingFee,
-			Status:       models.OrderStatusReserved,
-			StartDate:    &startDateStr,
-			EndDate:      &endDateStr,
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
+			Status:             models.OrderStatusReserved,
+			StartDate:          &startDateStr,
+			EndDate:            &endDateStr,
+			CreatedAt:          time.Now(),
+			UpdatedAt:          time.Now(),
+			PricingBreakdown:   pricingBreakdownJSON,
 		}
 
 		// Snapshot applicable points policy
