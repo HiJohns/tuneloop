@@ -108,14 +108,19 @@ export default function Payment() {
             <Row label="预付点余额" value={`¥${Number(maxPrepaid).toFixed(2)}`} />
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500 w-[72px]">使用</span>
-              <input
-                className="flex-1 border border-zinc-300 rounded-lg px-2 py-1 text-xs text-right"
-                value={prepaidUsed}
-                onChange={e => {
-                  const v = parseFloat(e.target.value) || 0
-                  setPrepaidUsed(Math.min(v, maxPrepaid))
-                }}
-              />
+              {maxPrepaid > 0 ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <input type="range" min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
+                    value={prepaidUsed}
+                    onChange={e => setPrepaidUsed(parseInt(e.target.value) || 0)}
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-zinc-600 w-12 text-right">{prepaidUsed}</span>
+                </div>
+              ) : (
+                <input className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-xs text-right text-zinc-300 bg-zinc-50"
+                  value={0} disabled readOnly />
+              )}
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>
           </div>
@@ -124,14 +129,19 @@ export default function Payment() {
             <Row label="赠点余额" value={`¥${Number(maxGift).toFixed(2)}`} />
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500 w-[72px]">使用</span>
-              <input
-                className="flex-1 border border-zinc-300 rounded-lg px-2 py-1 text-xs text-right"
-                value={giftUsed}
-                onChange={e => {
-                  const v = parseFloat(e.target.value) || 0
-                  setGiftUsed(Math.min(v, maxGift))
-                }}
-              />
+              {maxGift > 0 ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <input type="range" min={0} max={Math.min(maxGift, data.amount)} step={1}
+                    value={giftUsed}
+                    onChange={e => setGiftUsed(parseInt(e.target.value) || 0)}
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-zinc-600 w-12 text-right">{giftUsed}</span>
+                </div>
+              ) : (
+                <input className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-xs text-right text-zinc-300 bg-zinc-50"
+                  value={0} disabled readOnly />
+              )}
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>
           </div>

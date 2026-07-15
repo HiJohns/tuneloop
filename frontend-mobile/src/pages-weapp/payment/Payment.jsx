@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Input } from '@tarojs/components'
+import { View, Text, ScrollView, Input, Slider } from '@tarojs/components'
 import { apiFetch } from '../../services/api'
 import { env } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
@@ -111,14 +111,18 @@ export default function Payment() {
               <Row label="预付点余额" value={`¥${Number(maxPrepaid).toFixed(2)}`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
-                <Input
-                  style={{ flex: 1, border: '1px solid #d4d4d8', borderRadius: 8, padding: '4px 8px', fontSize: 13, textAlign: 'right' }}
-                  value={String(prepaidUsed)}
-                  onInput={e => {
-                    const v = parseFloat(e.detail.value) || 0
-                    setPrepaidUsed(Math.min(v, maxPrepaid))
-                  }}
-                />
+                {maxPrepaid > 0 ? (
+                  <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Slider min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
+                      value={prepaidUsed} style={{ flex: 1, margin: 0, padding: 0 }}
+                      onChange={e => setPrepaidUsed(e.detail.value)}
+                    />
+                    <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{prepaidUsed}</Text>
+                  </View>
+                ) : (
+                  <Input style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '4px 8px', fontSize: 13, textAlign: 'right', color: '#d4d4d8', backgroundColor: '#fafafa' }}
+                    value="0" disabled />
+                )}
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
             </View>
@@ -127,14 +131,18 @@ export default function Payment() {
               <Row label="赠点余额" value={`¥${Number(maxGift).toFixed(2)}`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
-                <Input
-                  style={{ flex: 1, border: '1px solid #d4d4d8', borderRadius: 8, padding: '4px 8px', fontSize: 13, textAlign: 'right' }}
-                  value={String(giftUsed)}
-                  onInput={e => {
-                    const v = parseFloat(e.detail.value) || 0
-                    setGiftUsed(Math.min(v, maxGift))
-                  }}
-                />
+                {maxGift > 0 ? (
+                  <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Slider min={0} max={Math.min(maxGift, data.amount)} step={1}
+                      value={giftUsed} style={{ flex: 1, margin: 0, padding: 0 }}
+                      onChange={e => setGiftUsed(e.detail.value)}
+                    />
+                    <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{giftUsed}</Text>
+                  </View>
+                ) : (
+                  <Input style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '4px 8px', fontSize: 13, textAlign: 'right', color: '#d4d4d8', backgroundColor: '#fafafa' }}
+                    value="0" disabled />
+                )}
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
             </View>
