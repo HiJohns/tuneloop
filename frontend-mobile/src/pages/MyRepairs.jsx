@@ -311,7 +311,7 @@ export default function MyRepairs() {
         active="service"
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          ...(isCustomer ? [] : [{ key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') }]),
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate('/my-leases') },
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate('/my-repairs') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}
