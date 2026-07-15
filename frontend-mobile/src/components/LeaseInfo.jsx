@@ -84,7 +84,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
               valueColor={isOverdue ? '#ef4444' : undefined}
             />
           ) : null}
-          <Row icon="📊" label="租赁天数" value={`${currentLeaseDays} 天`} />
+          <Row icon="📊" label="已租天数" value={`${currentLeaseDays} 天`} />
           <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
         </>
       )}
@@ -92,7 +92,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
         <>
           <Row icon="📅" label="起始日期" value={fmt(effStart)} />
           <Row icon="🏁" label="结束日期" value={fmt(effEnd)} />
-          {leaseDays > 0 ? <Row icon="📊" label="租赁天数" value={`${leaseDays} 天`} /> : null}
+          {leaseDays > 0 ? <Row icon="📊" label="已租天数" value={`${leaseDays} 天`} /> : null}
           <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
         </>
       )}

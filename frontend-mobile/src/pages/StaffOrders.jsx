@@ -226,13 +226,13 @@ export default function StaffOrders() {
                   <View className="space-y-1 text-sm">
                     <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
                     <View><Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at || order.end_date)}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">租期天数: <Text className="text-black font-medium">{Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000))) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
+                    <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000))) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
                   </View>
                 ) : (
                   <View className="space-y-1 text-sm">
                     <View><Text className="text-zinc-400 font-medium">下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text></Text></View>
                     <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">租期天数: <Text className="text-black font-medium">{order.lease_term || Math.max(1, Math.round(((new Date(order.end_date) - new Date(order.start_date)) / 86400000))) || '-'}</Text> 天</Text></View>
+                    <View><Text className="text-zinc-400 font-medium">预计天数: <Text className="text-black font-medium">{order.lease_term || Math.max(1, Math.round(((new Date(order.end_date) - new Date(order.start_date)) / 86400000))) || '-'}</Text> 天</Text></View>
                     <View><Text className="text-zinc-400 font-medium">预期归还日: <Text className="text-black font-medium">{formatDisplayDate(order.end_date)}</Text></Text></View>
                   </View>
                 )}
