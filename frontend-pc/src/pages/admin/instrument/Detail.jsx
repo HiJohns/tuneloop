@@ -734,7 +734,7 @@ function ActivityLogTab({ instrumentId }) {
             </Space>
           }
         >
-          {session.events.length === 0 ? (
+          {!session.events || session.events.length === 0 ? (
             <Empty description="暂无操作记录" />
           ) : (
             <div className="space-y-2">
