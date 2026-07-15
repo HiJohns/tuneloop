@@ -363,6 +363,11 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 			iamClient.UnbindUserFromOrganization(user.IAMSub, orgID, "")
 			iamClient.DeleteUser(user.IAMSub)
 		}
+		// Check for wx_unionid duplicate — show friendly error
+		if strings.Contains(err.Error(), "users_wx_unionid_key") {
+			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "该微信号已绑定到其他账户，请先解绑后再试"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create user: " + err.Error()})
 		return
 	}
