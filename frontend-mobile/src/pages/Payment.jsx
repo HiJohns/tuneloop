@@ -11,6 +11,7 @@ export default function Payment() {
   const navigate = useNavigate()
   const pType = searchParams.get('type') || ''
   const pId = searchParams.get('id') || ''
+  const pAmount = parseFloat(searchParams.get('amount') || '0')
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,6 +21,11 @@ export default function Payment() {
   useEffect(() => {
     if (!pType) return
     const fetchData = async () => {
+      if (pType === 'points') {
+        setData({ type: 'points', title: '预付点充值', amount: pAmount, details: null, wallet: null })
+        setLoading(false)
+        return
+      }
       try {
         const resp = await apiFetch(`${baseUrl}/pay/calculate`, {
           method: 'POST',
@@ -100,7 +106,7 @@ export default function Payment() {
         )}
       </div>
 
-      {!isRefund && data.amount > 0 && (
+      {!isRefund && pType !== 'points' && data.amount > 0 && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
           <div className="text-sm font-bold text-black mb-3">点数使用</div>
 

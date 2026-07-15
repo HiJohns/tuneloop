@@ -11,17 +11,9 @@ export default function PointsPrePurchase() {
 
   const selectedAmount = customAmount || amount
 
-  const handlePay = async () => {
+  const handlePay = () => {
     if (!selectedAmount || selectedAmount <= 0) return
-    setPaying(true)
-    try {
-      const resp = await api.post('/user/points/purchase', { amount: parseFloat(selectedAmount) })
-      if (resp.code === 20000) {
-        navigate('/points-complete', { state: { points: resp.data.prepaid_points } })
-        return
-      }
-    } catch { /* failed */ }
-    setPaying(false)
+    navigate(`/payment?type=points&amount=${parseFloat(selectedAmount)}`, { replace: true })
   }
 
   return (

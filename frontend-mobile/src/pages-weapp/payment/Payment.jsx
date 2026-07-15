@@ -11,6 +11,7 @@ export default function Payment() {
   const params = Taro.getCurrentInstance().router?.params || {}
   const pType = params.type || ''
   const pId = params.id || ''
+  const pAmount = parseFloat(params.amount || '0')
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,6 +21,11 @@ export default function Payment() {
   useEffect(() => {
     if (!pType) return
     const fetchData = async () => {
+      if (pType === 'points') {
+        setData({ type: 'points', title: '预付点充值', amount: pAmount, details: null, wallet: null })
+        setLoading(false)
+        return
+      }
       try {
         const resp = await apiFetch(`${baseUrl}/pay/calculate`, {
           method: 'POST',
@@ -103,7 +109,7 @@ export default function Payment() {
         </View>
 
         {/* Points usage (only for non-refund) */}
-        {!isRefund && data.amount > 0 && (
+        {!isRefund && pType !== 'points' && data.amount > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
 
