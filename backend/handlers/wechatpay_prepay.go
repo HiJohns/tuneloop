@@ -90,11 +90,20 @@ func PrepayOrder(c *gin.Context) {
 		now := time.Now()
 		record.UpdatedAt = now
 
-		if err := db.Create(&record).Error; err != nil {
+		tx := db.Begin()
+		if err := tx.Create(&record).Error; err != nil {
+			tx.Rollback()
 			log.Printf("[PrepayOrder] failed to save payment record: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
 			return
 		}
+		if err := applySideEffects(tx, &record, now); err != nil {
+			tx.Rollback()
+			log.Printf("[PrepayOrder] side effects failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "payment side effects failed"})
+			return
+		}
+		tx.Commit()
 
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,

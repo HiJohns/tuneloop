@@ -92,53 +92,29 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 		return false
 	}
 
+	if err := applySideEffects(tx, &record, now); err != nil {
+		tx.Rollback()
+		return false
+	}
+
+	tx.Commit()
+	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%.2f type=%s", result.OutTradeNo, result.TransactionID, record.Amount, record.OrderType)
+	return true
+}
+
+// applySideEffects updates order/repair/points state after payment is confirmed.
+// Called from both processPaymentCallback (real callback) and PrepayOrder (mock mode).
+func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
 	switch record.OrderType {
 	case "rent":
-		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error; err != nil {
-			tx.Rollback()
-			log.Printf("[processPaymentCallback] failed to update order: %v", err)
-			return false
-		}
-
+		return tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error
 	case "repair":
-		if err := tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error; err != nil {
-			tx.Rollback()
-			log.Printf("[processPaymentCallback] failed to update repair: %v", err)
-			return false
-		}
-
+		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error
 	case "points":
-		if record.OrderID != nil {
-			if err := tx.Model(&models.User{}).Where("id = ?", *record.OrderID).
-				Updates(map[string]interface{}{
-					"prepaid_points": gorm.Expr("prepaid_points + ?", record.Amount),
-					"updated_at":     now,
-				}).Error; err != nil {
-				tx.Rollback()
-				log.Printf("[processPaymentCallback] failed to add points: %v", err)
-				return false
-			}
-			pt := models.PointsTransaction{
-				ID:          uuid.New().String(),
-				UserID:      record.UserID,
-				TenantID:    record.TenantID,
-				Type:        "prepaid_purchase",
-				Amount:      record.Amount,
-				Description: "微信支付充值预付点",
-				CreatedAt:   now,
-			}
-			if err := tx.Create(&pt).Error; err != nil {
-				tx.Rollback()
-				log.Printf("[processPaymentCallback] failed to record points transaction: %v", err)
-				return false
-			}
-		}
-
+		return applyPointsPurchase(tx, record, now)
 	case "damage":
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
-			tx.Rollback()
-			log.Printf("[processPaymentCallback] failed to complete order: %v", err)
-			return false
+			return err
 		}
 		if record.OrderID != nil {
 			var report models.DamageReport
@@ -148,11 +124,38 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 				}
 			}
 		}
+		return nil
+	default:
+		return nil
 	}
+}
 
-	tx.Commit()
-	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%.2f type=%s", result.OutTradeNo, result.TransactionID, record.Amount, record.OrderType)
-	return true
+func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
+	if record.OrderID == nil {
+		return nil
+	}
+	if err := tx.Model(&models.User{}).Where("id = ?", *record.OrderID).
+		Updates(map[string]interface{}{
+			"prepaid_points": gorm.Expr("prepaid_points + ?", record.Amount),
+			"updated_at":     now,
+		}).Error; err != nil {
+		log.Printf("[applySideEffects] failed to add points: %v", err)
+		return err
+	}
+	pt := models.PointsTransaction{
+		ID:          uuid.New().String(),
+		UserID:      record.UserID,
+		TenantID:    record.TenantID,
+		Type:        "prepaid_purchase",
+		Amount:      record.Amount,
+		Description: "微信支付充值预付点",
+		CreatedAt:   now,
+	}
+	if err := tx.Create(&pt).Error; err != nil {
+		log.Printf("[applySideEffects] failed to record points transaction: %v", err)
+		return err
+	}
+	return nil
 }
 
 func StartPaymentScheduler(db *gorm.DB) {
