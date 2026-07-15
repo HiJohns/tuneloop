@@ -60,6 +60,14 @@ func PrepayOrder(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	cfg := wechatpay.GetConfig()
 
+	// For customer (USER) JWT, tenantID is empty — derive from the order
+	if tenantID == "" && req.OrderID != "" {
+		var order struct{ TenantID string }
+		if err := db.Table("orders").Select("tenant_id").Where("id = ?", req.OrderID).Scan(&order).Error; err == nil {
+			tenantID = order.TenantID
+		}
+	}
+
 	outTradeNo := fmt.Sprintf("%s%s%d", req.OrderType, uuid.New().String()[:8], time.Now().Unix())
 
 	record := models.OrderPaymentRecord{
