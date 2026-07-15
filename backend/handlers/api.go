@@ -373,7 +373,7 @@ func GetInstruments(c *gin.Context) {
 		return
 	}
 
-	// Build thumbnail map from InstrumentMedia (first image per instrument)
+	// Build thumbnail map from InstrumentMedia (prefer is_display=true, fallback to any image)
 	thumbMap := make(map[string]string)
 	var instIDs []string
 	for _, inst := range instruments {
@@ -381,7 +381,27 @@ func GetInstruments(c *gin.Context) {
 	}
 	var allMedia []models.InstrumentMedia
 	if len(instIDs) > 0 {
-		db.Where("instrument_id IN ? AND file_type = ?", instIDs, "image").Order("sort_order asc, created_at desc").Find(&allMedia)
+		// First pass: get display images
+		db.Where("instrument_id IN ? AND file_type = ? AND is_display = ?", instIDs, "image", true).
+			Order("sort_order asc, created_at desc").Find(&allMedia)
+		for _, m := range allMedia {
+			if m.InstrumentID == nil {
+				continue
+			}
+			id := *m.InstrumentID
+			if _, exists := thumbMap[id]; !exists {
+				key := normalizeMediaKey(m.StorageKey)
+				storageSvc := services.NewMediaStorage()
+				url, _ := storageSvc.GetURL(ctx, key)
+				if url == "" {
+					url = "/uploads/media/" + key
+				}
+				thumbMap[id] = url
+			}
+		}
+		// Second pass: fallback to any image for instruments still missing thumbnail
+		db.Where("instrument_id IN ? AND file_type = ? AND is_display = ?", instIDs, "image", false).
+			Order("sort_order asc, created_at desc").Find(&allMedia)
 		for _, m := range allMedia {
 			if m.InstrumentID == nil {
 				continue
