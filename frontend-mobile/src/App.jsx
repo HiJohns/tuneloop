@@ -23,6 +23,7 @@ import LeaseHistory from './pages/LeaseHistory'
 import Messages from './pages/Messages'
 import MessageDetail from './pages/MessageDetail'
 import PaymentComplete from './pages/PaymentComplete'
+import Payment from './pages/Payment'
 import StaffInstruments from './pages/StaffInstruments'
 import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
 import StaffInstrumentForm from './pages/StaffInstrumentForm'
@@ -189,6 +190,7 @@ function App() {
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
         <Route path="/payment-complete" element={<ProtectedRoute><PaymentComplete /></ProtectedRoute>} />
+        <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
 <Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />
 <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
 <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />

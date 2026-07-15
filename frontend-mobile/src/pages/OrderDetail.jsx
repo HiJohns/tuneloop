@@ -122,21 +122,8 @@ export default function OrderDetail() {
       .catch(() => {})
   }, [id])
 
-  const handlePay = async () => {
-    if (!dialog.confirm('确认支付该订单？')) return
-    setActionLoading(true)
-    try {
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/pay`, { method: 'POST' })
-      const result = await resp.json()
-      if (result.code === 20000) {
-          navigate('/my-leases', { replace: true })
-      } else {
-        dialog.alert('支付失败: ' + result.message)
-      }
-    } catch (err) {
-      dialog.alert('支付失败: ' + err.message)
-    }
-    setActionLoading(false)
+  const handlePay = () => {
+    navigate(`/payment?type=rent&id=${id}`, { replace: true })
   }
 
   const handleCancel = async () => {

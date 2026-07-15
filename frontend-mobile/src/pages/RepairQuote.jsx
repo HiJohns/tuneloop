@@ -37,19 +37,8 @@ export default function RepairQuote() {
 
   useEffect(() => { fetchData() }, [requestId])
 
-  const handlePay = async () => {
-    const payAmount = (acceptedQuote?.material_fee || 0) + (acceptedQuote?.service_fee || 0) + (acceptedQuote?.logistics_fee || 0) + (request?.merchant_type === 'controlled' ? (request?.transit_service_fee || 0) + (request?.transit_logistics_fee || 0) : 0)
-    setPaying(true)
-    try {
-      const payRes = await apiFetch(`${baseUrl}/repair-requests/${requestId}/pay`, { method: 'POST' })
-      const pay = await payRes.json()
-      if (pay.code === 20000) {
-        navigate('/repair-payment-complete', { state: { amount: payAmount, requestId } })
-      } else {
-        alert(pay.message || '支付失败')
-      }
-    } catch { alert('支付失败') }
-    setPaying(false)
+  const handlePay = () => {
+    navigate(`/payment?type=repair&id=${requestId}`, { replace: true })
   }
 
   if (loading) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
