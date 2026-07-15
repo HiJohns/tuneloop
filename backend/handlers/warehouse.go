@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
+
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -80,12 +79,11 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 		}
 		var media models.InstrumentMedia
 		if err := db.Where("instrument_id = ? AND is_display = ?", o.InstrumentID, true).Order("sort_order ASC").First(&media).Error; err == nil && media.StorageKey != "" {
-			thumbKey := strings.TrimSuffix(media.StorageKey, filepath.Ext(media.StorageKey)) + "_thumb.jpg"
-			url, _ := storageSvc.GetURL(ctx, thumbKey)
+			url, _ := storageSvc.GetURL(ctx, media.StorageKey)
 			if url != "" {
 				item.CoverImage = url
 			} else {
-				item.CoverImage = "/uploads/media/" + thumbKey
+				item.CoverImage = "/uploads/media/" + media.StorageKey
 			}
 		}
 		list = append(list, item)
