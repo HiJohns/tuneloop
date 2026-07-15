@@ -1018,6 +1018,97 @@ URL切换到/sites/:id/edit
 
 ---
 
+### 4.1.6 微信绑定
+
+**角色**：网点管理员 / 商户管理员
+
+**场景**：管理员在 PC 端为人员生成微信绑定二维码，人员用微信扫码完成绑定，此后可在微信小程序中一键登录。
+
+#### 绑定流程时序图
+
+```mermaid
+sequenceDiagram
+    actor Admin as 管理员 (PC)
+    participant PC as PC 前端
+    participant API as Tuneloop API
+    participant IAM as Beacon IAM
+    actor Staff as 人员 (手机微信)
+    participant WX as 微信服务器
+
+    Admin->>PC: 点击「绑定微信」
+    PC->>API: POST /api/users/me/wechat-bind
+    API->>IAM: 校验当前用户身份
+    IAM-->>API: user_id
+    API->>API: 生成 bind_token (5min TTL)<br/>存入内存 map
+    API-->>PC: {token, qrcode_url}
+    PC->>PC: 渲染二维码<br/>值 = origin + /api/wechat-bind/confirm-page?token=xxx
+    PC-->>Admin: 显示二维码弹窗
+    Admin-->>Staff: 指向屏幕让人员扫码
+    PC->>API: 轮询 GET /api/users/me/wechat-bind/{token} (每2秒)
+
+    Staff->>WX: 微信扫一扫
+
+    rect rgb(240, 248, 255)
+        Note over Staff, API: OAuth 网页授权流程 (获取 openid)
+        WX--)Staff: 打开网页: /api/wechat-bind/confirm-page?token=xxx
+        Staff->>API: GET /api/wechat-bind/confirm-page?token=xxx
+        API->>API: 检查 token 是否有效 (pending & 未过期)
+        API-->>Staff: 302 重定向到微信 OAuth
+        Staff->>WX: GET open.weixin.qq.com/connect/oauth2/authorize
+        WX-->>Staff: 授权页面
+        Staff->>WX: 点击「授权」
+        WX-->>Staff: 302 回调 /api/wechat-bind/confirm-page?code=xxx&token=xxx
+        Staff->>API: GET confirm-page?code=xxx&token=xxx
+        API->>WX: POST /sns/oauth2/access_token?code=xxx
+        WX-->>API: {openid, access_token}
+    end
+
+    API->>API: 渲染确认页面 (含 openid)
+    API-->>Staff: HTML 页面: 欢迎信息 + 确认绑定按钮
+    Staff->>API: POST /api/wechat-bind/confirm<br/>{token, wx_openid}
+
+    rect rgb(255, 248, 240)
+        Note over API, IAM: 绑定落库
+        API->>API: token status → bound
+        API->>IAM: PATCH /api/v1/users/{user_id}<br/>{wx_openid}
+        IAM-->>API: OK
+        API->>API: 更新本地 users.wx_openid
+    end
+
+    API-->>Staff: 绑定成功
+
+    PC->>API: 轮询到 status=bound
+    API-->>PC: {status: "bound"}
+    PC->>PC: 关闭二维码弹窗<br/>显示「已绑定」
+    PC-->>Admin: 绑定完成
+```
+
+#### 接口清单
+
+| 方法 | 路径 | 端 | 说明 |
+|------|------|:--:|------|
+| `POST` | `/api/users/me/wechat-bind` | PC | 生成绑定 token（需登录态） |
+| `GET` | `/api/users/me/wechat-bind/:token` | PC | PC 轮询绑定状态 |
+| `GET` | `/api/wechat-bind/confirm-page` | 微信 | 扫描二维码打开的确认页（OAuth 回调） |
+| `POST` | `/api/wechat-bind/confirm` | 微信 | 确认绑定（提交 token + wx_openid） |
+| `POST` | `/api/users/me/wechat-unbind` | PC | 解绑微信 |
+
+#### token 生命周期
+
+```
+生成 (POST /users/me/wechat-bind) → pending
+    ├── 扫码确认 (POST /wechat-bind/confirm) → bound → 删除
+    └── 超时 5 分钟 → expired → 定时清理删除
+```
+
+#### 关键规则
+
+1. **二维码值**：使用当前 PC 端的 `origin`（`window.location.origin`）+ `/api/wechat-bind/confirm-page?token=...`，不硬编码域名，确保开发/预生产/生产环境均可使用
+2. **OAuth 授权**：确认页首次访问无 `code` 参数时，302 重定向到 `https://open.weixin.qq.com/connect/oauth2/authorize`，scope 为 `snsapi_base`（静默授权，无需用户确认即可获取 openid）
+3. **token 一次性**：确认后立即标记 bound 并清除，不可重放
+4. **轮询频率**：PC 端每 2 秒轮询一次，5 分钟超时自动关闭弹窗
+5. **多点绑定**：后绑定的微信号覆盖前一次（IAM 侧 `wx_openid` 写入即覆盖）
+
 ## 4.2 人员管理
 
 ## 4.2 人员管理
