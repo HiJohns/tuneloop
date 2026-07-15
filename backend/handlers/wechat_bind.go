@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -119,6 +120,7 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	entry, exists := bindTokens[req.Token]
 	if !exists || entry.Status != "pending" {
 		bindTokensMu.Unlock()
+		log.Printf("[ConfirmBind] token=%q exists=%v status=%q", req.Token, exists, func() string { if exists { return entry.Status } ; return "n/a" }())
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid or expired token"})
 		return
 	}
@@ -191,11 +193,11 @@ func (h *WechatBindHandler) ConfirmBindPage(c *gin.Context) {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-.card{background:#fff;border-radius:16px;padding:32px 24px;text-align:center;max-width:360px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-h2{font-size:20px;color:#333;margin-bottom:8px}.sub{font-size:14px;color:#999;margin-bottom:24px}
-.btn{display:block;width:100%;padding:12px 0;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+.card{background:#fff;border-radius:16px;padding:40px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+h2{font-size:20px;color:#333;margin-bottom:8px}.sub{font-size:14px;color:#999;margin-bottom:28px;line-height:1.6}
+.btn{display:inline-block;width:80%%;max-width:260px;padding:14px 32px;border:none;border-radius:999px;font-size:16px;font-weight:700;cursor:pointer;margin:0 auto}
 .btn-confirm{background:#07c160;color:#fff}.btn-confirm:disabled{background:#ccc}
-.msg{margin-top:12px;font-size:13px;color:#666}
+.msg{margin-top:16px;font-size:13px;color:#666}
 </style>
 </head><body>
 <div class="card">
