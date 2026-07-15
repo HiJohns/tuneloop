@@ -182,7 +182,11 @@ export default function Payment() {
           <Button style={btnStyle('#000')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
         ) : (
           <Button style={btnStyle(cashAmount > 0 ? '#C21838' : '#16a34a')} onClick={() => handlePay(cashAmount)}>
-            {cashAmount > 0 ? `微信支付 ¥${Number(cashAmount).toFixed(2)}` : '确认支付 ¥0（使用点数）'}
+            {pType === 'damage' && cashAmount <= 0
+              ? '无需支付 ¥0'
+              : cashAmount > 0
+                ? `微信支付 ¥${Number(cashAmount).toFixed(2)}`
+                : '确认支付 ¥0（使用点数）'}
           </Button>
         )}
       </View>
@@ -246,11 +250,20 @@ function renderDetailsBlock(details, type) {
     )
   }
   if (type === 'damage') {
+    const pb = details.paid_breakdown || {}
     return (
       <View>
-        <Row label="定损金额" value={`¥${Number(details.damage_amount || 0).toFixed(2)}`} />
-        <Row label="押金抵扣" value={`-¥${Number(details.deposit || 0).toFixed(2)}`} />
-        <Row label="需支付" value={`¥${Number(details.pay_amount || 0).toFixed(2)}`} bold />
+        <View style={{ opacity: 0.5 }}>
+          <Row label="租金小计" value={`¥${Number(pb.rent_subtotal || 0).toFixed(2)}`} />
+          <Row label="押金" value={`¥${Number(pb.deposit || 0).toFixed(2)}`} />
+          <Row label="物流费" value={`¥${Number(pb.shipping_fee || 0).toFixed(2)}`} />
+          <Row label="已付合计" value={`¥${Number(pb.paid_total || 0).toFixed(2)}`} bold />
+        </View>
+        <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
+          <Row label="损失评估" value={`¥${Number(details.damage_amount || 0).toFixed(2)}`} />
+          <Row label="押金抵扣" value={`-¥${Number(details.deposit_deduction || 0).toFixed(2)}`} />
+          <Row label="需补付" value={`¥${Number(details.pay_amount || 0).toFixed(2)}`} bold color="#dc2626" />
+        </View>
       </View>
     )
   }

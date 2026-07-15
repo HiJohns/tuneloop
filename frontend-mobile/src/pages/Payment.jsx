@@ -185,7 +185,11 @@ export default function Payment() {
             }`}
             onClick={() => doPay(cashAmount)}
           >
-            {cashAmount > 0 ? `微信支付 ¥${Number(cashAmount).toFixed(2)}` : '确认支付 ¥0（使用点数）'}
+            {pType === 'damage' && cashAmount <= 0
+              ? '无需支付 ¥0'
+              : cashAmount > 0
+                ? `微信支付 ¥${Number(cashAmount).toFixed(2)}`
+                : '确认支付 ¥0（使用点数）'}
           </button>
         )}
       </div>
@@ -276,11 +280,20 @@ function renderDetailsBlock(details, type) {
     )
   }
   if (type === 'damage') {
+    const pb = details.paid_breakdown || {}
     return (
       <div>
-        <Row label="定损金额" value={`¥${Number(details.damage_amount || 0).toFixed(2)}`} />
-        <Row label="押金抵扣" value={`-¥${Number(details.deposit || 0).toFixed(2)}`} />
-        <Row label="需支付" value={`¥${Number(details.pay_amount || 0).toFixed(2)}`} bold />
+        <div className="opacity-50">
+          <Row label="租金小计" value={`¥${Number(pb.rent_subtotal || 0).toFixed(2)}`} />
+          <Row label="押金" value={`¥${Number(pb.deposit || 0).toFixed(2)}`} />
+          <Row label="物流费" value={`¥${Number(pb.shipping_fee || 0).toFixed(2)}`} />
+          <Row label="已付合计" value={`¥${Number(pb.paid_total || 0).toFixed(2)}`} bold />
+        </div>
+        <div className="border-t border-zinc-100 pt-2 mt-1">
+          <Row label="损失评估" value={`¥${Number(details.damage_amount || 0).toFixed(2)}`} />
+          <Row label="押金抵扣" value={`-¥${Number(details.deposit_deduction || 0).toFixed(2)}`} />
+          <Row label="需补付" value={`¥${Number(details.pay_amount || 0).toFixed(2)}`} bold color="#dc2626" />
+        </div>
       </div>
     )
   }

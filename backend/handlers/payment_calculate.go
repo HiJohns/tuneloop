@@ -171,12 +171,32 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 	if err := db.Where("id = ?", report.LeaseID).First(&order).Error; err != nil {
 		return
 	}
+
+	// Compute pricing breakdown from order
+	pricingBreakdown := make(map[string]interface{})
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		json.Unmarshal([]byte(*order.PricingBreakdown), &pricingBreakdown)
+	}
+	rentSubtotal := 0.0
+	if pb, ok := pricingBreakdown["total_amount"]; ok {
+		if v, ok2 := pb.(float64); ok2 {
+			rentSubtotal = v
+		}
+	}
+
+	payAmount := math.Max(0, damageAmount-order.Deposit)
 	resp.Title = "定损赔偿"
-	resp.Amount = math.Max(0, damageAmount-order.Deposit)
+	resp.Amount = payAmount
 	resp.Details = map[string]interface{}{
-		"damage_amount": damageAmount,
-		"deposit":       order.Deposit,
-		"pay_amount":    resp.Amount,
+		"paid_breakdown": map[string]float64{
+			"rent_subtotal":  rentSubtotal,
+			"deposit":        order.Deposit,
+			"shipping_fee":   order.ShippingFee,
+			"paid_total":     rentSubtotal + order.Deposit + order.ShippingFee,
+		},
+		"damage_amount":    damageAmount,
+		"deposit_deduction": math.Min(order.Deposit, damageAmount),
+		"pay_amount":       payAmount,
 	}
 }
 
