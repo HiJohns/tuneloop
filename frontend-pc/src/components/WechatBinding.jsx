@@ -24,6 +24,9 @@ export default function WechatBinding() {
         setShowQR(true)
         setPolling(true)
       }
+    } catch {
+      message.error('生成二维码失败')
+    }
   }
 
   // Poll binding status
