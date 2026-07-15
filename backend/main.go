@@ -208,6 +208,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/instruments/search", handlers.SearchInstruments)
 	bindHandler := handlers.NewWechatBindHandler()
 	api.POST("/wechat-bind/confirm", bindHandler.ConfirmBind)
+	api.GET("/wechat-bind/confirm-page", bindHandler.ConfirmBindPage)
 	authRequired := api.Group("")
 	authRequired.Use(middleware.IAMInterceptor(iamService, iamClient))
 	authRequired.Use(middleware.NoCache())

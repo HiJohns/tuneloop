@@ -24,9 +24,6 @@ export default function WechatBinding() {
         setShowQR(true)
         setPolling(true)
       }
-    } catch {
-      message.error('生成二维码失败')
-    }
   }
 
   // Poll binding status
@@ -76,7 +73,7 @@ export default function WechatBinding() {
     })
   }
 
-  const qrValue = `https://wx.cadenzayueqi.com/bind?token=${qrToken}`
+  const qrValue = `${window.location.origin}/api/wechat-bind/confirm-page?token=${qrToken}`
 
   return (
     <Card title={<span><WechatOutlined /> 微信绑定</span>} style={{ marginBottom: 16 }}>

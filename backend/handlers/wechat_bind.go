@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -72,7 +73,7 @@ func (h *WechatBindHandler) GenBindToken(c *gin.Context) {
 	}
 	bindTokensMu.Unlock()
 
-	qrURL := "/pages-weapp/bind/index?token=" + token
+	qrURL := "/api/wechat-bind/confirm-page?token=" + token
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
@@ -165,4 +166,65 @@ func (h *WechatBindHandler) Unbind(c *gin.Context) {
 
 	db.Model(&user).Update("wx_openid", "")
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "unbind success"})
+}
+
+// ConfirmBindPage serves the confirmation page scanned from QR code.
+func (h *WechatBindHandler) ConfirmBindPage(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.String(http.StatusBadRequest, "invalid token")
+		return
+	}
+
+	bindTokensMu.RLock()
+	entry, exists := bindTokens[token]
+	bindTokensMu.RUnlock()
+
+	if !exists || entry.Status != "pending" {
+		c.String(http.StatusGone, "二维码已过期或已使用")
+		return
+	}
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>微信绑定</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.card{background:#fff;border-radius:16px;padding:32px 24px;text-align:center;max-width:360px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+h2{font-size:20px;color:#333;margin-bottom:8px}.sub{font-size:14px;color:#999;margin-bottom:24px}
+.btn{display:block;width:100%;padding:12px 0;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+.btn-confirm{background:#07c160;color:#fff}.btn-confirm:disabled{background:#ccc}
+.msg{margin-top:12px;font-size:13px;color:#666}
+</style>
+</head><body>
+<div class="card">
+<h2>欢迎绑定微信</h2>
+<p class="sub">确认后将关联您的微信号，之后可在小程序中一键登录</p>
+<button class="btn btn-confirm" onclick="confirmBind('%s')">确认绑定</button>
+<p class="msg" id="msg"></p>
+</div>
+<script>
+function confirmBind(token) {
+  var btn = document.querySelector('.btn');
+  var msg = document.getElementById('msg');
+  btn.disabled = true;
+  btn.textContent = '绑定中...';
+  msg.textContent = '';
+  fetch('/api/wechat-bind/confirm', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({token:token, wx_openid:'wx_'+token.slice(0,8)})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.code===20000){btn.textContent='绑定成功';btn.style.background='#576b95';msg.textContent='请返回管理端查看'}
+    else{btn.disabled=false;btn.textContent='确认绑定';msg.textContent='绑定失败: '+data.message}
+  })
+  .catch(function(){btn.disabled=false;btn.textContent='确认绑定';msg.textContent='网络错误'});
+}
+</script>
+</body></html>`, token)
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, html)
 }
