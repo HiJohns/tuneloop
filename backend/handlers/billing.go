@@ -188,8 +188,16 @@ func GetSettlementConfig(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(c.Request.Context())
+
+	// Resolve tenant_id from merchant record
+	var merchant models.Merchant
+	if err := db.Where("id = ?", merchantID).First(&merchant).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+		return
+	}
+
 	var cfg models.MerchantSettlementConfig
-	if err := db.Where("tenant_id = ?", merchantID).First(&cfg).Error; err != nil {
+	if err := db.Where("tenant_id = ?", merchant.TenantID).First(&cfg).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": nil})
 		return
 	}
@@ -219,11 +227,19 @@ func UpsertSettlementConfig(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 
+	// Resolve tenant_id from merchant record
+	var merchant models.Merchant
+	if err := db.Where("id = ?", merchantID).First(&merchant).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "merchant not found"})
+		return
+	}
+	tenantID := merchant.TenantID
+
 	var existing models.MerchantSettlementConfig
-	found := db.Where("tenant_id = ?", merchantID).First(&existing).Error == nil
+	found := db.Where("tenant_id = ?", tenantID).First(&existing).Error == nil
 
 	cfg := models.MerchantSettlementConfig{
-		TenantID:         merchantID,
+		TenantID:         tenantID,
 		ReceiverType:     req.ReceiverType,
 		ReceiverAccount:  req.ReceiverAccount,
 		ProfitShareRatio: req.ProfitShareRatio,

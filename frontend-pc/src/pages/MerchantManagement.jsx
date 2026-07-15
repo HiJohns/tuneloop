@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Form, Input, Select, Switch, message, Card, Space, Popconfirm, Tag } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, Switch, message, Card, Space, Popconfirm, Tag, InputNumber } from 'antd';
 import api from '../services/api';
 import ManagerSelector from '../components/ManagerSelector';
 
@@ -15,6 +15,10 @@ const MerchantManagement = () => {
   const [conflictOptions, setConflictOptions] = useState(null);
   const [creatingManager, setCreatingManager] = useState(false);
   const [merchantType, setMerchantType] = useState('full');
+  const [settlementMerchant, setSettlementMerchant] = useState(null);
+  const [settlementOpen, setSettlementOpen] = useState(false);
+  const [settlementForm] = Form.useForm();
+  const [settlementLoading, setSettlementLoading] = useState(false);
 
   useEffect(() => {
     fetchMerchants();
@@ -66,6 +70,33 @@ const MerchantManagement = () => {
       message.error(error.response?.data?.message || '删除商户失败');
     }
   };
+
+  const openSettlement = async (record) => {
+    setSettlementMerchant(record);
+    setSettlementOpen(true);
+    setSettlementLoading(true);
+    try {
+      const resp = await api.get(`/admin/merchant/${record.id}/settlement`)
+      if (resp.code === 20000 && resp.data) {
+        settlementForm.setFieldsValue(resp.data)
+      } else {
+        settlementForm.resetFields()
+      }
+    } catch { settlementForm.resetFields() }
+    setSettlementLoading(false)
+  }
+
+  const saveSettlement = async () => {
+    try {
+      const values = await settlementForm.validateFields()
+      await api.put(`/admin/merchant/${settlementMerchant.id}/settlement`, values)
+      message.success('分账配置保存成功')
+      setSettlementOpen(false)
+    } catch (err) {
+      if (err.errorFields) return // validation error
+      message.error('保存失败: ' + (err.response?.data?.message || err.message))
+    }
+  }
 
   const handleSubmit = async (values) => {
     try {
@@ -149,6 +180,9 @@ const MerchantManagement = () => {
         <Space>
           <Button type="link" onClick={() => handleEdit(record)}>
             编辑
+          </Button>
+          <Button type="link" onClick={() => openSettlement(record)}>
+            分账配置
           </Button>
           <Popconfirm
             title="确定要删除此商户吗？"
@@ -269,6 +303,33 @@ const MerchantManagement = () => {
           </Form.Item>
 
           <Form.Item name="rebate_opt_in" label="参与返点" valuePropName="checked" initialValue={true}>
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`分账配置 - ${settlementMerchant?.name || ''}`}
+        open={settlementOpen}
+        destroyOnClose
+        onOk={saveSettlement}
+        onCancel={() => setSettlementOpen(false)}
+        confirmLoading={settlementLoading}
+      >
+        <Form form={settlementForm} layout="vertical">
+          <Form.Item name="receiver_type" label="接收方类型" rules={[{ required: true, message: '请选择类型' }]}>
+            <Select>
+              <Select.Option value="merchant">商户号</Select.Option>
+              <Select.Option value="personal_openid">个人 openid</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="receiver_account" label="接收方账号" rules={[{ required: true, message: '请输入账号' }]}>
+            <Input placeholder="商户号或个人 openid" />
+          </Form.Item>
+          <Form.Item name="profit_share_ratio" label="分账比例（%）" tooltip="平台分给商户的分成比例">
+            <InputNumber min={0} max={100} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="is_enabled" label="启用" valuePropName="checked" initialValue={true}>
             <Switch />
           </Form.Item>
         </Form>
