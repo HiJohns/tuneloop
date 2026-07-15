@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -190,13 +189,13 @@ func (h *WechatBindHandler) ConfirmBindPage(c *gin.Context) {
 		return
 	}
 
-	html := fmt.Sprintf(`<!DOCTYPE html>
+	html := `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>微信绑定</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-.card{background:#fff;border-radius:16px;padding:40px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.card{background:#fff;border-radius:16px;padding:40px 24px;text-align:center;max-width:340px;width:100%%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 h2{font-size:20px;color:#333;margin-bottom:8px}.sub{font-size:14px;color:#999;margin-bottom:28px;line-height:1.6}
 .btn{display:inline-block;width:80%%;max-width:260px;padding:14px 32px;border:none;border-radius:999px;font-size:16px;font-weight:700;cursor:pointer;margin:0 auto}
 .btn-confirm{background:#07c160;color:#fff}.btn-confirm:disabled{background:#ccc}
@@ -206,7 +205,7 @@ h2{font-size:20px;color:#333;margin-bottom:8px}.sub{font-size:14px;color:#999;ma
 <div class="card">
 <h2>欢迎绑定微信</h2>
 <p class="sub">确认后将关联您的微信号，之后可在小程序中一键登录</p>
-<button class="btn btn-confirm" onclick="confirmBind('%s')">确认绑定</button>
+<button class="btn btn-confirm" onclick="confirmBind('` + token + `')">确认绑定</button>
 <p class="msg" id="msg"></p>
 </div>
 <script>
@@ -229,7 +228,7 @@ function confirmBind(token) {
   .catch(function(){btn.disabled=false;btn.textContent='确认绑定';msg.textContent='网络错误'});
 }
 </script>
-</body></html>`, token)
+</body></html>`
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	c.String(http.StatusOK, html)
 }
