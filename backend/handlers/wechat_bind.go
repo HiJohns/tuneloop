@@ -112,15 +112,18 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		WxOpenid string `json:"wx_openid" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[ConfirmBind] body parse error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "token and wx_openid required"})
 		return
 	}
+
+	log.Printf("[ConfirmBind] req.Token=%q req.WxOpenid=%q", req.Token, req.WxOpenid)
 
 	bindTokensMu.Lock()
 	entry, exists := bindTokens[req.Token]
 	if !exists || entry.Status != "pending" {
 		bindTokensMu.Unlock()
-		log.Printf("[ConfirmBind] token=%q exists=%v status=%q", req.Token, exists, func() string { if exists { return entry.Status } ; return "n/a" }())
+		log.Printf("[ConfirmBind] token not found or used: exists=%v status=%q", exists, func() string { if exists { return entry.Status } ; return "n/a" }())
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid or expired token"})
 		return
 	}
