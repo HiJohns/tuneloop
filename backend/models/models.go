@@ -208,8 +208,19 @@ type Order struct {
 	GiftPointsUsed       float64    `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_used"`
 	PointsPolicySnapshot *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
 	CurrentPaymentSessionID *string  `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type MerchantSettlementConfig struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID         string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	ReceiverType     string    `gorm:"type:varchar(20);not null;default:'merchant'" json:"receiver_type"`
+	ReceiverAccount  string    `gorm:"type:varchar(128);not null" json:"receiver_account"`
+	ProfitShareRatio float64   `gorm:"type:decimal(5,2);not null;default:0" json:"profit_share_ratio"`
+	IsEnabled        bool      `gorm:"not null;default:true" json:"is_enabled"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type Settlement struct {

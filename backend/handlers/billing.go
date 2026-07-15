@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -8,8 +9,10 @@ import (
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // GetBillingReport returns order billing report for merchant admin / platform admin.
@@ -145,4 +148,83 @@ func GetBillingReport(c *gin.Context) {
 			"page_size": pageSize,
 		},
 	})
+}
+
+// GetSettlementConfig returns the settlement config for a merchant.
+// GET /api/admin/merchant/:id/settlement
+func GetSettlementConfig(c *gin.Context) {
+	merchantID := c.Param("id")
+	if merchantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "merchant id required"})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	var cfg models.MerchantSettlementConfig
+	if err := db.Where("tenant_id = ?", merchantID).First(&cfg).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": nil})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": cfg})
+}
+
+// UpsertSettlementConfig creates or updates a merchant's settlement config.
+// PUT /api/admin/merchant/:id/settlement
+func UpsertSettlementConfig(c *gin.Context) {
+	merchantID := c.Param("id")
+	if merchantID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "merchant id required"})
+		return
+	}
+
+	var req struct {
+		ReceiverType     string  `json:"receiver_type"`
+		ReceiverAccount  string  `json:"receiver_account"`
+		ProfitShareRatio float64 `json:"profit_share_ratio"`
+		IsEnabled        *bool   `json:"is_enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var existing models.MerchantSettlementConfig
+	found := db.Where("tenant_id = ?", merchantID).First(&existing).Error == nil
+
+	cfg := models.MerchantSettlementConfig{
+		TenantID:         merchantID,
+		ReceiverType:     req.ReceiverType,
+		ReceiverAccount:  req.ReceiverAccount,
+		ProfitShareRatio: req.ProfitShareRatio,
+		IsEnabled:        true,
+		UpdatedAt:        time.Now(),
+	}
+	if req.IsEnabled != nil {
+		cfg.IsEnabled = *req.IsEnabled
+	}
+
+	if found {
+		cfg.ID = existing.ID
+		cfg.CreatedAt = existing.CreatedAt
+		if err := db.Save(&cfg).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update settlement: " + err.Error()})
+			return
+		}
+	} else {
+		cfg.ID = uuid.New().String()
+		cfg.CreatedAt = time.Now()
+		if err := db.Create(&cfg).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create settlement: " + err.Error()})
+			return
+		}
+	}
+
+	log.Printf("[SettlementConfig] %s merchant=%s receiver=%s/%s ratio=%.2f enabled=%v",
+		map[bool]string{true: "updated", false: "created"}[found],
+		merchantID, req.ReceiverType, req.ReceiverAccount, req.ProfitShareRatio, cfg.IsEnabled)
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": cfg})
 }
