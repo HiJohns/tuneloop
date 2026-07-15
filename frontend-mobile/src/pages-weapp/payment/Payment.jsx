@@ -216,7 +216,12 @@ function renderDetailsBlock(details, type) {
         <View>
           <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 4 }}>阶梯定价</Text>
           {pb.tier_segments.map((seg, i) => (
-            <Row key={i} label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${Number(seg.subtotal).toFixed(2)}`} />
+            <View key={i} style={{ paddingLeft: 16 }}>
+              <Row label={`第${seg.tier}阶 ${seg.days}天`} value={`¥${Number(seg.days * seg.rate).toFixed(2)}`} />
+              {seg.discount < 1.0 && (
+                <Row label="  折扣" value={`-¥${Number(seg.days * seg.rate - seg.subtotal).toFixed(2)}`} color="#16a34a" />
+              )}
+            </View>
           ))}
           <Row label="租金小计" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} bold />
           {details.deposit > 0 && <Row label="押金" value={`¥${Number(details.deposit).toFixed(2)}`} />}
