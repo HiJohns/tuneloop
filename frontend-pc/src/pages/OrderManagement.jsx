@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Table, Card, Tag, Input, Select, Space, Spin, Button, Modal, message, DatePicker } from 'antd'
-import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import api from '../services/api'
 
@@ -17,6 +16,7 @@ const STATUS_MAP = {
 }
 
 const NOT_STARTED = ['reserved', 'paid', 'in_transit', 'shipped']
+const NOT_RETURNED = ['reserved', 'paid', 'in_transit', 'shipped', 'in_lease']
 
 const formatMD = (s) => {
   if (!s) return '-'
@@ -26,9 +26,8 @@ const formatMD = (s) => {
 }
 
 const calcDays = (r) => {
-  if (NOT_STARTED.includes(r.status)) return '-'
-  if (!r.start_date) return '-'
-  const start = new Date(r.start_date)
+  if (!r.delivered_at) return '-'
+  const start = new Date(r.delivered_at)
   if (isNaN(start.getTime())) return '-'
   const end = r.returned_at ? new Date(r.returned_at) : new Date()
   if (isNaN(end.getTime())) return '-'
@@ -44,8 +43,8 @@ export default function OrderManagement() {
   const [statusFilter, setStatusFilter] = useState('')
   const [snSearch, setSnSearch] = useState('')
   const [debugMode, setDebugMode] = useState(false)
-  const [editModal, setEditModal] = useState({ open: false, order: null, status: '', startDate: null, endDate: null })
-  const [editSaving, setEditSaving] = useState(false)
+  const [debugModal, setDebugModal] = useState({ open: false, order: null, status: '', deliveredAt: null, returnedAt: null })
+  const [debugSaving, setDebugSaving] = useState(false)
 
   useEffect(() => { api.get('/config').then(r => { if (r.code === 20000 && r.data?.debug_mode) setDebugMode(true) }).catch(() => {}) }, [])
 
@@ -67,21 +66,25 @@ export default function OrderManagement() {
   }
 
   const columns = [
-    { title: '订单号', dataIndex: 'id', key: 'id', render: (id) => id.slice(0, 8) + '...' },
-    { title: '乐器', dataIndex: 'instrument_name', key: 'instrument_name', render: (_, r) => r.instrument_name || r.instrument_sn || '-' },
-    { title: 'SN', dataIndex: 'instrument_sn', key: 'instrument_sn' },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (s) => {
+    { title: '订单号', dataIndex: 'id', key: 'id', width: 100, render: (id) => id.slice(0, 8) + '...' },
+    { title: 'SN', dataIndex: 'instrument_sn', key: 'instrument_sn', width: 100 },
+    { title: '状态', dataIndex: 'status', key: 'status', width: 80, render: (s) => {
       const m = STATUS_MAP[s] || { color: 'default', text: s }
       return <Tag color={m.color}>{m.text}</Tag>
     }},
-    { title: '租期起始', key: 'start_date', render: (_, r) => formatMD(r.start_date) },
-    { title: '租期结束', key: 'end_date', render: (_, r) => NOT_STARTED.includes(r.status) ? '-' : formatMD(r.returned_at || r.end_date) },
-    { title: '租赁天数', key: 'days', render: (_, r) => calcDays(r) },
+    { title: '下单时间', dataIndex: 'created_at', key: 'created_at', width: 80, render: (v) => v ? formatMD(v) : '-' },
+    { title: '租期起始', key: 'delivered_at', width: 80, render: (_, r) => r.delivered_at ? formatMD(r.delivered_at) : '-' },
+    { title: '预计归还', key: 'end_date', width: 80, render: (_, r) => formatMD(r.end_date) },
+    { title: '租期结束', key: 'returned_at', width: 80, render: (_, r) => r.returned_at ? formatMD(r.returned_at) : '-' },
+    { title: '租赁天数', key: 'days', width: 70, render: (_, r) => calcDays(r) },
     { title: '租赁人', dataIndex: 'user_name', key: 'user_name', render: (v) => v || '-' },
-    { title: '下单时间', dataIndex: 'created_at', key: 'created_at', render: (v) => v ? formatMD(v) : '-' },
     ...(debugMode ? [{
-      title: '操作', key: 'action', render: (_, r) => (
-        <Button size="small" onClick={() => setEditModal({ open: true, order: r, status: r.status, startDate: r.start_date ? dayjs(r.start_date) : null, endDate: r.end_date ? dayjs(r.end_date) : null })}>编辑</Button>
+      title: '操作', key: 'action', width: 80, render: (_, r) => (
+        <Button size="small" onClick={() => setDebugModal({
+          open: true, order: r, status: r.status,
+          deliveredAt: r.delivered_at ? dayjs(r.delivered_at) : null,
+          returnedAt: r.returned_at ? dayjs(r.returned_at) : null,
+        })}>调试</Button>
       )
     }] : []),
   ]
@@ -103,47 +106,78 @@ export default function OrderManagement() {
         <Table
           dataSource={orders} columns={columns} rowKey="id"
           pagination={{ current: page, total, pageSize: 20, onChange: setPage }}
+          scroll={{ x: 800 }}
         />
       </Spin>
-      <Modal title="编辑订单" open={editModal.open} onCancel={() => setEditModal(p => ({ ...p, open: false }))}
-        onOk={async () => {
-          setEditSaving(true)
-          try {
-            const startDateStr = editModal.startDate ? editModal.startDate.format('YYYY-MM-DD') : ''
-            const endDateStr = editModal.endDate ? editModal.endDate.format('YYYY-MM-DD') : ''
-            const res = await api.put(`/orders/${editModal.order.id}/admin-update`, {
-              start_date: startDateStr,
-              end_date: endDateStr,
-              status: editModal.status,
-            })
-            if (res.code === 20000) {
-              message.success('订单已更新')
-              setEditModal(p => ({ ...p, open: false }))
-              fetchOrders()
-            } else {
-              message.error(res.message || '更新失败')
-            }
-          } catch { message.error('更新失败') }
-          setEditSaving(false)
-        }}
-        confirmLoading={editSaving}>
+      <Modal title="调试订单" open={debugModal.open} onCancel={() => setDebugModal(p => ({ ...p, open: false }))}
+        footer={[
+          <Button key="clear-start" danger onClick={async () => {
+            setDebugSaving(true)
+            try {
+              const res = await api.put(`/orders/${debugModal.order.id}/admin-update?clear_delivered=1&clear_returned=1`, {
+                status: shippedStatus(debugModal.order.status),
+              })
+              if (res.code === 20000) { message.success('已清除起始日'); setDebugModal(p => ({ ...p, deliveredAt: null, returnedAt: null })); fetchOrders() }
+              else message.error(res.message || '清除失败')
+            } catch { message.error('清除失败') }
+            setDebugSaving(false)
+          }}>清除起始日</Button>,
+          <Button key="clear-end" onClick={async () => {
+            setDebugSaving(true)
+            try {
+              const res = await api.put(`/orders/${debugModal.order.id}/admin-update?clear_returned=1`, {
+                status: 'in_lease',
+              })
+              if (res.code === 20000) { message.success('已清除归还日'); setDebugModal(p => ({ ...p, returnedAt: null })); fetchOrders() }
+              else message.error(res.message || '清除失败')
+            } catch { message.error('清除失败') }
+            setDebugSaving(false)
+          }}>清除归还日</Button>,
+          <Button key="save" type="primary" loading={debugSaving} onClick={async () => {
+            setDebugSaving(true)
+            try {
+              const body = { status: debugModal.status }
+              const params = new URLSearchParams()
+              if (debugModal.deliveredAt) {
+                body.delivered_at = debugModal.deliveredAt.format('YYYY-MM-DD')
+              } else {
+                params.set('clear_delivered', '1')
+              }
+              if (debugModal.returnedAt) {
+                body.returned_at = debugModal.returnedAt.format('YYYY-MM-DD')
+              } else {
+                params.set('clear_returned', '1')
+              }
+              const qs = params.toString()
+              const res = await api.put(`/orders/${debugModal.order.id}/admin-update${qs ? '?' + qs : ''}`, body)
+              if (res.code === 20000) { message.success('已保存'); setDebugModal(p => ({ ...p, open: false })); fetchOrders() }
+              else message.error(res.message || '保存失败')
+            } catch { message.error('保存失败') }
+            setDebugSaving(false)
+          }}>保存</Button>,
+        ]}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>订单状态</div>
-          <Select value={editModal.status} onChange={v => setEditModal(p => ({ ...p, status: v }))} style={{ width: '100%' }}>
+          <Select value={debugModal.status} onChange={v => setDebugModal(p => ({ ...p, status: v }))} style={{ width: '100%' }}>
             {Object.entries(STATUS_MAP).map(([k, v]) => (
               <Select.Option key={k} value={k}>{v.text}</Select.Option>
             ))}
           </Select>
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>起始日期</div>
-          <DatePicker value={editModal.startDate} onChange={d => setEditModal(p => ({ ...p, startDate: d }))} style={{ width: '100%' }} placeholder="选择日期" />
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>到货日（起始）</div>
+          <DatePicker value={debugModal.deliveredAt} onChange={d => setDebugModal(p => ({ ...p, deliveredAt: d }))} style={{ width: '100%' }} placeholder="选择日期/留空清除" />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>结束日期</div>
-          <DatePicker value={editModal.endDate} onChange={d => setEditModal(p => ({ ...p, endDate: d }))} style={{ width: '100%' }} placeholder="选择日期" />
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#888' }}>归还日（结束）</div>
+          <DatePicker value={debugModal.returnedAt} onChange={d => setDebugModal(p => ({ ...p, returnedAt: d }))} style={{ width: '100%' }} placeholder="选择日期/留空清除" />
         </div>
       </Modal>
     </Card>
   )
+}
+
+function shippedStatus(status) {
+  const idx = ['reserved', 'paid', 'pending_shipment', 'in_transit', 'shipped'].indexOf(status)
+  return idx >= 0 ? 'shipped' : status
 }

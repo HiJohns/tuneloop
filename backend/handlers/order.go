@@ -886,9 +886,11 @@ func AdminUpdateOrder(c *gin.Context) {
 	}
 
 	var req struct {
-		StartDate string `json:"start_date"`
-		EndDate   string `json:"end_date"`
-		Status    string `json:"status"`
+		StartDate   string `json:"start_date"`
+		EndDate     string `json:"end_date"`
+		Status      string `json:"status"`
+		DeliveredAt string `json:"delivered_at"`
+		ReturnedAt  string `json:"returned_at"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request"})
@@ -907,6 +909,16 @@ func AdminUpdateOrder(c *gin.Context) {
 	}
 	if req.EndDate != "" {
 		updates["end_date"] = req.EndDate
+	}
+	if req.DeliveredAt != "" {
+		updates["delivered_at"] = req.DeliveredAt
+	} else if c.Query("clear_delivered") == "1" {
+		updates["delivered_at"] = nil
+	}
+	if req.ReturnedAt != "" {
+		updates["returned_at"] = req.ReturnedAt
+	} else if c.Query("clear_returned") == "1" {
+		updates["returned_at"] = nil
 	}
 	if len(updates) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no fields to update"})
