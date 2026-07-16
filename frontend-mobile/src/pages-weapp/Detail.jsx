@@ -225,12 +225,12 @@ export default function Detail() {
             )}
             {bannerImages.map((img, i) => (
               <View key={i} style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={img.url || img} style={{ width: '100%', height: '100%' }}
+                <Image src={fixImg(img.url || img)} style={{ width: '100%', height: '100%' }}
                   mode="aspectFill"
                   onClick={() => {
                     try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: img.url || img })
+                      const urls = bannerImages.map(img => fixImg(img.url || img))
+                      previewImage({ urls, current: fixImg(img.url || img) })
                     } catch (e) { console.warn('[Preview] previewImage failed:', e) }
                   }} />
               </View>
