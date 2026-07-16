@@ -8,6 +8,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
 
 // ListMerchantOrders returns orders filtered by the current user's scope.
@@ -92,6 +93,16 @@ func ListMerchantOrders(c *gin.Context) {
 				item.UserName = user.Name
 				if item.UserName == "" { item.UserName = user.Username }
 				if item.UserName == "" { item.UserName = user.Phone }
+			}
+			// Fallback: IAM lookup if local user has no name
+			if item.UserName == "" && user.IAMSub != "" {
+				iamClient := services.NewIAMClient()
+				if iamUser, err := iamClient.GetUser(user.IAMSub); err == nil && iamUser != nil {
+					if iamUser.Name != "" { item.UserName = iamUser.Name }
+					if item.UserName == "" { item.UserName = iamUser.Username }
+					if item.UserName == "" { item.UserName = iamUser.Email }
+					if item.UserName == "" { item.UserName = iamUser.Phone }
+				}
 			}
 		}
 		// Timestamps

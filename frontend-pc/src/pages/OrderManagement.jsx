@@ -77,7 +77,7 @@ export default function OrderManagement() {
     { title: '预计归还', key: 'end_date', width: 80, render: (_, r) => formatMD(r.end_date) },
     { title: '租期结束', key: 'returned_at', width: 80, render: (_, r) => r.returned_at ? formatMD(r.returned_at) : '-' },
     { title: '租赁天数', key: 'days', width: 70, render: (_, r) => calcDays(r) },
-    { title: '租赁人', dataIndex: 'user_name', key: 'user_name', render: (v) => v || '-' },
+    { title: '租赁人', dataIndex: 'user_name', key: 'user_name', width: 100, render: (v) => v || '-' },
     ...(debugMode ? [{
       title: '操作', key: 'action', width: 80, render: (_, r) => (
         <Button size="small" onClick={() => setDebugModal({
