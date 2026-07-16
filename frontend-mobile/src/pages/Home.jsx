@@ -37,7 +37,7 @@ function getDailyRate(instrument) {
 function InstrumentCard({ instrument, onClick }) {
   const images = parseImages(instrument.images)
   const dailyRate = getDailyRate(instrument)
-  const monthlyRent = Math.round(dailyRate * 30)
+  const monthlyRent = Number((dailyRate * 30).toFixed(2))
   const levelName = instrument.level_name || ''
   const thumb = instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER
 
@@ -66,7 +66,7 @@ function InstrumentCard({ instrument, onClick }) {
         <View className="h-full flex flex-col justify-end text-right self-end ml-2 flex-shrink-0 whitespace-nowrap">
           {instrument.stock_status === 'available' ? (
             <Text className="text-[#C21838] font-black text-[26px] tracking-tight">
-              {Math.round(dailyRate)}<Text className="text-base font-bold text-[#C21838]/70">/日</Text>
+              {Number(dailyRate.toFixed(2))}<Text className="text-base font-bold text-[#C21838]/70">/日</Text>
             </Text>
           ) : (
             <Text className="text-zinc-400 font-bold text-base">租赁中</Text>
