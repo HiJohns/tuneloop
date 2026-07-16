@@ -1372,6 +1372,8 @@ const loadCategoryChildren = async (node) => {
           </Card>
         )}
 
+        {initialData && (
+        <>
         <Divider orientation="left">图片和视频</Divider>
         
         <Form.Item
@@ -1496,6 +1498,8 @@ const loadCategoryChildren = async (node) => {
             )}
           </Upload>
         </Form.Item>
+        </>
+        )}
 
         <Form.Item>
           <Space>
