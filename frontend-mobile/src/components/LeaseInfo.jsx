@@ -32,7 +32,7 @@ function parseDate(raw) {
 }
 
 export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dailyRate, rentDays, createdAt }) {
-  const effStart = deliveredAt || startDate
+  const effStart = startDate || deliveredAt
   const effEnd = endDate
 
   const ended = ['returned', 'completed', 'returning'].includes(status)
@@ -42,11 +42,10 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   const startDt = parseDate(effStart)
   const endDt = parseDate(effEnd)
   const nowDt = parseDate(today())
-  const deliveredDt = parseDate(deliveredAt)
 
-  // 预期归还日 = 到货日 + rentDays（而非 order.end_date，后者按下单日计算）
-  const computedEndDt = deliveredDt && rentDays > 0
-    ? new Date(deliveredDt.getTime() + rentDays * 86400000)
+  // 预期归还日 = 起始日 + rentDays（而非 order.end_date，后者按下单日计算）
+  const computedEndDt = startDt && rentDays > 0
+    ? new Date(startDt.getTime() + rentDays * 86400000)
     : endDt
 
   const displayEndDt = inLease ? computedEndDt : endDt
