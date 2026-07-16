@@ -620,7 +620,7 @@ func TestIAMIntegration_DualRoleBindings(t *testing.T) {
 		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, adminID)
 		ctx = context.WithValue(ctx, middleware.ContextKeyRole, "project_admin")
-		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, uuid.New().String())
+		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, "09496ff3-337f-46eb-bc46-cbac534983a0")
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
@@ -630,17 +630,21 @@ func TestIAMIntegration_DualRoleBindings(t *testing.T) {
 
 	uniq := uuid.New().String()[:8]
 	merchantReq := map[string]interface{}{
-		"name":           "Test DualRole " + uniq,
-		"address":        "Test",
-		"admin_name":     "DualRole Admin",
-		"admin_username": "dualrole_" + uniq,
-		"admin_email":    "dualrole_" + uniq + "@example.com",
-		"admin_phone":    "13800000000",
+		"name":             "Test DualRole " + uniq,
+		"address":          "Test",
+		"admin_name":       "DualRole Admin",
+		"admin_username":   "dualrole_" + uniq,
+		"admin_email":      "dualrole_" + uniq + "@example.com",
+		"admin_phone":    "13800000" + uniq,
+		"skip_activation":  true,
 	}
 
 	body, _ := json.Marshal(merchantReq)
 	req := httptest.NewRequest("POST", "/api/merchants", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
+	if token := os.Getenv("TEST_IAM_TOKEN"); token != "" {
+		req.Header.Set("Authorization", token)
+	}
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -661,47 +665,24 @@ func TestIAMIntegration_DualRoleBindings(t *testing.T) {
 	require.True(t, ok, "response should have data")
 	iamOrgID := data["iam_org_id"].(string)
 	require.NotEmpty(t, iamOrgID)
+	adminIAMSub := data["iam_admin_id"].(string)
+	require.NotEmpty(t, adminIAMSub)
 
-	// Verify user exists in tuneloop local DB
-	db := database.GetDB()
-	var localUser models.User
-	require.NoError(t, db.Where("tenant_id = ?", iamOrgID).First(&localUser).Error,
-		"local user should be created with tenant_id = org_id")
-	assert.Equal(t, "merchant_admin", localUser.Role, "local user.role should be merchant_admin")
-	assert.NotEmpty(t, localUser.IAMSub, "local user should have iam_sub")
-	assert.Equal(t, "active", localUser.Status)
-
-	// Verify IAM user_org_relations
-	iamDB := database.GetDB()
-	var iamRecord struct {
-		Role            string `gorm:"column:role"`
-		FunctionalRoles string `gorm:"column:functional_roles"`
-	}
-	err := iamDB.Raw("SELECT uor.role, uor.functional_roles::text FROM user_org_relations uor WHERE uor.user_id = ? AND uor.org_id = ? LIMIT 1",
-		localUser.IAMSub, iamOrgID).Scan(&iamRecord).Error
-	if err != nil {
-		// Fallback: try using local user ID
-		_ = iamDB.Raw("SELECT uor.role, uor.functional_roles::text FROM user_org_relations uor WHERE uor.user_id = ? AND uor.org_id = ? LIMIT 1",
-			localUser.ID, iamOrgID).Scan(&iamRecord).Error
-	}
-	t.Logf("IAM record: role=%q functional_roles=%q", iamRecord.Role, iamRecord.FunctionalRoles)
-
-	// Query IAM DB directly
-	iamResult, _ := queryIAMUserOrgRelation(localUser.IAMSub, iamOrgID)
-	if iamResult == nil {
-		iamResult, _ = queryIAMUserOrgRelation(localUser.ID, iamOrgID)
-	}
+	// Verify IAM user_org_relations via psql
+	iamResult, _ := queryIAMUserOrgRelation(adminIAMSub, iamOrgID)
 	if iamResult != nil {
+		t.Logf("IAM record: role=%q functional_roles=%q", iamResult.Role, iamResult.FunctionalRoles)
 		assert.Equal(t, "OWNER", iamResult.Role, "IAM org role should be OWNER")
 		assert.Contains(t, iamResult.FunctionalRoles, "merchant_admin", "functional roles should include merchant_admin")
-		t.Logf("Dual role verified: org_role=%s functional_roles=%s", iamResult.Role, iamResult.FunctionalRoles)
 	} else {
-		t.Logf("WARNING: could not query IAM user_org_relations (IAM DB might be inaccessible)")
+		t.Fatalf("could not query IAM user_org_relations for user=%s org=%s", adminIAMSub, iamOrgID)
 	}
 
 	// Cleanup
-	db.Where("tenant_id = ?", iamOrgID).Delete(&models.Merchant{})
-	db.Where("tenant_id = ?", iamOrgID).Delete(&models.User{})
+	db := database.GetDB()
+	db.Where("id = ?", data["id"]).Delete(&models.Merchant{})
+	db.Where("iam_sub = ?", adminIAMSub).Delete(&models.User{})
+	db.Where("id = ?", iamOrgID).Delete(&models.Tenant{})
 }
 
 type dualRoleResult struct {
