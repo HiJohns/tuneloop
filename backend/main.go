@@ -721,7 +721,8 @@ func main() {
 	migrateBannerWebP := flag.Bool("migrate-banner-webp", false, "Convert legacy banner images to WebP, then exit")
 	migrateBannerBlur := flag.Bool("migrate-banner-blur", false, "Generate blurred _blur.webp for banner images, then exit")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
-	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode (for --migrate-cover-images, --migrate-display-webp, or --migrate-banner-webp)")
+	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
+	downloadPlatformCert := flag.Bool("download-platform-cert", false, "Download WeChat platform certificate and exit")
 	flag.Parse()
 
 	// Load environment file if specified
@@ -754,6 +755,16 @@ func main() {
 	// Initialize WeChat Pay client (mock mode if no MCH_ID configured)
 	wechatpay.InitGlobal(wechatpay.LoadConfig())
 	log.Printf("[INFO] WeChat Pay mode: mock=%v", wechatpay.GetConfig().MockMode)
+
+	// Download WeChat platform certificate and exit
+	if *downloadPlatformCert {
+		if err := wechatpay.DownloadAndSavePlatformCert(); err != nil {
+			fmt.Printf("FATAL: Failed to download platform cert: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Platform certificate downloaded successfully")
+		return
+	}
 
 	// One-off migration: generate cover images for instruments without one
 	if *migrateCover {

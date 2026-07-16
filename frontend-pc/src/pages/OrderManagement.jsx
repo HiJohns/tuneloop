@@ -157,12 +157,10 @@ export default function OrderManagement() {
               }
               const qs = params.toString()
               const url = `/orders/${debugModal.order.id}/admin-update${qs ? '?' + qs : ''}`
-              console.log('[DEBUG] PUT', url, body)
               const res = await api.put(url, body)
-              console.log('[DEBUG] RES', res)
               if (res.code === 20000) { message.success('已保存'); setDebugModal(p => ({ ...p, open: false })); fetchOrders() }
               else message.error(res.message || '保存失败')
-            } catch (err) { console.error('[DEBUG] ERR', err); message.error('保存失败') }
+            } catch (err) { message.error('保存失败') }
             setDebugSaving(false)
           }}>保存</Button>,
         ]}>
