@@ -320,7 +320,3 @@ func stepReturn(t *testing.T, router *gin.Engine, orderID string) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 }
-
-func strPtr(s string) *string {
-	return &s
-}
