@@ -27,8 +27,11 @@ func skipIfNoIAM(t *testing.T) {
 	if os.Getenv("BEACONIAM_INTERNAL_URL") == "" {
 		t.Skip("BEACONIAM_INTERNAL_URL not set, skipping IAM integration test")
 	}
-	if os.Getenv("IAM_PC_CLIENT_ID") == "" || os.Getenv("IAM_PC_CLIENT_SECRET") == "" {
-		t.Skip("IAM credentials not set, skipping IAM integration test")
+	nsID := os.Getenv("IAM_NAMESPACE")
+	pcID := os.Getenv("IAM_PC_CLIENT_ID")
+	clientID := os.Getenv("IAM_CLIENT_ID")
+	if nsID == "" && pcID == "" && clientID == "" {
+		t.Skip("No IAM client ID set (IAM_NAMESPACE or IAM_PC_CLIENT_ID), skipping IAM integration test")
 	}
 }
 
