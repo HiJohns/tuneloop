@@ -88,24 +88,24 @@ func ListMerchantOrders(c *gin.Context) {
 			CreatedAt: o.CreatedAt.Format("2006-01-02 15:04"),
 		}
 		// Resolve user name
-		var user models.User
 		if o.UserID != "" {
-			if err := db.Where("id = ?", o.UserID).First(&user).Error; err == nil {
-				item.UserName = user.Name
-				if item.UserName == "" { item.UserName = user.Username }
-				if item.UserName == "" { item.UserName = user.Phone }
-				log.Printf("[MerchantOrders] user %s name=%q err=%v", o.UserID, item.UserName, err)
+			var name string
+			if err := db.Raw("SELECT COALESCE(NULLIF(name,''), COALESCE(NULLIF(username,''), phone)) FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&name).Error; err == nil && name != "" {
+				item.UserName = name
 			} else {
-				log.Printf("[MerchantOrders] user %s not found: %v", o.UserID, err)
+				log.Printf("[MerchantOrders] user %s name query: %q err=%v", o.UserID, name, err)
 			}
 			// Fallback: IAM lookup if local user has no name
-			if item.UserName == "" && user.IAMSub != "" {
-				iamClient := services.NewIAMClient()
-				if iamUser, err := iamClient.GetUser(user.IAMSub); err == nil && iamUser != nil {
-					if iamUser.Name != "" { item.UserName = iamUser.Name }
-					if item.UserName == "" { item.UserName = iamUser.Username }
-					if item.UserName == "" { item.UserName = iamUser.Email }
-					if item.UserName == "" { item.UserName = iamUser.Phone }
+			if item.UserName == "" {
+				var u models.User
+				if err := db.Where("id = ?", o.UserID).First(&u).Error; err == nil && u.IAMSub != "" {
+					iamClient := services.NewIAMClient()
+					if iamUser, err2 := iamClient.GetUser(u.IAMSub); err2 == nil && iamUser != nil {
+						if iamUser.Name != "" { item.UserName = iamUser.Name }
+						if item.UserName == "" { item.UserName = iamUser.Username }
+						if item.UserName == "" { item.UserName = iamUser.Email }
+						if item.UserName == "" { item.UserName = iamUser.Phone }
+					}
 				}
 			}
 		}
