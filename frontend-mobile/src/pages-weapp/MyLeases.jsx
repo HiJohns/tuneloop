@@ -201,7 +201,7 @@ export default function MyLeases() {
         </View>
       </ScrollView>
 
-      <ScrollView scrollY style={{ flex: '1 1 0%', paddingLeft: 16, paddingRight: 16, minHeight: 0, overflowY: 'auto' }}
+      <ScrollView scrollY style={{ flex: '1 1 0%', paddingLeft: 16, paddingRight: 16, paddingBottom: 72, minHeight: 0, overflowY: 'auto' }}
         onScrollToLower={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true)
