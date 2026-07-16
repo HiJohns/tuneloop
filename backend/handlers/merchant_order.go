@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -92,15 +91,13 @@ func ListMerchantOrders(c *gin.Context) {
 			var name string
 			if err := db.Raw("SELECT COALESCE(NULLIF(name,''), COALESCE(NULLIF(username,''), phone)) FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&name).Error; err == nil && name != "" {
 				item.UserName = name
-			} else {
-				log.Printf("[MerchantOrders] user %s name query: %q err=%v", o.UserID, name, err)
 			}
-			// Fallback: IAM lookup if local user has no name
+			// Fallback: IAM lookup if local user has no name (use raw SQL to bypass tenant scoping)
 			if item.UserName == "" {
-				var u models.User
-				if err := db.Where("id = ?", o.UserID).First(&u).Error; err == nil && u.IAMSub != "" {
+				var iamSub string
+				if err := db.Raw("SELECT iam_sub FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&iamSub).Error; err == nil && iamSub != "" {
 					iamClient := services.NewIAMClient()
-					if iamUser, err2 := iamClient.GetUser(u.IAMSub); err2 == nil && iamUser != nil {
+					if iamUser, err2 := iamClient.GetUser(iamSub); err2 == nil && iamUser != nil {
 						if iamUser.Name != "" { item.UserName = iamUser.Name }
 						if item.UserName == "" { item.UserName = iamUser.Username }
 						if item.UserName == "" { item.UserName = iamUser.Email }
