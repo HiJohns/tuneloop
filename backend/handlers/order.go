@@ -913,12 +913,12 @@ func AdminUpdateOrder(c *gin.Context) {
 	if req.DeliveredAt != "" {
 		updates["delivered_at"] = req.DeliveredAt
 	} else if c.Query("clear_delivered") == "1" {
-		updates["delivered_at"] = nil
+		updates["delivered_at"] = gorm.Expr("NULL")
 	}
 	if req.ReturnedAt != "" {
 		updates["returned_at"] = req.ReturnedAt
 	} else if c.Query("clear_returned") == "1" {
-		updates["returned_at"] = nil
+		updates["returned_at"] = gorm.Expr("NULL")
 	}
 	if len(updates) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no fields to update"})
