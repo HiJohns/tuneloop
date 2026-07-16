@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -93,6 +94,9 @@ func ListMerchantOrders(c *gin.Context) {
 				item.UserName = user.Name
 				if item.UserName == "" { item.UserName = user.Username }
 				if item.UserName == "" { item.UserName = user.Phone }
+				log.Printf("[MerchantOrders] user %s name=%q err=%v", o.UserID, item.UserName, err)
+			} else {
+				log.Printf("[MerchantOrders] user %s not found: %v", o.UserID, err)
 			}
 			// Fallback: IAM lookup if local user has no name
 			if item.UserName == "" && user.IAMSub != "" {
