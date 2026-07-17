@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -242,4 +245,42 @@ function confirmBind(token) {
 </body></html>`
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	c.String(http.StatusOK, html)
+}
+
+// GetOpenID exchanges a WeChat login code for an OpenID.
+func GetOpenID(c *gin.Context) {
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "code required"})
+		return
+	}
+	appID := os.Getenv("WX_APPID")
+	secret := os.Getenv("WX_SECRET")
+	if appID == "" || secret == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WeChat config not set"})
+		return
+	}
+	resp, err := http.Get(fmt.Sprintf(
+		"https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
+		appID, secret, req.Code,
+	))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WeChat API error"})
+		return
+	}
+	defer resp.Body.Close()
+	var result struct {
+		OpenID     string `json:"openid"`
+		SessionKey string `json:"session_key"`
+		ErrCode    int    `json:"errcode"`
+		ErrMsg     string `json:"errmsg"`
+	}
+	json.NewDecoder(resp.Body).Decode(&result)
+	if result.ErrCode != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": result.ErrMsg})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"openid": result.OpenID}})
 }

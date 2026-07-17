@@ -275,12 +275,27 @@ async function handlePay(cashAmount) {
   }
 
   try {
+    // Get WeChat OpenID for JSAPI payment
+    let openid = ''
+    try {
+      const loginRes = await Taro.login()
+      if (loginRes.code) {
+        const oidResp = await apiFetch(`${baseUrl}/wechat/openid`, {
+          method: 'POST',
+          body: JSON.stringify({ code: loginRes.code }),
+        })
+        const oidData = await oidResp.json()
+        if (oidData.code === 20000) openid = oidData.data.openid
+      }
+    } catch (e) { console.warn('[payment] openid lookup failed', e) }
+
     const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
       method: 'POST',
       body: JSON.stringify({
         order_id: pId,
         order_type: pType,
         amount: cashAmount,
+        open_id: openid,
       }),
     })
     const result = await resp.json()
