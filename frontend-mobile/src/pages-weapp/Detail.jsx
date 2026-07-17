@@ -55,7 +55,6 @@ export default function Detail() {
   const [pricingV2, setPricingV2] = useState(null)
   const [showComparison, setShowComparison] = useState(false)
   const [auditLogs, setAuditLogs] = useState([])
-  const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const bannerTouchStartXRef = useRef(0)
   const isRentable = instrument?.stock_status === 'available'
@@ -100,8 +99,6 @@ export default function Detail() {
         })
         storage.setJSON('cart', cartData)
       }
-      setCartToast(true)
-      setTimeout(() => setCartToast(false), 2000)
     } catch {}
   }
 
@@ -557,31 +554,6 @@ export default function Detail() {
           </View>
         )}
       </View>
-
-      {/* Cart toast modal */}
-      {cartToast && (
-        <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCartToast(false)}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, marginLeft: 32, marginRight: 32, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-            <Text style={{ color: '#22c55e', fontSize: 48, marginBottom: 12 }}>✓</Text>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 4 }}>加入成功</Text>
-            <Text style={{ color: '#6b7280', fontSize: 14, marginBottom: 16 }}>该乐器已添加到购物车</Text>
-            <View style={{ display: 'flex' }}>
-              <View
-                onClick={() => { setCartToast(false); Taro.navigateBack() }}
-                style={{ flex: '1 1 0%', paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24, border: '1px solid #d4d4d8', borderRadius: 8, color: '#52525b', textAlign: 'center', marginRight: 12 }}
-              >
-                <Text>继续浏览</Text>
-              </View>
-              <View
-                onClick={() => { setCartToast(false); nav('/pages-weapp/cart/index') }}
-                style={{ flex: '1 1 0%', paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24, backgroundColor: '#002140', color: '#fff', borderRadius: 8, textAlign: 'center' }}
-              >
-                <Text>提交订单</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
 
       {/* Fullscreen image/video overlay */}
       {fullscreenImage && (
