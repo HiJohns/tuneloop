@@ -443,3 +443,73 @@ wx.requestPayment 失败回调:
 - [ ] 5a. 委托代扣签约流程
 - [ ] 定时任务集成自动扣款
 - [ ] 余额不足通知 + 手动补缴入口
+
+---
+
+## 八、2026-07-17 生产上线调试日志
+
+### 8.1 平台证书下载失败
+
+**问题**: `--download-platform-cert` 返回 `RESOURCE_NOT_EXISTS`
+
+**原因**: 微信支付公钥模式下，`/v3/certificates` 端点不返回证书。商户需要在 `pay.weixin.qq.com` → API安全 → 申请微信支付公钥，上传商户自己的公钥。响应验签使用微信平台公钥（需从商户后台单独下载）。
+
+**解决**: 
+1. 从微信商户后台下载平台公钥 PEM 文件
+2. 保存到 `WECHAT_PAY_PLATFORM_CERT_PATH` 指向的路径（默认 `/tmp/wechatpay_platform_cert.pem`）
+3. 修改 `getPlatformCert()` 同时支持 X509 CERTIFICATE 和 PUBLIC KEY 两种 PEM 格式
+
+### 8.2 平台证书 PEM 格式解析失败
+
+**错误**: `x509: malformed serial number`
+
+**原因**: 从微信下载的平台公钥是 `-----BEGIN PUBLIC KEY-----` 格式（PKIX），非 `-----BEGIN CERTIFICATE-----` 格式。`x509.ParseCertificate()` 无法解析原始公钥。
+
+**解决**: 修改 `backend/services/wechatpay/signer.go:getPlatformCert()`，检查 PEM block type：
+- `PUBLIC KEY` → `x509.ParsePKIXPublicKey()` 解析，包装为 `x509.Certificate{PublicKey: ...}`
+- `CERTIFICATE` → 沿用 `x509.ParseCertificate()`
+
+### 8.3 响应签名验证失败
+
+**错误**: `crypto/rsa: verification error`
+
+**原因**: 初次将商户自己的公钥（从 `apiclient_cert.pem` 提取）作为平台公钥使用。商户公钥用于 API 请求签名，微信平台公钥用于响应签名验证，两者不同。
+
+**解决**: 将商户后台下载的微信平台公钥部署为 `WECHAT_PAY_PLATFORM_CERT_PATH`。
+
+### 8.4 支付方式始终为 Native（非 JSAPI）
+
+**现象**: `order_payment_records.method = 'native'`, `prepay_id` 为空
+
+**原因**: 微信小程序支付需要 `open_id` 参数。前端 `POST /api/pay/prepay` 未传 `open_id`，后端走 Native 扫码支付路径。
+
+**解决**:
+1. **后端**: 新增 `POST /api/wechat/openid` 端点，调用 `https://api.weixin.qq.com/sns/jscode2session` 用 `wx.login()` 的 code 换取 openid。注册在 `backend/main.go:211`
+2. **前端**: `frontend-mobile/src/pages-weapp/payment/Payment.jsx` 的 `handlePay` 函数中，先调用 `Taro.login()` 获取 code，再调 `/api/wechat/openid` 换 openid，传入 prepay 请求的 `open_id` 字段
+
+### 8.5 requestPayment 报 access denied
+
+**错误**: `requestPayment:fail access denied, appId=wxcb44a1be70e356ed`
+
+**排查过程**:
+1. 检查 prepay 返回参数：`prepay_id`, `time_stamp`, `nonce_str`, `package`, `sign_type`, `pay_sign` 全部有值 ✅
+2. 检查小程序与商户关联：`mp.weixin.qq.com` → 微信支付 → 已关联 ✅
+3. 检查 JSAPI 支付产品：`pay.weixin.qq.com` → 产品中心 → 已开通 ✅
+4. 检查 AppID 账号管理：`pay.weixin.qq.com` → JSAPI支付 → AppID账号管理 → `wxcb44a1be70e356ed` 状态为"已关联"，账号类型为"小程序" ✅
+5. 检查签名算法：RSA-SHA256，签名原文格式 `appId\ntimeStamp\nnonceStr\npackage\n` ✅
+6. 检查 appId 一致性：`project.config.json` 和 `.env` 中的 `WX_APPID` 均为 `wxcb44a1be70e356ed` ✅
+
+**状态**: 截至 2026-07-17，商户侧全部配置已确认正确，`requestPayment` 仍报 access denied。可能原因：
+- 微信支付商户账户有待完成的验证或签约流程
+- 公钥模式下的兼容性问题
+
+### 8.6 关键代码位置
+
+| 功能 | 文件 | 行号 |
+|------|------|------|
+| OpenID 交换端点 | `backend/handlers/wechat_bind.go` | `GetOpenID()` |
+| OpenID 路由注册 | `backend/main.go` | 211 |
+| JSAPI 签名生成 | `backend/services/wechatpay/real.go` | 64-81 |
+| 平台证书解析 | `backend/services/wechatpay/signer.go` | 29-54 |
+| 公钥提取 + 部署 | `docs/wechat-20260717.md` | 步骤 1 |
+| 前置 prepay open_id | `frontend-mobile/src/pages-weapp/payment/Payment.jsx` | `handlePay()` |
