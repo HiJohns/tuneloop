@@ -39,6 +39,21 @@ func getPlatformCert() (*x509.Certificate, error) {
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode PEM certificate")
 	}
+
+	// Support both X509 certificate and raw PUBLIC KEY PEM
+	if block.Type == "PUBLIC KEY" {
+		pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("parse public key: %w", err)
+		}
+		rsaPub, ok := pub.(*rsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("not an RSA public key")
+		}
+		// Wrap in a synthetic certificate so callers can use .PublicKey
+		return &x509.Certificate{PublicKey: rsaPub}, nil
+	}
+
 	return x509.ParseCertificate(block.Bytes)
 }
 
