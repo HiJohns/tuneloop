@@ -223,9 +223,9 @@ export default function MyLeases() {
           <View>
               {orders.map(order => {
               const showReturn = order.status === 'in_lease'
-              const showPay = order.status === 'reserved'
-              const showCancel = ['reserved', 'paid', 'pending_shipment'].includes(order.status)
-              const showConfirm = order.status === 'shipped'
+              const showPay = !isStaff && order.status === 'reserved'
+              const showCancel = !isStaff && ['reserved', 'paid', 'pending_shipment'].includes(order.status)
+              const showConfirm = !isStaff && order.status === 'shipped'
               const isTerminal = ['completed', 'returned', 'cancelled'].includes(order.status)
 
               return (

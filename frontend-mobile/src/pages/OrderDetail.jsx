@@ -201,10 +201,9 @@ export default function OrderDetail() {
    const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
    const totalAmount = rentSubtotal + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
-  const showPayButton = status === 'reserved'
-  const showCancelButton = status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit'
-  const showReceiveButton = status === 'shipped'
-  const showReturnButton = status === 'in_lease' || status === 'expired'
+  const showPayButton = !isStaff && status === 'reserved'
+  const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
+  const showReturnButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const terminal = ['returning', 'returned', 'completed', 'cancelled', 'transferred']
   const isTerminal = terminal.includes(status)
 
