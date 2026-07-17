@@ -284,7 +284,7 @@ export default function Detail() {
                 </View>
               )}
               <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
-                月租 ¥{Math.round((dailyRent || instrument?.base_daily_rate || 0) * 30)}/月
+                日租 ¥{Number(dailyRent || instrument?.base_daily_rate || 0).toFixed(2)}/日
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 12, marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#71717a', fontWeight: '700' }}>
