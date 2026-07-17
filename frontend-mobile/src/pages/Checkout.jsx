@@ -287,14 +287,14 @@ function SingleCheckout({ id, navigate }) {
           <View className="space-y-2 text-sm">
             <View className="flex justify-between items-center">
               <Text className="text-zinc-400">租金 ({days}天)</Text>
-              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{totalRent.toFixed(0)}</Text>
+              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{totalRent.toFixed(2)}</Text>
             </View>
             {pricingV2?.tiers?.length > 0 && (
               <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
                 {pricingV2.tiers.map((t, i) => {
                   const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                   const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <Text key={i} className="mr-3">{range}: ¥{Math.round(t.daily_rate)}/天</Text>
+                  return <Text key={i} className="mr-3">{range}: ¥{Number(t.daily_rate).toFixed(2)}/天</Text>
                 })}
               </View>
             )}
@@ -308,9 +308,9 @@ function SingleCheckout({ id, navigate }) {
             </View>
             <View className="border-t pt-2 flex justify-between font-bold text-base">
               <Text className="text-zinc-900">合计</Text>
-              <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(0)}</Text>
+              <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(0)} + 押金 ¥{deposit} + 物流费 ¥{shippingFee}</Text>
+            <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit} + 物流费 ¥{shippingFee}</Text>
           </View>
         </View>
 
@@ -425,7 +425,7 @@ function SingleCheckout({ id, navigate }) {
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb">
         <View className="flex items-center justify-between mb-2">
           <Text className="text-sm text-zinc-400">应付总额</Text>
-          <Text className="text-xl font-black text-brand-primary">¥{totalAmount.toFixed(0)}</Text>
+          <Text className="text-xl font-black text-brand-primary">¥{totalAmount.toFixed(2)}</Text>
         </View>
         <Button
           onClick={handleSubmit}
@@ -616,7 +616,7 @@ function BatchCheckout({ navigate }) {
           <View className="text-center space-y-1">
             <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>
             <Text className="text-[#C21838] text-4xl font-black tracking-tight block">
-              ¥{grandTotal.toFixed(0)}
+              ¥{grandTotal.toFixed(2)}
             </Text>
           </View>
 
@@ -774,7 +774,7 @@ function BatchCheckout({ navigate }) {
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? '提交中...' : `确认支付 ¥${grandTotal.toFixed(0)}`}
+          {submitting ? '提交中...' : `确认支付 ¥${grandTotal.toFixed(2)}`}
         </Button>
       </View>
     </View>
