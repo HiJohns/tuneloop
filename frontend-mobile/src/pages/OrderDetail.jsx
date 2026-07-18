@@ -203,6 +203,7 @@ export default function OrderDetail() {
 
   const showPayButton = !isStaff && status === 'reserved'
   const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
+  const showReceiveButton = !isStaff && status === 'in_transit'
   const showReturnButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const terminal = ['returning', 'returned', 'completed', 'cancelled', 'transferred']
   const isTerminal = terminal.includes(status)
