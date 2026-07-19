@@ -187,6 +187,6 @@
 
 点数钱包、订单支付点数抵扣详见 `docs/features/membership.md §2.4-2.5`。
 
-**逾期自动扣款**：`OverdueDeductionScheduler` 每天凌晨 01:00 对 `expired` 状态订单扣除前一天逾期费（`日租金 × overdue_discount`）。扣款优先从 `users.prepaid_points` 扣除，余额不足时写入 `overdue_charges` 挂账。`failed`/`partial` 的逾期费在续期支付时一并结算（设为 `settled`），`success` 的记录不重复收。详见 `docs/cases.md §2.5`。
+**逾期自动扣款**：`OverdueDeductionScheduler` 每天凌晨 01:00 对 `expired` 状态订单扣除前一天逾期费（`日租金 × overdue_discount`）。扣款优先从**押金**扣除（`overdue_charges.deducted_from_deposit`），押金用尽后从 `users.prepaid_points` 扣除，余额不足时写入 `overdue_charges` 挂账。`failed`/`partial` 的逾期费在续期支付时一并结算（设为 `settled`），`success` 的记录不重复收。详见 `docs/cases.md §2.5`。
 
 ---
