@@ -75,7 +75,7 @@ var defaultTiers = []PricingTierConfig{
 	{DaysMax: -1, DiscountPercent: 50},
 }
 
-func computeTierSegments(totalDays int, tiers []PricingTierConfig) []TierSegment {
+func ComputeTierSegments(totalDays int, tiers []PricingTierConfig) []TierSegment {
 	if len(tiers) == 0 {
 		tiers = defaultTiers
 	}
@@ -121,7 +121,7 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 		PromoDiscountRates: []float64{},
 		AppliedPolicies:  []AppliedPolicy{},
 		PricingTiers:     input.PricingTiers,
-		TierSegments:     computeTierSegments(input.LeaseTerm, input.PricingTiers),
+		TierSegments:     ComputeTierSegments(input.LeaseTerm, input.PricingTiers),
 	}
 
 	membershipRate := 1.0
@@ -314,7 +314,7 @@ func CalculateRenewalPricing(
 	cumulativeDiscount float64,
 ) (renewalCost float64, tierBreakdown []TierSegment) {
 	totalDays := consumedDays + additionalDays
-	allSegments := computeTierSegments(totalDays, pricingTiers)
+	allSegments := ComputeTierSegments(totalDays, pricingTiers)
 
 	var renewalSegments []TierSegment
 	remainingToSkip := consumedDays

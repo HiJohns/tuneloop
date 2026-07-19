@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -307,13 +308,65 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		return err
 	}
 
+	// Update pricing_breakdown with new tier segments
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb services.PricingBreakdown
+		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+			originalDays := pb.RentDays
+			newTotalDays := originalDays + meta.AdditionalDays
+			pb.RentDays = newTotalDays
+
+			// Recompute tier segments for the full new term
+			pb.TierSegments = services.ComputeTierSegments(newTotalDays, pb.PricingTiers)
+
+			// Build cumulative discount from applied policies
+			cumulativeDiscount := 1.0
+			for _, p := range pb.AppliedPolicies {
+				if p.Type == "membership_discount" || p.Type == "promo_campaign" {
+					if p.Rate > 0 {
+						cumulativeDiscount *= p.Rate
+					}
+				}
+			}
+
+			// Recompute totals
+			newTotalAmount := 0.0
+			for i := range pb.TierSegments {
+				s := &pb.TierSegments[i]
+				s.Rate = pb.BaseDailyRent
+				s.Discount = s.Discount * cumulativeDiscount
+				s.Subtotal = s.Rate * s.Discount * float64(s.Days)
+				newTotalAmount += s.Subtotal
+			}
+
+			pb.TotalAmount = math.Round(newTotalAmount*100) / 100
+			newEffectiveRate := pb.TotalAmount / float64(newTotalDays)
+			pb.FinalDailyRent = math.Round(newEffectiveRate*100) / 100
+
+			updatedPBJSON, err := json.Marshal(pb)
+			if err == nil {
+				updatedStr := string(updatedPBJSON)
+				tx.Model(&order).Update("pricing_breakdown", &updatedStr)
+			}
+		}
+	}
+
+	// Update cash_paid / prepaid_points_used with renewal payment
+	renewalAmount := record.Amount
+	if record.Status == "paid" && renewalAmount > 0 {
+		tx.Model(&models.Order{}).Where("id = ?", orderID).Updates(map[string]interface{}{
+			"cash_paid":          gorm.Expr("cash_paid + ?", renewalAmount),
+			"prepaid_points_used": gorm.Expr("prepaid_points_used + ?", 0), // renewal is cash (WeChat Pay)
+		})
+	}
+
 	tx.Model(&models.OverdueCharge{}).
 		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
 		Update("status", "settled")
 
 	tx.Create(&models.OrderLog{
-		OrderID: orderID,
-		Event:   fmt.Sprintf("续期 %d 天, 新到期日 %s", meta.AdditionalDays, newEndDateStr),
+		OrderID:   orderID,
+		Event:     fmt.Sprintf("续期 %d 天, 新到期日 %s", meta.AdditionalDays, newEndDateStr),
 		CreatedAt: now,
 	})
 
