@@ -33,16 +33,11 @@ func NewOverdueDeductionScheduler() *OverdueDeductionScheduler {
 func (s *OverdueDeductionScheduler) Start() {
 	s.ticker = time.NewTicker(1 * time.Hour)
 	go func() {
-		now := time.Now()
-		next := time.Date(now.Year(), now.Month(), now.Day(), 0, 5, 0, 0, now.Location())
-		if now.After(next) {
-			next = next.Add(24 * time.Hour)
-		}
-		time.Sleep(time.Until(next))
-		s.deductOverdue()
+		// Run immediately on start, then hourly
+		s.processOverdue()
 
 		for range s.ticker.C {
-			s.deductOverdue()
+			s.processOverdue()
 		}
 	}()
 	log.Println("[OverdueDeductionScheduler] started")
@@ -54,35 +49,68 @@ func (s *OverdueDeductionScheduler) Stop() {
 	log.Println("[OverdueDeductionScheduler] stopped")
 }
 
-func (s *OverdueDeductionScheduler) deductOverdue() {
+func (s *OverdueDeductionScheduler) processOverdue() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[OverdueDeductionScheduler] panic: %v", r)
 		}
 	}()
 
-	today := time.Now().Truncate(24 * time.Hour)
+	now := time.Now()
+	today := now.Truncate(24 * time.Hour)
+	yesterday := today.AddDate(0, 0, -1)
 	todayStr := today.Format("2006-01-02")
+	yesterdayStr := yesterday.Format("2006-01-02")
 
+	// Phase 1: Status transition — in_lease → expired (always run)
+	s.transitionToExpired(todayStr)
+
+	// Phase 2: Deduction — only at ~01:00, charge for yesterday
+	if now.Hour() == 1 {
+		s.deductYesterday(yesterdayStr)
+	}
+}
+
+// transitionToExpired moves in_lease orders past their end_date to expired status.
+func (s *OverdueDeductionScheduler) transitionToExpired(todayStr string) {
+	result := s.db.Model(&models.Order{}).
+		Where("status = ? AND end_date < ?", models.OrderStatusInLease, todayStr).
+		Update("status", models.OrderStatusExpired)
+	if result.Error != nil {
+		log.Printf("[OverdueDeductionScheduler] status transition error: %v", result.Error)
+		return
+	}
+	if result.RowsAffected > 0 {
+		log.Printf("[OverdueDeductionScheduler] transitioned %d orders in_lease → expired", result.RowsAffected)
+	}
+}
+
+// deductYesterday charges overdue fee for yesterday on expired orders.
+func (s *OverdueDeductionScheduler) deductYesterday(yesterdayStr string) {
 	var orders []models.Order
 	if err := s.db.Where("status = ? AND end_date < ?",
-		models.OrderStatusInLease, todayStr).Find(&orders).Error; err != nil {
+		models.OrderStatusExpired, yesterdayStr).Find(&orders).Error; err != nil {
 		log.Printf("[OverdueDeductionScheduler] query error: %v", err)
 		return
 	}
 
-	for _, order := range orders {
-		s.processOverdueOrder(order, today)
+	if len(orders) == 0 {
+		return
 	}
 
-	if len(orders) > 0 {
-		log.Printf("[OverdueDeductionScheduler] processed %d overdue orders", len(orders))
+	for _, order := range orders {
+		s.chargeDay(order, yesterdayStr)
 	}
+
+	log.Printf("[OverdueDeductionScheduler] charged %d overdue orders for %s", len(orders), yesterdayStr)
 }
 
-func (s *OverdueDeductionScheduler) processOverdueOrder(order models.Order, today time.Time) {
+// chargeDay creates an overdue_charge for a specific date on a single order.
+// Deducts from prepaid_points if available; otherwise marks as failed/partial.
+func (s *OverdueDeductionScheduler) chargeDay(order models.Order, dateStr string) {
+	// Idempotency check: skip if already charged for this date
 	var existing models.OverdueCharge
-	if err := s.db.Where("order_id = ? AND charge_date = ?", order.ID, today.Format("2006-01-02")).
+	if err := s.db.Where("order_id = ? AND charge_date = ?", order.ID, dateStr).
 		First(&existing).Error; err == nil {
 		return
 	}
@@ -185,7 +213,7 @@ func (s *OverdueDeductionScheduler) processOverdueOrder(order models.Order, toda
 	charge := models.OverdueCharge{
 		ID:                 uuid.New().String(),
 		OrderID:            order.ID,
-		ChargeDate:         today.Format("2006-01-02"),
+		ChargeDate:         dateStr,
 		Amount:             overdueAmount,
 		DeductedFromPrepaid: deducted,
 		RemainingBalance:   remaining,
@@ -238,7 +266,6 @@ func (s *OverdueDeductionScheduler) processOverdueOrder(order models.Order, toda
 				if err := s.db.Create(&mgrAlert).Error; err != nil {
 					log.Printf("[OverdueDeductionScheduler] failed to create manager alert: %v", err)
 				}
-				// Email notification stub — actual SMTP integration is future work
 				if mgr.Email != "" {
 					log.Printf("[OverdueDeductionScheduler] email notification for %s would be sent (stub): overdue order %s, amount %.2f", mgr.Email, order.ID, remaining)
 				}
