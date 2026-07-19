@@ -1,0 +1,2 @@
+ALTER TABLE overdue_charges
+ADD COLUMN IF NOT EXISTS deducted_from_deposit DECIMAL(10,2) NOT NULL DEFAULT 0;

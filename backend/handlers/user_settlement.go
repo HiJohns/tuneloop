@@ -58,157 +58,11 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 		return
 	}
 
-	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
-	if finalDailyRent == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		var pb map[string]interface{}
-		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
-			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-				finalDailyRent = v
-			}
-		}
-	}
-	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
-
-	// Parse tier segments from pricing_breakdown
-	var tierSegments []services.TierSegment
-	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		var pb struct {
-			TierSegments []services.TierSegment `json:"tier_segments"`
-		}
-		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
-			tierSegments = pb.TierSegments
-		}
-	}
-
-	// Get overdue charges
-	var overdueCharges []models.OverdueCharge
-	db.Where("order_id = ?", orderID).Find(&overdueCharges)
-
-	var overdueDays []string
-	for _, oc := range overdueCharges {
-		overdueDays = append(overdueDays, oc.ChargeDate)
-	}
-
-	// Compute rent payable excluding overdue days (tier-based)
-	rentPayable := 0.0
-	startDate := parseDate(order.StartDate)
-	var overdueDayPositions []int
-	if startDate != nil {
-		epoch := *startDate
-		for _, d := range overdueDays {
-			dt, err := time.Parse("2006-01-02", d)
-			if err == nil {
-				pos := int(dt.Sub(epoch).Hours() / 24) + 1 // 1-indexed day number
-				overdueDayPositions = append(overdueDayPositions, pos)
-			}
-		}
-	}
-
-	if len(tierSegments) > 0 {
-		cursor := 1 // current day position (1-indexed)
-		for _, seg := range tierSegments {
-			segEnd := cursor + seg.Days - 1
-			overdueInSeg := 0
-			for _, pos := range overdueDayPositions {
-				if pos >= cursor && pos <= segEnd {
-					overdueInSeg++
-				}
-			}
-			nonOverdueDays := seg.Days - overdueInSeg
-			if nonOverdueDays > 0 {
-				rentPayable += float64(nonOverdueDays) * seg.Rate * seg.Discount
-			}
-			cursor = segEnd + 1
-		}
-	} else {
-		// Fallback: flat rate
-		actualDays := 0
-		if startDate != nil {
-			endDate := parseDate(order.EndDate)
-			if endDate != nil {
-				actualDays = int(endDate.Sub(*startDate).Hours() / 24)
-			} else {
-				now := time.Now()
-				actualDays = int(now.Sub(*startDate).Hours() / 24)
-			}
-		}
-		if actualDays < 1 {
-			actualDays = 1
-		}
-		rentPayable = finalDailyRent * float64(actualDays)
-	}
-	rentPayable = math.Round(rentPayable*100) / 100
-
-	// Total amount customer paid (rent only, excluding deposit)
-	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed
-	if totalRentPaid == 0 {
-		if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-			var pb map[string]interface{}
-			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
-				if v, ok := pb["total_amount"].(float64); ok {
-					totalRentPaid = v
-				}
-			}
-		}
-	}
-
-	// refund calculation: R = totalRentPaid + deposit - Dd - rentPayable
-	// Dd = deposit_deducted from DamageReport (provided in query or 0)
-	var damageDeducted float64
-	var report models.DamageReport
-	if err := db.Where("lease_id = ?", orderID).First(&report).Error; err == nil {
-		damageDeducted = report.DepositDeducted
-	}
-
-	totalRefund := totalRentPaid + order.Deposit - damageDeducted - rentPayable
-	if totalRefund < 0 {
-		totalRefund = 0
-	}
-
-	var overdueChargesTotal float64
-	db.Model(&models.OverdueCharge{}).
-		Select("COALESCE(SUM(remaining_balance), 0)").
-		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
-		Scan(&overdueChargesTotal)
-
-	// Deduct overdue charges total from refund
-	if overdueChargesTotal > 0 {
-		if totalRefund >= overdueChargesTotal {
-			totalRefund -= overdueChargesTotal
-		} else {
-			totalRefund = 0
-		}
-	}
-
-	cashRefundable := math.Min(totalRefund, order.CashPaid)
-	prepaidRefunded := totalRefund - cashRefundable
-
-	giftCap := math.Floor(rentPayable * capRate / 100)
-	giftPointsRefunded := 0.0
-	if order.GiftPointsUsed > giftCap {
-		giftPointsRefunded = order.GiftPointsUsed - giftCap
-	}
-
-	breakdown := map[string]interface{}{
-		"original_total":         order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-		"total_rent_paid":       totalRentPaid,
-		"deposit":               order.Deposit,
-		"damage_deducted":       damageDeducted,
-		"rent_payable":          rentPayable,
-		"total_refund":          totalRefund,
-		"cash_refundable":       cashRefundable,
-		"prepaid_refunded":      prepaidRefunded,
-		"overdue_charges_total": overdueChargesTotal,
-		"gift_points_used":      order.GiftPointsUsed,
-		"gift_cap":              giftCap,
-		"gift_points_refunded":  giftPointsRefunded,
-		"cash_paid":             order.CashPaid,
-		"prepaid_points_used":   order.PrepaidPointsUsed,
-	}
+	result := computeSettlement(order, db)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": breakdown,
+		"data": result.Breakdown,
 	})
 }
 
@@ -248,87 +102,27 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		return
 	}
 
-	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
-	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
+	result := computeSettlement(order, db)
 
-	startDate := parseDate(order.StartDate)
-	endDate := parseDate(order.EndDate)
-	actualDays := 0
-	if startDate != nil && endDate != nil {
-		actualDays = int(endDate.Sub(*startDate).Hours() / 24)
-	} else if startDate != nil {
-		actualDays = int(time.Now().Sub(*startDate).Hours() / 24)
-	}
-	if actualDays < 1 {
-		actualDays = 1
-	}
-
-	actualRentAmount := finalDailyRent * float64(actualDays)
-	giftCap := math.Floor(actualRentAmount * capRate / 100)
-	giftPointsRefunded := 0.0
-	if order.GiftPointsUsed > giftCap {
-		giftPointsRefunded = order.GiftPointsUsed - giftCap
-	}
-
-	totalPaid := order.CashPaid + order.PrepaidPointsUsed
-	if totalPaid == 0 {
-		rentPaid := 0.0
-		if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-			var pb map[string]interface{}
-			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
-				if v, ok := pb["total_amount"].(float64); ok {
-					rentPaid = v
-				}
-			}
-		}
-		totalPaid = rentPaid + order.Deposit + order.ShippingFee
-	}
-	totalRefund := 0.0
-	if totalPaid > actualRentAmount {
-		totalRefund = totalPaid - actualRentAmount
-	}
-	cashRefundable := math.Min(totalRefund, order.CashPaid)
-	prepaidRefunded := totalRefund - cashRefundable
-
-	var overdueChargesTotal float64
-	db.Model(&models.OverdueCharge{}).
-		Select("COALESCE(SUM(remaining_balance), 0)").
-		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
-		Scan(&overdueChargesTotal)
-
-	breakdownJSON, _ := json.Marshal(map[string]interface{}{
-		"original_total":       order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-		"total_paid":           totalPaid,
-		"actual_rent_amount":   actualRentAmount,
-		"actual_rent_days":     actualDays,
-		"final_daily_rent":     finalDailyRent,
-		"gift_points_used":     order.GiftPointsUsed,
-		"gift_cap":             giftCap,
-		"gift_points_refunded": giftPointsRefunded,
-		"total_refund":         totalRefund,
-		"cash_refundable":      cashRefundable,
-		"prepaid_refunded":     prepaidRefunded,
-		"cash_paid":            order.CashPaid,
-		"prepaid_points_used":  order.PrepaidPointsUsed,
-	})
+	breakdownJSON, _ := json.Marshal(result.Breakdown)
 
 	tx := db.Begin()
 
 	settlement := models.Settlement{
-		ID:                 uuid.New().String(),
-		OrderID:            orderID,
-		ActualRentDays:     actualDays,
-		ActualRentAmount:   actualRentAmount,
-		OriginalRentAmount: totalPaid + order.GiftPointsUsed,
-		GiftPointsRefunded: giftPointsRefunded,
-		CashRefundable:     cashRefundable,
-		PrepaidRefunded:    prepaidRefunded,
-		RefundMethod:       req.RefundMethod,
-		RefundStatus:       "pending",
-		OverdueChargesTotal: overdueChargesTotal,
-		Breakdown:          string(breakdownJSON),
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
+		ID:                  uuid.New().String(),
+		OrderID:             orderID,
+		ActualRentDays:      result.ActualDays,
+		ActualRentAmount:    result.RentPayable,
+		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
+		GiftPointsRefunded:  result.GiftPointsRefunded,
+		CashRefundable:      result.CashRefundable,
+		PrepaidRefunded:     result.PrepaidRefunded,
+		RefundMethod:        req.RefundMethod,
+		RefundStatus:        "pending",
+		OverdueChargesTotal: result.OverdueChargesTotal,
+		Breakdown:           string(breakdownJSON),
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
 
 	if err := tx.Create(&settlement).Error; err != nil {
@@ -337,11 +131,11 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		return
 	}
 
-	if giftPointsRefunded > 0 {
+	if result.GiftPointsRefunded > 0 {
 		var user models.User
 		if err := tx.Where("id = ?", userID).First(&user).Error; err == nil {
 			if err := tx.Model(&user).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", giftPointsRefunded),
+				"promo_points": gorm.Expr("promo_points + ?", result.GiftPointsRefunded),
 				"updated_at":   time.Now(),
 			}).Error; err != nil {
 				tx.Rollback()
@@ -351,9 +145,9 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		}
 	}
 
-	if prepaidRefunded > 0 {
+	if result.PrepaidRefunded > 0 {
 		if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-			"prepaid_points": gorm.Expr("prepaid_points + ?", prepaidRefunded),
+			"prepaid_points": gorm.Expr("prepaid_points + ?", result.PrepaidRefunded),
 			"updated_at":     time.Now(),
 		}).Error; err != nil {
 			tx.Rollback()
@@ -363,7 +157,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	}
 
 	// Cash refund via WeChat Pay (if cash was paid on this order)
-	if cashRefundable > 0 {
+	if result.CashRefundable > 0 {
 		var paymentRecord models.OrderPaymentRecord
 		paymentFound := false
 		var outTradeNo string
@@ -380,7 +174,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		refundRecord := models.OrderRefundRecord{
 			ID:              uuid.New().String(),
 			TenantID:        order.TenantID,
-			Amount:          cashRefundable,
+			Amount:          result.CashRefundable,
 			Reason:          strPtr("租赁结算退款"),
 			Status:          "pending",
 			CreatedAt:       time.Now(),
@@ -393,11 +187,11 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		} else {
 			refundRecord.PaymentRecordID = &paymentRecord.ID
 			client := wechatpay.GetClient()
-			result, err := client.Refund(c.Request.Context(), wechatpay.RefundParams{
+			refundResp, err := client.Refund(c.Request.Context(), wechatpay.RefundParams{
 				OutTradeNo:   outTradeNo,
 				OutRefundNo:  outRefundNo,
 				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-				RefundAmount: cfg.AmountToCents(cashRefundable),
+				RefundAmount: cfg.AmountToCents(result.CashRefundable),
 				Reason:       "租赁结算退款",
 				NotifyURL:    cfg.RefundNotifyURL,
 			})
@@ -408,7 +202,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 				log.Printf("[ConfirmSettlement] refund failed for order %s: %v", orderID, err)
 				settlement.RefundStatus = "failed"
 			} else {
-				refundRecord.RefundID = &result.RefundID
+				refundRecord.RefundID = &refundResp.RefundID
 				settlement.RefundStatus = "refunding"
 			}
 		}
@@ -428,7 +222,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 
 	// Increment total spending by actual rental amount
 	if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", actualRentAmount),
+		"total_spending": gorm.Expr("total_spending + ?", result.RentPayable),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		tx.Rollback()
@@ -453,10 +247,10 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		"code":    20000,
 		"message": "settlement confirmed",
 		"data": gin.H{
-			"settlement_id":      settlement.ID,
-			"cash_refundable":    cashRefundable,
-			"prepaid_refunded":   prepaidRefunded,
-			"gift_points_refunded": giftPointsRefunded,
+			"settlement_id":        settlement.ID,
+			"cash_refundable":      result.CashRefundable,
+			"prepaid_refunded":     result.PrepaidRefunded,
+			"gift_points_refunded": result.GiftPointsRefunded,
 		},
 	})
 }
@@ -488,4 +282,192 @@ func parseDate(s *string) *time.Time {
 		return nil
 	}
 	return &t
+}
+
+// settlementResult holds the canonical settlement calculation for an order.
+type settlementResult struct {
+	RentPayable           float64
+	TotalRentPaid         float64
+	RemainingDeposit      float64
+	DepositDeductedOverdue float64
+	DamageDeducted        float64
+	TotalRefund           float64
+	CashRefundable        float64
+	PrepaidRefunded       float64
+	GiftPointsRefunded    float64
+	OverdueChargesTotal   float64
+	ActualDays            int
+	Breakdown             map[string]interface{}
+}
+
+// computeSettlement performs the tier-based rent calculation and refund math.
+// It mirrors docs/cases.md §2.7.
+func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
+	_, finalDailyRent, _ := parsePricingBreakdown(order.PricingBreakdown)
+	if finalDailyRent == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb map[string]interface{}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
+				finalDailyRent = v
+			}
+		}
+	}
+	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
+
+	var tierSegments []services.TierSegment
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb struct {
+			TierSegments []services.TierSegment `json:"tier_segments"`
+		}
+		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+			tierSegments = pb.TierSegments
+		}
+	}
+
+	var overdueCharges []models.OverdueCharge
+	db.Where("order_id = ?", order.ID).Find(&overdueCharges)
+
+	var overdueDays []string
+	for _, oc := range overdueCharges {
+		overdueDays = append(overdueDays, oc.ChargeDate)
+	}
+
+	startDate := parseDate(order.StartDate)
+	var overdueDayPositions []int
+	if startDate != nil {
+		epoch := *startDate
+		for _, d := range overdueDays {
+			dt, err := time.Parse("2006-01-02", d)
+			if err == nil {
+				pos := int(dt.Sub(epoch).Hours()/24) + 1
+				overdueDayPositions = append(overdueDayPositions, pos)
+			}
+		}
+	}
+
+	rentPayable := 0.0
+	actualDays := 0
+	if len(tierSegments) > 0 {
+		cursor := 1
+		for _, seg := range tierSegments {
+			segEnd := cursor + seg.Days - 1
+			overdueInSeg := 0
+			for _, pos := range overdueDayPositions {
+				if pos >= cursor && pos <= segEnd {
+					overdueInSeg++
+				}
+			}
+			nonOverdueDays := seg.Days - overdueInSeg
+			if nonOverdueDays > 0 {
+				rentPayable += float64(nonOverdueDays) * seg.Rate * seg.Discount
+			}
+			actualDays += seg.Days
+			cursor = segEnd + 1
+		}
+	} else {
+		if startDate != nil {
+			endDate := parseDate(order.EndDate)
+			if endDate != nil {
+				actualDays = int(endDate.Sub(*startDate).Hours() / 24)
+			} else {
+				actualDays = int(time.Now().Sub(*startDate).Hours() / 24)
+			}
+		}
+		if actualDays < 1 {
+			actualDays = 1
+		}
+		rentPayable = finalDailyRent * float64(actualDays)
+	}
+	rentPayable = math.Round(rentPayable*100) / 100
+
+	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed
+	if totalRentPaid == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb map[string]interface{}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			if v, ok := pb["total_amount"].(float64); ok {
+				totalRentPaid = v
+			}
+		}
+	}
+
+	var damageDeducted float64
+	var report models.DamageReport
+	if err := db.Where("lease_id = ?", order.ID).First(&report).Error; err == nil {
+		damageDeducted = report.DepositDeducted
+	}
+
+	var totalDepositDeducted float64
+	db.Model(&models.OverdueCharge{}).
+		Select("COALESCE(SUM(deducted_from_deposit), 0)").
+		Where("order_id = ?", order.ID).
+		Scan(&totalDepositDeducted)
+	remainingDeposit := order.Deposit - totalDepositDeducted
+	if remainingDeposit < 0 {
+		remainingDeposit = 0
+	}
+
+	totalRefund := totalRentPaid + remainingDeposit - damageDeducted - rentPayable
+	if totalRefund < 0 {
+		totalRefund = 0
+	}
+
+	var overdueChargesTotal float64
+	db.Model(&models.OverdueCharge{}).
+		Select("COALESCE(SUM(remaining_balance), 0)").
+		Where("order_id = ? AND status IN ?", order.ID, []string{"failed", "partial"}).
+		Scan(&overdueChargesTotal)
+
+	if overdueChargesTotal > 0 {
+		if totalRefund >= overdueChargesTotal {
+			totalRefund -= overdueChargesTotal
+		} else {
+			totalRefund = 0
+		}
+	}
+
+	cashRefundable := math.Min(totalRefund, order.CashPaid)
+	prepaidRefunded := totalRefund - cashRefundable
+
+	giftCap := math.Floor(rentPayable * capRate / 100)
+	giftPointsRefunded := 0.0
+	if order.GiftPointsUsed > giftCap {
+		giftPointsRefunded = order.GiftPointsUsed - giftCap
+	}
+
+	breakdown := map[string]interface{}{
+		"original_total":           order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
+		"total_rent_paid":          totalRentPaid,
+		"deposit":                  order.Deposit,
+		"deposit_deducted_overdue": totalDepositDeducted,
+		"remaining_deposit":        remainingDeposit,
+		"damage_deducted":          damageDeducted,
+		"rent_payable":             rentPayable,
+		"actual_rent_amount":       rentPayable, // backward-compatible alias
+		"actual_rent_days":         actualDays,
+		"final_daily_rent":         finalDailyRent,
+		"total_refund":             totalRefund,
+		"cash_refundable":          cashRefundable,
+		"prepaid_refunded":         prepaidRefunded,
+		"overdue_charges_total":    overdueChargesTotal,
+		"gift_points_used":         order.GiftPointsUsed,
+		"gift_cap":                 giftCap,
+		"gift_points_refunded":     giftPointsRefunded,
+		"cash_paid":                order.CashPaid,
+		"prepaid_points_used":      order.PrepaidPointsUsed,
+	}
+
+	return settlementResult{
+		RentPayable:            rentPayable,
+		TotalRentPaid:          totalRentPaid,
+		RemainingDeposit:       remainingDeposit,
+		DepositDeductedOverdue: totalDepositDeducted,
+		DamageDeducted:         damageDeducted,
+		TotalRefund:            totalRefund,
+		CashRefundable:         cashRefundable,
+		PrepaidRefunded:        prepaidRefunded,
+		GiftPointsRefunded:     giftPointsRefunded,
+		OverdueChargesTotal:    overdueChargesTotal,
+		ActualDays:             actualDays,
+		Breakdown:              breakdown,
+	}
 }
