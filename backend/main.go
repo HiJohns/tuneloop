@@ -21,6 +21,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var Version = "dev"
+
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -157,7 +159,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 					"iamRedirectUri": iamWXRedirectURI,
 				},
 				"appName": "TuneLoop",
-				"version": "1.0.0",
+				"version": Version,
 				"debug_mode": os.Getenv("DEBUG_MODE") == "true",
 			},
 		})
@@ -609,6 +611,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
+				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)
+				userOptionalAuth.POST("/orders/:id/renewal/confirm", handlers.ConfirmRenewal)
 				userOptionalAuth.POST("/pay/prepay", handlers.PrepayOrder)
 				userOptionalAuth.POST("/pay/calculate", handlers.CalculatePayment)
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)

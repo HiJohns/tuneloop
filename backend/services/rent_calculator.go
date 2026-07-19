@@ -303,3 +303,40 @@ func FormatPricingBreakdownJSON(p *PricingBreakdown) string {
 	b, _ := json.Marshal(p)
 	return string(b)
 }
+
+// CalculateRenewalPricing computes the cost for extending a lease by additionalDays,
+// continuing from the current tier position (consumedDays offset).
+func CalculateRenewalPricing(
+	baseDailyRate float64,
+	pricingTiers []PricingTierConfig,
+	consumedDays int,
+	additionalDays int,
+	cumulativeDiscount float64,
+) (renewalCost float64, tierBreakdown []TierSegment) {
+	totalDays := consumedDays + additionalDays
+	allSegments := computeTierSegments(totalDays, pricingTiers)
+
+	var renewalSegments []TierSegment
+	remainingToSkip := consumedDays
+
+	for _, seg := range allSegments {
+		if remainingToSkip >= seg.Days {
+			remainingToSkip -= seg.Days
+			continue
+		}
+		segInRenewal := seg.Days - remainingToSkip
+		s := TierSegment{
+			Tier:     seg.Tier,
+			Days:     segInRenewal,
+			Rate:     baseDailyRate,
+			Discount: seg.Discount * cumulativeDiscount,
+		}
+		s.Subtotal = s.Rate * s.Discount * float64(s.Days)
+		renewalSegments = append(renewalSegments, s)
+		renewalCost += s.Subtotal
+		remainingToSkip = 0
+	}
+
+	renewalCost = math.Round(renewalCost*100) / 100
+	return renewalCost, renewalSegments
+}

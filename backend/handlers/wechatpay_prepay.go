@@ -34,6 +34,7 @@ type PrepayData struct {
 	PrepayID     string `json:"prepay_id,omitempty"`
 	CodeURL      string `json:"code_url,omitempty"`
 	H5URL        string `json:"h5_url,omitempty"`
+	AppID        string `json:"app_id,omitempty"`
 	TimeStamp    string `json:"time_stamp,omitempty"`
 	NonceStr     string `json:"nonce_str,omitempty"`
 	Package      string `json:"package,omitempty"`
@@ -48,7 +49,7 @@ func PrepayOrder(c *gin.Context) {
 		return
 	}
 
-	validTypes := map[string]bool{"rent": true, "repair": true, "points": true, "damage": true}
+	validTypes := map[string]bool{"rent": true, "repair": true, "points": true, "damage": true, "renewal": true}
 	if !validTypes[req.OrderType] {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/points/damage"})
 		return
@@ -180,6 +181,7 @@ func PrepayOrder(c *gin.Context) {
 				Data: &PrepayData{
 					OutTradeNo: outTradeNo,
 					PrepayID:   result.PrepayID,
+					AppID:      cfg.AppID,
 					TimeStamp:  result.TimeStamp,
 					NonceStr:   result.NonceStr,
 					Package:    result.Package,
@@ -215,6 +217,7 @@ func PrepayOrder(c *gin.Context) {
 				Data: &PrepayData{
 					OutTradeNo: outTradeNo,
 					PrepayID:   result.PrepayID,
+					AppID:      cfg.AppID,
 					TimeStamp:  result.TimeStamp,
 					NonceStr:   result.NonceStr,
 					Package:    result.Package,

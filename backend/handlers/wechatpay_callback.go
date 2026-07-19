@@ -125,6 +125,8 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			}
 		}
 		return nil
+	case "renewal":
+		return applyRenewalSideEffects(tx, record, now)
 	default:
 		return nil
 	}
@@ -235,6 +237,8 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 				Where("status != ?", models.OrderStatusCompleted).
 				Update("status", models.OrderStatusDamageAppealing)
 		}
+	case "renewal":
+		// renewal payment timeout — close the record, order state unchanged
 	}
 
 	log.Printf("[PaymentScheduler] closed timed-out payment: %s", *rec.OutTradeNo)
