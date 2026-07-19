@@ -306,6 +306,7 @@ async function handlePay(cashAmount) {
         setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
       } else if (d.data?.prepay_id && typeof Taro.requestPayment === 'function') {
         Taro.requestPayment({
+          appId: d.data.app_id || 'wxcb44a1be70e356ed',
           timeStamp: d.data.time_stamp,
           nonceStr: d.data.nonce_str,
           package: d.data.package,

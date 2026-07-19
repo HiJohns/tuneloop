@@ -243,15 +243,16 @@ type Settlement struct {
 }
 
 type OverdueCharge struct {
-	ID                  string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	OrderID             string    `gorm:"type:uuid;not null;index" json:"order_id"`
-	ChargeDate          string    `gorm:"type:date;not null;index" json:"charge_date"`
-	Amount              float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
-	DeductedFromPrepaid float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_prepaid"`
-	RemainingBalance    float64   `gorm:"type:decimal(10,2);not null;default:0" json:"remaining_balance"`
-	Status              string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
-	FailureReason       *string   `gorm:"type:varchar(500)" json:"failure_reason"`
-	CreatedAt           time.Time `json:"created_at"`
+	ID                   string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID              string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	ChargeDate           string    `gorm:"type:date;not null;index" json:"charge_date"`
+	Amount               float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	DeductedFromDeposit  float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_deposit"`
+	DeductedFromPrepaid  float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_prepaid"`
+	RemainingBalance     float64   `gorm:"type:decimal(10,2);not null;default:0" json:"remaining_balance"`
+	Status               string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
+	FailureReason        *string   `gorm:"type:varchar(500)" json:"failure_reason"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 
 type OrderLog struct {

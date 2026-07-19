@@ -138,88 +138,129 @@ func (s *OverdueDeductionScheduler) chargeDay(order models.Order, dateStr string
 		return
 	}
 
-	deducted := 0.0
+	// Calculate remaining deposit for this order
+	var depositUsed float64
+	s.db.Model(&models.OverdueCharge{}).
+		Select("COALESCE(SUM(deducted_from_deposit), 0)").
+		Where("order_id = ?", order.ID).
+		Scan(&depositUsed)
+	remainingDeposit := order.Deposit - depositUsed
+
+	deductedFromDeposit := 0.0
+	deductedFromPrepaid := 0.0
 	remaining := overdueAmount
 	status := "failed"
 	var failureReason *string
 
-	if user.PrepaidPoints >= overdueAmount {
-		deducted = overdueAmount
+	// Phase 1: Deduct from deposit
+	if remainingDeposit >= overdueAmount {
+		deductedFromDeposit = overdueAmount
 		remaining = 0
-		status = "success"
-
-		if err := s.db.Model(&user).Updates(map[string]interface{}{
-			"prepaid_points": gorm.Expr("prepaid_points - ?", overdueAmount),
-			"updated_at":     time.Now(),
-		}).Error; err != nil {
-			log.Printf("[OverdueDeductionScheduler] failed to deduct prepaid for user %s: %v", user.ID, err)
-			reason := "扣款失败: " + err.Error()
-			failureReason = &reason
-			status = "failed"
-		} else {
-			pt := models.PointsTransaction{
-				ID:                  uuid.New().String(),
-				UserID:              user.ID,
-				TenantID:            order.TenantID,
-				Type:                "overdue_deduction",
-				Amount:              -overdueAmount,
-				BalanceAfterPrepaid: user.PrepaidPoints - overdueAmount,
-				BalanceAfterPromo:   user.PromoPoints,
-				OrderID:             &order.ID,
-				Description:         "逾期自动扣款",
-				CreatedAt:           time.Now(),
-			}
-			if err := s.db.Create(&pt).Error; err != nil {
-				log.Printf("[OverdueDeductionScheduler] failed to record transaction: %v", err)
-			}
-		}
-	} else if user.PrepaidPoints > 0 {
-		deducted = user.PrepaidPoints
-		remaining = overdueAmount - user.PrepaidPoints
-		status = "partial"
-
-		newBalance := 0.0
-		if err := s.db.Model(&user).Updates(map[string]interface{}{
-			"prepaid_points": 0,
-			"updated_at":     time.Now(),
-		}).Error; err != nil {
-			log.Printf("[OverdueDeductionScheduler] partial deduction failed for user %s: %v", user.ID, err)
-			reason := "部分扣款失败: " + err.Error()
-			failureReason = &reason
-			status = "failed"
-		} else {
-			pt := models.PointsTransaction{
-				ID:                  uuid.New().String(),
-				UserID:              user.ID,
-				TenantID:            order.TenantID,
-				Type:                "overdue_deduction",
-				Amount:              -deducted,
-				BalanceAfterPrepaid: newBalance,
-				BalanceAfterPromo:   user.PromoPoints,
-				OrderID:             &order.ID,
-				Description:         "逾期部分扣款（预付点不足）",
-				CreatedAt:           time.Now(),
-			}
-			if err := s.db.Create(&pt).Error; err != nil {
-				log.Printf("[OverdueDeductionScheduler] failed to record transaction: %v", err)
-			}
-		}
-	} else {
-		reason := "预付点余额为0，无法自动扣款"
-		failureReason = &reason
+	} else if remainingDeposit > 0 {
+		deductedFromDeposit = remainingDeposit
+		remaining = overdueAmount - remainingDeposit
 		status = "failed"
 	}
 
+	// Phase 2: If deposit exhausted, try prepaid_points
+	if remaining > 0 {
+		if user.PrepaidPoints >= remaining {
+			deductedFromPrepaid = remaining
+			remaining = 0
+			status = "success"
+
+			if err := s.db.Model(&user).Updates(map[string]interface{}{
+				"prepaid_points": gorm.Expr("prepaid_points - ?", deductedFromPrepaid),
+				"updated_at":     time.Now(),
+			}).Error; err != nil {
+				log.Printf("[OverdueDeductionScheduler] failed to deduct prepaid for user %s: %v", user.ID, err)
+				reason := "扣款失败: " + err.Error()
+				failureReason = &reason
+				status = "failed"
+				deductedFromPrepaid = 0
+				remaining = overdueAmount - deductedFromDeposit
+			} else {
+				pt := models.PointsTransaction{
+					ID:                  uuid.New().String(),
+					UserID:              user.ID,
+					TenantID:            order.TenantID,
+					Type:                "overdue_deduction",
+					Amount:              -deductedFromPrepaid,
+					BalanceAfterPrepaid: user.PrepaidPoints - deductedFromPrepaid,
+					BalanceAfterPromo:   user.PromoPoints,
+					OrderID:             &order.ID,
+					Description:         "逾期自动扣款（押金耗尽后）",
+					CreatedAt:           time.Now(),
+				}
+				if err := s.db.Create(&pt).Error; err != nil {
+					log.Printf("[OverdueDeductionScheduler] failed to record transaction: %v", err)
+				}
+			}
+		} else if user.PrepaidPoints > 0 {
+			deductedFromPrepaid = user.PrepaidPoints
+			remaining = overdueAmount - deductedFromDeposit - user.PrepaidPoints
+			status = "partial"
+
+			newBalance := 0.0
+			if err := s.db.Model(&user).Updates(map[string]interface{}{
+				"prepaid_points": 0,
+				"updated_at":     time.Now(),
+			}).Error; err != nil {
+				log.Printf("[OverdueDeductionScheduler] partial deduction failed for user %s: %v", user.ID, err)
+				reason := "部分扣款失败: " + err.Error()
+				failureReason = &reason
+				status = "failed"
+				deductedFromPrepaid = 0
+				remaining = overdueAmount - deductedFromDeposit
+			} else {
+				pt := models.PointsTransaction{
+					ID:                  uuid.New().String(),
+					UserID:              user.ID,
+					TenantID:            order.TenantID,
+					Type:                "overdue_deduction",
+					Amount:              -deductedFromPrepaid,
+					BalanceAfterPrepaid: newBalance,
+					BalanceAfterPromo:   user.PromoPoints,
+					OrderID:             &order.ID,
+					Description:         "逾期部分扣款（押金耗尽+预付点不足）",
+					CreatedAt:           time.Now(),
+				}
+				if err := s.db.Create(&pt).Error; err != nil {
+					log.Printf("[OverdueDeductionScheduler] failed to record transaction: %v", err)
+				}
+			}
+		} else {
+			if remainingDeposit >= overdueAmount {
+				// Already handled above — full deposit deduction
+				status = "success"
+				remaining = 0
+			} else if remainingDeposit > 0 {
+				// Partial deposit deduction, no prepaid
+				reason := "押金已用尽且预付点余额为0"
+				failureReason = &reason
+				status = "failed"
+			} else {
+				reason := "预付点余额为0，无法自动扣款"
+				failureReason = &reason
+				status = "failed"
+			}
+		}
+	} else if remainingDeposit >= overdueAmount {
+		// Fully deducted from deposit
+		status = "success"
+	}
+
 	charge := models.OverdueCharge{
-		ID:                 uuid.New().String(),
-		OrderID:            order.ID,
-		ChargeDate:         dateStr,
-		Amount:             overdueAmount,
-		DeductedFromPrepaid: deducted,
-		RemainingBalance:   remaining,
-		Status:             status,
-		FailureReason:      failureReason,
-		CreatedAt:          time.Now(),
+		ID:                  uuid.New().String(),
+		OrderID:             order.ID,
+		ChargeDate:          dateStr,
+		Amount:              overdueAmount,
+		DeductedFromDeposit: deductedFromDeposit,
+		DeductedFromPrepaid: deductedFromPrepaid,
+		RemainingBalance:    remaining,
+		Status:              status,
+		FailureReason:       failureReason,
+		CreatedAt:           time.Now(),
 	}
 
 	if err := s.db.Create(&charge).Error; err != nil {

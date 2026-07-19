@@ -69,49 +69,101 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 	}
 	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
+	// Parse tier segments from pricing_breakdown
+	var tierSegments []services.TierSegment
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb struct {
+			TierSegments []services.TierSegment `json:"tier_segments"`
+		}
+		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+			tierSegments = pb.TierSegments
+		}
+	}
+
+	// Get overdue charges
+	var overdueCharges []models.OverdueCharge
+	db.Where("order_id = ?", orderID).Find(&overdueCharges)
+
+	var overdueDays []string
+	for _, oc := range overdueCharges {
+		overdueDays = append(overdueDays, oc.ChargeDate)
+	}
+
+	// Compute rent payable excluding overdue days (tier-based)
+	rentPayable := 0.0
 	startDate := parseDate(order.StartDate)
-	endDate := parseDate(order.EndDate)
-
-	actualDays := 0
-	if startDate != nil && endDate != nil {
-		actualDays = int(endDate.Sub(*startDate).Hours() / 24)
-	} else if startDate != nil {
-		now := time.Now()
-		actualDays = int(now.Sub(*startDate).Hours() / 24)
+	var overdueDayPositions []int
+	if startDate != nil {
+		epoch := *startDate
+		for _, d := range overdueDays {
+			dt, err := time.Parse("2006-01-02", d)
+			if err == nil {
+				pos := int(dt.Sub(epoch).Hours() / 24) + 1 // 1-indexed day number
+				overdueDayPositions = append(overdueDayPositions, pos)
+			}
+		}
 	}
-	if actualDays < 1 {
-		actualDays = 1
+
+	if len(tierSegments) > 0 {
+		cursor := 1 // current day position (1-indexed)
+		for _, seg := range tierSegments {
+			segEnd := cursor + seg.Days - 1
+			overdueInSeg := 0
+			for _, pos := range overdueDayPositions {
+				if pos >= cursor && pos <= segEnd {
+					overdueInSeg++
+				}
+			}
+			nonOverdueDays := seg.Days - overdueInSeg
+			if nonOverdueDays > 0 {
+				rentPayable += float64(nonOverdueDays) * seg.Rate * seg.Discount
+			}
+			cursor = segEnd + 1
+		}
+	} else {
+		// Fallback: flat rate
+		actualDays := 0
+		if startDate != nil {
+			endDate := parseDate(order.EndDate)
+			if endDate != nil {
+				actualDays = int(endDate.Sub(*startDate).Hours() / 24)
+			} else {
+				now := time.Now()
+				actualDays = int(now.Sub(*startDate).Hours() / 24)
+			}
+		}
+		if actualDays < 1 {
+			actualDays = 1
+		}
+		rentPayable = finalDailyRent * float64(actualDays)
 	}
+	rentPayable = math.Round(rentPayable*100) / 100
 
-	actualRentAmount := finalDailyRent * float64(actualDays)
-
-	totalPaid := order.CashPaid + order.PrepaidPointsUsed
-	if totalPaid == 0 {
-		rentPaid := 0.0
+	// Total amount customer paid (rent only, excluding deposit)
+	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed
+	if totalRentPaid == 0 {
 		if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 			var pb map[string]interface{}
 			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
 				if v, ok := pb["total_amount"].(float64); ok {
-					rentPaid = v
+					totalRentPaid = v
 				}
 			}
 		}
-		totalPaid = rentPaid + order.Deposit + order.ShippingFee
 	}
 
-	giftCap := math.Floor(actualRentAmount * capRate / 100)
-	giftPointsRefunded := 0.0
-	if order.GiftPointsUsed > giftCap {
-		giftPointsRefunded = order.GiftPointsUsed - giftCap
+	// refund calculation: R = totalRentPaid + deposit - Dd - rentPayable
+	// Dd = deposit_deducted from DamageReport (provided in query or 0)
+	var damageDeducted float64
+	var report models.DamageReport
+	if err := db.Where("lease_id = ?", orderID).First(&report).Error; err == nil {
+		damageDeducted = report.DepositDeducted
 	}
 
-	totalRefund := 0.0
-	if totalPaid > actualRentAmount {
-		totalRefund = totalPaid - actualRentAmount
+	totalRefund := totalRentPaid + order.Deposit - damageDeducted - rentPayable
+	if totalRefund < 0 {
+		totalRefund = 0
 	}
-
-	cashRefundable := math.Min(totalRefund, order.CashPaid)
-	prepaidRefunded := totalRefund - cashRefundable
 
 	var overdueChargesTotal float64
 	db.Model(&models.OverdueCharge{}).
@@ -119,19 +171,37 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
 		Scan(&overdueChargesTotal)
 
+	// Deduct overdue charges total from refund
+	if overdueChargesTotal > 0 {
+		if totalRefund >= overdueChargesTotal {
+			totalRefund -= overdueChargesTotal
+		} else {
+			totalRefund = 0
+		}
+	}
+
+	cashRefundable := math.Min(totalRefund, order.CashPaid)
+	prepaidRefunded := totalRefund - cashRefundable
+
+	giftCap := math.Floor(rentPayable * capRate / 100)
+	giftPointsRefunded := 0.0
+	if order.GiftPointsUsed > giftCap {
+		giftPointsRefunded = order.GiftPointsUsed - giftCap
+	}
+
 	breakdown := map[string]interface{}{
-		"original_total":        order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-		"total_paid":            totalPaid,
-		"actual_rent_amount":    actualRentAmount,
-		"actual_rent_days":      actualDays,
-		"final_daily_rent":      finalDailyRent,
-		"gift_points_used":      order.GiftPointsUsed,
-		"gift_cap":              giftCap,
-		"gift_points_refunded":  giftPointsRefunded,
+		"original_total":         order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
+		"total_rent_paid":       totalRentPaid,
+		"deposit":               order.Deposit,
+		"damage_deducted":       damageDeducted,
+		"rent_payable":          rentPayable,
 		"total_refund":          totalRefund,
 		"cash_refundable":       cashRefundable,
 		"prepaid_refunded":      prepaidRefunded,
 		"overdue_charges_total": overdueChargesTotal,
+		"gift_points_used":      order.GiftPointsUsed,
+		"gift_cap":              giftCap,
+		"gift_points_refunded":  giftPointsRefunded,
 		"cash_paid":             order.CashPaid,
 		"prepaid_points_used":   order.PrepaidPointsUsed,
 	}

@@ -1,6 +1,6 @@
 # TuneLoop - 乐器租赁系统
 
-> 版本: 2.1 | 最后更新: 2026-06-13
+> 版本: 2.2 | 最后更新: 2026-07-17
 
 基于 **12-Factor App** 和 **Lin-IAM** 身份底座的乐器租赁平台，支持 **租转售 (Rent-to-Own)** 模式。
 
@@ -253,8 +253,12 @@ make mobile-dev
 # 启动移动端小程序开发编译 (watch)
 make mobile-weapp-dev
 
-# 构建全量发布包 (H5 + PC + 小程序 + 后端)
+# 构建全量发布包（预生产，晋升生产见 §预生产/生产发布流程）
 make release
+
+# 版本管理
+make version        # 查看当前版本
+make bump-build     # 递增 build 号
 
 # 上传小程序 (需私钥)
 make weapp-upload VERSION=1.0.0 DESC="release note"
@@ -272,60 +276,91 @@ make weapp-upload VERSION=1.0.0 DESC="release note"
 
 ---
 
-## 🚀 预生产环境
+## 🚀 预生产 / 生产发布流程
 
-> 详细操作手册：**[docs/prerelease-guide.md](docs/prerelease-guide.md)**
+### 设计原则
 
-### 工作目录
-`/opt/tuneloop/` (symlink → `/opt/flow/<version>/`)
+**所有构建都经过预生产验证，再晋升到生产。** 同一份构建产物（zip）先部署到预生产环境验证，确认无误后通过 `release.sh` 晋升到生产。前端 IAM 配置通过 `/api/config` 运行时获取（非编译时注入），因此同一份构建在不同环境的 backend `.env` 下自动适配。
 
-### 编译
+### 1. 编译
+
 ```bash
-make release    # 一步完成 PC+Mobile+Backend 编译，输出 zip + 包装 test.zip
-```
-产物：
-- `/opt/flow/tuneloop_<timestamp>_<git-hash>.zip` — 原始部署包
-- `~/test.zip` — 包裹原始 ZIP 的包装文件（内层即 `tuneloop_<timestamp>_<hash>.zip`），用于 Seafile 传输
+# 修改版本号（按需）
+make bump-build     # 1.0.0 → 1.0.1
+make bump-minor     # 1.0.1 → 1.1.0
+make bump-major     # 1.1.0 → 2.0.0
 
-### 部署方式 A：直推（`make release` 自动执行）
-```bash
-make release                              # 编译 + scp 到 cadenza:/opt/flow/
-# 然后在 cadenza 上：
-/opt/flow/deploy.sh /opt/flow/tuneloop_<timestamp>_<hash>.zip
-```
+# 查看当前版本
+make version
 
-### 部署方式 B：经由 Seafile（适用于直推速度慢时）
-```bash
-# 1. 编译
+# 编译发布包（始终输出 tuneloop-pre_*.zip）
 make release
-
-# 2. 上传到 Seafile（在本地执行，需配置环境变量）
-export SEAFILE_SERVER_URL=https://seafile.example.com
-export SEAFILE_USERNAME=your_email
-export SEAFILE_PASSWORD=your_password
-export SEAFILE_REPO_ID=your_repo_uuid
-export SEAFILE_PATH=/deploy
-bash scripts/push_seafile.sh
-
-# 3. cadenza 上从 Seafile 下载并部署
-export SEAFILE_DEPLOY=https://seafile.example.com/d/.../test.zip
-/opt/flow/deploy.sh
 ```
-`deploy.sh` 自动解包 `test.zip` → 找到内层 ZIP → 按文件名解析 `tuneloop` → 正常部署。
 
-### 部署脚本
-| 文件 | 位置 | 说明 |
+产物：`/opt/flow/tuneloop-pre_<timestamp>_<hash>.zip`（自动 scp 到 cadenza）
+
+### 2. 部署到预生产
+
+```bash
+# 在 cadenza 上
+cd /opt/flow
+TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh tuneloop-pre_*.zip
+```
+
+验证：https://preweb.cadenzayueqi.com 和 https://prewx.cadenzayueqi.com
+
+### 3. 晋升到生产
+
+```bash
+# 在 cadenza 上（会在解压时将内部目录 tuneloop-pre → tuneloop，复制为新文件，再走 deploy.sh）
+/opt/flow/release.sh tuneloop-pre_20260717-184337_55758503.zip
+```
+
+验证：https://web.cadenzayueqi.com 和 https://wx.cadenzayueqi.com
+
+### 预生产环境架构
+
+| 组件 | 端口 | 域名 | 服务名 |
+|------|------|------|--------|
+| beaconiam-pre (IAM) | 5562 | preiam.cadenzayueqi.com | `beaconiam-pre.service` |
+| tuneloop-pre (Web) | 5563 | preweb.cadenzayueqi.com | `tuneloop-pre.service` |
+| tuneloop-pre (WX) | 5564 | prewx.cadenzayueqi.com | (同一服务，双端口) |
+| DB | 5432 | — | `tuneloop_pre` / `beaconiam_pre` |
+
+### 脚本说明
+
+| 脚本 | 位置 | 功能 |
 |------|------|------|
-| `scripts/push_seafile.sh` | 开发机 | SCP 拉取 `test.zip` 到本地 → 上传 Seafile |
-| `/opt/flow/deploy.sh` | cadenza | 接受 ZIP 路径 或 `SEAFILE_DEPLOY` URL |
+| `deploy.sh` | `/opt/flow/` | 解压 → 停止服务 → 更新 symlink → 启动服务 → 重载 nginx。支持 `TUNELOOP_APPS_BASE` 环境变量切换目标目录 |
+| `release.sh` | `/opt/flow/` | 接受 `tuneloop-pre_*.zip` → 解压、改名内部目录 → 重新压缩为 `tuneloop_*.zip` → 调用 `deploy.sh` 部署到生产 |
 
-### 访问地址
-- https://web.cadenzayueqi.com => NGINX => :5558 (PC端)
-- https://wx.cadenzayueqi.com => NGINX => :5559 (微信端)
-- https://iam.cadenzayueqi.com => NGINX => :5560 (IAM 服务)
+### 首次部署预生产环境
 
-### 配置
-在 `/opt/tuneloop/.env` 中完成 IAM 相关配置
+首次部署需要先创建目录、数据库、系统服务（已在 #1386 完成），后续只需 `make release` + 部署命令。
+
+---
+
+## 🏷️ 版本管理
+
+### 版本号规则（SemVer）
+
+```
+major.minor.build
+  │     │     └── 每次编译递增（make bump-build）
+  │     └──────── 功能迭代递增（make bump-minor），重置 build
+  └────────────── 重大变更递增（make bump-major），重置 minor 和 build
+```
+
+版本号存储在 `VERSION` 文件中，编译时通过 `-ldflags` 注入 Go binary。
+
+### 版本查看
+
+| 位置 | 说明 |
+|------|------|
+| **PC 端** | Header 栏用户信息左侧显示 `v1.0.0`（仅非 dev 版本显示） |
+| **移动端** | Profile 页面底部显示 `v1.0.0`（仅非 dev 版本显示） |
+| **命令行** | `make version` |
+| **API** | `GET /api/config` 响应中的 `version` 字段 |
 
 ---
 
@@ -523,5 +558,5 @@ MIT License
 
 ---
 
-*最后更新: 2026-03-21 | 基于 docs/features.md v26.3.16*
+*最后更新: 2026-07-17 | 基于 docs/features.md v26.3.16*
 *Model: minimax-m2.5-free*

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi } from '../services/api'
 import { env, storage } from '../platform'
-import { parseJWT } from '../platform/init'
+import { parseJWT, getAppConfig } from '../platform/init'
 import BottomNav from '../components/BottomNav'
 
 function Badge({ count }) {
@@ -86,10 +86,13 @@ export default function Profile() {
   const [showEdit, setShowEdit] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
+  const [appVersion, setAppVersion] = useState('')
 
   const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
+    const config = getAppConfig()
+    if (config?.version && config.version !== 'dev') setAppVersion(config.version)
     const fetchUser = async () => {
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)
@@ -273,6 +276,9 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          {appVersion && (
+            <Text className="block text-center text-xs text-zinc-300 mt-8 mb-4">v{appVersion}</Text>
+          )}
         </View>
 
       </ScrollView>

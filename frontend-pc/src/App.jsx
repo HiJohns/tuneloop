@@ -544,6 +544,9 @@ function onMenuClick(e) {
             <Breadcrumb items={breadcrumbItems} className="text-sm text-gray-500" />
           </div>
           <div className="flex items-center gap-4">
+            {window.APP_CONFIG?.version && window.APP_CONFIG.version !== 'dev' && (
+              <span className="text-xs text-gray-400">v{window.APP_CONFIG.version}</span>
+            )}
             <div>
               {userInfo ? (
                 <div className="flex items-center gap-2">

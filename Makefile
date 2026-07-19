@@ -86,8 +86,9 @@ init: install
 .PHONY: prerelease clean-prerelease prebuild-pc prebuild-mobile prebuild-backend release
 TIMESTAMP := $(shell date +%Y%m%d-%H%M%S)
 GIT_HASH := $(shell git rev-parse --short HEAD)
+VERSION := $(shell cat VERSION 2>/dev/null || echo "dev")
 RELEASE_DIR := /opt/flow
-PKG_NAME := tuneloop_$(TIMESTAMP)_$(GIT_HASH)
+PKG_NAME := tuneloop-pre_$(TIMESTAMP)_$(GIT_HASH)
 RELEASE_BUILD := /tmp/release_build_$(TIMESTAMP)
 
 clean-prerelease:
@@ -96,27 +97,38 @@ clean-prerelease:
 
 release: clean-prerelease
 	@echo "=========================================="
-	@echo "Release: $(PKG_NAME)"
+	@echo "Release v$(VERSION): $(PKG_NAME)"
+	@echo "IMPORTANT: All releases go to PRE-PROD first!"
+	@echo "  Verify on pre-prod, then promote to prod via release.sh"
 	@echo "=========================================="
-	mkdir -p $(RELEASE_BUILD)/tuneloop/www $(RELEASE_BUILD)/tuneloop/mobile \
-	         $(RELEASE_BUILD)/tuneloop/service $(RELEASE_BUILD)/tuneloop/database
-	# PC frontend
-	$(NVM22) cd frontend-pc && VITE_API_BASE_URL=/api VITE_BEACONIAM_EXTERNAL_URL=https://iam.cadenzayueqi.com VITE_IAM_PC_CLIENT_ID=tuneloop_web VITE_IAM_PC_REDIRECT_URI=https://web.cadenzayueqi.com/callback npm run build
-	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop/www/
-	# Mobile frontend (Vite H5)
+	mkdir -p $(RELEASE_BUILD)/tuneloop-pre/www $(RELEASE_BUILD)/tuneloop-pre/mobile \
+	         $(RELEASE_BUILD)/tuneloop-pre/service $(RELEASE_BUILD)/tuneloop-pre/database
+	# PC frontend (IAM config from /api/config at runtime)
+	$(NVM22) cd frontend-pc && npm run build
+	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop-pre/www/
+	# Mobile frontend (Vite H5, IAM config from /api/config at runtime)
 	$(NVM22) cd frontend-mobile && npm run build -- --mode prerelease
-	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop/mobile/
-	# Backend
-	cd backend && go build -o $(RELEASE_BUILD)/tuneloop/service/tuneloop .
-	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop/database/
+	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop-pre/mobile/
+	# Backend (version injected via ldflags)
+	cd backend && go build -ldflags "-X main.Version=$(VERSION)" -o $(RELEASE_BUILD)/tuneloop-pre/service/tuneloop .
+	cp -r backend/database/migrations $(RELEASE_BUILD)/tuneloop-pre/database/
 	# Migration scripts
-	cp scripts/migrate.sh $(RELEASE_BUILD)/tuneloop/service/
+	cp scripts/migrate.sh $(RELEASE_BUILD)/tuneloop-pre/service/
 	# Package
 	mkdir -p $(RELEASE_DIR)
 	cd $(RELEASE_BUILD) && zip -r $(RELEASE_DIR)/$(PKG_NAME).zip .
 	rm -rf $(RELEASE_BUILD)
 	@echo "=========================================="
 	@echo "Package: $(RELEASE_DIR)/$(PKG_NAME).zip"
+	@echo "=========================================="
+	@echo "1. Deploy to PRE-PROD:"
+	@echo "   scp $(RELEASE_DIR)/$(PKG_NAME).zip cadenza:/opt/flow/"
+	@echo "   ssh cadenza 'cd /opt/flow && TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh $(PKG_NAME).zip'"
+	@echo ""
+	@echo "2. Verify on https://preweb.cadenzayueqi.com & https://prewx.cadenzayueqi.com"
+	@echo ""
+	@echo "3. Promote to PRODUCTION:"
+	@echo "   ssh cadenza '/opt/flow/release.sh $(PKG_NAME).zip'"
 	@echo "=========================================="
 	@echo "Uploading to cadenza:/opt/flow ..."
 	scp $(RELEASE_DIR)/$(PKG_NAME).zip cadenza:/opt/flow/
@@ -130,12 +142,33 @@ prerelease: release
 
 # Debug build
 .PHONY: debug
-RELEASE_DIR := /home/coder/release/tuneloop
+DEBUG_DIR := /home/coder/release/tuneloop
 debug:
 	@echo "Building debug server..."
-	@mkdir -p $(RELEASE_DIR)/service $(RELEASE_DIR)/database
-	cd backend && go build -gcflags="all=-N -l" -o $(RELEASE_DIR)/service/tuneloop .
+	@mkdir -p $(DEBUG_DIR)/service $(DEBUG_DIR)/database
+	cd backend && go build -gcflags="all=-N -l" -o $(DEBUG_DIR)/service/tuneloop .
 	@echo "Copying database migrations..."
-	@cp -r backend/database/migrations $(RELEASE_DIR)/database/
-	@cp .env.example $(RELEASE_DIR)/.env
-	@echo "Debug build complete: $(RELEASE_DIR)/service/tuneloop"
+	@cp -r backend/database/migrations $(DEBUG_DIR)/database/
+	@cp .env.example $(DEBUG_DIR)/.env
+	@echo "Debug build complete: $(DEBUG_DIR)/service/tuneloop"
+
+# Version management (SemVer: major.minor.build)
+.PHONY: version bump-major bump-minor bump-build
+
+version:
+	@echo "Current version: $(shell cat VERSION 2>/dev/null || echo "VERSION file not found")"
+
+bump-build:
+	@if [ ! -f VERSION ]; then echo "ERROR: VERSION file not found"; exit 1; fi
+	@awk -F. '{printf "%s.%s.%d\n", $$1, $$2, $$3+1}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
+	@echo "Bumped to $(shell cat VERSION)"
+
+bump-minor:
+	@if [ ! -f VERSION ]; then echo "ERROR: VERSION file not found"; exit 1; fi
+	@awk -F. '{printf "%s.%d.0\n", $$1, $$2+1}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
+	@echo "Bumped to $(shell cat VERSION)"
+
+bump-major:
+	@if [ ! -f VERSION ]; then echo "ERROR: VERSION file not found"; exit 1; fi
+	@awk -F. '{printf "%d.0.0\n", $$1+1}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
+	@echo "Bumped to $(shell cat VERSION)"
