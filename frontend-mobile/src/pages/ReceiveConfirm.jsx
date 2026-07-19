@@ -120,26 +120,41 @@ export default function ReceiveConfirm() {
         />
       )}
 
-      {/* Order Info summary */}
-      {order && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3">订单摘要</Text>
-          <View className="space-y-2">
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">月租金</Text>
-              <Text className="text-black font-black">¥{order.monthly_rent || 0}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">押金</Text>
-              <Text className="text-black font-black">¥{order.deposit || 0}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">租赁人</Text>
-              <Text className="text-black font-black">{order.user_name || '-'}</Text>
+      {/* Fee Info */}
+      {order && (() => {
+        const pb = order.pricing_breakdown || {}
+        const subtotal = pb.total_amount || 0
+        const deposit = order.deposit || 0
+        const shipping = pb.shipping_fee || order.shipping_fee || 0
+        const total = subtotal + deposit + shipping
+        return (
+          <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+            <Text className="text-base font-black text-black mb-3">费用信息</Text>
+            <View className="space-y-2">
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">租金小计</Text>
+                <Text className="text-black font-black">¥{subtotal.toFixed(2)}</Text>
+              </View>
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">押金</Text>
+                <Text className="text-black font-black">¥{deposit.toFixed(2)}</Text>
+              </View>
+              {shipping > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">物流费</Text>
+                  <Text className="text-black font-black">¥{shipping.toFixed(2)}</Text>
+                </View>
+              )}
+              <View className="border-t border-zinc-100 pt-2 mt-1">
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-700 font-bold">合计</Text>
+                  <Text className="text-green-600 font-black text-base">¥{total.toFixed(2)}</Text>
+                </View>
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )
+      })()}
 
       {/* Photo Upload */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
