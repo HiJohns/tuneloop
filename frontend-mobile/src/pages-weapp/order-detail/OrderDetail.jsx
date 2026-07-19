@@ -176,6 +176,7 @@ export default function OrderDetail() {
   const showPayButton = !isStaff && status === 'reserved'
   const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
   const showReceiveButton = !isStaff && status === 'in_transit'
+  const showRenewButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const showReturnButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const terminal = ['returning', 'returned', 'completed', 'cancelled', 'transferred']
   const isTerminal = terminal.includes(status)
@@ -525,9 +526,15 @@ export default function OrderDetail() {
               </View>
             )}
             {showReceiveButton && (
-              <View onClick={actionLoading ? undefined : handleConfirmReceipt}
+              <View onClick={actionLoading ? undefined : handleReceive}
                 style={{ ...btnStyle('#16a34a'), opacity: actionLoading ? 0.5 : 1 }}>
                 {actionLoading ? '处理中...' : '✅ 确认收货'}
+              </View>
+            )}
+            {showRenewButton && (
+              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/renewal/index?id=${id}` })}
+                style={{ ...btnStyle('#2563eb') }}>
+                {'📅 续期'}
               </View>
             )}
             {showReturnButton && (

@@ -204,6 +204,7 @@ export default function OrderDetail() {
   const showPayButton = !isStaff && status === 'reserved'
   const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
   const showReceiveButton = !isStaff && status === 'in_transit'
+  const showRenewButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const showReturnButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const terminal = ['returning', 'returned', 'completed', 'cancelled', 'transferred']
   const isTerminal = terminal.includes(status)
@@ -613,6 +614,12 @@ export default function OrderDetail() {
                 <View onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
                   className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <CheckCircle size={20} />确认收货
+                </View>
+              )}
+              {showRenewButton && (
+                <View onClick={() => navigate(`/renewal/${id}`)}
+                  className="w-full py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <Calendar size={20} />续期
                 </View>
               )}
               {showReturnButton && (

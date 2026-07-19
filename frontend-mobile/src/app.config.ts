@@ -15,6 +15,7 @@ const weappPages = [
   'pages-weapp/order-detail/index',
   'pages-weapp/search/index',
   'pages-weapp/payment/index',
+  'pages-weapp/renewal/index',
 ]
 
 const h5Pages = [
