@@ -543,7 +543,18 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
-	// Record status history
+	// Record audit log
+	detailStr := fmt.Sprintf("customer initiated return (courier=%s tracking=%s)", req.CourierCompany, req.TrackingNumber)
+	db.Create(&models.AuditLog{
+		ID:         uuid.New().String(),
+		TenantID:   order.TenantID,
+		UserID:     userID,
+		Action:     "return_order",
+		ResourceID: orderID,
+		Details:    &detailStr,
+		CreatedAt:  time.Now(),
+	})
+
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
 		TenantID:   order.TenantID,
