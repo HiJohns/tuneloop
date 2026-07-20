@@ -305,18 +305,50 @@ async function handlePay(cashAmount) {
         Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
         setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
       } else if (d.data?.prepay_id && typeof Taro.requestPayment === 'function') {
-        Taro.requestPayment({
-          appId: d.data.app_id || 'wxcb44a1be70e356ed',
-          timeStamp: d.data.time_stamp,
-          nonceStr: d.data.nonce_str,
-          package: d.data.package,
-          signType: d.data.sign_type,
-          paySign: d.data.pay_sign,
-          success: () => {
-            Taro.showToast({ title: '支付成功', icon: 'success' })
-            setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+        Taro.showModal({
+          title: '支付方式',
+          content: `订单: ${pId}\n类型: ${pType}\n金额: ¥${cashAmount}\nout_trade_no: ${d.data.out_trade_no}`,
+          confirmText: '微信支付',
+          cancelText: '测试模拟',
+          success: async (modalRes) => {
+            if (modalRes.confirm) {
+              if (typeof Taro.requestPayment === 'function') {
+                Taro.requestPayment({
+                  appId: d.data.app_id || 'wxcb44a1be70e356ed',
+                  timeStamp: d.data.time_stamp,
+                  nonceStr: d.data.nonce_str,
+                  package: d.data.package,
+                  signType: d.data.sign_type,
+                  paySign: d.data.pay_sign,
+                  success: () => {
+                    Taro.showToast({ title: '支付成功', icon: 'success' })
+                    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+                  },
+                  fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
+                })
+              }
+            } else {
+              Taro.showModal({
+                title: '测试支付',
+                content: `订单: ${pId}\n金额: ¥${cashAmount}\nout_trade_no: ${d.data.out_trade_no}\n\n跳过微信支付，模拟回调完成支付`,
+                confirmText: '确认模拟',
+                success: async (m) => {
+                  if (!m.confirm) return
+                  const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
+                    method: 'POST',
+                    body: JSON.stringify({ out_trade_no: d.data.out_trade_no }),
+                  })
+                  const r = await resp.json()
+                  if (r.code === 20000) {
+                    Taro.showToast({ title: '测试支付已提交', icon: 'success' })
+                    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+                  } else {
+                    Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
+                  }
+                },
+              })
+            }
           },
-          fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
         })
       } else {
         Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })

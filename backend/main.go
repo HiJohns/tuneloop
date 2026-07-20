@@ -616,6 +616,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/pay/prepay", handlers.PrepayOrder)
 				userOptionalAuth.POST("/pay/calculate", handlers.CalculatePayment)
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)
+				userOptionalAuth.POST("/pay/test-callback", handlers.TestSimulatePaymentCallback)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
 				userOptionalAuth.PUT("/users/me", staffHandler.UpdateCurrentUser)
 				userOptionalAuth.POST("/users/me/avatar", handlers.UploadUserAvatar)

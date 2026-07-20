@@ -244,3 +244,44 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 
 	log.Printf("[PaymentScheduler] closed timed-out payment: %s", *rec.OutTradeNo)
 }
+
+func TestSimulatePaymentCallback(c *gin.Context) {
+	var req struct {
+		OutTradeNo string `json:"out_trade_no" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters"})
+		return
+	}
+	db := database.GetDB().WithContext(c.Request.Context())
+	var record models.OrderPaymentRecord
+	if err := db.Where("out_trade_no = ?", req.OutTradeNo).First(&record).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "payment record not found"})
+		return
+	}
+	log.Printf("[TestCallback] simulating payment callback: out_trade_no=%s type=%s amount=%.2f",
+		req.OutTradeNo, record.OrderType, record.Amount)
+	go func() {
+		time.Sleep(1 * time.Second)
+		db2 := database.GetDB()
+		tx := db2.Begin()
+		now := time.Now()
+		tid := "test_" + uuid.New().String()[:12]
+		if err := tx.Model(&record).Updates(map[string]interface{}{
+			"status": "paid", "transaction_id": tid, "updated_at": now,
+		}).Error; err != nil {
+			tx.Rollback()
+			return
+		}
+		record.Status = "paid"
+		record.TransactionID = &tid
+		if err := applySideEffects(tx, &record, now); err != nil {
+			tx.Rollback()
+			log.Printf("[TestCallback] side effects failed: %v", err)
+			return
+		}
+		tx.Commit()
+		log.Printf("[TestCallback] completed: out_trade_no=%s", req.OutTradeNo)
+	}()
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "test callback queued"})
+}
