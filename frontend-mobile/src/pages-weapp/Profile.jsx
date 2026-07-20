@@ -277,7 +277,7 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          {!isGuest && (
+          {!isStaff && !isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/membership/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
                 <Text style={{ fontSize: 18, marginRight: 8 }}>👑</Text>

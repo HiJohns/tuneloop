@@ -248,6 +248,7 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          {!isStaff && (
           <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/membership')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">👑</Text>
@@ -255,6 +256,7 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          )}
           <View className="flex justify-between items-center py-3.5 active:opacity-60">
             <View className="flex items-center gap-2">
               <Text className="text-lg">⚙️</Text>
