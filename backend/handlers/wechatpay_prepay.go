@@ -51,7 +51,7 @@ func PrepayOrder(c *gin.Context) {
 
 	validTypes := map[string]bool{"rent": true, "repair": true, "points": true, "damage": true, "renewal": true}
 	if !validTypes[req.OrderType] {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/points/damage"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/points/damage/renewal"})
 		return
 	}
 
@@ -197,6 +197,46 @@ func PrepayOrder(c *gin.Context) {
 			OpenID:      req.OpenID,
 			TotalAmount: cfg.AmountToCents(req.Amount),
 			Description: "TuneLoop 预付点充值",
+			NotifyURL:   cfg.NotifyURL,
+		})
+		if err != nil {
+			record.Status = "failed"
+			fr := err.Error()
+			record.FailReason = &fr
+			db.Create(&record)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
+			return
+		}
+		record.Method = strPtr("jsapi")
+		record.PrepayID = &result.PrepayID
+		db.Create(&record)
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": PrepayResponse{
+				Success: true,
+				Data: &PrepayData{
+					OutTradeNo: outTradeNo,
+					PrepayID:   result.PrepayID,
+					AppID:      cfg.AppID,
+					TimeStamp:  result.TimeStamp,
+					NonceStr:   result.NonceStr,
+					Package:    result.Package,
+					SignType:   result.SignType,
+					PaySign:    result.Sign,
+				},
+			},
+		})
+
+	case "renewal":
+		if req.OpenID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "renewal payment requires open_id"})
+			return
+		}
+		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
+			OutTradeNo:  outTradeNo,
+			OpenID:      req.OpenID,
+			TotalAmount: cfg.AmountToCents(req.Amount),
+			Description: "TuneLoop 续期支付",
 			NotifyURL:   cfg.NotifyURL,
 		})
 		if err != nil {

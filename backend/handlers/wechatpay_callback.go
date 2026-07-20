@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -195,7 +196,7 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 		return
 	}
 
-	result, err := client.QueryOrder(nil, *rec.OutTradeNo)
+	result, err := client.QueryOrder(context.Background(), *rec.OutTradeNo)
 	if err != nil {
 		log.Printf("[PaymentScheduler] query failed for %s: %v", *rec.OutTradeNo, err)
 		return
@@ -211,7 +212,7 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 		return
 	}
 
-	_ = client.CloseOrder(nil, *rec.OutTradeNo)
+	_ = client.CloseOrder(context.Background(), *rec.OutTradeNo)
 
 	db.Model(rec).Updates(map[string]interface{}{
 		"status":     "closed",
