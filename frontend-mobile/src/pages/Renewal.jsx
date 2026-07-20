@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { View, Text, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
+import { ArrowLeft } from 'lucide-react'
 
 export default function Renewal() {
   const { orderId } = useParams()
@@ -54,7 +55,7 @@ export default function Renewal() {
       }
     }
     calc()
-  }, [days, orderId])
+  }, [days, order, orderId])
 
   const handleSubmit = async () => {
     if (submitting || !calcResult) return
@@ -88,12 +89,10 @@ export default function Renewal() {
   const dayOptions = [7, 15, 30, 60, 90, 180, 365]
 
   return (
-    <View className="min-h-screen bg-gray-50">
-      <View className="bg-white px-4 py-3 flex items-center gap-3 border-b border-gray-200">
-        <View onClick={() => navigate(-1)} className="cursor-pointer">
-          <Text className="text-lg">{'<'}</Text>
-        </View>
-        <Text className="text-lg font-bold">续期</Text>
+    <View className="min-h-screen bg-[#FDFBF7]">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <Text className="text-lg font-black text-black">续期</Text>
       </View>
 
       <ScrollView className="p-4">

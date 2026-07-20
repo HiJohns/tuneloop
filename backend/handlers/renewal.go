@@ -76,13 +76,20 @@ func loadRenewalPricing(order *models.Order) (baseRate float64, pricingTiers []s
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		json.Unmarshal([]byte(*order.PricingBreakdown), &pb)
 	}
+	baseRate = pb.BaseDailyRent
+	if baseRate <= 0 && order.MonthlyRent > 0 {
+		baseRate = order.MonthlyRent / 30
+	}
+	if baseRate <= 0 {
+		baseRate = 50
+	}
 	disc := 1.0
 	for _, p := range pb.AppliedPolicies {
 		if p.Type == "membership_discount" || p.Type == "promo_campaign" {
 			disc *= p.Rate
 		}
 	}
-	return pb.BaseDailyRent, pb.PricingTiers, disc
+	return baseRate, pb.PricingTiers, disc
 }
 
 func CalculateRenewal(c *gin.Context) {

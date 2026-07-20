@@ -55,7 +55,7 @@ export default function Renewal() {
       }
     }
     calc()
-  }, [days, orderId])
+  }, [days, order, orderId])
 
   const getOpenId = async () => {
     try {
@@ -176,7 +176,7 @@ export default function Renewal() {
               type="number"
               placeholder="天数"
               value={customDays}
-              onInput={(e) => { setCustomDays(e.detail.value); setDays(parseInt(e.detail.value) || 0) }}
+              onInput={(e) => { setCustomDays(e.detail.value); setDays(parseInt(e.detail.value) || 1) }}
               style={{ width: 60, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 8, textAlign: 'center', fontSize: 12 }}
             />
             <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>
@@ -207,6 +207,9 @@ export default function Renewal() {
               <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{calcResult.total_amount?.toFixed(2)}</Text>
             </View>
             <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>新到期日: {calcResult.new_end_date}</Text>
+            {calcResult.renewal_cost <= 0 && (
+              <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>当前订单定价数据不完整，请联系管理员</Text>
+            )}
           </View>
         )}
 
