@@ -67,6 +67,103 @@ export default function Payment() {
     ? data.amount
     : Math.max(0, data.amount - prepaidUsed - giftUsed)
 
+  const handlePay = async (cashAmount) => {
+    const params = Taro.getCurrentInstance().router?.params || {}
+    const pType = params.type || ''
+    const pId = params.id || ''
+
+    if (cashAmount <= 0) {
+      Taro.showToast({ title: '支付成功', icon: 'success' })
+      setTimeout(() => Taro.redirectTo({ url: '/pages-weapp/home/index' }), 2000)
+      return
+    }
+
+    setIsPaying(true)
+    try {
+      let openid = ''
+      try {
+        const loginRes = await Taro.login()
+        if (loginRes.code) {
+          const oidResp = await apiFetch(`${baseUrl}/wechat/openid`, {
+            method: 'POST',
+            body: JSON.stringify({ code: loginRes.code }),
+          })
+          const oidData = await oidResp.json()
+          if (oidData.code === 20000) openid = oidData.data.openid
+        }
+      } catch (e) { console.warn('[payment] openid lookup failed', e) }
+
+      const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
+        method: 'POST',
+        body: JSON.stringify({
+          order_id: pId,
+          order_type: pType,
+          amount: cashAmount,
+          open_id: openid,
+        }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        const d = result.data
+        if (d.mock) {
+          Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
+          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+        } else if (d.data?.prepay_id) {
+          setPrepayData(d)
+        } else {
+          Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
+        }
+      } else {
+        Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
+    } finally {
+      setIsPaying(false)
+    }
+  }
+
+  const doRealPay = async () => {
+    if (!prepayData?.data) return
+    Taro.requestPayment({
+      appId: prepayData.data.app_id || 'wxcb44a1be70e356ed',
+      timeStamp: prepayData.data.time_stamp,
+      nonceStr: prepayData.data.nonce_str,
+      package: prepayData.data.package,
+      signType: prepayData.data.sign_type,
+      paySign: prepayData.data.pay_sign,
+      success: () => {
+        Taro.showToast({ title: '支付成功', icon: 'success' })
+        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+      },
+      fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
+    })
+  }
+
+  const doSimulatePay = async () => {
+    if (!prepayData?.data) return
+    try {
+      const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
+        method: 'POST',
+        body: JSON.stringify({ out_trade_no: prepayData.data.out_trade_no }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        Taro.showToast({ title: '测试支付已提交', icon: 'success' })
+        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+      } else {
+        Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '测试支付失败', content: err.message, showCancel: false })
+    }
+  }
+
+  const handleRefund = async () => {
+    Taro.showToast({ title: '退款申请已提交', icon: 'success' })
+    setTimeout(() => Taro.navigateBack(), 2000)
+  }
+
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 100 }}>
       <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', padding: '16px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -279,100 +376,6 @@ function renderDetailsBlock(details, type) {
     )
   }
   return null
-}
-
-async function handlePay(cashAmount) {
-  const params = Taro.getCurrentInstance().router?.params || {}
-  const pType = params.type || ''
-  const pId = params.id || ''
-
-  if (cashAmount <= 0) {
-    Taro.showToast({ title: '支付成功', icon: 'success' })
-    setTimeout(() => Taro.redirectTo({ url: '/pages-weapp/home/index' }), 2000)
-    return
-  }
-
-  setIsPaying(true)
-  try {
-    // Get WeChat OpenID for JSAPI payment
-    let openid = ''
-    try {
-      const loginRes = await Taro.login()
-      if (loginRes.code) {
-        const oidResp = await apiFetch(`${baseUrl}/wechat/openid`, {
-          method: 'POST',
-          body: JSON.stringify({ code: loginRes.code }),
-        })
-        const oidData = await oidResp.json()
-        if (oidData.code === 20000) openid = oidData.data.openid
-      }
-    } catch (e) { console.warn('[payment] openid lookup failed', e) }
-
-    const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
-      method: 'POST',
-      body: JSON.stringify({
-        order_id: pId,
-        order_type: pType,
-        amount: cashAmount,
-        open_id: openid,
-      }),
-    })
-    const result = await resp.json()
-    if (result.code === 20000) {
-      const d = result.data
-      if (d.mock) {
-        Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
-        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
-      } else if (d.data?.prepay_id) {
-        setPrepayData(d)
-      } else {
-        Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
-      }
-    } else {
-      Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
-    }
-  } catch (err) {
-    Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
-  } finally {
-    setIsPaying(false)
-  }
-}
-
-async function doRealPay() {
-  if (!prepayData?.data) return
-  Taro.requestPayment({
-    appId: prepayData.data.app_id || 'wxcb44a1be70e356ed',
-    timeStamp: prepayData.data.time_stamp,
-    nonceStr: prepayData.data.nonce_str,
-    package: prepayData.data.package,
-    signType: prepayData.data.sign_type,
-    paySign: prepayData.data.pay_sign,
-    success: () => {
-      Taro.showToast({ title: '支付成功', icon: 'success' })
-      setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
-    },
-    fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
-  })
-}
-
-async function doSimulatePay() {
-  if (!prepayData?.data) return
-  const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
-    method: 'POST',
-    body: JSON.stringify({ out_trade_no: prepayData.data.out_trade_no }),
-  })
-  const r = await resp.json()
-  if (r.code === 20000) {
-    Taro.showToast({ title: '测试支付已提交', icon: 'success' })
-    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
-  } else {
-    Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
-  }
-}
-
-async function handleRefund() {
-  Taro.showToast({ title: '退款申请已提交', icon: 'success' })
-  setTimeout(() => Taro.navigateBack(), 2000)
 }
 
 function btnStyle(bgColor) {
