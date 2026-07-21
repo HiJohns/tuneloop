@@ -57,54 +57,21 @@ export default function Renewal() {
     calc()
   }, [days, order, orderId])
 
-  const getOpenId = async () => {
-    try {
-      const resp = await Taro.login()
-      if (resp.code) {
-        const result = await apiFetch(`${baseUrl}/wechat/openid`, {
-          method: 'POST',
-          body: JSON.stringify({ code: resp.code }),
-        })
-        const data = await result.json()
-        return data.data?.openid || ''
-      }
-    } catch (err) {
-      console.error('Failed to get openid:', err)
-    }
-    return ''
-  }
-
   const handleSubmit = async () => {
     if (submitting || !calcResult) return
     setSubmitting(true)
     try {
-      const openId = await getOpenId()
       const token = getToken()
       const resp = await fetch(`${baseUrl}/orders/${orderId}/renewal/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ additional_days: days, open_id: openId }),
+        body: JSON.stringify({ additional_days: days }),
       })
       const result = await resp.json()
       if (result.code === 20000 && result.data?.success) {
-        const d = result.data.data
-        if (d?.prepay_id && typeof Taro.requestPayment === 'function') {
-          Taro.requestPayment({
-            appId: d.app_id || 'wxcb44a1be70e356ed',
-            timeStamp: d.time_stamp,
-            nonceStr: d.nonce_str,
-            package: d.package,
-            signType: d.sign_type,
-            paySign: d.pay_sign,
-            success: () => {
-              Taro.showToast({ title: '续期成功', icon: 'success' })
-              setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` }), 2000)
-            },
-            fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
-          })
-        } else {
-          Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
-        }
+        Taro.redirectTo({
+          url: `/pages-weapp/payment/index?type=renewal&id=${orderId}&amount=${calcResult.total_amount}`,
+        })
       } else {
         Taro.showModal({ title: '续期失败', content: result.data?.message || '请重试', showCancel: false })
       }

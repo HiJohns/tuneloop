@@ -17,12 +17,19 @@ export default function Payment() {
   const [loading, setLoading] = useState(true)
   const [prepaidUsed, setPrepaidUsed] = useState(0)
   const [giftUsed, setGiftUsed] = useState(0)
+  const [prepayData, setPrepayData] = useState(null)
+  const [isPaying, setIsPaying] = useState(false)
 
   useEffect(() => {
     if (!pType) return
     const fetchData = async () => {
       if (pType === 'points') {
         setData({ type: 'points', title: '预付点充值', amount: pAmount, details: null, wallet: null })
+        setLoading(false)
+        return
+      }
+      if (pType === 'renewal') {
+        setData({ type: 'renewal', title: '续期支付', amount: pAmount, details: null, wallet: null })
         setLoading(false)
         return
       }
@@ -173,13 +180,24 @@ export default function Payment() {
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
         {isRefund ? (
           <Button style={btnStyle('#000')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
+        ) : prepayData?.data ? (
+          <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Button style={btnStyle('#C21838')} onClick={doRealPay}>
+                微信支付 ¥{Number(cashAmount).toFixed(2)}
+              </Button>
+            </View>
+            {!prepayData.mock && (
+              <View style={{ flex: 1 }}>
+                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doSimulatePay}>
+                  模拟支付 ¥{Number(cashAmount).toFixed(2)}
+                </Button>
+              </View>
+            )}
+          </View>
         ) : (
-          <Button style={btnStyle(cashAmount > 0 ? '#C21838' : '#16a34a')} onClick={() => handlePay(cashAmount)}>
-            {pType === 'damage' && cashAmount <= 0
-              ? '无需支付 ¥0'
-              : cashAmount > 0
-                ? `微信支付 ¥${Number(cashAmount).toFixed(2)}`
-                : '确认支付 ¥0（使用点数）'}
+          <Button style={btnStyle(cashAmount > 0 ? '#C21838' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
+            {isPaying ? '处理中...' : `发起支付 ¥${Number(cashAmount).toFixed(2)}`}
           </Button>
         )}
       </View>
@@ -274,6 +292,7 @@ async function handlePay(cashAmount) {
     return
   }
 
+  setIsPaying(true)
   try {
     // Get WeChat OpenID for JSAPI payment
     let openid = ''
@@ -304,52 +323,8 @@ async function handlePay(cashAmount) {
       if (d.mock) {
         Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
         setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
-      } else if (d.data?.prepay_id && typeof Taro.requestPayment === 'function') {
-        Taro.showModal({
-          title: '支付方式',
-          content: `订单: ${pId}\n类型: ${pType}\n金额: ¥${cashAmount}\nout_trade_no: ${d.data.out_trade_no}`,
-          confirmText: '微信支付',
-          cancelText: '测试模拟',
-          success: async (modalRes) => {
-            if (modalRes.confirm) {
-              if (typeof Taro.requestPayment === 'function') {
-                Taro.requestPayment({
-                  appId: d.data.app_id || 'wxcb44a1be70e356ed',
-                  timeStamp: d.data.time_stamp,
-                  nonceStr: d.data.nonce_str,
-                  package: d.data.package,
-                  signType: d.data.sign_type,
-                  paySign: d.data.pay_sign,
-                  success: () => {
-                    Taro.showToast({ title: '支付成功', icon: 'success' })
-                    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
-                  },
-                  fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
-                })
-              }
-            } else {
-              Taro.showModal({
-                title: '测试支付',
-                content: `订单: ${pId}\n金额: ¥${cashAmount}\nout_trade_no: ${d.data.out_trade_no}\n\n跳过微信支付，模拟回调完成支付`,
-                confirmText: '确认模拟',
-                success: async (m) => {
-                  if (!m.confirm) return
-                  const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
-                    method: 'POST',
-                    body: JSON.stringify({ out_trade_no: d.data.out_trade_no }),
-                  })
-                  const r = await resp.json()
-                  if (r.code === 20000) {
-                    Taro.showToast({ title: '测试支付已提交', icon: 'success' })
-                    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
-                  } else {
-                    Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
-                  }
-                },
-              })
-            }
-          },
-        })
+      } else if (d.data?.prepay_id) {
+        setPrepayData(d)
       } else {
         Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
       }
@@ -358,6 +333,40 @@ async function handlePay(cashAmount) {
     }
   } catch (err) {
     Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
+  } finally {
+    setIsPaying(false)
+  }
+}
+
+async function doRealPay() {
+  if (!prepayData?.data) return
+  Taro.requestPayment({
+    appId: prepayData.data.app_id || 'wxcb44a1be70e356ed',
+    timeStamp: prepayData.data.time_stamp,
+    nonceStr: prepayData.data.nonce_str,
+    package: prepayData.data.package,
+    signType: prepayData.data.sign_type,
+    paySign: prepayData.data.pay_sign,
+    success: () => {
+      Taro.showToast({ title: '支付成功', icon: 'success' })
+      setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+    },
+    fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
+  })
+}
+
+async function doSimulatePay() {
+  if (!prepayData?.data) return
+  const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
+    method: 'POST',
+    body: JSON.stringify({ out_trade_no: prepayData.data.out_trade_no }),
+  })
+  const r = await resp.json()
+  if (r.code === 20000) {
+    Taro.showToast({ title: '测试支付已提交', icon: 'success' })
+    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+  } else {
+    Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
   }
 }
 
