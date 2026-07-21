@@ -158,7 +158,7 @@ function SingleCheckout({ id, navigate }) {
   }, [instrument?.id, days])
 
   const totalRent = computeTieredRent(days)
-  const deposit = pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
+  const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
   const shippingFee = pricingV2?.shipping_fee || parsePricing(instrument?.pricing)[0]?.shipping_fee || 0
   const totalAmount = totalRent + deposit + shippingFee
   const startDate = new Date().toISOString().slice(0, 10)
