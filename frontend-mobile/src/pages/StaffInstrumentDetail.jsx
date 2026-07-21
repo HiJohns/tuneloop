@@ -279,7 +279,7 @@ export default function StaffInstrumentDetail() {
             </View>
             {sessions.map((session) => (
               <View key={session.order_id}>
-                {session.events.map((event, ei) => {
+                {session.events?.map((event, ei) => {
                   const label = eventLabels[event.event] || event.event
                   return (
                     <View key={ei} className="relative pl-6 pb-4 border-l-2 border-gray-200 last:border-transparent">

@@ -738,7 +738,7 @@ function ActivityLogTab({ instrumentId }) {
             <Empty description="暂无操作记录" />
           ) : (
             <div className="space-y-2">
-              {session.events.map((event, idx) => (
+              {session.events?.map((event, idx) => (
                 <div key={idx} className="flex gap-3 p-2 bg-gray-50 rounded">
                   <div className="w-20 flex-shrink-0 text-xs text-gray-400">{new Date(event.time).toLocaleString()}</div>
                   <div className="flex-1">
