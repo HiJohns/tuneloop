@@ -289,7 +289,6 @@ export default function StaffInstrumentDetail() {
                   const label = eventLabels[event.event] || event.event
                   return (
                     <View key={ei} className="relative pl-6 pb-4 border-l-2 border-zinc-200 last:border-transparent">
-                      <View className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-black" />
                       <View className="text-sm">
                         <View className="flex items-center gap-2">
                           <Text className="font-black">{label}</Text>
