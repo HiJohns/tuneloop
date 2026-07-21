@@ -202,7 +202,7 @@ export default function StaffInstrumentDetail() {
         <InstrumentInfo instrument={instrument} />
 
         {/* Basic Info */}
-        <View className="bg-white rounded-2xl shadow-sm p-4">
+        <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
           <View className="flex items-center justify-between mb-3">
             <Text className="text-lg font-black">{instrument.name}</Text>
             <Text className={`px-3 py-1 rounded-full text-sm font-black ${statusColor[instrument.stock_status] || 'bg-gray-100'}`}>
@@ -254,7 +254,7 @@ export default function StaffInstrumentDetail() {
         )}
 
         {/* Pricing Info */}
-        <View className="bg-white rounded-2xl shadow-sm p-4">
+        <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
           <Text className="font-black text-base text-black mb-3">租赁设置</Text>
           <View className="space-y-2 text-sm">
             <View className="flex justify-between">
@@ -278,7 +278,7 @@ export default function StaffInstrumentDetail() {
 
         {/* Activity Log Timeline */}
         {sessions.length > 0 && (
-          <View className="bg-white rounded-2xl shadow-sm p-4">
+          <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
             <View className="flex items-center gap-2 mb-4">
               <Clock size={18} className="text-zinc-400" />
               <Text className="font-black text-base text-black">操作记录</Text>
