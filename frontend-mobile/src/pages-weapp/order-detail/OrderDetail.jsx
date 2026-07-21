@@ -498,7 +498,7 @@ export default function OrderDetail() {
             )}
             {showStaffReceive && (
               <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/receiving/index?order_id=${id}` })}
-                style={btnStyle('#C21838')}>↩️ 收货</View>
+                style={btnStyle('#C21838')}>↩️ 接收</View>
             )}
             {!showStaffShip && !showStaffTransit && !showStaffReceive && (
               <View style={{ ...btnStyle('#a1a1aa'), backgroundColor: '#f4f4f5', cursor: 'default' }}>

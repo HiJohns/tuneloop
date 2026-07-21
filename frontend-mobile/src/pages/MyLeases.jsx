@@ -201,7 +201,7 @@ export default function MyLeases() {
           <>
           <View className="space-y-3">
               {orders.map(order => {
-              const showReturn = order.status === 'in_lease'
+              const showReturn = !isStaff && order.status === 'in_lease'
               const showStaffReceive = isStaff && order.status === 'returning'
               const showPay = !isStaff && order.status === 'reserved'
               const showCancel = !isStaff && ['reserved', 'paid', 'pending_shipment'].includes(order.status)
@@ -279,7 +279,7 @@ export default function MyLeases() {
                           onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
                           className="flex-1 py-2.5 bg-black text-white rounded-xl font-black text-sm"
                         >
-                          接收归还
+                          接收
                         </Button>
                       )}
                       {showCancel && (

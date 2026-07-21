@@ -276,10 +276,10 @@ export default function OrderDetail() {
       <LeaseInfo
         status={status}
         startDate={order.start_date}
-        endDate={order.end_date}
+        endDate={order.returned_at || order.end_date}
         deliveredAt={order.delivered_at}
         dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || 0}
-        rentDays={pb?.rent_days || 0}
+        rentDays={rentalDays || pb?.rent_days || 0}
         createdAt={order.created_at}
       />
 
@@ -579,7 +579,7 @@ export default function OrderDetail() {
               {showStaffReceive && (
                 <View onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
                   className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
-                  <RotateCcw size={20} /><Text>收货</Text>
+                  <RotateCcw size={20} /><Text>接收</Text>
                 </View>
               )}
               {(status === 'reserved' || status === 'cancelled' || status === 'shipped' ||
