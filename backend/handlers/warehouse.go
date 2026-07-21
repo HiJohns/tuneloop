@@ -44,9 +44,9 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	orgID := middleware.GetOrgID(ctx)
-	if orgID != "" {
-		query = query.Where("org_id = ?", orgID)
+	orgIDs, err := middleware.GetVisibleOrgIDs(ctx)
+	if err == nil && len(orgIDs) > 0 {
+		query = query.Where("org_id IN ?", orgIDs)
 	}
 	if siteID != "" {
 		query = query.Joins("JOIN instruments ON orders.instrument_id = instruments.id").Where("instruments.site_id = ?", siteID)
