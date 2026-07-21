@@ -20,8 +20,9 @@ function fmt(raw) {
 }
 
 function today() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const now = Date.now()
+  const bj = new Date(now + 8 * 3600000)
+  return `${bj.getUTCFullYear()}-${String(bj.getUTCMonth() + 1).padStart(2, '0')}-${String(bj.getUTCDate()).padStart(2, '0')}`
 }
 
 function parseDate(raw) {
@@ -54,7 +55,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   const overdueDays = displayEndDt && nowDt && isOverdue ? Math.round((nowDt - displayEndDt) / 86400000) : 0
 
   const leaseDays = startDt && endDt
-    ? Math.max(1, Math.round((endDt - startDt) / 86400000))
+    ? Math.max(1, Math.round((endDt - startDt) / 86400000) + 1)
     : 0
 
   const currentLeaseDays = startDt && nowDt

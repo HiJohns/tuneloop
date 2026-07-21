@@ -79,7 +79,9 @@ export default function OrderDetail() {
     try {
       if (!token) return false
       const payload = JSON.parse(atob(token.split('.')[1]))
-      return payload?.role && payload.role !== 'USER'
+      const hasOrg = !!(payload?.oid && payload.oid !== '')
+      const hasTenant = !!(payload?.tid && payload.tid !== '')
+      return hasOrg || hasTenant
     } catch { return false }
   })()
 
@@ -182,7 +184,6 @@ export default function OrderDetail() {
 
   const startDate = formatDisplayDate(order.start_date)
   const endDate = formatDisplayDate(order.end_date)
-  const returnedAt = order.returned_at ? formatDisplayDate(order.returned_at) : null
   const leaseTerm = order.lease_term || 0
   const effStartDate = order.delivered_at || order.start_date
   const rentalDays = (effStartDate && (order.end_date || order.returned_at))
@@ -282,29 +283,6 @@ export default function OrderDetail() {
         rentDays={rentalDays || pb?.rent_days || 0}
         createdAt={order.created_at}
       />
-
-      {/* Return Info */}
-      {returnedAt && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3">归还信息</Text>
-          <View className="flex items-start gap-3">
-            <Calendar size={18} className="text-zinc-400 mt-0.5" />
-            <View className="flex items-start flex-1 min-w-0">
-              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">归还日期</Text>
-              <Text className="text-sm font-black text-black">{returnedAt}</Text>
-            </View>
-          </View>
-          {settlement?.actual_rent_days && (
-          <View className="flex items-start gap-3 mt-2">
-            <Clock size={18} className="text-zinc-400 mt-0.5" />
-            <View className="flex items-start flex-1 min-w-0">
-              <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">实际租期</Text>
-              <Text className="text-sm font-black text-black">{settlement.actual_rent_days} 天</Text>
-            </View>
-          </View>
-          )}
-        </View>
-      )}
 
       {/* Fee Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
