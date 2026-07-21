@@ -520,15 +520,12 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 			if parseErr == nil && claims.UserID != "" {
 				var existingUser models.User
 				if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
-					h.db.Create(&models.User{
-						IAMSub:   claims.UserID,
-						TenantID: claims.TenantID,
-						OrgID:    claims.OrgID,
-						Name:     claims.Name,
-						Phone:    phone,
-						Role:     "USER",
-						Status:   "active",
+					log.Printf("[WxLogin] Channel 1: iam_sub=%s not found locally, returning binding error", claims.UserID)
+					c.JSON(http.StatusConflict, gin.H{
+						"code":    40900,
+						"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
 					})
+					return
 				}
 			}
 		}
@@ -553,14 +550,12 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 		if parseErr == nil && claims.UserID != "" {
 			var existingUser models.User
 			if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
-				h.db.Create(&models.User{
-					IAMSub:   claims.UserID,
-					TenantID: claims.TenantID,
-					OrgID:    claims.OrgID,
-					Name:     claims.Name,
-					Role:     "USER",
-					Status:   "active",
+				log.Printf("[WxLogin] Channel 3: iam_sub=%s not found locally, returning binding error", claims.UserID)
+				c.JSON(http.StatusConflict, gin.H{
+					"code":    40900,
+					"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
 				})
+				return
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{
