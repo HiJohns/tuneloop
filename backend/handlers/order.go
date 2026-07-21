@@ -203,8 +203,9 @@ func GetOrder(c *gin.Context) {
 				"name":  iamUser.Name,
 				"email": iamUser.Email,
 				"phone": iamUser.Phone,
-			})
-		}
+	})
+}
+
 	}
 
 	// Fetch delivery address from lease_session
@@ -953,4 +954,50 @@ func refundOrderPoints(db *gorm.DB, order *models.Order) {
 		db.Model(&models.User{}).Where("id = ?", order.UserID).
 			Update("promo_points", gorm.Expr("promo_points + ?", order.GiftPointsUsed))
 	}
+}
+
+func GetOrdersByOutTradeNo(c *gin.Context) {
+	ctx := c.Request.Context()
+	outTradeNo := c.Param("out_trade_no")
+
+	if outTradeNo == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "out_trade_no is required"})
+		return
+	}
+
+	db := database.GetDB().WithContext(ctx)
+
+	var session models.PaymentSession
+	if err := db.Where("out_trade_no = ?", outTradeNo).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "payment session not found"})
+		return
+	}
+
+	var links []models.SessionOrderLink
+	if err := db.Where("session_id = ?", session.ID).Find(&links).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query order links"})
+		return
+	}
+
+	if len(links) == 0 {
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": struct {
+			Orders []models.Order `json:"orders"`
+		}{Orders: []models.Order{}}})
+		return
+	}
+
+	orderIDs := make([]string, 0, len(links))
+	for _, link := range links {
+		orderIDs = append(orderIDs, link.OrderID)
+	}
+
+	var orders []models.Order
+	if err := db.Where("id IN ?", orderIDs).Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query orders"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"orders": orders,
+	}})
 }

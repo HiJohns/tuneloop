@@ -355,6 +355,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
 		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
+		authRequired.GET("/orders/by-trade-no/:out_trade_no", handlers.GetOrdersByOutTradeNo)
 		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
 		authRequired.GET("/merchant/orders", handlers.ListMerchantOrders)
@@ -729,6 +730,7 @@ func main() {
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
 	downloadPlatformCert := flag.Bool("download-platform-cert", false, "Download WeChat platform certificate and exit")
+	setOrderDetailPath := flag.String("set-order-detail-path", "", "Set WeChat mini program order detail path (e.g. 'pages-weapp/order-detail/index?out_trade_no=${商品订单号}')")
 	flag.Parse()
 
 	// Load environment file if specified
@@ -769,6 +771,22 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("Platform certificate downloaded successfully")
+		return
+	}
+
+	if *setOrderDetailPath != "" {
+		if err := services.UpdateOrderDetailPath(*setOrderDetailPath); err != nil {
+			fmt.Printf("FATAL: Failed to set order detail path: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Order detail path set successfully: %s\n", *setOrderDetailPath)
+
+		path, err := services.GetOrderDetailPath()
+		if err != nil {
+			fmt.Printf("WARN: Failed to verify order detail path: %v\n", err)
+		} else {
+			fmt.Printf("Verified order detail path: %s\n", path)
+		}
 		return
 	}
 

@@ -32,7 +32,7 @@ const baseUrl = env.apiBaseUrl
 
 export default function OrderDetail() {
   const params = Taro.getCurrentInstance().router?.params || {}
-  const id = params.id
+  const [id, setId] = useState(params.id || null)
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -49,6 +49,23 @@ export default function OrderDetail() {
       return hasOrg || hasTenant || hasStaffRole
     } catch { return false }
   })()
+
+  useEffect(() => {
+    const resolve = async () => {
+      if (!params.id && params.out_trade_no) {
+        try {
+          const resp = await apiFetch(`${baseUrl}/orders/by-trade-no/${params.out_trade_no}`)
+          const result = await resp.json()
+          if (result.code === 20000 && result.data?.orders?.length > 0) {
+            setId(result.data.orders[0].id)
+            return
+          }
+        } catch {}
+      }
+      setId(params.id || null)
+    }
+    resolve()
+  }, [params.id, params.out_trade_no])
 
   useEffect(() => {
     if (!id) return

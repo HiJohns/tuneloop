@@ -444,6 +444,28 @@ wx.requestPayment 失败回调:
 - [ ] 定时任务集成自动扣款
 - [ ] 余额不足通知 + 手动补缴入口
 
+### Phase 6 — 小程序购物订单接入（1 周）
+> 详见 Issue [#1404](https://github.com/HiJohns/tuneloop/issues/1404)
+
+微信官方提供「小程序购物订单」功能，用户可在「我-小店与卡包-小程序购物订单」查看购物订单。
+
+**步骤**:
+1. **人工**：签署订单中心授权协议（微信公众平台）
+2. **后端**：调用 `POST /wxa/sec/order/update_order_detail_path`，注册跳转路径
+3. **后端**：CLI flag `--set-order-detail-path`，PATH=`pages-weapp/order-detail/index?out_trade_no=${商品订单号}`
+4. **后端**：新增 `GET /api/orders/by-trade-no/:out_trade_no` 反查接口
+5. **前端**：WeApp `OrderDetail.jsx` 支持 `out_trade_no` 参数
+6. **所有**：支付 `description` 改为中文（已随此文档完成）
+
+**验证**：
+```bash
+# 设置跳转路径
+./service/tuneloop --set-order-detail-path "pages-weapp/order-detail/index?out_trade_no=${商品订单号}"
+
+# 验证
+curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_token=$(your_token)"
+```
+
 ---
 
 ## 八、2026-07-17 生产上线调试日志

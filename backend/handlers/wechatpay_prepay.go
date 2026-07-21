@@ -128,31 +128,31 @@ func PrepayOrder(c *gin.Context) {
 			result, err := client.CreateNativeOrder(ctx, wechatpay.NativeParams{
 				OutTradeNo:  outTradeNo,
 				TotalAmount: cfg.AmountToCents(req.Amount),
-				Description: fmt.Sprintf("TuneLoop %s order", req.OrderType),
-				NotifyURL:   cfg.NotifyURL,
-			})
-			if err != nil {
-				record.Status = "failed"
-				fr := err.Error()
-				record.FailReason = &fr
-				db.Create(&record)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
-				return
-			}
-			record.Method = strPtr("native")
-			record.CodeURL = &result.CodeURL
+			Description: fmt.Sprintf("乐器租赁订单"),
+			NotifyURL:   cfg.NotifyURL,
+		})
+		if err != nil {
+			record.Status = "failed"
+			fr := err.Error()
+			record.FailReason = &fr
 			db.Create(&record)
-			c.JSON(http.StatusOK, gin.H{
-				"code": 20000,
-				"data": PrepayResponse{
-					Success: true,
-					Data: &PrepayData{
-						OutTradeNo: outTradeNo,
-						CodeURL:    result.CodeURL,
-					},
-				},
-			})
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
 			return
+		}
+		record.Method = strPtr("native")
+		record.CodeURL = &result.CodeURL
+		db.Create(&record)
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": PrepayResponse{
+				Success: true,
+				Data: &PrepayData{
+					OutTradeNo: outTradeNo,
+					CodeURL:    result.CodeURL,
+				},
+			},
+		})
+		return
 		}
 
 		// JSAPI payment (mini-program)
@@ -160,7 +160,7 @@ func PrepayOrder(c *gin.Context) {
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
 			TotalAmount: cfg.AmountToCents(req.Amount),
-			Description: fmt.Sprintf("TuneLoop %s order", req.OrderType),
+			Description: fmt.Sprintf("乐器租赁订单"),
 			NotifyURL:   cfg.NotifyURL,
 		})
 		if err != nil {
@@ -196,7 +196,7 @@ func PrepayOrder(c *gin.Context) {
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
 			TotalAmount: cfg.AmountToCents(req.Amount),
-			Description: "TuneLoop 预付点充值",
+			Description: "预付点充值",
 			NotifyURL:   cfg.NotifyURL,
 		})
 		if err != nil {
@@ -236,7 +236,7 @@ func PrepayOrder(c *gin.Context) {
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
 			TotalAmount: cfg.AmountToCents(req.Amount),
-			Description: "TuneLoop 续期支付",
+			Description: "租赁续期支付",
 			NotifyURL:   cfg.NotifyURL,
 		})
 		if err != nil {
