@@ -344,6 +344,17 @@ func CreateInstrument(c *gin.Context) {
 		}
 	}
 
+	// Resolve OrgID from site's IAM org (matches ApplyOrgScope filtering in GetInstruments)
+	if req.SiteID != "" {
+		var site models.Site
+		if err := db.Where("id = ?", req.SiteID).First(&site).Error; err == nil && site.OrgID != "" {
+			instrument.OrgID = &site.OrgID
+		}
+	}
+	if instrument.OrgID == nil && orgID != "" {
+		instrument.OrgID = &orgID
+	}
+
 	// Handle Images field
 	if req.Images != nil && len(req.Images) > 0 {
 		imagesJSON, err := json.Marshal(req.Images)
