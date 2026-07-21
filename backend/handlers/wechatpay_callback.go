@@ -108,7 +108,12 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
 	switch record.OrderType {
 	case "rent":
-		return tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error
+		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error; err != nil {
+			return err
+		}
+		return tx.Model(&models.Instrument{}).
+			Where("id = (SELECT instrument_id FROM orders WHERE id = ? LIMIT 1)", record.OrderID).
+			Update("stock_status", "rented").Error
 	case "repair":
 		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error
 	case "points":
