@@ -230,12 +230,12 @@ export default function Home() {
                   }
                 }}>
                 {banners.length > 0 && (
-                  <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
+                  <View key="clone-last" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[banners.length - 1].bg_color || '#915F38' }}>
                     <BannerImage src={banners[banners.length - 1].image_url} aspectRatio={banners[banners.length - 1].aspect_ratio} />
                   </View>
                 )}
                 {banners.map((item, i) => (
-                  <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }} onClick={() => item.link_url && nav(item.link_url)}>
+                  <View key={i} style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: item.bg_color || '#915F38' }} onClick={() => item.link_url && nav(item.link_url)}>
                     <BannerImage src={item.image_url} aspectRatio={item.aspect_ratio} />
                     {item.title ? (
                       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }}>
@@ -245,7 +245,7 @@ export default function Home() {
                   </View>
                 ))}
                 {banners.length > 0 && (
-                  <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%` }}>
+                  <View key="clone-first" style={{ height: '100%', width: `${100 / (banners.length + 2)}%`, backgroundColor: banners[0].bg_color || '#915F38' }}>
                     <BannerImage src={banners[0].image_url} aspectRatio={banners[0].aspect_ratio} />
                   </View>
                 )}
