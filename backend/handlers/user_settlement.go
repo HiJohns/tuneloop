@@ -230,12 +230,6 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		return
 	}
 
-	if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", models.OrderStatusReturned).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status"})
-		return
-	}
-
 	tx.Commit()
 
 	// Check and upgrade membership level after settlement
