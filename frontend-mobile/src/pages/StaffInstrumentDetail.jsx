@@ -173,7 +173,7 @@ export default function StaffInstrumentDetail() {
 
   if (loading) {
     return (
-      <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+      <View className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#FDFBF7'}}>
         <Text className="text-zinc-500 font-black">加载中...</Text>
       </View>
     )
@@ -181,7 +181,7 @@ export default function StaffInstrumentDetail() {
 
   if (!instrument) {
     return (
-      <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+      <View className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#FDFBF7'}}>
         <Text className="text-zinc-400 font-black">乐器不存在</Text>
       </View>
     )
@@ -191,7 +191,7 @@ export default function StaffInstrumentDetail() {
   const pricingInfo = pricing[0] || {}
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+    <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
         <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">乐器详情</Text>
