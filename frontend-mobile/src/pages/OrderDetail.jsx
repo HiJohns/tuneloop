@@ -216,13 +216,13 @@ export default function OrderDetail() {
   const showStaffReceive = isStaff && status === 'returning'
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+    <View className="h-screen flex flex-col bg-[#FDFBF7]">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
         <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">订单详情</Text>
       </View>
 
-      <ScrollView>
+      <ScrollView className="flex-1 overflow-y-auto">
       {/* Order ID + Status */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <View className="flex items-center justify-between min-w-0 mb-2">
@@ -539,7 +539,7 @@ export default function OrderDetail() {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
+      <View className="bg-white border-t-2 border-zinc-200 p-4 safe-area-pb" style={{boxShadow:'0 -4px 12px rgba(0,0,0,0.08)'}}>
         <View className="space-y-3 max-w-[480px] mx-auto">
           {isStaff ? (
             <>
@@ -557,7 +557,7 @@ export default function OrderDetail() {
               )}
               {showStaffReceive && (
                 <View onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
-                  className="w-full py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  className="w-full py-3 bg-rose-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <RotateCcw size={20} /><Text>接收</Text>
                 </View>
               )}

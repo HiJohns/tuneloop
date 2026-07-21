@@ -60,7 +60,7 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 	var orders []models.Order
-	query.Offset(offset).Limit(pageSize).Find(&orders)
+	query.Offset(offset).Limit(pageSize).Order("updated_at DESC").Find(&orders)
 
 	type warehouseOrder struct {
 		models.Order

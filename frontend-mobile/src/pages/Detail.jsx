@@ -63,7 +63,7 @@ export default function Detail() {
   const baseUrl = env.apiBaseUrl
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
-  const liveVideo = displayMedia?.video
+  const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
   const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
   const shippingFee = pricingV2?.shipping_fee || 0
 
@@ -437,7 +437,7 @@ export default function Detail() {
 
       {/* Bottom panel */}
       <View className="fixed bottom-0 left-0 right-0 bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
-        {isRentable ? (
+        {isRentable && isCustomer ? (
           <>
             <View className="flex w-full space-x-3">
               <View

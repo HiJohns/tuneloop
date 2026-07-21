@@ -63,7 +63,7 @@ export default function Detail() {
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
-  const liveVideo = displayMedia?.video
+  const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
   const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
   const shippingFee = pricingV2?.shipping_fee || 0
 
@@ -431,7 +431,7 @@ export default function Detail() {
 
       {/* Bottom panel */}
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#FDFBF7', borderTop: '1px solid #f4f4f5', padding: 16, display: 'flex', flexDirection: 'column', zIndex: 50, boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.1)' }}>
-        {isRentable ? (
+        {isRentable && isCustomer ? (
           <>
             <View style={{ display: 'flex', width: '100%' }}>
               <View
