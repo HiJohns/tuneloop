@@ -160,12 +160,15 @@ export default function OrderDetail() {
   const status = order.status || ''
   const statusDef = STATUS[status] || { color: '#a1a1aa', label: status }
   const startDate = formatDisplayDate(order.start_date)
-  const endDate = formatDisplayDate(order.end_date)
+  const endDate = formatDisplayDate(order.returned_at || order.end_date)
   const returnedAt = order.returned_at ? formatDisplayDate(order.returned_at) : null
   const deposit = order.deposit || 0
   const shippingFee = order.shipping_fee || 0
   const pb = order.pricing_breakdown
   const dailyRate = (pb && (pb.final_daily_rent || pb.base_daily_rent)) || order.base_daily_rate || 0
+  const actualRentDays = order.returned_at && order.start_date
+    ? Math.max(1, Math.round((new Date(order.returned_at) - new Date(order.start_date)) / 86400000) + 1)
+    : 0
 
   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(order.end_date) < new Date()
   const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(order.end_date)) / 86400000) : 0
@@ -264,10 +267,10 @@ export default function OrderDetail() {
         <LeaseInfo
           status={status}
           startDate={order.start_date}
-          endDate={order.end_date}
+          endDate={order.returned_at || order.end_date}
           deliveredAt={order.delivered_at}
           dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || order.base_daily_rate || instrument?.base_daily_rate || 0}
-          rentDays={pb?.rent_days || 0}
+          rentDays={actualRentDays || pb?.rent_days || 0}
           createdAt={order.created_at}
         />
 
