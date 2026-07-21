@@ -142,9 +142,11 @@ func processPropertiesWithScope(db *gorm.DB, instrumentID string, tenantID strin
 					Value:        value,
 					Status:       "pending",
 					SubmitterID:  submitterID,
-					SiteID:       siteID,
 					MerchantID:   merchantID,
 					InstrumentID: instrumentID,
+				}
+				if siteID != "" {
+					propOption.SiteID = &siteID
 				}
 				if scopeCategoryID != "" {
 					propOption.ScopeCategoryID = &scopeCategoryID

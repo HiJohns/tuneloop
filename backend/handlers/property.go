@@ -77,14 +77,14 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 			}
 
 			siteName := ""
-			if opt.SiteID != "" {
-				if name, ok := siteCache[opt.SiteID]; ok {
+			if opt.SiteID != nil && *opt.SiteID != "" {
+				if name, ok := siteCache[*opt.SiteID]; ok {
 					siteName = name
 				} else {
 					var site struct{ Name string }
-					if err := db.Table("sites").Where("id = ?", opt.SiteID).Select("name").First(&site).Error; err == nil {
+					if err := db.Table("sites").Where("id = ?", *opt.SiteID).Select("name").First(&site).Error; err == nil {
 						siteName = site.Name
-						siteCache[opt.SiteID] = site.Name
+						siteCache[*opt.SiteID] = site.Name
 					}
 				}
 			}
