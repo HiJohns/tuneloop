@@ -172,23 +172,29 @@ export default function StaffInstrumentDetail() {
   }
 
   if (loading) {
-    return <View className="p-4">加载中...</View>
+    return (
+      <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <Text className="text-zinc-500 font-black">加载中...</Text>
+      </View>
+    )
   }
 
   if (!instrument) {
-    return <View className="p-4">乐器不存在</View>
+    return (
+      <View className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <Text className="text-zinc-400 font-black">乐器不存在</Text>
+      </View>
+    )
   }
 
   const pricing = parsePricing(instrument.pricing)
   const pricingInfo = pricing[0] || {}
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-24">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-        </Button>
-        <Text className="text-lg font-bold">乐器详情</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-24">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <Text className="text-lg font-black text-black">乐器详情</Text>
       </View>
 
       <View className="p-4 space-y-4">
@@ -196,37 +202,37 @@ export default function StaffInstrumentDetail() {
         <InstrumentInfo instrument={instrument} />
 
         {/* Basic Info */}
-        <View className="bg-white rounded-xl p-4">
+        <View className="bg-white rounded-2xl shadow-sm p-4">
           <View className="flex items-center justify-between mb-3">
-            <Text className="text-lg font-bold">{instrument.name}</Text>
-            <Text className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor[instrument.stock_status] || 'bg-gray-100'}`}>
+            <Text className="text-lg font-black">{instrument.name}</Text>
+            <Text className={`px-3 py-1 rounded-full text-sm font-black ${statusColor[instrument.stock_status] || 'bg-gray-100'}`}>
               {statusLabel[instrument.stock_status] || instrument.stock_status}
             </Text>
           </View>
           <View className="space-y-2 text-sm">
             <View className="flex justify-between">
-              <Text className="text-gray-500">SN</Text>
-              <Text className="font-mono">{instrument.sn || '-'}</Text>
+              <Text className="text-zinc-500 font-medium">SN</Text>
+              <Text className="font-mono font-black">{instrument.sn || '-'}</Text>
             </View>
             <View className="flex justify-between">
-              <Text className="text-gray-500">分类</Text>
-              <Text>{instrument.category_name || '-'}</Text>
+              <Text className="text-zinc-500 font-medium">分类</Text>
+              <Text className="font-black">{instrument.category_name || '-'}</Text>
             </View>
             <View className="flex justify-between">
-              <Text className="text-gray-500">分级</Text>
-              <Text>{instrument.level_name || instrument.level || '-'}</Text>
+              <Text className="text-zinc-500 font-medium">分级</Text>
+              <Text className="font-black">{instrument.level_name || instrument.level || '-'}</Text>
             </View>
             <View className="flex justify-between">
-              <Text className="text-gray-500">网点</Text>
-              <Text>{instrument.site_name || '-'}</Text>
+              <Text className="text-zinc-500 font-medium">网点</Text>
+              <Text className="font-black">{instrument.site_name || '-'}</Text>
             </View>
             {instrument.properties && Object.keys(instrument.properties).length > 0 && (
-              <View className="pt-2 border-t">
-                <Text className="text-gray-500 text-xs block mb-1">动态属性</Text>
+              <View className="pt-2 border-t border-zinc-100">
+                <Text className="text-zinc-500 text-xs block mb-1 font-medium">动态属性</Text>
                 {Object.entries(instrument.properties).map(([key, vals]) => (
                   <View key={key} className="flex justify-between text-xs mt-1">
-                    <Text className="text-gray-400">{key}</Text>
-                    <Text>{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
+                    <Text className="text-zinc-400">{key}</Text>
+                    <Text className="font-black">{(Array.isArray(vals) ? vals : [vals]).join(', ')}</Text>
                   </View>
                 ))}
               </View>
@@ -248,49 +254,49 @@ export default function StaffInstrumentDetail() {
         )}
 
         {/* Pricing Info */}
-        <View className="bg-white rounded-xl p-4">
-          <Text className="font-medium mb-3">租赁设置</Text>
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <Text className="font-black text-base text-black mb-3">租赁设置</Text>
           <View className="space-y-2 text-sm">
             <View className="flex justify-between">
-              <Text className="text-gray-500">日租金</Text>
-              <Text>¥{pricingInfo.daily_rent || instrument.base_daily_rate || 0}</Text>
+              <Text className="text-zinc-500 font-medium">日租金</Text>
+              <Text className="font-black">¥{pricingInfo.daily_rent || instrument.base_daily_rate || 0}</Text>
             </View>
             <View className="flex justify-between">
-              <Text className="text-gray-500">押金</Text>
-              <Text>¥{pricingInfo.deposit || 0}</Text>
+              <Text className="text-zinc-500 font-medium">押金</Text>
+              <Text className="font-black">¥{pricingInfo.deposit || 0}</Text>
             </View>
             <View className="flex justify-between">
-              <Text className="text-gray-500">物流费</Text>
-              <Text>¥{pricingInfo.shipping_fee || 0}</Text>
+              <Text className="text-zinc-500 font-medium">物流费</Text>
+              <Text className="font-black">¥{pricingInfo.shipping_fee || 0}</Text>
             </View>
             <View className="flex justify-between">
-              <Text className="text-gray-500">逾期日费</Text>
-              <Text>¥{pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0}</Text>
+              <Text className="text-zinc-500 font-medium">逾期日费</Text>
+              <Text className="font-black">¥{pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0}</Text>
             </View>
           </View>
         </View>
 
         {/* Activity Log Timeline */}
         {sessions.length > 0 && (
-          <View className="bg-white rounded-xl p-4">
+          <View className="bg-white rounded-2xl shadow-sm p-4">
             <View className="flex items-center gap-2 mb-4">
-              <Clock size={18} className="text-gray-500" />
-              <Text className="font-medium">操作记录</Text>
+              <Clock size={18} className="text-zinc-400" />
+              <Text className="font-black text-base text-black">操作记录</Text>
             </View>
             {sessions.map((session) => (
               <View key={session.order_id}>
                 {session.events?.map((event, ei) => {
                   const label = eventLabels[event.event] || event.event
                   return (
-                    <View key={ei} className="relative pl-6 pb-4 border-l-2 border-gray-200 last:border-transparent">
-                      <View className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-brand-primary" />
+                    <View key={ei} className="relative pl-6 pb-4 border-l-2 border-zinc-200 last:border-transparent">
+                      <View className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-black" />
                       <View className="text-sm">
                         <View className="flex items-center gap-2">
-                          <Text className="font-medium">{label}</Text>
-                          <Text className="text-gray-400 text-xs">{formatActivityTime(event.time)}</Text>
+                          <Text className="font-black">{label}</Text>
+                          <Text className="text-zinc-400 text-xs">{formatActivityTime(event.time)}</Text>
                         </View>
                         {event.operator && (
-                          <Text className="text-gray-400 text-xs">{event.operator}</Text>
+                          <Text className="text-zinc-400 text-xs">{event.operator}</Text>
                         )}
                         {event.media?.length > 0 && (
                           <View className="flex gap-2 mt-2 flex-wrap">
@@ -330,7 +336,7 @@ export default function StaffInstrumentDetail() {
           <View className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <View className="flex items-center gap-2 mb-3">
               <User size={18} className="text-yellow-600" />
-              <Text className="font-medium text-yellow-800">预约人信息</Text>
+              <Text className="font-black text-yellow-800">预约人信息</Text>
             </View>
             {instrument.booker_name && (
               <View className="mb-2 text-sm">
@@ -361,21 +367,41 @@ export default function StaffInstrumentDetail() {
       </View>
 
       {/* Action Buttons */}
-      <View className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 safe-area-pb">
+      <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
         {(() => {
           const mapping = storage.getJSON('permission_mapping', {})
           const cusPerm = parseInt(storage.getItem('user_cus_perm') || '0')
           const has = (code) => { const b = mapping[code]; return b !== undefined && (cusPerm & (1 << b)) !== 0 }
           return (
-            <View className="grid grid-cols-3 gap-3">
+            <View className="flex gap-3">
               {instrument.stock_status === 'available' && has('instrument:edit') && (
-                <Button onClick={handleArchive} disabled={actionLoading} className="py-3 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button onClick={handleArchive} disabled={actionLoading} className="flex-1 py-3 bg-zinc-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <Archive size={18} />下架
                 </Button>
               )}
               {instrument.stock_status === 'rented' && has('order:update') && (
-                <Button onClick={handleShip} className="py-3 bg-blue-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                <Button onClick={handleShip} className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <Truck size={18} />发货
+                </Button>
+              )}
+              {instrument.stock_status === 'returning' && has('order:update') && (
+                <Button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="flex-1 py-3 bg-[#C21838] text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                  <RotateCcw size={18} />接收
+                </Button>
+              )}
+              {(instrument.stock_status === 'maintenance' || instrument.stock_status === 'rented') && has('order:update') && (
+                <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                  <Wrench size={18} />报修
+                </Button>
+              )}
+              {(instrument.stock_status === 'maintenance' || instrument.stock_status === 'rented') && has('order:update') && (
+                <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                  <Wrench size={18} />报修
+                </Button>
+              )}
+              {(instrument.stock_status === 'returned' || instrument.stock_status === 'assessed') && has('order:update') && (
+                <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                  <CheckCircle size={18} />完成订单
                 </Button>
               )}
               {instrument.stock_status === 'rented' && has('inventory:manage') && (
