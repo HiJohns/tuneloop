@@ -72,35 +72,24 @@ export default function OrderDetail() {
   const [actionLoading, setActionLoading] = useState(false)
   const [instrument, setInstrument] = useState(null)
   const [orderLogs, setOrderLogs] = useState([])
-  const baseUrl = env.apiBaseUrl
+  const [logPage, setLogPage] = useState(1)
+  const [logHasMore, setLogHasMore] = useState(false)
 
-  const token = getToken()
-  const isStaff = (() => {
+  const fetchLogs = async (page, append) => {
     try {
-      if (!token) return false
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      const hasOrg = !!(payload?.oid && payload.oid !== '')
-      const hasTenant = !!(payload?.tid && payload.tid !== '')
-      const hasStaffRole = payload?.role && payload.role !== 'USER'
-      return hasOrg || hasTenant || hasStaffRole
-    } catch { return false }
-  })()
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/logs?page=${page}&pageSize=15`)
+      const res = await resp.json()
+      if (res.code === 20000 && res.data) {
+        setOrderLogs(prev => append ? [...prev, ...(res.data.logs || [])] : (res.data.logs || []))
+        setLogHasMore(page * 15 < (res.data.total || 0))
+        setLogPage(page)
+      }
+    } catch {}
+  }
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      setLoading(true)
-      try {
-        const resp = await apiFetch(`${baseUrl}/orders/${id}`)
-        const result = await resp.json()
-        if (result.code === 20000) {
-          setOrder(result.data)
-        }
-      } catch (err) {
-        console.error('Failed to fetch order:', err)
-      }
-      setLoading(false)
-    }
-    fetchOrder()
+    if (!id) return
+    fetchLogs(1, false)
   }, [id])
 
   useEffect(() => {
@@ -507,6 +496,12 @@ export default function OrderDetail() {
           )
           })}
         </View>
+        {logHasMore && (
+          <View onClick={() => fetchLogs(logPage + 1, true)}
+            className="mt-3 py-2.5 rounded-xl bg-zinc-100 text-center cursor-pointer active:opacity-70">
+            <Text className="text-sm font-black text-zinc-500">加载更多</Text>
+          </View>
+        )}
       </View>
       )}
 

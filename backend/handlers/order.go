@@ -248,9 +248,14 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
-	// Fetch order logs
+	// Fetch order logs (paginated via logs_limit query param)
+	logsLimit, _ := strconv.Atoi(c.DefaultQuery("logs_limit", "15"))
 	var orderLogs []models.OrderLog
-	db.Where("order_id = ?", order.ID).Order("created_at ASC").Find(&orderLogs)
+	q := db.Where("order_id = ?", order.ID).Order("created_at ASC")
+	if logsLimit > 0 {
+		q = q.Limit(logsLimit)
+	}
+	q.Find(&orderLogs)
 
 	// Parse pricing_breakdown
 	var pricingBreakdownData interface{}
@@ -881,10 +886,32 @@ func GetOrderLogs(c *gin.Context) {
 		return logs[i].Time.Before(logs[j].Time)
 	})
 
+	total := len(logs)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "15"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 15
+	}
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	paginated := logs[start:end]
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"logs": logs,
+			"logs":     paginated,
+			"total":    total,
+			"page":     page,
+			"pageSize": pageSize,
 		},
 	})
 }

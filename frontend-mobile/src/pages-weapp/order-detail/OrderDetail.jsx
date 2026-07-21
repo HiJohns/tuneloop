@@ -37,6 +37,9 @@ export default function OrderDetail() {
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [allLogs, setAllLogs] = useState([])
+  const [logPage, setLogPage] = useState(1)
+  const [logHasMore, setLogHasMore] = useState(false)
 
   const token = getToken()
   const isStaff = (() => {
@@ -71,10 +74,13 @@ export default function OrderDetail() {
     if (!id) return
     const load = async () => {
       try {
-        const resp = await apiFetch(`${baseUrl}/orders/${id}`)
+        const resp = await apiFetch(`${baseUrl}/orders/${id}?logs_limit=15`)
         const result = await resp.json()
         if (result.code === 20000) {
           setOrder(result.data)
+          const logs = result.data?.order_logs || []
+          setAllLogs(logs)
+          setLogHasMore(logs.length >= 15)
           if (result.data.instrument_id) {
             const iResp = await apiFetch(`${baseUrl}/public/instruments/${result.data.instrument_id}`)
             const iResult = await iResp.json()
@@ -89,6 +95,19 @@ export default function OrderDetail() {
 
   const handlePay = () => {
     Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${id}` })
+  }
+
+  const fetchMoreLogs = async () => {
+    try {
+      const nextPage = logPage + 1
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/logs?page=${nextPage}&pageSize=15`)
+      const res = await resp.json()
+      if (res.code === 20000 && res.data?.logs) {
+        setAllLogs(prev => [...prev, ...res.data.logs])
+        setLogHasMore(nextPage * 15 < (res.data.total || 0))
+        setLogPage(nextPage)
+      }
+    } catch (e) { console.warn('[OrderDetail] failed to fetch more logs', e) }
   }
 
   const handleCancel = async () => {
@@ -216,7 +235,7 @@ export default function OrderDetail() {
     } catch { return null }
   })()
 
-  const orderLogs = order.order_logs || []
+  const orderLogs = allLogs
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 120 }}>
@@ -464,7 +483,7 @@ export default function OrderDetail() {
         )}
 
         {/* Timeline Logs */}
-        {orderLogs.length > 0 && (
+        {orderLogs.length > 0 && (<>
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>订单动态</Text>
             {orderLogs.map((log, idx) => {
@@ -501,7 +520,12 @@ export default function OrderDetail() {
               )
             })}
           </View>
-        )}
+          {logHasMore && (
+            <View onClick={fetchMoreLogs} style={{ marginTop: 12, paddingTop: 10, paddingBottom: 10, borderRadius: 12, backgroundColor: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#71717a' }}>加载更多</Text>
+            </View>
+          )}
+        </>)}
       </ScrollView>
 
       {/* Action Buttons */}
