@@ -6,26 +6,19 @@ import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import BottomNav from '../components-weapp/BottomNav'
 
-const MAIN_TABS = [
-  { key: 'active', label: '进行中' },
+const FILTERS = [
+  { key: '', label: '全部' },
+  { key: 'reserved', label: '未支付' },
+  { key: 'paid', label: '待发货' },
+  { key: 'shipped', label: '已发货' },
+  { key: 'in_lease', label: '租赁中' },
+  { key: 'expired', label: '已超期' },
+  { key: 'returning', label: '归还中' },
   { key: 'completed', label: '已完成' },
+  { key: 'cancelled', label: '已取消' },
+  { key: 'returned', label: '已归还' },
+  { key: 'transferred', label: '已过户' },
 ]
-
-const SUB_FILTERS = {
-  active: [
-    { key: '', label: '全部' },
-    { key: 'reserved', label: '未支付' },
-    { key: 'paid', label: '待发货' },
-    { key: 'shipped', label: '已发货' },
-    { key: 'in_lease', label: '租赁中' },
-    { key: 'expired', label: '已超期' },
-    { key: 'returning', label: '归还中' },
-  ],
-  completed: [
-    { key: 'completed', label: '已完成' },
-    { key: 'cancelled', label: '已取消' },
-  ],
-}
 
 const STATUS_LABELS = {
   reserved: '未支付', paid: '待发货', pending_shipment: '待发货',
@@ -58,22 +51,12 @@ const getActualRent = (order) => {
   } catch { return 0 }
 }
 
-const isScheduledPeriod = (status) =>
-  ['completed', 'returned', 'returning', 'cancelled'].includes(status)
-
-const MAIN_INCLUDE = {
-  active: ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_lease', 'expired', 'returning'],
-  completed: ['returned', 'completed', 'cancelled', 'transferred'],
-}
-
 export default function MyLeases() {
   const nav = (url) => { Taro.navigateTo({ url }) }
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
   const initStatus = routerParams.status || ''
-  const initTab = initStatus && ['returned', 'completed', 'cancelled'].includes(initStatus) ? 'completed' : 'active'
-  const [mainTab, setMainTab] = useState(initTab)
-  const [subFilter, setSubFilter] = useState(initStatus)
+  const [selectedFilter, setSelectedFilter] = useState(initStatus)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -96,14 +79,14 @@ export default function MyLeases() {
     setPage(1)
     setOrders([])
     setHasMore(true)
-  }, [baseUrl, mainTab, subFilter])
+  }, [baseUrl, selectedFilter])
 
   useEffect(() => {
     const fetchOrders = async () => {
       if (page === 1) setLoading(true)
       else setLoadingMore(true)
       try {
-        const statusKey = subFilter || ''
+        const statusKey = selectedFilter || ''
         let url = `${baseUrl}/orders?page=${page}&page_size=10`
         if (statusKey) url += `&status=${statusKey}`
         const resp = await apiFetch(url)
@@ -111,9 +94,6 @@ export default function MyLeases() {
         let list = []
         if (result.code === 20000) {
           list = result.data?.list || []
-        }
-        if (!subFilter) {
-          list = list.filter(o => MAIN_INCLUDE[mainTab]?.includes(o.status))
         }
         setOrders(prev => page === 1 ? list : [...prev, ...list])
         setHasMore((result.data?.total || 0) > (page * 10))
@@ -124,7 +104,7 @@ export default function MyLeases() {
       setLoadingMore(false)
     }
     fetchOrders()
-  }, [page, baseUrl, mainTab, subFilter])
+  }, [page, baseUrl, selectedFilter])
 
   const handleCancelFromList = (orderId, status) => {
     Taro.showModal({
@@ -157,42 +137,25 @@ export default function MyLeases() {
         <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>我的租约</Text>
       </View>
 
-      {/* Main Tabs */}
-      <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 4, display: 'flex' }}>
-        {MAIN_TABS.map(tab => (
-          <Button
-            key={tab.key}
-            onClick={() => { setMainTab(tab.key); setSubFilter('') }}
-            style={{
-              padding: '8px 20px',
-              borderRadius: 999,
-              fontSize: 14,
-              fontWeight: '900',
-              backgroundColor: mainTab === tab.key ? '#000' : '#fff',
-              color: mainTab === tab.key ? '#fff' : '#71717a',
-              marginRight: 8
-            }}
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </View>
-
-      {/* Sub Filters */}
-      <ScrollView scrollX style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8 }} enhanced showScrollbar={false}>
+      {/* Filter bar */}
+      <ScrollView scrollX style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12 }} enhanced showScrollbar={false}>
         <View style={{ display: 'flex', whiteSpace: 'nowrap' }}>
-          {SUB_FILTERS[mainTab].map(f => (
+          {FILTERS.map(f => (
             <Button
               key={f.key}
-              onClick={() => setSubFilter(f.key)}
+              onClick={() => setSelectedFilter(f.key)}
               style={{
-                padding: '4px 12px',
+                padding: '6px 16px',
                 borderRadius: 999,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: '700',
-                backgroundColor: subFilter === f.key ? '#000' : '#fff',
-                color: subFilter === f.key ? '#fff' : '#a1a1aa',
-                marginRight: 8
+                backgroundColor: selectedFilter === f.key ? '#000' : '#fff',
+                color: selectedFilter === f.key ? '#fff' : '#71717a',
+                marginRight: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: '20px',
               }}
             >
               {f.label}
