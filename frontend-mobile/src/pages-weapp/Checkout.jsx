@@ -449,7 +449,6 @@ function SingleCheckout({ id, nav }) {
           <Text style={{ fontSize: 14, color: '#a1a1aa' }}>应付总额</Text>
           <Text style={{ fontSize: 20, fontWeight: '900', color: '#915F38' }}>¥{totalAmount.toFixed(2)}</Text>
         </View>
-        )}
         <Button
           onClick={handleSubmit}
           disabled={submitting}
