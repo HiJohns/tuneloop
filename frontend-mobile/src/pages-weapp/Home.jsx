@@ -396,16 +396,17 @@ export default function Home() {
 
 function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
   const items = [{ id: null, name: '全部' }, ...(categories || [])]
-  const localTouchRef = useRef({ x: 0, offset: 0 })
+  const localTouchRef = useRef({ x: 0, offset: 0, dragged: false })
 
   return (
     <View style={{ width: '100%', overflow: 'hidden', paddingLeft: 28, paddingRight: 28, backgroundColor: 'rgba(0,0,0,0.2)', paddingTop: 4, paddingBottom: 4 }}
       onTouchStart={e => {
-        localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX }
+        localTouchRef.current = { x: e.touches[0].clientX, offset: catOffsetX, dragged: false }
       }}
       onTouchMove={e => {
         const dx = e.touches[0].clientX - localTouchRef.current.x
         if (Math.abs(dx) > 5) {
+          localTouchRef.current.dragged = true
           setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(items.length * 120 - 375))))
         }
       }}
@@ -424,7 +425,10 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
               paddingBottom: selectedCategory === item.id ? 2 : 0,
               color: selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
             }}
-            onClick={() => onCategoryChange(item.id)}
+            onClick={() => {
+              if (localTouchRef.current.dragged) return
+              onCategoryChange(item.id)
+            }}
           >
             {item.name}
           </Text>
