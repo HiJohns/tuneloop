@@ -45,7 +45,8 @@ export default function OrderDetail() {
       const payload = JSON.parse(atob(token.split('.')[1]))
       const hasOrg = !!(payload?.oid && payload.oid !== '')
       const hasTenant = !!(payload?.tid && payload.tid !== '')
-      return hasOrg || hasTenant
+      const hasStaffRole = payload?.role && payload.role !== 'USER'
+      return hasOrg || hasTenant || hasStaffRole
     } catch { return false }
   })()
 
