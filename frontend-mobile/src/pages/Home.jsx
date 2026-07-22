@@ -309,8 +309,8 @@ export default function Home() {
         <View onClick={() => navigate('/search')} className="w-1/2 h-[42px] rounded-full flex items-center px-4 cursor-pointer active:opacity-70"
           style={{ backgroundColor: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.5)' }}
         >
-          <Text className="text-base mr-2" style={{ color: '#fff' }}>🔍</Text>
-          <Text className="text-sm" style={{ color: '#fff' }}>搜索乐器...</Text>
+          <Text className="text-sm mr-2" style={{ color: '#fff' }}>🔍</Text>
+          <Text className="text-xs" style={{ color: '#fff' }}>搜索乐器...</Text>
         </View>
       </View>
 
