@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
+import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env, getWindowSize } from '../platform'
 import BottomNav from '../components/BottomNav'
@@ -303,14 +303,15 @@ export default function Home() {
       <View className="fixed top-0 left-0 right-0 z-[1] bg-black/40" style={{ height: 160 }} />
 
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
-      <View className={`fixed inset-0 z-[5] transition-colors duration-300 ${scrolled ? 'bg-[#5A3B24]/80' : 'bg-transparent'}`} />
+      <View className={`fixed inset-0 z-[5] transition-all duration-500 ${scrolled ? 'bg-[#5A3B24]/70' : 'bg-transparent'}`}
+        style={scrolled ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}}
+      />
 
-      {/* A: Search bar — fixed above carousel */}
+      {/* A: Search bar — fixed above carousel, clickable pill to /search */}
       <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '60px' }}>
-        <View className={`w-[250px] h-[42px] rounded-full flex items-center px-4 shadow-sm transition-all duration-300 ${scrolled ? 'bg-white/20 border border-white/10' : 'bg-white/20 border border-white/20'}`}>
-          <Text className="text-base mr-2 text-white/70" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
-          <Input placeholder="搜索乐器..." placeholderStyle="color: rgba(255,255,255,0.4)" className="text-sm flex-1 bg-transparent text-white"
-            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }} />
+        <View onClick={() => navigate('/search')} className="w-1/2 h-[42px] rounded-full flex items-center justify-center px-4 bg-white/10 border border-white/20 cursor-pointer active:opacity-70">
+          <Text className="text-base mr-2 text-white/70">🔍</Text>
+          <Text className="text-sm text-white/50">搜索乐器...</Text>
         </View>
       </View>
 
