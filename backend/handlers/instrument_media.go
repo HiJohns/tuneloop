@@ -376,6 +376,8 @@ func DeleteSingleMedia(c *gin.Context) {
 		return
 	}
 
+	syncBackwardCompat(db, tenantID, instrumentID)
+
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "deleted"})
 }
 
