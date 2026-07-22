@@ -17,6 +17,9 @@ type wxTokenResponse struct {
 func GetWxAccessToken() (string, error) {
 	appID := os.Getenv("WX_APPID")
 	appSecret := os.Getenv("WX_APPSECRET")
+	if appSecret == "" {
+		appSecret = os.Getenv("WX_SECRET")
+	}
 	if appID == "" || appSecret == "" {
 		return "", fmt.Errorf("WX_APPID or WX_APPSECRET not configured")
 	}
