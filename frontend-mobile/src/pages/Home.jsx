@@ -308,7 +308,7 @@ export default function Home() {
       />
 
       {/* A: Search bar — fixed above carousel, clickable pill to /search */}
-      <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '60px' }}>
+      <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '16px' }}>
         <View onClick={() => navigate('/search')} className="w-1/2 h-[42px] rounded-full flex items-center justify-center px-4 bg-transparent border border-white/20 cursor-pointer active:opacity-70">
           <Text className="text-base mr-2 text-white/70">🔍</Text>
           <Text className="text-sm text-white/50">搜索乐器...</Text>
