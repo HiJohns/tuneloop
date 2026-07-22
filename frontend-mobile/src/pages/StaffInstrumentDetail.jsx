@@ -407,11 +407,6 @@ export default function StaffInstrumentDetail() {
                   <Wrench size={18} />报修
                 </Button>
               )}
-              {(instrument.stock_status === 'maintenance' || instrument.stock_status === 'rented') && has('order:update') && (
-                <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
-                  <Wrench size={18} />报修
-                </Button>
-              )}
               {(instrument.stock_status === 'returned' || instrument.stock_status === 'assessed') && has('order:update') && (
                 <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <CheckCircle size={18} />完成订单

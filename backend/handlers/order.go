@@ -881,9 +881,9 @@ func GetOrderLogs(c *gin.Context) {
 		})
 	}
 
-	// Sort by time ascending
+	// Sort by time descending (newest first)
 	sort.Slice(logs, func(i, j int) bool {
-		return logs[i].Time.Before(logs[j].Time)
+		return logs[i].Time.After(logs[j].Time)
 	})
 
 	total := len(logs)
