@@ -65,8 +65,8 @@ function InstrumentCard({ instrument, onClick }) {
         </View>
         <View className="h-full flex flex-col justify-end text-right self-end ml-2 flex-shrink-0 whitespace-nowrap">
           {instrument.stock_status === 'available' ? (
-            <Text className="text-[#C21838] font-black text-[26px] tracking-tight">
-              {Number(dailyRate.toFixed(2))}<Text className="text-base font-bold text-[#C21838]/70">/日</Text>
+            <Text className="font-black text-[26px] tracking-tight" style={{ color: '#C21838' }}>
+              {Number(dailyRate.toFixed(2))}<Text className="text-base font-bold" style={{ color: '#C21838', opacity: 0.7 }}>/日</Text>
             </Text>
           ) : (
             <Text className="text-zinc-400 font-bold text-base">租赁中</Text>
@@ -309,7 +309,7 @@ export default function Home() {
 
       {/* A: Search bar — fixed above carousel, clickable pill to /search */}
       <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '60px' }}>
-        <View onClick={() => navigate('/search')} className="w-1/2 h-[42px] rounded-full flex items-center justify-center px-4 bg-white/10 border border-white/20 cursor-pointer active:opacity-70">
+        <View onClick={() => navigate('/search')} className="w-1/2 h-[42px] rounded-full flex items-center justify-center px-4 bg-transparent border border-white/20 cursor-pointer active:opacity-70">
           <Text className="text-base mr-2 text-white/70">🔍</Text>
           <Text className="text-sm text-white/50">搜索乐器...</Text>
         </View>
@@ -334,7 +334,7 @@ export default function Home() {
           </View>
 
         <View>
-          <View className="px-4 pt-4 pb-20 space-y-4">
+          <View className="px-4 pt-4 pb-20" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <View key={i} className="bg-white rounded-2xl p-3 flex shadow-md">
@@ -394,8 +394,8 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
         }
       }}
     >
-      <View className="inline-flex items-center space-x-8 pr-4"
-        style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap' }}
+      <View className="inline-flex items-center pr-4"
+        style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap', gap: '40px' }}
       >
         {items.map(item => (
           <Text
