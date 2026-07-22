@@ -164,7 +164,7 @@ type Notification struct {
 	RefID      string    `gorm:"type:uuid;index" json:"ref_id"`
 	RefType    string    `gorm:"type:varchar(50)" json:"ref_type"`
 	ActionType string    `gorm:"type:varchar(20);default:'info'" json:"action_type"`
-	ActionData string    `gorm:"type:jsonb" json:"action_data,omitempty"`
+	ActionData *string   `gorm:"type:jsonb" json:"action_data,omitempty"`
 	Status     string    `gorm:"type:varchar(20);default:'unread';index" json:"status"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`

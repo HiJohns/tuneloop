@@ -538,7 +538,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		RefID:      damageReport.ID,
 		RefType:    "damage_report",
 		ActionType: "damage_accept_reject",
-		ActionData: fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit, orderID),
+		ActionData: strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit, orderID)),
 		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {

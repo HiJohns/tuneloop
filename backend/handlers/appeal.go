@@ -408,7 +408,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 		RefID:      appeal.ID,
 		RefType:    "appeal",
 		ActionType: notifActionType,
-		ActionData: notifActionData,
+		ActionData: &notifActionData,
 		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {
@@ -645,6 +645,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 
 	// Create notification
+	ad := fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, damageAmount, order.Deposit, order.ID)
 	notification := models.Notification{
 		TenantID:   tenantID,
 		OrgID:      middleware.GetOrgID(ctx),
@@ -655,7 +656,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		RefID:      order.ID,
 		RefType:    "order",
 		ActionType: notifActionType,
-		ActionData: fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, damageAmount, order.Deposit, order.ID),
+		ActionData: &ad,
 		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {

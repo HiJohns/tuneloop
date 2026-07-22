@@ -115,9 +115,9 @@ func GetNotificationDetail(c *gin.Context) {
 		}
 	}
 
-	if notification.ActionData != "" {
+	if notification.ActionData != nil && *notification.ActionData != "" {
 		var parsed map[string]interface{}
-		if err := json.Unmarshal([]byte(notification.ActionData), &parsed); err == nil {
+		if err := json.Unmarshal([]byte(*notification.ActionData), &parsed); err == nil {
 			for k, v := range parsed {
 				ref[k] = v
 			}
