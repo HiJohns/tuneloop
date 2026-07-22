@@ -299,9 +299,6 @@ export default function Home() {
           />
         )}
 
-      {/* Z=1: Dark solid overlay — ensures text readability on light banner images */}
-      <View className="fixed top-0 left-0 right-0 z-[1] bg-black/40" style={{ height: 160 }} />
-
       {/* E layer: frosted backdrop — transparent→blurs carousel on scroll */}
       <View className={`fixed inset-0 z-[5] transition-all duration-500 ${scrolled ? 'bg-[#5A3B24]/70' : 'bg-transparent'}`}
         style={scrolled ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}}
