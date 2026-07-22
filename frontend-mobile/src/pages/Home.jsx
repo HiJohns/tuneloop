@@ -306,8 +306,8 @@ export default function Home() {
 
       {/* A: Search bar — fixed above carousel, clickable pill to /search */}
       <View className="fixed left-0 right-0 z-[10003] flex items-center justify-center" style={{ top: '16px' }}>
-        <View onClick={() => navigate('/search')} className="w-1/2 h-[42px] rounded-full flex items-center px-4 cursor-pointer active:opacity-70"
-          style={{ backgroundColor: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.5)' }}
+        <View onClick={() => navigate('/search')} className="w-1/2 rounded-full flex items-center px-4 cursor-pointer active:opacity-70"
+          style={{ backgroundColor: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.5)', paddingTop: 10, paddingBottom: 10 }}
         >
           <Text className="text-sm mr-2" style={{ color: '#fff' }}>🔍</Text>
           <Text className="text-xs" style={{ color: '#fff' }}>搜索乐器...</Text>
