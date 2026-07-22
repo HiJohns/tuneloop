@@ -41,10 +41,10 @@ function InstrumentCard({ instrument, onClick }) {
   const levelName = instrument.level_name || ''
   const thumb = instrument.cover_image || instrument.thumbnail || images[0] || INSTRUMENT_PLACEHOLDER
 
-  const levelBg = levelName.includes('大师') ? 'bg-[#8A2BE2]'
-    : levelName.includes('专业') ? 'bg-[#0084FF]'
-    : levelName.includes('入门') ? 'bg-[#FF6B00]'
-    : 'bg-zinc-500'
+  const levelBg = levelName.includes('大师') ? '#8A2BE2'
+    : levelName.includes('专业') ? '#0084FF'
+    : levelName.includes('入门') ? '#FF6B00'
+    : '#71717a'
 
   return (
     <View className="bg-white rounded-2xl p-3 flex items-center shadow-md w-full" onClick={onClick}>
@@ -58,7 +58,7 @@ function InstrumentCard({ instrument, onClick }) {
             <Text className="block text-sm text-zinc-500 font-bold truncate">{instrument.category_name}</Text>
           </View>
           {levelName && (
-            <View className={`inline-block ${levelBg} text-white text-sm px-2.5 py-0.5 rounded-full font-black self-start shadow-sm -mt-0.5`}>
+            <View className="inline-block text-white text-sm px-2.5 py-0.5 rounded-full font-black self-start shadow-sm -mt-0.5" style={{ backgroundColor: levelBg }}>
               {levelName}
             </View>
           )}
