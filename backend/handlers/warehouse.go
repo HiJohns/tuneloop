@@ -44,9 +44,11 @@ func (h *WarehouseHandler) ListOrders(c *gin.Context) {
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	orgIDs, err := middleware.GetVisibleOrgIDs(ctx)
-	if err == nil && len(orgIDs) > 0 {
-		query = query.Where("org_id IN ?", orgIDs)
+	// merchant_admin（tid == oid）不追加 org 过滤，看到所有网点订单
+	// site_admin/site_member（tid != oid）需要 org_id 隔离
+	orgID := middleware.GetOrgID(ctx)
+	if orgID != "" && orgID != tenantID {
+		query = query.Where("org_id = ?", orgID)
 	}
 	if siteID != "" {
 		query = query.Joins("JOIN instruments ON orders.instrument_id = instruments.id").Where("instruments.site_id = ?", siteID)
