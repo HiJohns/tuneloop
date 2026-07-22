@@ -46,15 +46,21 @@ export default function StaffInstrumentDetail() {
   const [actionLoading, setActionLoading] = useState(false)
   const [activeOrder, setActiveOrder] = useState(null)
   const [sessions, setSessions] = useState([])
+  const [authError, setAuthError] = useState(false)
 
   const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
+    if (!id) return
     const fetchInstrument = async () => {
       try {
         setLoading(true)
         const resp = await apiFetch(`${baseUrl}/instruments/${id}`)
         const result = await resp.json()
+        if (result.code === 40104) {
+          setAuthError(true)
+          return
+        }
         if (result.code === 20000) {
           setInstrument(result.data)
           const inst = result.data
@@ -169,6 +175,14 @@ export default function StaffInstrumentDetail() {
       dialog.alert('操作失败: ' + err.message)
     }
     setActionLoading(false)
+  }
+
+  if (authError) {
+    return (
+      <View className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#FDFBF7'}}>
+        <Text className="text-zinc-500 font-black text-center px-8">无权限访问该页面</Text>
+      </View>
+    )
   }
 
   if (loading) {

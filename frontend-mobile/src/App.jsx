@@ -71,6 +71,17 @@ function ProtectedRoute({ children, requireAuth = true }) {
     return null
   }
 
+  // Block USER role from accessing /staff/* routes
+  if (token && location.startsWith('/staff/')) {
+    try {
+      const payload = parseJWT(token)
+      if (payload?.role === 'USER' && !payload?.oid && !payload?.tid) {
+        navigation.redirect('/')
+        return null
+      }
+    } catch {}
+  }
+
   return children
 }
 
