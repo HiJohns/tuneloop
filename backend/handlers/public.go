@@ -296,6 +296,7 @@ func GetPublicInstrumentByID(c *gin.Context) {
 	if videoURL != "" {
 		response["video"] = videoURL
 	}
+	response["deposit"] = instrument.Deposit
 
 	// Fetch dynamic properties from instrument_properties table
 	var instrumentProps []models.InstrumentProperty
