@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import BottomNav from '../components-weapp/BottomNav'
 
 const FILTERS = [
-  { key: '', label: '全部' },
+  { key: '', label: '无' },
   { key: 'reserved', label: '未支付' },
   { key: 'paid', label: '待发货' },
   { key: 'shipped', label: '已发货' },
@@ -138,31 +138,21 @@ export default function MyLeases() {
       </View>
 
       {/* Filter bar */}
-      <ScrollView scrollX style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12 }} enhanced showScrollbar={false}>
-        <View style={{ display: 'flex', whiteSpace: 'nowrap' }}>
-          {FILTERS.map(f => (
-            <Button
-              key={f.key}
-              onClick={() => setSelectedFilter(f.key)}
-              style={{
-                padding: '6px 16px',
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: '700',
-                backgroundColor: selectedFilter === f.key ? '#000' : '#fff',
-                color: selectedFilter === f.key ? '#fff' : '#71717a',
-                marginRight: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: '20px',
-              }}
-            >
-              {f.label}
-            </Button>
-          ))}
-        </View>
-      </ScrollView>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12 }}>
+        <Picker
+          mode="selector"
+          range={FILTERS.map(f => f.label)}
+          value={Math.max(0, FILTERS.findIndex(f => f.key === selectedFilter))}
+          onChange={e => setSelectedFilter(FILTERS[e.detail.value].key)}
+        >
+          <View style={{ padding: '10px 16px', borderRadius: 999, backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14, marginRight: 6 }}>
+              {FILTERS.find(f => f.key === selectedFilter)?.label || '无'}
+            </Text>
+            <Text style={{ color: '#fff', fontSize: 10 }}>▼</Text>
+          </View>
+        </Picker>
+      </View>
 
       <ScrollView scrollY style={{ flex: '1 1 0%', paddingLeft: 16, paddingRight: 16, paddingBottom: 72, minHeight: 0, overflowY: 'auto' }}
         onScrollToLower={() => {
