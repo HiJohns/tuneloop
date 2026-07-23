@@ -142,7 +142,7 @@ export default function ShippingInterface() {
   }
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-24">
+    <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
         <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
         <Text className="text-lg font-black text-black">发货</Text>
@@ -188,12 +188,12 @@ export default function ShippingInterface() {
             <InstrumentInfo instrument={instrument} />
 
             {/* Order Info */}
-            <View className="bg-white rounded-2xl shadow-sm p-4">
+            <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
               <Text className="font-black text-black mb-3">订单信息</Text>
               <View className="space-y-2">
                 <View className="flex items-start gap-2">
                   <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">订单号</Text>
-                  <Text className="text-sm text-black font-mono font-medium">{order.id}</Text>
+                  <Text className="text-sm text-black font-mono font-medium truncate max-w-[200px]" title={order.id}>{order.id.length > 32 ? order.id.slice(0, 32) + '...' : order.id}</Text>
                 </View>
                 <View className="flex items-start gap-2">
                   <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">创建时间</Text>
@@ -216,7 +216,7 @@ export default function ShippingInterface() {
 
             {/* Customer Info (legacy section) */}
             {order.delivery_address && (
-              <View className="bg-white rounded-2xl shadow-sm p-4">
+              <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
                 <Text className="font-black text-black mb-3 flex items-center gap-2">
                   <User size={16} />
                   收货人信息
@@ -243,14 +243,14 @@ export default function ShippingInterface() {
                 value={logistics.company}
                 onChange={e => setLogistics({ ...logistics, company: e.target.value })}
                 placeholder="承运公司"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
+                className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
               />
               <input
                 type="text"
                 value={logistics.trackingNumber}
                 onChange={e => setLogistics({ ...logistics, trackingNumber: e.target.value })}
                 placeholder="快递单号"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
+                className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
               />
             </View>
 
