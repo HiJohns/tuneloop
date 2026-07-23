@@ -297,7 +297,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Calculate rental amount
-	days := int(endDate.Sub(startDate).Hours() / 24)
+	days := 	services.CalculateDays(startDate, endDate)
 	months := days / 30
 
 	// Compute pricing via CalculatePricing (merchant defaults as fallback)
@@ -785,7 +785,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 
 		// Calculate pricing
-		days := int(endDate.Sub(startDate).Hours() / 24)
+	days := services.CalculateDays(startDate, endDate)
 		months := days / 30
 
 		baseRate := 0.0
