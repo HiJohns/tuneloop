@@ -161,19 +161,19 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="min-h-screen pb-20" style={{backgroundColor: '#FDFBF7'}}>
         <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
           <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
           <Text className="text-lg font-bold">订单详情</Text>
         </View>
-        <View className="text-center text-gray-500 py-12">加载中...</View>
+        <View className="text-center text-zinc-500 py-12 font-black">加载中...</View>
       </View>
     )
   }
 
   if (!order) {
     return (
-      <View className="min-h-screen bg-brand-bg pb-20">
+      <View className="min-h-screen pb-20" style={{backgroundColor: '#FDFBF7'}}>
         <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
           <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
           <Text className="text-lg font-bold">订单详情</Text>
@@ -205,8 +205,8 @@ export default function OrderDetail() {
 
    const settlement = order.settlement
 
-   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(endDate) < new Date()
-   const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(endDate)) / (1000 * 60 * 60 * 24)) : 0
+   const isOverdue = (status === 'expired' || status === 'in_lease') && order.end_date && order.end_date.slice(0, 10) <= new Date().toISOString().slice(0, 10)
+   const overdueDaysCalc = isOverdue ? Math.ceil((Date.now() - new Date(order.end_date.slice(0, 10)).getTime()) / 86400000) + 1 : 0
    const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
    const totalAmount = rentSubtotal + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
@@ -223,7 +223,7 @@ export default function OrderDetail() {
   const showStaffReceive = isStaff && status === 'returning'
 
   return (
-    <View className="h-screen flex flex-col bg-[#FDFBF7]">
+    <View className="h-screen flex flex-col" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
         <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">订单详情</Text>
