@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
+import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { ArrowLeft, Search, Truck } from 'lucide-react'
 import { env, storage } from '../platform'
@@ -86,24 +86,22 @@ export default function StaffInstruments() {
   }
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-20">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-        </Button>
-        <Text className="text-lg font-bold">乐器管理</Text>
+    <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <Text className="text-lg font-black text-black">乐器管理</Text>
       </View>
 
-      <View className="bg-white border-b overflow-x-auto">
+      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm overflow-x-auto">
         <View className="flex px-4 py-3 gap-2">
           {categories.map(cat => (
             <Button
               key={cat.id}
               onClick={() => { setActiveCategory(cat.id); setPage(1) }}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap font-black ${
                 activeCategory === cat.id
-                  ? 'bg-brand-primary text-white'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-black text-white'
+                  : 'bg-zinc-100 text-zinc-600'
               }`}
             >
               {cat.name}
@@ -112,15 +110,15 @@ export default function StaffInstruments() {
         </View>
       </View>
 
-      <View className="p-4">
+      <View className="px-4 pt-3">
         {loading ? (
-          <View className="text-center py-8 text-gray-500">Loading...</View>
+          <View className="text-center py-8 text-zinc-500 font-black">加载中...</View>
         ) : (
           <View className="space-y-3">
             {instruments.map(inst => (
               <View
                 key={inst.id}
-                className="bg-white rounded-xl p-3 shadow-sm flex gap-3"
+                className="bg-white rounded-2xl p-4 flex gap-3 cursor-pointer active:opacity-80"
                 onClick={() => navigate(`/staff/instrument/${inst.id}`)}
               >
                 {(() => {
@@ -129,21 +127,21 @@ export default function StaffInstruments() {
                   <Image
                   src={imgSrc}
                   alt={inst.sn}
-                  className="w-20 h-20 object-cover rounded-lg bg-gray-100"
+                  className="w-20 h-20 object-cover rounded-xl bg-zinc-100"
                   onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE }}
                 />
                 )})()}
                 <View className="flex-1">
-                  <Text className="font-medium text-sm">SN: {inst.sn}</Text>
-                  <Text className="text-xs text-gray-500">{inst.category_name || inst.level_name || '-'}</Text>
+                  <Text className="font-black text-sm text-black">SN: {inst.sn}</Text>
+                  <Text className="text-xs text-zinc-500 font-medium">{inst.category_name || inst.level_name || '-'}</Text>
                   <View className="flex items-center gap-2 mt-1">
-                    <Text className={`text-xs px-2 py-0.5 rounded-full ${statusColor[inst.stock_status] || 'bg-gray-100'}`}>
+                    <Text className={`text-xs px-2 py-0.5 rounded-full font-black ${statusColor[inst.stock_status] || 'bg-gray-100'}`}>
                       {statusLabel[inst.stock_status] || inst.stock_status}
                     </Text>
-                    <Text className="text-xs text-gray-400">{inst.site_name}</Text>
+                    <Text className="text-xs text-zinc-400 font-medium">{inst.site_name}</Text>
                   </View>
                   {inst.stock_status === 'rented' && inst.tracking_number && (
-                    <View className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                    <View className="flex items-center gap-1 mt-1 text-xs text-zinc-500 font-medium">
                       <Truck size={12} />
                       <Text>{inst.tracking_number}</Text>
                     </View>
@@ -157,9 +155,9 @@ export default function StaffInstruments() {
         {total > page * pageSize && (
           <Button
             onClick={() => setPage(p => p + 1)}
-            className="w-full mt-4 py-3 bg-white rounded-lg text-brand-primary text-sm"
+            className="w-full mt-4 py-3 bg-white rounded-2xl text-black font-black text-sm"
           >
-            Load More
+            加载更多
           </Button>
         )}
       </View>
@@ -173,7 +171,7 @@ export default function StaffInstruments() {
           return ok ? (
             <Button
               onClick={() => navigate('/staff/instrument/new')}
-              className="w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
+              className="w-14 h-14 bg-black text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
             >
               +
             </Button>
