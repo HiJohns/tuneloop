@@ -74,7 +74,7 @@ func (s *OverdueDeductionScheduler) processOverdue() {
 // transitionToExpired moves in_lease orders past their end_date to expired status.
 func (s *OverdueDeductionScheduler) transitionToExpired(todayStr string) {
 	result := s.db.Model(&models.Order{}).
-		Where("status = ? AND end_date < ?", models.OrderStatusInLease, todayStr).
+		Where("status = ? AND end_date <= ?", models.OrderStatusInLease, todayStr).
 		Update("status", models.OrderStatusExpired)
 	if result.Error != nil {
 		log.Printf("[OverdueDeductionScheduler] status transition error: %v", result.Error)
