@@ -392,7 +392,7 @@ export default function StaffInstrumentDetail() {
                   <Archive size={18} />下架
                 </Button>
               )}
-              {instrument.stock_status === 'rented' && has('order:update') && (
+              {instrument.stock_status === 'rented' && has('order:update') && activeOrder && ['paid', 'pending_shipment'].includes(activeOrder.status) && (
                 <Button onClick={handleShip} className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <Truck size={18} />发货
                 </Button>
@@ -402,7 +402,7 @@ export default function StaffInstrumentDetail() {
                   <RotateCcw size={18} />接收
                 </Button>
               )}
-              {(instrument.stock_status === 'maintenance' || instrument.stock_status === 'rented') && has('order:update') && (
+              {instrument.stock_status === 'maintenance' && has('order:update') && (
                 <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <Wrench size={18} />报修
                 </Button>
@@ -412,8 +412,8 @@ export default function StaffInstrumentDetail() {
                   <CheckCircle size={18} />完成订单
                 </Button>
               )}
-              {instrument.stock_status === 'rented' && has('inventory:manage') && (
-                <Button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+              {instrument.stock_status === 'rented' && has('inventory:manage') && activeOrder && ['returning', 'in_lease'].includes(activeOrder.status) && (
+                <Button onClick={handleReceive} disabled={actionLoading || !activeOrder} className="py-3 bg-green-600 text-white rounded-lg font-black flex items-center justify-center gap-2">
                   <RotateCcw size={18} />接收确认
                 </Button>
               )}
