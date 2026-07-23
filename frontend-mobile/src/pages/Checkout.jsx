@@ -165,7 +165,7 @@ function SingleCheckout({ id, navigate }) {
   const returnDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
 
   const handleDaysChange = (value) => {
-    setDays(Math.max(0, Math.min(730, parseInt(value) || 0)))
+    setDays(Math.max(1, Math.min(730, parseInt(value) || 1)))
   }
 
   const handleSubmit = async () => {
