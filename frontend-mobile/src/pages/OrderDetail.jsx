@@ -76,6 +76,18 @@ export default function OrderDetail() {
   const [logHasMore, setLogHasMore] = useState(false)
   const baseUrl = env.apiBaseUrl
 
+  const token = getToken()
+  const isStaff = (() => {
+    try {
+      if (!token) return false
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      const hasOrg = !!(payload?.oid && payload.oid !== '')
+      const hasTenant = !!(payload?.tid && payload.tid !== '')
+      const hasStaffRole = payload?.role && payload.role !== 'USER'
+      return hasOrg || hasTenant || hasStaffRole
+    } catch { return false }
+  })()
+
   useEffect(() => {
     const fetchOrder = async () => {
       setLoading(true)
