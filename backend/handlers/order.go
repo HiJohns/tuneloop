@@ -857,7 +857,7 @@ func GetOrderLogs(c *gin.Context) {
 		op := "customer"
 		if h.ChangedBy != nil {
 			var operator models.User
-			if err := db.Raw("SELECT name FROM users WHERE id = ? LIMIT 1", *h.ChangedBy).Scan(&operator).Error; err == nil && operator.Name != "" {
+			if err := db.Raw("SELECT name FROM users WHERE iam_sub = ? LIMIT 1", *h.ChangedBy).Scan(&operator).Error; err == nil && operator.Name != "" {
 				op = operator.Name
 			}
 		}
