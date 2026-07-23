@@ -232,7 +232,7 @@ export default function ShippingInterface() {
             )}
 
             {/* Logistics Info */}
-            <View className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+            <View className="bg-white mt-3 rounded-2xl shadow-sm p-4 space-y-3">
               <Text className="font-black text-black flex items-center gap-2">
                 <Text className="w-2 h-2 bg-red-500 rounded-full inline-block" />
                 物流信息
@@ -255,7 +255,7 @@ export default function ShippingInterface() {
             </View>
 
             {/* Photo Capture */}
-            <View className="bg-white rounded-2xl shadow-sm p-4">
+            <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
               <Text className="font-black text-black mb-3 flex items-center gap-2">
                 <Camera size={16} />
                 拍照留档
