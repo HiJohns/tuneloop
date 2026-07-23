@@ -102,56 +102,52 @@ export default function Payment() {
 
       {!isRefund && pType !== 'points' && data.amount > 0 && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-          <div className="text-sm font-bold text-black mb-3">点数使用</div>
+        {(maxPrepaid > 0 || maxGift > 0) && (<>
+          <div className="text-sm font-black text-black mb-3">点数使用</div>
 
+          {maxPrepaid > 0 && (
           <div className="mb-3">
             <Row label="预付点余额" value={`¥${Number(maxPrepaid).toFixed(2)}`} />
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500 w-[72px]">使用</span>
-              {maxPrepaid > 0 ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <input type="range" min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
-                    value={prepaidUsed}
-                    onChange={e => setPrepaidUsed(parseInt(e.target.value) || 0)}
-                    className="flex-1"
-                  />
-                  <span className="text-xs text-zinc-600 w-12 text-right">{prepaidUsed}</span>
-                </div>
-              ) : (
-                <input className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-xs text-right text-zinc-300 bg-zinc-50"
-                  value={0} disabled readOnly />
-              )}
+              <div className="flex-1 flex items-center gap-2">
+                <input type="range" min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
+                  value={prepaidUsed}
+                  onChange={e => setPrepaidUsed(parseInt(e.target.value) || 0)}
+                  className="flex-1"
+                />
+                <span className="text-xs text-zinc-600 w-12 text-right">{prepaidUsed}</span>
+              </div>
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>
           </div>
+          )}
 
+          {maxGift > 0 && (
           <div className="mb-1">
             <Row label="赠点余额" value={`¥${Number(maxGift).toFixed(2)}`} />
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500 w-[72px]">使用</span>
-              {maxGift > 0 ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <input type="range" min={0} max={Math.min(maxGift, data.amount)} step={1}
-                    value={giftUsed}
-                    onChange={e => setGiftUsed(parseInt(e.target.value) || 0)}
-                    className="flex-1"
-                  />
-                  <span className="text-xs text-zinc-600 w-12 text-right">{giftUsed}</span>
-                </div>
-              ) : (
-                <input className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-xs text-right text-zinc-300 bg-zinc-50"
-                  value={0} disabled readOnly />
-              )}
+              <div className="flex-1 flex items-center gap-2">
+                <input type="range" min={0} max={Math.min(maxGift, data.amount)} step={1}
+                  value={giftUsed}
+                  onChange={e => setGiftUsed(parseInt(e.target.value) || 0)}
+                  className="flex-1"
+                />
+                <span className="text-xs text-zinc-600 w-12 text-right">{giftUsed}</span>
+              </div>
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>
+            <div className="text-[11px] text-zinc-400 text-right mb-2">
+              赠点使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%
+            </div>
           </div>
-          <div className="text-[11px] text-zinc-400 text-right mb-2">
-            赠点上限 = min(赠点余额, floor(应付金额 × {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%)) = {Number(maxGift).toFixed(2)}
-          </div>
+          )}
 
           <div className="border-t border-zinc-200 pt-2">
             <Row label="现金差额" value={`¥${Number(cashAmount).toFixed(2)}`} bold />
           </div>
+          </>)}
         </div>
       )}
 
@@ -174,8 +170,8 @@ export default function Payment() {
           </button>
         ) : (
           <button
-            className={`w-full py-3.5 text-white font-bold text-base rounded-2xl ${
-              cashAmount > 0 ? 'bg-[#B98E5F]' : 'bg-green-600'
+            className={`w-full py-3.5 text-white font-black text-base rounded-2xl ${
+              cashAmount > 0 ? 'bg-[#C21838]' : 'bg-green-600'
             }`}
             onClick={() => doPay(cashAmount)}
           >

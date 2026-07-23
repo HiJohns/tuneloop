@@ -208,54 +208,52 @@ export default function Payment() {
         {/* Points usage (only for non-refund) */}
         {!isRefund && pType !== 'points' && data.amount > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+           {(maxPrepaid > 0 || maxGift > 0) && (<>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
 
+            {maxPrepaid > 0 && (
             <View style={{ marginBottom: 12 }}>
               <Row label="预付点余额" value={`¥${Number(maxPrepaid).toFixed(2)}`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
-                {maxPrepaid > 0 ? (
-                  <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Slider min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
-                      value={prepaidUsed} style={{ flex: 1, margin: 0, padding: 0 }}
-                      onChange={e => setPrepaidUsed(e.detail.value)}
-                    />
-                    <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{prepaidUsed}</Text>
-                  </View>
-                ) : (
-                  <Input style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '4px 8px', fontSize: 13, textAlign: 'right', color: '#d4d4d8', backgroundColor: '#fafafa' }}
-                    value="0" disabled />
-                )}
+                <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Slider min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
+                    value={prepaidUsed} style={{ flex: 1, margin: 0, padding: 0 }}
+                    onChange={e => setPrepaidUsed(e.detail.value)}
+                  />
+                  <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{prepaidUsed}</Text>
+                </View>
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
             </View>
+            )}
 
+            {maxGift > 0 && (
             <View style={{ marginBottom: 4 }}>
               <Row label="赠点余额" value={`¥${Number(maxGift).toFixed(2)}`} />
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
-                {maxGift > 0 ? (
-                  <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Slider min={0} max={Math.min(maxGift, data.amount)} step={1}
-                      value={giftUsed} style={{ flex: 1, margin: 0, padding: 0 }}
-                      onChange={e => setGiftUsed(e.detail.value)}
-                    />
-                    <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{giftUsed}</Text>
-                  </View>
-                ) : (
-                  <Input style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '4px 8px', fontSize: 13, textAlign: 'right', color: '#d4d4d8', backgroundColor: '#fafafa' }}
-                    value="0" disabled />
-                )}
+                <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Slider min={0} max={Math.min(maxGift, data.amount)} step={1}
+                    value={giftUsed} style={{ flex: 1, margin: 0, padding: 0 }}
+                    onChange={e => setGiftUsed(e.detail.value)}
+                  />
+                  <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{giftUsed}</Text>
+                </View>
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
             </View>
+            )}
+            {maxGift > 0 && (
             <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginBottom: 8 }}>
-              赠点上限 = min(赠点余额, floor(应付金额 × {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%)) = {Number(maxGift).toFixed(2)}
+              赠点使用不得超过租金的 {Math.round((wallet.max_gift_ratio || 0.3) * 100)}%
             </Text>
+            )}
 
             <View style={{ borderTop: '1px solid #e4e4e7', paddingTop: 8 }}>
               <Row label="现金差额" value={`¥${Number(cashAmount).toFixed(2)}`} bold />
             </View>
+          </>)}
           </View>
         )}
 
