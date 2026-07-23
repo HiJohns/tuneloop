@@ -30,6 +30,7 @@ import StaffInstrumentDetail from './pages/StaffInstrumentDetail'
 import StaffInstrumentForm from './pages/StaffInstrumentForm'
 import StaffReceiveConfirm from './pages/StaffReceiveConfirm'
 import ShippingInterface from './pages/ShippingInterface'
+import Search from './pages/Search'
 import ReceivingInterface from './pages/ReceivingInterface'
 import Cart from './pages/Cart'
 import MaintenanceProgress from './pages/MaintenanceProgress'
@@ -187,6 +188,7 @@ function App() {
         <Route path="/callback" element={<OAuthCallback />} />
         <Route path="/" element={<ProtectedRoute requireAuth={false}><Home /></ProtectedRoute>} />
         <Route path="/instrument/:id" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
+        <Route path="/search" element={<ProtectedRoute requireAuth={false}><Search /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute requireAuth={false}><Checkout /></ProtectedRoute>} />
         <Route path="/checkout/:id" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/success" element={<Success />} />
