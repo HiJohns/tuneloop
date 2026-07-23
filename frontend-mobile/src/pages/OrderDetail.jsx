@@ -74,6 +74,7 @@ export default function OrderDetail() {
   const [orderLogs, setOrderLogs] = useState([])
   const [logPage, setLogPage] = useState(1)
   const [logHasMore, setLogHasMore] = useState(false)
+  const baseUrl = env.apiBaseUrl
 
   const fetchLogs = async (page, append) => {
     try {
@@ -101,18 +102,6 @@ export default function OrderDetail() {
       })
       .catch(() => {})
   }, [order?.instrument_id])
-
-  useEffect(() => {
-    if (!id) return
-    apiFetch(`${baseUrl}/orders/${id}/logs`)
-      .then(r => r.json())
-      .then(res => {
-        if (res.code === 20000 && res.data?.logs) {
-          setOrderLogs(res.data.logs)
-        }
-      })
-      .catch(() => {})
-  }, [id])
 
   const handlePay = () => {
     navigate(`/payment?type=rent&id=${id}`, { replace: true })
