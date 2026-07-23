@@ -76,6 +76,23 @@ export default function OrderDetail() {
   const [logHasMore, setLogHasMore] = useState(false)
   const baseUrl = env.apiBaseUrl
 
+  useEffect(() => {
+    const fetchOrder = async () => {
+      setLoading(true)
+      try {
+        const resp = await apiFetch(`${baseUrl}/orders/${id}`)
+        const result = await resp.json()
+        if (result.code === 20000) {
+          setOrder(result.data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch order:', err)
+      }
+      setLoading(false)
+    }
+    if (id) fetchOrder()
+  }, [id])
+
   const fetchLogs = async (page, append) => {
     try {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/logs?page=${page}&pageSize=15`)
