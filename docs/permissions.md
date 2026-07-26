@@ -1,9 +1,9 @@
 # TuneLoop 权限-人员矩阵
 
-> 版本: v2.0  
-> 最后更新: 2026-05-27  
+> 版本: v2.1  
+> 最后更新: 2026-07-26  
 > 来源: 本文档汇总了 `backend/middleware/permissions.go`、`backend/services/permission_registry.go`、`backend/services/role_templates.go`、`frontend-pc/src/config/menuPermissions.js` 和 `docs/iam.md` 中的权限定义  
-> 重大变更: cus_perm 从 70 码精简为 10 码（#660）
+> 重大变更: cus_perm 当前 30 码（bits 0-29），含业务操作 18 码 + 平台配置 8 码 + 维修 4 码（#660 后持续扩展）
 
 ---
 
@@ -14,11 +14,17 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 层级 | 来源 | 存储 | 用途 |
 |------|------|------|------|
 | sys_perm | IAM 内置位码 (0-29, 6组×5位 CRUDL) | IAM JWT | 控制结构操作：商户管理、网点管理、人员管理、角色配置、客户端管理、权限管理 |
-| cus_perm | TuneLoop 注册 (10 码) | IAM JWT (OR 运算) | 控制业务操作：乐器 CRUD + 定价 + 维修 + 订单 CRUD |
+| cus_perm | TuneLoop 注册 (30 码) | IAM JWT (4 层 OR 运算) | 控制业务操作 + 平台配置 + 维修 |
 
-> **cus_perm OR 逻辑**（IAM 侧计算）：  
-> `token.cus_perm = relation.CusPerm | role.CusPerm`  
-> Tuneloop 不参与 OR 计算，由 IAM JWT 签发时自动完成。
+> **cus_perm OR 逻辑**（IAM 侧计算，4 层叠加）：  
+> `effective = org.DefaultCusPerm | relation.CusPerm | override.CusPerm | role.CusPerm`  
+> Tuneloop 不参与 OR 计算，由 IAM JWT 签发时自动完成。各层含义：  
+> - `org.DefaultCusPerm` — 组织默认权限（极少使用）
+> - `relation.CusPerm` — 用户个人直授权（fallback，Boss 特殊授予）
+> - `override.CusPerm` — 用户权限覆写（极少使用）
+> - `role.CusPerm` — **角色模板权限（主源）**，用户通过 `functional_roles` 继承角色模板的 cus_perm  
+> 
+> 详见 IAM `permission_calc.go:20-80`。
 
 **权限管理页面**（`/system/permissions`）：
 - 守卫：sys_perm bit 26 (`permission:manage`)
@@ -27,16 +33,18 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 **角色层级结构**（IAM 定义）：
 
-| 角色 | IAM 代码 | TuneLoop 名称 | 角色说明 |
-|------|----------|-------------|---------|
-| 命名空间管理员 | — | system_admin | 全部 sys_perm (bit 0-25)，无 cus_perm |
-| 商户管理员 | OWNER | owner (merchant_admin) | 全部 sys_perm (bit 5-19,26) + 全部 cus_perm (10) |
-| 网点管理员 | ADMIN | admin (site_admin) | user_* sys_perm + cus_perm (7) |
-| 网点员工 | STAFF | staff (site_member) | 无 sys_perm + cus_perm (5) |
-| 维修工程师 | WORKER | worker | 无 sys_perm + cus_perm (2) |
+| 角色 | 功能角色代码 | 角色说明 |
+|------|-------------|---------|
+| 命名空间管理员 | `namespace_admin` | sys_perm (bit 5-9, 15-19) + cus_perm 7 码（平台配置：category/attribute/banner/rebate/promo/points/membership） |
+| 商户管理员 | `merchant_admin` | sys_perm (bit 10-29) + cus_perm 20 码（全部业务操作 + promo:manage + points:manage） |
+| 网点管理员 | `site_admin` | sys_perm (bit 15-17) + cus_perm 18 码（乐器 CRUD + 订单 + 媒体 + appeal + audit_log + promo:override + points） |
+| 网点员工 | `site_member` | 无 sys_perm + cus_perm 11 码（乐器基本操作 + 订单创建/查看 + 媒体 + audit_log） |
+| 维修工程师 | `repair_technician` | 无 sys_perm + cus_perm 2 码（instrument:read, instrument:maintain） |
 
 **命名空间管理员规则**：
-> `roles 包含 "namespace_admin"` → 仪表盘 + 商户管理 + 客户端管理 + 操作日志 + **媒体设置**。
+> `functional_roles` 包含 `"namespace_admin"` → 仪表盘 + 商户管理 + 操作日志 + 分类设置 + 属性管理 + 轮播图管理 + **经营策略整组菜单**（折扣政策/返点配置/会员级别管理等）。
+
+> 注：namespace_admin 的前端菜单可见性部分走白名单绕过（见 §5.2），不依赖 cus_perm 位掩码判定。
 
 ---
 
@@ -59,11 +67,11 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 ---
 
-## 三、cus_perm 业务权限表（#660 重新设计）
-
-> 来源: `backend/services/permission_registry.go`，14 个业务权限（原 10 个 + 媒体操作 3 个 + 定价策略 1 个）
+## 三、cus_perm 业务权限表
 
 ### 3.1 权限码定义
+
+> 来源: `backend/services/permission_registry.go`，30 个业务权限（bits 0-29）
 
 | Bit | 代码 | Name | 域 | 说明 |
 |-----|------|------|-----|------|
@@ -85,6 +93,18 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 15 | `instrument:media_upload` | 上传媒体 | 媒体 | 上传图片/视频到乐器 |
 | 16 | `instrument:media_display` | 设置展示批次 | 媒体 | 指定乐器展示媒体批次 |
 | 17 | `instrument:media_delete` | 删除媒体批次 | 媒体 | 删除乐器的媒体批次 |
+| 18 | `category:manage` | 分类管理 | 平台 | 乐器分类 CRUD |
+| 19 | `attribute:manage` | 属性管理 | 平台 | 动态属性定义 CRUD |
+| 20 | `banner:manage` | 轮播图管理 | 平台 | 首页轮播图 CRUD |
+| 21 | `rebate:manage` | 返点管理 | 平台 | 会员返佣比例配置 |
+| 22 | `promo:manage` | 折扣政策管理 | 平台 | 系统级折扣策略 CRUD |
+| 23 | `promo:override` | 乐器促销覆盖 | 营销 | 单乐器促销覆盖开关 |
+| 24 | `points:manage` | 点数政策管理 | 平台 | 积分/点数政策配置 |
+| 25 | `membership:manage` | 会员级别管理 | 平台 | 会员等级 CRUD |
+| 26 | `repair:read` | 查看维修 | 维修 | 查看维修工单/进度 |
+| 27 | `repair:start` | 开始维修 | 维修 | 启动维修流程/指派师傅 |
+| 28 | `repair:complete` | 完成维修 | 维修 | 标记维修完成 |
+| 29 | `repair:accept` | 验收维修 | 维修 | 验收维修结果 |
 
 ### 3.2 旧码→新码迁移映射
 
@@ -113,6 +133,9 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 订单 | 4 | order:create, order:read, order:update, order:cancel |
 | 申诉 | 3 | appeal:create, appeal:read, appeal:handle |
 | 日志 | 1 | audit_log:read |
+| 定价 | 1 | instrument:price_config |
+| 平台配置 | 8 | category:manage, attribute:manage, banner:manage, rebate:manage, promo:manage, points:manage, membership:manage, promo:override |
+| 维修 | 4 | repair:read, repair:start, repair:complete, repair:accept |
 
 ---
 
@@ -120,62 +143,103 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 
 ### 4.1 角色 cus_perm 分配
 
-| 角色 | 代码 | cus_perm 数量 | 分配的权限 |
-|------|------|-------------|----------|
-| 商户管理员 | owner | 17 (全部) | 全部业务权限 |
-| 网点管理员 | admin | 13 | instrument:create, instrument:read, instrument:update, instrument:price, instrument:maintain, **instrument:media_upload**, **instrument:media_display**, order:read, order:update, order:cancel, appeal:read, appeal:handle, audit_log:read |
-| 网点员工 | staff | 9 | instrument:create, instrument:read, instrument:update, instrument:maintain, **instrument:media_upload**, order:create, order:read, order:update, audit_log:read |
-| 维修工程师 | worker | 2 | instrument:read, instrument:maintain |
+| 角色 | 功能角色代码 | cus_perm 数量 | 分配的权限 |
+|------|------------|-------------|----------|
+| 命名空间管理员 | namespace_admin | 7 | category:manage, attribute:manage, banner:manage, rebate:manage, promo:manage, points:manage, membership:manage |
+| 商户管理员 | merchant_admin | 20 | 乐器 CRUD+price+price_config+maintain, 媒体 3, 订单 CRUD, 申诉 3, audit_log, promo:manage, points:manage |
+| 网点管理员 | site_admin | 18 | 乐器 CRUD+price+maintain, 媒体 3, 订单 3 (无 create), appeal:read/handle, audit_log, promo:override, points:manage |
+| 网点员工 | site_member | 11 | 乐器 CRUD+maintain, 媒体 upload/delete, 订单 3 (无 cancel), audit_log |
+| 维修工程师 | repair_technician | 2 | instrument:read, instrument:maintain |
 | 顾客 | customer | 4 | order:create, order:read, order:cancel, appeal:create |
 
 ### 4.2 完整对照矩阵
 
-| 权限代码 | 商户管理员 | 网点管理员 | 网点员工 | 维修工程师 | 顾客 |
-|----------|:------:|:------:|:------:|:------:|:------:|
-| instrument:create | ✅ | ✅ | ✅ | ❌ | ❌ |
-| instrument:read | ✅ | ✅ | ✅ | ✅ | ❌ |
-| instrument:update | ✅ | ✅ | ✅ | ❌ | ❌ |
-| instrument:delete | ✅ | ❌ | ❌ | ❌ | ❌ |
-| instrument:price | ✅ | ✅ | ❌ | ❌ | ❌ |
-| instrument:maintain | ✅ | ✅ | ✅ | ✅ | ❌ |
-| order:create | ✅ | ❌ | ✅ | ❌ | ✅ |
-| order:read | ✅ | ✅ | ✅ | ❌ | ✅ |
-| order:update | ✅ | ✅ | ✅ | ❌ | ❌ |
-| order:cancel | ✅ | ✅ | ❌ | ❌ | ✅ |
-| appeal:create | ✅ | ❌ | ❌ | ❌ | ✅ |
-| appeal:read | ✅ | ✅ | ❌ | ❌ | ❌ |
-| appeal:handle | ✅ | ✅ | ❌ | ❌ | ❌ |
-| audit_log:read | ✅ | ✅ | ✅ | ❌ | ❌ |
-| instrument:media_upload | ✅ | ✅ | ✅ | ❌ | ❌ |
-| instrument:media_display | ✅ | ✅ | ❌ | ❌ | ❌ |
-| instrument:media_delete | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 权限代码 | 命名空间管理员 | 商户管理员 | 网点管理员 | 网点员工 | 维修工程师 | 顾客 |
+|----------|:---------:|:--------:|:--------:|:------:|:---------:|:---:|
+| instrument:create | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:read | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| instrument:update | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:delete | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| instrument:price | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| instrument:maintain | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| order:create | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| order:read | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| order:update | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| order:cancel | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ |
+| appeal:create | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| appeal:read | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| appeal:handle | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| audit_log:read | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:price_config | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| instrument:media_upload | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| instrument:media_display | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| instrument:media_delete | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| category:manage | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| attribute:manage | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| banner:manage | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| rebate:manage | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| promo:manage | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| promo:override | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| points:manage | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| membership:manage | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| repair:read | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| repair:start | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| repair:complete | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| repair:accept | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ---
 
 ## 五、菜单-权限映射
 
-### 5.1 菜单结构（#660 更新后）
+### 5.1 菜单结构
 
-> 来源: `frontend-pc/src/App.jsx`
+> 来源: `frontend-pc/src/App.jsx` 和 `frontend-pc/src/config/menuPermissions.js`
 
 | 菜单组 | 菜单项 | 路由 | 权限 |
 |--------|--------|------|------|
-| 乐器管理 | 乐器列表 | /instruments/list | cusPerm: instrument:create/read/update/delete |
-| 乐器管理 | 分类设置 | /instruments/categories | cusPerm: category:manage |
-| 乐器管理 | 属性管理 | /instruments/properties | cusPerm: attribute:manage |
+| 基础配置 | 分类设置 | /instruments/categories | cusPerm: category:manage |
+| 基础配置 | 属性管理 | /instruments/properties | cusPerm: attribute:manage |
+| 基础配置 | 轮播图管理 | /system/banners | cusPerm: banner:manage |
+| 经营策略 | 租金设定 | /inventory/rent-setting | cusPerm: instrument:price |
+| 经营策略 | 定价策略 | /pricing/config | cusPerm: instrument:price_config |
+| 经营策略 | 系统折扣政策 | /system/promo-plans | cusPerm: promo:manage |
+| 经营策略 | 报修设置 | /repair/settings | cusPerm: instrument:price_config |
+| 经营策略 | 返点配置 | /system/rebate-config | cusPerm: rebate:manage |
+| 经营策略 | 会员级别管理 | /system/membership-levels | cusPerm: membership:manage |
+| 运营管理 | 订单管理 | /orders | cusPerm: order:read |
+| 运营管理 | 乐器列表 | /instruments/list | cusPerm: instrument:create/read/update/delete |
+| 运营管理 | 库管工作台 | /warehouse | cusPerm: instrument:read, instrument:update |
+| 运营管理 | 会话管理 | /maintenance/sessions | cusPerm: instrument:read, instrument:maintain |
+| 运营管理 | 中转路由 | /transit-routes | sysPerm: [5] |
+| 运营管理 | 逾期告警 | /overdue-alerts | cusPerm: instrument:read |
 | 维修管理 | 师傅管理 | /maintenance/workers | cusPerm: instrument:maintain |
-| 维修管理 | 会话管理 | /maintenance/sessions | cusPerm: instrument:read, instrument:maintain |
-| 库存监控 | 租金设定 | /inventory/rent-setting | cusPerm: instrument:price |
-| 库存监控 | 库管工作台 | /warehouse | cusPerm: instrument:read, instrument:update |
 | 组织管理 | 网点管理 | /organization/sites | sysPerm: [10] AND cusPerm: [instrument:create, instrument:read] |
 | 组织管理 | 人员管理 | /staff | sysPerm: [15] AND cusPerm: [instrument:create, instrument:read] |
+| 组织管理 | 申诉处理 | /appeals | cusPerm: appeal:read |
+| 组织管理 | 与 IAM 同步 | /organization/iam-sync | sysPerm: [10] AND cusPerm: [instrument:create, instrument:read] |
 | 系统管理 | 商户管理 | /merchants | sysPerm: [5] |
 | 系统管理 | 操作日志 | /system/audit-logs | sysPerm: [5] |
-| 系统管理 | 权限管理 | /system/permissions | sysPerm: [26] |
+| 系统管理 | 权限管理 | /system/permissions | sysPerm: [27] |
+| 系统管理 | 警告管理 | /system/warnings | sysPerm: [5] |
+| 系统管理 | 警告配置 | /system/warning-settings | sysPerm: [5] |
 
-### 5.2 Grace Period 规则
+### 5.2 命名空间管理员白名单绕过
 
-当 `cus_perm === 0 && sys_perm > 0` 时，所有包含 cus_perm 条件的菜单规则自动通过。
+部分菜单项对 `namespace_admin` 角色走**白名单绕过**机制（`getNamespaceAdminMenuKeys()`），即命中白名单后不检查 `cus_perm` 位掩码，直接显示。
+
+```js
+// frontend-pc/src/config/menuPermissions.js
+function getNamespaceAdminMenuKeys() {
+  return ['/', '/merchants', '/system/audit-logs', '/instruments/categories', '/instruments/properties',
+    '/system/banners', '/system/promo-plans', '/system/rebate-config', '/system/membership-levels']
+}
+```
+
+白名单应用场景：
+- **菜单渲染**（`App.jsx:385`）：白名单中的菜单项对 namespace_admin 直接可见
+- **路由守卫**（`ProtectedRoute.jsx:143`）：白名单中的路由对 namespace_admin 直接放行
+
+> 注：白名单是安全网（补偿 `cus_perm=0` 时的菜单不可见问题），主源仍是 IAM 角色模板 `cus_perm`。
 
 ---
 
@@ -186,7 +250,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 文件 | 内容 |
 |------|------|
 | `backend/middleware/permissions.go` | sys_perm 位码常量定义 (0-29) + RequireSysPerm / RequireCusPerm 中间件 |
-| `backend/services/permission_registry.go` | 10 cus_perm 定义 + GetCusPermBit / GetCusPermMapping |
+| `backend/services/permission_registry.go` | 30 cus_perm 定义 + GetCusPermBit / GetCusPermMapping |
 | `backend/services/role_templates.go` | AllRoleTemplates 角色-权限模板 |
 | `backend/services/iam_client.go` | SetUserCustomerPermissions / SyncRoleTemplateCusPerm / CreateRoleTemplate |
 | `backend/handlers/permission_manage.go` | 成员权限列表 / 设置个人权限 / 分配角色 |
@@ -225,7 +289,7 @@ Tuneloop 角色权限 → PUT /role-templates/:id/customer-permissions (cus_perm
 Tuneloop 分配角色 → POST /users/:id/roles
 Tuneloop 个人授权 → PUT /orgs/:id/users/:uid/customer-permissions (raw_bits=true)
 
-IAM JWT 签发时：token.cus_perm = relation.CusPerm | role.CusPerm
+IAM JWT 签发时：effective = org.DefaultCusPerm | relation.CusPerm | override.CusPerm | role.CusPerm
 ```
 
 ---
