@@ -16,8 +16,8 @@ var AllRoleTemplates = map[string]RoleTemplate{
 	"namespace_admin": {
 		Name:         "命名空间管理员",
 		SysPermBits:  []int{5, 6, 7, 8, 9, 15, 16, 17, 18, 19},
-		CusPermCodes: []string{"category:manage", "attribute:manage", "banner:manage"},
-		Description:  "命名空间管理员，管理商户和人员",
+		CusPermCodes: []string{"category:manage", "attribute:manage", "banner:manage", "rebate:manage", "promo:manage", "points:manage", "membership:manage"},
+		Description:  "命名空间管理员，管理平台配置（分类/属性/轮播图/返点/折扣/点数/会员等级）",
 	},
 	"sys_admin": {
 		Name:         "系统管理员",

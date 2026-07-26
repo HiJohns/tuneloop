@@ -67,7 +67,8 @@ function isNamespaceAdmin(roles) {
 }
 
 function getNamespaceAdminMenuKeys() {
-  return ['/', '/merchants', '/system/audit-logs', '/instruments/categories', '/instruments/properties']
+  return ['/', '/merchants', '/system/audit-logs', '/instruments/categories', '/instruments/properties',
+    '/system/banners', '/system/promo-plans', '/system/rebate-config', '/system/membership-levels']
 }
 
 export {
