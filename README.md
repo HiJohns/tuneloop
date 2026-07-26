@@ -232,6 +232,8 @@ npm run build:weapp # 小程序
 
 > **架构说明**：同一套 `.jsx` 代码同时编译为 H5（Vite）和微信小程序（Taro）。`src/platform/` 层根据编译目标自动切换浏览器 API ↔ Taro API。详见 `docs/weapp.md`。
 
+> **预生产小程序**：预生产环境使用独立的小程序账户，通过 `make weapp-upload-pre` 上传到不同 AppID。详见 §预生产/生产发布流程。生产版 AppID = `wxcb44a1be70e356ed`，预生产 AppID = `wx9f96827856269a6c`，私钥文件路径：`frontend-mobile/private.wx9f96827856269a6c.key`。
+
 ---
 
 ## 🚀 开发环境
@@ -261,7 +263,8 @@ make version        # 查看当前版本
 make bump-build     # 递增 build 号
 
 # 上传小程序 (需私钥)
-make weapp-upload VERSION=1.0.0 DESC="release note"
+make weapp-upload VERSION=1.0.0 DESC="release note"           # 生产版 (AppID: wxcb44a1be70e356ed)
+make weapp-upload-pre VERSION=1.0.0-pre DESC="pre deploy"    # 预生产版 (独立 AppID)
 ```
 
 ### 访问地址
@@ -325,7 +328,19 @@ TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh tuneloop-pre_*.zip
 | beaconiam-pre (IAM) | 5562 | preiam.cadenzayueqi.com | `beaconiam-pre.service` |
 | tuneloop-pre (Web) | 5563 | preweb.cadenzayueqi.com | `tuneloop-pre.service` |
 | tuneloop-pre (WX) | 5564 | prewx.cadenzayueqi.com | (同一服务，双端口) |
+| tuneloop-pre (WeApp) | — | 预生产小程序 (`wx9f96827856269a6c`) | miniprogram-ci → 上传到微信服务器 |
 | DB | 5432 | — | `tuneloop_pre` / `beaconiam_pre` |
+
+### 预生产微信小程序
+
+预生产环境使用**独立的小程序账户** `wx9f96827856269a6c`（与生产 `wxcb44a1be70e356ed` 不同），需准备以下文件：
+
+| 文件 | 位置 | 说明 |
+|------|------|------|
+| 私钥文件 | `frontend-mobile/private.wx9f96827856269a6c.key` | 微信公众平台 → 开发 → 开发设置 → 小程序代码上传，生成下载 |
+| App Secret | 后端 `.env` | 用于微信登录、支付等 API 调用（不参与小程序上传） |
+
+> **注意**：生产版和预生产版使用**同一份 `dist-weapp/` 构建产物**，仅上传时的 `--appid` 和 `--pkp` 不同。H5 端的构建仍由 `make release`（Vite + `--mode prerelease`）产出，不区分生产/预生产。
 
 ### 脚本说明
 

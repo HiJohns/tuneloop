@@ -1,4 +1,4 @@
-.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-upload-pre weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
 NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
@@ -59,6 +59,16 @@ weapp-upload: weapp-check
 		--appid wxcb44a1be70e356ed \
 		--uv $(or $(VERSION),1.0.0) \
 		--ud "$(or $(DESC),auto deploy)"
+
+weapp-upload-pre: weapp-check
+	@cd frontend-mobile && \
+	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' dist-weapp/app.wxss && \
+	node_modules/.bin/miniprogram-ci upload \
+		--pp dist-weapp \
+		--pkp private.wx9f96827856269a6c.key \
+		--appid wx9f96827856269a6c \
+		--uv $(or $(VERSION),1.0.0-pre) \
+		--ud "$(or $(DESC),pre auto deploy)"
 
 run: run-backend
 
