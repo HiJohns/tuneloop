@@ -8,7 +8,7 @@ import { api, categoriesApi } from '../../../services/api'
 
 const { Option } = Select
 
-function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide }) {
+function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide, list, idx, total }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id })
 
   const style = {
@@ -18,8 +18,7 @@ function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide
     cursor: 'grab',
   }
 
-  const s = category.sort || 0
-  const hidden = s <= 0
+  const hidden = (category.sort || 0) <= 0
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center justify-between p-3 bg-white border-b hover:bg-gray-50">
@@ -30,8 +29,8 @@ function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide
         {!category.visible && <span className="text-xs text-gray-400">(隐藏)</span>}
       </div>
       <Space size="small">
-        <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={(e) => { e.stopPropagation(); onSortUp(category) }} /></Tooltip>
-        <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} onClick={(e) => { e.stopPropagation(); onSortDown(category) }} /></Tooltip>
+        <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} disabled={idx <= 0 || hidden} onClick={(e) => { e.stopPropagation(); onSortUp(category, list) }} /></Tooltip>
+        <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= total - 1 || hidden} onClick={(e) => { e.stopPropagation(); onSortDown(category, list) }} /></Tooltip>
         <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); onHide(category) }} /></Tooltip>
         <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(category)} />
         <Popconfirm
@@ -135,10 +134,8 @@ export default function CategoryList() {
     try {
       await api.put('/categories/sort', { items: [{ id: cat.id, sort: sortVal }] })
       cat.sort = sortVal
-      // update top-level list
       const updated = [...level1Categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
       setLevel1Categories(updated)
-      // update sub-category list if this is a sub-category
       for (const p of updated) {
         const idx = (p.sub_categories || []).findIndex(s => s.id === cat.id)
         if (idx >= 0) {
@@ -151,8 +148,22 @@ export default function CategoryList() {
     } catch (err) { message.error('更新失败: ' + err.message) }
   }
 
-  const handleSortUp = (cat) => sortSingle(cat, Math.max(1, (cat.sort || 1) - 1))
-  const handleSortDown = (cat) => sortSingle(cat, (cat.sort || 1) + 1)
+  const handleSortUp = (cat, list) => {
+    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    const idx = sorted.findIndex(c => c.id === cat.id)
+    if (idx <= 0) return
+    const prev = sorted[idx - 1]
+    sortSingle(cat, (prev.sort || 1) - 1)
+  }
+
+  const handleSortDown = (cat, list) => {
+    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    const idx = sorted.findIndex(c => c.id === cat.id)
+    if (idx < 0 || idx >= sorted.length - 1) return
+    const next = sorted[idx + 1]
+    sortSingle(cat, (next.sort || 1) + 1)
+  }
+
   const handleHide = (cat) => sortSingle(cat, 0)
 
   const handleCreateTopLevel = () => {
@@ -277,6 +288,8 @@ export default function CategoryList() {
                 size="small"
                 dataSource={level1Categories}
                 renderItem={(cat) => {
+                   const sorted = [...level1Categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+                   const idx = sorted.findIndex(c => c.id === cat.id)
                    const hidden = (cat.sort || 0) <= 0
                    return (
                    <List.Item
@@ -284,8 +297,8 @@ export default function CategoryList() {
                      onClick={() => setSelectedParentId(cat.id)}
                      extra={
                        <Space size="small">
-                         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={(e) => { e.stopPropagation(); handleSortUp(cat) }} /></Tooltip>
-                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} onClick={(e) => { e.stopPropagation(); handleSortDown(cat) }} /></Tooltip>
+                         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} disabled={idx <= 0 || hidden} onClick={(e) => { e.stopPropagation(); handleSortUp(cat, level1Categories) }} /></Tooltip>
+                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= sorted.length - 1 || hidden} onClick={(e) => { e.stopPropagation(); handleSortDown(cat, level1Categories) }} /></Tooltip>
                          <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>
                        </Space>
                      }
@@ -328,9 +341,9 @@ export default function CategoryList() {
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
                   <div className="border rounded">
-                    {subCategories.map(category => (
-                      <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} />
-                    ))}
+                    {subCategories.map((category, idx) => (
+                       <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} list={subCategories} idx={idx} total={subCategories.length} />
+                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
