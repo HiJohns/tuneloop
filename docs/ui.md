@@ -2377,6 +2377,8 @@ cd frontend-pc && npm run build  # 应该成功
 | 系统折扣政策 | `/system/promo-plans` | `promo:manage` |
 | 商户折扣政策 | `/merchant/promo-plans` | `promo:manage` |
 | 逾期告警 | `/overdue-alerts` | `instrument:read` |
+| 定价策略 | `/pricing/config` | `instrument:price_config` |
+| 租金设定 | `/inventory/rent-setting` | `instrument:price` |
 
 ### 3.17 申诉处理 (AppealManagement)
 
@@ -2920,6 +2922,33 @@ cd frontend-pc && npm run build  # 应该成功
 - 新建/编辑/删除
 - 政策详情管理：按会员级别设折扣率
 - scope 切换：sys_admin 见系统级，merchant_admin 见商户级
+
+### 3.35.1 PC 定价策略配置 (`/pricing/config`)
+
+**组件**: `frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx`
+
+**路由**: 经营策略 → 定价策略
+
+**权限**: `instrument:price_config`
+
+**功能**:
+- 阶梯定价表：天数上限 + 折扣率（%），支持添加/删除阶梯
+- 押金模式选择：按原价比列（百分比滑块） / 自定义金额
+- 保存后自动计算所有乐器的阶梯日租和押金
+- 阶梯价格预览（假设基准日租 ¥100）
+
+### 3.35.2 PC 租金设定 (`/inventory/rent-setting`)
+
+**组件**: `frontend-pc/src/pages/*/inventory/*`（库存监控组）
+
+**路由**: 经营策略 → 租金设定
+
+**权限**: `instrument:price`
+
+**功能**:
+- 乐器列表展示（识别码、分类、网点、级别、日租金、押金、物流费、逾期日费）
+- 筛选：品牌、型号、类别、级别、网点
+- 在线编辑各字段，保存后批量更新（`PUT /api/inventory/rent-setting/batch`）
 
 ### 3.36 PC/移动端个人中心会员级别展示
 
