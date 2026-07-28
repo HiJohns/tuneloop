@@ -153,30 +153,6 @@ export default function CategoryList() {
     } catch (err) { message.error('更新失败: ' + err.message) }
   }
 
-  const handleSortUp = (cat, list) => {
-    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
-    const idx = sorted.findIndex(c => c.id === cat.id)
-    if (idx <= 0) return
-    const prev = sorted[idx - 1]
-    const tmp = prev.sort || 1
-    prev.sort = cat.sort || 1
-    cat.sort = tmp
-    sortSingle(cat, cat.sort)
-    sortSingle(prev, prev.sort)
-  }
-
-  const handleSortDown = (cat, list) => {
-    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
-    const idx = sorted.findIndex(c => c.id === cat.id)
-    if (idx < 0 || idx >= sorted.length - 1) return
-    const next = sorted[idx + 1]
-    const tmp = next.sort || 1
-    next.sort = cat.sort || 1
-    cat.sort = tmp
-    sortSingle(cat, cat.sort)
-    sortSingle(next, next.sort)
-  }
-
   const handleHide = (cat) => sortSingle({ cat, sort: (cat.sort || 0) <= 0 ? 1 : 0 })
 
   const handleSortUp = (cat, list) => {
