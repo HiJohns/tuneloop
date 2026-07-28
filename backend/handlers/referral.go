@@ -35,7 +35,7 @@ func (h *ReferralHandler) GetPromoQR(c *gin.Context) {
 		db.Model(&user).Update("ref_code", user.RefCode)
 	}
 
-	wxURL := os.Getenv("TUNELOOP_WX_URL")
+	wxURL := os.Getenv("EXTERNAL_MOBILE_URL")
 	if wxURL == "" {
 		wxURL = "http://localhost:5553"
 	}
@@ -65,7 +65,7 @@ func (h *ReferralHandler) GetPromoQR(c *gin.Context) {
 // LandingPage redirects to the SPA with a ref code for H5 referral flows.
 func (h *ReferralHandler) LandingPage(c *gin.Context) {
 	ref := c.Query("ref")
-	wxURL := os.Getenv("TUNELOOP_WX_URL")
+	wxURL := os.Getenv("EXTERNAL_MOBILE_URL")
 	if wxURL == "" {
 		wxURL = "http://localhost:5553"
 	}

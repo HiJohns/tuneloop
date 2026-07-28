@@ -30,8 +30,8 @@ func LoadConfig() *Config {
 		mockMode = true
 	}
 
-	// Callback URLs are fixed paths, domain derived from TUNELOOP_WX_URL
-	baseURL := os.Getenv("TUNELOOP_WX_URL")
+	// Callback URLs are fixed paths, domain derived from EXTERNAL_MOBILE_URL
+	baseURL := os.Getenv("EXTERNAL_MOBILE_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:5553"
 	}

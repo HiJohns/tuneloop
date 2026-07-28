@@ -496,7 +496,7 @@ IAM_CLIENT_SECRET=your_secret_key
 
 # Service URLs
 TUNELOOP_WWW_URL=http://localhost:5554  # PC Web service URL (default)
-TUNELOOP_WX_URL=http://localhost:5553   # WeChat mobile service URL (default)
+EXTERNAL_MOBILE_URL=http://localhost:5553   # WeChat mobile service URL (default)
 
 # WeChat Pay (optional, leave empty for mock/test mode)
 WECHAT_PAY_MCH_ID=                     # Merchant ID (empty = mock mode)
