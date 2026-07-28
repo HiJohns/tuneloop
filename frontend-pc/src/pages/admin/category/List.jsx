@@ -19,15 +19,16 @@ function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide
   }
 
   const s = category.sort || 0
+  const hidden = s <= 0
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center justify-between p-3 bg-white border-b hover:bg-gray-50">
       <div className="flex items-center gap-2 flex-1">
         <MenuOutlined {...attributes} {...listeners} className="cursor-grab text-gray-400" />
-        <span className="font-medium">{category.name}</span>
+        <span className={`font-medium ${hidden ? 'text-gray-300' : ''}`}>{category.name}</span>
         {category.icon && <span>{category.icon}</span>}
         {!category.visible && <span className="text-xs text-gray-400">(隐藏)</span>}
-        {s <= 0 && <span className="text-xs text-orange-500">(首页隐藏)</span>}
+        {hidden && !category.visible && <span className="text-xs text-orange-400">(首页隐藏)</span>}
       </div>
       <Space size="small">
         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={(e) => { e.stopPropagation(); onSortUp(category) }} /></Tooltip>
@@ -264,24 +265,27 @@ export default function CategoryList() {
                 className="flex-1 overflow-auto border rounded"
                 size="small"
                 dataSource={level1Categories}
-                renderItem={(cat) => (
+                renderItem={(cat) => {
+                   const hidden = (cat.sort || 0) <= 0
+                   return (
                    <List.Item
                      className={`cursor-pointer ${selectedParentId === cat.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                      onClick={() => setSelectedParentId(cat.id)}
                      extra={
-                       <Space size="small" onClick={e => e.stopPropagation()}>
-                         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={() => handleSortUp(cat)} /></Tooltip>
-                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} onClick={() => handleSortDown(cat)} /></Tooltip>
-                         <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={() => handleHide(cat)} /></Tooltip>
+                       <Space size="small">
+                         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={(e) => { e.stopPropagation(); handleSortUp(cat) }} /></Tooltip>
+                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} onClick={(e) => { e.stopPropagation(); handleSortDown(cat) }} /></Tooltip>
+                         <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>
                        </Space>
                      }
                    >
                      <List.Item.Meta
                        avatar={<span className="text-lg">{cat.icon}</span>}
-                       title={<span className="font-medium">{cat.name}</span>}
+                       title={<span className={`font-medium ${hidden ? 'text-gray-300' : ''}`}>{cat.name}{hidden ? ' (首页隐藏)' : ''}</span>}
                      />
                    </List.Item>
-                 )}
+                   )
+                 }}
               />
             </div>
           )}
