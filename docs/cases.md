@@ -1508,3 +1508,15 @@ checkRule() - 权限位过滤
 - merchant_admin: 本商户
 - site_admin: 本网点
 
+---
+
+### 场景：会员推广二维码
+
+- **前置条件**：用户已登录，ref_code 已生成
+- **用户操作**：会员中心 → 点击"获取推广二维码"
+- **系统行为**：
+  - 后端调用微信 wxacode.getUnlimited 生成小程序码，同时返回 H5 落地链接
+  - 前端展示二维码（小程序环境优先展示微信原生码，H5 环境展示普通 QR 码）
+- **好友操作**：扫码 → 进入注册页（携带 ref 参数）→ 完成注册
+- **结果**：referrals 表记录推荐关系（referrer_id: 推荐人, referee_id: 被推荐人, ref_code, status=registered）
+

@@ -28,15 +28,20 @@ export default function MembershipCenter() {
       const result = await resp.json()
       if (result.code === 20000) {
         setRefCode(result.data.ref_code)
-        const url = (env.isMiniProgram ? '' : window.location.origin) + result.data.url
-        if (env.isMiniProgram) {
-          generateQRCanvas(url)
+        const h5Url = result.data.h5_url
+        if (result.data.wxacode_base64) {
+          setQrSrc('data:image/png;base64,' + result.data.wxacode_base64)
+          setShowQR(true)
         } else {
-          QRCode.toString(url, { type: 'svg', width: 256 }, (err, svg) => {
-            if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
-            setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
-            setShowQR(true)
-          })
+          if (env.isMiniProgram) {
+            generateQRCanvas(h5Url)
+          } else {
+            QRCode.toString(h5Url, { type: 'svg', width: 256 }, (err, svg) => {
+              if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+              setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
+              setShowQR(true)
+            })
+          }
         }
       }
     } catch {

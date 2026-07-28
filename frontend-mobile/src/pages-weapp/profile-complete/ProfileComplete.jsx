@@ -32,6 +32,10 @@ export default function ProfileComplete() {
     const params = Taro.getCurrentInstance().router?.params || {}
     if (params.phone) setPhone(params.phone)
     if (params.ref) storage.setItem('ref_code', params.ref)
+    if (params.scene) {
+      const decoded = decodeURIComponent(params.scene)
+      if (decoded.startsWith('ref=')) storage.setItem('ref_code', decoded.slice(4))
+    }
   }, [])
 
   const handleChooseAvatar = () => {
