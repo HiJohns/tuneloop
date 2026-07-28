@@ -207,6 +207,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/banners", bannerHandler.GetPublicBanners)
 	api.GET("/public/merchants", handlers.ListPublicMerchants)
 	api.GET("/public/merchants/:id/transit-sites", handlers.ListTransitSites)
+	api.GET("/public/settings/:key", handlers.GetPublicSetting)
 	api.GET("/public/instruments/search", handlers.SearchInstruments)
 	bindHandler := handlers.NewWechatBindHandler()
 	api.POST("/wechat-bind/confirm", bindHandler.ConfirmBind)
@@ -686,6 +687,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/system/tenants", middleware.RequireSysPerm(middleware.SysPermTenantList), systemHandler.GetTenants)
 			authRequired.GET("/settings/:key", handlers.GetSetting)
 			authRequired.PUT("/settings/:key", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), handlers.UpsertSetting)
+			authRequired.PUT("/admin/content/:key", handlers.UpsertGlobalSetting)
 
 			dashboardHandler := handlers.NewDashboardHandler(database.GetDB())
 			authRequired.GET("/admin/dashboard/stats", dashboardHandler.GetDashboardStats)

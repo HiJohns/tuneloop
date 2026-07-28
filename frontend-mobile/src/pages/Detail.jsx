@@ -2,21 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
-import { Switch, Tag, Modal, Button as AntButton } from 'antd'
+import { Switch, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage, eventBus, getWindowSize, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
-
-const SERVICE_ITEMS = [
-  { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
-  { name: '免费调音', entry: '1次/年', professional: '2次/年', master: '无限次' },
-  { name: '深度维护', entry: '✗', professional: '✓', master: '✓' },
-  { name: '免费维修', entry: '✗', professional: '✓', master: '✓' },
-  { name: '专家精调', entry: '✗', professional: '✗', master: '✓' },
-  { name: '上门保养', entry: '✗', professional: '✗', master: '✓' },
-]
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -49,12 +40,6 @@ export default function Detail() {
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeOrder, setActiveOrder] = useState(null)
-  const [currentUser, setCurrentUser] = useState(null)
-  const [currentBanner, setCurrentBanner] = useState(0)
-  const [jumpReset, setJumpReset] = useState(false)
-  const [displayMedia, setDisplayMedia] = useState(null)
-  const [pricingV2, setPricingV2] = useState(null)
-  const [showComparison, setShowComparison] = useState(false)
   const [auditLogs, setAuditLogs] = useState([])
   const [cartToast, setCartToast] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
@@ -394,13 +379,12 @@ export default function Detail() {
             </View>
           )}
 
-          {/* Service comparison */}
-          {isRentable && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm" onClick={() => setShowComparison(true)}>
-              <View className="flex justify-between items-center">
-                <Text className="text-base font-black text-black">服务权益对比</Text>
-                <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
-              </View>
+          {/* Rental notice */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm" onClick={() => navigate('/content/rental_notice')}>
+            <View className="flex justify-between items-center">
+              <Text className="text-base font-black text-black">租赁须知</Text>
+              <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
+            </View>
             </View>
           )}
 
@@ -583,31 +567,6 @@ export default function Detail() {
           )}
         </View>
       )}
-
-      {/* Service comparison modal */}
-      <Modal title="📊 服务权益对比" open={showComparison} onCancel={() => setShowComparison(false)} footer={null} width={600}>
-        <View className="overflow-x-auto">
-          <View className="w-full text-sm">
-            <View className="bg-gray-100 flex">
-              <Text className="p-2 flex-1 font-medium">权益项</Text>
-              <Text className="p-2 flex-1 text-center font-medium">入门级</Text>
-              <Text className="p-2 flex-1 text-center font-medium">专业级</Text>
-              <Text className="p-2 flex-1 text-center font-medium text-purple-600">大师级</Text>
-            </View>
-            {SERVICE_ITEMS.map((item, idx) => (
-              <View key={idx} className="flex border-b">
-                <Text className="p-2 flex-1">{item.name}</Text>
-                <Text className={`p-2 flex-1 text-center ${item.entry === '✓' ? 'text-green-600' : 'text-gray-400'}`}>{item.entry}</Text>
-                <Text className={`p-2 flex-1 text-center ${item.professional === '✓' ? 'text-green-600' : 'text-gray-400'}`}>{item.professional}</Text>
-                <Text className={`p-2 flex-1 text-center font-medium ${item.master === '✓' ? 'text-purple-600' : 'text-gray-400'}`}>{item.master}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-        <View className="mt-4 flex justify-end">
-          <AntButton onClick={() => setShowComparison(false)}>关闭</AntButton>
-        </View>
-      </Modal>
     </View>
   )
 }

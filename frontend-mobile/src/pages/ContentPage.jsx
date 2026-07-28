@@ -1,0 +1,49 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { View, Text } from '@tarojs/components'
+import { apiFetch } from '../services/api'
+import { env } from '../platform'
+
+export default function ContentPage() {
+  const { key } = useParams()
+  const navigate = useNavigate()
+  const [content, setContent] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  const titles = {
+    rental_notice: '租赁须知',
+    contact_us: '联系我们',
+  }
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const res = await apiFetch(`${env.apiBaseUrl}/public/settings/${key}`)
+        const result = await res.json()
+        if (result.code === 20000) {
+          setContent(result.data?.value || '暂无内容')
+        }
+      } catch {
+        setContent('加载失败')
+      }
+      setLoading(false)
+    }
+    fetchContent()
+  }, [key])
+
+  return (
+    <View className="min-h-screen bg-[#FDFBF7]">
+      <View className="flex items-center px-4 pt-3 pb-2 bg-[#FDF4E7]">
+        <Text className="text-xl font-bold text-black mr-4" onClick={() => navigate(-1)}>❮</Text>
+        <Text className="text-lg font-black text-black">{titles[key] || '内容'}</Text>
+      </View>
+      <View className="px-4 py-4">
+        {loading ? (
+          <Text className="text-zinc-400">加载中...</Text>
+        ) : (
+          <Text className="text-sm text-zinc-700 leading-6 whitespace-pre-wrap">{content}</Text>
+        )}
+      </View>
+    </View>
+  )
+}

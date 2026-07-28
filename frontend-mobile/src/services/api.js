@@ -1,6 +1,6 @@
 import { storage, session, cookie, request as platformRequest, dialog, navigation, env } from '../platform'
 
-export const publicRoutes = ['/', '/instrument', '/cart', '/success', '/callback']
+export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback']
 
 function isPublicRoute() {
   const path = navigation.getCurrentPath()

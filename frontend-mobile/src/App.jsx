@@ -8,6 +8,7 @@ import { initializeApp, storeToken, parseJWT, cachePermissions, getWXConfig, sho
 setInitDeps(initPermissionMapping, publicRoutes)
 
 import Home from './pages/Home'
+import ContentPage from './pages/ContentPage'
 import Detail from './pages/Detail'
 import Checkout from './pages/Checkout'
 import Success from './pages/Success'
@@ -187,6 +188,7 @@ function App() {
       <Routes>
         <Route path="/callback" element={<OAuthCallback />} />
         <Route path="/" element={<ProtectedRoute requireAuth={false}><Home /></ProtectedRoute>} />
+        <Route path="/content/:key" element={<ProtectedRoute requireAuth={false}><ContentPage /></ProtectedRoute>} />
         <Route path="/instrument/:id" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
         <Route path="/search" element={<ProtectedRoute requireAuth={false}><Search /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute requireAuth={false}><Checkout /></ProtectedRoute>} />

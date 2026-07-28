@@ -65,6 +65,7 @@ import Setup from './pages/Setup'
 import MerchantManagement from './pages/MerchantManagement'
 import AuditLogPage from './pages/System/AuditLogPage'
 import BannerManagePage from './pages/System/BannerManagePage'
+import ContentEdit from './pages/admin/ContentEdit'
 import MembershipLevelsPage from './pages/System/MembershipLevelsPage'
 import RebateConfigPage from './pages/System/RebateConfigPage'
 import PromoPlanManagePage from './pages/System/PromoPlanManagePage'
@@ -312,6 +313,7 @@ function MainLayout() {
       { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
       { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } },
       { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
+      { key: '/system/content-edit', label: '内容编辑', permission: { cusPermCodes: ['category:manage'] } },
     ]
   },
   {
@@ -406,7 +408,7 @@ function onMenuClick(e) {
 
   const selectedKeys = [location.pathname]
   let openKeys = []
-  if (['/instruments/categories', '/instruments/properties', '/system/banners'].includes(location.pathname)) openKeys = ['basic']
+  if (['/instruments/categories', '/instruments/properties', '/system/banners', '/system/content-edit'].includes(location.pathname)) openKeys = ['basic']
   else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/instruments/list', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['operations']
   else if (['/organization/sites', '/staff', '/appeals', '/organization/iam-sync'].includes(location.pathname)) openKeys = ['organization']
@@ -426,6 +428,7 @@ function onMenuClick(e) {
     '/instruments/categories': { title: '分类设置', parent: '基础配置' },
     '/instruments/properties': { title: '属性管理', parent: '基础配置' },
     '/system/banners': { title: '轮播图管理', parent: '基础配置' },
+    '/system/content-edit': { title: '内容编辑', parent: '基础配置' },
     '/inventory/rent-setting': { title: '租金设定', parent: '经营策略' },
     '/pricing/config': { title: '定价策略', parent: '经营策略' },
     '/system/promo-plans': { title: '系统折扣政策', parent: '经营策略' },
@@ -604,6 +607,7 @@ function onMenuClick(e) {
             <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
             <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
             <Route path="/system/banners" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['banner:manage'] }}><BannerManagePage /></ProtectedRoute>} />
+            <Route path="/system/content-edit" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><ContentEdit /></ProtectedRoute>} />
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
             <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
             <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
