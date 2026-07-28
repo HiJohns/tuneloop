@@ -96,7 +96,7 @@ export default function Home() {
   const menuStuck = scrollY > 130
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
-    sub_categories: categories.filter(c => c.parent_id === cat.id)
+    sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0))
   }))
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
@@ -383,7 +383,25 @@ export default function Home() {
 function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
   const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
   const localTouchRef = useRef({ x: 0, offset: 0 })
-  const [dropdownCat, setDropdownCat] = useState(null)
+  const [subMenuCat, setSubMenuCat] = useState(null)
+
+  const displayItems = subMenuCat
+    ? [{ id: '__back__', name: '← 返回' }, { id: subMenuCat.id, name: '全部', sub_categories: [] }, ...(subMenuCat.sub_categories || [])]
+    : items
+
+  const handleItemClick = (item) => {
+    if (item.id === '__back__') {
+      setSubMenuCat(null)
+      return
+    }
+    const cat = categories.find(c => c.id === item.id)
+    if (cat && (cat.sub_categories || []).length > 0) {
+      setSubMenuCat(cat)
+    } else {
+      onCategoryChange(item.id)
+      setSubMenuCat(null)
+    }
+  }
 
   return (
     <View className="w-full overflow-hidden pl-7 bg-black/20 py-1"
@@ -393,51 +411,24 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
       onTouchMove={e => {
         const dx = e.touches[0].clientX - localTouchRef.current.x
         if (Math.abs(dx) > 5) {
-          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(items.length * 120 - 375))))
+          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(displayItems.length * 120 - 375))))
         }
       }}
     >
       <View className="inline-flex items-center pr-4"
         style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap', gap: '40px' }}
       >
-        {items.map(item => {
-          const hasChildren = (item.sub_categories || []).length > 0
-          return (
-            <View key={item.id || 'all'} className="relative">
-              <Text
-                className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold text-white/80`}`}
-                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
-                onClick={() => {
-                  if (hasChildren) {
-                    setDropdownCat(dropdownCat === item.id ? null : item.id)
-                  } else {
-                    onCategoryChange(item.id)
-                    setDropdownCat(null)
-                  }
-                }}
-              >
-                {item.name}
-              </Text>
-              {hasChildren && dropdownCat === item.id && (
-                <View className="absolute top-8 left-0 bg-white rounded-lg shadow-lg py-2 z-50 min-w-32"
-                  onClick={e => e.stopPropagation()}>
-                  <View className="px-4 py-2 border-b border-gray-50" onClick={() => { onCategoryChange(item.id); setDropdownCat(null) }}>
-                    <Text className="text-sm font-bold text-black text-center">全部</Text>
-                  </View>
-                  {item.sub_categories.map(sub => (
-                    <View key={sub.id} className="px-4 py-2" onClick={() => { onCategoryChange(sub.id); setDropdownCat(null) }}>
-                      <Text className="text-sm text-gray-700 whitespace-nowrap">{sub.name}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )
-        })}
+        {displayItems.map(item => (
+          <Text
+            key={item.id || 'all'}
+            className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold text-white/80`}`}
+            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+            onClick={() => handleItemClick(item)}
+          >
+            {item.name}
+          </Text>
+        ))}
       </View>
-      {dropdownCat && (
-        <View className="fixed inset-0 z-40" onClick={() => setDropdownCat(null)} />
-      )}
     </View>
   )
 }
