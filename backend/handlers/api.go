@@ -599,7 +599,7 @@ func GetCategories(c *gin.Context) {
 	db := database.GetDB()
 
 	var categories []models.Category
-	if err := db.Where("visible = true AND sort > 0").Order("sort ASC, created_at ASC").
+	if err := db.Order("sort ASC, created_at ASC").
 		Find(&categories).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
