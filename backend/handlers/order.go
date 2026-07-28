@@ -270,6 +270,14 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
+	// Fetch payment time
+	paidAt := ""
+	var paymentRecord models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
+		First(&paymentRecord).Error; err == nil {
+		paidAt = paymentRecord.UpdatedAt.Format("2006-01-02 15:04")
+	}
+
 	orderData := map[string]interface{}{
 		"id":                    order.ID,
 		"tenant_id":             order.TenantID,
@@ -297,6 +305,7 @@ func GetOrder(c *gin.Context) {
 		"delivery_address":      deliveryAddress,
 		"created_at":            order.CreatedAt,
 		"updated_at":            order.UpdatedAt,
+		"paid_at":               paidAt,
 		"pricing_breakdown":     pricingBreakdownData,
 		"settlement":            settlementData,
 		"order_logs":            orderLogs,

@@ -282,13 +282,24 @@ export default function OrderDetail() {
           </View>
         </View>
 
+        {/* Order Info */}
+        <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>订单信息</Text>
+          <View style={{ marginBottom: 4, display: 'flex' }}><Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>订单号</Text><Text style={{ fontSize: 13, fontWeight: '500', color: '#000', fontFamily: 'monospace' }}>{(order.id || '').slice(0, 8)}</Text></View>
+          <View style={{ marginBottom: 4, display: 'flex' }}><Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>下单时间</Text><Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{startDate}</Text></View>
+          {order.paid_at && <View style={{ display: 'flex' }}><Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>付款时间</Text><Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{order.paid_at}</Text></View>}
+        </View>
+
         {/* Delivery Info */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>配送信息</Text>
           <View style={{ marginBottom: 8 }}>
             <View style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
               <Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>👤 下单人</Text>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{order.user_name || order.user_email || order.user_phone || '-'}</Text>
+              <View>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{order.user_name || '-'}</Text>
+                {order.user_phone && <Text style={{ fontSize: 12, color: '#a1a1aa' }}>{order.user_phone}</Text>}
+              </View>
             </View>
             {deliveryAddress && (
               <View style={{ display: 'flex', gap: 8 }}>
