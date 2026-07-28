@@ -180,9 +180,9 @@ export default function Detail() {
     : 'bg-zinc-500'
 
   return (
-    <View className="h-screen flex flex-col bg-[#FDFBF7] antialiased">
+    <View className="h-screen flex flex-col antialiased" style={{ backgroundColor: '#FDFBF7' }}>
       {/* Nav bar */}
-      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-[#FDF4E7]">
+      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center" style={{ backgroundColor: '#FDF4E7' }}>
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">乐器详情</Text>
         <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
@@ -258,7 +258,7 @@ export default function Detail() {
               )}
             </View>
           </View>
-          <View className="flex items-center justify-center space-x-1.5 pb-3 bg-[#FDF4E7]">
+          <View className="flex items-center justify-center space-x-1.5 pb-3" style={{ backgroundColor: '#FDF4E7' }}>
             {bannerImages.map((_, i) => (
               <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
             ))}
@@ -436,7 +436,7 @@ export default function Detail() {
       )}
 
       {/* Bottom panel */}
-      <View className="bg-[#FDF4E7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
+      <View className="border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl" style={{ backgroundColor: '#FDF4E7' }}>
         {isRentable && isCustomer ? (
           <>
             <View className="flex w-full space-x-3">
