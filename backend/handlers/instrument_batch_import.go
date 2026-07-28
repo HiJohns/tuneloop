@@ -590,6 +590,9 @@ func ExecuteBatchImport(c *gin.Context) {
 					instrument.BaseDailyRate = &rate
 				}
 			}
+			if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {
+				return fmt.Errorf("日租金未填或无效：CSV 中「日租金」列必须填入大于 0 的金额")
+			}
 			if priceStr, ok := instData["total_price"].(string); ok && priceStr != "" {
 				if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
 					instrument.TotalPrice = &price
@@ -982,6 +985,9 @@ func BatchImportInstruments(c *gin.Context) {
 				if rate, err := strconv.ParseFloat(rateStr, 64); err == nil {
 					instrument.BaseDailyRate = &rate
 				}
+			}
+			if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {
+				return fmt.Errorf("日租金未填或无效：CSV 中「日租金」列必须填入大于 0 的金额")
 			}
 			pricingMap := map[string]float64{}
 			for _, key := range []string{"deposit", "shipping_fee", "overdue_daily_fee"} {
