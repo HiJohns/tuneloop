@@ -14,7 +14,6 @@ type User struct {
 	Phone       string `json:"phone"`
 	Email       string `json:"email"`
 	CreditScore int    `json:"credit_score"`
-	DepositMode string `json:"deposit_mode"`
 	IsShadow    bool   `json:"is_shadow"`
 }
 
@@ -56,7 +55,6 @@ func SyncUser(c *gin.Context) {
 			OrgID:       req.OrgID,
 			Phone:       req.Phone,
 			CreditScore: 600,
-			DepositMode: "standard",
 			IsShadow:    true,
 		}
 		mockUsers[req.Sub] = user

@@ -177,27 +177,21 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 			}
 		}
 
-		// Calculate deposit
-		depositMode, _ := config["deposit_mode"].(string)
-		result.DepositMode = depositMode
-		switch depositMode {
-		case "fixed":
-			result.Deposit = getFloat(config, "deposit_fixed")
-		default:
-			if totalPrice > 0 {
-				ratio := getFloat(config, "deposit_ratio")
-				if ratio == 0 {
-					ratio = 1.0
-				}
-				result.Deposit = totalPrice * ratio
-			} else {
-				multiplier := getFloat(config, "deposit_multiplier")
-				if multiplier == 0 {
-					multiplier = 7.0
-				}
-				result.Deposit = baseDailyRate * multiplier
-			}
+		// Calculate deposit (v3: only ratio or custom)
+	depositMode, _ := config["deposit_mode"].(string)
+	result.DepositMode = depositMode
+	switch depositMode {
+	case "custom":
+		result.Deposit = 0
+	case "ratio", "":
+		ratio := getFloat(config, "deposit_ratio")
+		if ratio == 0 {
+			ratio = 1.0
 		}
+		if totalPrice > 0 {
+			result.Deposit = totalPrice * ratio
+		}
+	}
 	}
 
 	// Check individual override fields (always runs, even with daily_rent override)
