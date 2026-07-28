@@ -7,7 +7,7 @@ import { formatDisplayDate } from '../utils/format'
 import BottomNav from '../components-weapp/BottomNav'
 
 const FILTERS = [
-  { key: '', label: '无' },
+  { key: '', label: '全部订单' },
   { key: 'reserved', label: '未支付' },
   { key: 'paid', label: '待发货' },
   { key: 'shipped', label: '已发货' },
@@ -147,7 +147,7 @@ export default function MyLeases() {
         >
           <View style={{ padding: '10px 16px', borderRadius: 999, backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14, marginRight: 6 }}>
-              {FILTERS.find(f => f.key === selectedFilter)?.label || '无'}
+              {FILTERS.find(f => f.key === selectedFilter)?.label || '全部订单'}
             </Text>
             <Text style={{ color: '#fff', fontSize: 10 }}>▼</Text>
           </View>
