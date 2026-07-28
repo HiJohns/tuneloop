@@ -188,83 +188,82 @@ export default function Detail() {
         <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
       </View>
 
-      {/* Banner carousel */}
-      <View className="w-full overflow-hidden"
-        onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
-        onTouchEnd={(e) => {
-          const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
-          if (Math.abs(diff) > 50 && bannerImages.length > 1) {
-            setCurrentBanner(prev => {
-              if (diff < 0) {
-                if (prev >= bannerImages.length - 1) return prev + 1
-                return prev + 1
-              }
-              if (prev <= 0) return prev - 1
-              return prev - 1
-            })
-          }
-        }}
-      >
-        <View className="w-full overflow-hidden" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
-          <View className="flex flex-row h-full" style={{
-            width: `${(bannerImages.length + 2) * 100}%`,
-            transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
-            transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out',
+      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false}>
+        {/* Banner carousel */}
+        <View className="w-full overflow-hidden"
+          onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => {
+            const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
+            if (Math.abs(diff) > 50 && bannerImages.length > 1) {
+              setCurrentBanner(prev => {
+                if (diff < 0) {
+                  if (prev >= bannerImages.length - 1) return prev + 1
+                  return prev + 1
+                }
+                if (prev <= 0) return prev - 1
+                return prev - 1
+              })
+            }
           }}
-            onTransitionEnd={() => {
-              if (currentBanner === -1) {
-                setJumpReset(true)
-                setCurrentBanner(bannerImages.length - 1)
-                setTimeout(() => setJumpReset(false), 50)
-              } else if (currentBanner === bannerImages.length) {
-                setJumpReset(true)
-                setCurrentBanner(0)
-                setTimeout(() => setJumpReset(false), 50)
-              }
-            }}>
-            {bannerImages.length > 0 && (
-              <View key="clone-last" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: urls[urls.length - 1] })
-                    } catch (e) { console.warn('[Preview] failed:', e) }
-                  }} />
-              </View>
-            )}
-            {bannerImages.map((img, i) => (
-              <View key={i} className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={img.url || img} className="w-full h-full object-cover"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: img.url || img })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
-                  }} />
-              </View>
+        >
+          <View className="w-full overflow-hidden" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
+            <View className="flex flex-row h-full" style={{
+              width: `${(bannerImages.length + 2) * 100}%`,
+              transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
+              transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out',
+            }}
+              onTransitionEnd={() => {
+                if (currentBanner === -1) {
+                  setJumpReset(true)
+                  setCurrentBanner(bannerImages.length - 1)
+                  setTimeout(() => setJumpReset(false), 50)
+                } else if (currentBanner === bannerImages.length) {
+                  setJumpReset(true)
+                  setCurrentBanner(0)
+                  setTimeout(() => setJumpReset(false), 50)
+                }
+              }}>
+              {bannerImages.length > 0 && (
+                <View key="clone-last" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover"
+                    onClick={() => {
+                      try {
+                        const urls = bannerImages.map(img => img.url || img)
+                        previewImage({ urls, current: urls[urls.length - 1] })
+                      } catch (e) { console.warn('[Preview] failed:', e) }
+                    }} />
+                </View>
+              )}
+              {bannerImages.map((img, i) => (
+                <View key={i} className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={img.url || img} className="w-full h-full object-cover"
+                    onClick={() => {
+                      try {
+                        const urls = bannerImages.map(img => img.url || img)
+                        previewImage({ urls, current: img.url || img })
+                      } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                    }} />
+                </View>
+              ))}
+              {bannerImages.length > 0 && (
+                <View key="clone-first" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover"
+                    onClick={() => {
+                      try {
+                        const urls = bannerImages.map(img => img.url || img)
+                        previewImage({ urls, current: urls[0] })
+                      } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                    }} />
+                </View>
+              )}
+            </View>
+          </View>
+          <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
+            {bannerImages.map((_, i) => (
+              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
             ))}
-            {bannerImages.length > 0 && (
-              <View key="clone-first" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: urls[0] })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
-                  }} />
-              </View>
-            )}
           </View>
         </View>
-        <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
-          {bannerImages.map((_, i) => (
-            <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
-          ))}
-        </View>
-      </View>
-
-      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false}>
         <View className="px-4 mt-4 space-y-3 pb-4">
 
           {/* Card A: Instrument info + deposit */}
