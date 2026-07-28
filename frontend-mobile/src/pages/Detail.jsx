@@ -179,7 +179,7 @@ export default function Detail() {
     : 'bg-zinc-500'
 
   return (
-    <View className="min-h-screen bg-zinc-100 pb-[140px] flex flex-col relative antialiased">
+    <View className="h-screen flex flex-col bg-zinc-100 antialiased">
       {/* Nav bar */}
       <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-zinc-100">
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
@@ -436,7 +436,7 @@ export default function Detail() {
       )}
 
       {/* Bottom panel */}
-      <View className="fixed bottom-0 left-0 right-0 bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
+      <View className="bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
         {isRentable && isCustomer ? (
           <>
             <View className="flex w-full space-x-3">
