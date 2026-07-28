@@ -13,9 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -618,6 +620,20 @@ func ExecuteBatchImport(c *gin.Context) {
 
 			if err := tx.Create(&instrument).Error; err != nil {
 				return fmt.Errorf("failed to create instrument: %w", err)
+			}
+
+			// Compute pricing via CalculatePricing if base_daily_rate is set
+			if instrument.BaseDailyRate != nil && *instrument.BaseDailyRate > 0 {
+				var config models.MerchantPricingConfig
+				if tx.Where("tenant_id = ?", session.TenantID).First(&config).Error == nil {
+					totalPrice := 0.0
+					if instrument.TotalPrice != nil {
+						totalPrice = *instrument.TotalPrice
+					}
+					result := services.CalculatePricing(*instrument.BaseDailyRate, totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
+					pricingJSON, _ := json.Marshal(result)
+					tx.Model(&instrument).Update("pricing", string(pricingJSON))
+				}
 			}
 
 			if len(props) > 0 {
