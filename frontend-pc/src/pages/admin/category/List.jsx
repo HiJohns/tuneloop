@@ -54,6 +54,10 @@ export default function CategoryList() {
   const [loading, setLoading] = useState(true)
   const [savingSort, setSavingSort] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [formMode, setFormMode] = useState('create')
+  const [form] = Form.useForm()
+  const [saving, setSaving] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
