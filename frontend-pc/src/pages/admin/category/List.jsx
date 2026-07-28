@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, Select, List, Button, Modal, Form, Input, Switch, message, Spin, Empty, Space, Popconfirm, Checkbox } from 'antd'
+import { Card, Select, List, Button, Modal, Form, Input, InputNumber, Switch, message, Spin, Empty, Space, Popconfirm, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, HomeOutlined } from '@ant-design/icons'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -134,7 +134,7 @@ export default function CategoryList() {
     setEditingCategory(null)
     setFormMode('create')
     form.resetFields()
-    form.setFieldsValue({ visible: true })
+    form.setFieldsValue({ visible: true, sort: 1 })
     setModalVisible(true)
   }
 
@@ -152,7 +152,8 @@ export default function CategoryList() {
     form.resetFields()
     form.setFieldsValue({ 
       visible: true,
-      icon: parentIcon  // Inherit parent category icon
+      sort: 1,
+      icon: parentIcon
     })
     setModalVisible(true)
   }
@@ -361,6 +362,10 @@ export default function CategoryList() {
 
           <Form.Item name="icon" label="图标" extra="输入 emoji 或图标 URL">
             <Input placeholder="例如 🎹" />
+          </Form.Item>
+
+          <Form.Item name="sort" label="排序值" extra="数字越小越靠前；设为 0 或负数可隐藏该分类">
+            <InputNumber min={0} max={999} style={{ width: 120 }} />
           </Form.Item>
 
           {formMode === 'edit' && (
