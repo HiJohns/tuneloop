@@ -307,7 +307,7 @@ export default function CategoryList() {
                      extra={
                        <Space size="small">
                          <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} disabled={idx <= 0 || hidden} onClick={(e) => { e.stopPropagation(); handleSortUp(cat, level1Categories) }} /></Tooltip>
-                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= sorted.length - 1 || hidden} onClick={(e) => { e.stopPropagation(); handleSortDown(cat, level1Categories) }} /></Tooltip>
+                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= visible.length - 1 || hidden} onClick={(e) => { e.stopPropagation(); handleSortDown(cat, level1Categories) }} /></Tooltip>
                          {hidden
                           ? <Tooltip title="首页显示"><Button size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>
                           : <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>}
@@ -352,9 +352,12 @@ export default function CategoryList() {
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
                   <div className="border rounded">
-                    {subCategories.map((category, idx) => (
-                       <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} list={subCategories} idx={idx} total={subCategories.length} />
-                     ))}
+                    {subCategories.map((category, idx) => {
+                       const visibleList = subCategories.filter(c => (c.sort || 0) > 0)
+                       const visIdx = visibleList.findIndex(c => c.id === category.id)
+                       return (
+                       <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} list={subCategories} idx={visIdx} total={visibleList.length} />
+                     )})}
                   </div>
                 </SortableContext>
               </DndContext>
