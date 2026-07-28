@@ -239,7 +239,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		sd, err1 := time.Parse("2006-01-02", *order.StartDate)
 		ed, err2 := time.Parse("2006-01-02", *order.EndDate)
 		if err1 == nil && err2 == nil && ed.After(sd) {
-			originalDays = int(ed.Sub(sd).Hours() / 24)
+			originalDays = services.CalculateDays(sd, ed)
 		}
 	}
 	newEndDate := req.DeliveredAt.AddDate(0, 0, originalDays).Format("2006-01-02")

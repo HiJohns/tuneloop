@@ -362,9 +362,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		if startDate != nil {
 			endDate := parseDate(order.EndDate)
 			if endDate != nil {
-				actualDays = int(endDate.Sub(*startDate).Hours() / 24)
+				actualDays = services.CalculateDays(*startDate, *endDate)
 			} else {
-				actualDays = int(time.Now().Sub(*startDate).Hours() / 24)
+				actualDays = services.CalculateDays(*startDate, time.Now())
 			}
 		}
 		if actualDays < 1 {
