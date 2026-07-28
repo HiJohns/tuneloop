@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Card, Select, List, Button, Modal, Form, Input, InputNumber, Switch, message, Spin, Empty, Space, Popconfirm, Checkbox } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, HomeOutlined } from '@ant-design/icons'
+import { Card, Select, List, Button, Modal, Form, Input, InputNumber, Switch, message, Spin, Empty, Space, Popconfirm, Tooltip } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, UpOutlined, DownOutlined, EyeInvisibleOutlined } from '@ant-design/icons'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -8,7 +8,7 @@ import { api, categoriesApi } from '../../../services/api'
 
 const { Option } = Select
 
-function SortableItem({ category, onEdit, onDelete }) {
+function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: category.id })
 
   const style = {
@@ -18,6 +18,8 @@ function SortableItem({ category, onEdit, onDelete }) {
     cursor: 'grab',
   }
 
+  const s = category.sort || 0
+
   return (
     <div ref={setNodeRef} style={style} className="flex items-center justify-between p-3 bg-white border-b hover:bg-gray-50">
       <div className="flex items-center gap-2 flex-1">
@@ -25,8 +27,12 @@ function SortableItem({ category, onEdit, onDelete }) {
         <span className="font-medium">{category.name}</span>
         {category.icon && <span>{category.icon}</span>}
         {!category.visible && <span className="text-xs text-gray-400">(隐藏)</span>}
+        {s <= 0 && <span className="text-xs text-orange-500">(首页隐藏)</span>}
       </div>
       <Space size="small">
+        <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={(e) => { e.stopPropagation(); onSortUp(category) }} /></Tooltip>
+        <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} onClick={(e) => { e.stopPropagation(); onSortDown(category) }} /></Tooltip>
+        <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); onHide(category) }} /></Tooltip>
         <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(category)} />
         <Popconfirm
           title="确定要删除此分类吗？"
@@ -48,15 +54,6 @@ export default function CategoryList() {
   const [loading, setLoading] = useState(true)
   const [savingSort, setSavingSort] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
-  const [modalVisible, setModalVisible] = useState(false)
-  const [formMode, setFormMode] = useState('create')
-  const [form] = Form.useForm()
-  const [saving, setSaving] = useState(false)
-  // Home menu config state
-  const [homeMenuVisible, setHomeMenuVisible] = useState(false)
-  const [homeMenuCats, setHomeMenuCats] = useState([])
-  const [homeMenuSelected, setHomeMenuSelected] = useState([])
-  const [homeMenuSaving, setHomeMenuSaving] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -129,6 +126,18 @@ export default function CategoryList() {
       setSavingSort(false)
     }
   }
+
+  const sortSingle = async (cat, sortVal) => {
+    try {
+      await api.put('/categories/sort', { items: [{ id: cat.id, sort: sortVal }] })
+      message.success('已更新')
+      await fetchCategories()
+    } catch (err) { message.error('更新失败: ' + err.message) }
+  }
+
+  const handleSortUp = (cat) => sortSingle(cat, Math.max(1, (cat.sort || 1) - 1))
+  const handleSortDown = (cat) => sortSingle(cat, (cat.sort || 1) + 1)
+  const handleHide = (cat) => sortSingle(cat, 0)
 
   const handleCreateTopLevel = () => {
     setEditingCategory(null)
@@ -227,42 +236,6 @@ export default function CategoryList() {
     return parent ? parent.name : ''
   }
 
-  // Home menu config handlers
-  const handleOpenHomeMenuConfig = async () => {
-    setHomeMenuVisible(true)
-    try {
-      const [catsRes, configRes] = await Promise.all([
-        api.get('/categories'),
-        api.get('/config/home-menu'),
-      ])
-      if (catsRes.code === 20000) {
-        const topLevel = (catsRes.data?.list || []).filter(c => !c.parent_id)
-        setHomeMenuCats(topLevel)
-      }
-      if (configRes.code === 20000 && configRes.data?.config) {
-        try {
-          const cfg = JSON.parse(configRes.data.config)
-          setHomeMenuSelected(cfg.visible_ids || [])
-        } catch { setHomeMenuSelected([]) }
-      } else {
-        setHomeMenuSelected([])
-      }
-    } catch { message.error('加载配置失败') }
-  }
-
-  const handleSaveHomeMenu = async () => {
-    setHomeMenuSaving(true)
-    try {
-      const config = JSON.stringify({ visible_ids: homeMenuSelected })
-      const res = await api.put('/config/home-menu', { config })
-      if (res.code === 20000) {
-        message.success('首页菜单配置已保存')
-        setHomeMenuVisible(false)
-      } else { message.error(res.message || '保存失败') }
-    } catch { message.error('保存失败') }
-    setHomeMenuSaving(false)
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -288,16 +261,23 @@ export default function CategoryList() {
                 size="small"
                 dataSource={level1Categories}
                 renderItem={(cat) => (
-                  <List.Item
-                    className={`cursor-pointer ${selectedParentId === cat.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                    onClick={() => setSelectedParentId(cat.id)}
-                  >
-                    <List.Item.Meta
-                      avatar={<span className="text-lg">{cat.icon}</span>}
-                      title={<span className="font-medium">{cat.name}</span>}
-                    />
-                  </List.Item>
-                )}
+                   <List.Item
+                     className={`cursor-pointer ${selectedParentId === cat.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                     onClick={() => setSelectedParentId(cat.id)}
+                     extra={
+                       <Space size="small" onClick={e => e.stopPropagation()}>
+                         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={() => handleSortUp(cat)} /></Tooltip>
+                         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} onClick={() => handleSortDown(cat)} /></Tooltip>
+                         <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={() => handleHide(cat)} /></Tooltip>
+                       </Space>
+                     }
+                   >
+                     <List.Item.Meta
+                       avatar={<span className="text-lg">{cat.icon}</span>}
+                       title={<span className="font-medium">{cat.name}</span>}
+                     />
+                   </List.Item>
+                 )}
               />
             </div>
           )}
@@ -330,7 +310,7 @@ export default function CategoryList() {
                 <SortableContext items={subCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
                   <div className="border rounded">
                     {subCategories.map(category => (
-                      <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} />
+                      <SortableItem key={category.id} category={category} onEdit={handleEdit} onDelete={handleDelete} onSortUp={handleSortUp} onSortDown={handleSortDown} onHide={handleHide} />
                     ))}
                   </div>
                 </SortableContext>
@@ -376,23 +356,7 @@ export default function CategoryList() {
         </Form>
       </Modal>
 
-      {/* Home menu config button and modal */}
-      <Button icon={<HomeOutlined />} onClick={handleOpenHomeMenuConfig} className="mb-4 ml-2 mt-2">配置首页菜单</Button>
-      <Modal title="首页菜单配置" open={homeMenuVisible} onCancel={() => setHomeMenuVisible(false)}
-        onOk={handleSaveHomeMenu} confirmLoading={homeMenuSaving} okText="保存" cancelText="取消" width={500}>
-        <p className="mb-2 text-gray-500">选择哪些顶层分类显示在微信首页菜单中（「全部」始终显示），拖拽可排序。</p>
-        {homeMenuCats.length === 0 ? <Spin /> : (
-          <div className="space-y-2">
-            {homeMenuCats.map(cat => (
-              <div key={cat.id} className="flex items-center gap-3 p-2 border rounded hover:bg-gray-50">
-                <Checkbox checked={homeMenuSelected.includes(cat.id)}
-                  onChange={e => setHomeMenuSelected(prev => e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id))} />
-                <span>{cat.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Modal>
+      <p className="mt-4 text-xs text-gray-400">↑↓ 调整首页菜单显示顺序，👁‍🗨 从首页隐藏该分类</p>
     </div>
   )
 }
