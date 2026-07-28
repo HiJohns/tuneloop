@@ -51,7 +51,7 @@ export default function MerchantPricingConfig() {
   }
 
   const applyConfig = (config) => {
-    const tiers = (config.tiers || []).map((t, i) => ({
+    const tiers = ((config.tiers && config.tiers.length > 0) ? config.tiers : DEFAULT_CONFIG.tiers).map((t, i) => ({
       name: t.name || `第${i + 1}段`,
       days_max: t.days_max ?? DEFAULT_CONFIG.tiers[i]?.days_max ?? -1,
       discount_percent: t.discount_percent ?? 0,
