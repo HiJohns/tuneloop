@@ -94,7 +94,10 @@ export default function Home() {
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 50
   const menuStuck = scrollY > 130
-  const topCategories = categories.filter(c => !c.parent_id)
+  const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
+    ...cat,
+    sub_categories: categories.filter(c => c.parent_id === cat.id)
+  }))
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
   const lastSwipeRef = useRef(0)
@@ -378,8 +381,9 @@ export default function Home() {
 }
 
 function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
-  const items = [{ id: null, name: '全部' }, ...(categories || [])]
+  const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
   const localTouchRef = useRef({ x: 0, offset: 0 })
+  const [dropdownCat, setDropdownCat] = useState(null)
 
   return (
     <View className="w-full overflow-hidden pl-7 bg-black/20 py-1"
@@ -396,17 +400,44 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
       <View className="inline-flex items-center pr-4"
         style={{ transform: `translateX(${catOffsetX}px)`, whiteSpace: 'nowrap', gap: '40px' }}
       >
-        {items.map(item => (
-          <Text
-            key={item.id || 'all'}
-            className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold text-white/80`}`}
-            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
-            onClick={() => onCategoryChange(item.id)}
-          >
-            {item.name}
-          </Text>
-            ))}
-          </View>
+        {items.map(item => {
+          const hasChildren = (item.sub_categories || []).length > 0
+          return (
+            <View key={item.id || 'all'} className="relative">
+              <Text
+                className={`text-lg whitespace-nowrap ${selectedCategory === item.id ? `font-black border-b-2 pb-0.5 text-white border-white` : `font-bold text-white/80`}`}
+                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+                onClick={() => {
+                  if (hasChildren) {
+                    setDropdownCat(dropdownCat === item.id ? null : item.id)
+                  } else {
+                    onCategoryChange(item.id)
+                    setDropdownCat(null)
+                  }
+                }}
+              >
+                {item.name}
+              </Text>
+              {hasChildren && dropdownCat === item.id && (
+                <View className="absolute top-8 left-0 bg-white rounded-lg shadow-lg py-2 z-50 min-w-32"
+                  onClick={e => e.stopPropagation()}>
+                  <View className="px-4 py-2 border-b border-gray-50" onClick={() => { onCategoryChange(item.id); setDropdownCat(null) }}>
+                    <Text className="text-sm font-bold text-black text-center">全部</Text>
+                  </View>
+                  {item.sub_categories.map(sub => (
+                    <View key={sub.id} className="px-4 py-2" onClick={() => { onCategoryChange(sub.id); setDropdownCat(null) }}>
+                      <Text className="text-sm text-gray-700 whitespace-nowrap">{sub.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )
+        })}
+      </View>
+      {dropdownCat && (
+        <View className="fixed inset-0 z-40" onClick={() => setDropdownCat(null)} />
+      )}
     </View>
   )
 }
