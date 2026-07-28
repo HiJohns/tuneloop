@@ -156,25 +156,23 @@ export default function CategoryList() {
   const handleHide = (cat) => sortSingle({ cat, sort: (cat.sort || 0) <= 0 ? 1 : 0 })
 
   const handleSortUp = (cat, list) => {
-    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    const sorted = [...list].filter(c => (c.sort || 0) > 0).sort((a, b) => (a.sort || 0) - (b.sort || 0))
     const idx = sorted.findIndex(c => c.id === cat.id)
     if (idx <= 0) return
-    const prev = sorted[idx - 1]
-    const tmp = prev.sort || 1
-    prev.sort = cat.sort || 1
-    cat.sort = tmp
-    sortSingle([{ cat, sort: cat.sort }, { cat: prev, sort: prev.sort }])
+    const newList = [...sorted]
+    const [moved] = newList.splice(idx, 1)
+    newList.splice(idx - 1, 0, moved)
+    sortSingle(newList.map((c, i) => ({ cat: c, sort: i + 1 })))
   }
 
   const handleSortDown = (cat, list) => {
-    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    const sorted = [...list].filter(c => (c.sort || 0) > 0).sort((a, b) => (a.sort || 0) - (b.sort || 0))
     const idx = sorted.findIndex(c => c.id === cat.id)
     if (idx < 0 || idx >= sorted.length - 1) return
-    const next = sorted[idx + 1]
-    const tmp = next.sort || 1
-    next.sort = cat.sort || 1
-    cat.sort = tmp
-    sortSingle([{ cat, sort: cat.sort }, { cat: next, sort: next.sort }])
+    const newList = [...sorted]
+    const [moved] = newList.splice(idx, 1)
+    newList.splice(idx + 1, 0, moved)
+    sortSingle(newList.map((c, i) => ({ cat: c, sort: i + 1 })))
   }
 
   const handleCreateTopLevel = () => {
@@ -299,8 +297,8 @@ export default function CategoryList() {
                 size="small"
                 dataSource={level1Categories}
                 renderItem={(cat) => {
-                   const sorted = [...level1Categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
-                   const idx = sorted.findIndex(c => c.id === cat.id)
+                   const visible = [...level1Categories].filter(c => (c.sort || 0) > 0).sort((a, b) => (a.sort || 0) - (b.sort || 0))
+                   const idx = visible.findIndex(c => c.id === cat.id)
                    const hidden = (cat.sort || 0) <= 0
                    return (
                    <List.Item
