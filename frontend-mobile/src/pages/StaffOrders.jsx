@@ -4,6 +4,7 @@ import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/
 import { warehouseApi, apiFetch, getToken } from '../services/api'
 import { env, scanQRCode } from '../platform'
 import { formatDisplayDate } from '../utils/format'
+import { calculateDays } from '../utils/daycalc'
 import { Package, Search, Scan } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 
@@ -226,13 +227,13 @@ export default function StaffOrders() {
                   <View className="space-y-1 text-sm">
                     <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
                     <View><Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at || order.end_date)}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(order.start_date)) / 86400000))) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
+                    <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{calculateDays(new Date(order.start_date), new Date(order.returned_at || order.end_date)) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
                   </View>
                 ) : (
                   <View className="space-y-1 text-sm">
                     <View><Text className="text-zinc-400 font-medium">下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text></Text></View>
                     <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">预计天数: <Text className="text-black font-medium">{order.lease_term || Math.max(1, Math.round(((new Date(order.end_date) - new Date(order.start_date)) / 86400000))) || '-'}</Text> 天</Text></View>
+                    <View><Text className="text-zinc-400 font-medium">预计天数: <Text className="text-black font-medium">{order.lease_term || calculateDays(new Date(order.start_date), new Date(order.end_date)) || '-'}</Text> 天</Text></View>
                     <View><Text className="text-zinc-400 font-medium">预期归还日: <Text className="text-black font-medium">{formatDisplayDate(order.end_date)}</Text></Text></View>
                   </View>
                 )}

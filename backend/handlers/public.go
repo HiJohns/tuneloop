@@ -341,11 +341,11 @@ func GetPublicCategories(c *gin.Context) {
 	tenantID := c.Query("tenant")
 
 	var categories []models.Category
-	query := db.Model(&models.Category{})
+	query := db.Model(&models.Category{}).Where("visible = ? AND sort > 0", true)
 	if tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	if err := query.Find(&categories).Error; err != nil {
+	if err := query.Order("sort ASC, created_at ASC").Find(&categories).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to fetch categories",

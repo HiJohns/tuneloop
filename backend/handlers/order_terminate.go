@@ -54,7 +54,7 @@ func TerminateOrder(c *gin.Context) {
 		}
 	}
 
-	if order.DepositMode == "standard" && order.Deposit > 0 {
+	if order.Deposit > 0 {
 		order.DepositRefunded = true
 	}
 	if err := tx.WithContext(c.Request.Context()).Save(&order).Error; err != nil {

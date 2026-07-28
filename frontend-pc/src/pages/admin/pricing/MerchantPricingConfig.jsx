@@ -10,16 +10,14 @@ const DEFAULT_CONFIG = {
     { name: '长期租赁', days_max: -1, discount_percent: 10 },
   ],
   deposit_mode: 'ratio',
-  deposit_multiplier: 7,
-  deposit_fixed: 0,
+  deposit_ratio: 1.0,
 }
 
 export default function MerchantPricingConfig() {
   const [loading, setLoading] = useState(false)
   const [tiers, setTiers] = useState([])
   const [depositMode, setDepositMode] = useState('ratio')
-  const [depositRatio, setDepositRatio] = useState(7.0)
-  const [depositFixed, setDepositFixed] = useState(0)
+  const [depositRatio, setDepositRatio] = useState(1.0)
   const [templateId, setTemplateId] = useState(null)
   const [configured, setConfigured] = useState(false)
   const [templateName, setTemplateName] = useState('')
@@ -53,15 +51,14 @@ export default function MerchantPricingConfig() {
   }
 
   const applyConfig = (config) => {
-    const tiers = (config.tiers || []).map((t, i) => ({
+    const tiers = ((config.tiers && config.tiers.length > 0) ? config.tiers : DEFAULT_CONFIG.tiers).map((t, i) => ({
       name: t.name || `第${i + 1}段`,
       days_max: t.days_max ?? DEFAULT_CONFIG.tiers[i]?.days_max ?? -1,
       discount_percent: t.discount_percent ?? 0,
     }))
     setTiers(tiers)
     setDepositMode(config.deposit_mode || 'ratio')
-    setDepositRatio(config.deposit_multiplier || 7.0)
-    setDepositFixed(config.deposit_fixed || 0)
+    setDepositRatio(config.deposit_ratio || 1.0)
   }
 
   const handleTierChange = (index, field, value) => {
@@ -107,8 +104,7 @@ export default function MerchantPricingConfig() {
     const config = {
       tiers,
       deposit_mode: depositMode,
-      deposit_multiplier: depositMode === 'ratio' ? depositRatio : 0,
-      deposit_fixed: depositMode === 'fixed' ? depositFixed : 0,
+      deposit_ratio: depositMode === 'ratio' ? depositRatio : 0,
     }
 
     setLoading(true)
@@ -256,37 +252,29 @@ export default function MerchantPricingConfig() {
           <Space align="start" size="large">
             <Form.Item label="押金模式">
               <Select value={depositMode} onChange={setDepositMode} style={{ width: 160 }}>
-                <Select.Option value="ratio">按日均价倍率</Select.Option>
-                <Select.Option value="fixed">固定金额</Select.Option>
+                <Select.Option value="ratio">按原价比列</Select.Option>
+                <Select.Option value="custom">自定义金额</Select.Option>
               </Select>
             </Form.Item>
 
             {depositMode === 'ratio' && (
-              <Form.Item label="押金倍率">
+              <Form.Item label="押金比列">
                 <InputNumber
-                  min={0.5}
-                  max={5}
-                  step={0.5}
+                  min={0}
+                  max={10}
+                  step={0.1}
                   value={depositRatio}
                   onChange={setDepositRatio}
                   style={{ width: 120 }}
-                  formatter={(val) => `${val}倍`}
-                  parser={(val) => parseFloat(val?.replace('倍', '') || '0')}
+                  formatter={(val) => `${(val || 0) * 100}%`}
+                  parser={(val) => parseFloat(val?.replace('%', '') || '0') / 100}
                 />
               </Form.Item>
             )}
 
-            {depositMode === 'fixed' && (
-              <Form.Item label="固定押金金额">
-                <InputNumber
-                  min={0}
-                  step={100}
-                  value={depositFixed}
-                  onChange={setDepositFixed}
-                  style={{ width: 160 }}
-                  formatter={(val) => `¥ ${val}`}
-                  parser={(val) => parseFloat(val?.replace(/¥\s?/g, '') || '0')}
-                />
+            {depositMode === 'custom' && (
+              <Form.Item label="自定义金额说明">
+                <span className="text-gray-500 text-sm">在乐器编辑中逐件设置押金金额</span>
               </Form.Item>
             )}
           </Space>
@@ -314,7 +302,7 @@ export default function MerchantPricingConfig() {
             )
           })}
           <div className="text-sm py-1 border-t mt-2 pt-2">
-            押金: ¥{depositMode === 'ratio' ? `${depositRatio * 100}` : depositFixed}
+            押金: {depositMode === 'ratio' ? `原价 × ${depositRatio}（${depositRatio * 100}%）` : '自定义（逐件设置）'}
           </div>
         </div>
       </Card>

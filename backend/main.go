@@ -661,6 +661,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				referralHandler := handlers.NewReferralHandler()
 				userOptionalAuth.GET("/users/me/promo-qrcode", referralHandler.GetPromoQR)
 				userOptionalAuth.GET("/users/me/referrals", referralHandler.ListReferrals)
+				userOptionalAuth.GET("/ref/landing", referralHandler.LandingPage)
 				// WeChat binding (PC → WeChat scan)
 				userOptionalAuth.POST("/users/me/wechat-bind", bindHandler.GenBindToken)
 				userOptionalAuth.GET("/users/me/wechat-bind/:token", bindHandler.PollBindToken)

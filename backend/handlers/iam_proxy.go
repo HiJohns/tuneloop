@@ -529,7 +529,6 @@ func createLocalUserWithStatus(c *gin.Context, iamUserID string, req *struct {
 		Phone:       req.Phone,
 		Email:       req.Email,
 		CreditScore: 600,
-		DepositMode: "standard",
 		IsShadow:    true,
 		Status:      status,
 	}

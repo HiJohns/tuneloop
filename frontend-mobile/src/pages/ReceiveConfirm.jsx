@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { ArrowLeft, CheckCircle, Camera } from 'lucide-react'
+import { calculateDays } from '../utils/daycalc'
 import ImageUploader from '../components/ImageUploader'
 import { dialog, env, storage, session, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
@@ -96,7 +97,7 @@ export default function ReceiveConfirm() {
 
   const leaseTerm = order?.lease_term || 0
   const rentalDays = (order?.start_date && order?.end_date)
-    ? Math.max(1, Math.round((new Date(order.end_date) - new Date(order.start_date)) / 86400000))
+    ? calculateDays(new Date(order.start_date), new Date(order.end_date))
     : leaseTerm * 30
 
   return (

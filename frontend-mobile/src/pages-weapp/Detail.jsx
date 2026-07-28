@@ -4,6 +4,7 @@ import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services
 import dayjs from 'dayjs'
 import { env, storage, session, eventBus, getWindowSize, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
+import { calculateDays } from '../utils/daycalc'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 import * as S from '../styles-weapp'
 
@@ -472,7 +473,7 @@ export default function Detail() {
               </Text>
               {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
                 <Text style={{ color: '#dc2626', fontWeight: '700' }}>
-                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                  超期 {calculateDays(new Date(activeOrder.end_date), new Date())} 天
                 </Text>
               )}
               {isCustomer && (
@@ -523,7 +524,7 @@ export default function Detail() {
               </Text>
               {activeOrder.end_date && (
                 <Text style={{ color: '#dc2626', fontWeight: '700' }}>
-                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                  超期 {calculateDays(new Date(activeOrder.end_date), new Date())} 天
                 </Text>
               )}
               <View

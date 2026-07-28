@@ -64,7 +64,7 @@ func GetMerchantPricingConfig(c *gin.Context) {
 				"template_name":     defaultTemplate.Name,
 				"template_code":     defaultTemplate.Code,
 				"is_system_default": defaultTemplate.IsSystemDefault,
-				"config":            defaultTemplate.ConfigSchema,
+				"config":            json.RawMessage(defaultTemplate.ConfigSchema),
 				"configured":        false,
 			},
 		})
@@ -85,7 +85,7 @@ func GetMerchantPricingConfig(c *gin.Context) {
 			"template_id":       config.TemplateID,
 			"template_name":     tmplName,
 			"is_system_default": tmpl.IsSystemDefault,
-			"config":            config.Config,
+			"config":            json.RawMessage(config.Config),
 			"configured":        true,
 		},
 	})
@@ -282,7 +282,7 @@ func GetInstrumentPricingV2(c *gin.Context) {
 	var config models.MerchantPricingConfig
 	if err := db.Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			config.Config = `{"deposit_mode":"ratio","deposit_multiplier":7,"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20},{"days_max":-1,"discount_percent":40}]}`
+			config.Config = `{"deposit_mode":"ratio","deposit_ratio":1.0,"deposit_multiplier":7,"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20},{"days_max":-1,"discount_percent":40}]}`
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,

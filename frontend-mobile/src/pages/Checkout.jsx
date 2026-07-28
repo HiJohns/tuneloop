@@ -5,6 +5,7 @@ import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '..
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
+import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
 
 function parseImages(images) {
@@ -162,7 +163,7 @@ function SingleCheckout({ id, navigate }) {
   const shippingFee = pricingV2?.shipping_fee || parsePricing(instrument?.pricing)[0]?.shipping_fee || 0
   const totalAmount = totalRent + deposit + shippingFee
   const startDate = new Date().toISOString().slice(0, 10)
-  const returnDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+  const returnDate = calculateEndDate(new Date(), days).toISOString().slice(0, 10)
 
   const handleDaysChange = (value) => {
     setDays(Math.max(1, Math.min(730, parseInt(value) || 1)))

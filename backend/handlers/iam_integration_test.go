@@ -194,7 +194,7 @@ func TestIAMIntegration_ConfirmationCallback(t *testing.T) {
 		Status:      "pending",
 		IsShadow:    true,
 		CreditScore: 600,
-		DepositMode: "standard",
+		
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -285,7 +285,7 @@ func TestIAMIntegration_UserUpdate_EmailChange(t *testing.T) {
 		Status:      "active",
 		IsShadow:    false,
 		CreditScore: 600,
-		DepositMode: "standard",
+		
 	}
 	require.NoError(t, db.Create(&user).Error)
 

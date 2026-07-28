@@ -6,6 +6,7 @@ import { Switch, Tag, Modal, Button as AntButton } from 'antd'
 import dayjs from 'dayjs'
 import { env, storage, eventBus, getWindowSize, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
+import { calculateDays } from '../utils/daycalc'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
 
 const SERVICE_ITEMS = [
@@ -179,91 +180,90 @@ export default function Detail() {
     : 'bg-zinc-500'
 
   return (
-    <View className="min-h-screen bg-zinc-100 pb-[140px] flex flex-col relative antialiased">
+    <View className="h-screen flex flex-col antialiased" style={{ backgroundColor: '#FDFBF7' }}>
       {/* Nav bar */}
-      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-zinc-100">
+      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center" style={{ backgroundColor: '#FDF4E7' }}>
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">乐器详情</Text>
         <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
       </View>
 
-      {/* Banner carousel */}
-      <View className="w-full overflow-hidden"
-        onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
-        onTouchEnd={(e) => {
-          const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
-          if (Math.abs(diff) > 50 && bannerImages.length > 1) {
-            setCurrentBanner(prev => {
-              if (diff < 0) {
-                if (prev >= bannerImages.length - 1) return prev + 1
-                return prev + 1
-              }
-              if (prev <= 0) return prev - 1
-              return prev - 1
-            })
-          }
-        }}
-      >
-        <View className="w-full overflow-hidden" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
-          <View className="flex flex-row h-full" style={{
-            width: `${(bannerImages.length + 2) * 100}%`,
-            transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
-            transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out',
+      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false} style={{ minHeight: 0, overflowY: 'scroll' }}>
+        {/* Banner carousel */}
+        <View className="w-full overflow-hidden"
+          onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => {
+            const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
+            if (Math.abs(diff) > 50 && bannerImages.length > 1) {
+              setCurrentBanner(prev => {
+                if (diff < 0) {
+                  if (prev >= bannerImages.length - 1) return prev + 1
+                  return prev + 1
+                }
+                if (prev <= 0) return prev - 1
+                return prev - 1
+              })
+            }
           }}
-            onTransitionEnd={() => {
-              if (currentBanner === -1) {
-                setJumpReset(true)
-                setCurrentBanner(bannerImages.length - 1)
-                setTimeout(() => setJumpReset(false), 50)
-              } else if (currentBanner === bannerImages.length) {
-                setJumpReset(true)
-                setCurrentBanner(0)
-                setTimeout(() => setJumpReset(false), 50)
-              }
-            }}>
-            {bannerImages.length > 0 && (
-              <View key="clone-last" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: urls[urls.length - 1] })
-                    } catch (e) { console.warn('[Preview] failed:', e) }
-                  }} />
-              </View>
-            )}
-            {bannerImages.map((img, i) => (
-              <View key={i} className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={img.url || img} className="w-full h-full object-cover"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: img.url || img })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
-                  }} />
-              </View>
+        >
+          <View className="w-full overflow-hidden" style={{ height: `${Math.round(getWindowSize().width * 4 / 3)}px` }}>
+            <View className="flex flex-row h-full" style={{
+              width: `${(bannerImages.length + 2) * 100}%`,
+              transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`,
+              transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out',
+            }}
+              onTransitionEnd={() => {
+                if (currentBanner === -1) {
+                  setJumpReset(true)
+                  setCurrentBanner(bannerImages.length - 1)
+                  setTimeout(() => setJumpReset(false), 50)
+                } else if (currentBanner === bannerImages.length) {
+                  setJumpReset(true)
+                  setCurrentBanner(0)
+                  setTimeout(() => setJumpReset(false), 50)
+                }
+              }}>
+              {bannerImages.length > 0 && (
+                <View key="clone-last" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} className="w-full h-full object-cover"
+                    onClick={() => {
+                      try {
+                        const urls = bannerImages.map(img => img.url || img)
+                        previewImage({ urls, current: urls[urls.length - 1] })
+                      } catch (e) { console.warn('[Preview] failed:', e) }
+                    }} />
+                </View>
+              )}
+              {bannerImages.map((img, i) => (
+                <View key={i} className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={img.url || img} className="w-full h-full object-cover"
+                    onClick={() => {
+                      try {
+                        const urls = bannerImages.map(img => img.url || img)
+                        previewImage({ urls, current: img.url || img })
+                      } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                    }} />
+                </View>
+              ))}
+              {bannerImages.length > 0 && (
+                <View key="clone-first" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover"
+                    onClick={() => {
+                      try {
+                        const urls = bannerImages.map(img => img.url || img)
+                        previewImage({ urls, current: urls[0] })
+                      } catch (e) { console.warn('[Preview] previewImage failed:', e) }
+                    }} />
+                </View>
+              )}
+            </View>
+          </View>
+          <View className="flex items-center justify-center space-x-1.5 pb-3" style={{ backgroundColor: '#FDF4E7' }}>
+            {bannerImages.map((_, i) => (
+              <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
             ))}
-            {bannerImages.length > 0 && (
-              <View key="clone-first" className="h-full" style={{ width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[0].url || bannerImages[0]} className="w-full h-full object-cover"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: urls[0] })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
-                  }} />
-              </View>
-            )}
           </View>
         </View>
-        <View className="flex items-center justify-center space-x-1.5 pb-3 bg-zinc-100">
-          {bannerImages.map((_, i) => (
-            <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
-          ))}
-        </View>
-      </View>
-
-      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false}>
         <View className="px-4 mt-4 space-y-3 pb-4">
 
           {/* Card A: Instrument info + deposit */}
@@ -436,7 +436,7 @@ export default function Detail() {
       )}
 
       {/* Bottom panel */}
-      <View className="fixed bottom-0 left-0 right-0 bg-[#FDFBF7] border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl">
+      <View className="border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl" style={{ backgroundColor: '#FDF4E7' }}>
         {isRentable && isCustomer ? (
           <>
             <View className="flex w-full space-x-3">
@@ -465,7 +465,7 @@ export default function Detail() {
               </Text>
               {activeOrder.end_date && new Date(activeOrder.end_date) < new Date() && (
                 <Text className="text-red-600 font-bold">
-                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                  超期 {calculateDays(new Date(activeOrder.end_date), new Date())} 天
                 </Text>
               )}
               {isCustomer && (
@@ -516,7 +516,7 @@ export default function Detail() {
               </Text>
               {activeOrder.end_date && (
                 <Text className="text-red-600 font-bold">
-                  超期 {Math.ceil((Date.now() - new Date(activeOrder.end_date).getTime()) / 86400000)} 天
+                  超期 {calculateDays(new Date(activeOrder.end_date), new Date())} 天
                 </Text>
               )}
               <View

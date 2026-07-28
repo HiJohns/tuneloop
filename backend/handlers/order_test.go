@@ -91,7 +91,7 @@ func TestLeaseFlow_CompleteLifecycle(t *testing.T) {
 			"instrument_id":    instrumentID,
 			"level":            "standard",
 			"lease_term":       3,
-			"deposit_mode":     "standard",
+			"deposit_mode": "ratio",
 			"agreement_signed": true,
 		}
 		jsonBody, _ := json.Marshal(body)
@@ -197,7 +197,7 @@ func TestLeaseFlow_CancelOrder(t *testing.T) {
 		"instrument_id":    instrumentID,
 		"level":            "standard",
 		"lease_term":       3,
-		"deposit_mode":     "standard",
+		"deposit_mode": "ratio",
 		"agreement_signed": true,
 	}
 	jsonBody, _ := json.Marshal(body)
@@ -540,7 +540,7 @@ func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
 		"instrument_id":    instrumentID,
 		"level":            "standard",
 		"lease_term":       3,
-		"deposit_mode":     "standard",
+		"deposit_mode": "ratio",
 		"agreement_signed": true,
 	}
 	jsonBody, _ := json.Marshal(body)

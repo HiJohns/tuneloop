@@ -4,6 +4,7 @@ import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
+import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 import { ArrowLeft, User, MapPin, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar } from 'lucide-react'
@@ -195,7 +196,7 @@ export default function OrderDetail() {
   const leaseTerm = order.lease_term || 0
   const effStartDate = order.delivered_at || order.start_date
   const rentalDays = (effStartDate && (order.end_date || order.returned_at))
-    ? Math.max(1, Math.round(((new Date(order.returned_at || order.end_date) - new Date(effStartDate)) / 86400000)))
+    ? calculateDays(new Date(effStartDate), new Date(order.returned_at || order.end_date))
     : leaseTerm * 30
    const deposit = order.deposit || 0
    const shippingFee = order.shipping_fee || 0
@@ -206,7 +207,7 @@ export default function OrderDetail() {
    const settlement = order.settlement
 
    const isOverdue = (status === 'expired' || status === 'in_lease') && order.end_date && order.end_date.slice(0, 10) <= new Date().toISOString().slice(0, 10)
-   const overdueDaysCalc = isOverdue ? Math.ceil((Date.now() - new Date(order.end_date.slice(0, 10)).getTime()) / 86400000) + 1 : 0
+   const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date.slice(0, 10)), new Date()) : 0
    const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
    const totalAmount = rentSubtotal + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 

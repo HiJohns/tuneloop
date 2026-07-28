@@ -146,52 +146,55 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		DepositMode:   "ratio",
 	}
 
-	// Check manual overrides first — if daily_rent is overridden, skip formula
+	// Check manual overrides first — if daily_rent is overridden, use it but don't skip shipping/deposit
 	var overrides map[string]interface{}
 	json.Unmarshal([]byte(overridesJSON), &overrides)
+	dailyRentOverride := false
 	if overrideVal, ok := overrides["daily_rent"].(float64); ok && overrideVal > 0 {
 		result.Tiers = []TierPrice{
 			{DaysMax: -1, DailyRate: overrideVal},
 		}
 		result.Deposit = getOverrideFloat(overrides, "deposit")
-		return result
+		dailyRentOverride = true
 	}
 
-	// Build tiers from config
-	if tiersRaw, ok := config["tiers"].([]interface{}); ok {
-		for _, tRaw := range tiersRaw {
-			if t, ok := tRaw.(map[string]interface{}); ok {
-				daysMax := int(getFloat(t, "days_max"))
-				discount := int(getFloat(t, "discount_percent"))
-				rate := baseDailyRate
-				if discount > 0 {
-					rate = baseDailyRate * (1 - float64(discount)/100)
+	if !dailyRentOverride {
+		// Build tiers from config
+		if tiersRaw, ok := config["tiers"].([]interface{}); ok {
+			for _, tRaw := range tiersRaw {
+				if t, ok := tRaw.(map[string]interface{}); ok {
+					daysMax := int(getFloat(t, "days_max"))
+					discount := int(getFloat(t, "discount_percent"))
+					rate := baseDailyRate
+					if discount > 0 {
+						rate = baseDailyRate * (1 - float64(discount)/100)
+					}
+					result.Tiers = append(result.Tiers, TierPrice{
+						DaysMax:   daysMax,
+						DailyRate: rate,
+					})
 				}
-				result.Tiers = append(result.Tiers, TierPrice{
-					DaysMax:   daysMax,
-					DailyRate: rate,
-				})
 			}
 		}
-	}
 
-	// Calculate deposit
+		// Calculate deposit (v3: only ratio or custom)
 	depositMode, _ := config["deposit_mode"].(string)
 	result.DepositMode = depositMode
 	switch depositMode {
-	case "fixed":
-		result.Deposit = getFloat(config, "deposit_fixed")
-	default:
+	case "custom":
+		result.Deposit = 0
+	case "ratio", "":
+		ratio := getFloat(config, "deposit_ratio")
+		if ratio == 0 {
+			ratio = 1.0
+		}
 		if totalPrice > 0 {
-			ratio := getFloat(config, "deposit_ratio")
 			result.Deposit = totalPrice * ratio
-		} else {
-			multiplier := getFloat(config, "deposit_multiplier")
-			result.Deposit = baseDailyRate * multiplier
 		}
 	}
+	}
 
-	// Check individual override fields
+	// Check individual override fields (always runs, even with daily_rent override)
 	if ov, ok := overrides["deposit"].(float64); ok && ov > 0 {
 		result.Deposit = ov
 	}

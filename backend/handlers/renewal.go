@@ -114,14 +114,14 @@ func CalculateRenewal(c *gin.Context) {
 	endDate := parseDatePtr(order.EndDate)
 	today := time.Now().Truncate(24 * time.Hour)
 
-	consumedDays := int(today.Sub(startDate).Hours() / 24)
+	consumedDays := services.CalculateDays(startDate, today)
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
 
 	var overdueDays int
 	if today.After(endDate) {
-		overdueDays = int(today.Sub(endDate).Hours() / 24)
+		overdueDays = services.CalculateDays(endDate, today)
 		if overdueDays < 0 {
 			overdueDays = 0
 		}
@@ -175,11 +175,10 @@ func ConfirmRenewal(c *gin.Context) {
 
 	startDate := parseDatePtr(order.StartDate)
 	today := time.Now().Truncate(24 * time.Hour)
-	consumedDays := int(today.Sub(startDate).Hours() / 24)
+	consumedDays := services.CalculateDays(startDate, today)
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
-
 	baseRate, pricingTiers, cumDisc := loadRenewalPricing(order)
 	renewalCost, _ := services.CalculateRenewalPricing(
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,

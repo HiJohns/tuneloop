@@ -17,7 +17,7 @@ type User struct {
 	Phone               string     `gorm:"type:varchar(50)" json:"phone"`
 	Email               string     `gorm:"type:varchar(255)" json:"email"`
 	CreditScore         int        `gorm:"default:600" json:"credit_score"`
-	DepositMode         string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
+	DepositMode         string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
 	IsShadow            bool       `gorm:"default:true" json:"is_shadow"`
 	IsSystemAdmin       bool       `gorm:"default:false" json:"is_system_admin"`
 	Status              string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
@@ -46,7 +46,7 @@ type Category struct {
 	Icon      string    `json:"icon"`
 	ParentID  *string   `gorm:"type:uuid" json:"parent_id"`
 	Level     int       `gorm:"default:1" json:"level"`
-	Sort      int       `gorm:"default:0" json:"sort"`
+	Sort      int       `gorm:"default:1" json:"sort"`
 	Visible   bool      `gorm:"default:true" json:"visible"`
 	CreatedAt time.Time `json:"created_at"`
 }

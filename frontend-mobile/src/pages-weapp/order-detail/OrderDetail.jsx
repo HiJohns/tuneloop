@@ -4,6 +4,7 @@ import { View, Text, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
+import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
 
 const STATUS = {
@@ -206,11 +207,11 @@ export default function OrderDetail() {
   const pb = order.pricing_breakdown
   const dailyRate = (pb && (pb.final_daily_rent || pb.base_daily_rent)) || order.base_daily_rate || 0
   const actualRentDays = order.returned_at && order.start_date
-    ? Math.max(1, Math.round((new Date(order.returned_at) - new Date(order.start_date)) / 86400000) + 1)
+    ? calculateDays(new Date(order.start_date), new Date(order.returned_at))
     : 0
 
   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(order.end_date) < new Date()
-  const overdueDaysCalc = isOverdue ? Math.ceil((new Date() - new Date(order.end_date)) / 86400000) : 0
+  const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date), new Date()) : 0
   const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : 0).toFixed(2) : 0
 
   const totalAmount = (pb?.total_amount || 0) + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
