@@ -177,6 +177,14 @@ export default function CategoryList() {
     sortSingle([{ cat, sort: cat.sort }, { cat: next, sort: next.sort }])
   }
 
+  const handleCreateTopLevel = () => {
+    setEditingCategory(null)
+    setFormMode('create')
+    form.resetFields()
+    form.setFieldsValue({ visible: true, sort: 1 })
+    setModalVisible(true)
+  }
+
   const handleCreateSubCategory = () => {
     if (!selectedParentId) {
       message.warning('Please select a parent category first')
