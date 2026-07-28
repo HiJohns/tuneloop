@@ -395,11 +395,13 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
       return
     }
     const cat = categories.find(c => c.id === item.id)
-    if (cat && (cat.sub_categories || []).length > 0) {
+    if (!subMenuCat && cat && (cat.sub_categories || []).length > 0) {
+      // Entering sub-menu: auto-select the parent category
+      onCategoryChange(cat.id)
       setSubMenuCat(cat)
     } else {
+      // Selecting a filter item (or "全部" in sub-menu)
       onCategoryChange(item.id)
-      setSubMenuCat(null)
     }
   }
 
