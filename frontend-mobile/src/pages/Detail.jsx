@@ -188,7 +188,7 @@ export default function Detail() {
         <Text className="text-sm font-bold text-zinc-700">★ 收藏</Text>
       </View>
 
-      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false} style={{ minHeight: 0 }}>
+      <ScrollView className="w-full flex-1" scrollY scrollWithAnimation showScrollbar={false} style={{ minHeight: 0, overflowY: 'scroll' }}>
         {/* Banner carousel */}
         <View className="w-full overflow-hidden"
           onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
