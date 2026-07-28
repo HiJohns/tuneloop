@@ -138,14 +138,14 @@ export default function MyLeases() {
       </View>
 
       {/* Filter bar */}
-      <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12 }}>
+      <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12, display: 'flex', alignItems: 'center' }}>
         <Picker
           mode="selector"
           range={FILTERS.map(f => f.label)}
           value={Math.max(0, FILTERS.findIndex(f => f.key === selectedFilter))}
           onChange={e => setSelectedFilter(FILTERS[e.detail.value].key)}
         >
-          <View style={{ padding: '10px 16px', borderRadius: 999, backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+          <View style={{ padding: '10px 24px', borderRadius: 999, backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14, marginRight: 6 }}>
               {FILTERS.find(f => f.key === selectedFilter)?.label || '全部订单'}
             </Text>
@@ -185,7 +185,7 @@ export default function MyLeases() {
               return (
               <View
                 key={order.id}
-                style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}
+                style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12, width: '100%' }}
                 onClick={() => nav(`/pages-weapp/order-detail/index?id=${order.id}`)}
               >
                 <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
