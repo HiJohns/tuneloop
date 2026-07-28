@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card, Select, List, Button, Modal, Form, Input, InputNumber, Switch, message, Spin, Empty, Space, Popconfirm, Tooltip } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, UpOutlined, DownOutlined, EyeInvisibleOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined, MenuOutlined, UpOutlined, DownOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -31,7 +31,9 @@ function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide
       <Space size="small">
         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} disabled={idx <= 0 || hidden} onClick={(e) => { e.stopPropagation(); onSortUp(category, list) }} /></Tooltip>
         <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= total - 1 || hidden} onClick={(e) => { e.stopPropagation(); onSortDown(category, list) }} /></Tooltip>
-        <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); onHide(category) }} /></Tooltip>
+        {hidden
+          ? <Tooltip title="首页显示"><Button size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); onHide(category) }} /></Tooltip>
+          : <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); onHide(category) }} /></Tooltip>}
         <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(category)} />
         <Popconfirm
           title="确定要删除此分类吗？"
@@ -164,7 +166,7 @@ export default function CategoryList() {
     sortSingle(cat, (next.sort || 1) + 1)
   }
 
-  const handleHide = (cat) => sortSingle(cat, 0)
+  const handleHide = (cat) => sortSingle(cat, (cat.sort || 0) <= 0 ? 1 : 0)
 
   const handleCreateTopLevel = () => {
     setEditingCategory(null)
@@ -299,7 +301,9 @@ export default function CategoryList() {
                        <Space size="small">
                          <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} disabled={idx <= 0 || hidden} onClick={(e) => { e.stopPropagation(); handleSortUp(cat, level1Categories) }} /></Tooltip>
                          <Tooltip title="首页下移"><Button size="small" icon={<DownOutlined />} disabled={idx >= sorted.length - 1 || hidden} onClick={(e) => { e.stopPropagation(); handleSortDown(cat, level1Categories) }} /></Tooltip>
-                         <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>
+                         {hidden
+                          ? <Tooltip title="首页显示"><Button size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>
+                          : <Tooltip title="从首页隐藏"><Button size="small" icon={<EyeInvisibleOutlined />} onClick={(e) => { e.stopPropagation(); handleHide(cat) }} /></Tooltip>}
                        </Space>
                      }
                    >
