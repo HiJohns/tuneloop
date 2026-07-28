@@ -28,7 +28,6 @@ function SortableItem({ category, onEdit, onDelete, onSortUp, onSortDown, onHide
         <span className={`font-medium ${hidden ? 'text-gray-300' : ''}`}>{category.name}</span>
         {category.icon && <span>{category.icon}</span>}
         {!category.visible && <span className="text-xs text-gray-400">(隐藏)</span>}
-        {hidden && !category.visible && <span className="text-xs text-orange-400">(首页隐藏)</span>}
       </div>
       <Space size="small">
         <Tooltip title="首页上移"><Button size="small" icon={<UpOutlined />} onClick={(e) => { e.stopPropagation(); onSortUp(category) }} /></Tooltip>
@@ -135,8 +134,20 @@ export default function CategoryList() {
   const sortSingle = async (cat, sortVal) => {
     try {
       await api.put('/categories/sort', { items: [{ id: cat.id, sort: sortVal }] })
+      cat.sort = sortVal
+      // update top-level list
+      const updated = [...level1Categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+      setLevel1Categories(updated)
+      // update sub-category list if this is a sub-category
+      for (const p of updated) {
+        const idx = (p.sub_categories || []).findIndex(s => s.id === cat.id)
+        if (idx >= 0) {
+          p.sub_categories[idx].sort = sortVal
+          setSubCategories([...p.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0)))
+          break
+        }
+      }
       message.success('已更新')
-      await fetchCategories()
     } catch (err) { message.error('更新失败: ' + err.message) }
   }
 
@@ -281,7 +292,7 @@ export default function CategoryList() {
                    >
                      <List.Item.Meta
                        avatar={<span className="text-lg">{cat.icon}</span>}
-                       title={<span className={`font-medium ${hidden ? 'text-gray-300' : ''}`}>{cat.name}{hidden ? ' (首页隐藏)' : ''}</span>}
+                       title={<span className={`font-medium ${hidden ? 'text-gray-300' : ''}`}>{cat.name}</span>}
                      />
                    </List.Item>
                    )
