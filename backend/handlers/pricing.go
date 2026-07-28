@@ -64,7 +64,7 @@ func GetMerchantPricingConfig(c *gin.Context) {
 				"template_name":     defaultTemplate.Name,
 				"template_code":     defaultTemplate.Code,
 				"is_system_default": defaultTemplate.IsSystemDefault,
-				"config":            defaultTemplate.ConfigSchema,
+				"config":            json.RawMessage(defaultTemplate.ConfigSchema),
 				"configured":        false,
 			},
 		})
@@ -85,7 +85,7 @@ func GetMerchantPricingConfig(c *gin.Context) {
 			"template_id":       config.TemplateID,
 			"template_name":     tmplName,
 			"is_system_default": tmpl.IsSystemDefault,
-			"config":            config.Config,
+			"config":            json.RawMessage(config.Config),
 			"configured":        true,
 		},
 	})
