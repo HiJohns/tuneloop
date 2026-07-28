@@ -374,7 +374,7 @@ export default function Detail() {
                 <Text className="font-bold text-sm text-purple-800 ml-1">租购转化</Text>
               </View>
               <Text className="text-purple-600 text-sm mt-1 font-bold">
-                租满12个月可直接获得所有权
+                如需购买此乐器，请联系商户{instrument?.site_phone || ''}
               </Text>
             </View>
           )}

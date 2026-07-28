@@ -384,7 +384,7 @@ export default function Detail() {
                 <Text style={{ fontWeight: '700', fontSize: 14, color: '#6b21a8', marginLeft: 4 }}>租购转化</Text>
               </View>
               <Text style={{ color: '#9333ea', fontSize: 14, marginTop: 4, fontWeight: '700' }}>
-                租满12个月可直接获得所有权
+                如需购买此乐器，请联系商户{instrument?.site_phone || ''}
               </Text>
             </View>
           )}
