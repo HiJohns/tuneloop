@@ -132,18 +132,21 @@ export default function CategoryList() {
     }
   }
 
-  const sortSingle = async (cat, sortVal) => {
+  const sortSingle = async (updates) => {
+    const items = Array.isArray(updates) ? updates : [updates]
     try {
-      await api.put('/categories/sort', { items: [{ id: cat.id, sort: sortVal }] })
-      cat.sort = sortVal
+      await api.put('/categories/sort', { items: items.map(({ cat, sort }) => ({ id: cat.id, sort })) })
+      items.forEach(({ cat, sort }) => { cat.sort = sort })
       const updated = [...level1Categories].sort((a, b) => (a.sort || 0) - (b.sort || 0))
       setLevel1Categories(updated)
       for (const p of updated) {
-        const idx = (p.sub_categories || []).findIndex(s => s.id === cat.id)
-        if (idx >= 0) {
-          p.sub_categories[idx].sort = sortVal
-          setSubCategories([...p.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0)))
-          break
+        for (const { cat } of items) {
+          const idx = (p.sub_categories || []).findIndex(s => s.id === cat.id)
+          if (idx >= 0) {
+            p.sub_categories[idx].sort = cat.sort
+            setSubCategories([...p.sub_categories].sort((a, b) => (a.sort || 0) - (b.sort || 0)))
+            break
+          }
         }
       }
       message.success('已更新')
@@ -155,7 +158,11 @@ export default function CategoryList() {
     const idx = sorted.findIndex(c => c.id === cat.id)
     if (idx <= 0) return
     const prev = sorted[idx - 1]
-    sortSingle(cat, (prev.sort || 1) - 1)
+    const tmp = prev.sort || 1
+    prev.sort = cat.sort || 1
+    cat.sort = tmp
+    sortSingle(cat, cat.sort)
+    sortSingle(prev, prev.sort)
   }
 
   const handleSortDown = (cat, list) => {
@@ -163,17 +170,35 @@ export default function CategoryList() {
     const idx = sorted.findIndex(c => c.id === cat.id)
     if (idx < 0 || idx >= sorted.length - 1) return
     const next = sorted[idx + 1]
-    sortSingle(cat, (next.sort || 1) + 1)
+    const tmp = next.sort || 1
+    next.sort = cat.sort || 1
+    cat.sort = tmp
+    sortSingle(cat, cat.sort)
+    sortSingle(next, next.sort)
   }
 
-  const handleHide = (cat) => sortSingle(cat, (cat.sort || 0) <= 0 ? 1 : 0)
+  const handleHide = (cat) => sortSingle({ cat, sort: (cat.sort || 0) <= 0 ? 1 : 0 })
 
-  const handleCreateTopLevel = () => {
-    setEditingCategory(null)
-    setFormMode('create')
-    form.resetFields()
-    form.setFieldsValue({ visible: true, sort: 1 })
-    setModalVisible(true)
+  const handleSortUp = (cat, list) => {
+    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    const idx = sorted.findIndex(c => c.id === cat.id)
+    if (idx <= 0) return
+    const prev = sorted[idx - 1]
+    const tmp = prev.sort || 1
+    prev.sort = cat.sort || 1
+    cat.sort = tmp
+    sortSingle([{ cat, sort: cat.sort }, { cat: prev, sort: prev.sort }])
+  }
+
+  const handleSortDown = (cat, list) => {
+    const sorted = [...list].sort((a, b) => (a.sort || 0) - (b.sort || 0))
+    const idx = sorted.findIndex(c => c.id === cat.id)
+    if (idx < 0 || idx >= sorted.length - 1) return
+    const next = sorted[idx + 1]
+    const tmp = next.sort || 1
+    next.sort = cat.sort || 1
+    cat.sort = tmp
+    sortSingle([{ cat, sort: cat.sort }, { cat: next, sort: next.sort }])
   }
 
   const handleCreateSubCategory = () => {
