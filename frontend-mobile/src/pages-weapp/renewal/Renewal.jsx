@@ -133,11 +133,35 @@ export default function Renewal() {
             {overdueDays > 0 && (
               <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#ef4444' }}>{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
             )}
-            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>当前到期</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
-            {days > 0 && (
-              <View style={{ display: 'flex', flexDirection: 'row' }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>预期归还日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
-            )}
           </View>
+        )}
+
+        <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>续期设置</Text>
+          <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+            {dayOptions.map(d => (
+              <View key={d}
+                onClick={() => setDays(d)}
+                style={{ padding: '8px 16px', borderRadius: 999, border: days === d ? '1px solid #2563eb' : '1px solid #d4d4d8', backgroundColor: days === d ? '#2563eb' : '#fff', color: days === d ? '#fff' : '#374151', fontSize: 14, fontWeight: '700' }}
+              >
+                <Text>{d}天</Text>
+              </View>
+            ))}
+          </View>
+          <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 12, color: '#71717a' }}>自定义:</Text>
+            <Input type="number" min={1}
+              value={days}
+              onInput={e => setDays(Math.max(1, parseInt(e.detail.value) || 1))}
+              placeholder="天数"
+              style={{ width: 80, padding: '4px 8px', border: '1px solid #d4d4d8', borderRadius: 4, textAlign: 'center', fontSize: 12 }}
+            />
+            <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>
+          </View>
+          {days > 0 && (
+            <View style={{ marginTop: 8 }}><Text style={{ fontSize: 12, color: '#a1a1aa' }}>预期归还日: </Text><Text style={{ fontSize: 12, color: '#000', fontWeight: '500' }}>{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
+          )}
+        </View>
         )}
 
         <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>

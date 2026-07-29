@@ -116,15 +116,11 @@ export default function Renewal() {
             {overdueDays > 0 && (
               <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="text-red-500 font-medium">{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
             )}
-            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">当前到期</Text><Text className="text-black font-medium">{formatDate(endDate)}</Text></View>
-            {days > 0 && (
-              <View className="flex flex-row text-sm"><Text className="text-gray-500 w-24">预期归还日</Text><Text className="text-black font-medium">{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
-            )}
           </View>
         )}
 
         <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
-          <Text className="text-base font-bold mb-3">续期天数</Text>
+          <Text className="text-base font-bold mb-3">续期设置</Text>
           <View className="flex flex-wrap gap-2 mb-3">
             {dayOptions.map(d => (
               <View key={d}
@@ -145,6 +141,9 @@ export default function Renewal() {
             />
             <Text className="text-sm text-gray-500">天</Text>
           </View>
+          {days > 0 && (
+            <View className="mt-2 text-sm text-gray-500"><Text>预期归还日: </Text><Text className="text-black font-medium">{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
+          )}
         </View>
 
         {calcResult && (
