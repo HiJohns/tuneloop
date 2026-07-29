@@ -282,14 +282,6 @@ export default function OrderDetail() {
           </View>
         </View>
 
-        {/* Order Info */}
-        <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>订单信息</Text>
-          <View style={{ marginBottom: 4, display: 'flex' }}><Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>订单号</Text><Text style={{ fontSize: 13, fontWeight: '500', color: '#000', fontFamily: 'monospace' }}>{(order.id || '').slice(0, 8)}</Text></View>
-          <View style={{ marginBottom: 4, display: 'flex' }}><Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>下单时间</Text><Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{startDate}</Text></View>
-          {order.paid_at && <View style={{ display: 'flex' }}><Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>付款时间</Text><Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{order.paid_at}</Text></View>}
-        </View>
-
         {/* Delivery Info */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>配送信息</Text>
@@ -323,6 +315,8 @@ export default function OrderDetail() {
           dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || order.base_daily_rate || instrument?.base_daily_rate || 0}
           rentDays={actualRentDays || pb?.rent_days || 0}
           createdAt={order.created_at}
+          orderId={order.id}
+          paidAt={order.paid_at}
         />
 
         {/* Return Info */}

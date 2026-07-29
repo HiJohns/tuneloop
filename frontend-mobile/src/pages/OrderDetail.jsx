@@ -261,16 +261,6 @@ export default function OrderDetail() {
       {/* Instrument Info */}
       <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
-      {/* Order Info */}
-      <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="text-base font-black text-black mb-3">订单信息</Text>
-        <View className="space-y-2 text-sm">
-          <View className="flex items-center"><Text className="text-zinc-400 w-16 flex-shrink-0">订单号</Text><Text className="font-mono text-black text-xs">{order.id?.slice(0, 8)}</Text></View>
-          <View className="flex items-center"><Text className="text-zinc-400 w-16 flex-shrink-0">下单时间</Text><Text className="text-black">{formatDisplayDate(order.created_at)}</Text></View>
-          {order.paid_at && <View className="flex items-center"><Text className="text-zinc-400 w-16 flex-shrink-0">付款时间</Text><Text className="text-black">{order.paid_at}</Text></View>}
-        </View>
-      </View>
-
       {/* Customer Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">配送信息</Text>
@@ -304,6 +294,8 @@ export default function OrderDetail() {
         dailyRate={pb?.final_daily_rent || pb?.base_daily_rent || 0}
         rentDays={rentalDays || pb?.rent_days || 0}
         createdAt={order.created_at}
+        orderId={order.id}
+        paidAt={order.paid_at}
       />
 
       {/* Fee Info */}

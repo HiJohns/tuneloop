@@ -32,7 +32,7 @@ function parseDate(raw) {
   return isNaN(d.getTime()) ? null : d
 }
 
-export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dailyRate, rentDays, createdAt }) {
+export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dailyRate, rentDays, createdAt, orderId, paidAt }) {
   const effStart = startDate || deliveredAt
   const effEnd = endDate
 
@@ -67,6 +67,9 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   return (
     <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
       <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>订单信息</Text>
+      {orderId && <Row icon="🔢" label="订单号" value={(orderId || '').slice(0, 8)} />}
+      {createdAt && <Row icon="📅" label="下单时间" value={fmt(createdAt)} />}
+      {paidAt && <Row icon="✅" label="付款时间" value={paidAt} />}
       {notStarted && (
         <>
           <Row icon="📅" label="创建日期" value={fmt(createdAt)} />
