@@ -50,6 +50,10 @@ type renewalMetadata struct {
 }
 
 func loadOrderForRenewal(db *gorm.DB, orderID, userID string) (*models.Order, error) {
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
 	var order models.Order
 	if err := db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
 		return nil, err
