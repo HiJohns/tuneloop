@@ -160,91 +160,77 @@ export default function Detail() {
     : '#71717a'
 
   return (
-    <View style={{ minHeight: '100vh', backgroundColor: '#f4f4f5', paddingBottom: 140, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Banner carousel */}
-      <View style={{ width: '100%', overflow: 'hidden' }}
-        onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
-        onTouchEnd={(e) => {
-          const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
-          if (Math.abs(diff) > 50 && bannerImages.length > 1) {
-            setCurrentBanner(prev => {
-              if (diff < 0) {
-                if (prev >= bannerImages.length - 1) return prev + 1
-                return prev + 1
-              }
-              if (prev <= 0) return prev - 1
-              return prev - 1
-            })
-          }
-        }}
-      >
-        <View style={{ width: '100%', overflow: 'hidden', height: Math.round(getWindowSize().width * 4 / 3) }}>
-          <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(bannerImages.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
-            onTransitionEnd={() => {
-              if (currentBanner === -1) {
-                setJumpReset(true)
-                setCurrentBanner(bannerImages.length - 1)
-                setTimeout(() => setJumpReset(false), 50)
-              } else if (currentBanner === bannerImages.length) {
-                setJumpReset(true)
-                setCurrentBanner(0)
-                setTimeout(() => setJumpReset(false), 50)
-              }
-            }}>
-            {bannerImages.length > 0 && (
-              <View key="clone-last" style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} style={{ width: '100%', height: '100%' }}
-                  mode="aspectFill"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: urls[urls.length - 1] })
-                    } catch (e) { console.warn('[Preview] failed:', e) }
-                  }} />
-              </View>
-            )}
-            {bannerImages.map((img, i) => (
-              <View key={i} style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={fixImg(img.url || img)} style={{ width: '100%', height: '100%' }}
-                  mode="aspectFill"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => fixImg(img.url || img))
-                      previewImage({ urls, current: fixImg(img.url || img) })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
-                  }} />
-              </View>
-            ))}
-            {bannerImages.length > 0 && (
-              <View key="clone-first" style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
-                <Image src={bannerImages[0].url || bannerImages[0]} style={{ width: '100%', height: '100%' }}
-                  mode="aspectFill"
-                  onClick={() => {
-                    try {
-                      const urls = bannerImages.map(img => img.url || img)
-                      previewImage({ urls, current: urls[0] })
-                    } catch (e) { console.warn('[Preview] previewImage failed:', e) }
-                  }} />
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 12, backgroundColor: '#f4f4f5' }}>
-          {bannerImages.map((_, i) => (
-            <View key={i} style={{
-              width: i === currentBanner ? 12 : 6,
-              height: 6,
-              borderRadius: 999,
-              backgroundColor: i === currentBanner ? '#915F38' : 'rgba(0,0,0,0.15)',
-              marginLeft: i > 0 ? 6 : 0
-            }} />
-          ))}
-        </View>
+    <View style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FDFBF7' }}>
+      {/* Top bar */}
+      <View style={{ paddingTop: 12, paddingBottom: 8, paddingLeft: 16, paddingRight: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FDF4E7' }}>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#000' }} onClick={() => {
+          try { Taro.navigateBack() } catch { Taro.switchTab({ url: '/pages-weapp/home/index' }) }
+        }}>❮</Text>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>乐器详情</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#a1a1aa' }}>★ 收藏</Text>
       </View>
 
-      <ScrollView style={{ width: '100%', flex: '1 1 0%' }} scrollY scrollWithAnimation showScrollbar={false}>
+      <ScrollView style={{ width: '100%', flex: '1 1 0%', minHeight: 0, overflowY: 'scroll' }} scrollY scrollWithAnimation showScrollbar={false}>
+        {/* Banner carousel */}
+        <View style={{ width: '100%', overflow: 'hidden' }}
+          onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => {
+            const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
+            if (Math.abs(diff) > 50 && bannerImages.length > 1) {
+              setCurrentBanner(prev => {
+                if (diff < 0) {
+                  if (prev >= bannerImages.length - 1) return prev + 1
+                  return prev + 1
+                }
+                if (prev <= 0) return prev - 1
+                return prev - 1
+              })
+            }
+          }}
+        >
+          <View style={{ width: '100%', overflow: 'hidden', height: Math.round(getWindowSize().width * 4 / 3) }}>
+            <View style={{ display: 'flex', flexDirection: 'row', height: '100%', width: `${(bannerImages.length + 2) * 100}%`, transform: `translateX(-${(currentBanner + 1) * (100 / (bannerImages.length + 2))}%)`, transition: jumpReset ? 'none' : 'transform 0.5s ease-in-out' }}
+              onTransitionEnd={() => {
+                if (currentBanner === -1) {
+                  setJumpReset(true)
+                  setCurrentBanner(bannerImages.length - 1)
+                  setTimeout(() => setJumpReset(false), 50)
+                } else if (currentBanner === bannerImages.length) {
+                  setJumpReset(true)
+                  setCurrentBanner(0)
+                  setTimeout(() => setJumpReset(false), 50)
+                }
+              }}>
+              {bannerImages.length > 0 && (
+                <View key="clone-last" style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1]} style={{ width: '100%', height: '100%' }}
+                    onClick={() => { try { previewImage({ urls: bannerImages.map(img => img.url || img).filter(Boolean), current: bannerImages[bannerImages.length - 1].url || bannerImages[bannerImages.length - 1] }) } catch {} }} />
+                </View>
+              )}
+              {bannerImages.map((img, i) => (
+                <View key={i} style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={img.url || img} style={{ width: '100%', height: '100%' }}
+                    onClick={() => { try { previewImage({ urls: bannerImages.map(img => img.url || img).filter(Boolean), current: img.url || img }) } catch {} }} />
+                </View>
+              ))}
+              {bannerImages.length > 0 && (
+                <View key="clone-first" style={{ height: '100%', width: `${100 / (bannerImages.length + 2)}%` }}>
+                  <Image src={bannerImages[0].url || bannerImages[0]} style={{ width: '100%', height: '100%' }}
+                    onClick={() => { try { previewImage({ urls: bannerImages.map(img => img.url || img).filter(Boolean), current: bannerImages[0].url || bannerImages[0] }) } catch {} }} />
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 12, backgroundColor: '#FDF4E7' }}>
+            {bannerImages.map((_, i) => (
+              <View key={i} style={{
+                width: i === currentBanner ? 12 : 6, height: 6, borderRadius: 999,
+                backgroundColor: i === currentBanner ? '#915F38' : 'rgba(0,0,0,0.15)', marginLeft: i === 0 ? 0 : 6,
+              }} />
+            ))}
+          </View>
+        </View>
         <View style={{ paddingLeft: 16, paddingRight: 16, marginTop: 16, paddingBottom: 16 }}>
-
           {/* Card A: Instrument info + deposit */}
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
@@ -411,7 +397,7 @@ export default function Detail() {
       )}
 
       {/* Bottom panel */}
-      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#FDFBF7', borderTop: '1px solid #f4f4f5', padding: 16, display: 'flex', flexDirection: 'column', zIndex: 50, boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.1)' }}>
+      <View style={{ backgroundColor: '#FDF4E7', borderTop: '1px solid #f4f4f5', padding: 16, display: 'flex', flexDirection: 'column', zIndex: 50, boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.1)' }}>
         {isRentable && isCustomer ? (
           <>
             <View style={{ display: 'flex', width: '100%' }}>
