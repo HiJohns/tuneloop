@@ -427,7 +427,7 @@ export default function Detail() {
       <View className="border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl" style={{ backgroundColor: '#FDF4E7' }}>
         {isRentable && isCustomer ? (
           <>
-            <View className="flex w-full space-x-3">
+            <View className="flex w-full" style={{ gap: 12 }}>
               <View
                 onClick={handleAddToCart}
                 className="flex-1 h-12 rounded-full shadow-sm flex items-center justify-center"
