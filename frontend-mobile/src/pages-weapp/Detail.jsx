@@ -1,21 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Taro from '@tarojs/taro'
-import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
-import dayjs from 'dayjs'
-import { env, storage, session, eventBus, getWindowSize, previewImage } from '../platform'
-import { formatDisplayDate } from '../utils/format'
-import { calculateDays } from '../utils/daycalc'
-import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
-import * as S from '../styles-weapp'
-
-const SERVICE_ITEMS = [
-  { name: '基础清洁', entry: '✓', professional: '✓', master: '✓' },
-  { name: '免费调音', entry: '1次/年', professional: '2次/年', master: '无限次' },
-  { name: '深度维护', entry: '✗', professional: '✓', master: '✓' },
-  { name: '免费维修', entry: '✗', professional: '✓', master: '✓' },
-  { name: '专家精调', entry: '✗', professional: '✗', master: '✓' },
-  { name: '上门保养', entry: '✗', professional: '✗', master: '✓' },
-]
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -54,7 +37,6 @@ export default function Detail() {
   const [jumpReset, setJumpReset] = useState(false)
   const [displayMedia, setDisplayMedia] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
-  const [showComparison, setShowComparison] = useState(false)
   const [auditLogs, setAuditLogs] = useState([])
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const bannerTouchStartXRef = useRef(0)
@@ -389,15 +371,13 @@ export default function Detail() {
             </View>
           )}
 
-          {/* Service comparison */}
-          {isRentable && (
-            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginBottom: 12 }} onClick={() => setShowComparison(true)}>
-              <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>服务权益对比</Text>
-                <Text style={{ fontSize: 14, color: '#a1a1aa' }}>查看详情 ❯</Text>
-              </View>
+          {/* Rental notice */}
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', marginBottom: 12 }} onClick={() => Taro.navigateTo({ url: '/pages-weapp/content/index?key=rental_notice' })}>
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>租赁须知</Text>
+              <Text style={{ fontSize: 14, color: '#a1a1aa' }}>查看详情 ❯</Text>
             </View>
-          )}
+          </View>
 
           {/* Audit log section (staff only) */}
           {!isCustomer && currentUser && auditLogs.length > 0 && (
@@ -567,38 +547,6 @@ export default function Detail() {
         </View>
       )}
 
-      {/* Service comparison modal */}
-      {showComparison && (
-        <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowComparison(false)}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, maxWidth: 560, width: '85%', maxHeight: '80%', overflow: 'auto' }}
-            onClick={(e) => e.stopPropagation()}>
-            <Text style={{ fontSize: 18, fontWeight: '900', marginBottom: 16 }}>📊 服务权益对比</Text>
-            <View style={{ fontSize: 14 }}>
-              <View style={{ backgroundColor: '#f3f4f6', display: 'flex' }}>
-                <Text style={{ padding: 8, flex: '1 1 0%', fontWeight: '500' }}>权益项</Text>
-                <Text style={{ padding: 8, flex: '1 1 0%', textAlign: 'center', fontWeight: '500' }}>入门级</Text>
-                <Text style={{ padding: 8, flex: '1 1 0%', textAlign: 'center', fontWeight: '500' }}>专业级</Text>
-                <Text style={{ padding: 8, flex: '1 1 0%', textAlign: 'center', fontWeight: '500', color: '#9333ea' }}>大师级</Text>
-              </View>
-              {SERVICE_ITEMS.map((item, idx) => (
-                <View key={idx} style={{ display: 'flex', borderBottom: '1px solid #f3f4f6' }}>
-                  <Text style={{ padding: 8, flex: '1 1 0%' }}>{item.name}</Text>
-                  <Text style={{ padding: 8, flex: '1 1 0%', textAlign: 'center', color: item.entry === '✓' ? '#16a34a' : '#9ca3af' }}>{item.entry}</Text>
-                  <Text style={{ padding: 8, flex: '1 1 0%', textAlign: 'center', color: item.professional === '✓' ? '#16a34a' : '#9ca3af' }}>{item.professional}</Text>
-                  <Text style={{ padding: 8, flex: '1 1 0%', textAlign: 'center', fontWeight: '500', color: item.master === '✓' ? '#9333ea' : '#9ca3af' }}>{item.master}</Text>
-                </View>
-              ))}
-            </View>
-            <View style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-              <View onClick={() => setShowComparison(false)}
-                style={{ backgroundColor: '#915F38', color: '#fff', padding: '8px 24px', borderRadius: 8, fontSize: 14, fontWeight: '700' }}>
-                <Text>关闭</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
     </View>
   )
 }

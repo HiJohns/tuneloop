@@ -385,8 +385,7 @@ export default function Detail() {
               <Text className="text-base font-black text-black">租赁须知</Text>
               <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
             </View>
-            </View>
-          )}
+          </View>
 
           {/* Audit log section (staff only) */}
           {!isCustomer && currentUser && auditLogs.length > 0 && (
