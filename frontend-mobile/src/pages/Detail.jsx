@@ -254,10 +254,10 @@ export default function Detail() {
             ))}
           </View>
         </View>
-        <View className="px-4 mt-4 space-y-3 pb-4">
+        <View className="px-4 mt-4 pb-4">
 
           {/* Card A: Instrument info + deposit */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm flex flex-col space-y-2">
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 flex flex-col space-y-2">
             <View className="flex justify-between items-start w-full">
               <View className="flex-1 min-w-0 pr-4">
                 <Text className="block text-2xl font-black text-black tracking-wide truncate">{instrument.name || instrument.sn}</Text>
@@ -311,7 +311,7 @@ export default function Detail() {
           )}
 
           {/* Card C: Specifications & properties */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 space-y-2">
             <Text className="text-base font-black text-black">规格参数</Text>
             {instrument.properties && typeof instrument.properties === 'object' ? (
               Object.entries(instrument.properties).map(([key, vals]) => (
@@ -329,7 +329,7 @@ export default function Detail() {
 
           {/* Pricing V2 tiers */}
           {isRentable && pricingV2?.tiers?.length > 0 && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm space-y-2">
+            <View className="bg-white rounded-2xl p-4 shadow-sm mb-3 space-y-2">
               <Text className="text-base font-black text-black">定价策略</Text>
               {pricingV2.tiers.map((t, i) => {
                 const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
@@ -373,7 +373,7 @@ export default function Detail() {
 
           {/* Rent-to-own */}
           {isRentable && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
               <View className="flex items-center">
                 <Text>🎁</Text>
                 <Text className="font-bold text-sm text-purple-800 ml-1">租购转化</Text>
@@ -385,7 +385,7 @@ export default function Detail() {
           )}
 
           {/* Rental notice */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm" onClick={() => navigate('/content/rental_notice')}>
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" onClick={() => navigate('/content/rental_notice')}>
             <View className="flex justify-between items-center">
               <Text className="text-base font-black text-black">租赁须知</Text>
               <Text className="text-sm text-zinc-400">查看详情 ❯</Text>
@@ -394,7 +394,7 @@ export default function Detail() {
 
           {/* Audit log section (staff only) */}
           {!isCustomer && currentUser && auditLogs.length > 0 && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
               <Text className="text-base font-black text-black mb-3">操作日志</Text>
               <View className="space-y-2 max-h-48 overflow-y-auto">
                 {auditLogs.map((log, i) => (
