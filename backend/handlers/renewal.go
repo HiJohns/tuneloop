@@ -58,6 +58,11 @@ func loadOrderForRenewal(db *gorm.DB, orderID, userID string) (*models.Order, er
 	if err := db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
 		return nil, err
 	}
+	// GORM can't map PostgreSQL DATE → *string, read dates via raw query
+	var sd, ed *string
+	db.Raw("SELECT start_date::text, end_date::text FROM orders WHERE id = ?", orderID).Row().Scan(&sd, &ed)
+	order.StartDate = sd
+	order.EndDate = ed
 	if order.Status != models.OrderStatusInLease && order.Status != models.OrderStatusExpired {
 		return nil, fmt.Errorf("order can only be renewed when status is in_lease or expired")
 	}
