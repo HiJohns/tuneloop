@@ -127,10 +127,16 @@ export default function Renewal() {
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }} onClick={() => Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` })}>
             {(instrument.cover_image || instrument.images?.[0]) && <Image src={instrument.cover_image || instrument.images?.[0]} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 12, backgroundColor: '#f4f4f5' }} mode="aspectFill" />}
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>{instrument.category_name || '乐器'}</Text>
-            <Text style={{ fontSize: 12, color: '#71717a' }}>SN: {instrument.sn || '-'}</Text>
-            <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>当前到期: {formatDate(order.end_date)}</Text>
-            {days > 0 && <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>预期归还日: {formatDate(calculateEndDate(new Date(), days).toISOString())}</Text>}
-            {overdueDays > 0 && <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>已逾期 {overdueDays} 天</Text>}
+            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>SN</Text><Text style={{ fontSize: 12, color: '#000' }}>{instrument.sn || '-'}</Text></View>
+            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>下单日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.created_at)}</Text></View>
+            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>原预期归还</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
+            {overdueDays > 0 && (
+              <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#ef4444' }}>{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+            )}
+            <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>当前到期</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
+            {days > 0 && (
+              <View style={{ display: 'flex', flexDirection: 'row' }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>预期归还日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
+            )}
           </View>
         )}
 
