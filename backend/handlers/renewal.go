@@ -114,14 +114,21 @@ func CalculateRenewal(c *gin.Context) {
 	endDate := parseDatePtr(order.EndDate)
 	today := time.Now().Truncate(24 * time.Hour)
 
-	consumedDays := services.CalculateDays(startDate, today)
+	// consumedDays = original lease term (not up to today)
+	leaseTerm := order.LeaseTerm
+	if leaseTerm <= 0 {
+		leaseTerm = services.CalculateDays(startDate, endDate)
+	}
+	consumedDays := leaseTerm
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
 
+	// Overdue days: endDate to yesterday (today not counted toward overdue)
 	var overdueDays int
 	if today.After(endDate) {
-		overdueDays = services.CalculateDays(endDate, today)
+		yesterday := today.AddDate(0, 0, -1)
+		overdueDays = services.CalculateDays(endDate, yesterday)
 		if overdueDays < 0 {
 			overdueDays = 0
 		}
@@ -134,6 +141,9 @@ func CalculateRenewal(c *gin.Context) {
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
 	)
 
+	// Overdue fee: baseRate × 1.5 × overdueDays
+	overdueFee := math.Round(baseRate*1.5*float64(overdueDays)*100) / 100
+
 	var overdueBalance float64
 	db.Model(&models.OverdueCharge{}).
 		Select("COALESCE(SUM(remaining_balance), 0)").
@@ -144,8 +154,8 @@ func CalculateRenewal(c *gin.Context) {
 		"code": 20000,
 		"data": RenewalCalculateResponse{
 			RenewalCost:    renewalCost,
-			OverdueBalance: overdueBalance,
-			TotalAmount:    renewalCost + overdueBalance,
+			OverdueBalance: overdueBalance + overdueFee,
+			TotalAmount:    renewalCost + overdueBalance + overdueFee,
 			NewEndDate:     newEndDate.Format("2006-01-02"),
 			TierBreakdown:  tierBreakdown,
 			DailyRate:      baseRate,
@@ -174,8 +184,13 @@ func ConfirmRenewal(c *gin.Context) {
 	}
 
 	startDate := parseDatePtr(order.StartDate)
+	endDate := parseDatePtr(order.EndDate)
 	today := time.Now().Truncate(24 * time.Hour)
-	consumedDays := services.CalculateDays(startDate, today)
+	leaseTerm := order.LeaseTerm
+	if leaseTerm <= 0 {
+		leaseTerm = services.CalculateDays(startDate, endDate)
+	}
+	consumedDays := leaseTerm
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
@@ -184,13 +199,21 @@ func ConfirmRenewal(c *gin.Context) {
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
 	)
 
+	// Overdue days
+	var overdueDays int
+	if today.After(endDate) {
+		yesterday := today.AddDate(0, 0, -1)
+		overdueDays = services.CalculateDays(endDate, yesterday)
+	}
+	overdueFee := math.Round(baseRate*1.5*float64(overdueDays)*100) / 100
+
 	var overdueBalance float64
 	db.Model(&models.OverdueCharge{}).
 		Select("COALESCE(SUM(remaining_balance), 0)").
 		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
 		Scan(&overdueBalance)
 
-	totalAmount := renewalCost + overdueBalance
+	totalAmount := renewalCost + overdueBalance + overdueFee
 	cfg := wechatpay.GetConfig()
 	outTradeNo := fmt.Sprintf("renewal%s%d", uuid.New().String()[:8], time.Now().Unix())
 
