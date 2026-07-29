@@ -3,6 +3,14 @@ import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env } from '../../platform'
+import { calculateEndDate } from '../../utils/daycalc'
+
+function formatDate(raw) {
+  if (!raw) return '-'
+  const d = new Date(raw.slice(0, 10))
+  if (isNaN(d.getTime())) return raw.slice(0, 10)
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
 
 export default function Renewal() {
   const params = Taro.getCurrentInstance()?.router?.params || {}
@@ -119,7 +127,8 @@ export default function Renewal() {
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>{instrument.category_name || '乐器'}</Text>
             <Text style={{ fontSize: 12, color: '#71717a' }}>SN: {instrument.sn || '-'}</Text>
-            <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>当前到期: {order.end_date || '-'}</Text>
+            <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>当前到期: {formatDate(order.end_date)}</Text>
+            {days > 0 && <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>预期归还日: {formatDate(calculateEndDate(new Date(), days).toISOString())}</Text>}
             {overdueDays > 0 && <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>已逾期 {overdueDays} 天</Text>}
           </View>
         )}
@@ -173,7 +182,7 @@ export default function Renewal() {
               <Text style={{ fontSize: 14, fontWeight: '700' }}>合计</Text>
               <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{calcResult.total_amount?.toFixed(2)}</Text>
             </View>
-            <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>新到期日: {calcResult.new_end_date}</Text>
+            <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>新到期日: {formatDate(calcResult.new_end_date)}</Text>
             {calcResult.renewal_cost <= 0 && (
               <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>当前订单定价数据不完整，请联系管理员</Text>
             )}

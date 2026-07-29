@@ -4,6 +4,14 @@ import { View, Text, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { ArrowLeft } from 'lucide-react'
+import { calculateEndDate } from '../utils/daycalc'
+
+function formatDate(raw) {
+  if (!raw) return '-'
+  const d = new Date(raw.slice(0, 10))
+  if (isNaN(d.getTime())) return raw.slice(0, 10)
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
 
 export default function Renewal() {
   const { orderId } = useParams()
@@ -89,7 +97,7 @@ export default function Renewal() {
   const dayOptions = [7, 15, 30, 60, 90, 180, 365]
 
   return (
-    <View className="min-h-screen bg-[#FDFBF7]">
+    <View className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
         <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">续期</Text>
@@ -100,7 +108,10 @@ export default function Renewal() {
           <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
             <Text className="text-base font-bold mb-2">{instrument.category_name || '乐器'}</Text>
             <Text className="text-sm text-gray-500">SN: {instrument.sn || '-'}</Text>
-            <Text className="text-sm text-gray-500">当前到期: {endDate}</Text>
+            <Text className="text-sm text-gray-500">当前到期: {formatDate(endDate)}</Text>
+            {days > 0 && (
+              <Text className="text-sm text-gray-500">预期归还日: {formatDate(calculateEndDate(new Date(), days).toISOString())}</Text>
+            )}
             {overdueDays > 0 && (
               <Text className="text-sm text-red-500 mt-1">已逾期 {overdueDays} 天</Text>
             )}
@@ -155,7 +166,7 @@ export default function Renewal() {
               <Text>¥{calcResult.total_amount?.toFixed(2)}</Text>
             </View>
             <View className="mt-2 text-sm text-gray-400">
-              <Text>新到期日: {calcResult.new_end_date}</Text>
+              <Text>新到期日: {formatDate(calcResult.new_end_date)}</Text>
             </View>
           </View>
         )}
