@@ -37,7 +37,7 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   const effEnd = endDate
 
   const ended = ['returned', 'completed', 'returning'].includes(status)
-  const inLease = status === 'in_lease'
+  const inLease = status === 'in_lease' || status === 'expired'
   const notStarted = ['reserved', 'paid', 'pending_shipment', 'shipped', 'in_transit'].includes(status)
 
   const startDt = parseDate(effStart)
@@ -61,6 +61,8 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   const currentLeaseDays = startDt && nowDt
     ? Math.max(1, Math.round((nowDt - startDt) / 86400000) + 1)
     : 0
+
+  if (!notStarted && !inLease && !ended) return null
 
   return (
     <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
