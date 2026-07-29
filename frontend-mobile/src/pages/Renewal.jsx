@@ -109,14 +109,16 @@ export default function Renewal() {
             {(instrument.cover_image || instrument.images?.[0]) && (
               <Image src={instrument.cover_image || instrument.images?.[0]} className="w-full h-40 object-cover rounded-lg bg-zinc-100 mb-3" mode="aspectFill" />
             )}
-            <Text className="text-base font-bold mb-2">{instrument.category_name || '乐器'}</Text>
-            <Text className="text-sm text-gray-500">SN: {instrument.sn || '-'}</Text>
-            <Text className="text-sm text-gray-500">当前到期: {formatDate(endDate)}</Text>
-            {days > 0 && (
-              <Text className="text-sm text-gray-500">预期归还日: {formatDate(calculateEndDate(new Date(), days).toISOString())}</Text>
-            )}
+            <View className="text-base font-bold mb-2"><Text>{instrument.category_name || '乐器'}</Text></View>
+            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">SN</Text><Text className="text-black font-medium">{instrument.sn || '-'}</Text></View>
+            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">下单日</Text><Text className="text-black font-medium">{formatDate(order?.created_at)}</Text></View>
+            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">原预期归还</Text><Text className="text-black font-medium">{formatDate(endDate)}</Text></View>
             {overdueDays > 0 && (
-              <Text className="text-sm text-red-500 mt-1">已逾期 {overdueDays} 天</Text>
+              <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="text-red-500 font-medium">{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+            )}
+            <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">当前到期</Text><Text className="text-black font-medium">{formatDate(endDate)}</Text></View>
+            {days > 0 && (
+              <View className="flex flex-row text-sm"><Text className="text-gray-500 w-24">预期归还日</Text><Text className="text-black font-medium">{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
             )}
           </View>
         )}
