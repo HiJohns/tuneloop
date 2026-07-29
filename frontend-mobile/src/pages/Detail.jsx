@@ -39,6 +39,7 @@ export default function Detail() {
   const navigate = useNavigate()
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState(null)
   const [activeOrder, setActiveOrder] = useState(null)
   const [auditLogs, setAuditLogs] = useState([])
   const [cartToast, setCartToast] = useState(false)
