@@ -193,19 +193,21 @@ export default function Renewal() {
         {calcResult && (
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>费用明细</Text>
-            {calcResult.tier_breakdown?.map((t, i) => (
+            {calcResult.tier_breakdown?.map((t, i) => {
+              const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
+              return (
               <View key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天</Text>
+                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天 · ¥{tierRate}/天</Text>
                 <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{t.subtotal?.toFixed(2)}</Text>
               </View>
-            ))}
+            )})}
             <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6', marginTop: 4 }}>
               <Text style={{ fontSize: 12, color: '#71717a' }}>续期费</Text>
               <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{calcResult.renewal_cost?.toFixed(2)}</Text>
             </View>
-            {calcResult.overdue_balance > 0 && (
-              <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 12, color: '#ef4444' }}>逾期费</Text>
+            {calcResult.overdue_days > 0 && (
+              <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6' }}>
+                <Text style={{ fontSize: 12, color: '#71717a' }}>逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.daily_rate * 1.5).toFixed(2)}</Text>
                 <Text style={{ fontSize: 12, fontWeight: '500', color: '#ef4444' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
               </View>
             )}

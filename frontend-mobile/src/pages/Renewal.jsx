@@ -149,19 +149,21 @@ export default function Renewal() {
         {calcResult && (
           <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
             <Text className="text-base font-bold mb-3">费用明细</Text>
-            {calcResult.tier_breakdown?.map((t, i) => (
+            {calcResult.tier_breakdown?.map((t, i) => {
+              const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
+              return (
               <View key={i} className="flex justify-between py-1 text-sm">
-                <Text className="text-gray-500">第{t.tier}阶 {t.days}天</Text>
+                <Text className="text-gray-500">第{t.tier}阶 {t.days}天 · ¥{tierRate}/天</Text>
                 <Text className="font-medium">¥{t.subtotal?.toFixed(2)}</Text>
               </View>
-            ))}
+            )})}
             <View className="flex justify-between py-1 text-sm border-t border-gray-100 mt-1">
               <Text className="text-gray-500">续期费</Text>
               <Text className="font-medium">¥{calcResult.renewal_cost?.toFixed(2)}</Text>
             </View>
-            {calcResult.overdue_balance > 0 && (
-              <View className="flex justify-between py-1 text-sm">
-                <Text className="text-red-500">逾期费（待结清）</Text>
+            {calcResult.overdue_days > 0 && (
+              <View className="flex justify-between py-1 text-sm border-t border-gray-100">
+                <Text className="text-gray-500">逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.daily_rate * 1.5).toFixed(2)}</Text>
                 <Text className="font-medium text-red-500">¥{calcResult.overdue_balance?.toFixed(2)}</Text>
               </View>
             )}
