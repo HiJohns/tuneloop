@@ -632,16 +632,20 @@ export default function OrderDetail() {
                   <CheckCircle size={20} />确认收货
                 </View>
               )}
-              {showRenewButton && (
-                <View onClick={() => navigate(`/renewal/${id}`)}
-                  className="w-full py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
-                  <Calendar size={20} />续期
-                </View>
-              )}
-              {showReturnButton && (
-                <View onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
-                  className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
-                  <RotateCcw size={20} />归还
+              {(showRenewButton || showReturnButton) && (
+                <View className="flex gap-3">
+                  {showRenewButton && (
+                    <View onClick={() => navigate(`/renewal/${id}`)}
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                      <Calendar size={20} />续期
+                    </View>
+                  )}
+                  {showReturnButton && (
+                    <View onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
+                      className="flex-1 py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                      <RotateCcw size={20} />归还
+                    </View>
+                  )}
                 </View>
               )}
               {isTerminal && (
