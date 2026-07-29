@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { View, Text, ScrollView } from '@tarojs/components'
+import { View, Text, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { ArrowLeft } from 'lucide-react'
@@ -105,7 +105,10 @@ export default function Renewal() {
 
       <ScrollView className="p-4">
         {instrument && (
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ cursor: 'pointer' }} onClick={() => navigate(`/instrument/${instrument.id}`)}>
+            {(instrument.cover_image || instrument.images?.[0]) && (
+              <Image src={instrument.cover_image || instrument.images?.[0]} className="w-full h-40 object-cover rounded-lg bg-zinc-100 mb-3" mode="aspectFill" />
+            )}
             <Text className="text-base font-bold mb-2">{instrument.category_name || '乐器'}</Text>
             <Text className="text-sm text-gray-500">SN: {instrument.sn || '-'}</Text>
             <Text className="text-sm text-gray-500">当前到期: {formatDate(endDate)}</Text>

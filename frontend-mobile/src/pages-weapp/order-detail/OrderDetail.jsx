@@ -269,7 +269,7 @@ export default function OrderDetail() {
         )}
 
         {/* Instrument card */}
-        <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} onClick={() => instrument?.id && Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` })}>
           <View style={{ display: 'flex', gap: 12 }}>
             {instrument?.cover_image && (
               <Image src={instrument.cover_image} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5' }} mode="aspectFill" />

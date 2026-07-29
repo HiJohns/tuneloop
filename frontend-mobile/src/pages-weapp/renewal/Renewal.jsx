@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Input, Button } from '@tarojs/components'
+import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env } from '../../platform'
 import { calculateEndDate } from '../../utils/daycalc'
@@ -124,7 +124,8 @@ export default function Renewal() {
       <ScrollView style={{ padding: 16 }}>
 
         {instrument && (
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }} onClick={() => Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` })}>
+            {(instrument.cover_image || instrument.images?.[0]) && <Image src={instrument.cover_image || instrument.images?.[0]} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 12, backgroundColor: '#f4f4f5' }} mode="aspectFill" />}
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>{instrument.category_name || '乐器'}</Text>
             <Text style={{ fontSize: 12, color: '#71717a' }}>SN: {instrument.sn || '-'}</Text>
             <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>当前到期: {formatDate(order.end_date)}</Text>
