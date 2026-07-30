@@ -318,7 +318,8 @@ export default function Cart() {
         <Button
           className={grandTotal <= 0
             ? "m-0 bg-zinc-300 text-zinc-500 font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"
-            : "m-0 bg-[#B98E5F] text-white font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"}
+            : "m-0 text-white font-extrabold text-base px-10 h-12 rounded-full shadow-md flex items-center justify-center"}
+          style={grandTotal > 0 ? { backgroundColor: '#B98E5F' } : {}}
           onClick={handleCheckout}
           disabled={grandTotal <= 0}
         >
