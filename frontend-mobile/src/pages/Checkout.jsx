@@ -410,12 +410,12 @@ function SingleCheckout({ id, navigate }) {
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb">
         <View className="flex items-center justify-between mb-2">
           <Text className="text-sm text-zinc-400">应付总额</Text>
-          <Text className="text-xl font-black text-brand-primary">¥{totalAmount.toFixed(2)}</Text>
+          <Text className="text-xl font-black" style={{ color: '#915F38' }}>¥{totalAmount.toFixed(2)}</Text>
         </View>
         <Button
           onClick={handleSubmit}
           disabled={submitting}
-          style={{ width: '100%', paddingTop: 12, paddingBottom: 12, backgroundColor: submitting ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          style={{ width: '100%', paddingTop: 12, paddingBottom: 12, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', borderRadius: 12, border: 'none', outline: 'none', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           {submitting ? '提交中...' : '提交订单'}
         </Button>
@@ -600,7 +600,7 @@ function BatchCheckout({ navigate }) {
         <View className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-zinc-100 space-y-6 flex flex-col items-center">
           <View className="text-center space-y-1">
             <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>
-            <Text className="text-[#C21838] text-4xl font-black tracking-tight block">
+            <Text className="text-[#915F38] text-4xl font-black tracking-tight block">
               ¥{grandTotal.toFixed(2)}
             </Text>
           </View>
@@ -749,13 +749,13 @@ function BatchCheckout({ navigate }) {
               <Text className="block text-[11px] text-zinc-400">亿万用户的安全选择</Text>
             </View>
           </View>
-          <Text className="text-sm font-black text-orange-500">✓</Text>
+          <Text className="text-sm font-black" style={{ color: '#915F38' }}>✓</Text>
         </View>
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 pb-6 border-t border-zinc-100 z-50 flex flex-col items-center">
          <Button
-          style={{ width: '100%', margin: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', fontWeight: 800, fontSize: 16, height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
+          style={{ width: '100%', margin: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', fontWeight: 900, fontSize: 16, height: 48, borderRadius: 999, border: 'none', outline: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
           onClick={handleSubmit}
           disabled={submitting}
         >
