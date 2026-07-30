@@ -163,7 +163,7 @@ export default function Renewal() {
             </View>
             {calcResult.overdue_days > 0 && (
               <View className="flex justify-between py-1 text-sm border-t border-gray-100">
-                <Text className="text-gray-500">逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.daily_rate * 1.5).toFixed(2)}</Text>
+                <Text className="text-gray-500">逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.overdue_daily_rate || 0).toFixed(2)}</Text>
                 <Text className="font-medium">¥{calcResult.overdue_balance?.toFixed(2)}</Text>
               </View>
             )}

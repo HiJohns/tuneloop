@@ -23,13 +23,14 @@ type RenewalCalculateRequest struct {
 }
 
 type RenewalCalculateResponse struct {
-	RenewalCost    float64                `json:"renewal_cost"`
-	OverdueBalance float64                `json:"overdue_balance"`
-	TotalAmount    float64                `json:"total_amount"`
-	NewEndDate     string                 `json:"new_end_date"`
-	TierBreakdown  []services.TierSegment `json:"tier_breakdown"`
-	DailyRate      float64                `json:"daily_rate"`
-	OverdueDays    int                    `json:"overdue_days"`
+	RenewalCost      float64                `json:"renewal_cost"`
+	OverdueBalance   float64                `json:"overdue_balance"`
+	TotalAmount      float64                `json:"total_amount"`
+	NewEndDate       string                 `json:"new_end_date"`
+	TierBreakdown    []services.TierSegment `json:"tier_breakdown"`
+	DailyRate        float64                `json:"daily_rate"`
+	OverdueDailyRate float64                `json:"overdue_daily_rate"`
+	OverdueDays      int                    `json:"overdue_days"`
 }
 
 type RenewalConfirmRequest struct {
@@ -150,8 +151,21 @@ func CalculateRenewal(c *gin.Context) {
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
 	)
 
-	// Overdue fee: baseRate × 1.5 × overdueDays
-	overdueFee := math.Round(baseRate*1.5*float64(overdueDays)*100) / 100
+	// Overdue daily fee: from instrument's Pricing JSONB or default baseRate × 1.5
+	var overdueDailyRate float64
+	var instPricing struct{ Value string }
+	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", order.InstrumentID).Scan(&instPricing).Error; err == nil && instPricing.Value != "" {
+		var ip map[string]interface{}
+		if json.Unmarshal([]byte(instPricing.Value), &ip) == nil {
+			if fee, ok := ip["overdue_daily_fee"].(float64); ok && fee > 0 {
+				overdueDailyRate = fee
+			}
+		}
+	}
+	if overdueDailyRate <= 0 {
+		overdueDailyRate = baseRate * 1.5
+	}
+	overdueFee := math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
 
 	var overdueBalance float64
 	db.Model(&models.OverdueCharge{}).
@@ -167,8 +181,9 @@ func CalculateRenewal(c *gin.Context) {
 			TotalAmount:    renewalCost + overdueBalance + overdueFee,
 			NewEndDate:     newEndDate.Format("2006-01-02"),
 			TierBreakdown:  tierBreakdown,
-			DailyRate:      baseRate,
-			OverdueDays:    overdueDays,
+			DailyRate:        baseRate,
+			OverdueDailyRate: overdueDailyRate,
+			OverdueDays:      overdueDays,
 		},
 	})
 }
@@ -214,7 +229,20 @@ func ConfirmRenewal(c *gin.Context) {
 		yesterday := today.AddDate(0, 0, -1)
 		overdueDays = services.CalculateDays(endDate, yesterday)
 	}
-	overdueFee := math.Round(baseRate*1.5*float64(overdueDays)*100) / 100
+	var overdueDailyRate float64
+	var instPricing struct{ Value string }
+	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", order.InstrumentID).Scan(&instPricing).Error; err == nil && instPricing.Value != "" {
+		var ip map[string]interface{}
+		if json.Unmarshal([]byte(instPricing.Value), &ip) == nil {
+			if fee, ok := ip["overdue_daily_fee"].(float64); ok && fee > 0 {
+				overdueDailyRate = fee
+			}
+		}
+	}
+	if overdueDailyRate <= 0 {
+		overdueDailyRate = baseRate * 1.5
+	}
+	overdueFee := math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
 
 	var overdueBalance float64
 	db.Model(&models.OverdueCharge{}).

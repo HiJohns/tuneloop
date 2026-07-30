@@ -209,7 +209,7 @@ export default function Renewal() {
             </View>
             {calcResult.overdue_days > 0 && (
               <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6' }}>
-                <Text style={{ fontSize: 12, color: '#71717a' }}>逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.daily_rate * 1.5).toFixed(2)}</Text>
+                <Text style={{ fontSize: 12, color: '#71717a' }}>逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.overdue_daily_rate || 0).toFixed(2)}</Text>
                 <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
               </View>
             )}
