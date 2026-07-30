@@ -274,11 +274,11 @@ export default function Payment() {
       {/* Pay/Confirm button */}
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
         {isRefund ? (
-          <Button style={btnStyle('#000')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
+          <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
         ) : prepayData?.data ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Button style={btnStyle('#C21838')} onClick={doRealPay}>
+              <Button style={btnStyle('#B98E5F')} onClick={doRealPay}>
                 微信支付 ¥{Number(cashAmount).toFixed(2)}
               </Button>
             </View>
@@ -291,7 +291,7 @@ export default function Payment() {
             )}
           </View>
         ) : (
-          <Button style={btnStyle(cashAmount > 0 ? '#C21838' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
+          <Button style={btnStyle(cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
             {isPaying ? '处理中...' : `发起支付 ¥${Number(cashAmount).toFixed(2)}`}
           </Button>
         )}

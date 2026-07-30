@@ -163,16 +163,14 @@ export default function Payment() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
         {isRefund ? (
           <button
-            className="w-full py-3.5 bg-[#B98E5F] text-white font-bold text-base rounded-2xl"
+            style={{ width: '100%', paddingTop: 14, paddingBottom: 14, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none' }}
             onClick={handleRefund}
           >
             确认退款 ¥{Number(cashAmount).toFixed(2)}
           </button>
         ) : (
           <button
-            className={`w-full py-3.5 text-white font-black text-base rounded-2xl ${
-              cashAmount > 0 ? 'bg-[#C21838]' : 'bg-green-600'
-            }`}
+            style={{ width: '100%', paddingTop: 14, paddingBottom: 14, color: '#fff', fontWeight: 900, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none', backgroundColor: cashAmount > 0 ? '#B98E5F' : '#16a34a' }}
             onClick={() => doPay(cashAmount)}
           >
             {pType === 'damage' && cashAmount <= 0
