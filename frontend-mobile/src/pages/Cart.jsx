@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { dialog, storage, eventBus, env } from '../platform'
-import { apiFetch, getCartKey } from '../services/api'
+import { dialog, storage, eventBus, env, session } from '../platform'
+import { apiFetch, getCartKey, getToken, redirectToLogin } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -74,6 +74,23 @@ export default function Cart() {
     setCartItems(data.items)
     const sel = new Set(data.items.map(i => getItemId(i)))
     setSelected(sel)
+
+    const token = getToken()
+    if (!token) return
+    const guestData = storage.getJSON('cart', { items: [] })
+    if (guestData.items?.length > 0 && dialog.confirm(`是否将之前加入的 ${guestData.items.length} 件乐器合并到当前购物车？`)) {
+      const merged = data.items.slice()
+      guestData.items.forEach(guestItem => {
+        if (!merged.some(i => getItemId(i) === getItemId(guestItem))) {
+          merged.push(guestItem)
+        }
+      })
+      storage.setJSON(getCartKey(), { items: merged })
+      storage.setJSON('cart', { items: [] })
+      setCartItems(merged)
+    } else if (guestData.items?.length > 0) {
+      storage.setJSON('cart', { items: [] })
+    }
   }, [])
 
   useEffect(() => {
@@ -198,6 +215,12 @@ export default function Cart() {
   }
 
   const handleCheckout = () => {
+    const token = getToken()
+    if (!token) {
+      session.setItem('post_auth_redirect', '/checkout')
+      redirectToLogin()
+      return
+    }
     const selItems = cartItems.filter(item => selected.has(getItemId(item)))
     if (selItems.length === 0) return
     storage.setJSON('cart_checkout', { items: selItems })
