@@ -68,6 +68,8 @@ func CalculatePayment(c *gin.Context) {
 		loadRefundPayment(db, req.ID, &resp)
 	case "deposit-refund":
 		loadDepositRefund(db, req.ID, &resp)
+	case "renewal":
+		loadRenewalPayment(db, req.ID, &resp)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid type"})
 		return
@@ -225,4 +227,13 @@ func loadDepositRefund(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		"deposit":  order.Deposit,
 		"refunded": order.DepositRefunded,
 	}
+}
+
+func loadRenewalPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
+	var record models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND order_type = ? AND type = ?", id, "renewal", "payment").Order("created_at desc").First(&record).Error; err != nil {
+		return
+	}
+	resp.Title = "续期支付"
+	resp.Amount = record.Amount
 }

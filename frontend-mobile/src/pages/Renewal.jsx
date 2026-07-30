@@ -4,7 +4,7 @@ import { View, Text, ScrollView, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import { ArrowLeft } from 'lucide-react'
-import { calculateEndDate } from '../utils/daycalc'
+
 
 function formatDate(raw) {
   if (!raw) return '-'
@@ -141,8 +141,8 @@ export default function Renewal() {
             />
             <Text className="text-sm text-gray-500">天</Text>
           </View>
-          {days > 0 && (
-            <View className="mt-2 text-sm text-gray-500"><Text>预期归还日: </Text><Text className="text-black font-medium">{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
+          {days > 0 && calcResult?.new_end_date && (
+            <View className="mt-2 text-sm text-gray-500"><Text>预期归还日: </Text><Text className="text-black font-medium">{formatDate(calcResult.new_end_date)}</Text></View>
           )}
         </View>
 

@@ -144,7 +144,11 @@ func CalculateRenewal(c *gin.Context) {
 		}
 	}
 
-	newEndDate := today.AddDate(0, 0, req.AdditionalDays)
+	baseDate := endDate
+	if today.After(endDate) {
+		baseDate = today
+	}
+	newEndDate := baseDate.AddDate(0, 0, req.AdditionalDays)
 	baseRate, pricingTiers, cumDisc := loadRenewalPricing(order)
 
 	renewalCost, tierBreakdown := services.CalculateRenewalPricing(

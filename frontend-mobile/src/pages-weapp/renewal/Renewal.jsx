@@ -3,7 +3,6 @@ import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env } from '../../platform'
-import { calculateEndDate } from '../../utils/daycalc'
 
 function formatDate(raw) {
   if (!raw) return '-'
@@ -160,8 +159,8 @@ export default function Renewal() {
             />
             <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>
           </View>
-          {days > 0 && (
-            <View style={{ marginTop: 8 }}><Text style={{ fontSize: 12, color: '#a1a1aa' }}>预期归还日: </Text><Text style={{ fontSize: 12, color: '#000', fontWeight: '500' }}>{formatDate(calculateEndDate(new Date(), days).toISOString())}</Text></View>
+          {days > 0 && calcResult?.new_end_date && (
+            <View style={{ marginTop: 8 }}><Text style={{ fontSize: 12, color: '#a1a1aa' }}>预期归还日: </Text><Text style={{ fontSize: 12, color: '#000', fontWeight: '500' }}>{formatDate(calcResult.new_end_date)}</Text></View>
           )}
         </View>
         )}
