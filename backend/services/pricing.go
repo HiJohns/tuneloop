@@ -202,12 +202,19 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		result.ShippingFee = ov
 	}
 
-	// Fallback: read shipping_fee from instrument's Pricing field
-	if result.ShippingFee == 0 && len(instrumentPricingJSON) > 0 && instrumentPricingJSON[0] != "" {
+	// Fallback: read pricing fields from instrument's Pricing JSONB
+	if len(instrumentPricingJSON) > 0 && instrumentPricingJSON[0] != "" {
 		var ip map[string]interface{}
 		json.Unmarshal([]byte(instrumentPricingJSON[0]), &ip)
-		if fee, ok := ip["shipping_fee"].(float64); ok && fee > 0 {
-			result.ShippingFee = fee
+		if result.ShippingFee == 0 {
+			if fee, ok := ip["shipping_fee"].(float64); ok && fee > 0 {
+				result.ShippingFee = fee
+			}
+		}
+		if result.Deposit == 0 {
+			if d, ok := ip["deposit"].(float64); ok && d > 0 {
+				result.Deposit = d
+			}
 		}
 	}
 
