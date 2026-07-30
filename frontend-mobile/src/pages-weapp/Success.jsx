@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch, getCartKey } from '../services/api'
 import { env, storage, eventBus } from '../platform'
 
 export default function Success() {
@@ -12,7 +12,7 @@ export default function Success() {
   const orderId = params.order_id
 
   useEffect(() => {
-    storage.removeItem('cart')
+    storage.removeItem(getCartKey())
     eventBus.emit('cartUpdated')
 
     if (orderId && params.status === 'check') {

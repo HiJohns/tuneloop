@@ -176,6 +176,17 @@ export function getToken() {
   return null
 }
 
+export function getCartKey() {
+  const token = getToken()
+  if (!token) return 'cart'
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.sub || payload.user_id || payload.id
+    if (userId) return `cart_${userId}`
+  } catch {}
+  return 'cart'
+}
+
 export function getTokenFromCookie() {
   return cookie.get('token')
 }

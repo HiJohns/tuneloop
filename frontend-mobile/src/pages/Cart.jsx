@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { dialog, storage, eventBus } from '../platform'
+import { dialog, storage, eventBus, env } from '../platform'
+import { apiFetch, getCartKey } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -69,11 +70,38 @@ export default function Cart() {
   const getItemId = (item) => item.instrument_id || item.id
 
   useEffect(() => {
-    const data = storage.getJSON('cart', { items: [] }) || { items: [] }
+    const data = storage.getJSON(getCartKey(), { items: [] }) || { items: [] }
     setCartItems(data.items)
     const sel = new Set(data.items.map(i => getItemId(i)))
     setSelected(sel)
   }, [])
+
+  useEffect(() => {
+    const enrichMissingPricing = async () => {
+      const needsFetch = cartItems.filter(item => !item.pricing_v2?.tiers?.length && item.instrument_id)
+      if (!needsFetch.length) return
+      const updated = await Promise.all(cartItems.map(async (item) => {
+        if (item.pricing_v2?.tiers?.length || !item.instrument_id) return item
+        try {
+          const res = await apiFetch(`${env.apiBaseUrl}/public/instruments/${item.instrument_id}/pricing-v2`)
+          const data = await res.json()
+          if (data.code === 20000 && data.data?.tiers?.length) {
+            return {
+              ...item,
+              pricing_v2: { base_daily_rate: data.data.base_daily_rate, tiers: data.data.tiers },
+              daily_rent: data.data.base_daily_rate || item.daily_rent,
+              deposit: data.data.deposit || item.deposit,
+              shipping_fee: data.data.shipping_fee || item.shipping_fee,
+            }
+          }
+        } catch {}
+        return item
+      }))
+      setCartItems(updated)
+      storage.setJSON(getCartKey(), { items: updated })
+    }
+    if (cartItems.length > 0) enrichMissingPricing()
+  }, [cartItems.length])
 
   const toggleSelect = (itemId) => {
     setSelected(prev => {
@@ -127,7 +155,7 @@ export default function Cart() {
     if (dialog.confirm('确定要删除该乐器吗？')) {
       const updated = cartItems.filter(item => getItemId(item) !== itemId)
       setCartItems(updated)
-      storage.setJSON('cart', { items: updated })
+      storage.setJSON(getCartKey(), { items: updated })
       setSelected(prev => { const next = new Set(prev); next.delete(itemId); return next })
       eventBus.emit('cartUpdated')
     }
@@ -151,7 +179,7 @@ export default function Cart() {
         }
         return item
       })
-      storage.setJSON('cart', { items: updated })
+      storage.setJSON(getCartKey(), { items: updated })
       return updated
     })
   }
@@ -164,7 +192,7 @@ export default function Cart() {
         }
         return item
       })
-      storage.setJSON('cart', { items: updated })
+      storage.setJSON(getCartKey(), { items: updated })
       return updated
     })
   }
@@ -281,7 +309,7 @@ export default function Cart() {
 
                             {/* Pricing breakdown */}
                             <View className="text-[10px] text-right space-y-0.5 pr-2">
-                              <Text className="block text-zinc-400">租金 ¥{pricing.rent.toFixed(0)}（¥{pricing.dailyRent}/天 × {item.rent_qty || 30}天）</Text>
+                              <Text className="block text-zinc-400">租金 ¥{pricing.rent.toFixed(0)}{item.pricing_v2?.tiers?.length ? '（阶梯计价）' : `（¥${pricing.dailyRent}/天 × ${item.rent_qty || 30}天）`}</Text>
                               <Text className="block text-zinc-400">押金 ¥{pricing.deposit}</Text>
                               <Text className="block text-zinc-400">物流费 ¥{pricing.shippingFee || 0}</Text>
                               <Text className="block font-bold text-zinc-500 pt-0.5">小计 ¥{itemSubtotal.toFixed(0)}</Text>

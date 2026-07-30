@@ -1,13 +1,14 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text } from '@tarojs/components'
+import { getCartKey } from '../services/api'
 import { storage, eventBus } from '../platform'
 
 export default function Success() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    storage.removeItem('cart')
+    storage.removeItem(getCartKey())
     eventBus.emit('cartUpdated')
   }, [])
 

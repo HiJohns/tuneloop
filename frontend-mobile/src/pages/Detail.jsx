@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { instrumentsApi, getToken, apiFetch, redirectToLogin } from '../services/api'
+import { instrumentsApi, getToken, apiFetch, redirectToLogin, getCartKey } from '../services/api'
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
 import { Switch, Tag } from 'antd'
 import dayjs from 'dayjs'
@@ -60,14 +60,14 @@ export default function Detail() {
 
   const cartItemCount = (() => {
     try {
-      const cartData = storage.getJSON('cart', {items: []})
+      const cartData = storage.getJSON(getCartKey(), {items: []})
       return cartData.items?.length || 0
     } catch { return 0 }
   })()
 
   const handleAddToCart = () => {
     try {
-      const cartData = storage.getJSON('cart', {items: []}) || {items: []}
+      const cartData = storage.getJSON(getCartKey(), {items: []}) || {items: []}
       if (!cartData.items.find(i => i.id === id)) {
         cartData.items.push({
           id,
@@ -90,7 +90,7 @@ export default function Detail() {
           pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
           rent_qty: 30,
         })
-        storage.setJSON('cart', cartData)
+        storage.setJSON(getCartKey(), cartData)
       }
       setCartToast(true)
       setTimeout(() => setCartToast(false), 2000)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getCartKey } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -52,14 +53,14 @@ export default function Detail() {
 
   const cartItemCount = (() => {
     try {
-      const cartData = storage.getJSON('cart', {items: []})
+      const cartData = storage.getJSON(getCartKey(), {items: []})
       return cartData.items?.length || 0
     } catch { return 0 }
   })()
 
   const handleAddToCart = () => {
     try {
-      const cartData = storage.getJSON('cart', {items: []}) || {items: []}
+      const cartData = storage.getJSON(getCartKey(), {items: []}) || {items: []}
       if (!cartData.items.find(i => i.id === id)) {
         cartData.items.push({
           id,
@@ -82,7 +83,7 @@ export default function Detail() {
           pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
           rent_qty: 30,
         })
-        storage.setJSON('cart', cartData)
+        storage.setJSON(getCartKey(), cartData)
       }
     } catch {}
   }

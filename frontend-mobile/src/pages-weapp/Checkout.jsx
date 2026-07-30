@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
@@ -28,13 +28,33 @@ function parsePricing(pricing) {
   return []
 }
 
+function computeTieredRent(pricingV2, days, baseDailyRate) {
+  if (!pricingV2?.tiers?.length) {
+    return (pricingV2?.base_daily_rate || baseDailyRate || 0) * days
+  }
+  let remaining = days
+  let total = 0
+  let prevMax = 0
+  for (const tier of pricingV2.tiers) {
+    const tierDays = tier.days_max > 0 ? tier.days_max - prevMax : remaining
+    const segDays = Math.min(tierDays, remaining)
+    total += segDays * tier.daily_rate
+    remaining -= segDays
+    prevMax = tier.days_max
+    if (remaining <= 0) break
+  }
+  return total
+}
+
 function getItemPricing(item) {
   const pricing = parsePricing(item.pricing)
-  const dailyRent = pricing[0]?.daily_rent || item.base_daily_rate || 0
-  const deposit = pricing[0]?.deposit || 0
-  const rentQty = item.rent_qty || 1
-  const rent = item.calculated_rent !== undefined ? item.calculated_rent : dailyRent * rentQty
-  return { dailyRent, deposit, rent, shippingFee: pricing[0]?.shipping_fee || 0 }
+  const days = item.rent_qty || 1
+  const dailyRent = item.daily_rent || pricing[0]?.daily_rent || item.base_daily_rate || 0
+  const rent = item.pricing_v2?.tiers?.length
+    ? computeTieredRent(item.pricing_v2, days, item.pricing_v2.base_daily_rate || dailyRent)
+    : dailyRent * days
+  const deposit = item.deposit || pricing[0]?.deposit || 0
+  return { dailyRent, deposit, rent, shippingFee: item.shipping_fee || pricing[0]?.shipping_fee || 0 }
 }
 
 function SingleCheckout({ id, nav }) {
@@ -138,43 +158,7 @@ function SingleCheckout({ id, nav }) {
     fetchUser()
   }, [])
 
-  const computeTieredRent = (daysCount) => {
-    if (!pricingV2?.tiers?.length) {
-      return (pricingV2?.base_daily_rate || 0) * daysCount
-    }
-    let remaining = daysCount
-    let total = 0
-    let prevMax = 0
-    for (const tier of pricingV2.tiers) {
-      const tierDays = tier.days_max > 0 ? tier.days_max - prevMax : remaining
-      const segDays = Math.min(tierDays, remaining)
-      total += segDays * tier.daily_rate
-      remaining -= segDays
-      prevMax = tier.days_max
-      if (remaining <= 0) break
-    }
-    return total
-  }
-
-  useEffect(() => {
-    if (!instrument?.id || !days) return
-    const fetchCalc = async () => {
-      setRentalCalcLoading(true)
-      try {
-        const res = await apiFetch(`${env.apiBaseUrl}/rental/calculate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ instrument_id: instrument.id, days }),
-        })
-        const r = await res.json()
-        if (r.code === 20000) setRentalCalc(r.data)
-      } catch {}
-      setRentalCalcLoading(false)
-    }
-    fetchCalc()
-  }, [instrument?.id, days])
-
-  const totalRent = computeTieredRent(days)
+  const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
   const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
   const shippingFee = pricingV2?.shipping_fee || parsePricing(instrument?.pricing)[0]?.shipping_fee || 0
   const totalAmount = totalRent + deposit + shippingFee
@@ -490,7 +474,7 @@ function BatchCheckout({ nav }) {
       return
     }
     const loadData = async () => {
-      const data = storage.getJSON('cart', { items: [] }) || { items: [] }
+      const data = storage.getJSON(getCartKey(), { items: [] }) || { items: [] }
       setCartItems(data.items)
       try {
         const addrRes = await addressesApi.list()
@@ -619,8 +603,8 @@ function BatchCheckout({ nav }) {
         const orders = orderResp.data?.orders || []
         if (orders.length > 0) {
           const ids = new Set(cartItems.map(item => item.instrument_id || item.id))
-          const cart = storage.getJSON('cart', { items: [] }) || { items: [] }
-          storage.setJSON('cart', { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
+          const cart = storage.getJSON(getCartKey(), { items: [] }) || { items: [] }
+          storage.setJSON(getCartKey(), { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
           eventBus.emit('cartUpdated')
           Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${orders[0].order_id}` })
         } else {
