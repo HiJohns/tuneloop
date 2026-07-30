@@ -78,6 +78,7 @@ export default function Detail() {
           tenant_name: instrument?.tenant_name || '',
           level_name: levelName || '',
           shipping_fee: pricingV2?.shipping_fee || 0,
+          pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
           rent_qty: 30,
         })
         storage.setJSON('cart', cartData)

@@ -50,7 +50,9 @@ function computeTieredRent(pricingV2, days, baseDailyRate) {
 function getItemPricing(item) {
   const days = item.rent_qty || 30
   const dailyRent = item.daily_rent || 0
-  const rent = dailyRent * days
+  const rent = item.pricing_v2?.tiers?.length
+    ? computeTieredRent(item.pricing_v2, days, item.pricing_v2.base_daily_rate || dailyRent)
+    : dailyRent * days
   const deposit = item.deposit || 0
   const shippingFee = item.shipping_fee || 0
   return { dailyRent, deposit, rent, shippingFee }
