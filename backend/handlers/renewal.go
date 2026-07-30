@@ -201,6 +201,14 @@ func ConfirmRenewal(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	db := database.GetDB().WithContext(ctx)
 
+	// For customer (USER) JWT, tenantID is empty — derive from the order
+	if tenantID == "" {
+		var ord struct{ TenantID string }
+		if err := db.Table("orders").Select("tenant_id").Where("id = ?", orderID).Scan(&ord).Error; err == nil {
+			tenantID = ord.TenantID
+		}
+	}
+
 	order, err := loadOrderForRenewal(db, orderID, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
