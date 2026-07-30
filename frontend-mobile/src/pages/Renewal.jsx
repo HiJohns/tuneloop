@@ -114,7 +114,7 @@ export default function Renewal() {
             <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">下单日</Text><Text className="text-black font-medium">{formatDate(order?.created_at)}</Text></View>
             <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">原预期归还</Text><Text className="text-black font-medium">{formatDate(endDate)}</Text></View>
             {overdueDays > 0 && (
-              <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="text-red-500 font-medium">{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+              <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="font-medium">{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
             )}
           </View>
         )}
@@ -164,7 +164,7 @@ export default function Renewal() {
             {calcResult.overdue_days > 0 && (
               <View className="flex justify-between py-1 text-sm border-t border-gray-100">
                 <Text className="text-gray-500">逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.daily_rate * 1.5).toFixed(2)}</Text>
-                <Text className="font-medium text-red-500">¥{calcResult.overdue_balance?.toFixed(2)}</Text>
+                <Text className="font-medium">¥{calcResult.overdue_balance?.toFixed(2)}</Text>
               </View>
             )}
             <View className="flex justify-between py-2 text-base font-bold border-t border-gray-200 mt-1">

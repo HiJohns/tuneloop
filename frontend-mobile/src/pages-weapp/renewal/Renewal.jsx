@@ -131,7 +131,9 @@ export default function Renewal() {
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>下单日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.created_at)}</Text></View>
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>原预期归还</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
             {overdueDays > 0 && (
-              <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#ef4444' }}>{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+              <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#000' }}>{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+181:                <Text style={{ fontSize: 12, fontWeight: '500', color: '#ef4444' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
+184:              <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>当前订单定价数据不完整，请联系管理员</Text>
             )}
           </View>
         )}
@@ -208,7 +210,7 @@ export default function Renewal() {
             {calcResult.overdue_days > 0 && (
               <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6' }}>
                 <Text style={{ fontSize: 12, color: '#71717a' }}>逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.daily_rate * 1.5).toFixed(2)}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '500', color: '#ef4444' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
               </View>
             )}
             <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 8, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
