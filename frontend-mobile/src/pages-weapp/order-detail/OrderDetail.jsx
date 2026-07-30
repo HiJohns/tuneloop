@@ -391,7 +391,7 @@ export default function OrderDetail() {
                       <View>
                         <Row label="日租金" value={`¥${Number(pb.final_daily_rent || pb.base_daily_rent || 0).toFixed(2)}`} />
                         {pb.base_daily_rent && pb.final_daily_rent < pb.base_daily_rent && (
-                          <Row label="  原价" value={`¥${pb.base_daily_rent}/天`} color="#a1a1aa" />
+                          <Row label="原价" value={`¥${pb.base_daily_rent}/天`} color="#a1a1aa" />
                         )}
                         {pb.rent_days > 0 && <Row label="租期（天）" value={pb.rent_days} />}
                         <Row label="租金" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} />
@@ -406,7 +406,7 @@ export default function OrderDetail() {
                   {pb?.deposit_method && (
                     <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginTop: -2 }}>
                       {pb.deposit_method === 'total_price'
-                        ? `原价 ¥${pb.total_price || 0} × ${pb.deposit_ratio || 0}`
+                        ? `乐器总价值 ¥${pb.total_price || 0}`
                         : `日租金 × ${pb.deposit_multiplier || 7}倍`}
                     </Text>
                   )}
@@ -485,6 +485,7 @@ export default function OrderDetail() {
             {order.tracking_number && (
               <Row label="📦 物流单号" value={order.tracking_number} mono />
             )}
+            {order.shipped_at && <Row label="📅 发货时间" value={formatDate(order.shipped_at)} />
           </View>
         )}
 
