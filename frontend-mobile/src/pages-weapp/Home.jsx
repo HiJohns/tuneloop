@@ -135,7 +135,10 @@ export default function Home() {
   const menuStuckRef = useRef(false)
   const scrollTimerRef = useRef(null)
   const blurTimerRef = useRef(null)
-  const topCategories = categories.filter(c => !c.parent_id)
+  const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
+    ...cat,
+    sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0))
+  }))
   const catTouchStartRef = useRef({ x: 0, offset: 0 })
   const bannerTouchStartXRef = useRef(0)
   const lastSwipeRef = useRef(0)
@@ -395,8 +398,27 @@ export default function Home() {
 }
 
 function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
-  const items = [{ id: null, name: '全部' }, ...(categories || [])]
+  const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
+  const [subMenuCat, setSubMenuCat] = useState(null)
   const localTouchRef = useRef({ x: 0, offset: 0, dragged: false })
+
+  const displayItems = subMenuCat
+    ? [{ id: '__back__', name: '← 返回' }, { id: subMenuCat.id, name: '全部', sub_categories: [] }, ...(subMenuCat.sub_categories || [])]
+    : items
+
+  const handleItemClick = (item) => {
+    if (item.id === '__back__') {
+      setSubMenuCat(null)
+      return
+    }
+    const cat = categories.find(c => c.id === item.id)
+    if (!subMenuCat && cat && (cat.sub_categories || []).length > 0) {
+      onCategoryChange(cat.id)
+      setSubMenuCat(cat)
+    } else {
+      onCategoryChange(item.id)
+    }
+  }
 
   return (
     <View style={{ width: '100%', overflow: 'hidden', paddingLeft: 28, paddingRight: 28, backgroundColor: 'rgba(0,0,0,0.2)', paddingTop: 4, paddingBottom: 4 }}
@@ -407,12 +429,12 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
         const dx = e.touches[0].clientX - localTouchRef.current.x
         if (Math.abs(dx) > 5) {
           localTouchRef.current.dragged = true
-          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(items.length * 120 - 375))))
+          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(displayItems.length * 120 - 375))))
         }
       }}
     >
       <View style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', transform: `translateX(${catOffsetX}px)` }}>
-        {items.map(item => (
+        {displayItems.map(item => (
           <Text
             key={item.id || 'all'}
             style={{
@@ -423,11 +445,11 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
               fontWeight: selectedCategory === item.id ? '900' : '700',
               borderBottom: selectedCategory === item.id ? '2px solid #fff' : 'none',
               paddingBottom: selectedCategory === item.id ? 2 : 0,
-              color: selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
+              color: item.id === '__back__' ? 'rgba(255,255,255,0.6)' : selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
             }}
             onClick={() => {
               if (localTouchRef.current.dragged) return
-              onCategoryChange(item.id)
+              handleItemClick(item)
             }}
           >
             {item.name}
