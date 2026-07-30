@@ -415,7 +415,7 @@ function SingleCheckout({ id, navigate }) {
         <Button
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full py-3 bg-brand-primary text-white rounded-xl font-black disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{ width: '100%', paddingTop: 12, paddingBottom: 12, backgroundColor: submitting ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           {submitting ? '提交中...' : '提交订单'}
         </Button>
