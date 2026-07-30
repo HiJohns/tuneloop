@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
-import { env, getWindowSize } from '../platform'
+import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
+import { env, getWindowSize, storage, session } from '../platform'
 import BottomNav from '../components/BottomNav'
 
 const INSTRUMENT_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
@@ -104,6 +104,22 @@ export default function Home() {
 
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
+  const cartItemCount = (() => {
+    try {
+      const d = storage.getJSON(getCartKey(), {items: []})
+      return d.items?.length || 0
+    } catch { return 0 }
+  })()
+
+  const handleCartClick = () => {
+    const token = getToken()
+    if (!token) {
+      session.setItem('post_auth_redirect', '/cart')
+      redirectToLogin()
+      return
+    }
+    navigate('/cart')
+  }
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -365,6 +381,14 @@ export default function Home() {
         </View>
         </ScrollView>
         <View>
+        <View onClick={handleCartClick} className="fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg z-50">
+          <Text className="text-xl">🛒</Text>
+          {cartItemCount > 0 && (
+            <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+              {cartItemCount}
+            </Text>
+          )}
+        </View>
         <BottomNav
           active="home"
           tabs={[

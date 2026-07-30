@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
-import { env, dialog, getWindowSize } from '../platform'
+import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
+import { env, dialog, getWindowSize, storage, session } from '../platform'
 import BottomNav from '../components-weapp/BottomNav'
 
 const IMG_BASE = 'https://wx.cadenzayueqi.com'
@@ -146,6 +146,22 @@ export default function Home() {
   const baseUrl = env.apiBaseUrl
   const imageBaseUrl = baseUrl.replace(/\/api$/, '')
   const normalizedBannerIdx = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
+  const cartItemCount = (() => {
+    try {
+      const d = storage.getJSON(getCartKey(), {items: []})
+      return d.items?.length || 0
+    } catch { return 0 }
+  })()
+
+  const handleCartClick = () => {
+    const token = getToken()
+    if (!token) {
+      session.setItem('post_auth_redirect', '/pages-weapp/cart/index')
+      Taro.navigateTo({ url: '/pages-weapp/login/index' })
+      return
+    }
+    nav('/pages-weapp/cart/index')
+  }
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -383,6 +399,14 @@ export default function Home() {
         )}
         </View>
       </ScrollView>
+      <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50 }}>
+        <Text style={{ fontSize: 20 }}>🛒</Text>
+        {cartItemCount > 0 && (
+          <Text style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', color: '#fff', fontSize: 10, width: 20, height: 20, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+            {cartItemCount}
+          </Text>
+        )}
+      </View>
       <BottomNav
         active="home"
         tabs={[
