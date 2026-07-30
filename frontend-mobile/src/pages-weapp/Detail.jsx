@@ -39,6 +39,7 @@ export default function Detail() {
   const [displayMedia, setDisplayMedia] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
   const [auditLogs, setAuditLogs] = useState([])
+  const [cartBouncing, setCartBouncing] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const bannerTouchStartXRef = useRef(0)
   const isRentable = instrument?.stock_status === 'available'
@@ -47,9 +48,6 @@ export default function Detail() {
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
-  const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
-  const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
-  const shippingFee = pricingV2?.shipping_fee || 0
 
   const cartItemCount = (() => {
     try {
@@ -58,33 +56,46 @@ export default function Detail() {
     } catch { return 0 }
   })()
 
+  const isInCart = (() => {
+    try {
+      const cartData = storage.getJSON(getCartKey(), {items: []})
+      return cartData.items?.some(i => i.id === id || i.instrument_id === id) || false
+    } catch { return false }
+  })()
+
   const handleAddToCart = () => {
+    if (isInCart) {
+      nav('/pages-weapp/cart/index')
+      return
+    }
     try {
       const cartData = storage.getJSON(getCartKey(), {items: []}) || {items: []}
-      if (!cartData.items.find(i => i.id === id)) {
-        cartData.items.push({
-          id,
-          instrument_id: id,
-          name: instrument?.name,
-          sn: instrument?.sn,
-          cover_image: instrument?.cover_image || '',
-          images: instrument?.images || [],
-          category_name: instrument?.category_name || '',
-          daily_rent: dailyRent,
-          deposit,
-          site_id: instrument?.site_id || '',
-          site_name: instrument?.site_name || '',
-          site_address: instrument?.site_address || '',
-          site_phone: instrument?.site_phone || '',
-          tenant_id: instrument?.tenant_id || '',
-          tenant_name: instrument?.tenant_name || '',
-          level_name: levelName || '',
-          shipping_fee: pricingV2?.shipping_fee || 0,
-          pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
-          rent_qty: 30,
-        })
-        storage.setJSON(getCartKey(), cartData)
-      }
+      cartData.items.push({
+        id,
+        instrument_id: id,
+        name: instrument?.name,
+        sn: instrument?.sn,
+        cover_image: instrument?.cover_image || '',
+        images: instrument?.images || [],
+        category_name: instrument?.category_name || '',
+        daily_rent: dailyRent,
+        deposit,
+        site_id: instrument?.site_id || '',
+        site_name: instrument?.site_name || '',
+        site_address: instrument?.site_address || '',
+        site_phone: instrument?.site_phone || '',
+        tenant_id: instrument?.tenant_id || '',
+        tenant_name: instrument?.tenant_name || '',
+        level_name: levelName || '',
+        shipping_fee: pricingV2?.shipping_fee || 0,
+        pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
+        rent_qty: 30,
+      })
+      storage.setJSON(getCartKey(), cartData)
+      setCartBouncing(true)
+      setTimeout(() => setCartBouncing(false), 600)
+    } catch {}
+  }
     } catch {}
   }
 
@@ -390,14 +401,14 @@ export default function Detail() {
       </ScrollView>
 
       {/* Floating cart icon */}
-      {cartItemCount > 0 && (
-        <View onClick={() => nav('/pages-weapp/cart/index')} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', color: '#fff', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 51 }}>
-          <Text style={{ fontSize: 20 }}>🛒</Text>
+      <View onClick={() => nav('/pages-weapp/cart/index')} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', color: '#fff', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 51, transform: cartBouncing ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.3s ease-in-out' }}>
+        <Text style={{ fontSize: 20 }}>🛒</Text>
+        {cartItemCount > 0 && (
           <Text style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', color: '#fff', fontSize: 12, width: 20, height: 20, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
             {cartItemCount}
           </Text>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Bottom panel */}
       <View style={{ backgroundColor: '#FDF4E7', borderTop: '1px solid #f4f4f5', padding: 16, display: 'flex', flexDirection: 'column', zIndex: 50, boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -406,9 +417,9 @@ export default function Detail() {
             <View style={{ display: 'flex', width: '100%' }}>
               <View
                 onClick={handleAddToCart}
-                style={{ flex: '1 1 0%', height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #E2B07E, #C98E54)', marginRight: 12 }}
+                style={{ flex: '1 1 0%', height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isInCart ? '#9CA3AF' : 'linear-gradient(135deg, #E2B07E, #C98E54)', marginRight: 12, opacity: isInCart ? 0.6 : 1 }}
               >
-                <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>加入购物车</Text>
+                <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>{isInCart ? '已加入购物车' : '加入购物车'}</Text>
               </View>
               <View
                 onClick={() => {

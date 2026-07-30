@@ -46,7 +46,7 @@ export default function Detail() {
   const [displayMedia, setDisplayMedia] = useState(null)
   const [pricingV2, setPricingV2] = useState(null)
   const [auditLogs, setAuditLogs] = useState([])
-  const [cartToast, setCartToast] = useState(false)
+  const [cartBouncing, setCartBouncing] = useState(false)
   const [fullscreenImage, setFullscreenImage] = useState(null)
   const bannerTouchStartXRef = useRef(0)
   const isRentable = instrument?.stock_status === 'available'
@@ -65,35 +65,44 @@ export default function Detail() {
     } catch { return 0 }
   })()
 
+  const isInCart = (() => {
+    try {
+      const cartData = storage.getJSON(getCartKey(), {items: []})
+      return cartData.items?.some(i => i.id === id || i.instrument_id === id) || false
+    } catch { return false }
+  })()
+
   const handleAddToCart = () => {
+    if (isInCart) {
+      navigate('/cart')
+      return
+    }
     try {
       const cartData = storage.getJSON(getCartKey(), {items: []}) || {items: []}
-      if (!cartData.items.find(i => i.id === id)) {
-        cartData.items.push({
-          id,
-          instrument_id: id,
-          name: instrument?.name,
-          sn: instrument?.sn,
-          cover_image: instrument?.cover_image || '',
-          images: instrument?.images || [],
-          category_name: instrument?.category_name || '',
-          daily_rent: dailyRent,
-          deposit,
-          site_id: instrument?.site_id || '',
-          site_name: instrument?.site_name || '',
-          site_address: instrument?.site_address || '',
-          site_phone: instrument?.site_phone || '',
-          tenant_id: instrument?.tenant_id || '',
-          tenant_name: instrument?.tenant_name || '',
-          level_name: instrument?.level_name || '',
-          shipping_fee: shippingFee || 0,
-          pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
-          rent_qty: 30,
-        })
-        storage.setJSON(getCartKey(), cartData)
-      }
-      setCartToast(true)
-      setTimeout(() => setCartToast(false), 2000)
+      cartData.items.push({
+        id,
+        instrument_id: id,
+        name: instrument?.name,
+        sn: instrument?.sn,
+        cover_image: instrument?.cover_image || '',
+        images: instrument?.images || [],
+        category_name: instrument?.category_name || '',
+        daily_rent: dailyRent,
+        deposit,
+        site_id: instrument?.site_id || '',
+        site_name: instrument?.site_name || '',
+        site_address: instrument?.site_address || '',
+        site_phone: instrument?.site_phone || '',
+        tenant_id: instrument?.tenant_id || '',
+        tenant_name: instrument?.tenant_name || '',
+        level_name: instrument?.level_name || '',
+        shipping_fee: shippingFee || 0,
+        pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
+        rent_qty: 30,
+      })
+      storage.setJSON(getCartKey(), cartData)
+      setCartBouncing(true)
+      setTimeout(() => setCartBouncing(false), 600)
     } catch {}
   }
 
@@ -247,9 +256,9 @@ export default function Detail() {
                       } catch (e) { console.warn('[Preview] previewImage failed:', e) }
                     }} />
                 </View>
-              )}
-            </View>
-          </View>
+        )}
+      </View>
+    </View>
           <View className="flex items-center justify-center space-x-1.5 pb-3" style={{ backgroundColor: '#FDF4E7' }}>
             {bannerImages.map((_, i) => (
               <View key={i} className={`${i === currentBanner ? 'w-3' : 'w-1.5'} h-1.5 rounded-full ${i === currentBanner ? 'bg-[#915F38]' : 'bg-black/15'}`} />
@@ -416,14 +425,18 @@ export default function Detail() {
       </ScrollView>
 
       {/* Floating cart icon */}
-      {cartItemCount > 0 && (
-        <View onClick={() => navigate('/cart')} className="fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg z-50">
-          <Text className="text-xl">🛒</Text>
+      <View
+        onClick={() => navigate('/cart')}
+        className={`fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg z-50 ${cartBouncing ? 'scale-125' : ''}`}
+        style={{ transition: 'transform 0.3s ease-in-out' }}
+      >
+        <Text className="text-xl">🛒</Text>
+        {cartItemCount > 0 && (
           <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
             {cartItemCount}
           </Text>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Bottom panel */}
       <View className="border-t border-zinc-100 p-4 flex flex-col space-y-2 z-50 shadow-2xl" style={{ backgroundColor: '#FDF4E7' }}>
@@ -432,10 +445,10 @@ export default function Detail() {
             <View className="flex w-full" style={{ gap: 12 }}>
               <View
                 onClick={handleAddToCart}
-                className="flex-1 h-12 rounded-full shadow-sm flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #E2B07E, #C98E54)' }}
+                className={'flex-1 h-12 rounded-full shadow-sm flex items-center justify-center' + (isInCart ? ' opacity-60' : '')}
+                style={{ background: isInCart ? '#9CA3AF' : 'linear-gradient(135deg, #E2B07E, #C98E54)' }}
               >
-                <Text className="text-white font-black text-base">加入购物车</Text>
+                <Text className="text-white font-black text-base">{isInCart ? '已加入购物车' : '加入购物车'}</Text>
               </View>
               <View
                 onClick={() => navigate(`/checkout/${id}`)}
@@ -537,31 +550,6 @@ export default function Detail() {
           </View>
         )}
       </View>
-
-      {/* Cart toast modal */}
-      {cartToast && (
-        <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setCartToast(false)}>
-          <View className="bg-white rounded-xl p-6 mx-8 text-center" onClick={e => e.stopPropagation()}>
-            <Text className="text-green-500 text-5xl mb-3">✓</Text>
-            <Text className="text-lg font-bold mb-1">加入成功</Text>
-            <Text className="text-gray-500 text-sm mb-4">该乐器已添加到购物车</Text>
-            <View className="flex gap-3">
-              <View
-                onClick={() => { setCartToast(false); navigate('/') }}
-                className="flex-1 py-3 px-6 border rounded-lg text-gray-600 text-center"
-              >
-                <Text>继续浏览</Text>
-              </View>
-              <View
-                onClick={() => { setCartToast(false); navigate('/cart') }}
-                className="flex-1 py-3 px-6 bg-[#002140] text-white rounded-lg text-center"
-              >
-                <Text>提交订单</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
 
       {/* Fullscreen image/video overlay */}
       {fullscreenImage && (
