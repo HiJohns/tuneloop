@@ -99,17 +99,14 @@ function OAuthCallback() {
     const params = navigation.getQueryParams()
     const code = params.code
     const error = params.error
-    const path = window.location.pathname + window.location.search
-    console.log('[OAuthCallback] invoked, path:', path, 'code:', !!code, 'error:', !!error)
 
     if (error) {
-      console.error('[OAuthCallback] error param received:', error)
+      console.error('OAuth error:', error)
       navigation.redirect('/')
       return
     }
 
     if (!code) {
-      console.log('[OAuthCallback] no code in URL, redirecting to /')
       navigation.redirect('/')
       return
     }
@@ -150,8 +147,6 @@ function OAuthCallback() {
 
           let redirectTo = session.getItem('post_auth_redirect') || '/onboarding'
           session.removeItem('post_auth_redirect')
-          console.log('[OAuthCallback] post_auth_redirect:', redirectTo)
-          console.log('[OAuthCallback] token stored:', !!tokenData.access_token)
           navigation.redirect(redirectTo)
         } else {
           throw new Error('No access token in response')

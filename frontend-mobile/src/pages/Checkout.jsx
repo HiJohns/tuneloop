@@ -754,8 +754,8 @@ function BatchCheckout({ navigate }) {
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 pb-6 border-t border-zinc-100 z-50 flex flex-col items-center">
-        <Button
-          className="w-full m-0 bg-[#B98E5F] active:bg-[#A87D50] text-white font-extrabold text-base h-12 rounded-full shadow-md flex items-center justify-center tracking-wider"
+         <Button
+          style={{ width: '100%', margin: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', fontWeight: 800, fontSize: 16, height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
           onClick={handleSubmit}
           disabled={submitting}
         >

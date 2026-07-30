@@ -17,6 +17,12 @@ async function handleWxLogin() {
       storage.setItem('token', result.data.token)
       Taro.hideLoading()
       eventBus.emit('loginSuccess')
+      const postAuth = session.getItem('post_auth_redirect')
+      if (postAuth) {
+        session.removeItem('post_auth_redirect')
+        Taro.redirectTo({ url: postAuth })
+        return
+      }
       if (result.data.is_new === false) {
         const pages = Taro.getCurrentPages()
         if (pages.length > 1) {

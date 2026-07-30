@@ -113,7 +113,6 @@ export default function Home() {
 
   const handleCartClick = () => {
     const token = getToken()
-    console.log('[Cart] token present:', !!token)
     if (!token) {
       session.setItem('post_auth_redirect', '/cart')
       redirectToLogin()

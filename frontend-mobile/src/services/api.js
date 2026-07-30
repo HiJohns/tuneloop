@@ -112,7 +112,6 @@ export function redirectToLogin(reason) {
   cookie.remove('token')
 
   if (isWeChatMiniProgram()) {
-    console.log('[redirectToLogin] WeChat mini-program path, redirecting to /pages/login/login')
     wx.miniProgram.redirectTo({
       url: '/pages/login/login'
     })
@@ -120,14 +119,12 @@ export function redirectToLogin(reason) {
     const wxConfig = window.APP_CONFIG?.wx || {}
     const iamUrl = wxConfig.iamExternalUrl || env.iamExternalUrl
     const clientId = wxConfig.iamClientId
-    console.log('[redirectToLogin] IAM path, iamUrl:', iamUrl, 'clientId:', clientId)
     if (!clientId) {
-      alert('[redirectToLogin] 无法获取配置，请刷新页面重试 (clientId is null)')
+      dialog.alert('无法获取配置，请刷新页面重试')
       return
     }
     const redirectUri = encodeURIComponent(navigation.getOrigin() + '/callback')
     const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
-    console.log('[redirectToLogin] redirecting to:', authUrl)
     navigation.redirect(authUrl)
   }
 }
@@ -169,19 +166,13 @@ export function getToken() {
   if (token && expiry) {
     const now = new Date().getTime()
     if (now <= parseInt(expiry)) {
-      console.log('[getToken] found valid token in storage, expiry:', new Date(parseInt(expiry)).toISOString())
       return token
     }
-    console.log('[getToken] token expired, expiry:', new Date(parseInt(expiry)).toISOString())
   }
 
   const sessionToken = session.getItem('token')
-  if (sessionToken) {
-    console.log('[getToken] found token in session')
-    return sessionToken
-  }
+  if (sessionToken) return sessionToken
 
-  console.log('[getToken] no token found')
   return null
 }
 
