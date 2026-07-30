@@ -16,10 +16,12 @@ import (
 )
 
 type PrepayRequest struct {
-	OrderID   string `json:"order_id" binding:"required"`
-	OrderType string `json:"order_type" binding:"required"` // rent | repair | points | damage
-	Amount    float64 `json:"amount" binding:"required"`
-	OpenID    string  `json:"open_id,omitempty"` // for JSAPI
+	OrderID     string  `json:"order_id" binding:"required"`
+	OrderType   string  `json:"order_type" binding:"required"` // rent | repair | points | damage
+	Amount      float64 `json:"amount" binding:"required"`
+	OpenID      string  `json:"open_id,omitempty"`
+	PrepaidUsed float64 `json:"prepaid_used"`
+	GiftUsed    float64 `json:"gift_used"`
 }
 
 type PrepayResponse struct {
@@ -85,6 +87,12 @@ func PrepayOrder(c *gin.Context) {
 		UpdatedAt:  time.Now(),
 	}
 
+	// Store points usage on the payment record for callback consumption
+	if req.PrepaidUsed > 0 || req.GiftUsed > 0 {
+		raw := fmt.Sprintf(`{"prepaid_used":%.2f,"gift_used":%.2f}`, req.PrepaidUsed, req.GiftUsed)
+		record.RawResponse = &raw
+	}
+
 	if cfg.MockMode {
 		record.Status = "paid"
 		record.Method = strPtr("mock")
@@ -98,6 +106,7 @@ func PrepayOrder(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
 			return
 		}
+
 		if err := applySideEffects(tx, &record, now); err != nil {
 			tx.Rollback()
 			log.Printf("[PrepayOrder] side effects failed: %v", err)

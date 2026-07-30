@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -106,6 +107,11 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 // applySideEffects updates order/repair/points state after payment is confirmed.
 // Called from both processPaymentCallback (real callback) and PrepayOrder (mock mode).
 func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
+	// Deduct points if the payment record carries prepaid/gift usage data
+	if err := deductPointsFromRecord(tx, record, now); err != nil {
+		return err
+	}
+
 	switch record.OrderType {
 	case "rent":
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error; err != nil {
@@ -136,6 +142,53 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 	default:
 		return nil
 	}
+}
+
+func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
+	if record.RawResponse == nil || *record.RawResponse == "" {
+		return nil
+	}
+	var points struct {
+		PrepaidUsed float64 `json:"prepaid_used"`
+		GiftUsed    float64 `json:"gift_used"`
+	}
+	if err := json.Unmarshal([]byte(*record.RawResponse), &points); err != nil {
+		return nil // silently ignore malformed raw_response
+	}
+	if points.PrepaidUsed <= 0 && points.GiftUsed <= 0 {
+		return nil
+	}
+	if err := tx.Model(&models.User{}).Where("iam_sub = ?", record.UserID).
+		Updates(map[string]interface{}{
+			"prepaid_points": gorm.Expr("GREATEST(prepaid_points - ?, 0)", points.PrepaidUsed),
+			"promo_points":   gorm.Expr("GREATEST(promo_points - ?, 0)", points.GiftUsed),
+			"updated_at":     now,
+		}).Error; err != nil {
+		return fmt.Errorf("deduct user points: %w", err)
+	}
+	if record.OrderID != nil {
+		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
+			Updates(map[string]interface{}{
+				"prepaid_points_used": points.PrepaidUsed,
+				"gift_points_used":    points.GiftUsed,
+			}).Error; err != nil {
+			return fmt.Errorf("update order points: %w", err)
+		}
+	}
+	pt := models.PointsTransaction{
+		ID:          uuid.New().String(),
+		UserID:      record.UserID,
+		TenantID:    record.TenantID,
+		Type:        "prepaid_used",
+		Amount:      points.PrepaidUsed + points.GiftUsed,
+		OrderID:     record.OrderID,
+		Description: fmt.Sprintf("订单支付使用预付点: prepaid=%.2f, gift=%.2f", points.PrepaidUsed, points.GiftUsed),
+		CreatedAt:   now,
+	}
+	if err := tx.Create(&pt).Error; err != nil {
+		return fmt.Errorf("create points transaction: %w", err)
+	}
+	return nil
 }
 
 func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {

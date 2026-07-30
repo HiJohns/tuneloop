@@ -198,6 +198,8 @@ export default function Payment() {
           order_id: pId,
           order_type: pType,
           amount: cashAmount,
+          prepaid_used: prepaidUsed,
+          gift_used: giftUsed,
         }),
       })
       const result = await resp.json()
