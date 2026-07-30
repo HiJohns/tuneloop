@@ -75,6 +75,7 @@ export default function Detail() {
           name: instrument?.name,
           sn: instrument?.sn,
           cover_image: instrument?.cover_image || '',
+          images: instrument?.images || [],
           category_name: instrument?.category_name || '',
           daily_rent: dailyRent,
           deposit,

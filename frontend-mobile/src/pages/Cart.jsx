@@ -228,7 +228,7 @@ export default function Cart() {
                   <View className="divide-y divide-zinc-50 px-4">
                     {group.items.map((item) => {
                       const images = parseImages(item.images)
-                      const imgSrc = images[0] || item.cover_image || PLACEHOLDER_IMAGE
+                      const imgSrc = item.cover_image || images[0] || PLACEHOLDER_IMAGE
                       const itemId = getItemId(item)
                       const pricing = getItemPricing(item)
                       const itemSubtotal = pricing.rent + pricing.deposit + (pricing.shippingFee || 0)
