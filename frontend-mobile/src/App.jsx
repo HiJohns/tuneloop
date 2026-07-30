@@ -60,7 +60,7 @@ function ProtectedRoute({ children, requireAuth = true }) {
     return children
   }
 
-  if (!token && !publicRoutes.includes(location)) {
+    if (!token && !publicRoutes.includes(location)) {
     if (session.getItem('guest_degradation')) {
       navigation.redirect('/')
       return null
@@ -147,6 +147,8 @@ function OAuthCallback() {
 
           let redirectTo = session.getItem('post_auth_redirect') || '/onboarding'
           session.removeItem('post_auth_redirect')
+          console.log('[OAuthCallback] post_auth_redirect:', redirectTo)
+          console.log('[OAuthCallback] token stored:', !!tokenData.access_token)
           navigation.redirect(redirectTo)
         } else {
           throw new Error('No access token in response')
