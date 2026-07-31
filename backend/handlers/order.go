@@ -851,15 +851,59 @@ func GetOrderLogs(c *gin.Context) {
 	}
 	logs := []logEntry{}
 
-	// Resolve customer name for log display (fallback: "customer")
-	customerName := "customer"
+	// Resolve customer name for log display (fallback: "顾客")
+	customerName := "顾客"
+	var customer models.User
 	if order.UserID != "" {
-		var customer models.User
-		if err := db.Where("id = ?", order.UserID).First(&customer).Error; err == nil {
-			if customer.Name != "" {
-				customerName = customer.Name
-			}
+		if err := db.Where("id = ?", order.UserID).First(&customer).Error; err == nil && customer.Name != "" {
+			customerName = customer.Name
 		}
+	}
+
+	// resolveOperatorName resolves a name for a ChangedBy reference (local user id or IAM sub).
+	// Priority: local by id → local by iam_sub → IAM fetch (+ cache update) → fallback.
+	resolveOperatorName := func(changedBy string) string {
+		// 1. Local by id (ChangedBy stores local user id in most flows)
+		var operator models.User
+		if err := db.Where("id = ?", changedBy).First(&operator).Error; err == nil && operator.ID != "" {
+			if operator.Name != "" {
+				return operator.Name
+			}
+			// found locally but name empty → try IAM via iam_sub
+			if operator.IAMSub != "" {
+				iamClient := services.NewIAMClient()
+				if iamUser, iamErr := iamClient.GetUser(operator.IAMSub); iamErr == nil && iamUser.Name != "" {
+					db.Model(&models.User{}).Where("id = ?", operator.ID).
+						Update("name", iamUser.Name)
+					return iamUser.Name
+				}
+			}
+			return "顾客"
+		}
+		// 2. Local by iam_sub (some flows store IAM sub)
+		if err := db.Where("iam_sub = ?", changedBy).First(&operator).Error; err == nil && operator.ID != "" {
+			if operator.Name != "" {
+				return operator.Name
+			}
+			// found locally but name empty → try IAM
+			iamClient := services.NewIAMClient()
+			if iamUser, iamErr := iamClient.GetUser(changedBy); iamErr == nil && iamUser.Name != "" {
+				db.Model(&models.User{}).Where("id = ?", operator.ID).
+					Update("name", iamUser.Name)
+				return iamUser.Name
+			}
+			return "顾客"
+		}
+		// 3. Fall back to order owner (customer) name when changedBy matches the owner
+		if order.UserID != "" && (changedBy == order.UserID || changedBy == customer.IAMSub) {
+			return customerName
+		}
+		// 4. Not found locally → try IAM directly with changedBy as IAM sub
+		iamClient := services.NewIAMClient()
+		if iamUser, iamErr := iamClient.GetUser(changedBy); iamErr == nil && iamUser.Name != "" {
+			return iamUser.Name
+		}
+		return "顾客"
 	}
 
 	// 1. Order created
@@ -874,12 +918,9 @@ func GetOrderLogs(c *gin.Context) {
 	var history []models.OrderStatusHistory
 	db.Where("order_id = ?", orderID).Order("changed_at ASC").Find(&history)
 	for _, h := range history {
-		op := customerName
+		op := "顾客"
 		if h.ChangedBy != nil {
-			var operator models.User
-			if err := db.Raw("SELECT name FROM users WHERE iam_sub = ? LIMIT 1", *h.ChangedBy).Scan(&operator).Error; err == nil && operator.Name != "" {
-				op = operator.Name
-			}
+			op = resolveOperatorName(*h.ChangedBy)
 		}
 		eventLabel := h.StatusTo
 		logs = append(logs, logEntry{
