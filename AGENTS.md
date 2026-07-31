@@ -552,6 +552,12 @@ cd /opt/flow
 
 # 4. 验证
 sudo journalctl -u tuneloop --since "30 seconds ago" --no-pager | grep -E "listening|error|FATAL"
+
+> **预发布→正式升级**：如需将 pre-release 包提升为正式版本，在 cadenza 上执行：
+> ```bash
+> cd /opt/flow && ./release.sh tuneloop-pre_20260717-184337_55758503.zip
+> ```
+> 该脚本将重命名 `tuneloop-pre` → `tuneloop` 并重新打包后调用 `deploy.sh`。
 ```
 
 ### scp/二进制部署陷阱
