@@ -537,9 +537,14 @@ ssh cadenza
 
 ### 发布策略
 
-- 生产服的二进制/静态文件通过 CI/CD 流程自动部署到 `/opt/flow/`，版本快照按时间戳命名（如 `tuneloop_20260703-061912_720fb6c0`）
+- 部署流程为半手动流水线：`git push → build server (opencode) 手动 make release → scp/Seafile → cadenza ./deploy.sh`
+- **非中国工作时间**：scp 直传 cadenza 通常正常可用
+- **中国工作时间**（工作日 9:00-18:00 CST）：scp 直连几乎必然超时，需走 Seafile 迂回备线：本地 `push_seafile.sh` → cadenza `download.sh`
+- 生产服的版本快照按时间戳命名（如 `tuneloop_20260703-061912_720fb6c0`）
+- 本地 Windows 开发机不参与部署链路（无 SSH 通道、无 Linux 构建环境）
+- 构建服务器（SSH 别名 `opencode`）是唯一可执行 `make release` 的环境
 - `/opt/tuneloop/apps/tuneloop/` 内的 `service`/`www`/`mobile`/`database` 为指向版本快照的软链接
-- **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git -> CI/CD -> 生产部署流程。
+- **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git → 构建打包 → 生产部署流程。
 
 ### 部署流程 (Deployment Flow)
 
