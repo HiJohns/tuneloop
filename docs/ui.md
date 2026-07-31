@@ -2859,6 +2859,11 @@ cd frontend-pc && npm run build  # 应该成功
 
 **布局**: 卡片分块展示
 
+**间距规范**（遵循 §1.3 跨端渲染规则）:
+- 面板标题：用 `<View>` 包裹 `<Text>`（`<View><Text className="text-base font-black text-black">标题</Text></View>`）
+- 标题与正文间距：父容器 `space-y-4`（16px），正文内行间距 `space-y-2`
+- 禁止在 `<Text>` 上使用 `mb-*` margin 类
+
 **功能**:
 1. **租金计算** — 实际租期 × 日租金
 2. **赠点调整** — 已用赠点 vs 可用额度（`floor(实际租金 × cap_rate / 100)`），超额退回

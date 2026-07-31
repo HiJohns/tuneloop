@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { View, Text, Radio, Label } from '@tarojs/components'
 import { api } from '../services/api'
 import { navigation } from '../platform'
 
@@ -11,10 +12,6 @@ export default function ReturnSettlement() {
   const [submitting, setSubmitting] = useState(false)
   const [refundMethod, setRefundMethod] = useState('prepaid')
   const [confirmed, setConfirmed] = useState(false)
-
-  useEffect(() => {
-    fetchSettlement()
-  }, [orderId])
 
   const fetchSettlement = async () => {
     try {
@@ -34,6 +31,10 @@ export default function ReturnSettlement() {
     setLoading(false)
   }
 
+  useEffect(() => {
+    fetchSettlement()
+  }, [orderId])
+
   const handleConfirm = async () => {
     setSubmitting(true)
     try {
@@ -50,171 +51,180 @@ export default function ReturnSettlement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
-        <div className="text-zinc-400">加载中...</div>
-      </div>
+      <View className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FDFBF7' }}>
+        <Text className="text-zinc-400">加载中...</Text>
+      </View>
     )
   }
 
   if (confirmed || existing?.refund_status === 'pending') {
     return (
-      <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center px-6">
-        <div className="text-5xl mb-4">✅</div>
-        <h1 className="text-xl font-bold text-gray-800 mb-2">结算完成</h1>
-        <p className="text-gray-500 text-sm text-center mb-6">
-          {existing?.cash_refundable > 0
-            ? `可提现金额 ¥${num(existing.cash_refundable)}，已退回预付点 ¥${num(existing.prepaid_refunded)}`
-            : existing?.prepaid_refunded > 0
-              ? `已退回预付点 ¥${num(existing.prepaid_refunded)}`
-              : '本次无需退款'}
-        </p>
-        <button
-          className="bg-blue-500 text-white px-8 py-3 rounded-2xl font-black active:bg-blue-600"
+      <View className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#f0fdf4' }}>
+        <View><Text className="text-5xl mb-4">✅</Text></View>
+        <View><Text className="text-xl font-bold text-gray-800 mb-2">结算完成</Text></View>
+        <View className="mb-6 text-center">
+          <Text className="text-gray-500 text-sm">
+            {existing?.cash_refundable > 0
+              ? `可提现金额 ¥${num(existing.cash_refundable)}，已退回预付点 ¥${num(existing.prepaid_refunded)}`
+              : existing?.prepaid_refunded > 0
+                ? `已退回预付点 ¥${num(existing.prepaid_refunded)}`
+                : '本次无需退款'}
+          </Text>
+        </View>
+        <View
+          className="bg-blue-500 text-white px-8 py-3 rounded-2xl font-black"
           onClick={() => navigation.redirect('/my-leases')}
         >
-          返回租期列表
-        </button>
-      </div>
+          <Text className="text-white">返回租期列表</Text>
+        </View>
+      </View>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-24">
-      <div className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3">
-        <h1 className="text-lg font-black text-black">归还结算</h1>
-        <p className="text-zinc-400 text-sm">以下为本次租期的费用结算明细</p>
-      </div>
+    <View className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF7' }}>
+      <View className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)' }}>
+        <Text className="text-lg font-black text-black block">归还结算</Text>
+        <Text className="text-zinc-400 text-sm block">以下为本次租期的费用结算明细</Text>
+      </View>
 
-      <div className="px-4 space-y-3 mt-3">
+      <View className="px-4 space-y-3 mt-3">
         {/* Rent Calculation */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="text-sm font-black text-black mb-3">租金计算</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-zinc-400">实际租期</span>
-              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">{s?.actual_rent_days || 0} 天</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">日租金</span>
-              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.final_daily_rent)}</span>
-            </div>
-            <div className="flex justify-between border-t pt-2">
-              <span className="text-zinc-900 font-bold">实际租金</span>
-              <span className="font-bold text-blue-600">¥{num(s?.actual_rent_amount)}</span>
-            </div>
-          </div>
-        </div>
+        <View className="bg-white rounded-2xl p-4 shadow-sm">
+          <View><Text className="text-sm font-black text-black">租金计算</Text></View>
+          <View className="space-y-2 text-sm mt-3">
+            <View className="flex justify-between">
+              <Text className="text-zinc-400">实际租期</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">{s?.actual_rent_days || 0} 天</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-zinc-400">日租金</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.final_daily_rent)}</Text>
+            </View>
+            {/* Tier segments */}
+            {s?.tier_segments?.length > 0 && (
+              <View className="pt-2 border-t border-zinc-100 space-y-1">
+                {s.tier_segments.map((t, i) => (
+                  <View key={i} className="flex justify-between text-xs">
+                    <Text className="text-zinc-400">第 {t.tier} 段 · {t.days} 天</Text>
+                    <Text className="text-zinc-500">¥{num(t.rate)} × {t.days}天 = ¥{num(t.subtotal)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            <View className="flex justify-between border-t pt-2">
+              <Text className="text-zinc-900 font-bold">实际租金</Text>
+              <Text className="font-bold text-blue-600">¥{num(s?.actual_rent_amount)}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Points Adjustment */}
         {(s?.gift_points_refunded > 0) && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h2 className="text-sm font-black text-black mb-3">赠点调整</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-400">已用赠点</span>
-              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.gift_points_used)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">可用额度</span>
-              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.gift_cap)}</span>
-              </div>
-              <div className="flex justify-between text-green-600">
-                <span className="font-medium">退回赠点</span>
-                <span className="font-bold">+¥{num(s?.gift_points_refunded)}</span>
-              </div>
-            </div>
-          </div>
+          <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View><Text className="text-sm font-black text-black">赠点调整</Text></View>
+            <View className="space-y-2 text-sm mt-3">
+              <View className="flex justify-between">
+                <Text className="text-zinc-400">已用赠点</Text>
+                <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.gift_points_used)}</Text>
+              </View>
+              <View className="flex justify-between">
+                <Text className="text-zinc-400">可用额度</Text>
+                <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.gift_cap)}</Text>
+              </View>
+              <View className="flex justify-between text-green-600">
+                <Text className="font-medium">退回赠点</Text>
+                <Text className="font-bold">+¥{num(s?.gift_points_refunded)}</Text>
+              </View>
+            </View>
+          </View>
         )}
 
         {/* Overdue Charges */}
         {s?.overdue_charges_total > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h2 className="text-sm font-black text-black mb-3">逾期费用</h2>
-            <div className="flex justify-between text-sm text-red-500">
-              <span className="font-medium">逾期扣款</span>
-              <span className="font-bold">¥{num(s?.overdue_charges_total)}</span>
-            </div>
-          </div>
+          <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View><Text className="text-sm font-black text-black">逾期费用</Text></View>
+            <View className="flex justify-between text-sm text-red-500 mt-3">
+              <Text className="font-medium">逾期扣款</Text>
+              <Text className="font-bold">¥{num(s?.overdue_charges_total)}</Text>
+            </View>
+          </View>
         )}
 
         {/* Refund */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="text-sm font-black text-black mb-3">退款明细</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-zinc-400">原实付现金</span>
-              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.cash_paid)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">原使用预付点</span>
-              <span className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.prepaid_points_used)}</span>
-            </div>
-            <div className="flex justify-between border-t pt-2">
-              <span className="text-zinc-900 font-bold">应退总额</span>
-              <span className="font-bold text-green-600">¥{num(s?.total_refund)}</span>
-            </div>
-            <div className="flex justify-between text-blue-600">
-              <span className="font-medium">可提现</span>
-              <span className="font-bold">¥{num(s?.cash_refundable)}</span>
-            </div>
-            <div className="flex justify-between text-blue-600">
-              <span className="font-medium">退回预付点</span>
-              <span className="font-bold">+¥{num(s?.prepaid_refunded)}</span>
-            </div>
-          </div>
-        </div>
+        <View className="bg-white rounded-2xl p-4 shadow-sm">
+          <View><Text className="text-sm font-black text-black">退款明细</Text></View>
+          <View className="space-y-2 text-sm mt-3">
+            <View className="flex justify-between">
+              <Text className="text-zinc-400">原实付现金</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.cash_paid)}</Text>
+            </View>
+            <View className="flex justify-between">
+              <Text className="text-zinc-400">原使用预付点</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(s?.prepaid_points_used)}</Text>
+            </View>
+            <View className="flex justify-between border-t pt-2">
+              <Text className="text-zinc-900 font-bold">应退总额</Text>
+              <Text className="font-bold text-green-600">¥{num(s?.total_refund)}</Text>
+            </View>
+            <View className="flex justify-between text-blue-600">
+              <Text className="font-medium">可提现</Text>
+              <Text className="font-bold">¥{num(s?.cash_refundable)}</Text>
+            </View>
+            <View className="flex justify-between text-blue-600">
+              <Text className="font-medium">退回预付点</Text>
+              <Text className="font-bold">+¥{num(s?.prepaid_refunded)}</Text>
+            </View>
+          </View>
+        </View>
 
         {/* Refund Method */}
         {!existing && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <h2 className="text-sm font-black text-black mb-3">退款方式</h2>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
-                <input
-                  type="radio"
-                  name="refundMethod"
+          <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View><Text className="text-sm font-black text-black">退款方式</Text></View>
+            <View className="space-y-2 mt-3">
+              <Label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
+                <Radio
                   value="prepaid"
                   checked={refundMethod === 'prepaid'}
-                  onChange={() => setRefundMethod('prepaid')}
-                  className="accent-blue-500"
+                  onClick={() => setRefundMethod('prepaid')}
+                  style={{ color: '#3b82f6' }}
                 />
-                <div>
-                    <div className="text-sm font-black text-black">存为预付点</div>
-                    <div className="text-xs text-zinc-400">即时到账，下次租琴可用</div>
-                  </div>
-                </label>
-                {s?.cash_refundable > 0 && (
-                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="refundMethod"
-                      value="cash_withdrawal"
-                      checked={refundMethod === 'cash_withdrawal'}
-                      onChange={() => setRefundMethod('cash_withdrawal')}
-                      className="accent-blue-500"
-                    />
-                    <div>
-                      <div className="text-sm font-black text-black">提现</div>
-                      <div className="text-xs text-zinc-400">最多可提现 ¥{num(s?.cash_refundable)}，3-5 个工作日到账</div>
-                  </div>
-                </label>
+                <View>
+                  <Text className="text-sm font-black text-black block">存为预付点</Text>
+                  <Text className="text-xs text-zinc-400 block">即时到账，下次租琴可用</Text>
+                </View>
+              </Label>
+              {s?.cash_refundable > 0 && (
+                <Label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer active:bg-gray-50">
+                  <Radio
+                    value="cash_withdrawal"
+                    checked={refundMethod === 'cash_withdrawal'}
+                    onClick={() => setRefundMethod('cash_withdrawal')}
+                    style={{ color: '#3b82f6' }}
+                  />
+                  <View>
+                    <Text className="text-sm font-black text-black block">提现</Text>
+                    <Text className="text-xs text-zinc-400 block">最多可提现 ¥{num(s?.cash_refundable)}，3-5 个工作日到账</Text>
+                  </View>
+                </Label>
               )}
-            </div>
-          </div>
+            </View>
+          </View>
         )}
-      </div>
+      </View>
 
       {!existing && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
-          <button
-            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black active:bg-blue-600 disabled:opacity-50"
-            disabled={submitting}
-            onClick={handleConfirm}
+        <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
+          <View
+            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
+            style={{ opacity: submitting ? 0.5 : 1 }}
+            onClick={submitting ? undefined : handleConfirm}
           >
-            {submitting ? '提交中...' : '确认结算'}
-          </button>
-        </div>
+            <Text className="text-white">{submitting ? '提交中...' : '确认结算'}</Text>
+          </View>
+        </View>
       )}
-    </div>
+    </View>
   )
 }

@@ -448,6 +448,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"gift_points_refunded":     giftPointsRefunded,
 		"cash_paid":                order.CashPaid,
 		"prepaid_points_used":      order.PrepaidPointsUsed,
+		"tier_segments":            tierSegments,
 	}
 
 	return settlementResult{

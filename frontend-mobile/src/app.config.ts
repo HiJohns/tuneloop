@@ -17,6 +17,7 @@ const weappPages = [
   'pages-weapp/payment/index',
   'pages-weapp/renewal/index',
   'pages-weapp/content/index',
+  'pages-weapp/return-settlement/index',
 ]
 
 const h5Pages = [
