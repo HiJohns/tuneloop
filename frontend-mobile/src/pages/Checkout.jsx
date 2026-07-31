@@ -554,7 +554,7 @@ function BatchCheckout({ navigate }) {
       const items = cartItems.map(item => ({
         instrument_id: item.instrument_id || item.id,
         start_date: dayjs().format('YYYY-MM-DD'),
-        end_date: dayjs().add(item.rent_qty || 30, 'day').format('YYYY-MM-DD'),
+        end_date: dayjs().add((item.rent_qty || 30) - 1, 'day').format('YYYY-MM-DD'),
       }))
       const body = { items }
         if (deliveryAddress) body.delivery_address = deliveryAddress

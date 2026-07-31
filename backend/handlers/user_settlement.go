@@ -341,9 +341,26 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 
 	rentPayable := 0.0
 	actualDays := 0
+
+	// Derive actual lease period: returned_at for returned/completed orders, end_date otherwise
+	actualLeaseEnd := parseDate(order.EndDate)
+	if order.ReturnedAt != nil && (order.Status == "returned" || order.Status == "completed" || order.Status == "returning") {
+		rt := *order.ReturnedAt
+		actualLeaseEnd = &rt
+	}
+	if startDate != nil && actualLeaseEnd != nil {
+		actualDays = services.CalculateDays(*startDate, *actualLeaseEnd)
+	}
+	if actualDays < 1 {
+		actualDays = 1
+	}
+
 	if len(tierSegments) > 0 {
 		cursor := 1
 		for _, seg := range tierSegments {
+			if cursor > actualDays {
+				break
+			}
 			segEnd := cursor + seg.Days - 1
 			overdueInSeg := 0
 			for _, pos := range overdueDayPositions {
@@ -351,26 +368,24 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 					overdueInSeg++
 				}
 			}
-			nonOverdueDays := seg.Days - overdueInSeg
+			// Cap segment days at actual lease days
+			effectiveSegDays := seg.Days
+			if cursor+effectiveSegDays-1 > actualDays {
+				effectiveSegDays = actualDays - cursor + 1
+			}
+			nonOverdueDays := effectiveSegDays - overdueInSeg
+			if nonOverdueDays < 0 {
+				nonOverdueDays = 0
+			}
 			if nonOverdueDays > 0 {
 				rentPayable += float64(nonOverdueDays) * seg.Rate * seg.Discount
 			}
-			actualDays += seg.Days
 			cursor = segEnd + 1
 		}
 	} else {
-		if startDate != nil {
-			endDate := parseDate(order.EndDate)
-			if endDate != nil {
-				actualDays = services.CalculateDays(*startDate, *endDate)
-			} else {
-				actualDays = services.CalculateDays(*startDate, time.Now())
-			}
+		if startDate != nil && actualLeaseEnd != nil {
+			rentPayable = finalDailyRent * float64(actualDays)
 		}
-		if actualDays < 1 {
-			actualDays = 1
-		}
-		rentPayable = finalDailyRent * float64(actualDays)
 	}
 	rentPayable = math.Round(rentPayable*100) / 100
 

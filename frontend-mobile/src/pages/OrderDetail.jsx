@@ -308,7 +308,7 @@ export default function OrderDetail() {
             {order.pricing_breakdown.rent_days && (
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">租期（天）</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.pricing_breakdown.rent_days}</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{rentalDays || order.pricing_breakdown.rent_days}</Text>
               </View>
             )}
             {/* Tier-by-tier breakdown */}
