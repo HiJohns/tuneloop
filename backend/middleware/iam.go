@@ -65,6 +65,7 @@ var validIssuers = []string{
 	"http://opencode.linxdeep.com:5552",
 	"http://localhost:5552",
 	"https://iam.cadenzayueqi.com",
+	"https://preiam.cadenzayueqi.com",
 }
 
 var publicRoutes = []string{
