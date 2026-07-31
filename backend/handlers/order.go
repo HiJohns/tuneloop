@@ -890,6 +890,18 @@ func GetOrderLogs(c *gin.Context) {
 		})
 	}
 
+	// 4. Explicit order logs (renewal, overdue, etc.)
+	var orderLogs []models.OrderLog
+	db.Where("order_id = ?", orderID).Order("created_at DESC").Find(&orderLogs)
+	for _, ol := range orderLogs {
+		logs = append(logs, logEntry{
+			Event:     ol.Event,
+			Time:      ol.CreatedAt,
+			Operator:  "system",
+			CreatedAt: ol.CreatedAt,
+		})
+	}
+
 	// Sort by time descending (newest first)
 	sort.Slice(logs, func(i, j int) bool {
 		return logs[i].Time.After(logs[j].Time)

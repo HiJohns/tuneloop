@@ -73,16 +73,37 @@ func (s *OverdueDeductionScheduler) processOverdue() {
 
 // transitionToExpired moves in_lease orders past their end_date to expired status.
 func (s *OverdueDeductionScheduler) transitionToExpired(todayStr string) {
-	result := s.db.Model(&models.Order{}).
-		Where("status = ? AND end_date <= ?", models.OrderStatusInLease, todayStr).
-		Update("status", models.OrderStatusExpired)
-	if result.Error != nil {
-		log.Printf("[OverdueDeductionScheduler] status transition error: %v", result.Error)
+	now := time.Now()
+
+	var orders []models.Order
+	s.db.Where("status = ? AND end_date <= ?", models.OrderStatusInLease, todayStr).Find(&orders)
+	if len(orders) == 0 {
 		return
 	}
-	if result.RowsAffected > 0 {
-		log.Printf("[OverdueDeductionScheduler] transitioned %d orders in_lease → expired", result.RowsAffected)
+
+	for _, order := range orders {
+		tx := s.db.Begin()
+		if err := tx.Model(&order).Update("status", models.OrderStatusExpired).Error; err != nil {
+			tx.Rollback()
+			log.Printf("[OverdueDeductionScheduler] failed to expire order %s: %v", order.ID, err)
+			continue
+		}
+		tx.Create(&models.OrderStatusHistory{
+			OrderID:    order.ID,
+			TenantID:   order.TenantID,
+			StatusFrom: order.Status,
+			StatusTo:   models.OrderStatusExpired,
+			ChangedAt:  now,
+			CreatedAt:  now,
+		})
+		tx.Create(&models.OrderLog{
+			OrderID:   order.ID,
+			Event:     "expired",
+			CreatedAt: now,
+		})
+		tx.Commit()
 	}
+	log.Printf("[OverdueDeductionScheduler] transitioned %d orders in_lease → expired", len(orders))
 }
 
 // deductYesterday charges overdue fee for yesterday on expired orders.

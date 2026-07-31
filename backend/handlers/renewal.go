@@ -444,6 +444,12 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 
 	tx.Create(&models.OrderLog{
 		OrderID:   orderID,
+		Event:     "renewed",
+		CreatedAt: now,
+	})
+
+	tx.Create(&models.OrderLog{
+		OrderID:   orderID,
 		Event:     fmt.Sprintf("续期 %d 天, 新到期日 %s", meta.AdditionalDays, newEndDateStr),
 		CreatedAt: now,
 	})
