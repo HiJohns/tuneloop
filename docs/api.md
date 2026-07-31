@@ -2601,7 +2601,52 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ---
 
-### 8.12 首次登录引导
+### 8.11.1 创建预付支付
+
+**接口**: `POST /api/pay/prepay`
+
+**说明**: 创建预付支付记录。支持预付点/赠点抵扣，抵扣后仅支付现金差额。
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| order_id | uuid | 订单 ID |
+| order_type | string | rent / repair / points / damage / renewal |
+| amount | decimal | 现金支付金额（总额 − 预付点 − 赠点） |
+| prepaid_used | decimal | 预付点抵扣金额（默认 0） |
+| gift_used | decimal | 赠点抵扣金额（默认 0） |
+| open_id | string | 微信 openid（仅 JSAPI 支付，可选） |
+
+**请求示例**:
+```json
+{
+  "order_id": "fb7f4596-4fea-458e-9ab9-cd39f4ccf8fd",
+  "order_type": "rent",
+  "amount": 558.00,
+  "prepaid_used": 282.00,
+  "gift_used": 0
+}
+```
+
+**Mock 模式行为**（`WECHAT_PAY_MOCK_MODE=true`）:
+- 立即标记支付记录为 `paid`
+- 扣减用户 `prepaid_points` / `promo_points` 余额（`GREATEST(x - n, 0)` 防负）
+- 更新订单 `prepaid_points_used` / `gift_points_used`
+- 写入 `points_transactions` 审计记录（type=`prepaid_used`）
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "mock": true,
+    "success": true,
+    "data": { "out_trade_no": "rent65d2a8fb1785442641" }
+  }
+}
+```
+
+---
 
 **接口**: `GET /api/user/onboarding`
 
