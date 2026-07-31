@@ -5,8 +5,9 @@ import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { getToken, redirectToLogin } from '../services/api'
 import { dialog, env, uploadFile } from '../platform'
+import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
-import LeaseInfo from '../components/LeaseInfo'
+import OrderTimeline from '../components/OrderTimeline'
 
 export default function ReturnConfirm() {
   const { orderId } = useParams()
@@ -104,15 +105,30 @@ export default function ReturnConfirm() {
       <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
-        <LeaseInfo
-          status={order.status}
-          startDate={order.start_date}
-          endDate={order.end_date}
-          deliveredAt={order.delivered_at}
-          dailyRate={order.pricing_breakdown?.final_daily_rent || order.pricing_breakdown?.base_daily_rent || 0}
-          rentDays={order.pricing_breakdown?.rent_days || 0}
-          createdAt={order.created_at}
-        />
+        <>
+          <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+            <Text className="text-base font-black text-black mb-3">订单信息</Text>
+            <View className="space-y-2">
+              <View className="flex items-center">
+                <Text className="text-sm text-zinc-400 w-16">订单号</Text>
+                <Text className="text-sm font-bold text-black">{(order.id || '').slice(0, 8)}</Text>
+              </View>
+              {order.start_date && (
+                <View className="flex items-center">
+                  <Text className="text-sm text-zinc-400 w-16">起始日</Text>
+                  <Text className="text-sm font-bold text-black">{formatDisplayDate(order.start_date)}</Text>
+                </View>
+              )}
+              {order.end_date && (
+                <View className="flex items-center">
+                  <Text className="text-sm text-zinc-400 w-16">到期日</Text>
+                  <Text className="text-sm font-bold text-black">{formatDisplayDate(order.end_date)}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <OrderTimeline orderId={order.id} status={order.status} />
+        </>
       )}
 
       {/* Return Address — preferred: transit_info (controlled), fallback: instrument.site_* */}
