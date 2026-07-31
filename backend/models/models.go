@@ -207,6 +207,8 @@ type Order struct {
 	PrepaidPointsUsed    float64    `gorm:"type:decimal(10,2);not null;default:0" json:"prepaid_points_used"`
 	GiftPointsUsed       float64    `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_used"`
 	PointsPolicySnapshot *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
+	RequestSnapshot      *string    `gorm:"type:jsonb" json:"request_snapshot"`
+	PricingConfigSnapshot *string   `gorm:"type:jsonb" json:"pricing_config_snapshot"`
 	CurrentPaymentSessionID *string  `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
 	PaymentDeadline        *time.Time `json:"payment_deadline"`
 	CreatedAt              time.Time  `json:"created_at"`

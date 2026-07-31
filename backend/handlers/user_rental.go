@@ -186,6 +186,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		InstrumentID      string      `json:"instrument_id" binding:"required"`
 		StartDate         string      `json:"start_date" binding:"required"`
 		EndDate           string      `json:"end_date" binding:"required"`
+		RentDays          int         `json:"rent_days"`
 		DeliveryAddress   interface{} `json:"delivery_address"`
 		Notes             string      `json:"notes"`
 		PrepaidPointsUsed float64     `json:"prepaid_points_used"`
@@ -299,6 +300,13 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Calculate rental amount
 	days := 	services.CalculateDays(startDate, endDate)
 	months := days / 30
+
+	// Validate rent_days against date-derived days (audit integrity)
+	if req.RentDays > 0 && req.RentDays != days {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("rent_days mismatch: request %d, date range %d", req.RentDays, days)})
+		return
+	}
 
 	// Compute pricing via CalculatePricing (merchant defaults as fallback)
 	var merchantConfigJSON string
@@ -476,6 +484,38 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 	}()
 
+	// Snapshot creation request for audit/compliance
+	requestSnapshot := map[string]interface{}{
+		"start_date":          req.StartDate,
+		"end_date":            req.EndDate,
+		"rent_days":           days,
+		"instrument_id":       req.InstrumentID,
+		"delivery_address":    req.DeliveryAddress,
+		"notes":               req.Notes,
+		"prepaid_points_used": req.PrepaidPointsUsed,
+		"gift_points_used":    req.GiftPointsUsed,
+	}
+	if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
+		snapStr := string(reqSnapshotJSON)
+		order.RequestSnapshot = &snapStr
+	}
+
+	// Snapshot pricing config + calculation inputs for audit
+	pricingConfigSnapshot := map[string]interface{}{
+		"base_daily_rate":     baseRate,
+		"total_price":         totalPrice,
+		"merchant_config":     merchantConfigJSON,
+		"tiers":               pricingResult.Tiers,
+		"calculated_daily_rent": dailyRent,
+		"deposit":             deposit,
+		"shipping_fee":        shippingFee,
+		"days":                days,
+	}
+	if pcSnapshotJSON, err := json.Marshal(pricingConfigSnapshot); err == nil {
+		snapStr := string(pcSnapshotJSON)
+		order.PricingConfigSnapshot = &snapStr
+	}
+
 	if err := tx.Create(&order).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
@@ -629,6 +669,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			InstrumentID string `json:"instrument_id" binding:"required"`
 			StartDate    string `json:"start_date" binding:"required"`
 			EndDate      string `json:"end_date" binding:"required"`
+			RentDays     int    `json:"rent_days"`
 		} `json:"items" binding:"required,min=1"`
 		DeliveryAddress interface{} `json:"delivery_address"`
 	}
@@ -788,6 +829,13 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 	days := services.CalculateDays(startDate, endDate)
 		months := days / 30
 
+		// Validate rent_days against date-derived days (audit integrity)
+		if item.RentDays > 0 && item.RentDays != days {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("rent_days mismatch for %s: request %d, date range %d", item.InstrumentID, item.RentDays, days)})
+			return
+		}
+
 		baseRate := 0.0
 		if lockedInstrument.BaseDailyRate != nil {
 			baseRate = *lockedInstrument.BaseDailyRate
@@ -876,6 +924,35 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 				}
 			}
 		}()
+
+		// Snapshot creation request for audit/compliance
+		requestSnapshot := map[string]interface{}{
+			"start_date":       item.StartDate,
+			"end_date":         item.EndDate,
+			"rent_days":        days,
+			"instrument_id":    item.InstrumentID,
+			"delivery_address": req.DeliveryAddress,
+		}
+		if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
+			snapStr := string(reqSnapshotJSON)
+			order.RequestSnapshot = &snapStr
+		}
+
+		// Snapshot pricing config + calculation inputs for audit
+		pricingConfigSnapshot := map[string]interface{}{
+			"base_daily_rate":       baseRate,
+			"total_price":           totalPrice,
+			"merchant_config":       merchantConfigJSON,
+			"tiers":                 pricingResult.Tiers,
+			"calculated_daily_rent": dailyRent,
+			"deposit":               deposit,
+			"shipping_fee":          shippingFee,
+			"days":                  days,
+		}
+		if pcSnapshotJSON, err := json.Marshal(pricingConfigSnapshot); err == nil {
+			snapStr := string(pcSnapshotJSON)
+			order.PricingConfigSnapshot = &snapStr
+		}
 
 		if err := tx.Create(&order).Error; err != nil {
 			tx.Rollback()

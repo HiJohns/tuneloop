@@ -185,6 +185,7 @@ function SingleCheckout({ id, navigate }) {
         instrument_id: id,
         start_date: startDate,
         end_date: returnDate,
+        rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
 
@@ -555,6 +556,7 @@ function BatchCheckout({ navigate }) {
         instrument_id: item.instrument_id || item.id,
         start_date: dayjs().format('YYYY-MM-DD'),
         end_date: dayjs().add((item.rent_qty || 30) - 1, 'day').format('YYYY-MM-DD'),
+        rent_days: item.rent_qty || 30,
       }))
       const body = { items }
         if (deliveryAddress) body.delivery_address = deliveryAddress
