@@ -1148,6 +1148,101 @@ done
 
 ---
 
+### 2026-07-31: 预生产服务器调试全流程 & Docker 部署经验
+
+> 来源：预生产服务器（cadenza）首次端到端调试，跨 OAuth、IAM、DB、Nginx、Docker、系统服务。
+
+#### 预生产服务器架构
+
+| 层 | 生产 | 预生产 |
+|----|------|--------|
+| PC 前端 | `web.cadenzayueqi.com` :5558 | `preweb.cadenzayueqi.com` :5563 |
+| Mobile 前端 | `wx.cadenzayueqi.com` :5566 | `prewx.cadenzayueqi.com` :5564 |
+| IAM | `iam.cadenzayueqi.com` :5560 | `preiam.cadenzayueqi.com` :5562 |
+| tuneloop DB | `tuneloop` | `tuneloop_pre` |
+| IAM DB | `beaconiam` | `beaconiam_pre` |
+| IAM namespace | `tuneloop` | `tuneloop-pre` |
+| systemd unit | `tuneloop.service` | `tuneloop-pre.service` |
+| 工作目录 | `/opt/tuneloop/apps/tuneloop` | `/opt/tuneloop-pre/apps/tuneloop-pre` |
+| 上传目录 | `/opt/uploads` | `/opt/tuneloop-pre/uploads`（独立隔离！） |
+
+#### Docker Nginx 部署注意
+
+- **bind mount 使用 inode 追踪**：修改挂载源路径的 symlink 后，容器内仍看到旧 inode。**必须 `docker restart tuneloop-nginx`**
+- **挂载源路径必须与 deploy.sh 目标一致**：`/opt/tuneloop-pre/apps/tuneloop-pre/mobile` (deploy 写这里) ≡ Docker mount source → 容器内 `/opt/tuneloop-pre/mobile` (nginx root)
+- Nginx 挂载映射清单：
+  ```
+  Host /opt/tuneloop-pre/apps/tuneloop-pre/mobile → Container /opt/tuneloop-pre/mobile
+  Host /opt/tuneloop-pre/apps/tuneloop-pre/www    → Container /opt/tuneloop-pre/www
+  Host /opt/tuneloop-pre/apps/tuneloop-pre/uploads → Container /opt/tuneloop-pre/uploads
+  ```
+
+#### 预生产调试检查清单
+
+部署后逐项验证：
+
+```bash
+# 1. 服务状态
+systemctl is-active tuneloop-pre beaconiam
+ss -tlnp | grep -E '556[234]'
+
+# 2. IAM 连通性
+curl -s 'http://localhost:5562/api/v1/auth/public-key.pem' | sha256sum
+curl -s 'https://preiam.cadenzayueqi.com/oauth/authorize?client_id=tuneloop-pre_web&response_type=code&redirect_uri=https://preweb.cadenzayueqi.com/callback' -o /dev/null -w '%{http_code}'
+
+# 3. Token 验证（无 Invalid issuer）
+journalctl -u tuneloop-pre --no-pager | grep 'Invalid issuer' | wc -l  # 必须为 0
+
+# 4. 前端文件版本
+curl -s 'https://prewx.cadenzayueqi.com/index.html' | grep -oP 'index-[a-zA-Z0-9]+.js'
+# → 与本地 frontend-mobile/dist/ 对比
+
+# 5. 上传目录
+ls -la /opt/tuneloop-pre/apps/tuneloop-pre/uploads  # 不能指向 /opt/uploads
+
+# 6. 后端配置
+grep -E 'BEACONIAM_INTERNAL|EXTERNAL_WEB_URL|IAM_NAMESPACE' /opt/tuneloop-pre/apps/tuneloop-pre/.env
+# EXTERNAL_WEB_URL 必须 = https://preweb.cadenzayueqi.com（不是 web）
+# EXTERNAL_MOBILE_URL 必须 = https://prewx.cadenzayueqi.com（不是 wx）
+# BEACONIAM_INTERNAL_URL 必须 = http://localhost:5562（不是 5560）
+```
+
+#### 常见预生产配置错误
+
+| 错误 | 症状 | 修复 |
+|------|------|------|
+| `EXTERNAL_WEB_URL` 指向生产 | Token exchange `invalid credentials` | 改为 `https://preweb.cadenzayueqi.com` |
+| `validIssuers` 缺 `preiam` | Token 验证通过但 issuer 拒绝 (40102) | `iam.go` 加 `https://preiam.cadenzayueqi.com` |
+| `uploads` 指向 `/opt/uploads` | 预生产和生产上传文件互相覆盖 | 独立目录 `/opt/tuneloop-pre/uploads` |
+| Docker 改 symlink 未重启 nginx | 前端仍返回旧 JS 文件 | `docker restart tuneloop-nginx` |
+| 只换 binary 不跑 deploy.sh | 前端文件仍是旧版本 | 跑 `deploy.sh` 更新所有软链接 |
+
+#### Go 在 cadenza 上编译
+
+```bash
+# cadenza 在中国，用国内 Go proxy
+GOPROXY=https://goproxy.cn,direct go build -o ... .
+
+# go.mod 要求高版本 Go 时临时降级（仅用于测试构建，不要提交）
+sed -i 's/^go 1.25.0/go 1.22.2/' go.mod && go build ... && git checkout -- go.mod
+```
+
+#### WeChat 小程序上传
+
+```bash
+# 预生产 app: wx9f96827856269a6c (key: private.wx9f96827856269a6c.key)
+make weapp-upload-pre VERSION=x.x.x DESC="pre-release"
+
+# 生产 app: wxcb44a1be70e356ed (key: private.wxcb44a1be70e356ed.key)
+make weapp-upload VERSION=x.x.x DESC="release"
+
+# 41001 access_token missing → 微信后台重新生成上传密钥
+```
+
+> *Last updated: 2026-07-31*
+
+---
+
 ## ✅ 强制验证清单 (Mandatory Verification)
 
 每次修改完成后，必须执行对应的验证步骤：
