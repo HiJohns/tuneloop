@@ -31,10 +31,17 @@ See `prompts/instructions.md` for full port mapping. Key rule:
 | 环境 | beaconiam | tuneloop PC | tuneloop Backend | tuneloop Mobile |
 |------|-----------|-------------|------------------|-----------------|
 | Dev | 5552 (Vite) / 5561 (API) | 5554 (Vite) / 5557 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5561` | 5553 (Vite/Taro H5) |
-| Prerelease | 5560 (NGINX) | 5558 (Go) | `BEACONIAM_INTERNAL_URL=http://localhost:5560` | — |
+| Prerelease (cadenza) | `preiam` :5562 | `preweb` :5563 | `BEACONIAM_INTERNAL_URL=http://localhost:5562` | `prewx` :5564 |
+| Production (cadenza) | `iam` :5560 | `web` :5558 | `BEACONIAM_INTERNAL_URL=http://localhost:5560` | `wx` :5566 |
+
+**Prerelease vs Production database isolation**:
+| 环境 | tuneloop DB | IAM DB | IAM_NAMESPACE |
+|------|-------------|--------|:---:|
+| Prerelease | `tuneloop_pre` | `beaconiam_pre` | `tuneloop-pre` |
+| Production | `tuneloop` | `beaconiam` | `tuneloop` |
 
 - 除非用户明确指明"预生产"，否则所有讨论、调试、Issue 都指 Dev 环境
-- 两套环境有独立的 beaconiam 实例、独立的 RSA 密钥对、独立的数据库
+- Production/Prerelease 各有独立的 beaconiam 实例、独立的 RSA 密钥对、独立的数据库、独立的 OAuth client
 - Never mix: 预生产的 token 在开发环境验证必报 `crypto/rsa: verification error`
 
 ## Node.js 版本要求
