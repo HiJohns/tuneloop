@@ -303,14 +303,8 @@ export default function OrderDetail() {
         <Text className="text-base font-black text-black mb-3">费用信息</Text>
         <View className="space-y-2">
           {/* Pricing breakdown (if available) */}
-          {order.pricing_breakdown && typeof order.pricing_breakdown === 'object' && (
+            {order.pricing_breakdown && typeof order.pricing_breakdown === 'object' && (
             <>
-            {order.pricing_breakdown.base_daily_rent && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">日租金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.base_daily_rent}</Text>
-              </View>
-            )}
             {order.pricing_breakdown.rent_days && (
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">租期（天）</Text>
@@ -343,7 +337,7 @@ export default function OrderDetail() {
                 <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
                   {rows.map((r, i) => (
                     <Text key={i} className="block">
-                      {r.range}: ¥{r.rate}/天 × {r.segDays}天 = ¥{r.segAmount.toFixed(0)}
+                      {r.range}: ¥{r.rate.toFixed(2)}/天 × {r.segDays}天 = ¥{r.segAmount.toFixed(2)}
                     </Text>
                   ))}
                 </View>

@@ -851,11 +851,22 @@ func GetOrderLogs(c *gin.Context) {
 	}
 	logs := []logEntry{}
 
+	// Resolve customer name for log display (fallback: "customer")
+	customerName := "customer"
+	if order.UserID != "" {
+		var customer models.User
+		if err := db.Where("id = ?", order.UserID).First(&customer).Error; err == nil {
+			if customer.Name != "" {
+				customerName = customer.Name
+			}
+		}
+	}
+
 	// 1. Order created
 	logs = append(logs, logEntry{
 		Event:     "created",
 		Time:      order.CreatedAt,
-		Operator:  "customer",
+		Operator:  customerName,
 		CreatedAt: order.CreatedAt,
 	})
 
@@ -863,7 +874,7 @@ func GetOrderLogs(c *gin.Context) {
 	var history []models.OrderStatusHistory
 	db.Where("order_id = ?", orderID).Order("changed_at ASC").Find(&history)
 	for _, h := range history {
-		op := "customer"
+		op := customerName
 		if h.ChangedBy != nil {
 			var operator models.User
 			if err := db.Raw("SELECT name FROM users WHERE iam_sub = ? LIMIT 1", *h.ChangedBy).Scan(&operator).Error; err == nil && operator.Name != "" {

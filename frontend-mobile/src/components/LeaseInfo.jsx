@@ -68,18 +68,13 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
     <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
       <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>订单信息</Text>
       {orderId && <Row icon="🔢" label="订单号" value={(orderId || '').slice(0, 8)} />}
-      {createdAt && <Row icon="📅" label="下单时间" value={fmt(createdAt)} />}
-      {paidAt && <Row icon="✅" label="付款时间" value={paidAt} />}
       {notStarted && (
         <>
-          <Row icon="📅" label="创建日期" value={fmt(createdAt)} />
           {rentDays > 0 ? <Row icon="⏳" label="预计天数" value={`${rentDays} 天`} /> : null}
-          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
         </>
       )}
       {inLease && (
         <>
-          <Row icon="📅" label="起始日期" value={fmt(effStart)} />
           {rentDays > 0 ? <Row icon="⏳" label="预期天数" value={`${rentDays} 天`} /> : null}
           {displayEndDt ? (
             <Row
@@ -90,15 +85,11 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
             />
           ) : null}
           <Row icon="📊" label="已租天数" value={`${currentLeaseDays} 天`} />
-          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
         </>
       )}
       {ended && (
         <>
-          <Row icon="📅" label="起始日期" value={fmt(effStart)} />
-          <Row icon="🏁" label="结束日期" value={fmt(effEnd)} />
-          {leaseDays > 0 ? <Row icon="📊" label="已租天数" value={`${leaseDays} 天`} /> : null}
-          <Row icon="💰" label="日租金" value={`¥${Number(dailyRate || 0).toFixed(2)}`} />
+          {leaseDays > 0 ? <Row icon="📊" label="实际租期" value={`${leaseDays} 天`} /> : null}
         </>
       )}
     </View>
