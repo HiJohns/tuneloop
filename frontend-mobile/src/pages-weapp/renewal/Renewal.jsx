@@ -131,8 +131,6 @@ export default function Renewal() {
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>原预期归还</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
             {overdueDays > 0 && (
               <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#000' }}>{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
-181:                <Text style={{ fontSize: 12, fontWeight: '500', color: '#ef4444' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
-184:              <Text style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>当前订单定价数据不完整，请联系管理员</Text>
             )}
           </View>
         )}

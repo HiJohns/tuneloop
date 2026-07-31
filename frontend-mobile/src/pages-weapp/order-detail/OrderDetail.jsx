@@ -485,7 +485,7 @@ export default function OrderDetail() {
             {order.tracking_number && (
               <Row label="📦 物流单号" value={order.tracking_number} mono />
             )}
-            {order.shipped_at && <Row label="📅 发货时间" value={formatDate(order.shipped_at)} />
+            {order.shipped_at && <Row label="📅 发货时间" value={formatDate(order.shipped_at)} />}
           </View>
         )}
 

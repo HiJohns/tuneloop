@@ -96,8 +96,6 @@ export default function Detail() {
       setTimeout(() => setCartBouncing(false), 600)
     } catch {}
   }
-    } catch {}
-  }
 
   useEffect(() => {
     const fetchData = async () => {

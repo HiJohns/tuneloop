@@ -106,8 +106,8 @@ export default function ReturnConfirm() {
 
       {order && (
         <>
-          <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-            <Text className="text-base font-black text-black mb-3">订单信息</Text>
+          <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4 space-y-3">
+            <View><Text className="text-base font-black text-black">订单信息</Text></View>
             <View className="space-y-2">
               <View className="flex items-center">
                 <Text className="text-sm text-zinc-400 w-16">订单号</Text>
