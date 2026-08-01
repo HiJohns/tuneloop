@@ -233,18 +233,19 @@ export default function StaffOrders() {
                   ) : (
                   <View className="space-y-1 text-sm">
                     <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at || order.end_date)}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{calculateDays(new Date((order.start_date || '').slice(0,10)), new Date(((order.returned_at || order.end_date) || '').slice(0,10))) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
+                    {order.returned_at ? (
+                      <>
+                        <View><Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at)}</Text></Text></View>
+                        <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
+                      </>
+                    ) : (
+                      <>
+                        <View><Text className="text-zinc-400 font-medium">合同租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></Text></View>
+                        <View><Text className="text-zinc-400 font-medium">合同天数: <Text className="text-black font-medium">{order.lease_term * 30 || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')}</Text> 天</Text></View>
+                      </>
+                    )}
                   </View>
-                  )
-                ) : (
-                  <View className="space-y-1 text-sm">
-                    <View><Text className="text-zinc-400 font-medium">下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">预计天数: <Text className="text-black font-medium">{order.lease_term || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')}</Text> 天</Text></View>
-                    <View><Text className="text-zinc-400 font-medium">预期归还日: <Text className="text-black font-medium">{formatDisplayDate(order.end_date)}</Text></Text></View>
-                  </View>
-                )}
+                  )}
                   </View>
                   {order.cover_image && <Image src={order.cover_image} className="w-20 h-20 rounded-lg ml-3 self-start" mode="aspectFill" />}
                 </View>
