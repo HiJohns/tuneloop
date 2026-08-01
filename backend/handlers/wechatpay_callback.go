@@ -46,11 +46,64 @@ func WechatPayCallback(c *gin.Context) {
 		return
 	}
 
+	if result.EventType == "REFUND.SUCCESS" {
+		if processRefundCallback(c, result) {
+			c.JSON(http.StatusOK, gin.H{"code": "SUCCESS", "message": "ok"})
+		} else {
+			c.JSON(http.StatusOK, gin.H{"code": "FAIL", "message": "refund processing failed"})
+		}
+		return
+	}
+
 	if processPaymentCallback(c, result) {
 		c.JSON(http.StatusOK, gin.H{"code": "SUCCESS", "message": "ok"})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"code": "FAIL", "message": "processing failed"})
 	}
+}
+
+// processRefundCallback handles WeChat Pay refund result notifications (REFUND.SUCCESS).
+// It updates the matching OrderRefundRecord and the associated settlement's refund status.
+func processRefundCallback(c *gin.Context, result *wechatpay.CallbackResult) bool {
+	if result.OutRefundNo == "" {
+		log.Printf("[processRefundCallback] missing out_refund_no for refund callback")
+		return false
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	now := time.Now()
+
+	var refundRecord models.OrderRefundRecord
+	if err := db.Where("out_refund_no = ?", result.OutRefundNo).First(&refundRecord).Error; err != nil {
+		log.Printf("[processRefundCallback] refund record not found for %s: %v", result.OutRefundNo, err)
+		return false
+	}
+
+	if err := db.Model(&refundRecord).Updates(map[string]interface{}{
+		"status":     "refunded",
+		"refund_id":  result.RefundID,
+		"updated_at": now,
+	}).Error; err != nil {
+		log.Printf("[processRefundCallback] failed to update refund record %s: %v", result.OutRefundNo, err)
+		return false
+	}
+
+	// Update the associated settlement refund status (if any)
+	if refundRecord.PaymentRecordID != nil {
+		var settlement models.Settlement
+		if err := db.Where("order_id IN (SELECT order_id FROM order_payment_records WHERE id = ?)", *refundRecord.PaymentRecordID).
+			First(&settlement).Error; err == nil {
+			if err := db.Model(&settlement).Updates(map[string]interface{}{
+				"refund_status": "completed",
+				"updated_at":    now,
+			}).Error; err != nil {
+				log.Printf("[processRefundCallback] failed to update settlement for %s: %v", result.OutRefundNo, err)
+			}
+		}
+	}
+
+	log.Printf("[processRefundCallback] refund processed: out_refund_no=%s refund_id=%s", result.OutRefundNo, result.RefundID)
+	return true
 }
 
 func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bool {

@@ -297,6 +297,7 @@ func (c *realClient) VerifyPaymentCallback(ctx context.Context, body []byte, sig
 
 	switch notif.EventType {
 	case "TRANSACTION.SUCCESS":
+		result.EventType = "TRANSACTION.SUCCESS"
 		var txn transactionResult
 		if err := json.Unmarshal([]byte(plaintext), &txn); err != nil {
 			return nil, fmt.Errorf("parse transaction result: %w", err)
@@ -306,11 +307,14 @@ func (c *realClient) VerifyPaymentCallback(ctx context.Context, body []byte, sig
 		result.Amount = txn.Amount.Total
 
 	case "REFUND.SUCCESS":
+		result.EventType = "REFUND.SUCCESS"
 		var ref refundCallbackResult
 		if err := json.Unmarshal([]byte(plaintext), &ref); err != nil {
 			return nil, fmt.Errorf("parse refund result: %w", err)
 		}
 		result.OutTradeNo = ref.OutTradeNo
+		result.OutRefundNo = ref.OutRefundNo
+		result.RefundID = ref.RefundID
 		result.Success = true
 
 	default:
