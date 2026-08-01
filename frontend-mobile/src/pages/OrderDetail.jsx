@@ -335,6 +335,9 @@ export default function OrderDetail() {
               }
               return (
                 <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
+                  {rentalDays && rentalDays !== order.pricing_breakdown.rent_days && (
+                    <Text className="block text-zinc-400 mb-1">合同订价明细:</Text>
+                  )}
                   {rows.map((r, i) => (
                     <Text key={i} className="block">
                       {r.range}: ¥{r.rate.toFixed(2)}/天 × {r.segDays}天 = ¥{r.segAmount.toFixed(2)}
@@ -345,7 +348,7 @@ export default function OrderDetail() {
             })()}
             {order.pricing_breakdown.total_amount && (
               <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">总金额</Text>
+                <Text className="text-zinc-500 font-medium">{rentalDays && rentalDays !== order.pricing_breakdown.rent_days ? '合同总金额' : '总金额'}</Text>
                 <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
               </View>
             )}
