@@ -27,8 +27,8 @@ function getLeaseInfo(order) {
   const isEnded = ['completed', 'returned'].includes(order.status)
   const endDate = (isEnded && order.returned_at) ? order.returned_at : order.end_date
   if (!endDate) return null
-  const start = new Date(order.start_date)
-  const end = new Date(endDate)
+  const start = new Date(order.start_date.slice(0, 10))
+  const end = new Date(endDate.slice(0, 10))
   const days = calculateDays(start, end)
   return { start: order.start_date, end: endDate, days }
 }
