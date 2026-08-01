@@ -75,6 +75,7 @@ export default function OrderDetail() {
   const [orderLogs, setOrderLogs] = useState([])
   const [logPage, setLogPage] = useState(1)
   const [logHasMore, setLogHasMore] = useState(false)
+  const [showContract, setShowContract] = useState(false)
   const baseUrl = env.apiBaseUrl
 
   const token = getToken()
@@ -105,6 +106,12 @@ export default function OrderDetail() {
     }
     if (id) fetchOrder()
   }, [id])
+
+  useEffect(() => {
+    if (!order) return
+    const hasSettlement = !!order.settlement && order.settlement.actual_rent_amount !== undefined
+    setShowContract(!hasSettlement)
+  }, [order?.id])
 
   const fetchLogs = async (page, append) => {
     try {
@@ -199,7 +206,6 @@ export default function OrderDetail() {
     ? calculateDays(new Date(effStartDate), new Date(order.returned_at || order.end_date))
     : leaseTerm * 30
    const deposit = order.deposit || 0
-   const shippingFee = order.shipping_fee || 0
    const pb = order.pricing_breakdown
    const rentSubtotal = (pb && pb.total_amount) || 0
    const dailyRate = (pb && pb.final_daily_rent) || (pb && pb.base_daily_rent) || 0
@@ -209,7 +215,6 @@ export default function OrderDetail() {
    const isOverdue = (status === 'expired' || status === 'in_lease') && order.end_date && order.end_date.slice(0, 10) <= new Date().toISOString().slice(0, 10)
    const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date.slice(0, 10)), new Date()) : 0
    const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
-   const totalAmount = rentSubtotal + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
   const showPayButton = !isStaff && status === 'reserved'
   const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
@@ -302,122 +307,163 @@ export default function OrderDetail() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-3">费用信息</Text>
         <View className="space-y-2">
-          {/* Pricing breakdown (if available) */}
-            {order.pricing_breakdown && typeof order.pricing_breakdown === 'object' && (
+          {/* ① 实付金额 */}
+          {order.payment_records?.length > 0 && (
             <>
-            {order.pricing_breakdown.rent_days && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">合同租期（天）</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.pricing_breakdown.rent_days}</Text>
-              </View>
-            )}
-            {rentalDays && rentalDays !== order.pricing_breakdown.rent_days && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-400 font-medium">实际租期（天）</Text>
-                <Text className="text-zinc-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">{rentalDays}</Text>
-              </View>
-            )}
-            {/* Tier-by-tier breakdown */}
-            {(order.pricing_breakdown.pricing_tiers?.length > 0 || (pb?.rent_days && pb?.base_daily_rent)) && (() => {
-              const tiers = order.pricing_breakdown.pricing_tiers || []
-              const days = order.pricing_breakdown.rent_days
-              const baseRate = order.pricing_breakdown.base_daily_rent || order.pricing_breakdown.final_daily_rent || 0
-              let remaining = days
-              let prevMax = 0
-              const rows = []
-              const tierList = tiers.length > 0 ? tiers : [{ days_max: -1, daily_rate: baseRate }]
-              for (const t of tierList) {
-                const tierDays = t.days_max > 0 ? t.days_max - prevMax : remaining
-                const segDays = Math.min(tierDays, remaining)
-                if (segDays <= 0) break
-                const rate = t.daily_rate || baseRate
-                const segAmount = segDays * rate
-                const startDay = prevMax + 1
-                const endDay = startDay + segDays - 1
-                const range = segDays === 1 ? `${startDay}天` : `${startDay}-${endDay}天`
-                rows.push({ range, rate, segDays, segAmount })
-                remaining -= segDays
-                prevMax = t.days_max > 0 ? t.days_max : prevMax + segDays
-              }
-              return (
-                <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
-                  {rows.map((r, i) => (
-                    <Text key={i} className="block">
-                      {r.range}: ¥{r.rate.toFixed(2)}/天 × {r.segDays}天 = ¥{r.segAmount.toFixed(2)}
-                    </Text>
-                  ))}
+              <Text className="text-xs font-bold text-zinc-400">实付金额</Text>
+              {order.payment_records.map(pr => (
+                <View key={pr.id} className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">{pr.method || '支付'}</Text>
+                  <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
+                  <Text className="text-black font-black flex-shrink-0 whitespace-nowrap">¥{Number(pr.amount).toFixed(2)}</Text>
                 </View>
-              )
-            })()}
-            {order.pricing_breakdown.total_amount && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">总金额</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
+              ))}
+              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                <Text className="text-zinc-500 font-medium">实付合计</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2)}</Text>
               </View>
-            )}
-            {deposit > 0 && (
-              <>
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">押金</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
-              </View>
-              {order.pricing_breakdown.deposit_method && (
-                <Text className="text-[10px] text-zinc-400 text-right -mt-1">
-                  {order.pricing_breakdown.deposit_method === 'total_price'
-                    ? `原价 ¥${order.pricing_breakdown.total_price || 0} × ${order.pricing_breakdown.deposit_ratio || 0}`
-                    : `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier || 7}`}
-                </Text>
-              )}
-              </>
-            )}
-            {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">物流费</Text>
-                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.pricing_breakdown.shipping_fee).toFixed(2)}</Text>
-              </View>
-            )}
             </>
           )}
-          {/* Fallback: show direct fields when pricing_breakdown not available */}
-          {(!order.pricing_breakdown || typeof order.pricing_breakdown !== 'object') && (
-            <>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">租金</Text>
-              <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{rentSubtotal}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">押金</Text>
-              <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
-            </View>
-            <View className="flex justify-between text-sm">
-              <Text className="text-zinc-500 font-medium">物流费</Text>
-              <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{shippingFee}</Text>
-            </View>
-            </>
-          )}
-          {overdueFee > 0 && (
-          <>
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-500 font-medium">逾期费用</Text>
-            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{overdueFee}</Text>
-          </View>
-          <View className="flex justify-between text-sm">
-            <Text className="text-zinc-400">  逾期日费</Text>
-            <Text className="text-zinc-400 flex-shrink-0 ml-auto whitespace-nowrap">¥{dailyRate.toFixed(2)}/天</Text>
-          </View>
-          </>
-          )}
-          {/* Settlement actual amount for completed orders */}
+
+          {/* ② 实际租期与租金 */}
           {settlement && settlement.actual_rent_amount !== undefined && (
-          <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
-            <Text className="text-zinc-900 font-bold">实收金额</Text>
-            <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.actual_rent_amount}</Text>
-          </View>
+            <>
+              <Text className="text-xs font-bold text-zinc-400 mt-2">实际租期与租金</Text>
+              {settlement.actual_rent_days !== undefined && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">实际租期</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{settlement.actual_rent_days} 天</Text>
+                </View>
+              )}
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">实际租金</Text>
+                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.actual_rent_amount}</Text>
+              </View>
+              {overdueFee > 0 && (
+                <>
+                  <View className="flex justify-between text-sm">
+                    <Text className="text-zinc-500 font-medium">逾期费用</Text>
+                    <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{overdueFee}</Text>
+                  </View>
+                  <View className="flex justify-between text-sm">
+                    <Text className="text-zinc-400">  逾期日费</Text>
+                    <Text className="text-zinc-400 flex-shrink-0 ml-auto whitespace-nowrap">¥{dailyRate.toFixed(2)}/天</Text>
+                  </View>
+                </>
+              )}
+            </>
           )}
-          <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
-            <Text className="text-zinc-900 font-bold">{settlement ? '合计（含押金）' : '合计'}</Text>
-            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount}</Text>
-          </View>
+
+          {/* ③ 退款 */}
+          {settlement && (settlement.cash_refundable > 0 || settlement.prepaid_refunded > 0 || settlement.gift_points_refunded > 0) && (
+            <>
+              <Text className="text-xs font-bold text-zinc-400 mt-2">退款</Text>
+              {settlement.cash_refundable > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">现金退款</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.cash_refundable}</Text>
+                </View>
+              )}
+              {settlement.prepaid_refunded > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">退回预付点</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.prepaid_refunded}</Text>
+                </View>
+              )}
+              {settlement.gift_points_refunded > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">赠送积分退还</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.gift_points_refunded}</Text>
+                </View>
+              )}
+              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                <Text className="text-zinc-500 font-medium">退款合计</Text>
+                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(settlement.cash_refundable) + Number(settlement.prepaid_refunded) + Number(settlement.gift_points_refunded)).toFixed(2)}</Text>
+              </View>
+            </>
+          )}
+
+          {/* 合同快照 (collapsed) */}
+          {(order.pricing_breakdown && typeof order.pricing_breakdown === 'object') && (
+            <View className="mt-3 border-t border-dashed border-zinc-200 pt-2">
+              <View
+                className="flex justify-between items-center cursor-pointer active:opacity-70"
+                onClick={() => setShowContract(!showContract)}
+              >
+                <Text className="text-sm font-bold text-zinc-500">合同快照</Text>
+                <Text className="text-xs text-zinc-400">{showContract ? '收起 ▲' : '展开 ▼'}</Text>
+              </View>
+              {showContract && (
+                <View className="space-y-2 mt-2">
+                  {order.pricing_breakdown.rent_days && (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">合同租期（天）</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.pricing_breakdown.rent_days}</Text>
+                    </View>
+                  )}
+                  {/* Tier-by-tier breakdown */}
+                  {(order.pricing_breakdown.pricing_tiers?.length > 0 || (pb?.rent_days && pb?.base_daily_rent)) && (() => {
+                    const tiers = order.pricing_breakdown.pricing_tiers || []
+                    const days = order.pricing_breakdown.rent_days
+                    const baseRate = order.pricing_breakdown.base_daily_rent || order.pricing_breakdown.final_daily_rent || 0
+                    let remaining = days
+                    let prevMax = 0
+                    const rows = []
+                    const tierList = tiers.length > 0 ? tiers : [{ days_max: -1, daily_rate: baseRate }]
+                    for (const t of tierList) {
+                      const tierDays = t.days_max > 0 ? t.days_max - prevMax : remaining
+                      const segDays = Math.min(tierDays, remaining)
+                      if (segDays <= 0) break
+                      const rate = t.daily_rate || baseRate
+                      const segAmount = segDays * rate
+                      const startDay = prevMax + 1
+                      const endDay = startDay + segDays - 1
+                      const range = segDays === 1 ? `${startDay}天` : `${startDay}-${endDay}天`
+                      rows.push({ range, rate, segDays, segAmount })
+                      remaining -= segDays
+                      prevMax = t.days_max > 0 ? t.days_max : prevMax + segDays
+                    }
+                    return (
+                      <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
+                        {rows.map((r, i) => (
+                          <Text key={i} className="block">
+                            {r.range}: ¥{r.rate.toFixed(2)}/天 × {r.segDays}天 = ¥{r.segAmount.toFixed(2)}
+                          </Text>
+                        ))}
+                      </View>
+                    )
+                  })()}
+                  {order.pricing_breakdown.total_amount && (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">合同总额</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
+                    </View>
+                  )}
+                  {deposit > 0 && (
+                    <>
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">押金</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
+                    </View>
+                    {order.pricing_breakdown.deposit_method && (
+                      <Text className="text-[10px] text-zinc-400 text-right -mt-1">
+                        {order.pricing_breakdown.deposit_method === 'total_price'
+                          ? `原价 ¥${order.pricing_breakdown.total_price || 0} × ${order.pricing_breakdown.deposit_ratio || 0}`
+                          : `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier || 7}`}
+                      </Text>
+                    )}
+                    </>
+                  )}
+                  {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">物流费</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.pricing_breakdown.shipping_fee).toFixed(2)}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
 

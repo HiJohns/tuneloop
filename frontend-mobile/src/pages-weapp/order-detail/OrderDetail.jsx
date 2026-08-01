@@ -41,6 +41,7 @@ export default function OrderDetail() {
   const [allLogs, setAllLogs] = useState([])
   const [logPage, setLogPage] = useState(1)
   const [logHasMore, setLogHasMore] = useState(false)
+  const [showContract, setShowContract] = useState(false)
 
   const token = getToken()
   const isStaff = (() => {
@@ -93,6 +94,12 @@ export default function OrderDetail() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    if (!order) return
+    const hasSettlement = !!order.settlement && order.settlement.actual_rent_amount !== undefined
+    setShowContract(!hasSettlement)
+  }, [order?.id])
 
   const handlePay = () => {
     Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${id}` })
@@ -213,8 +220,6 @@ export default function OrderDetail() {
   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(order.end_date) < new Date()
   const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date), new Date()) : 0
   const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : 0).toFixed(2) : 0
-
-  const totalAmount = (pb?.total_amount || 0) + deposit + shippingFee + (overdueFee > 0 ? Number(overdueFee) : 0)
 
   const showPayButton = !isStaff && status === 'reserved'
   const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
@@ -340,106 +345,138 @@ export default function OrderDetail() {
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>费用信息</Text>
 
-          {pb && typeof pb === 'object' ? (
+          {/* ① 实付金额 */}
+          {order.payment_records?.length > 0 && (
             <>
-              {(() => {
-                const tiers = pb.tier_segments
-                const hasTiers = Array.isArray(tiers) && tiers.length > 0
-                const policies = pb.applied_policies
-                const policiesAfterTier = Array.isArray(policies)
-                  ? policies.filter(p => p.type !== 'tier_discount')
-                  : []
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>实付金额</Text>
+              {order.payment_records.map(pr => (
+                <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${Number(pr.amount).toFixed(2)}`} />
+              ))}
+              <Row label="实付合计" value={`¥${order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2)}`} />
+            </>
+          )}
 
-                return (
-                  <View>
-                    {hasTiers ? (
-                      <View style={{ marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 6 }}>阶梯定价</Text>
-                        {tiers.map((seg, i) => {
-                          const discountLabel = seg.discount < 1
-                            ? `${Math.round((1 - seg.discount) * 100)}折`
-                            : ''
-                          return (
-                            <View key={i} style={{ paddingVertical: 3, paddingLeft: 8 }}>
-                              <Text style={{ fontSize: 12, color: '#71717a' }}>
-                                第{seg.tier}阶{seg.days}天: ¥{Number(seg.rate).toFixed(2)}/天 × {seg.days}天
-                                {seg.discount < 1 ? ` (${discountLabel})` : ''}
-                                {' = '}
-                                <Text style={{ fontWeight: '700', color: '#000' }}>
-                                  ¥{Number(seg.subtotal).toFixed(2)}
-                                </Text>
+          {/* ② 实际租期与租金 */}
+          {order.settlement?.actual_rent_amount !== undefined && (
+            <>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>实际租期与租金</Text>
+              {order.settlement.actual_rent_days !== undefined && (
+                <Row label="实际租期" value={`${order.settlement.actual_rent_days} 天`} />
+              )}
+              <Row label="实际租金" value={`¥${order.settlement.actual_rent_amount}`} color="#16a34a" />
+              {overdueFee > 0 && (
+                <>
+                  <Row label="逾期费用" value={`¥${overdueFee}`} color="#ef4444" />
+                  <Row label="  逾期日费" value={`¥${dailyRate}/天`} color="#a1a1aa" />
+                </>
+              )}
+            </>
+          )}
+
+          {/* ③ 退款 */}
+          {order.settlement && (order.settlement.cash_refundable > 0 || order.settlement.prepaid_refunded > 0 || order.settlement.gift_points_refunded > 0) && (
+            <>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>退款</Text>
+              {order.settlement.cash_refundable > 0 && (
+                <Row label="现金退款" value={`¥${order.settlement.cash_refundable}`} color="#3b82f6" />
+              )}
+              {order.settlement.prepaid_refunded > 0 && (
+                <Row label="退回预付点" value={`¥${order.settlement.prepaid_refunded}`} color="#3b82f6" />
+              )}
+              {order.settlement.gift_points_refunded > 0 && (
+                <Row label="赠送积分退还" value={`¥${order.settlement.gift_points_refunded}`} color="#3b82f6" />
+              )}
+              <Row label="退款合计" value={`¥${(Number(order.settlement.cash_refundable) + Number(order.settlement.prepaid_refunded) + Number(order.settlement.gift_points_refunded)).toFixed(2)}`} color="#16a34a" />
+            </>
+          )}
+
+          {/* 合同快照 (collapsed) */}
+          {pb && typeof pb === 'object' && (
+            <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 10 }}>
+              <View
+                onClick={() => setShowContract(!showContract)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#71717a' }}>合同快照</Text>
+                <Text style={{ fontSize: 11, color: '#a1a1aa' }}>{showContract ? '收起 ▲' : '展开 ▼'}</Text>
+              </View>
+              {showContract && (
+                <View style={{ marginTop: 8 }}>
+                  {(() => {
+                    const tiers = pb.tier_segments
+                    const hasTiers = Array.isArray(tiers) && tiers.length > 0
+                    const policies = pb.applied_policies
+                    const policiesAfterTier = Array.isArray(policies)
+                      ? policies.filter(p => p.type !== 'tier_discount')
+                      : []
+
+                    return (
+                      <View>
+                        {hasTiers ? (
+                          <View style={{ marginBottom: 4 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: '#52525b', marginBottom: 6 }}>阶梯定价</Text>
+                            {tiers.map((seg, i) => {
+                              const discountLabel = seg.discount < 1
+                                ? `${Math.round((1 - seg.discount) * 100)}折`
+                                : ''
+                              return (
+                                <View key={i} style={{ paddingVertical: 3, paddingLeft: 8 }}>
+                                  <Text style={{ fontSize: 12, color: '#71717a' }}>
+                                    第{seg.tier}阶{seg.days}天: ¥{Number(seg.rate).toFixed(2)}/天 × {seg.days}天
+                                    {seg.discount < 1 ? ` (${discountLabel})` : ''}
+                                    {' = '}
+                                    <Text style={{ fontWeight: '700', color: '#000' }}>
+                                      ¥{Number(seg.subtotal).toFixed(2)}
+                                    </Text>
+                                  </Text>
+                                </View>
+                              )
+                            })}
+                            <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 4, paddingTop: 4, paddingLeft: 8 }}>
+                              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000' }}>
+                                租金小计 ¥{Number(pb.total_amount || 0).toFixed(2)}
                               </Text>
                             </View>
-                          )
-                        })}
-                        <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 4, paddingTop: 4, paddingLeft: 8 }}>
-                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#000' }}>
-                            租金小计 ¥{Number(pb.total_amount || 0).toFixed(2)}
-                          </Text>
-                        </View>
-                        {policiesAfterTier.length > 0 && (
-                          <View style={{ paddingLeft: 8, paddingTop: 2 }}>
-                            {policiesAfterTier.map((p, i) => (
-                              <Text key={i} style={{ fontSize: 11, color: '#a1a1aa', marginTop: 1 }}>
-                                {p.plan_name}: {Math.round((1 - p.rate) * 100)}折
-                              </Text>
-                            ))}
+                            {policiesAfterTier.length > 0 && (
+                              <View style={{ paddingLeft: 8, paddingTop: 2 }}>
+                                {policiesAfterTier.map((p, i) => (
+                                  <Text key={i} style={{ fontSize: 11, color: '#a1a1aa', marginTop: 1 }}>
+                                    {p.plan_name}: {Math.round((1 - p.rate) * 100)}折
+                                  </Text>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        ) : (
+                          <View>
+                            <Row label="日租金" value={`¥${Number(pb.final_daily_rent || pb.base_daily_rent || 0).toFixed(2)}`} />
+                            {pb.base_daily_rent && pb.final_daily_rent < pb.base_daily_rent && (
+                              <Row label="原价" value={`¥${pb.base_daily_rent}/天`} color="#a1a1aa" />
+                            )}
+                            {pb.rent_days > 0 && <Row label="合同租期（天）" value={pb.rent_days} />}
+                            <Row label="租金" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} />
                           </View>
                         )}
                       </View>
-                    ) : (
-                      <View>
-                        <Row label="日租金" value={`¥${Number(pb.final_daily_rent || pb.base_daily_rent || 0).toFixed(2)}`} />
-                        {pb.base_daily_rent && pb.final_daily_rent < pb.base_daily_rent && (
-                          <Row label="原价" value={`¥${pb.base_daily_rent}/天`} color="#a1a1aa" />
-                        )}
-                        {pb.rent_days > 0 && <Row label="合同租期（天）" value={pb.rent_days} />}
-                        <Row label="租金" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} />
-                      </View>
-                    )}
-                  </View>
-                )
-              })()}
-              {deposit > 0 && (
-                <View>
-                  <Row label="押金" value={`¥${Number(deposit).toFixed(2)}`} />
-                  {pb?.deposit_method && (
-                    <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginTop: -2 }}>
-                      {pb.deposit_method === 'total_price'
-                        ? `乐器总价值 ¥${pb.total_price || 0}`
-                        : `日租金 × ${pb.deposit_multiplier || 7}倍`}
-                    </Text>
+                    )
+                  })()}
+                  {deposit > 0 && (
+                    <View>
+                      <Row label="押金" value={`¥${Number(deposit).toFixed(2)}`} />
+                      {pb?.deposit_method && (
+                        <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginTop: -2 }}>
+                          {pb.deposit_method === 'total_price'
+                            ? `乐器总价值 ¥${pb.total_price || 0}`
+                            : `日租金 × ${pb.deposit_multiplier || 7}倍`}
+                        </Text>
+                      )}
+                    </View>
                   )}
+                  {shippingFee > 0 && <Row label="物流费" value={`¥${shippingFee.toFixed(2)}`} />}
                 </View>
               )}
-              {shippingFee > 0 && <Row label="物流费" value={`¥${shippingFee.toFixed(2)}`} />}
-            </>
-          ) : (
-            <>
-              <Row label="租金" value={`¥${Number(pb?.total_amount || 0).toFixed(2)}`} />
-              <Row label="押金" value={`¥${deposit}`} />
-              <Row label="物流费" value={`¥${shippingFee}`} />
-            </>
-          )}
-
-          {overdueFee > 0 && (
-            <>
-              <Row label="逾期费用" value={`¥${overdueFee}`} color="#ef4444" />
-              <Row label="  逾期日费" value={`¥${dailyRate}/天`} color="#a1a1aa" />
-            </>
-          )}
-
-          {order.settlement?.actual_rent_amount !== undefined && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 6, borderTop: '1px solid #f4f4f5' }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000' }}>实收金额</Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#16a34a' }}>¥{order.settlement.actual_rent_amount}</Text>
             </View>
           )}
-
-          <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 6, borderTop: '1px solid #e4e4e7', marginTop: 4 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000' }}>{order.settlement ? '合计（含押金）' : '合计'}</Text>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000' }}>¥{totalAmount}</Text>
-          </View>
         </View>
 
         {/* Settlement Detail */}
