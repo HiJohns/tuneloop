@@ -278,6 +278,59 @@ func GetOrder(c *gin.Context) {
 		paidAt = paymentRecord.UpdatedAt.Format("2006-01-02 15:04")
 	}
 
+	// Fetch payment records for 收支明细
+	type paymentEntry struct {
+		ID        string    `json:"id"`
+		Amount    float64   `json:"amount"`
+		Method    string    `json:"method"`
+		Status    string    `json:"status"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+	var paymentEntries []paymentEntry
+	var paymentRecords []models.OrderPaymentRecord
+	db.Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
+		Order("created_at ASC").Find(&paymentRecords)
+	for _, pr := range paymentRecords {
+		method := ""
+		if pr.Method != nil {
+			method = *pr.Method
+		}
+		paymentEntries = append(paymentEntries, paymentEntry{
+			ID:        pr.ID,
+			Amount:    pr.Amount,
+			Method:    method,
+			Status:    pr.Status,
+			CreatedAt: pr.CreatedAt,
+		})
+	}
+
+	// Fetch refund records from settlements (authoritative refund data)
+	type refundEntry struct {
+		ID        string             `json:"id"`
+		Amount    float64            `json:"amount"`
+		Breakdown map[string]float64 `json:"breakdown"`
+		Method    string             `json:"method"`
+		Status    string             `json:"status"`
+		CreatedAt time.Time          `json:"created_at"`
+	}
+	var refundEntries []refundEntry
+	var settlements []models.Settlement
+	db.Where("order_id = ?", orderID).Order("created_at DESC").Find(&settlements)
+	for _, s := range settlements {
+		refundEntries = append(refundEntries, refundEntry{
+			ID:     s.ID,
+			Amount: s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded,
+			Breakdown: map[string]float64{
+				"cash":    s.CashRefundable,
+				"prepaid": s.PrepaidRefunded,
+				"gift":    s.GiftPointsRefunded,
+			},
+			Method:    s.RefundMethod,
+			Status:    s.RefundStatus,
+			CreatedAt: s.CreatedAt,
+		})
+	}
+
 	orderData := map[string]interface{}{
 		"id":                    order.ID,
 		"tenant_id":             order.TenantID,
@@ -309,6 +362,8 @@ func GetOrder(c *gin.Context) {
 		"pricing_breakdown":     pricingBreakdownData,
 		"settlement":            settlementData,
 		"order_logs":            orderLogs,
+		"payment_records":       paymentEntries,
+		"refund_records":        refundEntries,
 	}
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)

@@ -477,6 +477,32 @@ export default function OrderDetail() {
           </View>
         )}
 
+        {/* 收支明细 — completed/returned orders */}
+        {['completed', 'returned'].includes(order?.status) && (order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>收支明细</Text>
+            {order?.payment_records?.length > 0 && (<>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>支付记录</Text>
+              {order.payment_records.map(pr => (
+                <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${Number(pr.amount).toFixed(2)}`} />
+              ))}
+              <Row label="支付合计" value={`¥${order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2)}`} />
+            </>)}
+            {order?.refund_records?.length > 0 && (<>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>退款记录</Text>
+              {order.refund_records.map(rf => (
+                <Row key={rf.id} label={`${rf.method === 'prepaid' ? '退回预付点' : rf.method === 'cash_withdrawal' ? '退回现金' : '退款'}`} value={`-¥${Number(rf.amount).toFixed(2)}`} color="#16a34a" />
+              ))}
+              <Row label="退款合计" value={`-¥${order.refund_records.reduce((s, r) => s + Number(r.amount || 0), 0).toFixed(2)}`} color="#16a34a" />
+            </>)}
+            {(() => {
+              const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
+              const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+              return <Row label="净支出" value={`¥${Math.max(0, paid - refunded).toFixed(2)}`} />
+            })()}
+          </View>
+        )}
+
         {/* Logistics */}
         {(order.tracking_number || order.courier_company) && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>

@@ -486,6 +486,57 @@ export default function OrderDetail() {
       </View>
       )}
 
+      {/* 收支明细 — completed/returned orders */}
+      {['completed', 'returned'].includes(order?.status) && (order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+          <Text className="text-base font-black text-black mb-3">收支明细</Text>
+          <View className="space-y-2">
+            {order?.payment_records?.length > 0 && (
+              <>
+                <Text className="text-xs font-bold text-zinc-400">支付记录</Text>
+                {order.payment_records.map(pr => (
+                  <View key={pr.id} className="flex justify-between text-sm">
+                    <Text className="text-zinc-500 font-medium">{pr.method || '支付'}</Text>
+                    <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
+                    <Text className="text-black font-black flex-shrink-0 whitespace-nowrap">¥{Number(pr.amount).toFixed(2)}</Text>
+                  </View>
+                ))}
+                <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                  <Text className="text-zinc-500 font-medium">支付合计</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2)}</Text>
+                </View>
+              </>
+            )}
+            {order?.refund_records?.length > 0 && (
+              <>
+                <Text className="text-xs font-bold text-zinc-400 mt-2">退款记录</Text>
+                {order.refund_records.map(rf => (
+                  <View key={rf.id} className="flex justify-between text-sm">
+                    <Text className="text-zinc-500 font-medium">{rf.method === 'prepaid' ? '退回预付点' : rf.method === 'cash_withdrawal' ? '退回现金' : '退款'}</Text>
+                    <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{rf.created_at ? String(rf.created_at).slice(5, 16) : ''}</Text>
+                    <Text className="text-green-600 font-black flex-shrink-0 whitespace-nowrap">-¥{Number(rf.amount).toFixed(2)}</Text>
+                  </View>
+                ))}
+                <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                  <Text className="text-zinc-500 font-medium">退款合计</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">-¥{order.refund_records.reduce((s, r) => s + Number(r.amount || 0), 0).toFixed(2)}</Text>
+                </View>
+              </>
+            )}
+            {(order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (() => {
+              const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
+              const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+              return (
+                <View className="flex justify-between text-sm border-t border-zinc-100 pt-2 mt-2">
+                  <Text className="text-zinc-900 font-bold">净支出</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Math.max(0, paid - refunded).toFixed(2)}</Text>
+                </View>
+              )
+            })()}
+          </View>
+        </View>
+      )}
+
       {/* Order Logs Timeline */}
       {orderLogs.length > 0 && (
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
