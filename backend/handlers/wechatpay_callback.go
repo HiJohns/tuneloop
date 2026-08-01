@@ -314,12 +314,22 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 	}
 
 	if result.TradeState == "SUCCESS" {
-		db.Model(rec).Updates(map[string]interface{}{
-			"status":         "paid",
-			"transaction_id": result.TransactionID,
-			"updated_at":     time.Now(),
-		})
-		log.Printf("[PaymentScheduler] recovered payment for %s, tx_id=%s", *rec.OutTradeNo, result.TransactionID)
+		tx := db.Begin()
+		rec.Status = "paid"
+		rec.TransactionID = &result.TransactionID
+		rec.UpdatedAt = time.Now()
+		if err := tx.Save(&rec).Error; err != nil {
+			tx.Rollback()
+			log.Printf("[PaymentScheduler] save failed for %s: %v", *rec.OutTradeNo, err)
+			return
+		}
+		if err := applySideEffects(tx, rec, time.Now()); err != nil {
+			tx.Rollback()
+			log.Printf("[PaymentScheduler] side effects failed for %s: %v", *rec.OutTradeNo, err)
+			return
+		}
+		tx.Commit()
+		log.Printf("[PaymentScheduler] recovered + applied: out_trade_no=%s tx_id=%s", *rec.OutTradeNo, result.TransactionID)
 		return
 	}
 
