@@ -236,14 +236,13 @@ export default function StaffOrders() {
                     {order.returned_at ? (
                       <>
                         <View><Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at)}</Text></Text></View>
-                        <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))) || order.lease_term * 30 || '-'}</Text> 天</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))) || '-'}</Text> 天</Text></View>
                       </>
                     ) : (
-                      <>
-                        <View><Text className="text-zinc-400 font-medium">合同租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></Text></View>
-                        <View><Text className="text-zinc-400 font-medium">合同天数: <Text className="text-black font-medium">{order.lease_term * 30 || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')}</Text> 天</Text></View>
-                      </>
+                      <View><Text className="text-zinc-400 font-medium">租赁日期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></Text></View>
                     )}
+                  </View>
+                  )}
                   </View>
                   )
                 ) : (
