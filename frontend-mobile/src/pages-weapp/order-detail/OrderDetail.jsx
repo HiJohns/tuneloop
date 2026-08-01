@@ -393,7 +393,7 @@ export default function OrderDetail() {
                         {pb.base_daily_rent && pb.final_daily_rent < pb.base_daily_rent && (
                           <Row label="原价" value={`¥${pb.base_daily_rent}/天`} color="#a1a1aa" />
                         )}
-                        {pb.rent_days > 0 && <Row label="租期（天）" value={pb.rent_days} />}
+                        {pb.rent_days > 0 && <Row label="合同租期（天）" value={pb.rent_days} />}
                         <Row label="租金" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} />
                       </View>
                     )}
