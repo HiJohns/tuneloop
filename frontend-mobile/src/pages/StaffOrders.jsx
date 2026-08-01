@@ -223,36 +223,32 @@ export default function StaffOrders() {
                 </View>
                 <View className="flex flex-row">
                   <View className="flex-1">
-                {isTerminal ? (
-                  order.status === 'cancelled' ? (
-                    <View className="space-y-1 text-sm">
-                      <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                      <View><Text className="text-zinc-400 font-medium">创建日: <Text className="text-black font-medium">{order.start_date ? formatDisplayDate(order.start_date) : formatDisplayDate(order.created_at)}</Text></Text></View>
-                      <View><Text className="text-zinc-400 font-medium">状态: <Text className="text-red-500 font-medium">已取消</Text></Text></View>
-                    </View>
-                  ) : (
-                  <View className="space-y-1 text-sm">
-                    <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                    {order.returned_at ? (
-                      <>
-                        <View><Text className="text-zinc-400 font-medium">实际租期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at)}</Text></Text></View>
-                        <View><Text className="text-zinc-400 font-medium">实际天数: <Text className="text-black font-medium">{calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))) || '-'}</Text> 天</Text></View>
-                      </>
+                    {isTerminal ? (
+                      order.status === 'cancelled' ? (
+                      <View className="space-y-1 text-sm">
+                        <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">创建日: {order.start_date ? formatDisplayDate(order.start_date) : formatDisplayDate(order.created_at)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">状态: <Text className="text-red-500 font-medium">已取消</Text></Text></View>
+                      </View>
+                    ) : order.returned_at ? (
+                      <View className="space-y-1 text-sm">
+                        <View><Text className="text-zinc-400 font-medium">实际租期: {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.returned_at)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">实际天数: {(() => { const d = calculateDays(new Date((order.start_date || '').slice(0,10)), new Date((order.returned_at || '').slice(0,10))); return d || '-'; })()} 天</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
+                      </View>
                     ) : (
-                      <View><Text className="text-zinc-400 font-medium">租赁日期: <Text className="text-black font-medium">{formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></Text></View>
+                      <View className="space-y-1 text-sm">
+                        <View><Text className="text-zinc-400 font-medium">租赁日期: {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
+                      </View>
+                    )) : (
+                      <View className="space-y-1 text-sm">
+                        <View><Text className="text-zinc-400 font-medium">下单日: {formatDisplayDate(order.created_at)}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">乐器: {order.instrument_category || '-'}</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">预计天数: {order.lease_term || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')} 天</Text></View>
+                        <View><Text className="text-zinc-400 font-medium">预期归还日: {formatDisplayDate(order.end_date)}</Text></View>
+                      </View>
                     )}
-                  </View>
-                  )}
-                  </View>
-                  )
-                ) : (
-                  <View className="space-y-1 text-sm">
-                    <View><Text className="text-zinc-400 font-medium">下单日: <Text className="text-black font-medium">{formatDisplayDate(order.created_at)}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">乐器: <Text className="text-black font-medium">{order.instrument_category || '-'}</Text></Text></View>
-                    <View><Text className="text-zinc-400 font-medium">预计天数: <Text className="text-black font-medium">{order.lease_term || (order.start_date && order.end_date ? calculateDays(new Date(order.start_date.slice(0,10)), new Date(order.end_date.slice(0,10))) : '-')}</Text> 天</Text></View>
-                    <View><Text className="text-zinc-400 font-medium">预期归还日: <Text className="text-black font-medium">{formatDisplayDate(order.end_date)}</Text></Text></View>
-                  </View>
-                )}
                   </View>
                   {order.cover_image && <Image src={order.cover_image} className="w-20 h-20 rounded-lg ml-3 self-start" mode="aspectFill" />}
                 </View>
