@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { formatDisplayDate } from '../utils/format'
+import { calculateDays } from '../utils/daycalc'
 import { ArrowLeft, Package, History, Clock } from 'lucide-react'
 
 const STATUS_LABELS = {
@@ -17,6 +18,19 @@ const STATUS_COLORS = {
   returning: 'bg-yellow-100 text-yellow-700', returned: 'bg-gray-100 text-gray-600',
   completed: 'bg-gray-100 text-gray-600', cancelled: 'bg-red-100 text-red-700',
   expired: 'bg-red-100 text-red-700', transferred: 'bg-purple-100 text-purple-700',
+}
+
+function getLeaseInfo(order) {
+  if (!order.start_date) return null
+  const isCancelled = order.status === 'cancelled'
+  if (isCancelled) return null
+  const isEnded = ['completed', 'returned'].includes(order.status)
+  const endDate = (isEnded && order.returned_at) ? order.returned_at : order.end_date
+  if (!endDate) return null
+  const start = new Date(order.start_date)
+  const end = new Date(endDate)
+  const days = calculateDays(start, end)
+  return { start: order.start_date, end: endDate, days }
 }
 
 export default function LeaseHistory() {
@@ -107,12 +121,19 @@ export default function LeaseHistory() {
                       {STATUS_LABELS[order.status] || order.status}
                     </Text>
                   </View>
-                  {order.start_date && (
-                    <Text className="text-xs text-gray-500">
-                      <Clock size={12} className="inline mr-1" />
-                      {formatDisplayDate(order.start_date)} ~ {formatDisplayDate(order.end_date)}
-                    </Text>
-                  )}
+                  {(() => {
+                    const li = getLeaseInfo(order)
+                    if (!li) return null
+                    return (
+                      <View>
+                        <View className="flex items-center text-xs text-gray-500 mt-1">
+                          <Clock size={12} className="mr-1" />
+                          <Text>实际租期: {formatDisplayDate(li.start)} ~ {formatDisplayDate(li.end)}</Text>
+                        </View>
+                        <Text className="text-xs text-gray-400 mt-0.5">{li.days} 天</Text>
+                      </View>
+                    )
+                  })()}
                   <Text className="text-sm font-medium mt-1">
                     总计: ¥{((order.monthly_rent || 0) * (order.lease_term || 1) + (order.deposit || 0)).toFixed(0)}
                   </Text>
