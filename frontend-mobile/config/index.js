@@ -17,7 +17,9 @@ const config = {
     '@tarojs/plugin-platform-weapp',
     '@tarojs/plugin-platform-h5',
   ],
-  defineConstants: {},
+  defineConstants: {
+    'process.env.TARO_APP_API_BASE_URL': JSON.stringify(process.env.TARO_APP_API_BASE_URL || ''),
+  },
   framework: 'react',
   compiler: 'webpack5',
   mini: {

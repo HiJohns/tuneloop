@@ -1,4 +1,4 @@
-.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-upload-pre weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-upload-pre weapp-build weapp-build-pre weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
 NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
@@ -50,17 +50,25 @@ mobile-weapp-dev: weapp-check
 	@echo "Open WeChat Developer Tool -> import dist-weapp/"
 	@cd frontend-mobile && npm run dev:weapp
 
-weapp-upload: weapp-check
+weapp-build: weapp-check
+	@echo "Building WeApp (production apiBaseUrl)..."
+	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://wx.cadenzayueqi.com/api npm run build:weapp
+
+weapp-build-pre: weapp-check
+	@echo "Building WeApp (pre-production apiBaseUrl)..."
+	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api npm run build:weapp
+
+weapp-upload: weapp-build
 	@cd frontend-mobile && \
 	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' dist-weapp/app.wxss && \
 	node_modules/.bin/miniprogram-ci upload \
 		--pp dist-weapp \
-		--pkp private*.key \
+		--pkp private.wxcb44a1be70e356ed.key \
 		--appid wxcb44a1be70e356ed \
 		--uv $(or $(VERSION),1.0.0) \
 		--ud "$(or $(DESC),auto deploy)"
 
-weapp-upload-pre: weapp-check
+weapp-upload-pre: weapp-build-pre
 	@cd frontend-mobile && \
 	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' dist-weapp/app.wxss && \
 	node_modules/.bin/miniprogram-ci upload \
