@@ -202,7 +202,7 @@ Tuneloop 后端无需新增环境变量（使用现有 IAM 代理配置）。
 |------|------|------|
 | `make mobile-weapp-dev` | Taro weapp watch 模式（开发） | Node.js v22 |
 | `npm run build:weapp` | 生产构建 → `dist-weapp/` | Node.js v22 |
-| `make weapp-upload VERSION=x.y.z DESC="msg"` | 构建 + 上传到微信服务器 | Node.js v22 + 私钥 |
+| `make weapp-upload-prod VERSION=x.y.z DESC="msg"` | 构建 + 上传到微信服务器 | Node.js v22 + 私钥 |
 | `make release` | 全量打包（含 weapp 产物） | Node.js v22（weapp 步骤） |
 
 ### CI 部署流程
@@ -212,7 +212,7 @@ Tuneloop 后端无需新增环境变量（使用现有 IAM 代理配置）。
 cd frontend-mobile && npm run build:weapp
 
 # 2. 上传到微信（需私钥文件 private.APPID.key）
-make weapp-upload VERSION=1.2.3 DESC="bug fixes"
+make weapp-upload-prod VERSION=1.2.3 DESC="bug fixes"
 
 # 3. 登录 mp.weixin.qq.com → 版本管理
 #    - 设为体验版 → 白名单测试

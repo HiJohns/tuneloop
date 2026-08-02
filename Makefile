@@ -1,4 +1,4 @@
-.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload weapp-upload-pre weapp-build weapp-build-pre weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload-prod weapp-upload-pre weapp-build weapp-build-pre weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
 NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
@@ -58,7 +58,7 @@ weapp-build-pre: weapp-check
 	@echo "Building WeApp (pre-production apiBaseUrl)..."
 	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api npm run build:weapp
 
-weapp-upload: weapp-build
+weapp-upload-prod: weapp-build
 	@cd frontend-mobile && \
 	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' dist-weapp/app.wxss && \
 	node_modules/.bin/miniprogram-ci upload \

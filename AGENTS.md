@@ -64,13 +64,13 @@ make mobile-weapp-dev
 cd frontend-mobile && npm run build:weapp   # → dist-weapp/
 
 # 上传到微信服务器（需私钥）
-make weapp-upload VERSION=1.0.0 DESC="release note"
+make weapp-upload-prod VERSION=1.0.0 DESC="release note"
 
 # 全量打包（含 weapp 产物）
 make release
 ```
 
-**注意**：`make weapp-upload` 依赖 `frontend-mobile/private.APPID.key` 私钥文件（已 gitignore）。
+**注意**：`make weapp-upload-prod` 依赖 `frontend-mobile/private.APPID.key` 私钥文件（已 gitignore）。
 
 ---
 
@@ -1234,7 +1234,7 @@ sed -i 's/^go 1.25.0/go 1.22.2/' go.mod && go build ... && git checkout -- go.mo
 make weapp-upload-pre VERSION=x.x.x DESC="pre-release"
 
 # 生产 app: wxcb44a1be70e356ed (key: private.wxcb44a1be70e356ed.key)
-make weapp-upload VERSION=x.x.x DESC="release"
+make weapp-upload-prod VERSION=x.x.x DESC="release"
 
 # 41001 access_token missing → 微信后台重新生成上传密钥
 ```

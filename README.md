@@ -263,7 +263,7 @@ make version        # 查看当前版本
 make bump-build     # 递增 build 号
 
 # 上传小程序 (需私钥)
-make weapp-upload VERSION=1.0.0 DESC="release note"           # 生产版 (AppID: wxcb44a1be70e356ed)
+make weapp-upload-prod VERSION=1.0.0 DESC="release note"    # 生产版 (AppID: wxcb44a1be70e356ed)
 make weapp-upload-pre VERSION=1.0.0-pre DESC="pre deploy"    # 预生产版 (独立 AppID)
 ```
 
