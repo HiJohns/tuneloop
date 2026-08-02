@@ -557,9 +557,19 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 		}
 
 		if len(conflicts) > 0 {
-			log.Printf("[IAMClient] CreateOrGetUser: conflicts found, returning existing user %s", conflicts[0].ID)
+			existing := conflicts[0]
+			// A conflict matched only by username (email/phone differ from the
+			// request) refers to a different account. Silently reusing it would
+			// discard the requested email/phone, so reject with a clear error.
+			matchedByEmail := existing.Email != "" && existing.Email == req.Email
+			matchedByPhone := req.Phone != "" && existing.Phone != "" && existing.Phone == req.Phone
+			if !matchedByEmail && !matchedByPhone {
+				log.Printf("[IAMClient] CreateOrGetUser: user %s matched only by username %q with different email/phone, rejecting", existing.ID, req.Username)
+				return nil, fmt.Errorf("username %q is already in use by a different account (%s): use a different username", req.Username, existing.Email)
+			}
+			log.Printf("[IAMClient] CreateOrGetUser: conflicts found, returning existing user %s", existing.ID)
 			return &CreateUserResult{
-				UserID:        conflicts[0].ID,
+				UserID:        existing.ID,
 				Conflict:      true,
 				ExistingUsers: conflicts,
 			}, nil

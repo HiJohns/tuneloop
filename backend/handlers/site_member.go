@@ -474,6 +474,22 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
+	// Local cache hygiene: if the user has no remaining site memberships in
+	// this tenant, soft-delete the cached users row so stale data (e.g. an
+	// outdated email) is not reused when the member is re-added later.
+	var remaining int64
+	db.Model(&models.SiteMember{}).
+		Where("tenant_id = ? AND user_id = ?", tenantID, userID).
+		Count(&remaining)
+	if remaining == 0 {
+		now := time.Now()
+		if err := db.Model(&models.User{}).
+			Where("id = ? AND tenant_id = ?", userID, tenantID).
+			Update("deleted_at", now).Error; err != nil {
+			log.Printf("[RemoveMember] Failed to soft-delete cached user %s: %v", userID, err)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "Member removed successfully",

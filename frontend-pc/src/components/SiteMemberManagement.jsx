@@ -168,6 +168,14 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
         if (response.code === 20000 || response.code === 20100) {
           const data = response.data;
           const directCount = data.directly_added?.length || 0;
+          if (data.bind_errors?.length > 0) {
+            message.error(`添加成员失败：${data.bind_errors.map(e => e.error || '未知错误').join('；')}`);
+            setModalVisible(false);
+            resetForm();
+            fetchMembers();
+            onRefresh && onRefresh();
+            return;
+          }
           message.success(`成功添加 ${directCount} 个用户`);
           setModalVisible(false);
           resetForm();
