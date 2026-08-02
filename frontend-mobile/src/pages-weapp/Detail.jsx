@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getCartKey } from '../services/api'
+import Taro from '@tarojs/taro'
+import { apiFetch, getCartKey, getToken } from '../services/api'
+import { env, getWindowSize, previewImage, session, storage } from '../platform'
+import { formatDisplayDate } from '../utils/format'
+import { calculateDays } from '../utils/daycalc'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" viewBox="0 0 200 160">
@@ -48,6 +52,8 @@ export default function Detail() {
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
   const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
+  const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
+  const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
 
   const cartItemCount = (() => {
     try {
