@@ -1,2 +1,2 @@
-import ReturnSettlement from '../../ReturnSettlement'
+import ReturnSettlement from '../../pages/ReturnSettlement'
 export default ReturnSettlement
