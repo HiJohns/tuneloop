@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro from '@tarojs/taro'
+import { View, Text, Image, ScrollView, Video } from '@tarojs/components'
 import { apiFetch, getCartKey, getToken } from '../services/api'
 import { env, getWindowSize, previewImage, session, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
