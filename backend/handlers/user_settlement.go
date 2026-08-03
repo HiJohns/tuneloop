@@ -318,26 +318,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		}
 	}
 
-	var overdueCharges []models.OverdueCharge
-	db.Where("order_id = ?", order.ID).Find(&overdueCharges)
-
-	var overdueDays []string
-	for _, oc := range overdueCharges {
-		overdueDays = append(overdueDays, oc.ChargeDate)
+	// Overdue fee for staged settlement: collected once at return inspection
+	// (#1493) and persisted on the DamageAssessment. Legacy per-day
+	// overdue_charges are ignored (daily deduction removed, #1492).
+	var assessment models.DamageAssessment
+	if err := db.Where("order_id = ?", order.ID).Order("created_at desc").First(&assessment).Error; err != nil {
+		assessment = models.DamageAssessment{}
+	}
+	overdueFee := assessment.OverdueFee
+	if overdueFee < 0 {
+		overdueFee = 0
 	}
 
 	startDate := parseDate(order.StartDate)
-	var overdueDayPositions []int
-	if startDate != nil {
-		epoch := *startDate
-		for _, d := range overdueDays {
-			dt, err := time.Parse("2006-01-02", d)
-			if err == nil {
-				pos := int(dt.Sub(epoch).Hours()/24) + 1
-				overdueDayPositions = append(overdueDayPositions, pos)
-			}
-		}
-	}
 
 	rentPayable := 0.0
 	actualDays := 0
@@ -362,23 +355,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 				break
 			}
 			segEnd := cursor + seg.Days - 1
-			overdueInSeg := 0
-			for _, pos := range overdueDayPositions {
-				if pos >= cursor && pos <= segEnd {
-					overdueInSeg++
-				}
-			}
 			// Cap segment days at actual lease days
 			effectiveSegDays := seg.Days
 			if cursor+effectiveSegDays-1 > actualDays {
 				effectiveSegDays = actualDays - cursor + 1
 			}
-			nonOverdueDays := effectiveSegDays - overdueInSeg
-			if nonOverdueDays < 0 {
-				nonOverdueDays = 0
-			}
-			if nonOverdueDays > 0 {
-				rentPayable += float64(nonOverdueDays) * seg.Rate * seg.Discount
+			if effectiveSegDays > 0 {
+				rentPayable += float64(effectiveSegDays) * seg.Rate * seg.Discount
 			}
 			cursor = segEnd + 1
 		}
@@ -405,33 +388,24 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		damageDeducted = report.DepositDeducted
 	}
 
-	var totalDepositDeducted float64
-	db.Model(&models.OverdueCharge{}).
-		Select("COALESCE(SUM(deducted_from_deposit), 0)").
-		Where("order_id = ?", order.ID).
-		Scan(&totalDepositDeducted)
+	// Deposit deduction: overdue fee (charged once at return, #1493) +
+	// damage deduction. Both come off the deposit; remainder participates
+	// in the refund.
+	totalDepositDeducted := overdueFee + damageDeducted
 	remainingDeposit := order.Deposit - totalDepositDeducted
 	if remainingDeposit < 0 {
 		remainingDeposit = 0
 	}
 
-	totalRefund := totalRentPaid + remainingDeposit - damageDeducted - rentPayable
+	totalRefund := totalRentPaid + remainingDeposit - rentPayable
 	if totalRefund < 0 {
 		totalRefund = 0
 	}
 
-	var overdueChargesTotal float64
-	db.Model(&models.OverdueCharge{}).
-		Select("COALESCE(SUM(remaining_balance), 0)").
-		Where("order_id = ? AND status IN ?", order.ID, []string{"failed", "partial"}).
-		Scan(&overdueChargesTotal)
-
-	if overdueChargesTotal > 0 {
-		if totalRefund >= overdueChargesTotal {
-			totalRefund -= overdueChargesTotal
-		} else {
-			totalRefund = 0
-		}
+	// Early-return rebate: rent paid for days not actually used.
+	earlyReturnRebate := totalRentPaid - rentPayable
+	if earlyReturnRebate < 0 {
+		earlyReturnRebate = 0
 	}
 
 	cashRefundable := math.Min(totalRefund, order.CashPaid)
@@ -447,9 +421,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"original_total":           order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
 		"total_rent_paid":          totalRentPaid,
 		"deposit":                  order.Deposit,
-		"deposit_deducted_overdue": totalDepositDeducted,
+		"deposit_deducted_overdue": overdueFee,
+		"deposit_deducted_damage":  damageDeducted,
 		"remaining_deposit":        remainingDeposit,
 		"damage_deducted":          damageDeducted,
+		"overdue_fee":              overdueFee,
+		"overdue_days":             assessment.OverdueDays,
+		"early_return_rebate":      earlyReturnRebate,
 		"rent_payable":             rentPayable,
 		"actual_rent_amount":       rentPayable, // backward-compatible alias
 		"actual_rent_days":         actualDays,
@@ -457,7 +435,6 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"total_refund":             totalRefund,
 		"cash_refundable":          cashRefundable,
 		"prepaid_refunded":         prepaidRefunded,
-		"overdue_charges_total":    overdueChargesTotal,
 		"gift_points_used":         order.GiftPointsUsed,
 		"gift_cap":                 giftCap,
 		"gift_points_refunded":     giftPointsRefunded,
@@ -470,13 +447,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		RentPayable:            rentPayable,
 		TotalRentPaid:          totalRentPaid,
 		RemainingDeposit:       remainingDeposit,
-		DepositDeductedOverdue: totalDepositDeducted,
+		DepositDeductedOverdue: overdueFee,
 		DamageDeducted:         damageDeducted,
 		TotalRefund:            totalRefund,
 		CashRefundable:         cashRefundable,
 		PrepaidRefunded:        prepaidRefunded,
 		GiftPointsRefunded:     giftPointsRefunded,
-		OverdueChargesTotal:    overdueChargesTotal,
+		OverdueChargesTotal:    overdueFee,
 		ActualDays:             actualDays,
 		Breakdown:              breakdown,
 	}

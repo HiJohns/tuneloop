@@ -650,6 +650,9 @@ func ReturnOrder(c *gin.Context) {
 			"order_id":   orderID,
 			"old_status": models.OrderStatusInLease,
 			"new_status": models.OrderStatusReturning,
+			// Stage-1 settlement preview (#1494): read-only cost details so the
+			// user sees updated figures without an immediate refund.
+			"settlement_preview": computeSettlement(order, db).Breakdown,
 		},
 	})
 }

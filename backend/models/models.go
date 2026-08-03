@@ -780,6 +780,8 @@ type DamageAssessment struct {
 	Photos        string     `gorm:"type:jsonb" json:"photos"`
 	Notes         string     `gorm:"type:text" json:"notes"`
 	EstimatedCost *float64   `gorm:"type:decimal(10,2)" json:"estimated_cost"`
+	OverdueDays   int        `gorm:"default:0" json:"overdue_days"`
+	OverdueFee    float64    `gorm:"type:decimal(10,2);default:0" json:"overdue_fee"`
 	ScanTime      *time.Time `json:"scan_time"`
 	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	CreatedAt     time.Time  `json:"created_at"`

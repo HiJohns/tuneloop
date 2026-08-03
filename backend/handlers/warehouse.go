@@ -414,6 +414,12 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		}
 	}
 
+	// Persist overdue days/fee on the assessment for staged refund settlement.
+	if overdueDays > 0 || overdueFee > 0 {
+		db.Model(&models.DamageAssessment{}).Where("id = ?", assessment.ID).
+			Updates(map[string]interface{}{"overdue_days": overdueDays, "overdue_fee": overdueFee})
+	}
+
 	// Update instrument status
 	var updates map[string]interface{}
 	if req.Condition == "damaged" {

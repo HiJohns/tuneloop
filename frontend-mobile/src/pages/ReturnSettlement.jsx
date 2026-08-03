@@ -116,6 +116,12 @@ export default function ReturnSettlement() {
               <Text className="text-zinc-900 font-bold">实际租金</Text>
               <Text className="font-bold text-blue-600">¥{num(s?.actual_rent_amount)}</Text>
             </View>
+            {s?.early_return_rebate > 0 && (
+              <View className="flex justify-between text-green-600">
+                <Text className="font-medium">提前归还退费</Text>
+                <Text className="font-bold">-¥{num(s?.early_return_rebate)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -145,8 +151,31 @@ export default function ReturnSettlement() {
           <View className="bg-white rounded-2xl p-4 shadow-sm">
             <View><Text className="text-sm font-black text-black">逾期费用</Text></View>
             <View className="flex justify-between text-sm text-red-500 mt-3">
-              <Text className="font-medium">逾期扣款</Text>
+              <Text className="font-medium">{s?.overdue_days ? `逾期 ${s.overdue_days} 天扣款` : '逾期扣款'}</Text>
               <Text className="font-bold">¥{num(s?.overdue_charges_total)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Damage Deduction */}
+        {s?.deposit_deducted_damage > 0 && (
+          <View className="bg-white rounded-2xl p-4 shadow-sm">
+            <View><Text className="text-sm font-black text-black">定损扣款</Text></View>
+            <View className="flex justify-between text-sm text-red-500 mt-3">
+              <Text className="font-medium">定损赔偿（押金扣除）</Text>
+              <Text className="font-bold">¥{num(s?.deposit_deducted_damage)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Stage-1 notice: awaiting inspection */}
+        {!existing && !confirmed && (
+          <View className="bg-amber-50 rounded-2xl p-4">
+            <View><Text className="text-sm font-black text-amber-700">等待网点验收</Text></View>
+            <View className="mt-1">
+              <Text className="text-xs text-amber-600 leading-relaxed">
+                以上为费用预估明细，最终退款将在网点验收定损后确认（含超期费与定损扣款）。
+              </Text>
             </View>
           </View>
         )}
