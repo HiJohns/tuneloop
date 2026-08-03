@@ -54,6 +54,7 @@ export default function MembershipCenter() {
   }
 
   const generateQRCanvas = (url) => {
+    Taro.nextTick(() => {
     const query = Taro.createSelectorQuery()
     query.select('#qrCanvas').fields({ node: true, size: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
@@ -72,6 +73,7 @@ export default function MembershipCenter() {
           fail: () => { Taro.showToast({ title: '二维码生成失败', icon: 'none' }) },
         })
       })
+    })
     })
   }
 
