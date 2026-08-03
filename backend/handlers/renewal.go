@@ -75,11 +75,12 @@ func parseDatePtr(s *string) time.Time {
 	if s == nil || *s == "" {
 		return time.Now().Truncate(24 * time.Hour)
 	}
-	t, err := time.Parse("2006-01-02", *s)
-	if err != nil {
-		return time.Now().Truncate(24 * time.Hour)
+	for _, layout := range []string{"2006-01-02", time.RFC3339, "2006-01-02T15:04:05"} {
+		if t, err := time.Parse(layout, *s); err == nil {
+			return t
+		}
 	}
-	return t
+	return time.Now().Truncate(24 * time.Hour)
 }
 
 func loadRenewalPricing(order *models.Order) (baseRate float64, pricingTiers []services.PricingTierConfig, cumulativeDiscount float64) {

@@ -320,3 +320,116 @@ func stepReturn(t *testing.T, router *gin.Engine, orderID string) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code)
 }
+
+// TestInspectReturn_OverdueFee verifies #1493: late return inspection returns
+// overdue_days/overdue_fee and charges them once at return.
+func TestInspectReturn_OverdueFee(t *testing.T) {
+	router, tenantID, userID, orgID, instrumentID := setupE2ETestEnv(t)
+	if router == nil {
+		return
+	}
+	db := database.GetDB()
+
+	// Build an overdue order directly in returning status.
+	orderID := uuid.New().String()
+	oldEnd := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
+	start := time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	pricing := `{"overdue_daily_fee":15,"daily_rent":10}`
+	require.NoError(t, db.Create(&models.Order{
+		ID:               orderID,
+		TenantID:         tenantID,
+		OrgID:            orgID,
+		UserID:           userID,
+		InstrumentID:     instrumentID,
+		StartDate:        strPtr(start),
+		EndDate:          strPtr(oldEnd),
+		LeaseTerm:        20,
+		Status:           models.OrderStatusReturning,
+		Deposit:          500,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10}`),
+	}).Error)
+	require.NoError(t, db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("pricing", pricing).Error)
+
+	// Scan at today → overdue days = endDate+1 .. today = 10 days
+	reqBody := map[string]interface{}{
+		"instrument_sn": "TEST-SN",
+		"scan_time":     time.Now(),
+		"condition":     "good",
+		"notes":         "overdue return test",
+		"photos":        []string{},
+	}
+	jsonBody, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			OverdueDays      int     `json:"overdue_days"`
+			OverdueDailyRate float64 `json:"overdue_daily_rate"`
+			OverdueFee       float64 `json:"overdue_fee"`
+		} `json:"data"`
+	}
+	t.Logf("RESP BODY: %s", w.Body.String())
+	var dbOrder models.Order
+	require.NoError(t, db.First(&dbOrder, "id = ?", orderID).Error)
+	t.Logf("DB end_date=%v status=%v", *dbOrder.EndDate, dbOrder.Status)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Equal(t, 10, resp.Data.OverdueDays, "overdue days = endDate+1 to today = 10")
+	require.Equal(t, 15.0, resp.Data.OverdueDailyRate, "rate from instrument pricing overdue_daily_fee")
+	require.Equal(t, 150.0, resp.Data.OverdueFee, "fee = 15 × 10")
+}
+
+// TestInspectReturn_NoOverdue verifies on-time return has zero overdue fee.
+func TestInspectReturn_NoOverdue(t *testing.T) {
+	router, tenantID, userID, orgID, instrumentID := setupE2ETestEnv(t)
+	if router == nil {
+		return
+	}
+	db := database.GetDB()
+
+	orderID := uuid.New().String()
+	futureEnd := time.Now().AddDate(0, 0, 5).Format("2006-01-02")
+	start := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
+	require.NoError(t, db.Create(&models.Order{
+		ID:               orderID,
+		TenantID:         tenantID,
+		OrgID:            orgID,
+		UserID:           userID,
+		InstrumentID:     instrumentID,
+		StartDate:        strPtr(start),
+		EndDate:          strPtr(futureEnd),
+		LeaseTerm:        15,
+		Status:           models.OrderStatusReturning,
+		Deposit:          500,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10}`),
+	}).Error)
+
+	reqBody := map[string]interface{}{
+		"instrument_sn": "TEST-SN2",
+		"scan_time":     time.Now(),
+		"condition":     "good",
+		"photos":        []string{},
+	}
+	jsonBody, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			OverdueDays int     `json:"overdue_days"`
+			OverdueFee  float64 `json:"overdue_fee"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 0, resp.Data.OverdueDays, "on-time return has no overdue days")
+	require.Equal(t, 0.0, resp.Data.OverdueFee)
+}

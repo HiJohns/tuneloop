@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func stringPtr(s string) *string {
@@ -347,6 +349,8 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		if b, err := json.Marshal(req.Photos); err == nil {
 			assessment.Photos = string(b)
 		}
+	} else {
+		assessment.Photos = "[]"
 	}
 	if err := db.Create(&assessment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
@@ -391,6 +395,23 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updateFields).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
+	}
+
+	// Overdue fee calculation (#1493): charged once at return inspection.
+	// overdueDays counts from endDate+1 to the return scan time.
+	overdueDays := 0
+	overdueDailyRate := 0.0
+	overdueFee := 0.0
+	if endDate := parseDatePtr(order.EndDate); req.ScanTime.After(endDate) {
+		start := endDate.AddDate(0, 0, 1)
+		overdueDays = services.CalculateDays(start, req.ScanTime)
+		if overdueDays < 0 {
+			overdueDays = 0
+		}
+		overdueDailyRate = loadOverdueDailyRate(db, order.InstrumentID, order)
+		if overdueDays > 0 {
+			overdueFee = math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
+		}
 	}
 
 	// Update instrument status
@@ -456,10 +477,13 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"order_id":      orderID,
-			"status":        newStatus,
-			"condition":     req.Condition,
-			"assessment_id": assessment.ID,
+			"order_id":          orderID,
+			"status":            newStatus,
+			"condition":         req.Condition,
+			"assessment_id":     assessment.ID,
+			"overdue_days":      overdueDays,
+			"overdue_daily_rate": overdueDailyRate,
+			"overdue_fee":       overdueFee,
 		},
 	})
 }
@@ -512,6 +536,24 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
+	// Overdue fee (#1493): late return fee is charged once at damage assessment
+	// when the order was returned after its end date.
+	overdueDays := 0
+	overdueDailyRate := 0.0
+	overdueFee := 0.0
+	if endDate := parseDatePtr(order.EndDate); time.Now().After(endDate) {
+		start := endDate.AddDate(0, 0, 1)
+		overdueDays = services.CalculateDays(start, time.Now())
+		if overdueDays < 0 {
+			overdueDays = 0
+		}
+		overdueDailyRate = loadOverdueDailyRate(db, order.InstrumentID, order)
+		if overdueDays > 0 {
+			overdueFee = math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
+		}
+	}
+	totalDeduction := req.DamageAmount + overdueFee
+
 	// Create damage report
 	damageReport := models.DamageReport{
 		ID:                uuid.New().String(),
@@ -540,7 +582,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		RefID:      damageReport.ID,
 		RefType:    "damage_report",
 		ActionType: "damage_accept_reject",
-		ActionData: strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit, orderID)),
+		ActionData: strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"overdue_fee":%.2f,"total_deduction":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, overdueFee, totalDeduction, order.Deposit, orderID)),
 		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {
@@ -551,9 +593,45 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"order_id":      orderID,
-			"status":        models.OrderStatusReturning,
-			"damage_amount": req.DamageAmount,
+			"order_id":          orderID,
+			"status":            models.OrderStatusReturning,
+			"damage_amount":     req.DamageAmount,
+			"overdue_days":      overdueDays,
+			"overdue_daily_rate": overdueDailyRate,
+			"overdue_fee":       overdueFee,
+			"total_deduction":   totalDeduction,
 		},
 	})
+}
+
+// loadOverdueDailyRate returns the instrument's overdue daily fee from its
+// pricing JSONB, falling back to base daily rate × 1.5 (same semantics as
+// renewal). Used by return inspection (#1493).
+func loadOverdueDailyRate(db *gorm.DB, instrumentID string, order models.Order) float64 {
+	var instPricing struct{ Value string }
+	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", instrumentID).Scan(&instPricing).Error; err == nil && instPricing.Value != "" {
+		var ip map[string]interface{}
+		if json.Unmarshal([]byte(instPricing.Value), &ip) == nil {
+			if fee, ok := ip["overdue_daily_fee"].(float64); ok && fee > 0 {
+				return fee
+			}
+		}
+	}
+	baseRate := 0.0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb services.PricingBreakdown
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.BaseDailyRent > 0 {
+			baseRate = pb.BaseDailyRent
+		}
+	}
+	if baseRate <= 0 {
+		var inst models.Instrument
+		if db.First(&inst, "id = ?", instrumentID).Error == nil && inst.BaseDailyRate != nil {
+			baseRate = *inst.BaseDailyRate
+		}
+	}
+	if baseRate <= 0 {
+		baseRate = 1
+	}
+	return math.Round(baseRate*1.5*100) / 100
 }
