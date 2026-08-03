@@ -457,6 +457,17 @@ func (c *IAMClient) GetOrganization(orgID string) (*Organization, error) {
 	return &org, nil
 }
 
+// UsernameConflictError indicates the requested username belongs to a
+// different account (its email/phone do not match the request).
+type UsernameConflictError struct {
+	Username string
+	Email    string
+}
+
+func (e *UsernameConflictError) Error() string {
+	return fmt.Sprintf("username %q is already in use by a different account (%s): use a different username", e.Username, e.Email)
+}
+
 type CreateUserRequest struct {
 	Username              string  `json:"username"`
 	Nickname              *string `json:"nickname,omitempty"`
@@ -565,7 +576,10 @@ func (c *IAMClient) CreateOrGetUser(token string, req *CreateUserRequest) (*Crea
 			matchedByPhone := req.Phone != "" && existing.Phone != "" && existing.Phone == req.Phone
 			if !matchedByEmail && !matchedByPhone {
 				log.Printf("[IAMClient] CreateOrGetUser: user %s matched only by username %q with different email/phone, rejecting", existing.ID, req.Username)
-				return nil, fmt.Errorf("username %q is already in use by a different account (%s): use a different username", req.Username, existing.Email)
+				return nil, &UsernameConflictError{
+					Username: req.Username,
+					Email:    existing.Email,
+				}
 			}
 			log.Printf("[IAMClient] CreateOrGetUser: conflicts found, returning existing user %s", existing.ID)
 			return &CreateUserResult{

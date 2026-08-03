@@ -709,3 +709,70 @@ func queryIAMUserOrgRelation(userID, orgID string) (*dualRoleResult, error) {
 	}
 	return &dualRoleResult{Role: fields[0], FunctionalRoles: fields[1]}, nil
 }
+
+func TestAddMember_UsernameConflictWithDifferentEmail_Returns409(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	conflictUser := services.User{
+		ID:       "u-lisi-1",
+		Username: "lisi",
+		Name:     "李四",
+		Email:    "nanjing_head@tuneloop.com",
+	}
+	mockIAM := newMockIAMServer(nil, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"users": []services.User{conflictUser}})
+			return
+		}
+		t.Errorf("POST /api/v1/users must not be called when username conflicts with a different account")
+	})
+	defer mockIAM.Close()
+	services.SetIAMInternalURLForTesting(mockIAM.URL)
+
+	tenantID := uuid.New().String()
+	site := models.Site{
+		Name:     "New Conflict Site",
+		TenantID: tenantID,
+		OrgID:    uuid.New().String(),
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&site).Error)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, "operator")
+		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, uuid.New().String())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	handler := NewSiteMemberHandler()
+	router.POST("/api/sites/:id/members", handler.AddMember)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"new_users": []map[string]interface{}{
+			{"username": "lisi", "name": "李四", "email": "xjk_admin@tuneloop.com", "phone": "555123", "role": "site_admin"},
+		},
+		"skip_activation": true,
+	})
+	req := httptest.NewRequest("POST", "/api/sites/"+site.ID+"/members", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code, "username conflict with different email must return 409")
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Conflicts []map[string]string `json:"conflicts"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40901, resp.Code)
+	require.Len(t, resp.Data.Conflicts, 1)
+	require.Equal(t, "nanjing_head@tuneloop.com", resp.Data.Conflicts[0]["email"])
+}

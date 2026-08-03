@@ -63,8 +63,11 @@ func TestCreateOrGetUser_UsernameConflictWithDifferentEmail_Rejected(t *testing.
 
 	_, err := client.CreateOrGetUser("user-token", req)
 	require.Error(t, err, "username-only conflict with different email must be rejected")
+	var conflictErr *UsernameConflictError
+	require.ErrorAs(t, err, &conflictErr)
+	require.Equal(t, "lisi", conflictErr.Username)
+	require.Equal(t, "nanjing_head@tuneloop.com", conflictErr.Email)
 	require.Contains(t, err.Error(), "already in use")
-	require.Contains(t, err.Error(), "lisi")
 }
 
 func TestCreateOrGetUser_EmailMatch_ReusesExistingUser(t *testing.T) {
@@ -158,6 +161,9 @@ func TestCreateOrGetUser_ErrorIncludesConflictingEmail(t *testing.T) {
 
 	_, err := client.CreateOrGetUser("user-token", req)
 	require.Error(t, err)
+	var conflictErr *UsernameConflictError
+	require.ErrorAs(t, err, &conflictErr)
+	require.Equal(t, "nanjing_head@tuneloop.com", conflictErr.Email)
 	require.True(t, strings.Contains(err.Error(), "nanjing_head@tuneloop.com"),
 		"error should reference the conflicting account email")
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -157,6 +158,21 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			}
 			userResult, err := iamClient.CreateOrGetUser(userToken, createReq)
 			if err != nil {
+				var conflictErr *services.UsernameConflictError
+				if errors.As(err, &conflictErr) {
+					c.JSON(http.StatusConflict, gin.H{
+						"code": 40901,
+						"data": gin.H{
+							"conflicts": []gin.H{{
+								"name":     nu.Name,
+								"email":    conflictErr.Email,
+								"username": conflictErr.Username,
+								"error":    conflictErr.Error(),
+							}},
+						},
+					})
+					return
+				}
 				log.Printf("[AddMember] Failed to create user %s: %v", nu.Email, err)
 				bindErrors = append(bindErrors, gin.H{
 					"email": nu.Email,
@@ -167,7 +183,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if userResult.Conflict {
 				log.Printf("[AddMember] User already exists in IAM: %s, proceeding with binding", userResult.UserID)
 
-				// Create local user record for FK constraint if not exists
+				// Create or restore the local user cache record for FK constraint
 				var existingLocal models.User
 				if err := db.Where("iam_sub = ?", userResult.UserID).First(&existingLocal).Error; err != nil {
 					existingUser := userResult.ExistingUsers[0]
@@ -184,6 +200,24 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 					}
 					if err := db.Create(&localUser).Error; err != nil {
 						log.Printf("[AddMember] Failed to create local user for existing IAM user %s: %v", userResult.UserID, err)
+					}
+				} else {
+					// Cache row may have been soft-deleted by RemoveMember: restore it
+					// and refresh its data from IAM so stale email/name is not shown.
+					existingUser := userResult.ExistingUsers[0]
+					updates := map[string]interface{}{
+						"deleted_at": nil,
+						"name":       existingUser.Name,
+						"email":      existingUser.Email,
+						"status":     "active",
+					}
+					if existingLocal.Phone == "" {
+						updates["phone"] = nu.Phone
+					}
+					if err := db.Model(&models.User{}).
+						Where("id = ? AND tenant_id = ?", existingLocal.ID, tenantID).
+						Updates(updates).Error; err != nil {
+						log.Printf("[AddMember] Failed to restore local user cache %s: %v", existingLocal.ID, err)
 					}
 				}
 
