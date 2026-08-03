@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text } from '@tarojs/components'
+import { View, Text, RichText } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
 
@@ -50,6 +50,8 @@ export default function ContentPage() {
       <View className="px-4 py-4">
         {loading ? (
           <Text className="text-zinc-400">加载中...</Text>
+        ) : /<[a-z][\s\S]*>/i.test(content) ? (
+          <RichText nodes={content} />
         ) : (
           <Text className="text-sm text-zinc-700 leading-6 whitespace-pre-wrap">{content}</Text>
         )}

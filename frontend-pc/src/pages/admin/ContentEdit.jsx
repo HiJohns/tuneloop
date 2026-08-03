@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Card, Tabs, Input, Button, message } from 'antd'
+import { Card, Tabs, Button, message } from 'antd'
 import { SaveOutlined } from '@ant-design/icons'
+import ReactQuill from 'react-quill'
+import 'react-quill/dist/quill.snow.css'
 import { api } from '../../services/api'
 
 const KEYS = [
@@ -43,13 +45,23 @@ export default function ContentEdit() {
     label: k.title,
     children: (
       <div>
-        <Input.TextArea
-          rows={12}
-          value={values[k.key]}
-          onChange={e => setValues(prev => ({ ...prev, [k.key]: e.target.value }))}
+        <ReactQuill
+          theme="snow"
+          value={values[k.key] || ''}
+          onChange={val => setValues(prev => ({ ...prev, [k.key]: val }))}
           placeholder={`请输入${k.title}内容`}
-          style={{ marginBottom: 12 }}
+          style={{ marginBottom: 12, height: 300 }}
+          modules={{
+            toolbar: [
+              [{ header: [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ list: 'ordered' }, { list: 'bullet' }],
+              ['link'],
+              ['clean'],
+            ],
+          }}
         />
+        <div style={{ height: 48 }} />
         <Button type="primary" icon={<SaveOutlined />} onClick={() => save(k.key)} loading={loading[k.key]}>
           保存
         </Button>
