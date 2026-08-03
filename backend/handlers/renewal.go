@@ -27,6 +27,7 @@ type RenewalCalculateResponse struct {
 	OverdueBalance   float64                `json:"overdue_balance"`
 	TotalAmount      float64                `json:"total_amount"`
 	NewEndDate       string                 `json:"new_end_date"`
+	MinAdditionalDays int                  `json:"min_additional_days"`
 	TierBreakdown    []services.TierSegment `json:"tier_breakdown"`
 	DailyRate        float64                `json:"daily_rate"`
 	OverdueDailyRate float64                `json:"overdue_daily_rate"`
@@ -144,10 +145,24 @@ func CalculateRenewal(c *gin.Context) {
 		}
 	}
 
-	baseDate := endDate
+	// Minimum renewal days: when overdue, renewal must cover at least the
+	// overdue period so the new end date stays after today (continuous).
+	minAdditionalDays := 0
 	if today.After(endDate) {
-		baseDate = today
+		minAdditionalDays = services.CalculateDays(endDate, today)
+		if minAdditionalDays < 0 {
+			minAdditionalDays = 0
+		}
 	}
+	if req.AdditionalDays < minAdditionalDays {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": fmt.Sprintf("续期天数至少为 %d 天（需覆盖逾期期）", minAdditionalDays),
+		})
+		return
+	}
+
+	baseDate := endDate
 	newEndDate := baseDate.AddDate(0, 0, req.AdditionalDays)
 	baseRate, pricingTiers, cumDisc := loadRenewalPricing(order)
 
@@ -155,38 +170,19 @@ func CalculateRenewal(c *gin.Context) {
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
 	)
 
-	// Overdue daily fee: from instrument's Pricing JSONB or default baseRate × 1.5
-	var overdueDailyRate float64
-	var instPricing struct{ Value string }
-	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", order.InstrumentID).Scan(&instPricing).Error; err == nil && instPricing.Value != "" {
-		var ip map[string]interface{}
-		if json.Unmarshal([]byte(instPricing.Value), &ip) == nil {
-			if fee, ok := ip["overdue_daily_fee"].(float64); ok && fee > 0 {
-				overdueDailyRate = fee
-			}
-		}
-	}
-	if overdueDailyRate <= 0 {
-		overdueDailyRate = baseRate * 1.5
-	}
-	overdueFee := math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
-
 	var overdueBalance float64
-	db.Model(&models.OverdueCharge{}).
-		Select("COALESCE(SUM(remaining_balance), 0)").
-		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
-		Scan(&overdueBalance)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": RenewalCalculateResponse{
-			RenewalCost:    renewalCost,
-			OverdueBalance: overdueBalance + overdueFee,
-			TotalAmount:    renewalCost + overdueBalance + overdueFee,
-			NewEndDate:     newEndDate.Format("2006-01-02"),
-			TierBreakdown:  tierBreakdown,
+			RenewalCost:      renewalCost,
+			OverdueBalance:   overdueBalance,
+			TotalAmount:      renewalCost + overdueBalance,
+			NewEndDate:       newEndDate.Format("2006-01-02"),
+			MinAdditionalDays: minAdditionalDays,
+			TierBreakdown:    tierBreakdown,
 			DailyRate:        baseRate,
-			OverdueDailyRate: overdueDailyRate,
+			OverdueDailyRate: 0,
 			OverdueDays:      overdueDays,
 		},
 	})
@@ -231,38 +227,26 @@ func ConfirmRenewal(c *gin.Context) {
 		consumedDays = 0
 	}
 	baseRate, pricingTiers, cumDisc := loadRenewalPricing(order)
+
+	// Minimum renewal days: must cover the overdue period (continuous).
+	if today.After(endDate) {
+		minAdditionalDays := services.CalculateDays(endDate, today)
+		if minAdditionalDays < 0 {
+			minAdditionalDays = 0
+		}
+		if req.AdditionalDays < minAdditionalDays {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": fmt.Sprintf("续期天数至少为 %d 天（需覆盖逾期期）", minAdditionalDays),
+			})
+			return
+		}
+	}
 	renewalCost, _ := services.CalculateRenewalPricing(
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
 	)
 
-	// Overdue days
-	var overdueDays int
-	if today.After(endDate) {
-		yesterday := today.AddDate(0, 0, -1)
-		overdueDays = services.CalculateDays(endDate, yesterday)
-	}
-	var overdueDailyRate float64
-	var instPricing struct{ Value string }
-	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", order.InstrumentID).Scan(&instPricing).Error; err == nil && instPricing.Value != "" {
-		var ip map[string]interface{}
-		if json.Unmarshal([]byte(instPricing.Value), &ip) == nil {
-			if fee, ok := ip["overdue_daily_fee"].(float64); ok && fee > 0 {
-				overdueDailyRate = fee
-			}
-		}
-	}
-	if overdueDailyRate <= 0 {
-		overdueDailyRate = baseRate * 1.5
-	}
-	overdueFee := math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
-
-	var overdueBalance float64
-	db.Model(&models.OverdueCharge{}).
-		Select("COALESCE(SUM(remaining_balance), 0)").
-		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
-		Scan(&overdueBalance)
-
-	totalAmount := renewalCost + overdueBalance + overdueFee
+	totalAmount := renewalCost
 	cfg := wechatpay.GetConfig()
 	outTradeNo := fmt.Sprintf("renewal%s%d", uuid.New().String()[:8], time.Now().Unix())
 
@@ -375,7 +359,10 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		return err
 	}
 
-	newEndDate := now.AddDate(0, 0, meta.AdditionalDays)
+	// Renewal continues from the original end date (not from today), so an
+	// overdue order's new end date = end_date + additional_days (continuous).
+	endDate := parseDatePtr(order.EndDate)
+	newEndDate := endDate.AddDate(0, 0, meta.AdditionalDays)
 	newEndDateStr := newEndDate.Format("2006-01-02")
 
 	if err := tx.Model(&order).Updates(map[string]interface{}{
@@ -437,10 +424,6 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 			"prepaid_points_used": gorm.Expr("prepaid_points_used + ?", 0), // renewal is cash (WeChat Pay)
 		})
 	}
-
-	tx.Model(&models.OverdueCharge{}).
-		Where("order_id = ? AND status IN ?", orderID, []string{"failed", "partial"}).
-		Update("status", "settled")
 
 	tx.Create(&models.OrderLog{
 		OrderID:   orderID,

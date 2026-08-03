@@ -110,6 +110,7 @@ export default function Renewal() {
   if (!order) return <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}><Text>订单不存在</Text></View>
 
   const overdueDays = calcResult?.overdue_days || 0
+  const minDays = calcResult?.min_additional_days || 0
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -130,63 +131,47 @@ export default function Renewal() {
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>下单日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.created_at)}</Text></View>
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>原预期归还</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.end_date)}</Text></View>
             {overdueDays > 0 && (
-              <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#000' }}>{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+              <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>超期</Text><Text style={{ fontSize: 12, color: '#ef4444' }}>{overdueDays} 天（续期需覆盖）</Text></View>
             )}
           </View>
         )}
 
         <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
           <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>续期设置</Text>
+          {minDays > 1 && (
+            <Text style={{ fontSize: 12, color: '#ef4444', marginBottom: 8 }}>已超期，最少续期 {minDays} 天</Text>
+          )}
           <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-            {dayOptions.map(d => (
-              <View key={d}
-                onClick={() => setDays(d)}
-                style={{ padding: '8px 16px', borderRadius: 999, border: days === d ? '1px solid #2563eb' : '1px solid #d4d4d8', backgroundColor: days === d ? '#2563eb' : '#fff', color: days === d ? '#fff' : '#374151', fontSize: 14, fontWeight: '700' }}
-              >
-                <Text>{d}天</Text>
-              </View>
-            ))}
+            {dayOptions.map(d => {
+              const disabled = d < minDays
+              return (
+                <View key={d}
+                  onClick={() => !disabled && pickDay(d)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 20,
+                    border: days === d && !customDays ? '1px solid #2563eb' : '1px solid #d1d5db',
+                    backgroundColor: disabled ? '#f3f4f6' : days === d && !customDays ? '#2563eb' : '#fff',
+                  }}>
+                  <Text style={{ fontSize: 13, color: disabled ? '#9ca3af' : days === d && !customDays ? '#fff' : '#374151' }}>{d}天</Text>
+                </View>
+              )
+            })}
           </View>
           <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Text style={{ fontSize: 12, color: '#71717a' }}>自定义:</Text>
-            <Input type="number" min={1}
-              value={days}
-              onInput={e => setDays(Math.max(1, parseInt(e.detail.value) || 1))}
+            <Input
+              type="number"
+              min={minDays || 1}
               placeholder="天数"
-              style={{ width: 80, padding: '4px 8px', border: '1px solid #d4d4d8', borderRadius: 4, textAlign: 'center', fontSize: 12 }}
+              value={customDays}
+              onInput={(e) => { setCustomDays(e.detail.value); setDays(Math.max(minDays || 1, parseInt(e.detail.value) || (minDays || 1))) }}
+              style={{ width: 80, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 8, textAlign: 'center', fontSize: 12 }}
             />
             <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>
           </View>
           {days > 0 && calcResult?.new_end_date && (
             <View style={{ marginTop: 8 }}><Text style={{ fontSize: 12, color: '#a1a1aa' }}>预期归还日: </Text><Text style={{ fontSize: 12, color: '#000', fontWeight: '500' }}>{formatDate(calcResult.new_end_date)}</Text></View>
           )}
-        </View>
-        )}
-
-        <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>续期天数</Text>
-          <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-            {dayOptions.map(d => (
-              <View key={d} onClick={() => pickDay(d)}
-                style={{
-                  padding: '8px 16px', borderRadius: 20, border: '1px solid #d1d5db',
-                  backgroundColor: days === d && !customDays ? '#2563eb' : '#fff',
-                }}>
-                <Text style={{ fontSize: 13, color: days === d && !customDays ? '#fff' : '#374151' }}>{d}天</Text>
-              </View>
-            ))}
-          </View>
-          <View style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 12, color: '#71717a' }}>自定义:</Text>
-            <Input
-              type="number"
-              placeholder="天数"
-              value={customDays}
-              onInput={(e) => { setCustomDays(e.detail.value); setDays(parseInt(e.detail.value) || 1) }}
-              style={{ width: 60, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 8, textAlign: 'center', fontSize: 12 }}
-            />
-            <Text style={{ fontSize: 12, color: '#71717a' }}>天</Text>
-          </View>
         </View>
 
         {calcResult && (
@@ -204,12 +189,6 @@ export default function Renewal() {
               <Text style={{ fontSize: 12, color: '#71717a' }}>续期费</Text>
               <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{calcResult.renewal_cost?.toFixed(2)}</Text>
             </View>
-            {calcResult.overdue_days > 0 && (
-              <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4, borderTop: '1px solid #f3f4f6' }}>
-                <Text style={{ fontSize: 12, color: '#71717a' }}>逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.overdue_daily_rate || 0).toFixed(2)}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{calcResult.overdue_balance?.toFixed(2)}</Text>
-              </View>
-            )}
             <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 8, borderTop: '1px solid #e5e7eb', marginTop: 4 }}>
               <Text style={{ fontSize: 14, fontWeight: '700' }}>合计</Text>
               <Text style={{ fontSize: 14, fontWeight: '700' }}>¥{calcResult.total_amount?.toFixed(2)}</Text>

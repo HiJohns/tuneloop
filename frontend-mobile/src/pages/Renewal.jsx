@@ -93,6 +93,7 @@ export default function Renewal() {
 
   const endDate = order.end_date || '-'
   const overdueDays = calcResult?.overdue_days || 0
+  const minDays = calcResult?.min_additional_days || 0
 
   const dayOptions = [7, 15, 30, 60, 90, 180, 365]
 
@@ -114,29 +115,35 @@ export default function Renewal() {
             <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">下单日</Text><Text className="text-black font-medium">{formatDate(order?.created_at)}</Text></View>
             <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">原预期归还</Text><Text className="text-black font-medium">{formatDate(endDate)}</Text></View>
             {overdueDays > 0 && (
-              <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="font-medium">{overdueDays} 天 · 超期费 ¥{(calcResult?.overdue_balance || 0).toFixed(2)}</Text></View>
+              <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">超期</Text><Text className="font-medium text-red-500">{overdueDays} 天（续期需覆盖）</Text></View>
             )}
           </View>
         )}
 
         <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
           <Text className="text-base font-bold mb-3">续期设置</Text>
+          {minDays > 1 && (
+            <View className="text-xs text-red-500 mb-2"><Text>已超期，最少续期 {minDays} 天</Text></View>
+          )}
           <View className="flex flex-wrap gap-2 mb-3">
-            {dayOptions.map(d => (
-              <View key={d}
-                onClick={() => setDays(d)}
-                className={`px-4 py-2 rounded-full border cursor-pointer ${days === d ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}>
-                <Text>{d}天</Text>
-              </View>
-            ))}
+            {dayOptions.map(d => {
+              const disabled = d < minDays
+              return (
+                <View key={d}
+                  onClick={() => !disabled && setDays(d)}
+                  className={`px-4 py-2 rounded-full border cursor-pointer ${days === d ? 'bg-blue-600 text-white border-blue-600' : disabled ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60' : 'bg-white text-gray-700 border-gray-300'}`}>
+                  <Text>{d}天</Text>
+                </View>
+              )
+            })}
           </View>
           <View className="flex items-center gap-2">
             <Text className="text-sm text-gray-500">自定义:</Text>
             <input
               type="number"
-              min={1}
+              min={minDays || 1}
               value={days}
-              onChange={e => setDays(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={e => setDays(Math.max(minDays || 1, parseInt(e.target.value) || (minDays || 1)))}
               className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm"
             />
             <Text className="text-sm text-gray-500">天</Text>
@@ -161,12 +168,6 @@ export default function Renewal() {
               <Text className="text-gray-500">续期费</Text>
               <Text className="font-medium">¥{calcResult.renewal_cost?.toFixed(2)}</Text>
             </View>
-            {calcResult.overdue_days > 0 && (
-              <View className="flex justify-between py-1 text-sm border-t border-gray-100">
-                <Text className="text-gray-500">逾期 {calcResult.overdue_days} 天 · 日费 ¥{(calcResult.overdue_daily_rate || 0).toFixed(2)}</Text>
-                <Text className="font-medium">¥{calcResult.overdue_balance?.toFixed(2)}</Text>
-              </View>
-            )}
             <View className="flex justify-between py-2 text-base font-bold border-t border-gray-200 mt-1">
               <Text>合计</Text>
               <Text>¥{calcResult.total_amount?.toFixed(2)}</Text>
