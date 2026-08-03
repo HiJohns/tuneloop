@@ -339,7 +339,7 @@ export default function Home() {
       )}
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0, backgroundColor: '#FDFBF7' }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0 }}>
         <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
           scrollY showScrollbar={false} scrollTop={scrollYRef.current}
           onScroll={e => {

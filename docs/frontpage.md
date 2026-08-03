@@ -122,8 +122,9 @@ const menuStuck = scrollY >= 150
 
 **特点**：
 - `fixed inset-0 z-0`，全屏背景
-- 图片 220px 高，`mode="aspectFill"` 裁剪填充，不受图片原始比例影响
-- 下方 `flex-1` 区域填充 `bg_color`，撑满视口高度
+- 轮换图盒子 = 屏宽 × 屏高，无限循环（clone n+2 模式，过了最后一张回到第一张）
+- 高图（图片 ratio > 屏幕 ratio）：100% 屏高居中，左右区域填充数据库 `bg_color`
+- 扁图（图片 ratio < 屏幕 ratio）：100% 屏宽置顶严格贴边（无 margin/padding），下方区域填充数据库 `bg_color`
 - 圆点 `scrollY > 0` 时隐藏
 
 **滑动切换**：
