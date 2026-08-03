@@ -280,6 +280,21 @@ func PrepayOrder(c *gin.Context) {
 
 func strPtr(s string) *string { return &s }
 
+// GetPayConfig returns the WeChat Pay mock mode flag so clients can decide
+// whether to show the simulate pay/refund buttons (#1498).
+func GetPayConfig(c *gin.Context) {
+	mockMode := false
+	if cfg := wechatpay.GetConfig(); cfg != nil {
+		mockMode = cfg.MockMode
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"mock_payment": mockMode,
+		},
+	})
+}
+
 // QueryPayment handles POST /api/pay/query
 func QueryPayment(c *gin.Context) {
 	var req struct {

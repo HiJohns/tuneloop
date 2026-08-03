@@ -19,6 +19,18 @@ export default function Payment() {
   const [giftUsed, setGiftUsed] = useState(0)
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
+  const [mockEnabled, setMockEnabled] = useState(false)
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const resp = await apiFetch(`${baseUrl}/pay/config`)
+        const r = await resp.json()
+        if (r.code === 20000) setMockEnabled(!!r.data?.mock_payment)
+      } catch { /* non-fatal */ }
+    }
+    fetchConfig()
+  }, [])
 
   useEffect(() => {
     if (!pType) return
@@ -166,6 +178,24 @@ export default function Payment() {
     setTimeout(() => Taro.navigateBack(), 2000)
   }
 
+  const doSimulateRefund = async () => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/user/settlements/${pId}`, {
+        method: 'POST',
+        body: JSON.stringify({ refund_method: 'prepaid' }),
+      })
+      const r = await resp.json()
+      if (r.code === 20000) {
+        Taro.showToast({ title: '模拟退款完成', icon: 'success' })
+        setTimeout(() => Taro.navigateBack(), 2000)
+      } else {
+        Taro.showModal({ title: '模拟退款失败', content: r.message || '未知错误', showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '模拟退款失败', content: err.message || '网络错误', showCancel: false })
+    }
+  }
+
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 100 }}>
       <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', padding: '16px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -276,7 +306,18 @@ export default function Payment() {
       {/* Pay/Confirm button */}
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>
         {isRefund ? (
-          <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
+          <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
+            </View>
+            {mockEnabled && (
+              <View style={{ flex: 1 }}>
+                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doSimulateRefund}>
+                  模拟退款
+                </Button>
+              </View>
+            )}
+          </View>
         ) : prepayData?.data ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
@@ -284,7 +325,7 @@ export default function Payment() {
                 微信支付 ¥{Number(cashAmount).toFixed(2)}
               </Button>
             </View>
-            {!prepayData.mock && (
+            {mockEnabled && (
               <View style={{ flex: 1 }}>
                 <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doSimulatePay}>
                   模拟支付 ¥{Number(cashAmount).toFixed(2)}

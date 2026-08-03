@@ -367,6 +367,10 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 }
 
 func TestSimulatePaymentCallback(c *gin.Context) {
+	if !wechatpay.GetConfig().MockMode {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "mock payment disabled"})
+		return
+	}
 	var req struct {
 		OutTradeNo string `json:"out_trade_no" binding:"required"`
 	}
