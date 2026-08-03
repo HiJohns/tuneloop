@@ -1034,6 +1034,9 @@ func main() {
 	returnReminderScheduler.Start()
 	defer returnReminderScheduler.Stop()
 
+	// Overdue scheduler: only transitions in_lease → expired. Daily overdue
+	// deduction was removed by design (#1490); overdue fees are collected at
+	// return inspection instead of daily auto-charge.
 	overdueDeductionScheduler := services.NewOverdueDeductionScheduler()
 	overdueDeductionScheduler.Start()
 	defer overdueDeductionScheduler.Stop()
