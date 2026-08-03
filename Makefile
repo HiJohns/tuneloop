@@ -51,10 +51,14 @@ mobile-weapp-dev: weapp-check
 	@cd frontend-mobile && npm run dev:weapp
 
 weapp-build: weapp-check
+	@rm -rf frontend-mobile/node_modules/.cache
+	@rm -rf frontend-mobile/dist-weapp
 	@echo "Building WeApp (production apiBaseUrl)..."
 	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://wx.cadenzayueqi.com/api npm run build:weapp
 
 weapp-build-pre: weapp-check
+	@rm -rf frontend-mobile/node_modules/.cache
+	@rm -rf frontend-mobile/dist-weapp
 	@echo "Building WeApp (pre-production apiBaseUrl)..."
 	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api npm run build:weapp
 

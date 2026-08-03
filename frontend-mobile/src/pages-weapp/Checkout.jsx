@@ -7,7 +7,7 @@ import { dialog, env, session, storage, eventBus } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
 
-const IMG_BASE = 'https://wx.cadenzayueqi.com'
+const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
 
 function parseImages(images) {

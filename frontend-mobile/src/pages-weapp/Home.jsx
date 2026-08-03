@@ -5,7 +5,7 @@ import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api
 import { env, dialog, getWindowSize, storage, session } from '../platform'
 import BottomNav from '../components-weapp/BottomNav'
 
-const IMG_BASE = 'https://wx.cadenzayueqi.com'
+const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
 const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? IMG_BASE + url : url
 const blurUrl = (url) => {
   if (!url) return ''

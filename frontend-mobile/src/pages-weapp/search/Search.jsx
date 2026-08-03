@@ -32,7 +32,7 @@ export default function Search() {
     storage.setJSON('search_history', newHistory)
   }
 
-  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `https://wx.cadenzayueqi.com${url}` : url
+  const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
 
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
