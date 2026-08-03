@@ -206,13 +206,51 @@ const SiteMemberManagement = ({ siteId, onRefresh }) => {
             message.warning('用户创建成功，但部分角色权限分配失败。');
           }
         } else if (response.code === 40901) {
-          const data = response.data;
-          if (data?.conflicts) {
-            message.warning(`用户已存在：${data.conflicts.map(c => c.email || c.name).join(', ')}`);
+          const c = response.data?.conflicts?.[0];
+          if (!c) {
+            message.error('未知冲突，请刷新后重试');
+          } else if (c.same_merchant && c.orgs?.length > 0) {
+            // 场景 A：同商户不同网点 → 确认后直接绑定
+            Modal.confirm({
+              title: '用户已存在',
+              content: `用户 ${c.name || c.username}（${c.phone || '无电话'} / ${c.email || '无邮箱'}）已在「${c.orgs.map(o => o.site_name).join('、')}」中，是否直接加入本网点？`,
+              onOk: () => bindExistingUser(c.user_id),
+            });
+          } else if (c.same_merchant) {
+            // 场景 B：已是本网点成员（兜底，正常不应触发）
+            message.warning(`用户 ${c.name || c.username} 已在成员列表中`);
+          } else {
+            // 场景 C：与商户无关
+            Modal.info({
+              title: '用户已存在',
+              content: `用户 ${c.name || c.username}（${c.email || '无邮箱'}）已注册但未加入本商户，如需邀请请联系商户管理员。`,
+            });
           }
         } else {
           message.error(response.message || '添加成员失败');
         }
+      }
+    } catch { message.error('操作失败') }
+    setAdding(false);
+  };
+
+  const bindExistingUser = async (userId) => {
+    setAdding(true);
+    try {
+      const response = await api.post(`/sites/${siteId}/members`, {
+        user_ids: [{ user_id: userId, role: selectedRole }],
+      });
+      if (response.code === 20000 || response.code === 20100) {
+        message.success('成员已绑定');
+        setModalVisible(false);
+        resetForm();
+        fetchMembers();
+        onRefresh && onRefresh();
+        if (response.data?.role_errors?.length > 0) {
+          message.warning('绑定成功，但部分角色权限分配失败。');
+        }
+      } else {
+        message.error(response.message || '绑定失败');
       }
     } catch { message.error('操作失败') }
     setAdding(false);

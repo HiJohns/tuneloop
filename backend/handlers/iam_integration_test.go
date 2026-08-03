@@ -768,11 +768,124 @@ func TestAddMember_UsernameConflictWithDifferentEmail_Returns409(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			Conflicts []map[string]string `json:"conflicts"`
+			Conflicts []struct {
+				UserID       string `json:"user_id"`
+				Name         string `json:"name"`
+				Email        string `json:"email"`
+				Phone        string `json:"phone"`
+				Username     string `json:"username"`
+				SameMerchant bool   `json:"same_merchant"`
+				Orgs         []struct {
+					SiteName string `json:"site_name"`
+					Role     string `json:"role"`
+				} `json:"orgs"`
+			} `json:"conflicts"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 40901, resp.Code)
 	require.Len(t, resp.Data.Conflicts, 1)
-	require.Equal(t, "nanjing_head@tuneloop.com", resp.Data.Conflicts[0]["email"])
+	c := resp.Data.Conflicts[0]
+	require.Equal(t, "u-lisi-1", c.UserID)
+	require.Equal(t, "李四", c.Name)
+	require.Equal(t, "nanjing_head@tuneloop.com", c.Email)
+	require.Equal(t, "lisi", c.Username)
+	require.False(t, c.SameMerchant, "user has no site membership in this tenant")
+	require.Empty(t, c.Orgs)
+}
+
+func TestAddMember_UsernameConflict_SameMerchant_ReturnsOrgs(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	conflictUser := services.User{
+		ID:       "6e493294-a257-47c2-8dd1-39999d9493cc",
+		Username: "lisi",
+		Name:     "李四",
+		Email:    "nanjing_head@tuneloop.com",
+		Phone:    "342989",
+	}
+	mockIAM := newMockIAMServer(nil, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"users": []services.User{conflictUser}})
+			return
+		}
+		t.Errorf("POST /api/v1/users must not be called when username conflicts with a different account")
+	})
+	defer mockIAM.Close()
+	services.SetIAMInternalURLForTesting(mockIAM.URL)
+
+	tenantID := uuid.New().String()
+	otherSite := models.Site{
+		Name:     "测试商户",
+		TenantID: tenantID,
+		OrgID:    uuid.New().String(),
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&otherSite).Error)
+	require.NoError(t, db.Create(&models.SiteMember{
+		TenantID: tenantID,
+		SiteID:   otherSite.ID,
+		UserID:   conflictUser.ID,
+		Role:     "site_member",
+	}).Error)
+
+	currentSite := models.Site{
+		Name:     "新街口店",
+		TenantID: tenantID,
+		OrgID:    uuid.New().String(),
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&currentSite).Error)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, "operator")
+		ctx = context.WithValue(ctx, middleware.ContextKeyNamespaceID, uuid.New().String())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	handler := NewSiteMemberHandler()
+	router.POST("/api/sites/:id/members", handler.AddMember)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"new_users": []map[string]interface{}{
+			{"username": "lisi", "name": "李四", "email": "xjk_admin@tuneloop.com", "phone": "555123", "role": "site_admin"},
+		},
+		"skip_activation": true,
+	})
+	req := httptest.NewRequest("POST", "/api/sites/"+currentSite.ID+"/members", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Conflicts []struct {
+				UserID       string `json:"user_id"`
+				Phone        string `json:"phone"`
+				SameMerchant bool   `json:"same_merchant"`
+				Orgs         []struct {
+					SiteName string `json:"site_name"`
+					Role     string `json:"role"`
+				} `json:"orgs"`
+			} `json:"conflicts"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40901, resp.Code)
+	require.Len(t, resp.Data.Conflicts, 1)
+	c := resp.Data.Conflicts[0]
+	require.Equal(t, "6e493294-a257-47c2-8dd1-39999d9493cc", c.UserID)
+	require.Equal(t, "342989", c.Phone)
+	require.True(t, c.SameMerchant, "user is a member of another site in this tenant")
+	require.Len(t, c.Orgs, 1)
+	require.Equal(t, "测试商户", c.Orgs[0].SiteName)
+	require.Equal(t, "site_member", c.Orgs[0].Role)
 }

@@ -160,14 +160,36 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if err != nil {
 				var conflictErr *services.UsernameConflictError
 				if errors.As(err, &conflictErr) {
+					// Determine whether the conflicting user belongs to this merchant
+					// and which sites they already belong to (local cache).
+					var memberCount int64
+					db.Model(&models.SiteMember{}).
+						Where("user_id = ? AND tenant_id = ?", conflictErr.UserID, tenantID).
+						Count(&memberCount)
+
+					type siteInfo struct {
+						SiteName string `json:"site_name"`
+						Role     string `json:"role"`
+					}
+					var sites []siteInfo
+					db.Table("site_members").
+						Select("sites.name AS site_name, site_members.role").
+						Joins("JOIN sites ON sites.id = site_members.site_id").
+						Where("site_members.user_id = ? AND site_members.tenant_id = ?", conflictErr.UserID, tenantID).
+						Scan(&sites)
+
 					c.JSON(http.StatusConflict, gin.H{
 						"code": 40901,
 						"data": gin.H{
 							"conflicts": []gin.H{{
-								"name":     nu.Name,
-								"email":    conflictErr.Email,
-								"username": conflictErr.Username,
-								"error":    conflictErr.Error(),
+								"user_id":       conflictErr.UserID,
+								"name":          conflictErr.Name,
+								"email":         conflictErr.Email,
+								"phone":         conflictErr.Phone,
+								"username":      conflictErr.Username,
+								"same_merchant": memberCount > 0,
+								"orgs":          sites,
+								"error":         conflictErr.Error(),
 							}},
 						},
 					})
