@@ -30,14 +30,19 @@ export default function MembershipCenter() {
     try {
       const resp = await apiFetch(`${baseUrl}/users/me/promo-qrcode`)
       const result = await resp.json()
+      console.log('[QR DEBUG] API status:', resp.status, 'code:', result.code)
+      console.log('[QR DEBUG] wxacode_base64:', result.data?.wxacode_base64 ? `LEN=${result.data.wxacode_base64.length}` : 'NIL')
+      console.log('[QR DEBUG] h5_url:', result.data?.h5_url)
       if (result.code === 20000) {
         setRefCode(result.data.ref_code)
         const h5Url = result.data.h5_url
         if (result.data.wxacode_base64) {
+          console.log('[QR DEBUG] using wxacode image')
           setQrSrc('data:image/png;base64,' + result.data.wxacode_base64)
           setShowQR(true)
         } else {
           if (env.isMiniProgram) {
+            console.log('[QR DEBUG] fallback to canvas, URL=', h5Url)
             generateQRCanvas(h5Url)
           } else {
             QRCode.toString(h5Url, { type: 'svg', width: 256 }, (err, svg) => {
@@ -48,20 +53,25 @@ export default function MembershipCenter() {
           }
         }
       }
-    } catch {
+    } catch (err) {
+      console.log('[QR DEBUG] API exception:', err.message || err)
       Taro.showToast({ title: '获取推广二维码失败', icon: 'none' })
     }
   }
 
   const generateQRCanvas = (url) => {
     Taro.nextTick(() => {
+    console.log('[QR DEBUG] generateQRCanvas called, url=', url)
     const query = Taro.createSelectorQuery()
     query.select('#qrCanvas').fields({ node: true, size: true }).exec((res) => {
+      console.log('[QR DEBUG] canvas query result:', JSON.stringify(res))
       if (!res || !res[0] || !res[0].node) {
+        console.log('[QR DEBUG] canvas not found, res=', res)
         Taro.showToast({ title: '二维码生成失败', icon: 'none' })
         return
       }
       const canvas = res[0].node
+      console.log('[QR DEBUG] canvas found, generating QR...')
       const ctx = canvas.getContext('2d')
       canvas.width = 256
       canvas.height = 256
