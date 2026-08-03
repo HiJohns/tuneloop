@@ -548,15 +548,51 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 		// IAM recognized this user — sync and return IAM token
 		claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
 		if parseErr == nil && claims.UserID != "" {
+			isNew := false
 			var existingUser models.User
 			if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
-				log.Printf("[WxLogin] Channel 3: iam_sub=%s not found locally, returning binding error", claims.UserID)
-				c.JSON(http.StatusConflict, gin.H{
-					"code":    40900,
-					"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
-				})
-				return
+				// IAM has this user but the local cache is missing (e.g. a fresh
+				// WeChat identity after an appid switch) — create the local cache
+				// record and treat the login as a new user so the client can
+				// proceed to the registration/profile-complete page.
+				tenantID := claims.TenantID
+				if tenantID == "" {
+					tenantID = "00000000-0000-0000-0000-000000000000"
+				}
+				orgID := claims.OrgID
+				if orgID == "" {
+					orgID = "00000000-0000-0000-0000-000000000000"
+				}
+				localUser := models.User{
+					IAMSub:   claims.UserID,
+					TenantID: tenantID,
+					OrgID:    orgID,
+					Name:     claims.Name,
+					Role:     "USER",
+					Status:   "active",
+					IsShadow: true,
+				}
+				if err := h.db.Create(&localUser).Error; err != nil {
+					log.Printf("[WxLogin] Channel 3: failed to create local user %s: %v", claims.UserID, err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"code":    50000,
+						"message": "failed to create user: " + err.Error(),
+					})
+					return
+				}
+				log.Printf("[WxLogin] Channel 3: created local cache for new IAM user %s", claims.UserID)
+				isNew = true
 			}
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": gin.H{
+					"token":      tokenResp.AccessToken,
+					"token_type": tokenResp.TokenType,
+					"expires_in": tokenResp.ExpiresIn,
+					"is_new":     isNew,
+				},
+			})
+			return
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
