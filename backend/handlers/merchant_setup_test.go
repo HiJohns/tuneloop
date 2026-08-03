@@ -177,6 +177,7 @@ func TestMerchant_DeleteMerchant_WithActiveSites(t *testing.T) {
 		OrgID:    orgID,
 		Name:     "Test Merchant",
 		Code:     "test-del-" + uuid.New().String()[:8],
+		AdminUID: uuid.New().String(),
 		Status:   "active",
 	}
 	db.Create(&merchant)
@@ -185,6 +186,7 @@ func TestMerchant_DeleteMerchant_WithActiveSites(t *testing.T) {
 		ID:       siteID,
 		TenantID: tenantID,
 		Name:     "Test Site",
+		OrgID:    uuid.New().String(),
 		Status:   "active",
 	}
 	db.Create(&site)
@@ -431,6 +433,7 @@ func TestSite_DeleteWithRentedInstruments(t *testing.T) {
 		ID:       siteID,
 		TenantID: tenantID,
 		Name:     "Test Site With Rented",
+		OrgID:    uuid.New().String(),
 		Status:   "active",
 	}
 	db.Create(&site)

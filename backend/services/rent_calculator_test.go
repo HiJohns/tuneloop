@@ -29,7 +29,7 @@ func TestComputeTierSegments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			segs := computeTierSegments(tt.days, nil)
+			segs := ComputeTierSegments(tt.days, nil)
 			if len(segs) != tt.expected {
 				t.Errorf("computeTierSegments(%d) got %d segments, want %d", tt.days, len(segs), tt.expected)
 				return
@@ -51,7 +51,7 @@ func TestComputeTierSegments_CustomTiers(t *testing.T) {
 		{DaysMax: 20, DiscountPercent: 10},
 		{DaysMax: -1, DiscountPercent: 20},
 	}
-	segs := computeTierSegments(25, custom)
+	segs := ComputeTierSegments(25, custom)
 	if len(segs) != 3 {
 		t.Fatalf("expected 3 segments, got %d", len(segs))
 	}

@@ -340,6 +340,9 @@ func setupMockIAMAndDB(t *testing.T) func() {
 	_ = db.Migrator().DropTable(&models.Merchant{})
 	_ = db.Migrator().DropTable(&models.User{})
 	require.NoError(t, db.Migrator().CreateTable(&models.User{}))
+	// iam_sub has -:migration tag and is excluded from CreateTable; add it manually
+	// (mirrors addIAMSubColumn in main_test.go).
+	db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS iam_sub VARCHAR(255) NOT NULL DEFAULT ''")
 	require.NoError(t, db.Migrator().CreateTable(&models.Merchant{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Site{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.SiteMember{}))
@@ -360,6 +363,17 @@ func newMockIAMServer(orgHandler, userHandler http.HandlerFunc) *httptest.Server
 	})
 	if orgHandler != nil {
 		mux.HandleFunc("/api/v1/namespaces/", orgHandler)
+		mux.HandleFunc("/api/v1/organizations/", orgHandler)
+	} else {
+		// Generic org-user bind/unbind response (org paths are not asserted in
+		// most tests; the handler just needs to return 200).
+		mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    20000,
+				"message": "success",
+			})
+		})
 	}
 	if userHandler != nil {
 		mux.HandleFunc("/api/v1/users/", userHandler)
@@ -439,7 +453,7 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 	bindCalled := false
 	var bindPayload map[string]interface{}
 
-	mockIAM := newMockIAMServer(nil, func(w http.ResponseWriter, r *http.Request) {
+	mockIAM := newMockIAMServer(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "PUT" {
 			bindCalled = true
 			json.NewDecoder(r.Body).Decode(&bindPayload)
@@ -449,12 +463,12 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 				"message": "success",
 			})
 		}
-	})
+	}, nil)
 	defer mockIAM.Close()
 	services.SetIAMInternalURLForTesting(mockIAM.URL)
 
 	tenantID := uuid.New().String()
-	siteOrgID := "site-org-mock"
+	siteOrgID := uuid.New().String()
 
 	site := models.Site{
 		Name:     "Mock Site",
@@ -468,6 +482,7 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 		ID:       uuid.New().String(),
 		IAMSub:   "iam-user-mock",
 		TenantID: tenantID,
+		OrgID:    uuid.New().String(),
 		Name:     "Mock User",
 		Email:    "user@mock.com",
 	}
@@ -497,7 +512,7 @@ func TestIAMMock_SiteMemberAdd_CallsBind(t *testing.T) {
 
 	assert.True(t, bindCalled, "IAM Bind API should be called")
 	assert.Equal(t, "bind", bindPayload["action"])
-	assert.Equal(t, "staff", bindPayload["role"])
+	assert.Equal(t, "STAFF", bindPayload["role"])
 
 	var member models.SiteMember
 	require.NoError(t, db.Where("site_id = ? AND user_id = ?", site.ID, user.ID).First(&member).Error)
