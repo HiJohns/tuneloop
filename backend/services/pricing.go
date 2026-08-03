@@ -146,38 +146,36 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		DepositMode:   "ratio",
 	}
 
-	// Check manual overrides first — if daily_rent is overridden, use it but don't skip shipping/deposit
+	// Check manual overrides first — if daily_rent is overridden, use it as the
+	// effective base rate but still build tiers from config (tier discounts apply
+	// on top of the manual rate instead of being skipped entirely).
 	var overrides map[string]interface{}
 	json.Unmarshal([]byte(overridesJSON), &overrides)
-	dailyRentOverride := false
+	effectiveBaseRate := baseDailyRate
 	if overrideVal, ok := overrides["daily_rent"].(float64); ok && overrideVal > 0 {
-		result.Tiers = []TierPrice{
-			{DaysMax: -1, DailyRate: overrideVal},
-		}
+		effectiveBaseRate = overrideVal
 		result.Deposit = getOverrideFloat(overrides, "deposit")
-		dailyRentOverride = true
 	}
 
-	if !dailyRentOverride {
-		// Build tiers from config
-		if tiersRaw, ok := config["tiers"].([]interface{}); ok {
-			for _, tRaw := range tiersRaw {
-				if t, ok := tRaw.(map[string]interface{}); ok {
-					daysMax := int(getFloat(t, "days_max"))
-					discount := int(getFloat(t, "discount_percent"))
-					rate := baseDailyRate
-					if discount > 0 {
-						rate = baseDailyRate * (1 - float64(discount)/100)
-					}
-					result.Tiers = append(result.Tiers, TierPrice{
-						DaysMax:   daysMax,
-						DailyRate: rate,
-					})
+	// Build tiers from config
+	if tiersRaw, ok := config["tiers"].([]interface{}); ok {
+		for _, tRaw := range tiersRaw {
+			if t, ok := tRaw.(map[string]interface{}); ok {
+				daysMax := int(getFloat(t, "days_max"))
+				discount := int(getFloat(t, "discount_percent"))
+				rate := effectiveBaseRate
+				if discount > 0 {
+					rate = effectiveBaseRate * (1 - float64(discount)/100)
 				}
+				result.Tiers = append(result.Tiers, TierPrice{
+					DaysMax:   daysMax,
+					DailyRate: rate,
+				})
 			}
 		}
+	}
 
-		// Calculate deposit (v3: only ratio or custom)
+	// Calculate deposit (v3: only ratio or custom)
 	depositMode, _ := config["deposit_mode"].(string)
 	result.DepositMode = depositMode
 	switch depositMode {
@@ -191,7 +189,6 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		if totalPrice > 0 {
 			result.Deposit = totalPrice * ratio
 		}
-	}
 	}
 
 	// Check individual override fields (always runs, even with daily_rent override)

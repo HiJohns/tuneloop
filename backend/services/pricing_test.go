@@ -121,3 +121,61 @@ func TestCalculateTieredPricing_ZeroDays(t *testing.T) {
 		t.Errorf("expected 0 rent for 0 days, got %.2f", result.TotalRent)
 	}
 }
+
+func TestCalculatePricing_OverrideDailyRentKeepsTiers(t *testing.T) {
+	config := `{"tiers":[{"days_max":30,"discount_percent":0},{"days_max":180,"discount_percent":10},{"days_max":-1,"discount_percent":20}],"deposit_mode":"ratio","deposit_ratio":0.3}`
+	overrides := `{"daily_rent":103,"deposit":5000}`
+
+	result := CalculatePricing(100, 50000, config, overrides)
+
+	if len(result.Tiers) != 3 {
+		t.Fatalf("expected 3 tiers, got %d", len(result.Tiers))
+	}
+	if result.Tiers[0].DailyRate != 103 {
+		t.Errorf("expected first tier rate 103 (override daily_rent), got %.2f", result.Tiers[0].DailyRate)
+	}
+	if result.Tiers[1].DailyRate != 92.7 {
+		t.Errorf("expected second tier rate 92.7 (103 × 0.9), got %.2f", result.Tiers[1].DailyRate)
+	}
+	if result.Tiers[2].DailyRate != 82.4 {
+		t.Errorf("expected third tier rate 82.4 (103 × 0.8), got %.2f", result.Tiers[2].DailyRate)
+	}
+	if result.Deposit != 5000 {
+		t.Errorf("expected deposit 5000 (override), got %.2f", result.Deposit)
+	}
+}
+
+func TestCalculatePricing_NoOverrideKeepsTiers(t *testing.T) {
+	config := `{"tiers":[{"days_max":30,"discount_percent":0},{"days_max":180,"discount_percent":10},{"days_max":-1,"discount_percent":20}],"deposit_mode":"ratio","deposit_ratio":0.3}`
+
+	result := CalculatePricing(100, 50000, config, "{}")
+
+	if len(result.Tiers) != 3 {
+		t.Fatalf("expected 3 tiers, got %d", len(result.Tiers))
+	}
+	if result.Tiers[0].DailyRate != 100 {
+		t.Errorf("expected first tier rate 100, got %.2f", result.Tiers[0].DailyRate)
+	}
+	if result.Tiers[1].DailyRate != 90 {
+		t.Errorf("expected second tier rate 90, got %.2f", result.Tiers[1].DailyRate)
+	}
+	if result.Tiers[2].DailyRate != 80 {
+		t.Errorf("expected third tier rate 80, got %.2f", result.Tiers[2].DailyRate)
+	}
+}
+
+func TestCalculatePricing_NoTiersNoOverrideRegression(t *testing.T) {
+	config := `{"deposit_mode":"ratio","deposit_ratio":0.3,"deposit_multiplier":7}`
+
+	result := CalculatePricing(100, 50000, config, "{}")
+
+	if len(result.Tiers) != 0 {
+		t.Fatalf("expected 0 tiers (no tiers in config), got %d", len(result.Tiers))
+	}
+	if result.Deposit != 15000 {
+		t.Errorf("expected deposit 15000, got %.2f", result.Deposit)
+	}
+	if result.BaseDailyRate != 100 {
+		t.Errorf("expected base rate 100, got %.2f", result.BaseDailyRate)
+	}
+}

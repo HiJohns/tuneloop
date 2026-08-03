@@ -176,6 +176,9 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	for i := range result.TierSegments {
 		s := &result.TierSegments[i]
 		s.Rate = input.BaseDailyRate
+		if i < len(input.PricingTiers) && input.PricingTiers[i].DailyRate > 0 {
+			s.Rate = input.PricingTiers[i].DailyRate
+		}
 		s.Discount = s.Discount * cumulativeDiscount
 		s.Subtotal = s.Rate * s.Discount * float64(s.Days)
 		totalAmount += s.Subtotal
