@@ -217,10 +217,12 @@ export default function MembershipCenter() {
       {/* QR Code Modal */}
       {showQR && (
         <View className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowQR(false)}>
-          <View className="bg-white rounded-2xl p-6 mx-8" onClick={e => e.stopPropagation()}>
+          <View className="bg-white rounded-2xl p-6 mx-8 flex-col" style={{ display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <Text className="text-sm font-bold text-center mb-4">推广二维码</Text>
             {env.isMiniProgram && <Canvas type="2d" id="qrCanvas" style="width:256px;height:256px;position:fixed;left:-999px;top:-999px" />}
-            {env.isMiniProgram ? (qrSrc && <Image src={qrSrc} className="w-48 h-48 mx-auto" mode="aspectFit" />) : (qrDataUrl && <Image src={qrDataUrl} className="w-48 h-48 mx-auto" mode="aspectFit" />)}
+            <View style={{ alignItems: 'center' }}>
+              {env.isMiniProgram ? (qrSrc && <Image src={qrSrc} className="w-48 h-48" mode="aspectFit" />) : (qrDataUrl && <Image src={qrDataUrl} className="w-48 h-48" mode="aspectFit" />)}
+            </View>
             <Text className="text-xs text-zinc-400 text-center mt-2">好友扫码注册，你获得奖励</Text>
             <Button onClick={() => setShowQR(false)} className="mt-4 py-2 bg-zinc-100 rounded-xl font-bold text-sm text-zinc-600 w-full">
               关闭
