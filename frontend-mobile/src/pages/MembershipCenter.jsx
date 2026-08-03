@@ -6,6 +6,7 @@ import { env } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
 import QRCode from 'qrcode'
+import '../utils/text-encoder'
 
 const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm'
 
@@ -76,11 +77,12 @@ export default function MembershipCenter() {
       canvas.width = 256
       canvas.height = 256
       QRCode.toCanvas(canvas, url, { width: 256, margin: 1 }, (err) => {
-        if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+        if (err) { console.log('[QR DEBUG] QRCode.toCanvas error:', err); Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+        console.log('[QR DEBUG] QRCode.toCanvas ok, exporting temp file...')
         Taro.canvasToTempFilePath({
           canvas,
-          success: (r) => { setQrSrc(r.tempFilePath); setShowQR(true) },
-          fail: () => { Taro.showToast({ title: '二维码生成失败', icon: 'none' }) },
+          success: (r) => { console.log('[QR DEBUG] canvasToTempFilePath ok, path=', r.tempFilePath); setQrSrc(r.tempFilePath); setShowQR(true) },
+          fail: (e) => { console.log('[QR DEBUG] canvasToTempFilePath fail:', JSON.stringify(e)); Taro.showToast({ title: '二维码生成失败', icon: 'none' }) },
         })
       })
     })

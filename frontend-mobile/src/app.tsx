@@ -1,7 +1,6 @@
 import { Component } from 'react'
 import { initializeApp, setInitDeps } from './platform/init'
 import { initPermissionMapping, publicRoutes } from './services/api'
-import './utils/text-encoder'
 
 // #ifdef H5
 import './app.css'
