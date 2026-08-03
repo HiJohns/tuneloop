@@ -21,3 +21,9 @@ export const Map = 'div'
 export const Canvas = 'canvas'
 export const Picker = 'select'
 export const Label = 'label'
+import React from 'react'
+export const RichText = ({ nodes, className, style }) => React.createElement('div', {
+  className,
+  style,
+  dangerouslySetInnerHTML: { __html: typeof nodes === 'string' ? nodes : (Array.isArray(nodes) ? nodes.map(n => n.children || n).join('') : '') }
+})
