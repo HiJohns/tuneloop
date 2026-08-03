@@ -156,6 +156,9 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 		effectiveBaseRate = overrideVal
 		result.Deposit = getOverrideFloat(overrides, "deposit")
 	}
+	// base_daily_rate must be the same source as the tiers so the detail page's
+	// daily-rent display and the tier list stay consistent (#1487).
+	result.BaseDailyRate = effectiveBaseRate
 
 	// Build tiers from config
 	if tiersRaw, ok := config["tiers"].([]interface{}); ok {

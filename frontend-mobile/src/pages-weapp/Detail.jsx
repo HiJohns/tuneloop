@@ -51,7 +51,7 @@ export default function Detail() {
   const isCustomer = !currentUser || currentUser?.role === 'USER'
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
-  const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
+  const dailyRent = pricingV2?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
   const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
   const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
@@ -269,7 +269,7 @@ export default function Detail() {
                 </View>
               )}
               <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
-                日租 ¥{Number(dailyRent || instrument?.base_daily_rate || 0).toFixed(2)}/日
+                日租 ¥{Number(dailyRent || 0).toFixed(2)}/日
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 12, marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#71717a', fontWeight: '700' }}>

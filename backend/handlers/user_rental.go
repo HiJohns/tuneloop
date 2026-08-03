@@ -65,7 +65,7 @@ func (h *UserRentalHandler) ListInstruments(c *gin.Context) {
 	// Sorting
 	switch sort {
 	case "price":
-		query = query.Order("pricing->0->>'daily_rent' ASC")
+		query = query.Order("pricing->>'daily_rent' ASC")
 	case "distance":
 		// TODO: Implement distance-based sorting if location provided
 	case "rating":
@@ -90,21 +90,19 @@ func (h *UserRentalHandler) ListInstruments(c *gin.Context) {
 
 	var response []InstrumentResponse
 	for _, inst := range instruments {
-		// Parse pricing for calculations
-		var pricing []map[string]interface{}
+		// Parse pricing for calculations (object format, #1487)
+		var pricing map[string]interface{}
 		if inst.Pricing != "" {
-			db.Raw("SELECT * FROM jsonb_to_recordset(?::jsonb) AS x(daily_rent numeric, deposit numeric)", inst.Pricing).Scan(&pricing)
+			json.Unmarshal([]byte(inst.Pricing), &pricing)
 		}
 
 		dailyRent := 0.0
 		deposit := 0.0
-		if len(pricing) > 0 {
-			if dailyRentVal, ok := pricing[0]["daily_rent"].(float64); ok {
-				dailyRent = dailyRentVal
-			}
-			if depositVal, ok := pricing[0]["deposit"].(float64); ok {
-				deposit = depositVal
-			}
+		if v, ok := pricing["daily_rent"].(float64); ok {
+			dailyRent = v
+		}
+		if v, ok := pricing["deposit"].(float64); ok {
+			deposit = v
 		}
 
 		resp := InstrumentResponse{
@@ -151,18 +149,16 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 		Deposit     float64 `json:"deposit"`
 	}
 
-	var pricing []map[string]interface{}
+	var pricing map[string]interface{}
 	dailyRent := 0.0
 	deposit := 0.0
 	if instrument.Pricing != "" {
-		db.Raw("SELECT * FROM jsonb_to_recordset(?::jsonb) AS x(daily_rent numeric, weekly_rent numeric, monthly_rent numeric, deposit numeric)", instrument.Pricing).Scan(&pricing)
-		if len(pricing) > 0 {
-			if val, ok := pricing[0]["daily_rent"].(float64); ok {
-				dailyRent = val
-			}
-			if val, ok := pricing[0]["deposit"].(float64); ok {
-				deposit = val
-			}
+		json.Unmarshal([]byte(instrument.Pricing), &pricing)
+		if v, ok := pricing["daily_rent"].(float64); ok {
+			dailyRent = v
+		}
+		if v, ok := pricing["deposit"].(float64); ok {
+			deposit = v
 		}
 	}
 

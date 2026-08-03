@@ -460,20 +460,14 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 		return
 	}
 
-	// Fallback: extract base_daily_rate from JSONB pricing field (object or array format)
+	// Fallback: extract base_daily_rate from JSONB pricing field (object format).
+	// Legacy array format is no longer produced (#1487).
 	if instrument.BaseDailyRate == nil {
 		var dailyRent float64
 		var pricing map[string]interface{}
 		if err := json.Unmarshal([]byte(instrument.Pricing), &pricing); err == nil {
 			if v, ok := pricing["daily_rent"].(float64); ok && v > 0 {
 				dailyRent = v
-			}
-		} else {
-			var arr []map[string]interface{}
-			if err := json.Unmarshal([]byte(instrument.Pricing), &arr); err == nil && len(arr) > 0 {
-				if v, ok := arr[0]["daily_rent"].(float64); ok && v > 0 {
-					dailyRent = v
-				}
 			}
 		}
 		if dailyRent > 0 {

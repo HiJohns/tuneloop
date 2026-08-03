@@ -324,25 +324,6 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		overdueDailyFee := 0.0
 		if v, ok := pricing["daily_rent"].(float64); ok {
 			dailyRent = v
-		} else {
-			// Fallback: try array format (legacy data)
-			var arr []map[string]interface{}
-			if json.Unmarshal([]byte(inst.Pricing), &arr) == nil && len(arr) > 0 {
-				if v, ok := arr[0]["daily_rent"].(float64); ok {
-					dailyRent = v
-				}
-				if v, ok := arr[0]["deposit"].(float64); ok {
-					deposit = v
-				}
-				if v, ok := arr[0]["shipping_fee"].(float64); ok {
-					shippingFee = v
-				}
-				if v, ok := arr[0]["overdue_daily_fee"].(float64); ok {
-					overdueDailyFee = v
-				} else if dailyRent > 0 {
-					overdueDailyFee = dailyRent
-				}
-			}
 		}
 		if v, ok := pricing["deposit"].(float64); ok {
 			deposit = v

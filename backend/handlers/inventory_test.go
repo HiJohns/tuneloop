@@ -39,7 +39,7 @@ func TestGetInventoryRentSetting(t *testing.T) {
 
 	// Create test instrument with pricing
 	instrumentID := uuid.New()
-	pricingJSON := `[{"name":"standard","daily_rent":100.00,"monthly_rent":2500.00,"deposit":5000.00,"stock":5}]`
+	pricingJSON := `{"daily_rent":100.00,"monthly_rent":2500.00,"deposit":5000.00}`
 	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, site_id, pricing, tenant_id, org_id, stock_status, name, level, created_at, updated_at) 
 		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, ?, 'available', '测试钢琴', 'professional', ?, ?)`,
 		instrumentID, siteID, pricingJSON, tenantID, tenantID, now, now)
@@ -106,7 +106,7 @@ func TestBatchUpdateRent(t *testing.T) {
 
 	// Create test instrument with initial pricing
 	instrumentID := uuid.New()
-	pricingJSON := `[{"name":"standard","daily_rent":100.00}]`
+	pricingJSON := `{"daily_rent":100.00}`
 	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, pricing, tenant_id, org_id, stock_status, name, level, created_at, updated_at) 
 		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, 'available', '测试钢琴', 'professional', ?, ?)`,
 		instrumentID, pricingJSON, tenantID, tenantID, now, now)
@@ -156,10 +156,10 @@ func TestBatchUpdateRent(t *testing.T) {
 	err = db.First(&instrument, "id = ?", instrumentID).Error
 	require.NoError(t, err)
 
-	var pricing []map[string]interface{}
+	var pricing map[string]interface{}
 	err = json.Unmarshal([]byte(instrument.Pricing), &pricing)
 	require.NoError(t, err)
-	assert.Equal(t, 150.0, pricing[0]["daily_rent"])
+	assert.Equal(t, 150.0, pricing["daily_rent"])
 
 	// Cleanup
 	db.Exec(`DELETE FROM instruments WHERE tenant_id = ?`, tenantID)

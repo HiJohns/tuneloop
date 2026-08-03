@@ -52,7 +52,7 @@ export default function Detail() {
   const isRentable = instrument?.stock_status === 'available'
   const isCustomer = !currentUser || currentUser?.role === 'USER'
   const baseUrl = env.apiBaseUrl
-  const dailyRent = pricingV2?.base_daily_rate || instrument?.base_daily_rate || 0
+  const dailyRent = pricingV2?.base_daily_rate || 0
   const deposit = instrument?.deposit || pricingV2?.deposit || 0
   const liveVideo = displayMedia?.video || (instrument?.video ? { url: instrument.video } : null)
   const overdueDailyFee = pricingV2?.overdue_daily_fee || dailyRent || 0
@@ -286,7 +286,7 @@ export default function Detail() {
                 </View>
               )}
               <Text className="text-[#C21838] text-base tracking-tight">
-                日租 ¥{Number(dailyRent || instrument?.base_daily_rate || 0).toFixed(2)}/日
+                日租 ¥{Number(dailyRent || 0).toFixed(2)}/日
               </Text>
             </View>
             <View className="border-t border-zinc-100 pt-3 flex justify-between items-center text-xs text-zinc-500 font-bold">

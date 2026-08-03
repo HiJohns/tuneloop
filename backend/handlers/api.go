@@ -113,14 +113,17 @@ func GetInstrumentByID(c *gin.Context) {
 			totalPrice = *instrument.TotalPrice
 		}
 		computed := services.CalculatePricing(baseRate, totalPrice, configJSON, instrument.PricingOverrides, instrument.Pricing)
-		dailyRent := 0.0
-		if len(computed.Tiers) > 0 {
-			dailyRent = computed.Tiers[0].DailyRate
+		// Object-format pricing (single source of truth, #1487): base_daily_rate
+		// matches the first tier so detail-page displays stay consistent.
+		computedObj := map[string]interface{}{
+			"daily_rent":       computed.BaseDailyRate,
+			"base_daily_rate":  computed.BaseDailyRate,
+			"tiers":            computed.Tiers,
+			"deposit":          computed.Deposit,
+			"deposit_mode":     computed.DepositMode,
+			"shipping_fee":     computed.ShippingFee,
 		}
-		computedArr := []map[string]interface{}{
-			{"daily_rent": dailyRent, "deposit": computed.Deposit, "shipping_fee": computed.ShippingFee},
-		}
-		raw, _ := json.Marshal(computedArr)
+		raw, _ := json.Marshal(computedObj)
 		pricingField = json.RawMessage(raw)
 	}
 

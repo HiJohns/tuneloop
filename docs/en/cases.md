@@ -189,9 +189,9 @@ Select instrument to view details:
 - Latest images
 - Brand, model, description
 - Daily/weekly/monthly rent, deposit
-  - Daily rent = instrument.pricing[0].daily_rent
-  - Weekly rent = instrument.pricing[0].weekly_rent (or daily_rent × 6 if undefined)
-  - Monthly rent = instrument.pricing[0].monthly_rent (or daily_rent × 25 if undefined)
+  - Daily rent = instrument.pricing.daily_rent (object format; base_daily_rate and the first tier share the same source)
+  - Weekly rent = instrument.pricing.weekly_rent (or daily_rent × 6 if undefined)
+  - Monthly rent = instrument.pricing.monthly_rent (or daily_rent × 25 if undefined)
 - Order button to select rental period and address
 - Complete payment → instrument booked
 - System:
