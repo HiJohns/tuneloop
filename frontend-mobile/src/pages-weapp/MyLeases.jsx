@@ -132,7 +132,7 @@ export default function MyLeases() {
   }
 
   return (
-    <View style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#FDFBF7' }}>
+    <View style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#FDFBF7', width: '100%', overflow: 'hidden' }}>
       {/* Title bar removed — native navigation bar shows 我的租赁 (#1511) */}
 
       {/* Filter bar */}
@@ -152,7 +152,7 @@ export default function MyLeases() {
         </Picker>
       </View>
 
-      <ScrollView scrollY style={{ flex: '1 1 0%', paddingBottom: 72, minHeight: 0, overflowY: 'auto' }}
+      <ScrollView scrollY style={{ flex: '1 1 0%', paddingBottom: 72, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', width: '100%' }}
         onScrollToLower={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true)
@@ -162,7 +162,7 @@ export default function MyLeases() {
         lowerThreshold={50}
         enableBackToTop
       >
-        <View style={{ paddingLeft: 16, paddingRight: 16 }}>
+        <View style={{ paddingLeft: 16, paddingRight: 16, overflow: 'hidden' }}>
         {loading ? (
           <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: '#a1a1aa', fontWeight: '500' }}>加载中...</View>
         ) : orders.length === 0 ? (
