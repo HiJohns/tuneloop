@@ -139,7 +139,7 @@ frontend-mobile:
 
 ### WeChat Pay 配置
 
-当前开发环境使用 mock 模式（`WECHAT_PAY_MOCK_MODE=true`），无需真实商户配置即可开发测试。
+**当前生产与预生产均使用 mock 模式**（`WECHAT_PAY_MOCK_MODE=true`），无需真实商户配置即可测试完整支付/退款流程。付款页在 mock 模式下自动显示「模拟支付」「模拟退款」按钮。
 
 上线前需完成以下操作，详见 `docs/wechat-pay-integration.md §一`：
 
@@ -151,7 +151,7 @@ frontend-mobile:
 | `WECHAT_PAY_API_V3_KEY` | APIv3 密钥 | 商户平台 → API 安全 → APIv3 密钥（自己设置 32 位随机串） |
 | `WECHAT_PAY_CERT_SERIAL_NO` | 证书序列号 | 商户平台 → API 安全 → API 证书（下载后提取） |
 | `WECHAT_PAY_PRIVATE_KEY_PATH` | 私钥路径 | 同上，`apiclient_key.pem` 文件路径 |
-| `WECHAT_PAY_MOCK_MODE=false` | 关闭模拟模式 | 设为 `true` 可在无真实商户时开发测试 |
+| `WECHAT_PAY_MOCK_MODE=true` | 开启模拟模式 | 当前**生产+预生产**均设为 `true`，关闭需同步关闭前端模拟按钮 |
 
 #### 微信平台操作（不需修改 tuneloop 代码）
 

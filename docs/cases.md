@@ -587,7 +587,7 @@ flowchart TD
    - 现金差额 = 应付总额 - 预付点使用 - 赠点使用
    - 现金差额 > 0 显示"微信支付"，= 0 显示"确认支付 ¥0（使用点数）"
    - 点击支付 → `POST /api/pay/prepay { order_id, order_type:"rent", amount }`
-   - 开发环境（mock=true）：直接显示"支付成功"，跳转 `/success?order_id=...`
+   - 当前环境（mock=true）：直接显示"支付成功"，跳转 `/success?order_id=...`；付款页同时显示「模拟支付」按钮可跳过微信 JSAPI 调起
    - 生产环境：返回 prepay 参数，调起微信支付 JSAPI
 
 4. **完成页（Success）**
@@ -705,7 +705,7 @@ flowchart TD
    - 现金差额 ≤ 0：显示"确认支付 ¥0（使用点数）"按钮（绿色）
    - type=damage 且 需补付 = 0：显示"无需支付 ¥0"按钮（绿色）
    - 调用 `POST /api/pay/prepay { order_id, order_type, amount }`
-   - mock 模式：显示"支付成功"并跳转
+   - mock 模式：显示"支付成功"并跳转；付款页显示「模拟支付」「模拟退款」按钮（由 `GET /api/pay/config` 控制显隐）
    - 生产模式：微信 JSAPI 不可用（H5）→ 提示"暂不支持H5支付"；可调用（weapp）→ `Taro.requestPayment`
 
 5. **退款执行**（refund/deposit-refund）
