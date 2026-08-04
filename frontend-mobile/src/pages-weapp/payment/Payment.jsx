@@ -225,14 +225,32 @@ export default function Payment() {
           {/* Refund details */}
           {isRefund && (
             <View style={{ marginTop: 8 }}>
-              {data.details?.cash_refundable !== undefined && (
-                <Row label="可退现金" value={`¥${Number(data.details.cash_refundable).toFixed(2)}`} />
+              {data.details?.cancel_refund && (
+                <>
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 8, marginBottom: 4 }}>原支付明细</Text>
+                  {data.details.total_paid !== undefined && (
+                    <Row label="原支付总额" value={`¥${Number(data.details.total_paid).toFixed(2)}`} />
+                  )}
+                  {data.details.cash_paid !== undefined && Number(data.details.cash_paid) > 0 && (
+                    <Row label="  现金" value={`¥${Number(data.details.cash_paid).toFixed(2)}`} />
+                  )}
+                  {data.details.prepaid_used !== undefined && Number(data.details.prepaid_used) > 0 && (
+                    <Row label="  预付点" value={`¥${Number(data.details.prepaid_used).toFixed(2)}`} />
+                  )}
+                  {data.details.gift_used !== undefined && Number(data.details.gift_used) > 0 && (
+                    <Row label="  赠点" value={`¥${Number(data.details.gift_used).toFixed(2)}`} />
+                  )}
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', fontWeight: '700', marginTop: 12, marginBottom: 4 }}>退款明细（原路退回）</Text>
+                </>
+              )}
+              {data.details?.cash_refundable !== undefined && Number(data.details.cash_refundable) > 0 && (
+                <Row label="退现金（微信原路）" value={`¥${Number(data.details.cash_refundable).toFixed(2)}`} />
               )}
               {data.details?.prepaid_refunded !== undefined && Number(data.details.prepaid_refunded) > 0 && (
-                <Row label="预付点退回" value={`+¥${Number(data.details.prepaid_refunded).toFixed(2)}`} color="#16a34a" />
+                <Row label="退回预付点" value={`+¥${Number(data.details.prepaid_refunded).toFixed(2)}`} color="#16a34a" />
               )}
               {data.details?.gift_refunded !== undefined && Number(data.details.gift_refunded) > 0 && (
-                <Row label="赠点退回" value={`+¥${Number(data.details.gift_refunded).toFixed(2)}`} color="#16a34a" />
+                <Row label="退回赠点" value={`+¥${Number(data.details.gift_refunded).toFixed(2)}`} color="#16a34a" />
               )}
               <Row label="退款金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
             </View>

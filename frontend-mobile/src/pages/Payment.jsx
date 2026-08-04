@@ -86,14 +86,32 @@ export default function Payment() {
 
         {isRefund && (
           <div className="mt-2">
-            {data.details?.cash_refundable !== undefined && (
-              <Row label="可退现金" value={`¥${Number(data.details.cash_refundable).toFixed(2)}`} />
+            {data.details?.cancel_refund && (
+              <>
+                <div className="text-xs text-zinc-400 font-bold mt-2 mb-1">原支付明细</div>
+                {data.details.total_paid !== undefined && (
+                  <Row label="原支付总额" value={`¥${Number(data.details.total_paid).toFixed(2)}`} />
+                )}
+                {data.details.cash_paid !== undefined && Number(data.details.cash_paid) > 0 && (
+                  <Row label="  现金" value={`¥${Number(data.details.cash_paid).toFixed(2)}`} />
+                )}
+                {data.details.prepaid_used !== undefined && Number(data.details.prepaid_used) > 0 && (
+                  <Row label="  预付点" value={`¥${Number(data.details.prepaid_used).toFixed(2)}`} />
+                )}
+                {data.details.gift_used !== undefined && Number(data.details.gift_used) > 0 && (
+                  <Row label="  赠点" value={`¥${Number(data.details.gift_used).toFixed(2)}`} />
+                )}
+                <div className="text-xs text-zinc-400 font-bold mt-3 mb-1">退款明细（原路退回）</div>
+              </>
+            )}
+            {data.details?.cash_refundable !== undefined && Number(data.details.cash_refundable) > 0 && (
+              <Row label="退现金（微信原路）" value={`¥${Number(data.details.cash_refundable).toFixed(2)}`} />
             )}
             {data.details?.prepaid_refunded !== undefined && Number(data.details.prepaid_refunded) > 0 && (
-              <Row label="预付点退回" value={`+¥${Number(data.details.prepaid_refunded).toFixed(2)}`} color="#16a34a" />
+              <Row label="退回预付点" value={`+¥${Number(data.details.prepaid_refunded).toFixed(2)}`} color="#16a34a" />
             )}
             {data.details?.gift_refunded !== undefined && Number(data.details.gift_refunded) > 0 && (
-              <Row label="赠点退回" value={`+¥${Number(data.details.gift_refunded).toFixed(2)}`} color="#16a34a" />
+              <Row label="退回赠点" value={`+¥${Number(data.details.gift_refunded).toFixed(2)}`} color="#16a34a" />
             )}
             <Row label="退款金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
           </div>
@@ -162,12 +180,29 @@ export default function Payment() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4">
         {isRefund ? (
+          data.details?.cancel_refund ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                style={{ flex: 1, paddingTop: 14, paddingBottom: 14, backgroundColor: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none' }}
+                onClick={handleRefundMock}
+              >
+                模拟退款
+              </button>
+              <button
+                style={{ flex: 1, paddingTop: 14, paddingBottom: 14, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none' }}
+                onClick={handleRefund}
+              >
+                确认退款 ¥{Number(cashAmount).toFixed(2)}
+              </button>
+            </div>
+          ) : (
           <button
             style={{ width: '100%', paddingTop: 14, paddingBottom: 14, backgroundColor: '#B98E5F', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none' }}
             onClick={handleRefund}
           >
             确认退款 ¥{Number(cashAmount).toFixed(2)}
           </button>
+          )
         ) : (
           <button
             style={{ width: '100%', paddingTop: 14, paddingBottom: 14, color: '#fff', fontWeight: 900, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none', backgroundColor: cashAmount > 0 ? '#B98E5F' : '#16a34a' }}
@@ -221,6 +256,11 @@ export default function Payment() {
 
   function handleRefund() {
     dialog.alert('退款申请已提交')
+    navigate(-1)
+  }
+
+  function handleRefundMock() {
+    dialog.alert('模拟退款成功（测试环境）')
     navigate(-1)
   }
 }
