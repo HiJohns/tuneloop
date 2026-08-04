@@ -151,6 +151,15 @@
 
 系统支持三级会员（初级/中级/高级），按跨商户累计消费金额自动升级，仅升级不降级。会员级别影响乐器租赁价格计算（会员折扣）。
 
+**累计消费统计**：由 `services.CheckAndUpgradeLevel` 实时聚合（非 `users.total_spending` 字段，该字段仅作展示缓存）：
+- 预付点采购（`order_payment_records` order_type='points'）
+- 已完成订单实际租金（`settlements.actual_rent_amount`，已按实际租期折算，提前归还自动扣减）
+- 续期支付（order_type='renewal'）
+- 报修支付（order_type='repair'）
+- 扣除退款（`order_refund_records` status='refunded'）
+
+聚合结果与 `membership_levels.min_amount` 比较，仅升级不降级。
+
 详细设计见 `docs/features/membership.md`。
 
 ---
