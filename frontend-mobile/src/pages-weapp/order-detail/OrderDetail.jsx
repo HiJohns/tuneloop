@@ -602,29 +602,29 @@ export default function OrderDetail() {
         {/* Staff logistics entry form (pending_shipment) */}
         {showStaffShip && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>📦 填写物流</Text>
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>物流公司</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>物流信息</Text>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流公司</Text>
               <Input
                 type="text"
                 value={logisticsForm.company}
                 onInput={e => setLogisticsForm(prev => ({ ...prev, company: e.detail.value }))}
-                placeholder="顺丰快递 / 圆通快递 / ..."
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+                placeholder="顺丰快递"
+                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
               />
             </View>
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>物流单号</Text>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流单号</Text>
               <Input
                 type="text"
                 value={logisticsForm.trackingNumber}
                 onInput={e => setLogisticsForm(prev => ({ ...prev, trackingNumber: e.detail.value }))}
                 placeholder="SF1234567890"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
               />
             </View>
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>拍照留档（至少 1 张）</Text>
+            <View style={{ marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>拍照留档</Text>
               <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {logisticsPhotos.map((file, i) => (
                   <View key={i} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5', position: 'relative', overflow: 'hidden' }}>
@@ -646,10 +646,6 @@ export default function OrderDetail() {
                 )}
               </View>
             </View>
-            <Button onClick={handleSubmitShipping} disabled={logisticsSubmitting}
-              style={{ width: '100%', padding: '14px 0', backgroundColor: '#000', color: '#fff', borderRadius: 16, fontWeight: '800', fontSize: 15, textAlign: 'center', opacity: logisticsSubmitting ? 0.5 : 1 }}>
-              {logisticsSubmitting ? '提交中...' : '确认发货'}
-            </Button>
           </View>
         )}
 
@@ -716,7 +712,7 @@ export default function OrderDetail() {
         {isStaff ? (
           <>
             {showStaffShip && (
-              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
+              <View onClick={handleSubmitShipping}
                 style={btnStyle('#000')}>📦 发货</View>
             )}
             {showStaffTransit && (
