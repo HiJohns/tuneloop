@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Image } from '@tarojs/components'
+import { View, Text, ScrollView, Image, Input, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
@@ -44,6 +44,9 @@ export default function OrderDetail() {
   const [logPage, setLogPage] = useState(1)
   const [logHasMore, setLogHasMore] = useState(false)
   const [showContract, setShowContract] = useState(false)
+  const [logisticsForm, setLogisticsForm] = useState({ company: '', trackingNumber: '' })
+  const [logisticsPhotos, setLogisticsPhotos] = useState([])
+  const [logisticsSubmitting, setLogisticsSubmitting] = useState(false)
 
   const token = getToken()
   const isStaff = (() => {
@@ -190,6 +193,48 @@ export default function OrderDetail() {
     setActionLoading(false)
   }
 
+  const handleSubmitShipping = async () => {
+    if (!logisticsForm.company.trim() || !logisticsForm.trackingNumber.trim()) {
+      Taro.showToast({ title: '请填写物流公司和单号', icon: 'none' })
+      return
+    }
+    setLogisticsSubmitting(true)
+    try {
+      const photoUrls = []
+      for (const file of logisticsPhotos) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const upResp = await apiFetch(`${baseUrl}/upload`, { method: 'POST', body: formData })
+        const upResult = await upResp.json()
+        if (upResult.code === 20000 && upResult.data?.url) photoUrls.push(upResult.data.url)
+      }
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/shipping`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          tracking_number: logisticsForm.trackingNumber,
+          company: logisticsForm.company,
+          shipped_at: new Date().toISOString(),
+          courier_company: logisticsForm.company,
+          photos: photoUrls,
+        }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        Taro.showToast({ title: '发货成功', icon: 'success' })
+        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+        const r = await reload.json()
+        if (r.code === 20000) setOrder(r.data)
+        setLogisticsForm({ company: '', trackingNumber: '' })
+        setLogisticsPhotos([])
+      } else {
+        Taro.showModal({ title: '发货失败', content: result.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '发货失败', content: err.message, showCancel: false })
+    }
+    setLogisticsSubmitting(false)
+  }
+
   if (loading) {
     return (
       <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
@@ -280,10 +325,10 @@ export default function OrderDetail() {
             {instrument?.cover_image && (
               <Image src={fixImg(instrument.cover_image)} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5' }} mode="aspectFill" />
             )}
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>{instrument?.category_name || '乐器'}</Text>
               <Text style={{ fontSize: 12, color: '#71717a', marginTop: 4 }}>SN: {instrument?.sn || '-'}</Text>
-              <Text style={{ fontSize: 12, color: '#71717a' }}>{instrument?.level_name || ''}</Text>
+              {instrument?.level_name && <Text style={{ fontSize: 12, color: '#71717a' }}>{instrument.level_name}</Text>}
             </View>
           </View>
         </View>
@@ -538,6 +583,60 @@ export default function OrderDetail() {
               const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
               return <Row label="净支出" value={`¥${Math.max(0, paid - refunded).toFixed(2)}`} />
             })()}
+          </View>
+        )}
+
+        {/* Staff logistics entry form (pending_shipment) */}
+        {showStaffShip && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>📦 填写物流</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>物流公司</Text>
+              <Input
+                type="text"
+                value={logisticsForm.company}
+                onInput={e => setLogisticsForm(prev => ({ ...prev, company: e.detail.value }))}
+                placeholder="顺丰快递 / 圆通快递 / ..."
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>物流单号</Text>
+              <Input
+                type="text"
+                value={logisticsForm.trackingNumber}
+                onInput={e => setLogisticsForm(prev => ({ ...prev, trackingNumber: e.detail.value }))}
+                placeholder="SF1234567890"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </View>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>拍照留档（至少 1 张）</Text>
+              <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {logisticsPhotos.map((file, i) => (
+                  <View key={i} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5', position: 'relative', overflow: 'hidden' }}>
+                    <Image src={file.tempFilePath || file} style={{ width: 80, height: 80, borderRadius: 8 }} mode="aspectFill" />
+                    <View onClick={() => setLogisticsPhotos(prev => prev.filter((_, j) => j !== i))}
+                      style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: '#fff', fontSize: 12 }}>✕</Text>
+                    </View>
+                  </View>
+                ))}
+                {logisticsPhotos.length < 10 && (
+                  <View onClick={() => {
+                    Taro.chooseImage({ count: 10 - logisticsPhotos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+                      .then(res => setLogisticsPhotos(prev => [...prev, ...res.tempFiles]))
+                  }}
+                    style={{ width: 80, height: 80, borderRadius: 8, border: '1px dashed #d4d4d8', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
+                    <Text style={{ color: '#a1a1aa', fontSize: 24 }}>+</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            <Button onClick={handleSubmitShipping} disabled={logisticsSubmitting}
+              style={{ width: '100%', padding: '14px 0', backgroundColor: '#000', color: '#fff', borderRadius: 16, fontWeight: '800', fontSize: 15, textAlign: 'center', opacity: logisticsSubmitting ? 0.5 : 1 }}>
+              {logisticsSubmitting ? '提交中...' : '确认发货'}
+            </Button>
           </View>
         )}
 
