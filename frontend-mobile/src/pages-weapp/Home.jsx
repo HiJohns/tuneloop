@@ -147,10 +147,11 @@ export default function Home() {
         menuTop: menu.top,
         menuHeight: menu.height,
         menuRight: menu.right,
+        windowWidth: sys.windowWidth || 375,
         navHeight: (menu.top - (sys.statusBarHeight || 20)) * 2 + menu.height + (sys.statusBarHeight || 20),
       }
     } catch {
-      return { statusBarHeight: 20, menuTop: 10, menuHeight: 32, menuRight: 0, navHeight: 44 }
+      return { statusBarHeight: 20, menuTop: 10, menuHeight: 32, menuRight: 0, windowWidth: 375, navHeight: 44 }
     }
   }
   const navBar = getNavBarLayout()
@@ -347,7 +348,7 @@ export default function Home() {
       )}
 
       {/* A: Search button — fixed near top, aligned below capsule */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.menuRight - 40) : 0 }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.windowWidth - navBar.menuRight + 8) : 0 }}>
         <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 150, height: navBar.menuHeight, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 0, paddingBottom: 0, backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>搜索乐器</Text>
