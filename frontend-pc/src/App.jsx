@@ -406,13 +406,15 @@ function onMenuClick(e) {
     timestamp: new Date().toISOString()
   })
 
-  const selectedKeys = [location.pathname]
+  const selectedKeys = location.pathname.startsWith('/merchants')
+    ? ['/merchants']
+    : [location.pathname]
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/system/banners', '/system/content-edit'].includes(location.pathname)) openKeys = ['basic']
   else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/instruments/list', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['operations']
   else if (['/organization/sites', '/staff', '/appeals', '/organization/iam-sync'].includes(location.pathname)) openKeys = ['organization']
-  else if (['/merchants', '/system/audit-logs', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['system']
+  else if (location.pathname.startsWith('/merchants') || ['/system/audit-logs', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
 
 
@@ -448,6 +450,8 @@ function onMenuClick(e) {
     '/appeals': { title: '申诉处理', parent: '组织管理' },
     '/organization/iam-sync': { title: '与 IAM 同步', parent: '组织管理' },
     '/merchants': { title: '商户管理', parent: '系统管理' },
+    '/merchants/:id': { title: '商户详情', parent: '商户管理' },
+    '/merchants/new': { title: '创建商户', parent: '商户管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
     '/system/permissions': { title: '权限管理', parent: '系统管理' },
     '/system/warnings': { title: '警告管理', parent: '系统管理' },
@@ -466,6 +470,13 @@ function onMenuClick(e) {
       breadcrumbItems.push({ title: routeMap[location.pathname].parent })
     }
     breadcrumbItems.push({ title: pageTitle })
+  } else if (location.pathname.startsWith('/merchants/')) {
+    pageTitle = location.pathname === '/merchants/new' ? '创建商户' : '商户详情'
+    breadcrumbItems.push(
+      { title: '系统管理' },
+      { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/merchants'); }}>商户管理</a> },
+      { title: pageTitle }
+    )
   } else if (location.pathname.startsWith('/site/stock/')) {
     pageTitle = '资产详情'
     breadcrumbItems.push({ title: '基础数据' }, { title: '乐器库存' }, { title: '资产详情' })
@@ -594,6 +605,8 @@ function onMenuClick(e) {
             <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/merchants/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['audit_log:read'] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/staff/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffEdit /></ProtectedRoute>} />

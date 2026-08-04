@@ -1,28 +1,60 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Form, Input, Select, Switch, message, Card, Space, Popconfirm, Tag, InputNumber } from 'antd';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Card, Table, Button, Form, Input, Select, Switch, message, Space, Popconfirm, Tag, InputNumber, Tabs, Descriptions, Empty } from 'antd';
+import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import api from '../services/api';
-import ManagerSelector from '../components/ManagerSelector';
+import MerchantMemberManagement from '../components/MerchantMemberManagement';
 
 const MerchantManagement = () => {
   const navigate = useNavigate();
-  const [form] = Form.useForm();
+  const { id } = useParams();
+  const location = useLocation();
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState(null);
-  const [adminInfo, setAdminInfo] = useState({ name: '', id: null, email: '', username: '', phone: '' });
-  const [conflictOptions, setConflictOptions] = useState(null);
-  const [creatingManager, setCreatingManager] = useState(false);
   const [merchantType, setMerchantType] = useState('full');
   const [settlementMerchant, setSettlementMerchant] = useState(null);
-  const [settlementOpen, setSettlementOpen] = useState(false);
   const [settlementForm] = Form.useForm();
   const [settlementLoading, setSettlementLoading] = useState(false);
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
+  const [viewMode, setViewMode] = useState('detail'); // 'detail' | 'form'
+  const [formMode, setFormMode] = useState('create'); // 'create' | 'edit'
+  const [form] = Form.useForm();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchMerchants();
   }, []);
+
+  // Sync URL → state (detail or create form)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (location.pathname === '/merchants/new') {
+      setViewMode('form');
+      setFormMode('create');
+      setEditingMerchant(null);
+      form.resetFields();
+      setMerchantType('full');
+    } else if (params.get('mode') === 'edit' && id) {
+      setViewMode('form');
+      setFormMode('edit');
+      const found = merchants.find(m => m.id === id);
+      if (found) {
+        setEditingMerchant(found);
+        form.setFieldsValue(found);
+        setMerchantType(found.merchant_type || 'full');
+      }
+    } else if (id) {
+      setViewMode('detail');
+      setFormMode('create');
+      const found = merchants.find(m => m.id === id);
+      if (found) setSelectedMerchant(found);
+    } else {
+      setViewMode('detail');
+      setSelectedMerchant(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, location.pathname, location.search]);
 
   const fetchMerchants = async () => {
     setLoading(true);
@@ -38,34 +70,32 @@ const MerchantManagement = () => {
   };
 
   const handleCreate = () => {
-    setEditingMerchant(null);
-    form.resetFields();
-    setAdminInfo({ name: '', id: null, email: '', username: '', phone: '', isNewlyCreated: false });
-    setConflictOptions(null);
-    setMerchantType('full');
-    setModalOpen(true);
+    navigate('/merchants/new');
   };
 
   const handleEdit = (record) => {
     setEditingMerchant(record);
+    setViewMode('form');
+    setFormMode('edit');
     form.setFieldsValue(record);
-    if (record.admin_uid && record.admin_name) {
-      setAdminInfo({ name: record.admin_name, id: record.admin_uid, email: record.admin_email || '', username: record.admin_username || '', phone: record.admin_phone || '' })
-      form.setFieldsValue({ admin_uid: record.admin_uid })
-    } else {
-      setAdminInfo({ name: '', id: null, email: '', username: '', phone: '' })
-      form.setFieldsValue({ admin_uid: null })
-    }
-    setConflictOptions(null);
     setMerchantType(record.merchant_type || 'full');
-    setModalOpen(true);
+    navigate('/merchants/' + record.id + '?mode=edit');
   };
 
-  const handleDelete = async (id) => {
+  const handleBackToList = () => {
+    setSelectedMerchant(null);
+    navigate('/merchants');
+  };
+
+  const handleDelete = async (merchantId) => {
     try {
-      await api.delete(`/merchants/${id}`);
+      await api.delete(`/merchants/${merchantId}`);
       message.success('商户删除成功');
       fetchMerchants();
+      if (selectedMerchant?.id === merchantId) {
+        setSelectedMerchant(null);
+        navigate('/merchants');
+      }
     } catch (error) {
       message.error(error.response?.data?.message || '删除商户失败');
     }
@@ -73,7 +103,6 @@ const MerchantManagement = () => {
 
   const openSettlement = async (record) => {
     setSettlementMerchant(record);
-    setSettlementOpen(true);
     setSettlementLoading(true);
     try {
       const resp = await api.get(`/admin/merchant/${record.id}/settlement`)
@@ -84,47 +113,36 @@ const MerchantManagement = () => {
       }
     } catch { settlementForm.resetFields() }
     setSettlementLoading(false)
-  }
+  };
 
   const saveSettlement = async () => {
     try {
       const values = await settlementForm.validateFields()
       await api.put(`/admin/merchant/${settlementMerchant.id}/settlement`, values)
       message.success('分账配置保存成功')
-      setSettlementOpen(false)
     } catch (err) {
       if (err.errorFields) return // validation error
       message.error('保存失败: ' + (err.response?.data?.message || err.message))
     }
-  }
+  };
 
   const handleSubmit = async (values) => {
+    setSaving(true);
     try {
-      if (!editingMerchant && !adminInfo.id) {
-        message.warning('请选择管理员')
-        return
-      }
-      const submitData = { ...values, admin_uid: adminInfo.id || null }
-
-      if (editingMerchant) {
-        await api.put(`/merchants/${editingMerchant.id}`, submitData);
+      if (formMode === 'edit' && editingMerchant) {
+        await api.put(`/merchants/${editingMerchant.id}`, values);
         message.success('商户更新成功');
       } else {
-        submitData.skip_activation = adminInfo.skipActivation || false
-        await api.post('/merchants', submitData);
+        await api.post('/merchants', values);
         message.success('商户创建成功');
       }
-      setModalOpen(false);
+      setViewMode('detail');
       fetchMerchants();
+      navigate('/merchants');
     } catch (error) {
-      const resp = error.response
-      if (resp?.status === 409 && resp?.data?.data?.conflicts?.length > 0) {
-        const conflicts = resp.data.data.conflicts
-        setConflictOptions(conflicts)
-        message.warning(`发现 ${conflicts.length} 个冲突账户，请在搜索中选择`)
-        return
-      }
       message.error(error.response?.data?.message || '操作失败');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -133,6 +151,11 @@ const MerchantManagement = () => {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
+      render: (name, record) => (
+        <Button type="link" style={{ padding: 0 }} onClick={() => { setSelectedMerchant(record); navigate('/merchants/' + record.id); }}>
+          {name}
+        </Button>
+      ),
     },
     {
       title: '联系电话',
@@ -173,38 +196,176 @@ const MerchantManagement = () => {
       key: 'created_at',
       render: (date) => new Date(date).toLocaleDateString(),
     },
-    {
-      title: '操作',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button type="link" onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Button type="link" onClick={() => openSettlement(record)}>
-            分账配置
-          </Button>
-          <Popconfirm
-            title="确定要删除此商户吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" danger>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
   ];
+
+  // Detail panel with tabs
+  const renderDetail = () => {
+    if (!selectedMerchant) {
+      return <Empty description="请点击左侧商户查看详情" style={{ marginTop: 80 }} />;
+    }
+    const m = selectedMerchant;
+    return (
+      <>
+        <Card className="mb-4">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Space align="center" wrap>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{m.name}</h2>
+                <Tag color={m.merchant_type === 'controlled' ? 'orange' : 'blue'}>
+                  {m.merchant_type === 'controlled' ? '受控商户' : '全权商户'}
+                </Tag>
+                <Tag color={m.status === 'active' ? 'green' : 'red'}>{m.status === 'active' ? '启用' : '停用'}</Tag>
+              </Space>
+            </div>
+            <Space wrap>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => handleEdit(m)}>编辑</Button>
+              <Popconfirm
+                title="确定要删除此商户吗？"
+                onConfirm={() => handleDelete(m.id)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button danger icon={<DeleteOutlined />}>删除</Button>
+              </Popconfirm>
+            </Space>
+          </div>
+        </Card>
+
+        <Card>
+          <Tabs defaultActiveKey="info" onChange={(key) => { if (key === 'settlement') openSettlement(m); }}>
+            <Tabs.TabPane tab="编辑信息" key="info">
+              <Descriptions column={2} bordered size="small">
+                <Descriptions.Item label="商户ID">{m.id}</Descriptions.Item>
+                <Descriptions.Item label="商户名">{m.name}</Descriptions.Item>
+                <Descriptions.Item label="联系电话">{m.phone || '-'}</Descriptions.Item>
+                <Descriptions.Item label="地址" span={2}>{m.address || '-'}</Descriptions.Item>
+                <Descriptions.Item label="商户类型">{m.merchant_type === 'controlled' ? '受控商户' : '全权商户'}</Descriptions.Item>
+                <Descriptions.Item label="参与返点">{m.rebate_opt_in ? '是' : '否'}</Descriptions.Item>
+              </Descriptions>
+              <div style={{ marginTop: 16 }}>
+                <Button type="primary" onClick={() => handleEdit(m)}>编辑基本信息</Button>
+              </div>
+            </Tabs.TabPane>
+
+            <Tabs.TabPane tab="分账配置" key="settlement">
+              <Form
+                form={settlementForm}
+                layout="vertical"
+                onFinish={saveSettlement}
+              >
+                <Form.Item name="receiver_type" label="接收方类型" rules={[{ required: true, message: '请选择类型' }]}>
+                  <Select>
+                    <Select.Option value="merchant">商户号</Select.Option>
+                    <Select.Option value="personal_openid">个人 openid</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item name="receiver_account" label="接收方账号" rules={[{ required: true, message: '请输入账号' }]}>
+                  <Input placeholder="商户号或个人 openid" />
+                </Form.Item>
+                <Form.Item name="profit_share_ratio" label="分账比例（%）" tooltip="平台分给商户的分成比例">
+                  <InputNumber min={0} max={100} style={{ width: '100%' }} />
+                </Form.Item>
+                <Form.Item name="is_enabled" label="启用" valuePropName="checked" initialValue={true}>
+                  <Switch />
+                </Form.Item>
+                <Button type="primary" htmlType="submit" loading={settlementLoading}>保存分账配置</Button>
+              </Form>
+            </Tabs.TabPane>
+
+            <Tabs.TabPane tab="成员管理" key="members">
+              <MerchantMemberManagement merchantId={m.id} onRefresh={() => {}} />
+            </Tabs.TabPane>
+          </Tabs>
+        </Card>
+      </>
+    );
+  };
+
+  // Create/edit form view
+  const renderForm = () => (
+    <Card
+      title={
+        <Space>
+          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { setViewMode('detail'); navigate('/merchants'); }} />
+          {formMode === 'create' ? '创建商户' : '编辑商户'}
+        </Space>
+      }
+    >
+      <Form form={form} onFinish={handleSubmit} layout="vertical" style={{ maxWidth: 600 }}>
+        <Form.Item
+          name="name"
+          label="商户名"
+          rules={[{ required: true, message: '请输入商户名' }]}
+        >
+          <Input placeholder="输入商户名称" />
+        </Form.Item>
+
+        <Form.Item name="phone" label="联系电话">
+          <Input placeholder="输入联系电话" />
+        </Form.Item>
+
+        <Form.Item name="address" label="地址">
+          <Input placeholder="输入地址" />
+        </Form.Item>
+
+        <Form.Item
+          name="merchant_type"
+          label="商户类型"
+          initialValue="full"
+        >
+          <Select
+            onChange={(value) => setMerchantType(value)}
+            options={[
+              { value: 'full', label: '全权商户' },
+              { value: 'controlled', label: '受控商户' },
+            ]}
+          />
+        </Form.Item>
+
+        {merchantType === 'controlled' && (
+          <>
+            <Form.Item
+              name="transit_address"
+              label="中转地址"
+              rules={[{ required: true, message: '受控商户必须填写中转地址' }]}
+            >
+              <Input placeholder="输入中转地址" />
+            </Form.Item>
+
+            <Form.Item
+              name="transit_phone"
+              label="中转电话"
+              rules={[{ required: true, message: '受控商户必须填写中转电话' }]}
+            >
+              <Input placeholder="输入中转电话" />
+            </Form.Item>
+
+            <Form.Item name="transit_contact_name" label="中转联系人">
+              <Input placeholder="输入中转联系人" />
+            </Form.Item>
+          </>
+        )}
+
+        <Form.Item name="rebate_opt_in" label="参与返点" valuePropName="checked" initialValue={true}>
+          <Switch />
+        </Form.Item>
+
+        <Space>
+          <Button type="primary" htmlType="submit" loading={saving}>
+            {formMode === 'create' ? '创建商户' : '保存修改'}
+          </Button>
+          <Button onClick={() => { setViewMode('detail'); navigate('/merchants'); }}>取消</Button>
+        </Space>
+      </Form>
+    </Card>
+  );
 
   return (
     <div style={{ padding: 24 }}>
       <Card
         title="商户管理"
         extra={
-          <Button type="primary" onClick={handleCreate}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             创建商户
           </Button>
         }
@@ -215,125 +376,23 @@ const MerchantManagement = () => {
           loading={loading}
           rowKey="id"
           pagination={{ defaultPageSize: 20 }}
+          onRow={(record) => ({
+            onClick: () => { setSelectedMerchant(record); navigate('/merchants/' + record.id); },
+            style: { cursor: 'pointer' },
+          })}
         />
       </Card>
 
-      <Modal
-        title={editingMerchant ? '编辑商户' : '创建商户'}
-        open={modalOpen}
-        destroyOnClose
-        onOk={() => form.submit()}
-        onCancel={() => setModalOpen(false)}
-        width={600}
-        okButtonProps={{ disabled: creatingManager, loading: creatingManager }}
-      >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item
-            name="name"
-            label="商户名"
-            rules={[{ required: true, message: '请输入商户名' }]}
-          >
-            <Input placeholder="输入商户名称" />
-          </Form.Item>
-
-          <Form.Item name="phone" label="联系电话">
-            <Input placeholder="输入联系电话" />
-          </Form.Item>
-
-          <Form.Item name="address" label="地址">
-            <Input placeholder="输入地址" />
-          </Form.Item>
-
-          <Form.Item
-            name="merchant_type"
-            label="商户类型"
-            initialValue="full"
-          >
-            <Select
-              onChange={(value) => setMerchantType(value)}
-              options={[
-                { value: 'full', label: '全权商户' },
-                { value: 'controlled', label: '受控商户' },
-              ]}
-            />
-          </Form.Item>
-
-          {merchantType === 'controlled' && (
-            <>
-              <Form.Item
-                name="transit_address"
-                label="中转地址"
-                rules={[{ required: true, message: '受控商户必须填写中转地址' }]}
-              >
-                <Input placeholder="输入中转地址" />
-              </Form.Item>
-
-              <Form.Item
-                name="transit_phone"
-                label="中转电话"
-                rules={[{ required: true, message: '受控商户必须填写中转电话' }]}
-              >
-                <Input placeholder="输入中转电话" />
-              </Form.Item>
-
-              <Form.Item name="transit_contact_name" label="中转联系人">
-                <Input placeholder="输入中转联系人" />
-              </Form.Item>
-            </>
-          )}
-
-          <Form.Item label="管理员">
-            <ManagerSelector
-              value={adminInfo}
-              createReason="商户管理员"
-              onCreatingChange={setCreatingManager}
-              onChange={(info) => {
-                if (info.id) {
-                  setAdminInfo({ name: info.name, id: info.id, email: info.email || '', username: info.username || '', phone: info.phone || '', isNewlyCreated: info.isNewlyCreated || false, skipActivation: info.skipActivation || false })
-                  form.setFieldsValue({ admin_uid: info.id })
-                } else {
-                  setAdminInfo({ name: '', id: null, email: '', username: '', phone: '' })
-                  form.setFieldsValue({ admin_uid: null })
-                }
-                setConflictOptions(null)
-              }}
-              conflictOptions={conflictOptions}
-              conflictMessage={conflictOptions ? `发现 ${conflictOptions.length} 个冲突账户，请在搜索中选择` : ''}
-            />
-          </Form.Item>
-
-          <Form.Item name="rebate_opt_in" label="参与返点" valuePropName="checked" initialValue={true}>
-            <Switch />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={`分账配置 - ${settlementMerchant?.name || ''}`}
-        open={settlementOpen}
-        destroyOnClose
-        onOk={saveSettlement}
-        onCancel={() => setSettlementOpen(false)}
-        confirmLoading={settlementLoading}
-      >
-        <Form form={settlementForm} layout="vertical">
-          <Form.Item name="receiver_type" label="接收方类型" rules={[{ required: true, message: '请选择类型' }]}>
-            <Select>
-              <Select.Option value="merchant">商户号</Select.Option>
-              <Select.Option value="personal_openid">个人 openid</Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="receiver_account" label="接收方账号" rules={[{ required: true, message: '请输入账号' }]}>
-            <Input placeholder="商户号或个人 openid" />
-          </Form.Item>
-          <Form.Item name="profit_share_ratio" label="分账比例（%）" tooltip="平台分给商户的分成比例">
-            <InputNumber min={0} max={100} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="is_enabled" label="启用" valuePropName="checked" initialValue={true}>
-            <Switch />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {viewMode === 'detail' && (
+        <div style={{ marginTop: 24 }}>
+          {renderDetail()}
+        </div>
+      )}
+      {viewMode === 'form' && (
+        <div style={{ marginTop: 24 }}>
+          {renderForm()}
+        </div>
+      )}
     </div>
   );
 };
