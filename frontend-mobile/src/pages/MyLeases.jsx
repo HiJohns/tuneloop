@@ -211,7 +211,7 @@ export default function MyLeases() {
               return (
               <View
                 key={order.id}
-                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80 overflow-hidden box-border"
+                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80 overflow-hidden box-border" style={{ maxWidth: '100%', boxSizing: 'border-box' }}
                 onClick={() => navigate(`/order/${order.id}`)}
               >
                 <View className="flex items-center justify-between mb-2">
