@@ -80,9 +80,19 @@ func PrepayOrder(c *gin.Context) {
 		var localUser models.User
 		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			effectiveOrderID = localUser.ID
+			// Customer JWT carries no tid; use the local cache's tenant
+			// (zero UUID is valid and satisfies the not-null uuid column).
+			if tenantID == "" {
+				tenantID = localUser.TenantID
+			}
 		} else {
 			effectiveOrderID = userID
 		}
+	}
+
+	// Last-resort: never persist an empty string into a uuid column
+	if tenantID == "" {
+		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
 
 	record := models.OrderPaymentRecord{
