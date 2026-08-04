@@ -204,9 +204,10 @@ func GetOrder(c *gin.Context) {
 				"name":  iamUser.Name,
 				"email": iamUser.Email,
 				"phone": iamUser.Phone,
-	})
-}
-
+			})
+		} else if iamErr != nil {
+			log.Printf("[OrderDetail] IAM GetUser failed for iam_sub=%s: %v (local cache may be stale)", userIAMSub, iamErr)
+		}
 	}
 
 	// Fetch delivery address from lease_session
