@@ -114,12 +114,7 @@ export default function Renewal() {
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-      <View style={{ backgroundColor: '#fff', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #e5e7eb' }}>
-        <View onClick={() => Taro.navigateBack()}>
-          <Text style={{ fontSize: 18 }}>{'<'}</Text>
-        </View>
-        <Text style={{ fontSize: 16, fontWeight: '700' }}>续期</Text>
-      </View>
+      {/* Title bar removed — native navigation bar shows 续期 (#1511) */}
 
       <ScrollView style={{ padding: 16 }}>
 

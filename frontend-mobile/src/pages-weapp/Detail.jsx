@@ -180,14 +180,7 @@ export default function Detail() {
 
   return (
     <View style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FDFBF7' }}>
-      {/* Top bar */}
-      <View style={{ paddingTop: 12, paddingBottom: 8, paddingLeft: 16, paddingRight: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FDF4E7' }}>
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#000' }} onClick={() => {
-          try { Taro.navigateBack() } catch { Taro.switchTab({ url: '/pages-weapp/home/index' }) }
-        }}>❮</Text>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>乐器详情</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#a1a1aa' }}>★ 收藏</Text>
-      </View>
+      {/* Top bar removed — native navigation bar shows 乐器详情 title (#1511) */}
 
       <ScrollView style={{ width: '100%', flex: '1 1 0%', minHeight: 0, overflowY: 'scroll' }} scrollY scrollWithAnimation showScrollbar={false}>
         {/* Banner carousel */}

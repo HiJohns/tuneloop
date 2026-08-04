@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { View, Text, Radio, Label } from '@tarojs/components'
 import { api } from '../services/api'
-import { navigation } from '../platform'
+import { env, navigation } from '../platform'
 
 export default function ReturnSettlement() {
   const { orderId } = useParams()
@@ -83,10 +83,13 @@ export default function ReturnSettlement() {
 
   return (
     <View className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF7' }}>
-      <View className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)' }}>
-        <Text className="text-lg font-black text-black block">归还结算</Text>
-        <Text className="text-zinc-400 text-sm block">以下为本次租期的费用结算明细</Text>
-      </View>
+      {/* Title bar — H5 only, weapp uses native nav (#1511) */}
+      {!env.isMiniProgram && (
+        <View className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)' }}>
+          <Text className="text-lg font-black text-black block">归还结算</Text>
+          <Text className="text-zinc-400 text-sm block">以下为本次租期的费用结算明细</Text>
+        </View>
+      )}
 
       <View className="px-4 space-y-3 mt-3">
         {/* Rent Calculation */}

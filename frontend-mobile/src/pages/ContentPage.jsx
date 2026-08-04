@@ -43,10 +43,13 @@ export default function ContentPage() {
 
   return (
     <View className="min-h-screen bg-[#FDFBF7]">
-      <View className="flex items-center px-4 pt-3 pb-2 bg-[#FDF4E7]">
-        <Text className="text-xl font-bold text-black mr-4" onClick={goBack}>❮</Text>
-        <Text className="text-lg font-black text-black">{titles[key] || '内容'}</Text>
-      </View>
+      {/* Navigation bar — H5 only, weapp uses native nav (#1511) */}
+      {!env.isMiniProgram && (
+        <View className="flex items-center px-4 pt-3 pb-2 bg-[#FDF4E7]">
+          <Text className="text-xl font-bold text-black mr-4" onClick={goBack}>❮</Text>
+          <Text className="text-lg font-black text-black">{titles[key] || '内容'}</Text>
+        </View>
+      )}
       <View className="px-4 py-4">
         {loading ? (
           <Text className="text-zinc-400">加载中...</Text>
