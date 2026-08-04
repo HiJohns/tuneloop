@@ -69,6 +69,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	siteHandler := handlers.NewSiteHandler()
 	// New handlers for Issue #345 (Merchant Management + Setup)
 	merchantHandler := handlers.NewMerchantHandler()
+	merchantMemberHandler := handlers.NewMerchantMemberHandler()
 	setupHandler := handlers.NewSetupHandler()
 	siteMemberHandler := handlers.NewSiteMemberHandler()
 	iamProxyHandler := handlers.NewIAMProxyHandler()
@@ -381,6 +382,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/merchants", middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
 		authRequired.PUT("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
 		authRequired.DELETE("/merchants/:id", middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
+		authRequired.GET("/admin/merchants/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantView), merchantMemberHandler.ListMembers)
+		authRequired.POST("/admin/merchants/:id/members", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.AddMember)
+		authRequired.PUT("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.UpdateMemberRole)
+		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)
 
 		siteRequired := authRequired.Group("")
 		{

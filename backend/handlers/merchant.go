@@ -263,13 +263,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	} else if len(input.UserIDs) > 0 {
 		adminUserID = input.UserIDs[0]["user_id"].(string)
 		userIDsToProcess = input.UserIDs
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    40001,
-			"message": "Either admin_uid (old format) or user_ids (new format) must be provided",
-		})
-		return
 	}
+	// Merchant may be created without an admin — members (including the
+	// merchant admin) are added later via the merchant member management API.
 
 	var adminName, adminEmail, adminPhone string
 	var adminUser models.User

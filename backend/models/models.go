@@ -882,6 +882,22 @@ type SiteMember struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// MerchantMember is the merchant-level counterpart of SiteMember.
+// IAM binding org for a merchant is its own tenant_id.
+type MerchantMember struct {
+	ID           string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string         `gorm:"type:uuid;not null;index:idx_mm_tenant" json:"tenant_id"`
+	MerchantID   string         `gorm:"type:uuid;not null;index:idx_mm_merchant" json:"merchant_id"`
+	UserID       string         `gorm:"type:uuid;not null;index:idx_mm_unique" json:"user_id"`
+	Role         string         `gorm:"type:varchar(20);default:'site_member'" json:"role"`
+	Status       string         `gorm:"type:varchar(20);default:'active'" json:"status"`
+	CusPermCodes pq.StringArray `gorm:"type:text[];default:'{}'" json:"cus_perm_codes"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (MerchantMember) TableName() string { return "merchant_members" }
+
 // ConfirmationSession handles user invitation confirmation flow
 type ConfirmationSession struct {
 	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
