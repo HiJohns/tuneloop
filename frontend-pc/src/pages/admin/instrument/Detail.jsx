@@ -418,26 +418,39 @@ export default function InstrumentDetail() {
                   )}
                 </Card>
               </Col>
-
-              {activeStatuses.includes(instrument.stock_status) && leaseData && (
-                <Col span={16}>
-                  <Card title="当前租赁" className="mt-4">
-                    <Descriptions column={1} bordered size="small">
-                      <Descriptions.Item label="租赁人">
-                        <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
-                      <Descriptions.Item label="租期">
-                        <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
-                      </Descriptions.Item>
-                    </Descriptions>
-                    <div className="text-sm text-gray-500 space-y-1 mt-2">
-                      <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
-                      <p>押金: ¥{leaseData.order?.deposit || 0}</p>
-                    </div>
+            </Row>
+          )
+        },
+        {
+          label: '价格策略',
+          key: 'pricing',
+          children: (
+            <Row gutter={16}>
+              <Col span={16}>
+                <Card title="价格设定">
+                  <Descriptions column={2} bordered size="small">
+                    <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate || '-'}/天</Descriptions.Item>
+                    <Descriptions.Item label="押金">¥{pricingV2?.deposit || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="押金模式">{pricingV2?.deposit_mode || 'ratio'}</Descriptions.Item>
+                    <Descriptions.Item label="物流费">¥{pricingV2?.shipping_fee || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="逾期日费">¥{overdueDailyFee || '-'}</Descriptions.Item>
+                  </Descriptions>
+                </Card>
+                {pricingV2?.tiers?.length > 0 && (
+                  <Card title="阶梯折扣" className="mt-4">
+                    <Table
+                      dataSource={pricingV2.tiers}
+                      rowKey={(_, i) => i}
+                      pagination={false}
+                      size="small"
+                      columns={[
+                        { title: '天数上限', dataIndex: 'days_max', render: v => v < 0 ? '无上限' : `${v}天` },
+                        { title: '日租金', dataIndex: 'daily_rate', render: v => `¥${v}` },
+                      ]}
+                    />
                   </Card>
-                </Col>
-              )}
+                )}
+              </Col>
             </Row>
           )
         },
@@ -677,6 +690,35 @@ export default function InstrumentDetail() {
                 </Form>
               )}
             </Card>
+          )
+        },
+        {
+          label: '当前租赁',
+          key: 'lease',
+          children: (
+            activeStatuses.includes(instrument.stock_status) && leaseData ? (
+              <Row gutter={16}>
+                <Col span={16}>
+                  <Card title="当前租赁">
+                    <Descriptions column={1} bordered size="small">
+                      <Descriptions.Item label="租赁人">
+                        <Space><UserOutlined />{leaseData.user?.name || '-'}</Space>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="电话">{leaseData.user?.phone || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="租期">
+                        <Space><CalendarOutlined />{leaseData.order?.start_date || '-'} 至 {leaseData.order?.end_date || '-'}</Space>
+                      </Descriptions.Item>
+                    </Descriptions>
+                    <div className="text-sm text-gray-500 space-y-1 mt-2">
+                      <p>月租金: ¥{leaseData.order?.monthly_rent || 0}</p>
+                      <p>押金: ¥{leaseData.order?.deposit || 0}</p>
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+            ) : (
+              <Empty description="当前无租赁记录" style={{ marginTop: 40 }} />
+            )
           )
         },
         {
