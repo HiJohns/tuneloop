@@ -7,6 +7,8 @@ import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
 import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
 
+const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
+
 const STATUS = {
   reserved: { color: '#f59e0b', label: '未支付' },
   paid: { color: '#3b82f6', label: '待发货' },
@@ -276,7 +278,7 @@ export default function OrderDetail() {
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} onClick={() => instrument?.id && Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` })}>
           <View style={{ display: 'flex', gap: 12 }}>
             {instrument?.cover_image && (
-              <Image src={instrument.cover_image} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5' }} mode="aspectFill" />
+              <Image src={fixImg(instrument.cover_image)} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5' }} mode="aspectFill" />
             )}
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>{instrument?.category_name || '乐器'}</Text>
@@ -602,11 +604,11 @@ export default function OrderDetail() {
         {isStaff ? (
           <>
             {showStaffShip && (
-              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping/index?order=${id}` })}
+              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
                 style={btnStyle('#000')}>📦 发货</View>
             )}
             {showStaffTransit && (
-              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping/index?order=${id}` })}
+              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
                 style={btnStyle('#06b6d4')}>🚚 接收并转发</View>
             )}
             {showStaffReceive && (
