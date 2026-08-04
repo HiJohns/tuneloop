@@ -205,6 +205,9 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 func loadRefundPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 	var settlement models.Settlement
 	if err := db.Where("id = ?", id).First(&settlement).Error; err != nil {
+		// Fallback: cancelled-order refund (cancel-by-customer flow has no
+		// settlement record — refund the full original payment).
+		loadCancelledOrderRefund(db, id, resp)
 		return
 	}
 	resp.Title = "结算退款"
@@ -213,6 +216,30 @@ func loadRefundPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		"cash_refundable":  settlement.CashRefundable,
 		"prepaid_refunded": settlement.PrepaidRefunded,
 		"gift_refunded":    settlement.GiftPointsRefunded,
+	}
+}
+
+// loadCancelledOrderRefund serves the refund page after cancel-by-customer:
+// the full original payment is refunded via original channels
+// (cash → WeChat original-path, prepaid/gift → wallet).
+func loadCancelledOrderRefund(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
+	var order models.Order
+	if err := db.Where("id = ? AND status = ?", id, models.OrderStatusCancelled).First(&order).Error; err != nil {
+		return
+	}
+	total := order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed
+	resp.Title = "取消订单退款"
+	resp.Amount = total
+	resp.Details = map[string]interface{}{
+		"total_paid":        total,
+		"cash_paid":         order.CashPaid,
+		"prepaid_used":      order.PrepaidPointsUsed,
+		"gift_used":         order.GiftPointsUsed,
+		"total_refund":      total,
+		"cash_refundable":   order.CashPaid,
+		"prepaid_refunded":  order.PrepaidPointsUsed,
+		"gift_refunded":     order.GiftPointsUsed,
+		"cancel_refund":     true,
 	}
 }
 

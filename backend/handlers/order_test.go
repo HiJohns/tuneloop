@@ -301,6 +301,19 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 		assert.Equal(t, float64(40002), resp["code"])
 	})
 
+	t.Run("in_transit_cancel_rejected", func(t *testing.T) {
+		orderID := createOrder(t, models.OrderStatusInTransit)
+
+		req := httptest.NewRequest("POST", "/orders/"+orderID+"/cancel-by-user", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, float64(40002), resp["code"])
+	})
+
 	t.Run("reserved_cancel_succeeds_without_refund", func(t *testing.T) {
 		orderID := createOrder(t, models.OrderStatusReserved)
 
