@@ -180,7 +180,7 @@ export default function MyLeases() {
         </View>
       </ScrollView>
 
-      <ScrollView scrollY className="flex-1 px-4 min-h-0 overflow-y-auto"
+      <ScrollView scrollY className="flex-1 min-h-0"
         onScrollToLower={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true)
@@ -190,6 +190,7 @@ export default function MyLeases() {
         lowerThreshold={50}
         enableBackToTop
       >
+        <View className="px-4">
         {loading ? (
           <View className="text-center py-16 text-zinc-400 font-medium">加载中...</View>
         ) : orders.length === 0 ? (
@@ -309,6 +310,7 @@ export default function MyLeases() {
           )}
           </>
         )}
+        </View>
       </ScrollView>
 
       <BottomNav
