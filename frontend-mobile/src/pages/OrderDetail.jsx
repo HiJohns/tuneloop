@@ -154,9 +154,11 @@ export default function OrderDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         if (result.data?.refund_amount > 0) {
-          dialog.alert('订单已取消，退款将原路退回（如有）。')
+          // paid/pending_shipment: full original payment refunded — go to refund page
+          navigate(`/payment?type=refund&id=${id}`, { replace: true })
+        } else {
+          setOrder(prev => ({ ...prev, status: 'cancelled' }))
         }
-        setOrder(prev => ({ ...prev, status: 'cancelled' }))
       } else {
         dialog.alert('取消失败: ' + result.message)
       }
@@ -216,7 +218,7 @@ export default function OrderDetail() {
    const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
 
   const showPayButton = !isStaff && status === 'reserved'
-  const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment' || status === 'in_transit')
+  const showCancelButton = !isStaff && (status === 'reserved' || status === 'paid' || status === 'pending_shipment')
   const showReceiveButton = !isStaff && (status === 'in_transit' || status === 'shipped')
   const showRenewButton = !isStaff && (status === 'in_lease' || status === 'expired')
   const showReturnButton = !isStaff && (status === 'in_lease' || status === 'expired')
