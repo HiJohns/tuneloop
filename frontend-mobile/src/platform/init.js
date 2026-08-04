@@ -81,6 +81,24 @@ export async function initializeApp() {
   const token = storage.getItem('token')
   const path = navigation.getCurrentPath()
 
+  // Handle promo QR open param (H5 browser flow): store ref code and route
+  // to the profile page (ProtectedRoute redirects to login when unauthenticated).
+  // weapp flow consumes ref via wxacode scene / page options instead.
+  if (!env.isMiniProgram) {
+    const params = navigation.getQueryParams()
+    const openTarget = params.open
+    const refCode = params.ref
+    if (refCode) {
+      storage.setItem('ref_code', refCode)
+      session.setItem('post_auth_redirect', path)
+    }
+    if (openTarget === 'profile-complete') {
+      session.setItem('show_login_reason', 'token_missing')
+      navigation.redirect('/profile')
+      return config
+    }
+  }
+
   if (!token && _publicRoutes && !_publicRoutes.includes(path)) {
     session.setItem('post_auth_redirect', path)
   }
