@@ -199,7 +199,7 @@ export default function MyLeases() {
           </View>
         ) : (
           <>
-          <View className="space-y-3 w-full overflow-hidden">
+          <View className="space-y-3 overflow-hidden">
               {orders.map(order => {
               const showReturn = !isStaff && order.status === 'in_lease'
               const showStaffReceive = isStaff && order.status === 'returning'
@@ -211,7 +211,7 @@ export default function MyLeases() {
               return (
               <View
                 key={order.id}
-                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80 overflow-hidden"
+                className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80 overflow-hidden box-border"
                 onClick={() => navigate(`/order/${order.id}`)}
               >
                 <View className="flex items-center justify-between mb-2">
