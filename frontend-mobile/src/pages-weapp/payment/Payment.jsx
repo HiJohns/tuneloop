@@ -154,6 +154,11 @@ export default function Payment() {
     })
   }
 
+  const doMockPay = () => {
+    Taro.showToast({ title: '支付成功（模拟）', icon: 'success' })
+    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 1500)
+  }
+
   const doSimulatePay = async () => {
     if (!prepayData?.data) return
     try {
@@ -342,7 +347,7 @@ export default function Payment() {
             </View>
             {mockEnabled && (
               <View style={{ flex: 1 }}>
-                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
+                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doMockPay} disabled={isPaying}>
                   模拟支付 ¥{Number(cashAmount).toFixed(2)}
                 </Button>
               </View>
