@@ -244,7 +244,7 @@ export default function MyLeases() {
                   </View>
                   {order.cover_image && <Image src={order.cover_image} className="w-20 h-20 rounded-lg ml-3 self-start" mode="aspectFill" />}
                 </View>
-                <View className="mt-3 flex gap-2">
+                <View className="mt-3 flex gap-2 overflow-hidden max-w-full">
                   {!isTerminal && (
                     <>
                        {showPay && (

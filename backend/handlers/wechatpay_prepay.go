@@ -16,8 +16,8 @@ import (
 )
 
 type PrepayRequest struct {
-	OrderID     string  `json:"order_id" binding:"required"`
-	OrderType   string  `json:"order_type" binding:"required"` // rent | repair | points | damage
+	OrderID     string  `json:"order_id"` // optional for points/renewal type
+	OrderType   string  `json:"order_type" binding:"required"` // rent | repair | points | damage | renewal
 	Amount      float64 `json:"amount" binding:"required"`
 	OpenID      string  `json:"open_id,omitempty"`
 	PrepaidUsed float64 `json:"prepaid_used"`

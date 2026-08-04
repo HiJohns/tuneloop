@@ -154,10 +154,7 @@ export default function Payment() {
     })
   }
 
-  const doMockPay = () => {
-    Taro.showToast({ title: '支付成功（模拟）', icon: 'success' })
-    setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 1500)
-  }
+  const doMockPay = () => handlePay(cashAmount)
 
   const doSimulatePay = async () => {
     if (!prepayData?.data) return
