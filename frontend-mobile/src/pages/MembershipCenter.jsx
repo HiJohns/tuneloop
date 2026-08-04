@@ -104,7 +104,8 @@ export default function MembershipCenter() {
   const fetchAddresses = async () => {
     try {
       const res = await addressesApi.list()
-      if (res.code === 20000) setAddresses(res.data?.list || [])
+      if (Array.isArray(res)) setAddresses(res)
+      else if (res?.code === 20000) setAddresses(res.data?.list || [])
     } catch {}
   }
 
