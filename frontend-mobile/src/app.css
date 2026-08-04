@@ -2,3 +2,5 @@
 @tailwind utilities;
 
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+/* RichText (content pages) image constraints */
+img { max-width: 100%; height: auto; }

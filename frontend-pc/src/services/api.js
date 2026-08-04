@@ -312,6 +312,8 @@ export const api = {
     method: 'DELETE',
     ...(data ? { body: JSON.stringify(data) } : {}),
   }),
+  // uploadFile sends multipart/form-data (FormData) — must not be JSON-serialized.
+  uploadFile: (endpoint, formData) => request(endpoint, { method: 'POST', body: formData }),
 }
 
 export const instrumentsApi = {
