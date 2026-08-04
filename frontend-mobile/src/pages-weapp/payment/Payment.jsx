@@ -334,9 +334,20 @@ export default function Payment() {
             )}
           </View>
         ) : (
-          <Button style={btnStyle(cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
-            {isPaying ? '处理中...' : `发起支付 ¥${Number(cashAmount).toFixed(2)}`}
-          </Button>
+          <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Button style={btnStyle(cashAmount > 0 ? '#B98E5F' : '#16a34a')} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
+                {isPaying ? '处理中...' : `发起支付 ¥${Number(cashAmount).toFixed(2)}`}
+              </Button>
+            </View>
+            {mockEnabled && (
+              <View style={{ flex: 1 }}>
+                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={() => handlePay(cashAmount)} disabled={isPaying}>
+                  模拟支付 ¥{Number(cashAmount).toFixed(2)}
+                </Button>
+              </View>
+            )}
+          </View>
         )}
       </View>
     </View>
