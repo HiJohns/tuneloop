@@ -81,7 +81,22 @@ for comp in www mobile service database; do
     fi
 done
 
-[ "$SERVICE" = "tuneloop" ] && [ -L "$TARGET_DIR/uploads" ] || ln -sf "$UPLOADS_DIR" "$TARGET_DIR/uploads"
+case "$SERVICE" in
+    tuneloop)
+        # Production: uploads -> /opt/uploads
+        [ -L "$TARGET_DIR/uploads" ] || ln -sf "$UPLOADS_DIR" "$TARGET_DIR/uploads"
+        ;;
+    tuneloop-pre)
+        # Prerelease: dedicated uploads dir, never link to production
+        mkdir -p /opt/tuneloop-pre/uploads/media
+        chown -R deploy:deploy /opt/tuneloop-pre/uploads
+        [ -L "$TARGET_DIR/uploads" ] && rm -f "$TARGET_DIR/uploads"
+        ln -sf /opt/tuneloop-pre/uploads "$TARGET_DIR/uploads"
+        ;;
+    *)
+        echo "  WARN: unknown service $SERVICE, skipping uploads link"
+        ;;
+esac
 
 echo "Starting $SYSTEMD_UNIT..."
 sudo systemctl start "$SYSTEMD_UNIT"
