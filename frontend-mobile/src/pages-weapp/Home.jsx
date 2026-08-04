@@ -348,9 +348,9 @@ export default function Home() {
 
       {/* A: Search button — fixed near top, aligned below capsule */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.menuRight - 40) : 0 }}>
-        <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 180, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
-          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>搜索乐器</Text>
+        <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 150, height: navBar.menuHeight, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 0, paddingBottom: 0, backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
+          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>搜索乐器</Text>
         </View>
       </View>
 
