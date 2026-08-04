@@ -744,6 +744,16 @@ func CancelOrderByCustomer(c *gin.Context) {
 		return
 	}
 
+	// Only allow cancellation from cancellable states (aligned with frontend
+	// cancel button visibility in OrderDetail.jsx).
+	switch order.Status {
+	case models.OrderStatusReserved, models.OrderStatusPaid,
+		models.OrderStatusPendingShipment, models.OrderStatusInTransit:
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "cannot cancel order in current status"})
+		return
+	}
+
 	// Remember old status before updating
 	oldStatus := order.Status
 
@@ -774,6 +784,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 	// For paid/pending_shipment orders, create refund session and return navigation
 	if oldStatus == models.OrderStatusPaid || oldStatus == models.OrderStatusPendingShipment {
 		refundAmount := order.CashPaid
+		refundStatus := ""
 		if refundAmount > 0 {
 			outRefundNo := fmt.Sprintf("can_%s_%d", orderID[:8], time.Now().Unix())
 			refundRecord := models.OrderRefundRecord{
@@ -812,14 +823,16 @@ func CancelOrderByCustomer(c *gin.Context) {
 				}
 			}
 			db.Create(&refundRecord)
+			refundStatus = refundRecord.Status
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"code":    20000,
 			"data": gin.H{
 				"order_id":      orderID,
-				"old_status":    order.Status,
+				"old_status":    oldStatus,
 				"new_status":    models.OrderStatusCancelled,
 				"refund_amount": refundAmount,
+				"refund_status": refundStatus,
 			},
 		})
 		return

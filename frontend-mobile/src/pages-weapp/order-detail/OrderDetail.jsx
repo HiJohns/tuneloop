@@ -130,10 +130,9 @@ export default function OrderDetail() {
           const result = await resp.json()
           if (result.code === 20000) {
             if (result.data?.refund_amount > 0) {
-              Taro.redirectTo({ url: `/pages-weapp/payment/index?type=refund&id=${id}` })
-            } else {
-              setOrder(prev => ({ ...prev, status: 'cancelled' }))
+              Taro.showModal({ title: '订单已取消', content: '退款将原路退回（如有）。', showCancel: false })
             }
+            setOrder(prev => ({ ...prev, status: 'cancelled' }))
           } else {
             Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
           }

@@ -154,10 +154,9 @@ export default function OrderDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         if (result.data?.refund_amount > 0) {
-          navigate(`/payment?type=refund&id=${order.settlement_id || id}`, { replace: true })
-        } else {
-          setOrder(prev => ({ ...prev, status: 'cancelled' }))
+          dialog.alert('订单已取消，退款将原路退回（如有）。')
         }
+        setOrder(prev => ({ ...prev, status: 'cancelled' }))
       } else {
         dialog.alert('取消失败: ' + result.message)
       }

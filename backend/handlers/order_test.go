@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services/wechatpay"
 
 	"gorm.io/gorm"
 )
@@ -228,6 +229,92 @@ func TestLeaseFlow_CancelOrder(t *testing.T) {
 
 	db.First(&instrument, "id = ?", instrumentID)
 	assert.Equal(t, "available", instrument.StockStatus)
+}
+
+func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
+	wechatpay.InitGlobal(wechatpay.LoadConfig())
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.OrderRefundRecord{}, &models.OrderStatusHistory{}, &models.OrderLog{}))
+
+	tenantID := "00000000-0000-0000-0000-0000000000c1"
+	orgID := "00000000-0000-0000-0000-0000000000c2"
+	userID := "00000000-0000-0000-0000-0000000000c3"
+
+	instrument := models.Instrument{
+		TenantID:      tenantID,
+		OrgID:         &orgID,
+		SN:            "CNL-" + time.Now().Format("150405"),
+		BaseDailyRate: float64Ptr(100),
+		StockStatus:   "available",
+	}
+	require.NoError(t, db.Create(&instrument).Error)
+
+	router := setupTestRouter(t, tenantID, userID)
+	router.POST("/orders/:id/cancel-by-user", CancelOrderByCustomer)
+
+	createOrder := func(t *testing.T, status string) string {
+		order := models.Order{
+			TenantID:     tenantID,
+			OrgID:        orgID,
+			UserID:       userID,
+			InstrumentID: instrument.ID,
+			Level:        "standard",
+			LeaseTerm:    1,
+			Status:       status,
+			Deposit:      0,
+			CashPaid:     100,
+		}
+		require.NoError(t, db.Create(&order).Error)
+		return order.ID
+	}
+
+	t.Run("paid_cancel_succeeds_with_refund_status", func(t *testing.T) {
+		orderID := createOrder(t, models.OrderStatusPaid)
+
+		req := httptest.NewRequest("POST", "/orders/"+orderID+"/cancel-by-user", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, float64(20000), resp["code"])
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, "cancelled", data["new_status"])
+		// cash_paid=100 → refund amount > 0, status from refund record (MockMode → refunded)
+		assert.Equal(t, float64(100), data["refund_amount"])
+		assert.Equal(t, "refunded", data["refund_status"])
+	})
+
+	t.Run("in_lease_cancel_rejected", func(t *testing.T) {
+		orderID := createOrder(t, models.OrderStatusInLease)
+
+		req := httptest.NewRequest("POST", "/orders/"+orderID+"/cancel-by-user", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, float64(40002), resp["code"])
+	})
+
+	t.Run("reserved_cancel_succeeds_without_refund", func(t *testing.T) {
+		orderID := createOrder(t, models.OrderStatusReserved)
+
+		req := httptest.NewRequest("POST", "/orders/"+orderID+"/cancel-by-user", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resp map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Equal(t, float64(20000), resp["code"])
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, "cancelled", data["new_status"])
+	})
 }
 
 func TestLeaseFlow_InvalidStatusTransitions(t *testing.T) {
