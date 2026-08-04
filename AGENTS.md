@@ -1113,6 +1113,54 @@ Taro/微信小程序中 View 组件的 CSS 默认值与浏览器不同，以下�
 3. Commit + Push（绑定 `Closes #N`）
 4. Comment commit hash 到 Issue
 
+### 方法论 7：自定义导航栏规范 (Custom Navigation Bar)
+
+> 来源：#1510 首页全屏沉浸改造（custom nav + 胶囊对齐搜索框）+ #1511 各页原生导航标题。核心教训：**胶囊坐标是绝对 X 坐标，误当距离会压碎 flex 容器**。
+
+#### 适用场景划分
+
+| 页面类型 | 方案 | 配置 |
+|---------|------|------|
+| **首页**（全屏沉浸 + 自定义搜索框） | `navigationStyle: 'custom'` + 手动对齐胶囊 | `pages-weapp/home/index.config.ts` |
+| **普通页**（标准返回 + 中间标题） | 原生导航栏 + `navigationBarTitleText` | 各页 `pages-weapp/*/index.config.ts` |
+
+#### 关键规则
+
+1. **weapp 页面配置必须在 `pages-weapp/*/index.config.ts`**：`pages/*/index.config.ts`（H5 目录）**不影响 weapp 构建**——已验证 dist-weapp 产物不含其标题，页面全部继承全局 `TuneLoop`
+2. **胶囊位置 API**：`Taro.getMenuButtonBoundingClientRect()` 返回 `{ top, right, left, width, height }`，其中 **`right` 是绝对 X 坐标**（距屏幕左缘，如 365px），**不是**距右缘的距离！
+   - ❌ 错误：`paddingRight: menu.right - 40` → 365-40=325px 压碎容器 → 150px 按钮缩成 ~30px 文字竖排
+   - ✅ 正确：`paddingRight: windowWidth - menu.right + 8`（胶囊距右缘 ~8px）
+3. **搜索框对齐公式**：`top: menu.top`（与胶囊同水平线）、`height: menu.height - 2`（视觉略矮更协调）、宽度需配合 `paddingRight` 预留胶囊空间
+4. **胶囊背景参考**：半透明白 `rgba(255,255,255,0.45)` + 边框 `0.55`；背景变亮后文字需加深（`rgba(0,0,0,0.75)`）保对比度
+5. **手写标题条跨端规则**（#1511/#1513）：
+   - `pages-weapp/` 独有 jsx（仅 weapp 用）→ 直接删除标题条（原生导航栏接管）
+   - `pages/` 共享 jsx（H5+weapp 共用）→ `{!env.isMiniProgram && (...)}` 条件包裹（H5 无原生导航栏必须保留）
+6. **custom 后 Z 轴各层 top 值失效**：原基于原生导航栏高度（~44px）的 hardcode（如 112px/142px）必须改为动态计算（`menu.top + menu.height + 偏移`）
+
+#### 标准实现模板
+
+```jsx
+const getNavBarLayout = () => {
+  try {
+    const sys = Taro.getSystemInfoSync()
+    const menu = Taro.getMenuButtonBoundingClientRect()
+    return {
+      statusBarHeight: sys.statusBarHeight || 20,
+      menuTop: menu.top,
+      menuHeight: menu.height,
+      menuRight: menu.right,
+      windowWidth: sys.windowWidth || 375,
+    }
+  } catch {
+    return { statusBarHeight: 20, menuTop: 10, menuHeight: 32, menuRight: 0, windowWidth: 375 }
+  }
+}
+// 搜索条: top=menuTop, paddingRight=windowWidth-menuRight+8
+// 菜单/内容层: top = menuTop + menuHeight + 偏移
+```
+
+
+
 
 ---
 
