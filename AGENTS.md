@@ -1071,6 +1071,23 @@ done
 | `fixed` 定位在 ScrollView 内可能异常 | 不能依赖嵌套 fixed | 将 fixed 层放到 ScrollView 外层 |
 | `catchMove` 可能被运行时忽略 | 不能作为唯一防线 | 配合 `overflow-hidden` + 手动 scroll |
 
+**补充：小程序 CSS 默认值与浏览器差异（#1514 MyLeases 溢出调试总结）**
+
+Taro/微信小程序中 View 组件的 CSS 默认值与浏览器不同，以下三项是最常见的溢出根源：
+
+| 属性 | 浏览器默认 | 小程序默认 | 影响 | 应对 |
+|------|:---:|:---:|------|------|
+| `box-sizing` | `border-box`（Tailwind reset）| `content-box` | `width:100%` + `padding` → 总宽 = 100% + padding → 溢出 | 显式 `boxSizing: 'border-box'` |
+| `flex-shrink` | `1` | `0` | `flex-1` 只 grow 不 shrink → 内容撑破容器 | 显式 `flexShrink: 1, minWidth: 0` |
+| `flex: 1` 展开 | `flex: 1 1 0%` | `flex-grow: 1` only | `flex-basis` 不重置为 0 → 元素按内容撑宽 | 显式 `flex: '1 1 0%'` |
+| ScrollView 子元素宽度 | 受 ScrollView padding 约束 | 子元素仍按**屏宽 100%** 计算（padding 无效） | 左右 padding 不砍子元素宽度 | padding 移到 ScrollView **内部**的普通 `<View>` 上 |
+
+**调试方法论**：
+1. **确权**：`grep -rn "关键词" src/pages-weapp/ src/pages/` —— 跨端项目先确认改哪个文件（weapp 有独立副本）
+2. **标定**：加肉眼标记（版本号/颜色）确认新版已加载
+3. **分层**：从外到内逐层检查容器→子元素→内容是否溢出
+4. **硬约束**：Tailwind class 不生效时直接 `style={{}}` 显式 CSS
+
 ### 方法论 5：配色增量迭代 (Incremental Color Palette Design)
 
 **流程**：同色系（保守）→ 视觉对比判断 → 不够 → 跨色系（激进）。
