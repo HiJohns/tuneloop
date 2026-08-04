@@ -282,9 +282,22 @@ export default function OrderDetail() {
   const deliveryAddress = (() => {
     if (!order.delivery_address) return null
     try {
-      if (typeof order.delivery_address === 'string') return JSON.parse(order.delivery_address)
-      return order.delivery_address
-    } catch { return null }
+      if (typeof order.delivery_address !== 'string') return order.delivery_address
+      // Try JSON format first, fall back to plain text
+      try { return JSON.parse(order.delivery_address) } catch {}
+      const parts = order.delivery_address.trim().split(/\s+/)
+      if (parts.length >= 3) {
+        return {
+          recipient_name: parts[0],
+          phone: parts[1],
+          province: parts[2],
+          city: parts[3] || '',
+          district: '',
+          detail: parts.slice(4).join(' '),
+        }
+      }
+    } catch {}
+    return null
   })()
 
   const orderLogs = allLogs
