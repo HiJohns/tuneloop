@@ -199,7 +199,7 @@ export default function MyLeases() {
           </View>
         ) : (
           <>
-          <View className="space-y-3">
+          <View className="space-y-3 w-full overflow-hidden">
               {orders.map(order => {
               const showReturn = !isStaff && order.status === 'in_lease'
               const showStaffReceive = isStaff && order.status === 'returning'
@@ -222,8 +222,8 @@ export default function MyLeases() {
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
-                <View className="flex flex-row">
-                  <View className="flex-1">
+                <View className="flex flex-row overflow-hidden" style={{ display:'flex', flexDirection:'row', overflow:'hidden' }}>
+                  <View className="flex-1" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
                 <View className="space-y-1 text-sm">
                   {order.instrument_name && (
                     <View><Text className="text-zinc-400 font-medium">
