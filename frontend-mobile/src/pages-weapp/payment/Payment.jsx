@@ -19,6 +19,7 @@ export default function Payment() {
   const [giftUsed, setGiftUsed] = useState(0)
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
+  const [mockPaying, setMockPaying] = useState(false)
   const [mockEnabled, setMockEnabled] = useState(false)
 
   useEffect(() => {
@@ -154,7 +155,31 @@ export default function Payment() {
     })
   }
 
-  const doMockPay = () => handlePay(cashAmount)
+  const doMockPay = async () => {
+    // Simulated payment: run prepay (mock mode returns mock success directly);
+    // if a real prepay session was created, trigger the test callback.
+    setMockPaying(true)
+    try {
+      await handlePay(cashAmount)
+      if (prepayData?.data?.out_trade_no) {
+        const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
+          method: 'POST',
+          body: JSON.stringify({ out_trade_no: prepayData.data.out_trade_no }),
+        })
+        const r = await resp.json()
+        if (r.code === 20000) {
+          Taro.showToast({ title: '测试支付已提交', icon: 'success' })
+          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+        } else {
+          Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
+        }
+      }
+    } catch (err) {
+      Taro.showModal({ title: '测试支付失败', content: err.message, showCancel: false })
+    } finally {
+      setMockPaying(false)
+    }
+  }
 
   const doSimulatePay = async () => {
     if (!prepayData?.data) return
@@ -362,8 +387,8 @@ export default function Payment() {
             </View>
             {mockEnabled && (
               <View style={{ flex: 1 }}>
-                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doMockPay} disabled={isPaying}>
-                  模拟支付 ¥{Number(cashAmount).toFixed(2)}
+                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doMockPay} disabled={mockPaying}>
+                  {mockPaying ? '处理中...' : `模拟支付 ¥${Number(cashAmount).toFixed(2)}`}
                 </Button>
               </View>
             )}
