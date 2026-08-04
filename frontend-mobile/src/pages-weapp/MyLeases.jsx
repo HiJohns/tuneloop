@@ -134,7 +134,7 @@ export default function MyLeases() {
   return (
     <View style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#FDFBF7' }}>
       <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>我的租约</Text>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>我的租约 v11</Text>
       </View>
 
       {/* Filter bar */}
@@ -154,7 +154,7 @@ export default function MyLeases() {
         </Picker>
       </View>
 
-      <ScrollView scrollY style={{ flex: '1 1 0%', paddingLeft: 16, paddingRight: 16, paddingBottom: 72, minHeight: 0, overflowY: 'auto' }}
+      <ScrollView scrollY style={{ flex: '1 1 0%', paddingBottom: 72, minHeight: 0, overflowY: 'auto' }}
         onScrollToLower={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true)
@@ -164,6 +164,7 @@ export default function MyLeases() {
         lowerThreshold={50}
         enableBackToTop
       >
+        <View style={{ paddingLeft: 16, paddingRight: 16 }}>
         {loading ? (
           <View style={{ textAlign: 'center', paddingTop: 64, paddingBottom: 64, color: '#a1a1aa', fontWeight: '500' }}>加载中...</View>
         ) : orders.length === 0 ? (
@@ -196,8 +197,8 @@ export default function MyLeases() {
                     {STATUS_LABELS[order.status] || order.status}
                   </Text>
                 </View>
-                <View style={{ display: 'flex', flexDirection: 'row' }}>
-                  <View style={{ flex: '1 1 0%' }}>
+                <View style={{ display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+                  <View style={{ flex: '1 1 0%', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
                 <View style={{ fontSize: 14 }}>
                   {order.instrument_name && (
                     <View style={{ marginBottom: 4 }}><Text style={{ color: '#a1a1aa', fontWeight: '500' }}>
@@ -218,13 +219,13 @@ export default function MyLeases() {
                   </View>
                   {order.cover_image && <Image src={fixImg(order.cover_image)} style={{ width: 80, height: 80, borderRadius: 8, marginLeft: 12 }} mode="aspectFill" />}
                 </View>
-                <View style={{ marginTop: 12, display: 'flex' }}>
+                <View style={{ marginTop: 12, display: 'flex', flexDirection: 'row', gap: 8, overflow: 'hidden' }}>
                   {!isTerminal && (
                     <>
                       {showPay && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); Taro.redirectTo({ url: `/pages-weapp/payment/index?type=rent&id=${order.id}` }) }}
-                          style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           立即支付
                         </Button>
@@ -232,7 +233,7 @@ export default function MyLeases() {
                       {showConfirm && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           确认收货
                         </Button>
@@ -243,7 +244,7 @@ export default function MyLeases() {
                             e.stopPropagation()
                             nav(`/pages-weapp/return-confirm/index?order_id=${order.id}&instrument=${order.instrument_id}`)
                           }}
-                          style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           归还乐器
                         </Button>
@@ -251,7 +252,7 @@ export default function MyLeases() {
                       {showStaffReceive && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
-                          style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           接收
                         </Button>
@@ -259,7 +260,7 @@ export default function MyLeases() {
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
-                          style={{ flex: '1 1 0%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', color: '#52525b', borderRadius: 12, fontWeight: '900', fontSize: 14, marginRight: 8 }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', color: '#52525b', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           取消订单
                         </Button>
@@ -283,6 +284,7 @@ export default function MyLeases() {
           )}
           </>
         )}
+        </View>
       </ScrollView>
 
       <BottomNav
