@@ -393,6 +393,47 @@ func (s *IAMService) WxLogin(code string) (*TokenResponse, error) {
 	return &tokenResp, nil
 }
 
+// WxBindResult is the response from IAM POST /api/v1/auth/wx-bind.
+type WxBindResult struct {
+	UserID   string `json:"user_id"`
+	WxOpenid string `json:"wx_openid"`
+}
+
+// WxBind exchanges a WeChat login code and binds the openid to the given
+// IAM user. Used during the registration flow: the user is created first,
+// then the WeChat identity is bound (beaconiam #480).
+func (s *IAMService) WxBind(code, userID string) (*WxBindResult, error) {
+	payload := map[string]string{
+		"code":      code,
+		"client_id": s.clientID,
+		"user_id":   userID,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+	bindURL := fmt.Sprintf("%s/api/v1/auth/wx-bind", s.baseURL)
+	resp, err := s.httpClient.Post(
+		bindURL,
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-bind endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[IAM DEBUG] WxBind non-200 status=%d body=%s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("IAM wx-bind returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var result WxBindResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-bind response: %w", err)
+	}
+	return &result, nil
+}
+
 func (s *IAMService) GetPublicKeyInfo() (*PublicKeyResponse, error) {
 	resp, err := s.httpClient.Get(
 		fmt.Sprintf("%s/api/v1/auth/public-key", s.baseURL),

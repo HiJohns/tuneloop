@@ -307,7 +307,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		n := req.Nickname
 		createReq.Nickname = &n
 	}
-	_, createErr := iamClient.CreateUser(createReq)
+	createResp, createErr := iamClient.CreateUser(createReq)
 	if createErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
@@ -316,55 +316,15 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		return
 	}
 
-	// If wx_code provided, bind WeChat to this user
+	// If wx_code provided, bind the WeChat identity to the newly created
+	// IAM user (beaconiam #480: wx-login no longer auto-creates accounts,
+	// so registration must bind the openid explicitly via wx-bind).
+	var boundOpenid string
 	if req.WxCode != "" {
-		if tokenResp, wxErr := h.iamService.WxLogin(req.WxCode); wxErr == nil && tokenResp != nil && tokenResp.AccessToken != "" {
-			// Sync to local users table
-			claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
-			if parseErr == nil && claims.UserID != "" {
-				var existing models.User
-				if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
-					tenantID := claims.TenantID
-					if tenantID == "" { tenantID = "00000000-0000-0000-0000-000000000000" }
-					orgID := claims.OrgID
-					if orgID == "" { orgID = "00000000-0000-0000-0000-000000000000" }
-					newUser := models.User{
-						IAMSub:             claims.UserID,
-						TenantID:           tenantID,
-						OrgID:              orgID,
-						Username:           userName,
-						Name:               req.Name,
-						Phone:              req.Phone,
-						Email:              req.Email,
-						Role:               "USER",
-						Status:             "active",
-						IsProfileCompleted: true,
-						WxOpenid:           tokenResp.WxOpenid,
-					}
-					if createErr := h.db.Create(&newUser).Error; createErr != nil {
-						log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
-					} else {
-						refCode := newUser.ID[:8]
-						h.db.Model(&newUser).Update("ref_code", refCode)
-						if req.Ref != "" && req.Ref != refCode {
-							var referrer models.User
-							if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
-								h.db.Create(&models.Referral{
-									ReferrerID: referrer.ID,
-									RefereeID:  newUser.ID,
-									RefCode:    req.Ref,
-									Status:     "registered",
-								})
-							}
-						}
-					}
-				}
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"code": 20000,
-				"data": tokenResp,
-			})
-			return
+		if bindResult, bindErr := h.iamService.WxBind(req.WxCode, createResp.UserID); bindErr != nil {
+			log.Printf("[Register] WxBind failed for user %s: %v", createResp.UserID, bindErr)
+		} else {
+			boundOpenid = bindResult.WxOpenid
 		}
 	}
 
@@ -398,6 +358,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 				Role:               "USER",
 				Status:             "active",
 				IsProfileCompleted: true,
+				WxOpenid:           boundOpenid,
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {
 				log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
