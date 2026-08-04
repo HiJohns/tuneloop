@@ -24,7 +24,7 @@ export default function Payment() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const resp = await apiFetch(`${baseUrl}/pay/config`)
+        const resp = await apiFetch(`${baseUrl}/public/config`)
         const r = await resp.json()
         if (r.code === 20000) setMockEnabled(!!r.data?.mock_payment)
       } catch { /* non-fatal */ }

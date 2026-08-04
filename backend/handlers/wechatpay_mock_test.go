@@ -19,9 +19,9 @@ func TestPayConfig_MockMode(t *testing.T) {
 	wechatpay.InitGlobal(wechatpay.LoadConfig())
 
 	router := gin.New()
-	router.GET("/pay/config", GetPayConfig)
+	router.GET("/api/public/config", GetPayConfig)
 
-	req := httptest.NewRequest("GET", "/pay/config", nil)
+	req := httptest.NewRequest("GET", "/api/public/config", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

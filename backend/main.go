@@ -202,6 +202,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.GET("/public/instruments/:id/media", handlers.GetPublicInstrumentMedia)
 	api.GET("/public/instruments/:id/display-media", handlers.GetPublicInstrumentDisplayMedia)
 	api.GET("/public/categories", handlers.GetPublicCategories)
+	api.GET("/public/config", handlers.GetPayConfig)
 	api.GET("/public/sites", handlers.GetPublicSites)
 	api.GET("/public/instruments/lookup", handlers.LookupInstrumentBySN)
 	api.GET("/public/banners", bannerHandler.GetPublicBanners)
