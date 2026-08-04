@@ -135,6 +135,29 @@ export default function Home() {
   const menuStuckRef = useRef(false)
   const scrollTimerRef = useRef(null)
   const blurTimerRef = useRef(null)
+
+  // Custom navigation bar layout (weapp only): align search bar with the
+  // native capsule button and push content below the status bar.
+  const getNavBarLayout = () => {
+    try {
+      const sys = Taro.getSystemInfoSync()
+      const menu = Taro.getMenuButtonBoundingClientRect()
+      return {
+        statusBarHeight: sys.statusBarHeight || 20,
+        menuTop: menu.top,
+        menuHeight: menu.height,
+        menuRight: menu.right,
+        navHeight: (menu.top - (sys.statusBarHeight || 20)) * 2 + menu.height + (sys.statusBarHeight || 20),
+      }
+    } catch {
+      return { statusBarHeight: 20, menuTop: 10, menuHeight: 32, menuRight: 0, navHeight: 44 }
+    }
+  }
+  const navBar = getNavBarLayout()
+  const searchTop = navBar.menuTop
+  const menuTop = navBar.menuTop + navBar.menuHeight + 8
+  const contentTop = menuTop + 30
+
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
     sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0))
@@ -323,8 +346,8 @@ export default function Home() {
         />
       )}
 
-      {/* A: Search button — fixed near top */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: '10px' }}>
+      {/* A: Search button — fixed near top, aligned below capsule */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.menuRight - 40) : 0 }}>
         <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 180, height: 42, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>🔍</Text>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>搜索乐器</Text>
@@ -333,13 +356,13 @@ export default function Home() {
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10001, backgroundColor: 'transparent', top: '112px' }}>
+        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10001, backgroundColor: 'transparent', top: menuTop }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
         </View>
       )}
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: '142px', bottom: 0 }}>
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
         <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
           scrollY showScrollbar={false} scrollTop={scrollYRef.current}
           onScroll={e => {
