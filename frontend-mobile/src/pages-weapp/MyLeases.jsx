@@ -133,9 +133,7 @@ export default function MyLeases() {
 
   return (
     <View style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#FDFBF7' }}>
-      <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 16 }}>
-        <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>我的租约 v11</Text>
-      </View>
+      {/* Title bar removed — native navigation bar shows 我的租赁 (#1511) */}
 
       {/* Filter bar */}
       <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 12, paddingBottom: 12, display: 'flex', alignItems: 'center' }}>
@@ -186,7 +184,7 @@ export default function MyLeases() {
               return (
               <View
                 key={order.id}
-                style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12, width: '100%' }}
+                style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12, boxSizing: 'border-box', maxWidth: '100%' }}
                 onClick={() => nav(`/pages-weapp/order-detail/index?id=${order.id}`)}
               >
                 <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
