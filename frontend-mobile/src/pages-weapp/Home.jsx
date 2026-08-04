@@ -357,7 +357,7 @@ export default function Home() {
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10001, backgroundColor: 'transparent', top: menuTop }}>
+        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
         </View>
       )}
@@ -390,7 +390,7 @@ export default function Home() {
           }}>
           <View style={{ height: '100px' }}></View>
 
-        <View style={{ opacity: menuStuck ? 0 : 1, backgroundColor: 'transparent', transition: 'opacity 0.3s' }}>
+        <View style={{ opacity: menuStuck ? 0 : 1, pointerEvents: menuStuck ? 'none' : 'auto', backgroundColor: 'transparent', transition: 'opacity 0.3s' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
         </View>
 
