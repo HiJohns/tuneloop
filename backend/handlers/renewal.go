@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"time"
@@ -450,6 +451,11 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		Status:    "unread",
 		CreatedAt: now,
 	})
+
+	// Re-evaluate membership level after renewal payment
+	if err := services.CheckAndUpgradeLevel(record.UserID, nil); err != nil {
+		log.Printf("[applyRenewalSideEffects] membership level check failed: %v", err)
+	}
 
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
@@ -98,6 +99,15 @@ func processRefundCallback(c *gin.Context, result *wechatpay.CallbackResult) boo
 				"updated_at":    now,
 			}).Error; err != nil {
 				log.Printf("[processRefundCallback] failed to update settlement for %s: %v", result.OutRefundNo, err)
+			}
+		}
+
+		// Re-evaluate membership level after refund (aggregated spending decreased;
+		// level only upgrades, so this is a no-op unless other spending crossed a threshold)
+		var payment models.OrderPaymentRecord
+		if err := db.Where("id = ?", *refundRecord.PaymentRecordID).First(&payment).Error; err == nil {
+			if err := services.CheckAndUpgradeLevel(payment.UserID, nil); err != nil {
+				log.Printf("[processRefundCallback] membership level check failed: %v", err)
 			}
 		}
 	}
@@ -268,6 +278,10 @@ func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now tim
 	if err := tx.Create(&pt).Error; err != nil {
 		log.Printf("[applySideEffects] failed to record points transaction: %v", err)
 		return err
+	}
+	// Re-evaluate membership level after prepaid purchase
+	if err := services.CheckAndUpgradeLevel(record.UserID, nil); err != nil {
+		log.Printf("[applySideEffects] membership level check failed: %v", err)
 	}
 	return nil
 }

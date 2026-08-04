@@ -1117,13 +1117,17 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 			return
 		}
 
-		// Update user total_spending
+		// Update user total_spending (cached display value)
 		var localUser models.User
 		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 			return
 		}
 		db.Model(&localUser).Update("total_spending", gorm.Expr("total_spending + ?", amount))
+		// Re-evaluate membership level (aggregated spending)
+		if err := services.CheckAndUpgradeLevel(localUser.ID, nil); err != nil {
+			log.Printf("[PayRepairRequest] membership level check failed: %v", err)
+		}
 
 		// Update repair request
 		updates := map[string]interface{}{
