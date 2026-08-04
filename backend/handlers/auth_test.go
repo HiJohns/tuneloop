@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -161,4 +162,155 @@ func TestWxLogin_Channel3_ExistingLocalUser_IsNewFalse(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20000, resp.Code)
 	require.False(t, resp.Data.IsNew)
+}
+
+// newRegisterMockServer serves the IAM endpoints PostRegister needs:
+// client-credentials token, user creation, and wx-login returning an HS256
+// token so ValidateToken accepts it locally.
+func newRegisterMockServer(t *testing.T, newUserID, name string) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		// client_credentials (IAMClient.CreateUser) and password grant
+		// (IAMService.IAMLogin fallback) both hit this endpoint.
+		body, _ := io.ReadAll(r.Body)
+		var req map[string]string
+		json.Unmarshal(body, &req)
+		if req["grant_type"] == "password" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token":  signHS256Token(t, newUserID, name),
+				"expires_in":    7200,
+				"token_type":    "Bearer",
+				"refresh_token": "",
+			})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-client-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/auth/wx-login", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token":  signHS256Token(t, newUserID, name),
+			"expires_in":    7200,
+			"token_type":    "Bearer",
+			"refresh_token": "",
+		})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"user_id": newUserID,
+					"status":  "active",
+				},
+			})
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+	return httptest.NewServer(mux)
+}
+
+// TestPostRegister_RefConsumption verifies #1496: the ref parameter is only
+// consumed (referrals row created) when wx_code is provided.
+func TestPostRegister_RefConsumption(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Referral{}))
+	db.Exec("DELETE FROM referrals")
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	// Existing referrer with a ref_code
+	referrerID := "6d1e2c3a-0000-4000-8000-0000000000aa"
+	require.NoError(t, db.Create(&models.User{
+		ID:       referrerID,
+		IAMSub:   referrerID,
+		TenantID: "00000000-0000-0000-0000-000000000001",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "Referrer",
+		Role:     "USER",
+		Status:   "active",
+		RefCode:  "abc12345",
+	}).Error)
+
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000bb"
+	srv := newRegisterMockServer(t, newUserID, "NewUser")
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	register := func(wxCode, ref string) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]interface{}{
+			"name":     "New User",
+			"phone":    "13900139000",
+			"password": "secret123",
+			"wx_code":  wxCode,
+			"ref":      ref,
+		})
+		req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("wx_code_with_ref_creates_referral", func(t *testing.T) {
+		w := register("test-wx-code", "abc12345")
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp struct {
+			Code int `json:"code"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 20000, resp.Code)
+
+		var count int64
+		require.NoError(t, db.Model(&models.Referral{}).
+			Where("referrer_id = ? AND ref_code = ? AND status = ?", referrerID, "abc12345", "registered").
+			Count(&count).Error)
+		require.Equal(t, int64(1), count, "referral row must be created when wx_code + ref are provided")
+	})
+
+	t.Run("no_ref_skips_referral", func(t *testing.T) {
+		// different wx code → new local user
+		otherUser := "6d1e2c3a-0000-4000-8000-0000000000cc"
+		srv2 := newRegisterMockServer(t, otherUser, "OtherUser")
+		defer srv2.Close()
+		services.SetIAMInternalURLForTesting(srv2.URL)
+
+		w := register("test-wx-code-2", "")
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var count int64
+		require.NoError(t, db.Model(&models.Referral{}).Count(&count).Error)
+		require.Equal(t, int64(1), count, "no referral row created without ref param")
+	})
+
+	t.Run("no_wx_code_skips_ref_consumption", func(t *testing.T) {
+		// H5 register: no wx_code → ref must NOT be consumed.
+		// PostRegister falls to the IAMLogin-after-register path; use an
+		// independent mock user so iam_sub is fresh.
+		h5User := "6d1e2c3a-0000-4000-8000-0000000000dd"
+		srv3 := newRegisterMockServer(t, h5User, "H5User")
+		defer srv3.Close()
+		services.SetIAMInternalURLForTesting(srv3.URL)
+
+		w := register("", "abc12345")
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var count int64
+		require.NoError(t, db.Model(&models.Referral{}).Count(&count).Error)
+		require.Equal(t, int64(1), count, "ref must not be consumed when wx_code is empty")
+	})
 }
