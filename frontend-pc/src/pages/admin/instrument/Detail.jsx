@@ -462,7 +462,21 @@ export default function InstrumentDetail() {
                             const res = await instrumentsApi.displayImageUpload(id, file)
                             if (res.code === 20000) {
                               message.success('展示图上传成功')
-                              fetchInstrument()
+                              // 乐观更新：直接追加到 display 列表，避免整页 loading 刷新
+                              setInstrument(prev => ({
+                                ...prev,
+                                media: {
+                                  ...(prev.media || {}),
+                                  display: [...((prev.media?.display) || []), {
+                                    id: res.data.id,
+                                    url: res.data.url,
+                                    file_type: 'image',
+                                    width: res.data.width,
+                                    height: res.data.height,
+                                    storage_key: res.data.url?.replace('/uploads/media/', ''),
+                                  }],
+                                },
+                              }))
                             } else {
                               message.error(res.message || '上传失败')
                             }

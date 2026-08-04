@@ -284,9 +284,6 @@ func GetInstrumentByID(c *gin.Context) {
 			"batches": batches,
 			"video":   videoItem,
 		}
-		if len(displayItems) > 0 && instrumentMap["cover_image"] == "" {
-			instrumentMap["cover_image"] = displayItems[0].URL
-		}
 	} else {
 		instrumentMap["media"] = gin.H{
 			"display": []interface{}{},
