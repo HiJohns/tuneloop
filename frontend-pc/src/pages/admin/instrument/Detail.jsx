@@ -76,10 +76,8 @@ export default function InstrumentDetail() {
   const [mediaLoading, setMediaLoading] = useState(false)
   const [editingCard, setEditingCard] = useState(null)
   const [savingCard, setSavingCard] = useState(false)
-  const [propsDirty, setPropsDirty] = useState(false)
-  const [propsSaving, setPropsSaving] = useState(false)
-  const [allProps, setAllProps] = useState([])
-  const [propValues, setPropValues] = useState({})
+  const [editingPricing, setEditingPricing] = useState(false)
+  const [savingPricing, setSavingPricing] = useState(false)
   const [editValues, setEditValues] = useState({})
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
@@ -421,13 +419,73 @@ export default function InstrumentDetail() {
             </Row>
           )
         },
-        {
+         {
           label: '价格策略',
           key: 'pricing',
           children: (
             <Row gutter={16}>
               <Col span={16}>
-                <Card title="价格设定">
+                <Card title="价格设定"
+                  extra={editingPricing ? null : <EditOutlined className="cursor-pointer" onClick={() => {
+                    setEditingPricing(true)
+                    setEditValues(prev => ({
+                      ...prev,
+                      base_daily_rate: pricingV2?.base_daily_rate || '',
+                      deposit: pricingV2?.deposit || '',
+                      shipping_fee: pricingV2?.shipping_fee || '',
+                      overdue_daily_fee: overdueDailyFee || '',
+                    }))
+                  }} />}
+                >
+                  {editingPricing ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm text-gray-500">标准日租</label>
+                        <InputNumber value={editValues.base_daily_rate} onChange={v => setEditValues(prev => ({ ...prev, base_daily_rate: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">押金</label>
+                        <InputNumber value={editValues.deposit} onChange={v => setEditValues(prev => ({ ...prev, deposit: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">物流费</label>
+                        <InputNumber value={editValues.shipping_fee} onChange={v => setEditValues(prev => ({ ...prev, shipping_fee: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-500">逾期日费</label>
+                        <InputNumber value={editValues.overdue_daily_fee} onChange={v => setEditValues(prev => ({ ...prev, overdue_daily_fee: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="primary" loading={savingPricing} onClick={async () => {
+                          setSavingPricing(true)
+                          try {
+                            const overrides = {}
+                            if (editValues.deposit != null) overrides.deposit = editValues.deposit
+                            if (editValues.shipping_fee != null) overrides.shipping_fee = editValues.shipping_fee
+                            if (editValues.overdue_daily_fee != null) overrides.overdue_daily_fee = editValues.overdue_daily_fee
+                            const res = await api.put('/instruments/batch-pricing', {
+                              items: [{
+                                id,
+                                base_daily_rate: editValues.base_daily_rate || undefined,
+                                overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
+                              }],
+                            })
+                            if (res.code === 20000) {
+                              message.success('价格已更新')
+                              setEditingPricing(false)
+                              // Refresh pricingV2
+                              const r = await pricingApi.getInstrumentPricingV2(id)
+                              if (r.code === 20000) setPricingV2(r.data)
+                            } else {
+                              message.error(res.message || '保存失败')
+                            }
+                          } catch { message.error('保存失败') }
+                          setSavingPricing(false)
+                        }}>保存</Button>
+                        <Button onClick={() => setEditingPricing(false)}>取消</Button>
+                      </div>
+                    </div>
+                  ) : (
                   <Descriptions column={2} bordered size="small">
                     <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate || '-'}/天</Descriptions.Item>
                     <Descriptions.Item label="押金">¥{pricingV2?.deposit || '-'}</Descriptions.Item>
@@ -435,6 +493,7 @@ export default function InstrumentDetail() {
                     <Descriptions.Item label="物流费">¥{pricingV2?.shipping_fee || '-'}</Descriptions.Item>
                     <Descriptions.Item label="逾期日费">¥{overdueDailyFee || '-'}</Descriptions.Item>
                   </Descriptions>
+                  )}
                 </Card>
                 {pricingV2?.tiers?.length > 0 && (
                   <Card title="阶梯折扣" className="mt-4">
