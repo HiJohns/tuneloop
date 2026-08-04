@@ -16,7 +16,7 @@ import (
 )
 
 type PrepayRequest struct {
-	OrderID     string  `json:"order_id"` // optional for points/renewal type
+	OrderID     string  `json:"order_id"` // required for rent/repair/damage; empty allowed for points/renewal
 	OrderType   string  `json:"order_type" binding:"required"` // rent | repair | points | damage | renewal
 	Amount      float64 `json:"amount" binding:"required"`
 	OpenID      string  `json:"open_id,omitempty"`
@@ -73,11 +73,23 @@ func PrepayOrder(c *gin.Context) {
 
 	outTradeNo := fmt.Sprintf("%s%s%d", req.OrderType, uuid.New().String()[:8], time.Now().Unix())
 
+	// points payment has no pre-existing order: applyPointsPurchase treats
+	// OrderID as the local user id, so resolve it from the JWT (iam_sub).
+	effectiveOrderID := req.OrderID
+	if req.OrderType == "points" && effectiveOrderID == "" {
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+			effectiveOrderID = localUser.ID
+		} else {
+			effectiveOrderID = userID
+		}
+	}
+
 	record := models.OrderPaymentRecord{
 		ID:         uuid.New().String(),
 		TenantID:   tenantID,
 		UserID:     userID,
-		OrderID:    &req.OrderID,
+		OrderID:    &effectiveOrderID,
 		OrderType:  req.OrderType,
 		OutTradeNo: &outTradeNo,
 		Amount:     req.Amount,
