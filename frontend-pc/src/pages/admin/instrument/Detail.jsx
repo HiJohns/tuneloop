@@ -82,6 +82,10 @@ export default function InstrumentDetail() {
   const [levels, setLevels] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
   const [activeTab, setActiveTab] = useState('basic')
+  const [allProps, setAllProps] = useState([])
+  const [propValues, setPropValues] = useState({})
+  const [propsDirty, setPropsDirty] = useState(false)
+  const [propsSaving, setPropsSaving] = useState(false)
 
   useEffect(() => {
     if (!id) return
