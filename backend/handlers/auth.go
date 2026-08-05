@@ -577,12 +577,15 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[WxLogin] Channel 3: IAM unknown user -> GUEST token issued (is_new=true, client should go to registration)")
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
 			"token":      guestToken.AccessToken,
 			"token_type": guestToken.TokenType,
 			"expires_in": guestToken.ExpiresIn,
+			"is_new":     true,
 			"user": gin.H{
 				"role": "GUEST",
 			},
