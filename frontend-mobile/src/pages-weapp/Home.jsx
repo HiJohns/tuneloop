@@ -130,6 +130,7 @@ export default function Home() {
   const scrollYRef = useRef(0)
   const [scrolled, setScrolled] = useState(false)
   const [menuStuck, setMenuStuck] = useState(false)
+  const [subMenuCat, setSubMenuCat] = useState(null)
   const [blurVisible, setBlurVisible] = useState(false)
   const scrolledRef = useRef(false)
   const menuStuckRef = useRef(false)
@@ -358,7 +359,7 @@ export default function Home() {
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
         <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
       )}
 
@@ -390,9 +391,11 @@ export default function Home() {
           }}>
           <View style={{ height: '100px' }}></View>
 
-        <View style={{ opacity: menuStuck ? 0 : 1, pointerEvents: menuStuck ? 'none' : 'auto', backgroundColor: 'transparent', transition: 'opacity 0.3s' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
+        {!menuStuck && (
+        <View style={{ backgroundColor: 'transparent' }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
+        )}
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         {loading ? (
@@ -445,9 +448,8 @@ export default function Home() {
   )
 }
 
-function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled }) {
+function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat }) {
   const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
-  const [subMenuCat, setSubMenuCat] = useState(null)
   const localTouchRef = useRef({ x: 0, offset: 0, dragged: false })
 
   const displayItems = subMenuCat
@@ -456,13 +458,13 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
 
   const handleItemClick = (item) => {
     if (item.id === '__back__') {
-      setSubMenuCat(null)
+      onSetSubMenuCat(null)
       return
     }
     const cat = categories.find(c => c.id === item.id)
     if (!subMenuCat && cat && (cat.sub_categories || []).length > 0) {
       onCategoryChange(cat.id)
-      setSubMenuCat(cat)
+      onSetSubMenuCat(cat)
     } else {
       onCategoryChange(item.id)
     }
