@@ -115,9 +115,9 @@ export default function Login() {
       {/* Channel 2: IAM account login */}
       <View style={{ width: '100%', marginBottom: 12 }}>
         <Input placeholder="邮箱/手机号" value={identifier} onInput={e => setIdentifier(e.detail.value)}
-          style={{ margin: 0, width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
         <Input placeholder="密码" password value={password} onInput={e => setPassword(e.detail.value)}
-          style={{ margin: 0, width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 16 }} />
+          style={{ margin: 0, width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 16 }} />
         <Button onClick={() => handleIAMLogin(identifier, password)}
           style={{ margin: 0, width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 14, fontWeight: '700', lineHeight: '44px', boxSizing: 'border-box' }}>
           登录

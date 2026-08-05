@@ -124,19 +124,19 @@ export default function ProfileComplete() {
       </View>
 
       <Input placeholder="用户名" value={username} onInput={e => setUsername(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input type="nickname" placeholder="微信昵称（选填）" value={nickname} onInput={e => setNickname(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="邮箱（选填）" value={email} onInput={e => setEmail(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="密码（至少6位）" password value={password} onInput={e => setPassword(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="确认密码" password value={confirmPassword} onInput={e => setConfirmPassword(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 24 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
 
       <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>收货地址（选填）</Text>
       <View style={{ display: 'flex', width: '100%', marginBottom: 12 }}>
@@ -168,9 +168,9 @@ export default function ProfileComplete() {
         )}
       </View>
       <Input placeholder="详细地址" value={detail} onInput={e => setDetail(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 12 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
-        style={{ width: '100%', border: '1px solid #d4d4d8', borderRadius: 12, padding: '13px 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '18px', marginBottom: 24 }} />
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
 
       <View onClick={handleRegister}
         style={{ width: '100%', height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
