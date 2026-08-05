@@ -492,9 +492,12 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
               whiteSpace: 'nowrap',
               textShadow: '0 1px 4px rgba(0,0,0,0.6)',
               marginRight: 32,
+              paddingLeft: 6,
+              paddingRight: 6,
+              paddingTop: 10,
+              paddingBottom: 10,
               fontWeight: selectedCategory === item.id ? '900' : '700',
               borderBottom: selectedCategory === item.id ? '2px solid #fff' : 'none',
-              paddingBottom: selectedCategory === item.id ? 2 : 0,
               color: item.id === '__back__' ? 'rgba(255,255,255,0.6)' : selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
             }}
             onClick={() => {
