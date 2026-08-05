@@ -27,6 +27,7 @@
 * **微信支付集成**：支持微信支付（JSAPI 小程序内 / H5 移动端 / Native PC 扫码）。`WECHAT_PAY_MOCK_MODE=true` 时走模拟支付流程（直接成功），适用于开发/测试环境。
 * **支付记录**：每笔支付记录写入 `order_payment_records` 表，含 `out_trade_no`、`transaction_id`、金额、方式、状态，支持 PC 端 `/admin/payments` 页面对账。
 * **退款处理**：押金退还和结算退款通过微信退款 API 原路退回，记录写入 `order_refund_records`。
+  * **订单完成触发结算**（#1530）：`InspectReturn` good 验收、`ResolveAppeal`/`AgreeDamage` 申诉完成 → 自动调用 `computeSettlement` 引擎执行退款。退款顺序：赠点超 cap 部分 → 预付点优先 → 剩余退现金。`ConfirmSettlement`（用户手动结算）与自动结算统一走同一引擎。
 * **协议签署**：集成在线租用协议，确保租赁合规。
 
 ### 4. 维保服务门户
@@ -205,5 +206,7 @@
 点数钱包、订单支付点数抵扣详见 `docs/features/membership.md §2.4-2.5`。
 
 **逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases.md §2.5`。
+
+**订单完成结算**（#1530）：订单进入 `completed` 状态时（good 验收、damaged 申诉/协商完成、损坏赔偿支付回调），自动调用 `computeSettlement` 计算实际开销（实际租期 × tier 阶梯定价 + 损坏赔偿），与最初付款比对得出退款金额，按**赠点 → 预付点 → 现金**顺序执行退款并创建 `settlements` + `points_transactions` 记录。`DepositRefundScheduler` 仅处理 `deposit_refunding` 超时兜底，完成后 `deposit_refunded=true` 避免重复。详见 `docs/cases.md §2.7`。
 
 ---

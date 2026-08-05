@@ -914,12 +914,18 @@ flowchart TD
 5. 逾期费 `O`：归还验收时计算（`overdue_days × overdue_daily_fee`），从押金扣除
 6. 应退金额：`R = Ra + De - Dd - O - Re`（最小为 0）
 7. **提前归还退费**：实付租期 > 实际使用天数时，`early_return_rebate = Ra - Re`（按阶梯折算退回）
+8. **退款顺序**（#1530）：赠点超 cap 部分先退回 `promo_points` → 预付点优先退回 `prepaid_points` → 剩余现金退回 `order_refund_records`
 
 #### 分阶段流程（#1494）
 
-1. **阶段1（顾客点归还）**：`ReturnOrder` 更新订单为 `returning`，响应返回 `settlement_preview`（费用明细预估，**不立即退款**）
-2. **阶段2（网点验收+定损）**：`InspectReturn` 计算超期费并持久化到 `damage_assessments`；`AssessDamage` 定损（`damage + overdue_fee` 从押金扣除）
-3. **阶段3（最终退款）**：`ConfirmSettlement` 计算最终退款（含超期费、定损扣款、提前归还退费）→ 退款通知 → 退款流程
+**阶段1（顾客点归还）**：`ReturnOrder` 更新订单为 `returning`，前端跳转结算通知页（预估明细 + 感谢语，**不立即退款**）
+**阶段2（网点验收+定损）**：`InspectReturn` 计算超期费并持久化到 `damage_assessments`；damaged 时走申诉 → `ResolveAppeal`/`AgreeDamage`
+**阶段3（最终退款）**：订单进入 `completed` 时**自动触发**（#1530）：
+  - 引擎：`computeSettlement` 计算实际开销（实际租期 × tier 阶梯 + 损坏赔偿）→ 退款 = 付款 - 开销
+  - 退款顺序：赠点超 cap 部分 → **预付点优先** → 剩余退现金
+  - 创建 `settlements` + `points_transactions`，`deposit_refunded=true`
+  - 触发路径：`InspectReturn`(good)、`ResolveAppeal`/`AgreeDamage`(completed)、damage 支付回调
+  - `ConfirmSettlement`（手动）与自动结算**统一走同一引擎**，避免双轨分歧
 
 #### 示例
 
