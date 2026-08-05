@@ -504,7 +504,6 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
               color: item.id === '__back__' ? 'rgba(255,255,255,0.6)' : selectedCategory === item.id ? '#fff' : 'rgba(255,255,255,0.8)'
             }}
             onClick={() => {
-              if (localTouchRef.current.dragged) return
               handleItemClick(item)
             }}
           >
