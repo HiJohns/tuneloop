@@ -9,6 +9,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,11 @@ func (h *UserPointsHandler) GetBalance(c *gin.Context) {
 	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
+	}
+
+	// Lazy re-check membership level (fixes stale levels after aggregation bug)
+	if err := services.CheckAndUpgradeLevel(localUser.ID, nil); err != nil {
+		log.Printf("[GetBalance] membership level check failed: %v", err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -11,15 +11,17 @@ func CheckAndUpgradeLevel(userID string, db *gorm.DB) error {
 	if db == nil {
 		db = database.GetDB()
 	}
+	// Callers pass either local users.id or IAM subject (order_payment_records.user_id
+	// stores the IAM subject) — resolve both.
 	var user models.User
-	if err := db.First(&user, "id = ?", userID).Error; err != nil {
+	if err := db.Where("id = ? OR iam_sub = ?", userID, userID).First(&user).Error; err != nil {
 		return err
 	}
 	var levels []models.MembershipLevel
 	if err := db.Order("id ASC").Find(&levels).Error; err != nil {
 		return err
 	}
-	totalSpending := aggregateUserSpending(userID, db)
+	totalSpending := aggregateUserSpending(user.ID, db)
 	newLevelID := 1
 	for _, l := range levels {
 		if totalSpending >= l.MinAmount {
@@ -41,13 +43,16 @@ func CheckAndUpgradeLevel(userID string, db *gorm.DB) error {
 //	      + Σ(settlements.actual_rent_amount)
 //	      - Σ(refunded refund records)
 //
+// order_payment_records.user_id stores the IAM subject, so payments are
+// joined through users (u.iam_sub = p.user_id) to match the local user.
 // order_refund_records has no user_id column, so it joins through
 // order_payment_records via payment_record_id.
 func aggregateUserSpending(userID string, db *gorm.DB) float64 {
 	var purchaseTotal float64
-	db.Raw(`SELECT COALESCE(SUM(amount),0) FROM order_payment_records
-		WHERE user_id = ? AND type = 'payment' AND status = 'paid'
-		AND order_type IN ('points','renewal','repair')`, userID).Scan(&purchaseTotal)
+	db.Raw(`SELECT COALESCE(SUM(p.amount),0) FROM order_payment_records p
+		JOIN users u ON p.user_id::text = u.iam_sub
+		WHERE u.id = ? AND p.type = 'payment' AND p.status = 'paid'
+		AND p.order_type IN ('points','renewal','repair')`, userID).Scan(&purchaseTotal)
 
 	var rentTotal float64
 	db.Raw(`SELECT COALESCE(SUM(s.actual_rent_amount),0) FROM settlements s
@@ -57,7 +62,8 @@ func aggregateUserSpending(userID string, db *gorm.DB) float64 {
 	var refundTotal float64
 	db.Raw(`SELECT COALESCE(SUM(rf.amount),0) FROM order_refund_records rf
 		JOIN order_payment_records p ON p.id = rf.payment_record_id
-		WHERE p.user_id = ? AND rf.status = 'refunded'`, userID).Scan(&refundTotal)
+		JOIN users u ON p.user_id::text = u.iam_sub
+		WHERE u.id = ? AND rf.status = 'refunded'`, userID).Scan(&refundTotal)
 
 	total := purchaseTotal + rentTotal - refundTotal
 	if total < 0 {
