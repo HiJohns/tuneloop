@@ -225,6 +225,7 @@ func GetOrder(c *gin.Context) {
 		instrumentName = instrument.SN
 		instrumentCategory = instrument.CategoryName
 	}
+	instrumentSN := instrument.SN
 
 	// Fetch settlement
 	var settlement models.Settlement
@@ -343,6 +344,7 @@ func GetOrder(c *gin.Context) {
 		"instrument_id":         order.InstrumentID,
 		"instrument_name":       instrumentName,
 		"instrument_category":   instrumentCategory,
+		"instrument_sn":         instrumentSN,
 		"level":                 order.Level,
 		"lease_term":            order.LeaseTerm,
 		"deposit_mode":          order.DepositMode,
