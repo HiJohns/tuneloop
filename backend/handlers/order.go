@@ -605,6 +605,30 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
+	// Save return photos to instrument_media
+	if len(req.Photos) > 0 && order.InstrumentID != "" {
+		batchID := uuid.New().String()
+		for i, photoURL := range req.Photos {
+			media := models.InstrumentMedia{
+				ID:           uuid.New().String(),
+				TenantID:     order.TenantID,
+				OrgID:        order.OrgID,
+				InstrumentID: &order.InstrumentID,
+				BatchID:      batchID,
+				BatchType:    "returning",
+				FileName:     fmt.Sprintf("return_%d.jpg", i+1),
+				FileType:     "image",
+				StorageKey:   photoURL,
+				IsDisplay:    false,
+				SortOrder:    i,
+				CreatedAt:    time.Now(),
+			}
+			if err := db.Create(&media).Error; err != nil {
+				log.Printf("[ReturnOrder] Failed to save photo %d: %v", i, err)
+			}
+		}
+	}
+
 	// Instrument stays rented during return transit
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
 		Update("stock_status", models.StockStatusRented).Error; err != nil {

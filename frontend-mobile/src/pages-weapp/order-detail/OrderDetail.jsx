@@ -47,6 +47,12 @@ export default function OrderDetail() {
   const [logisticsForm, setLogisticsForm] = useState({ company: '', trackingNumber: '' })
   const [logisticsPhotos, setLogisticsPhotos] = useState([])
   const [logisticsSubmitting, setLogisticsSubmitting] = useState(false)
+  const [receivePhotos, setReceivePhotos] = useState([])
+  const [returnForm, setReturnForm] = useState({ company: '', trackingNumber: '' })
+  const [returnPhotos, setReturnPhotos] = useState([])
+  const [inspectCondition, setInspectCondition] = useState(null)
+  const [inspectNotes, setInspectNotes] = useState('')
+  const [inspectPhotos, setInspectPhotos] = useState([])
 
   const token = getToken()
   const isStaff = (() => {
@@ -151,19 +157,30 @@ export default function OrderDetail() {
     })
   }
 
+  const uploadPhotos = async (files) => {
+    const urls = []
+    for (const file of files) {
+      const upResp = await uploadFile(`${baseUrl}/upload`, file, {
+        headers: { Authorization: 'Bearer ' + getToken() },
+      })
+      const upResult = upResp.json ? await upResp.json() : JSON.parse(upResp.data || '{}')
+      if (upResult.code === 20000 && upResult.data?.url) urls.push(upResult.data.url)
+    }
+    return urls
+  }
+
   const handleConfirmReceipt = async () => {
     setActionLoading(true)
     try {
+      const photos = await uploadPhotos(receivePhotos)
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/delivery`, {
         method: 'PUT',
-        body: JSON.stringify({ delivered_at: new Date().toISOString() }),
+        body: JSON.stringify({ delivered_at: new Date().toISOString(), photos }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '确认收货成功', icon: 'success' })
-        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
-        const r = await reload.json()
-        if (r.code === 20000) setOrder(r.data)
+        setTimeout(() => Taro.navigateBack(), 800)
       } else {
         Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
       }
@@ -174,18 +191,56 @@ export default function OrderDetail() {
   }
 
   const handleReturn = async () => {
+    if (!returnForm.company.trim() || !returnForm.trackingNumber.trim()) {
+      Taro.showToast({ title: '请填写物流公司和单号', icon: 'none' })
+      return
+    }
     setActionLoading(true)
     try {
+      const photos = await uploadPhotos(returnPhotos)
       const resp = await apiFetch(`${baseUrl}/orders/${id}/return`, {
         method: 'POST',
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          courier_company: returnForm.company.trim(),
+          tracking_number: returnForm.trackingNumber.trim(),
+          photos,
+        }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '归还申请已提交', icon: 'success' })
-        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
-        const r = await reload.json()
-        if (r.code === 20000) setOrder(r.data)
+        setTimeout(() => Taro.navigateBack(), 800)
+      } else {
+        Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '操作失败', content: err.message, showCancel: false })
+    }
+    setActionLoading(false)
+  }
+
+  const handleSubmitInspect = async () => {
+    if (!inspectCondition) {
+      Taro.showToast({ title: '请选择定损结果', icon: 'none' })
+      return
+    }
+    setActionLoading(true)
+    try {
+      const photos = await uploadPhotos(inspectPhotos)
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/return-inspect`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          instrument_sn: order?.instrument_sn || instrument?.sn || '',
+          scan_time: new Date().toISOString(),
+          condition: inspectCondition,
+          notes: inspectNotes,
+          photos,
+        }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        Taro.showToast({ title: inspectCondition === 'good' ? '验收通过' : '定损已提交', icon: 'success' })
+        setTimeout(() => Taro.navigateBack(), 800)
       } else {
         Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
       }
@@ -223,11 +278,9 @@ export default function OrderDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '发货成功', icon: 'success' })
-        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
-        const r = await reload.json()
-        if (r.code === 20000) setOrder(r.data)
         setLogisticsForm({ company: '', trackingNumber: '' })
         setLogisticsPhotos([])
+        setTimeout(() => Taro.navigateBack(), 800)
       } else {
         Taro.showModal({ title: '发货失败', content: result.message, showCancel: false })
       }
@@ -651,6 +704,70 @@ export default function OrderDetail() {
           </View>
         )}
 
+        {/* Customer: receive photos (shipped) */}
+        {!isStaff && status === 'shipped' && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 4 }}>收货拍照留档</Text>
+            <Text style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 8 }}>请拍摄乐器到达时的状态</Text>
+            <PhotoPicker photos={receivePhotos} setPhotos={setReceivePhotos} />
+          </View>
+        )}
+
+        {/* Customer: return logistics + photos (in_lease/expired) */}
+        {!isStaff && (status === 'in_lease' || status === 'expired') && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>归还信息</Text>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流公司</Text>
+              <Input
+                type="text"
+                value={returnForm.company}
+                onInput={e => setReturnForm(prev => ({ ...prev, company: e.detail.value }))}
+                placeholder="顺丰快递"
+                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </View>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流单号</Text>
+              <Input
+                type="text"
+                value={returnForm.trackingNumber}
+                onInput={e => setReturnForm(prev => ({ ...prev, trackingNumber: e.detail.value }))}
+                placeholder="SF1234567890"
+                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </View>
+            <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>归还拍照留档</Text>
+            <PhotoPicker photos={returnPhotos} setPhotos={setReturnPhotos} />
+          </View>
+        )}
+
+        {/* Staff: damage inspection (returning) */}
+        {isStaff && status === 'returning' && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>定损</Text>
+            <View style={{ display: 'flex', gap: 8 }}>
+              <View onClick={() => setInspectCondition('good')}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, textAlign: 'center', fontWeight: '700', fontSize: 14, backgroundColor: inspectCondition === 'good' ? '#16a34a' : '#f4f4f5', color: inspectCondition === 'good' ? '#fff' : '#71717a' }}>
+                无损坏
+              </View>
+              <View onClick={() => setInspectCondition('damaged')}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, textAlign: 'center', fontWeight: '700', fontSize: 14, backgroundColor: inspectCondition === 'damaged' ? '#ef4444' : '#f4f4f5', color: inspectCondition === 'damaged' ? '#fff' : '#71717a' }}>
+                有损坏
+              </View>
+            </View>
+            <Input
+              type="text"
+              value={inspectNotes}
+              onInput={e => setInspectNotes(e.detail.value)}
+              placeholder="定损备注（有损坏时请描述详情）"
+              style={{ marginTop: 10, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+            />
+            <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4, marginTop: 10 }}>定损拍照留档</Text>
+            <PhotoPicker photos={inspectPhotos} setPhotos={setInspectPhotos} />
+          </View>
+        )}
+
         {/* Logistics */}
         {(order.tracking_number || order.courier_company) && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
@@ -659,7 +776,7 @@ export default function OrderDetail() {
             {order.tracking_number && (
               <Row label="📦 物流单号" value={order.tracking_number} mono />
             )}
-            {order.shipped_at && <Row label="📅 发货时间" value={formatDate(order.shipped_at)} />}
+            {order.shipped_at && <Row label="📅 发货时间" value={formatDisplayDate(order.shipped_at)} />}
           </View>
         )}
 
@@ -722,8 +839,10 @@ export default function OrderDetail() {
                 style={btnStyle('#06b6d4')}>🚚 接收并转发</View>
             )}
             {showStaffReceive && (
-              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/receiving/index?order_id=${id}` })}
-                style={btnStyle('#C21838')}>↩️ 接收</View>
+              <View onClick={actionLoading ? undefined : handleSubmitInspect}
+                style={{ ...btnStyle('#C21838'), opacity: actionLoading ? 0.5 : 1 }}>
+                {actionLoading ? '处理中...' : '↩️ 接收'}
+              </View>
             )}
             {!showStaffShip && !showStaffTransit && !showStaffReceive && (
               <View style={{ ...btnStyle('#a1a1aa'), backgroundColor: '#f4f4f5', cursor: 'default' }}>
@@ -754,7 +873,7 @@ export default function OrderDetail() {
               </View>
             )}
             {showReceiveButton && (
-              <View onClick={actionLoading ? undefined : handleReceive}
+              <View onClick={actionLoading ? undefined : handleConfirmReceipt}
                 style={{ ...btnStyle('#16a34a'), opacity: actionLoading ? 0.5 : 1 }}>
                 {actionLoading ? '处理中...' : '✅ 确认收货'}
               </View>
@@ -798,6 +917,31 @@ function Row({ label, value, color, mono }) {
       }}>
         {value}
       </Text>
+    </View>
+  )
+}
+
+function PhotoPicker({ photos, setPhotos, max = 10 }) {
+  return (
+    <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {photos.map((file, i) => (
+        <View key={i} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5', position: 'relative', overflow: 'hidden' }}>
+          <Image src={file} style={{ width: 80, height: 80, borderRadius: 8 }} mode="aspectFill" />
+          <View onClick={() => setPhotos(prev => prev.filter((_, j) => j !== i))}
+            style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 12 }}>✕</Text>
+          </View>
+        </View>
+      ))}
+      {photos.length < max && (
+        <View onClick={() => {
+          Taro.chooseImage({ count: max - photos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+            .then(res => setPhotos(prev => [...prev, ...(res.tempFilePaths || [])]))
+        }}
+          style={{ width: 80, height: 80, borderRadius: 8, border: '1px dashed #d4d4d8', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
+          <Text style={{ color: '#a1a1aa', fontSize: 24 }}>+</Text>
+        </View>
+      )}
     </View>
   )
 }

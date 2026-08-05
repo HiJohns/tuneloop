@@ -204,6 +204,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	var req struct {
 		DeliveredAt time.Time `json:"delivered_at" binding:"required"`
+		Photos      []string  `json:"photos"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -277,6 +278,30 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	if err := db.Create(&history).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record status history: " + err.Error()})
 		return
+	}
+
+	// 5. Save delivery photos to instrument_media
+	if len(req.Photos) > 0 && order.InstrumentID != "" {
+		batchID := uuid.New().String()
+		for i, photoURL := range req.Photos {
+			media := models.InstrumentMedia{
+				ID:           uuid.New().String(),
+				TenantID:     order.TenantID,
+				OrgID:        order.OrgID,
+				InstrumentID: &order.InstrumentID,
+				BatchID:      batchID,
+				BatchType:    "delivery",
+				FileName:     fmt.Sprintf("delivery_%d.jpg", i+1),
+				FileType:     "image",
+				StorageKey:   photoURL,
+				IsDisplay:    false,
+				SortOrder:    i,
+				CreatedAt:    time.Now(),
+			}
+			if err := db.Create(&media).Error; err != nil {
+				log.Printf("[ConfirmDelivery] Failed to save photo %d: %v", i, err)
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

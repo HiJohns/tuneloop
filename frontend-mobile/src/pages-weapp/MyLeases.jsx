@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Image, Picker } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
@@ -62,6 +62,9 @@ export default function MyLeases() {
   const [page, setPage] = useState(1)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useDidShow(() => setRefreshKey(k => k + 1))
 
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
@@ -79,7 +82,7 @@ export default function MyLeases() {
     setPage(1)
     setOrders([])
     setHasMore(true)
-  }, [baseUrl, selectedFilter])
+  }, [baseUrl, selectedFilter, refreshKey])
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -104,7 +107,7 @@ export default function MyLeases() {
       setLoadingMore(false)
     }
     fetchOrders()
-  }, [page, baseUrl, selectedFilter])
+  }, [page, baseUrl, selectedFilter, refreshKey])
 
   const handleCancelFromList = (orderId, status) => {
     Taro.showModal({
