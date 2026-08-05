@@ -236,9 +236,8 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	}
 	if err := tx.Model(&models.User{}).Where("iam_sub = ?", record.UserID).
 		Updates(map[string]interface{}{
-			"prepaid_points": gorm.Expr("GREATEST(prepaid_points - ?, 0)", points.PrepaidUsed),
-			"promo_points":   gorm.Expr("GREATEST(promo_points - ?, 0)", points.GiftUsed),
-			"updated_at":     now,
+			"promo_points": gorm.Expr("GREATEST(promo_points - ?, 0)", points.GiftUsed),
+			"updated_at":   now,
 		}).Error; err != nil {
 		return fmt.Errorf("deduct user points: %w", err)
 	}
@@ -297,8 +296,7 @@ func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now tim
 	}
 	if err := tx.Model(&models.User{}).Where("id = ?", *record.OrderID).
 		Updates(map[string]interface{}{
-			"prepaid_points": gorm.Expr("prepaid_points + ?", record.Amount),
-			"updated_at":     now,
+			"updated_at": now,
 		}).Error; err != nil {
 		log.Printf("[applySideEffects] failed to add points: %v", err)
 		return err

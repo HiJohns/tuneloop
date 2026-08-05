@@ -518,7 +518,7 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	require.NoError(t, db.Where("order_id = ?", orderID).First(&settlement).Error)
 	require.GreaterOrEqual(t, settlement.ActualRentDays, 1, "actual days >= 1")
 	require.Equal(t, float64(settlement.ActualRentDays)*100, settlement.ActualRentAmount, "rent = actual days × 100")
-	require.Equal(t, 200.0, settlement.PrepaidRefunded, "prepaid points refunded first (order used 200)")
+	require.Equal(t, 0.0, settlement.PrepaidRefunded, "prepaid refunded = 0 (prepaid removed #1531)")
 	require.True(t, settlement.CashRefundable > 0, "cash refund for remaining deposit + rent overpayment")
 
 	// Order marked deposit refunded
@@ -526,10 +526,10 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	require.NoError(t, db.First(&order, "id = ?", orderID).Error)
 	require.True(t, order.DepositRefunded, "deposit_refunded set after refund")
 
-	// User prepaid points increased by the refunded amount
+	// User prepaid points unchanged (prepaid removed #1531)
 	var user models.User
 	require.NoError(t, db.First(&user, "id = ?", userID).Error)
-	require.Equal(t, 1200.0, user.PrepaidPoints, "1000 + 200 prepaid refunded")
+	require.Equal(t, 1000.0, user.PrepaidPoints, "prepaid unchanged (no prepaid refund)")
 	// Idempotent: second inspect attempt must not double-refund
 	req2 := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
 	req2.Header.Set("Content-Type", "application/json")
@@ -567,7 +567,7 @@ func TestComputeSettlement_CashPaidExcludesDeposit(t *testing.T) {
 	}
 
 	result := computeSettlement(order, db)
-	totalRefund := result.CashRefundable + result.PrepaidRefunded
+	totalRefund := result.CashRefundable
 
 	// Correct refund should be ¥3000 (deposit only, rent+shipping consumed).
 	// totalRentPaid(3000) + remainingDeposit(3000) - rentPayable(3000) = 3000
@@ -602,7 +602,7 @@ func TestComputeSettlement_EarlyReturn(t *testing.T) {
 	}
 
 	result := computeSettlement(order, db)
-	totalRefund := result.CashRefundable + result.PrepaidRefunded
+	totalRefund := result.CashRefundable
 
 	// Refund = deposit(3000) + unused rent = 3000 + (3000 - actualRent)
 	// Formula: totalRentPaid(3000) + remainingDeposit(3000) - rentPayable(actualRent)
@@ -648,7 +648,7 @@ func TestComputeSettlement_DamageAccept(t *testing.T) {
 	}
 
 	result := computeSettlement(order, db)
-	totalRefund := result.CashRefundable + result.PrepaidRefunded
+	totalRefund := result.CashRefundable
 
 	require.Equal(t, 2500.0, totalRefund, "Damage ¥500 deducted from deposit: ¥3000-¥500=¥2500")
 }
@@ -691,7 +691,7 @@ func TestComputeSettlement_LateReturn(t *testing.T) {
 	}
 
 	result := computeSettlement(order, db)
-	totalRefund := result.CashRefundable + result.PrepaidRefunded
+	totalRefund := result.CashRefundable
 
 	// rentPaid(3000) + remainingDeposit(3000-750=2250) - rentPayable(3500) ≈ 1750
 	require.GreaterOrEqual(t, totalRefund, 1500.0, "Late return: refund should be >= ¥1500")

@@ -30,7 +30,7 @@ type User struct {
 	IsProfileCompleted  bool       `gorm:"default:false" json:"is_profile_completed"`
 	MembershipLevelID   *int       `gorm:"type:int" json:"membership_level_id"`
 	TotalSpending       float64    `gorm:"type:decimal;default:0" json:"total_spending"`
-	PrepaidPoints       float64    `gorm:"type:decimal;default:0" json:"prepaid_points"`
+	PrepaidPoints       float64    `gorm:"type:decimal;default:0" json:"-"` // deprecated (#1531)
 	PromoPoints         float64    `gorm:"type:decimal;default:0" json:"promo_points"`
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
 	RefCode            string     `gorm:"type:varchar(16)" json:"ref_code"`

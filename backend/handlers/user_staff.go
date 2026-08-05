@@ -745,7 +745,6 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"site_id":              nil,
 		"membership_level_id":  user.MembershipLevelID,
 		"total_spending":       user.TotalSpending,
-		"prepaid_points":       user.PrepaidPoints,
 		"promo_points":         user.PromoPoints,
 	}
 

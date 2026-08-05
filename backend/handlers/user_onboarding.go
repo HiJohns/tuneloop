@@ -32,7 +32,7 @@ func (h *UserOnboardingHandler) GetOnboardingStatus(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := db.Select("id, name, onboarding_completed, prepaid_points, promo_points").
+	if err := db.Select("id, name, onboarding_completed, promo_points").
 		Where("id = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
@@ -43,7 +43,6 @@ func (h *UserOnboardingHandler) GetOnboardingStatus(c *gin.Context) {
 		"data": gin.H{
 			"name":                user.Name,
 			"onboarding_completed": user.OnboardingCompleted,
-			"prepaid_points":       user.PrepaidPoints,
 			"promo_points":         user.PromoPoints,
 		},
 	})

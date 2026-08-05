@@ -116,7 +116,6 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
 		GiftPointsRefunded:  result.GiftPointsRefunded,
 		CashRefundable:      result.CashRefundable,
-		PrepaidRefunded:     result.PrepaidRefunded,
 		RefundMethod:        req.RefundMethod,
 		RefundStatus:        "pending",
 		OverdueChargesTotal: result.OverdueChargesTotal,
@@ -142,17 +141,6 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to refund gift points"})
 				return
 			}
-		}
-	}
-
-	if result.PrepaidRefunded > 0 {
-		if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-			"prepaid_points": gorm.Expr("prepaid_points + ?", result.PrepaidRefunded),
-			"updated_at":     time.Now(),
-		}).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to refund prepaid points"})
-			return
 		}
 	}
 
@@ -243,7 +231,6 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		"data": gin.H{
 			"settlement_id":        settlement.ID,
 			"cash_refundable":      result.CashRefundable,
-			"prepaid_refunded":     result.PrepaidRefunded,
 			"gift_points_refunded": result.GiftPointsRefunded,
 		},
 	})
@@ -266,7 +253,6 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		result.TotalRentPaid = existing.OriginalRentAmount
 		result.GiftPointsRefunded = existing.GiftPointsRefunded
 		result.CashRefundable = existing.CashRefundable
-		result.PrepaidRefunded = existing.PrepaidRefunded
 		result.OverdueChargesTotal = existing.OverdueChargesTotal
 		result.ActualDays = existing.ActualRentDays
 		return &result, nil
@@ -284,7 +270,6 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
 		GiftPointsRefunded:  result.GiftPointsRefunded,
 		CashRefundable:      result.CashRefundable,
-		PrepaidRefunded:     result.PrepaidRefunded,
 		RefundMethod:        "prepaid",
 		RefundStatus:        "pending",
 		OverdueChargesTotal: result.OverdueChargesTotal,
@@ -304,16 +289,6 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			"updated_at":   time.Now(),
 		}).Error; err != nil {
 			return nil, fmt.Errorf("failed to refund gift points: %w", err)
-		}
-	}
-
-	// Refund prepaid points
-	if result.PrepaidRefunded > 0 {
-		if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-			"prepaid_points": gorm.Expr("prepaid_points + ?", result.PrepaidRefunded),
-			"updated_at":     time.Now(),
-		}).Error; err != nil {
-			return nil, fmt.Errorf("failed to refund prepaid points: %w", err)
 		}
 	}
 
@@ -434,7 +409,6 @@ type settlementResult struct {
 	DamageDeducted        float64
 	TotalRefund           float64
 	CashRefundable        float64
-	PrepaidRefunded       float64
 	GiftPointsRefunded    float64
 	OverdueChargesTotal   float64
 	ActualDays            int
@@ -519,7 +493,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	rentPayable = math.Round(rentPayable*100) / 100
 
-	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed - order.Deposit - order.ShippingFee
+	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed - order.Deposit - order.ShippingFee
 	if totalRentPaid == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
@@ -555,10 +529,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		earlyReturnRebate = 0
 	}
 
-	// Refund order (#1530): gift points (over cap) first, then prepaid
-	// points, then remaining cash. Prepaid points take priority over cash.
-	prepaidRefunded := math.Min(totalRefund, order.PrepaidPointsUsed+order.GiftPointsUsed)
-	cashRefundable := totalRefund - prepaidRefunded
+	// Refund order (#1537): gift points (over cap) first via promo_points,
+	// then remaining cash via order_refund_records. Prepaid points removed.
+	cashRefundable := totalRefund
 	if cashRefundable < 0 {
 		cashRefundable = 0
 	}
@@ -586,12 +559,10 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"final_daily_rent":         finalDailyRent,
 		"total_refund":             totalRefund,
 		"cash_refundable":          cashRefundable,
-		"prepaid_refunded":         prepaidRefunded,
 		"gift_points_used":         order.GiftPointsUsed,
 		"gift_cap":                 giftCap,
 		"gift_points_refunded":     giftPointsRefunded,
 		"cash_paid":                order.CashPaid,
-		"prepaid_points_used":      order.PrepaidPointsUsed,
 		"tier_segments":            tierSegments,
 	}
 
@@ -603,7 +574,6 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		DamageDeducted:         damageDeducted,
 		TotalRefund:            totalRefund,
 		CashRefundable:         cashRefundable,
-		PrepaidRefunded:        prepaidRefunded,
 		GiftPointsRefunded:     giftPointsRefunded,
 		OverdueChargesTotal:    overdueFee,
 		ActualDays:             actualDays,
