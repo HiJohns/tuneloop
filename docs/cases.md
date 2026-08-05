@@ -322,11 +322,14 @@ flowchart TD
   pending_shipment -- 仓库发货 --> in_transit[运输中 in_transit]
   in_transit -- 到达中转站 --> shipped[已发货 shipped]
   shipped -- 用户签收 --> in_lease[租赁中 in_lease]
-  in_lease -- 用户申请归还 --> returning[归还中 returning]
-  returning -- 仓库验收完好 --> returned[已归还 returned]
-  returning -- 仓库验收有损坏 --> returned
-  returned --> completed[已完成 completed]
-  in_lease -- 租约超期 --> expired[超期 expired]
+   in_lease -- 用户申请归还 --> returning[归还中 returning]
+   returning -- 仓库验收完好 --> completed[已完成 completed]
+   returning -- 仓库验收有损坏 --> pending_damage_response[待回复 pending_damage_response]
+   pending_damage_response -- 客户接受 --> deposit_refunding[退款中 deposit_refunding]
+   pending_damage_response -- 客户拒绝申诉 --> damage_appealing[申诉中 damage_appealing]
+   damage_appealing -- 商户管理员处理 --> deposit_refunding
+   deposit_refunding --> completed
+   in_lease -- 租约超期 --> expired[超期 expired]
   expired -- 用户归还 --> returning
   expired -- 用户续期 --> in_lease
   reserved -- 用户取消 --> cancelled
@@ -344,7 +347,17 @@ flowchart TD
 | `shipped` | 已发货 | 已到达目的地（不可取消） |
 | `in_lease` | 租赁中 | 用户已签收，租期内 |
 | `returning` | 归还中 | 用户已提交归还，返程物流中 |
-| `returned` | 已归还 | 仓库验收完成 |
+| `returned` | 已归还 | 已废弃（#1544），归还验收后直接进入 completed 或 pending_damage_response |
+| `damage_appealing` | 申诉中 | 客户拒绝赔偿后进入申诉，等待商户管理员处理 |
+| `deposit_refunding` | 退款中 | 赔偿确认/申诉调整后，进入退款流程 |
+
+### 2.1a pending_damage_response（待回复）
+
+| 字段 | 说明 |
+|------|------|
+| 进入条件 | 仓库验收损坏，员工设定赔偿金额 |
+| 分支 | 客户接受 → `deposit_refunding`；客户拒绝 → `damage_appealing` |
+| 超时 | 无自动超时——客户**必须**响应 |
 | `completed` | 已完成 | 租赁流程全部结束 |
 | `cancelled` | 已取消 | 订单已取消 |
 | `expired` | 超期 | 租约已过期，可续期或归还；逾期费在归还验收时统一收取（从押金扣除） |
@@ -720,19 +733,38 @@ flowchart TD
    - 定损接受 → `/payment?type=damage&id={order_id}`
    - 取消订单 → 后端调 `cancel-by-user`，前端检测 `refund_amount > 0` → `/payment?type=refund&id=...`
 
-### 1.9 定损支付
+### 1.9 定损响应与退款
 
-**角色**：已登录用户
+**角色**：已登录用户、商户管理员
 
-**场景**：仓库定损后，用户接受定损金额并完成支付（或无需支付）。
+**场景**：仓库验收有损坏，员工设定赔偿金额后，客户必须响应（接受或拒绝）。
 
-#### 两个场景汇入支付页
+#### 流程（#1544）
 
-**场景 A：用户直接接受定损**
-仓库定损 → 通知用户 → 用户查看 → 点击"接受" → `/payment?type=damage&id={order_id}`
+```
+仓库验收有损坏 → 员工设定赔偿金额 → 系统通知客户
+→ 订单进入 pending_damage_response（客户必须响应）
 
-**场景 B：用户申诉 → 调整后接受**
-定损 → 用户申诉 → 网点/商户管理员重新评估 → 通知最终结果 → 用户接受 → `/payment?type=damage&id={order_id}`
+场景 A：客户接受
+  客户 → 接受赔偿 → 订单 → deposit_refunding
+  → 前端跳转退款确认页（ReturnSettlement，显示退款明细含赔偿）
+  → 确认 → executeRefund → completed
+
+场景 B：客户拒绝
+  客户 → 拒绝并填写申诉理由 → 订单 → damage_appealing
+  → 商户管理员（PC 端）处理申诉 → 可调整赔偿金额
+  → 通知客户 → 订单 → deposit_refunding → 退款确认 → completed
+```
+
+#### 关键变化 vs 旧流程
+
+| 项 | 旧 | 新 |
+|----|----|-----|
+| damaged 后状态 | returning（客户可不响应） | pending_damage_response（**必须响应**） |
+| 客户接受 | AgreeDamage → completed/deposit_refunding | accept-damage → deposit_refunding → 退款确认页 → completed |
+| 客户拒绝 | 可选 Appeal | reject-damage → 申诉单 → damage_appealing |
+| 申诉处理者 | 平台管理员 | **商户管理员** |
+| 退款触发 | InspectReturn(good)自动 / AgreeDamage 后自动 | 统一走退款确认页 → executeRefund |
 
 #### 支付页信息布局
 

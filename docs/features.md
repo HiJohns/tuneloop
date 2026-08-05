@@ -27,7 +27,8 @@
 * **微信支付集成**：支持微信支付（JSAPI 小程序内 / H5 移动端 / Native PC 扫码）。`WECHAT_PAY_MOCK_MODE=true` 时走模拟支付流程（直接成功），适用于开发/测试环境。
 * **支付记录**：每笔支付记录写入 `order_payment_records` 表，含 `out_trade_no`、`transaction_id`、金额、方式、状态，支持 PC 端 `/admin/payments` 页面对账。
 * **退款处理**：押金退还和结算退款通过微信退款 API 原路退回，记录写入 `order_refund_records`。
-  * **订单完成触发结算**（#1537）：`InspectReturn` good 验收、`ResolveAppeal`/`AgreeDamage` 申诉完成 → 自动调用 `computeSettlement` 引擎执行退款。退款顺序：赠点超 cap 部分退回 promo_points → 剩余现金退款。`ConfirmSettlement`（用户手动结算）与自动结算统一走同一引擎。
+  * **订单完成触发结算**（#1537）：`InspectReturn` good 验收 → `completed`，自动调用 `computeSettlement` 退款。退款顺序：赠点超 cap 部分退回 promo_points → 剩余现金退款。
+  * **损坏流程**（#1544）：`InspectReturn` damaged → `pending_damage_response`（客户必须响应）。接受 → `deposit_refunding` → 退款确认 → `completed`。拒绝 → `damage_appealing` → 商户管理员调整 → `deposit_refunding` → `completed`。
 * **协议签署**：集成在线租用协议，确保租赁合规。
 
 ### 4. 维保服务门户
