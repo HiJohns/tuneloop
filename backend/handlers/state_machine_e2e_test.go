@@ -30,13 +30,23 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	}
 	database.SetDB(db)
 
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Notification{})
+	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{})
 	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.LeaseSession{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.OrderStatusHistory{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.DamageAssessment{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Notification{}))
+	require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
+	require.NoError(t, db.Migrator().CreateTable(&models.Settlement{}))
+	require.NoError(t, db.Migrator().CreateTable(&models.OrderRefundRecord{}))
+	require.NoError(t, db.Migrator().CreateTable(&models.PointsTransaction{}))
+	require.NoError(t, db.Migrator().AutoMigrate(&models.User{}))
+	require.NoError(t, db.Migrator().CreateTable(&models.DamageReport{}))
+	// iam_sub is excluded from migration (-:migration tag); add manually
+	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
+		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
+	}
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
@@ -432,4 +442,98 @@ func TestInspectReturn_NoOverdue(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 0, resp.Data.OverdueDays, "on-time return has no overdue days")
 	require.Equal(t, 0.0, resp.Data.OverdueFee)
+}
+
+// TestInspectReturn_Good_ExecutesRefund verifies that a good-condition
+// return inspection auto-executes the settlement refund (#1530):
+// prepaid points refunded, deposit refunded, settlement record created.
+func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
+	router, tenantID, userID, orgID, instrumentID := setupE2ETestEnv(t)
+	if router == nil {
+		return
+	}
+	db := database.GetDB()
+
+	// User row with prepaid points (required for points refund)
+	require.NoError(t, db.Create(&models.User{
+		ID:             userID,
+		TenantID:       tenantID,
+		OrgID:          orgID,
+		Username:       "refund_test_user",
+		PrepaidPoints:  1000,
+		Status:         "active",
+	}).Error)
+
+	orderID := uuid.New().String()
+	start := time.Now().AddDate(0, 0, -2).Format("2006-01-02")
+	end := time.Now().AddDate(0, 0, 10).Format("2006-01-02")
+	now := time.Now()
+	require.NoError(t, db.Create(&models.Order{
+		ID:                orderID,
+		TenantID:          tenantID,
+		OrgID:             orgID,
+		UserID:            userID,
+		InstrumentID:      instrumentID,
+		StartDate:         strPtr(start),
+		EndDate:           strPtr(end),
+		LeaseTerm:         12,
+		Status:            models.OrderStatusReturning,
+		Deposit:           500,
+		CashPaid:          300,
+		PrepaidPointsUsed: 200,
+		ReturnedAt:        &now,
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"total_amount":1200,"tier_segments":[{"days":12,"rate":100,"tier":1,"discount":1,"subtotal":1200}]}`),
+	}).Error)
+
+	// Payment record for the cash portion
+	require.NoError(t, db.Create(&models.OrderPaymentRecord{
+		ID:        uuid.New().String(),
+		TenantID:  tenantID,
+		OrgID:     &orgID,
+		UserID:    userID,
+		OrderID:   &orderID,
+		OrderType: "rent",
+		Amount:    300,
+		Type:      "payment",
+		Status:    "paid",
+		Method:    strPtr("mock"),
+	}).Error)
+
+	reqBody := map[string]interface{}{
+		"instrument_sn": "REFUND-SN",
+		"scan_time":     time.Now(),
+		"condition":     "good",
+		"photos":        []string{},
+	}
+	jsonBody, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// Settlement record created
+	var settlement models.Settlement
+	require.NoError(t, db.Where("order_id = ?", orderID).First(&settlement).Error)
+	require.GreaterOrEqual(t, settlement.ActualRentDays, 1, "actual days >= 1")
+	require.Equal(t, float64(settlement.ActualRentDays)*100, settlement.ActualRentAmount, "rent = actual days × 100")
+	require.Equal(t, 200.0, settlement.PrepaidRefunded, "prepaid points refunded first (order used 200)")
+	require.True(t, settlement.CashRefundable > 0, "cash refund for remaining deposit + rent overpayment")
+
+	// Order marked deposit refunded
+	var order models.Order
+	require.NoError(t, db.First(&order, "id = ?", orderID).Error)
+	require.True(t, order.DepositRefunded, "deposit_refunded set after refund")
+
+	// User prepaid points increased by the refunded amount
+	var user models.User
+	require.NoError(t, db.First(&user, "id = ?", userID).Error)
+	require.Equal(t, 1200.0, user.PrepaidPoints, "1000 + 200 prepaid refunded")
+	// Idempotent: second inspect attempt must not double-refund
+	req2 := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusBadRequest, w2.Code, "order no longer in returning status")
 }

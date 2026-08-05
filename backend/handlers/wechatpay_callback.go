@@ -199,6 +199,19 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 				}
 			}
 		}
+		// Execute final settlement + refund (#1530): damage payment completes
+		// the order; compute actual rent and refund the difference
+		// (rent overpayment + remaining deposit after damage deduction).
+		if record.OrderID != nil {
+			var completedOrder models.Order
+			if err := tx.Where("id = ?", *record.OrderID).First(&completedOrder).Error; err != nil {
+				log.Printf("[applySideEffects] Failed to reload order for settlement: %v", err)
+			} else {
+				if _, err := executeRefund(tx, completedOrder); err != nil {
+					log.Printf("[applySideEffects] Settlement failed for order %s: %v", *record.OrderID, err)
+				}
+			}
+		}
 		return nil
 	case "renewal":
 		return applyRenewalSideEffects(tx, record, now)

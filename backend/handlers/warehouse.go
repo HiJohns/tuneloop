@@ -414,9 +414,8 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	updateFields := map[string]interface{}{
 		"status": newStatus,
 	}
-	if req.Condition == "good" && order.Deposit > 0 {
-		updateFields["deposit_refunded"] = true
-	}
+	// deposit_refunded is set true by executeRefund after the actual refund
+	// runs (not at status change time) — see #1530.
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updateFields).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
@@ -462,6 +461,21 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	if req.Condition == "good" {
 		if err := db.Model(&models.LeaseSession{}).Where("order_id = ?", orderID).Update("status", models.LeaseStatusCompleted).Error; err != nil {
 			log.Printf("[InspectReturn] Failed to update lease session: %v", err)
+		}
+	}
+
+	// Execute final settlement + refund (#1530): good condition completes
+	// the order, so compute actual rent and refund the difference.
+	if req.Condition == "good" {
+		// Re-read the order so computeSettlement sees the completed status
+		// and updated returned_at.
+		var completedOrder models.Order
+		if err := db.Where("id = ?", orderID).First(&completedOrder).Error; err != nil {
+			log.Printf("[InspectReturn] Failed to reload order for settlement: %v", err)
+		} else {
+			if _, err := executeRefund(db, completedOrder); err != nil {
+				log.Printf("[InspectReturn] Settlement failed for order %s: %v", orderID, err)
+			}
 		}
 	}
 

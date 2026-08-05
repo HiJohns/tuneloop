@@ -249,6 +249,153 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	})
 }
 
+// executeRefund computes the settlement for an order and performs the
+// actual refund (gift points → prepaid points → cash) inside the given
+// transaction. Called automatically when an order reaches "completed"
+// (good inspection, appeal resolution, agree-damage, damage payment
+// callback) so refunds never depend on a manual step (#1530).
+//
+// Idempotent: if a settlement already exists for the order it returns
+// the existing result without refunding twice.
+func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
+	var existing models.Settlement
+	if err := tx.Where("order_id = ?", order.ID).First(&existing).Error; err == nil {
+		var result settlementResult
+		json.Unmarshal([]byte(existing.Breakdown), &result.Breakdown)
+		result.RentPayable = existing.ActualRentAmount
+		result.TotalRentPaid = existing.OriginalRentAmount
+		result.GiftPointsRefunded = existing.GiftPointsRefunded
+		result.CashRefundable = existing.CashRefundable
+		result.PrepaidRefunded = existing.PrepaidRefunded
+		result.OverdueChargesTotal = existing.OverdueChargesTotal
+		result.ActualDays = existing.ActualRentDays
+		return &result, nil
+	}
+
+	result := computeSettlement(order, tx)
+
+	breakdownJSON, _ := json.Marshal(result.Breakdown)
+
+	settlement := models.Settlement{
+		ID:                  uuid.New().String(),
+		OrderID:             order.ID,
+		ActualRentDays:      result.ActualDays,
+		ActualRentAmount:    result.RentPayable,
+		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
+		GiftPointsRefunded:  result.GiftPointsRefunded,
+		CashRefundable:      result.CashRefundable,
+		PrepaidRefunded:     result.PrepaidRefunded,
+		RefundMethod:        "prepaid",
+		RefundStatus:        "pending",
+		OverdueChargesTotal: result.OverdueChargesTotal,
+		Breakdown:           string(breakdownJSON),
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
+	}
+
+	if err := tx.Create(&settlement).Error; err != nil {
+		return nil, fmt.Errorf("failed to create settlement: %w", err)
+	}
+
+	// Refund gift points (over cap portion) to promo_points
+	if result.GiftPointsRefunded > 0 {
+		if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+			"promo_points": gorm.Expr("promo_points + ?", result.GiftPointsRefunded),
+			"updated_at":   time.Now(),
+		}).Error; err != nil {
+			return nil, fmt.Errorf("failed to refund gift points: %w", err)
+		}
+	}
+
+	// Refund prepaid points
+	if result.PrepaidRefunded > 0 {
+		if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+			"prepaid_points": gorm.Expr("prepaid_points + ?", result.PrepaidRefunded),
+			"updated_at":     time.Now(),
+		}).Error; err != nil {
+			return nil, fmt.Errorf("failed to refund prepaid points: %w", err)
+		}
+	}
+
+	// Cash refund via WeChat Pay (mock mode books directly)
+	if result.CashRefundable > 0 {
+		cfg := wechatpay.GetConfig()
+		mockMode := cfg != nil && cfg.MockMode
+
+		outRefundNo := fmt.Sprintf("sttl_%s_%d", order.ID[:8], time.Now().Unix())
+
+		refundRecord := models.OrderRefundRecord{
+			ID:              uuid.New().String(),
+			TenantID:        order.TenantID,
+			Amount:          result.CashRefundable,
+			Reason:          strPtr("租赁结算退款"),
+			Status:          "pending",
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		var paymentRecord models.OrderPaymentRecord
+		paymentFound := false
+		var outTradeNo string
+		if err := tx.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "rent", "paid").First(&paymentRecord).Error; err == nil && paymentRecord.ID != "" {
+			paymentFound = true
+			if paymentRecord.OutTradeNo != nil {
+				outTradeNo = *paymentRecord.OutTradeNo
+			}
+		}
+
+		if mockMode || !paymentFound || cfg == nil {
+			refundRecord.Status = "refunded"
+			settlement.RefundStatus = "completed"
+		} else {
+			refundRecord.PaymentRecordID = &paymentRecord.ID
+			client := wechatpay.GetClient()
+			refundResp, err := client.Refund(nil, wechatpay.RefundParams{
+				OutTradeNo:   outTradeNo,
+				OutRefundNo:  outRefundNo,
+				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
+				RefundAmount: cfg.AmountToCents(result.CashRefundable),
+				Reason:       "租赁结算退款",
+				NotifyURL:    cfg.RefundNotifyURL,
+			})
+			if err != nil {
+				refundRecord.Status = "failed"
+				fr := err.Error()
+				refundRecord.FailReason = &fr
+				log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, err)
+				settlement.RefundStatus = "failed"
+			} else {
+				refundRecord.RefundID = &refundResp.RefundID
+				settlement.RefundStatus = "refunding"
+			}
+		}
+		refundRecord.OutRefundNo = &outRefundNo
+
+		if err := tx.Create(&refundRecord).Error; err != nil {
+			return nil, fmt.Errorf("failed to create refund record: %w", err)
+		}
+	}
+
+	if err := tx.Model(&settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
+		return nil, fmt.Errorf("failed to update settlement status: %w", err)
+	}
+
+	// Mark deposit as refunded only after actual refund executes
+	if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Update("deposit_refunded", true).Error; err != nil {
+		return nil, fmt.Errorf("failed to mark deposit refunded: %w", err)
+	}
+
+	// Increment total spending by actual rental amount
+	if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+		"total_spending": gorm.Expr("total_spending + ?", result.RentPayable),
+		"updated_at":     time.Now(),
+	}).Error; err != nil {
+		return nil, fmt.Errorf("failed to update total spending: %w", err)
+	}
+
+	return &result, nil
+}
+
 func (h *UserSettlementHandler) GetSettlement(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
@@ -408,8 +555,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		earlyReturnRebate = 0
 	}
 
-	cashRefundable := math.Min(totalRefund, order.CashPaid)
-	prepaidRefunded := totalRefund - cashRefundable
+	// Refund order (#1530): gift points (over cap) first, then prepaid
+	// points, then remaining cash. Prepaid points take priority over cash.
+	prepaidRefunded := math.Min(totalRefund, order.PrepaidPointsUsed+order.GiftPointsUsed)
+	cashRefundable := totalRefund - prepaidRefunded
+	if cashRefundable < 0 {
+		cashRefundable = 0
+	}
 
 	giftCap := math.Floor(rentPayable * capRate / 100)
 	giftPointsRefunded := 0.0

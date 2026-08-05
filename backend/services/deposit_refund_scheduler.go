@@ -54,7 +54,7 @@ func (s *DepositRefundScheduler) process() error {
 	cutoff := time.Now().Add(-24 * time.Hour)
 
 	var expiredOrders []models.Order
-	if err := s.db.Where("status = ? AND updated_at < ?", models.OrderStatusDepositRefunding, cutoff).Find(&expiredOrders).Error; err != nil {
+	if err := s.db.Where("status = ? AND updated_at < ? AND deposit_refunded = ?", models.OrderStatusDepositRefunding, cutoff, false).Find(&expiredOrders).Error; err != nil {
 		return err
 	}
 

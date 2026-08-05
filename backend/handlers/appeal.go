@@ -381,6 +381,20 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 		}
 	}
 
+	// Execute final settlement + refund (#1530): appeal resolution that
+	// completes the order must compute actual rent and refund the
+	// difference (rent overpayment + remaining deposit).
+	if nextOrderStatus == models.OrderStatusCompleted {
+		var completedOrder models.Order
+		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err != nil {
+			log.Printf("[ResolveAppeal] Failed to reload order for settlement: %v", err)
+		} else {
+			if _, err := executeRefund(db, completedOrder); err != nil {
+				log.Printf("[ResolveAppeal] Settlement failed for order %s: %v", order.ID, err)
+			}
+		}
+	}
+
 	// Record status history
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
@@ -626,6 +640,21 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	if nextOrderStatus == models.OrderStatusCompleted || nextOrderStatus == models.OrderStatusDepositRefunding {
 		if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
 			log.Printf("[AgreeDamage] Failed to update instrument status: %v", err)
+		}
+	}
+
+	// Execute final settlement + refund (#1530): damage >= deposit paid in
+	// mock mode completes the order directly.
+	payCfg := wechatpay.GetConfig()
+	mockMode := payCfg != nil && payCfg.MockMode
+	if damageAmount >= order.Deposit && mockMode {
+		var completedOrder models.Order
+		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err != nil {
+			log.Printf("[AgreeDamage] Failed to reload order for settlement: %v", err)
+		} else {
+			if _, err := executeRefund(db, completedOrder); err != nil {
+				log.Printf("[AgreeDamage] Settlement failed for order %s: %v", order.ID, err)
+			}
 		}
 	}
 
