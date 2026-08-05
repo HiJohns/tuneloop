@@ -519,7 +519,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	rentPayable = math.Round(rentPayable*100) / 100
 
-	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed
+	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed - order.Deposit - order.ShippingFee
 	if totalRentPaid == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {

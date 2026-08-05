@@ -537,3 +537,41 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	router.ServeHTTP(w2, req2)
 	require.Equal(t, http.StatusBadRequest, w2.Code, "order no longer in returning status")
 }
+
+// TestComputeSettlement_CashPaidExcludesDeposit verifies the TDD bug:
+// totalRentPaid = CashPaid + GiftPointsUsed, but CashPaid includes
+// deposit+shipping, causing deposit double-counting in the refund.
+func TestComputeSettlement_CashPaidExcludesDeposit(t *testing.T) {
+	_, _, _, _, _ = setupE2ETestEnv(t)
+	// This test directly validates computeSettlement math, not via HTTP.
+	db := database.GetDB()
+
+	now := time.Now()
+	start := now.AddDate(0, 0, -30).Format("2006-01-02")
+	end := now.Format("2006-01-02")
+
+	order := models.Order{
+		ID:                "tdd-order-1",
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		UserID:            "00000000-0000-0000-0000-000000000000",
+		CashPaid:          6030, // ¥3000 rent + ¥3000 deposit + ¥30 shipping
+		PrepaidPointsUsed: 0,
+		GiftPointsUsed:    0,
+		Deposit:           3000,
+		ShippingFee:       30,
+		StartDate:         &start,
+		EndDate:           &end,
+		ReturnedAt:        &now,
+		Status:            "completed",
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+	}
+
+	result := computeSettlement(order, db)
+	totalRefund := result.CashRefundable + result.PrepaidRefunded
+
+	// Correct refund should be ¥3000 (deposit only, rent+shipping consumed).
+	// totalRentPaid(3000) + remainingDeposit(3000) - rentPayable(3000) = 3000
+	require.Equal(t, 3000.0, totalRefund,
+		"Refund should be deposit only (3000). If this fails, computeSettlement is "+
+			"double-counting deposit in the refund calculation.")
+}
