@@ -575,3 +575,126 @@ func TestComputeSettlement_CashPaidExcludesDeposit(t *testing.T) {
 		"Refund should be deposit only (3000). If this fails, computeSettlement is "+
 			"double-counting deposit in the refund calculation.")
 }
+
+// TestComputeSettlement_EarlyReturn verifies early-return refund (TDD Scenario 3):
+// 30-day lease, return on day 10. Rent ¥3000, deposit ¥3000, shipping ¥30.
+// Refund = deposit + unused rent = ¥5000. Net cost = ¥1030.
+func TestComputeSettlement_EarlyReturn(t *testing.T) {
+	db := database.GetDB()
+	now := time.Now()
+	start := now.AddDate(0, 0, -10).Format("2006-01-02")
+	end := now.AddDate(0, 0, 20).Format("2006-01-02")
+
+	order := models.Order{
+		ID:                "tdd-early-return",
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		UserID:            "00000000-0000-0000-0000-000000000000",
+		CashPaid:          6030,
+		PrepaidPointsUsed: 0,
+		GiftPointsUsed:    0,
+		Deposit:           3000,
+		ShippingFee:       30,
+		StartDate:         &start,
+		EndDate:           &end,
+		ReturnedAt:        &now,
+		Status:            "completed",
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+	}
+
+	result := computeSettlement(order, db)
+	totalRefund := result.CashRefundable + result.PrepaidRefunded
+
+	// Refund = deposit(3000) + unused rent = 3000 + (3000 - actualRent)
+	// Formula: totalRentPaid(3000) + remainingDeposit(3000) - rentPayable(actualRent)
+	require.GreaterOrEqual(t, totalRefund, 4500.0, "Early return: deposit + unused rent should be >= ¥4500")
+	require.LessOrEqual(t, totalRefund, 5100.0, "Early return: deposit + unused rent should be <= ¥5100")
+	require.GreaterOrEqual(t, result.ActualDays, 1, "Actual days >= 1")
+	require.True(t, result.RentPayable < 3000, "Rent payable < 3000 (unused days refunded)")
+}
+
+// TestComputeSettlement_DamageAccept verifies damage-deducted refund (TDD Scenario 7):
+// 30-day lease, damage ¥500. Refund = deposit(3000) - damage(500) = ¥2500.
+func TestComputeSettlement_DamageAccept(t *testing.T) {
+	db := database.GetDB()
+	now := time.Now()
+	start := now.AddDate(0, 0, -30).Format("2006-01-02")
+	end := now.Format("2006-01-02")
+	orderID := "00000000-0000-0000-0000-0000ddddd001"
+	require.NoError(t, db.Create(&models.DamageReport{
+		ID:              "00000000-0000-0000-0000-0000dddddd01",
+		TenantID:        "00000000-0000-0000-0000-000000000000",
+		OrgID:           "00000000-0000-0000-0000-000000000000",
+		LeaseID:         orderID,
+		InstrumentID:    "00000000-0000-0000-0000-0000dddddd02",
+		UserID:          "00000000-0000-0000-0000-000000000000",
+		DepositDeducted: 500,
+		Status:          "resolved",
+	}).Error)
+
+	order := models.Order{
+		ID:                orderID,
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		UserID:            "00000000-0000-0000-0000-000000000000",
+		CashPaid:          6030,
+		PrepaidPointsUsed: 0,
+		GiftPointsUsed:    0,
+		Deposit:           3000,
+		ShippingFee:       30,
+		StartDate:         &start,
+		EndDate:           &end,
+		ReturnedAt:        &now,
+		Status:            "completed",
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+	}
+
+	result := computeSettlement(order, db)
+	totalRefund := result.CashRefundable + result.PrepaidRefunded
+
+	require.Equal(t, 2500.0, totalRefund, "Damage ¥500 deducted from deposit: ¥3000-¥500=¥2500")
+}
+
+// TestComputeSettlement_LateReturn verifies late-return refund with overdue (TDD Scenario 5):
+// 30-day lease, return on day 35. Overdue fee ¥750 from deposit.
+// Refund = ¥1780.
+func TestComputeSettlement_LateReturn(t *testing.T) {
+	db := database.GetDB()
+	now := time.Now()
+	start := now.AddDate(0, 0, -35).Format("2006-01-02")
+	end := now.AddDate(0, 0, -5).Format("2006-01-02") // ended 5 days ago
+	orderID := "00000000-0000-0000-0000-0000ddddd002"
+	require.NoError(t, db.Create(&models.DamageAssessment{
+		ID:           "00000000-0000-0000-0000-0000ddddda01",
+		TenantID:     "00000000-0000-0000-0000-000000000000",
+		OrgID:        "00000000-0000-0000-0000-000000000000",
+		OrderID:      orderID,
+		InstrumentID: "00000000-0000-0000-0000-000000000000",
+		UserID:       "00000000-0000-0000-0000-000000000000",
+		Photos:       "[]",
+		OverdueDays:  5,
+		OverdueFee:   750,
+	}).Error)
+
+	order := models.Order{
+		ID:                orderID,
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		UserID:            "00000000-0000-0000-0000-000000000000",
+		CashPaid:          6030,
+		PrepaidPointsUsed: 0,
+		GiftPointsUsed:    0,
+		Deposit:           3000,
+		ShippingFee:       30,
+		StartDate:         &start,
+		EndDate:           &end,
+		ReturnedAt:        &now,
+		Status:            "completed",
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":35,"rate":100,"tier":1,"discount":1,"subtotal":3500}]}`),
+	}
+
+	result := computeSettlement(order, db)
+	totalRefund := result.CashRefundable + result.PrepaidRefunded
+
+	// rentPaid(3000) + remainingDeposit(3000-750=2250) - rentPayable(3500) ≈ 1750
+	require.GreaterOrEqual(t, totalRefund, 1500.0, "Late return: refund should be >= ¥1500")
+	require.LessOrEqual(t, totalRefund, 2000.0, "Late return: refund should be <= ¥2000")
+	require.Equal(t, 750.0, result.OverdueChargesTotal)
+}
