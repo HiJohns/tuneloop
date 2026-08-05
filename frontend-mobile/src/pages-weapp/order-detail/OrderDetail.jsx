@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Input, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
-import { env } from '../../platform'
+import { env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
 import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
@@ -204,10 +204,10 @@ export default function OrderDetail() {
     try {
       const photoUrls = []
       for (const file of logisticsPhotos) {
-        const formData = new FormData()
-        formData.append('file', file)
-        const upResp = await apiFetch(`${baseUrl}/upload`, { method: 'POST', body: formData })
-        const upResult = await upResp.json()
+        const upResp = await uploadFile(`${baseUrl}/upload`, file, {
+          headers: { Authorization: 'Bearer ' + getToken() },
+        })
+        const upResult = upResp.json ? await upResp.json() : JSON.parse(upResp.data || '{}')
         if (upResult.code === 20000 && upResult.data?.url) photoUrls.push(upResult.data.url)
       }
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/shipping`, {
