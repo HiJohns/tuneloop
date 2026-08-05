@@ -53,6 +53,7 @@
 | `id` | UUID | PK |
 | `promo_plan_id` | UUID | FK → promo_plans.id |
 | `level_id` | integer | FK → membership_levels.id |
+| `rent_discount` | decimal(5,4) | 租金折扣率（**仅用于促销活动** promo_campaign；会员折扣已移除 #1543） |
 | `deposit_discount` | decimal(5,4) | 押金折扣率 |
 | `overdue_discount` | decimal(5,4) | 逾期租金折扣率 |
 
