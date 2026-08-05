@@ -2581,7 +2581,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | order_id | uuid | 订单 ID |
-| order_type | string | rent / repair / points / damage / renewal |
+| order_type | string | rent / repair / damage / renewal / membership |
 | amount | decimal | 现金支付金额（总额 − 赠点） |
 | gift_used | decimal | 赠点抵扣金额（默认 0） |
 | open_id | string | 微信 openid（仅 JSAPI 支付，可选） |
