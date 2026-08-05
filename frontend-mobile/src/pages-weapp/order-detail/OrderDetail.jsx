@@ -209,7 +209,7 @@ export default function OrderDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '归还申请已提交', icon: 'success' })
-        setTimeout(() => Taro.navigateBack(), 800)
+        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/return-settlement/index?orderId=${id}` }), 800)
       } else {
         Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
       }
