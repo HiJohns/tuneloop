@@ -414,7 +414,6 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	pricingBreakdown, err := services.CalculatePricingBreakdown(services.RentCalcInput{
 		BaseDailyRate:     baseRate,
 		LeaseTerm:         days,
-		MembershipLevelID: userWallet.MembershipLevelID,
 		InstrumentID:      req.InstrumentID,
 		TenantID:          effectiveTenantID,
 		OrgID:             &effectiveOrgID,
@@ -860,7 +859,6 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		pb, calcErr := services.CalculatePricingBreakdown(services.RentCalcInput{
 			BaseDailyRate:     baseRate,
 			LeaseTerm:         days,
-			MembershipLevelID: userWallet.MembershipLevelID,
 			InstrumentID:      item.InstrumentID,
 			TenantID:          effectiveTenantID,
 			OrgID:             &effectiveOrgID,

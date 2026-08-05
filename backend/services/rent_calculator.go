@@ -26,12 +26,11 @@ type TierSegment struct {
 }
 
 type PricingBreakdown struct {
-	BaseDailyRent          float64            `json:"base_daily_rent"`
-	RentDays               int                `json:"rent_days"`
-	MembershipDiscountRate float64            `json:"membership_discount_rate,omitempty"`
-	PromoDiscountRates     []float64          `json:"promo_discount_rates,omitempty"`
-	FinalDailyRent         float64            `json:"final_daily_rent"`
-	TotalAmount            float64            `json:"total_amount"`
+	BaseDailyRent      float64            `json:"base_daily_rent"`
+	RentDays           int                `json:"rent_days"`
+	PromoDiscountRates []float64          `json:"promo_discount_rates,omitempty"`
+	FinalDailyRent     float64            `json:"final_daily_rent"`
+	TotalAmount        float64            `json:"total_amount"`
 
 	Deposit           float64  `json:"deposit"`
 	DepositMethod     string   `json:"deposit_method"`
@@ -55,7 +54,6 @@ type AppliedPolicy struct {
 type RentCalcInput struct {
 	BaseDailyRate     float64
 	LeaseTerm         int
-	MembershipLevelID *int
 	InstrumentID      string
 	TenantID          string
 	OrgID             *string
@@ -124,32 +122,12 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 		TierSegments:     ComputeTierSegments(input.LeaseTerm, input.PricingTiers),
 	}
 
-	membershipRate := 1.0
 	promoRate := 1.0
 
 	result.AppliedPolicies = append(result.AppliedPolicies, AppliedPolicy{
 		Type:     "tier_discount",
 		PlanName: "阶梯折扣",
 	})
-
-	if input.MembershipLevelID != nil {
-		discountRate, planName, err := getMembershipDiscount(db, *input.MembershipLevelID, input.TenantID)
-		if err == nil && discountRate > 0 && discountRate < 1.0 {
-			overrideEnabled, err := getInstrumentPromoOverride(db, input.InstrumentID, "discount")
-			if err == nil && overrideEnabled {
-				membershipRate = discountRate
-				result.MembershipDiscountRate = discountRate
-				if planName == "" {
-					planName = "会员折扣"
-				}
-				result.AppliedPolicies = append(result.AppliedPolicies, AppliedPolicy{
-					Type:     "membership_discount",
-					PlanName: planName,
-					Rate:     discountRate,
-				})
-			}
-		}
-	}
 
 	promoRates, promoPlans, err := getPromoDiscounts(db, input.TenantID, input.OrgID)
 	if err == nil {
@@ -170,7 +148,7 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 		}
 	}
 
-	cumulativeDiscount := membershipRate * promoRate
+	cumulativeDiscount := promoRate
 	totalAmount := 0.0
 	weightedSum := 0.0
 	for i := range result.TierSegments {
@@ -198,56 +176,6 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	result.ShippingFee = input.ShippingFee
 
 	return result, nil
-}
-
-func getMembershipDiscount(db *gorm.DB, levelID int, tenantID string) (float64, string, error) {
-	var plans []models.PromoPlan
-	now := time.Now().Format("2006-01-02")
-
-	if err := db.Where("plan_type = ? AND is_active = ? AND (start_date IS NULL OR start_date <= ?) AND (end_date IS NULL OR end_date >= ?)",
-		"membership_discount", true, now, now).
-		Order("scope_type ASC, created_at ASC").
-		Find(&plans).Error; err != nil {
-		return 1.0, "", err
-	}
-
-	var bestRate float64 = 1.0
-	var bestPlanName string
-
-	for _, plan := range plans {
-		if plan.ScopeType == "merchant" && (plan.ScopeID == nil || *plan.ScopeID != tenantID) {
-			continue
-		}
-
-		var detail models.PromoPlanDetail
-		if err := db.Where("promo_plan_id = ? AND level_id = ?", plan.ID, levelID).First(&detail).Error; err != nil {
-			continue
-		}
-
-		if detail.RentDiscount > 0 && detail.RentDiscount < bestRate {
-			bestRate = detail.RentDiscount
-			bestPlanName = plan.Name
-			if plan.ScopeType == "merchant" {
-				break
-			}
-		}
-	}
-
-	if bestRate >= 1.0 {
-		return 1.0, "", nil
-	}
-	return bestRate, bestPlanName, nil
-}
-
-func getInstrumentPromoOverride(db *gorm.DB, instrumentID string, overrideType string) (bool, error) {
-	var override models.InstrumentPromoOverride
-	if err := db.Where("instrument_id = ? AND override_type = ?", instrumentID, overrideType).First(&override).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return true, nil
-		}
-		return true, err
-	}
-	return override.Enabled, nil
 }
 
 func getPromoDiscounts(db *gorm.DB, tenantID string, orgID *string) ([]float64, []string, error) {
