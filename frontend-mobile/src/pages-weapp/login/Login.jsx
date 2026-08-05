@@ -31,7 +31,7 @@ async function handleWxLogin() {
           Taro.redirectTo({ url: '/pages-weapp/home/index' })
         }
       } else {
-        Taro.navigateTo({ url: '/pages-weapp/profile-complete/index' })
+        Taro.redirectTo({ url: '/pages-weapp/profile-complete/index' })
       }
       return
     }
