@@ -630,7 +630,7 @@ export default function OrderDetail() {
               <View style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {logisticsPhotos.map((file, i) => (
                   <View key={i} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#f4f4f5', position: 'relative', overflow: 'hidden' }}>
-                    <Image src={file.tempFilePath || file} style={{ width: 80, height: 80, borderRadius: 8 }} mode="aspectFill" />
+                    <Image src={file} style={{ width: 80, height: 80, borderRadius: 8 }} mode="aspectFill" />
                     <View onClick={() => setLogisticsPhotos(prev => prev.filter((_, j) => j !== i))}
                       style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: '#fff', fontSize: 12 }}>✕</Text>
@@ -640,7 +640,7 @@ export default function OrderDetail() {
                 {logisticsPhotos.length < 10 && (
                   <View onClick={() => {
                     Taro.chooseImage({ count: 10 - logisticsPhotos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
-                      .then(res => setLogisticsPhotos(prev => [...prev, ...res.tempFiles]))
+                      .then(res => setLogisticsPhotos(prev => [...prev, ...(res.tempFilePaths || [])]))
                   }}
                     style={{ width: 80, height: 80, borderRadius: 8, border: '1px dashed #d4d4d8', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
                     <Text style={{ color: '#a1a1aa', fontSize: 24 }}>+</Text>
