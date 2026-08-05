@@ -158,7 +158,8 @@ export default function Home() {
   const navBar = getNavBarLayout()
   const searchTop = navBar.menuTop
   const menuTop = navBar.menuTop + navBar.menuHeight + 8
-  const contentTop = menuTop + 30
+  const stickyMenuHeight = 48 // MenuContent: outer padding 4×2 + item padding 10×2 + text 18 + border 2
+  const contentTop = menuTop + stickyMenuHeight
 
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
@@ -327,8 +328,10 @@ export default function Home() {
         </View>
       )}
 
-      {/* Swipe layer — intercepts touch and mouse over the banner area */}
-      {banners.length > 0 && (
+      {/* Swipe layer — intercepts touch and mouse over the banner area; only
+          active before scrolling (banner hidden after scroll, and it would
+          otherwise block sticky menu taps at the same z-index) */}
+      {banners.length > 0 && !scrolled && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240 }}
           onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
           onTouchEnd={(e) => {
@@ -358,7 +361,7 @@ export default function Home() {
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
       {menuStuck && (
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop }}>
+        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop, height: stickyMenuHeight, overflow: 'hidden' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
       )}
