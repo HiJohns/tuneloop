@@ -143,21 +143,27 @@ release: clean-prerelease
 	@echo "=========================================="
 	@echo "Package: $(RELEASE_DIR)/$(PKG_NAME).zip"
 	@echo "=========================================="
-	@echo "1. Deploy to PRE-PROD:"
-	@echo "   scp $(RELEASE_DIR)/$(PKG_NAME).zip cadenza:/opt/flow/"
-	@echo "   ssh cadenza 'cd /opt/flow && TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh $(PKG_NAME).zip'"
+	@echo "1. Deploy to PRE-PROD (automatic after upload):"
+	@echo "   ssh cadenza ~/download.sh $(PKG_NAME).zip   (download.sh deploys via deploy.sh)"
 	@echo ""
 	@echo "2. Verify on https://preweb.cadenzayueqi.com & https://prewx.cadenzayueqi.com"
 	@echo ""
 	@echo "3. Promote to PRODUCTION:"
 	@echo "   ssh cadenza '/opt/flow/release.sh $(PKG_NAME).zip'"
 	@echo "=========================================="
-	@echo "Uploading to cadenza:/opt/flow ..."
-	scp $(RELEASE_DIR)/$(PKG_NAME).zip cadenza:/opt/flow/
-	@echo "Upload complete -> cadenza:/opt/flow/$(PKG_NAME).zip"
-	# Wrap into test.zip for Seafile deployment
-	cd $(RELEASE_DIR) && zip test.zip $(PKG_NAME).zip && cp test.zip ~/test.zip
-	@echo "Wrapped to ~/test.zip (contains $(PKG_NAME).zip)"
+	@echo "=========================================="
+	@echo "Uploading $(PKG_NAME).zip via Seafile (work-time safe)..."
+	@echo "=========================================="
+	# 1. Copy release package as test.zip (fixed name keeps the Seafile
+	#    share link stable so cadenza download.sh always fetches the newest)
+	cp $(RELEASE_DIR)/$(PKG_NAME).zip ~/test.zip
+	@echo "Prepared ~/test.zip (== $(PKG_NAME).zip)"
+	# 2. Upload test.zip to Seafile (replaces existing file, share link unchanged)
+	bash ~/scripts/upload_to_seafile.sh ~/test.zip /debug/uem-core/5.2/test
+	@echo "Upload complete -> Seafile /debug/uem-core/5.2/test/test.zip"
+	# 3. Trigger prerelease deployment on cadenza (downloads + deploy.sh)
+	ssh cadenza ~/download.sh $(PKG_NAME).zip
+	@echo "Deploy triggered on cadenza (download.sh $(PKG_NAME).zip)"
 
 # Backward-compatible alias
 prerelease: release
