@@ -238,9 +238,13 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 			return fmt.Errorf("update order points: %w", err)
 		}
 	}
+	localUserID := resolveLocalUserID(tx, record)
+	if localUserID == "" {
+		return fmt.Errorf("local user not found for iam_sub %s", record.UserID)
+	}
 	pt := models.PointsTransaction{
 		ID:          uuid.New().String(),
-		UserID:      record.UserID,
+		UserID:      localUserID,
 		TenantID:    record.TenantID,
 		Type:        "prepaid_used",
 		Amount:      points.PrepaidUsed + points.GiftUsed,
@@ -252,6 +256,26 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		return fmt.Errorf("create points transaction: %w", err)
 	}
 	return nil
+}
+
+// resolveLocalUserID maps the JWT subject (IAM user id) stored in
+// record.UserID to the local users.id primary key. PointsTransaction
+// and CheckAndUpgradeLevel reference the local users table, while
+// order_payment_records.user_id stores the IAM subject — mixing them
+// violates points_transactions_user_id_fkey (SQLSTATE 23503).
+func resolveLocalUserID(tx *gorm.DB, record *models.OrderPaymentRecord) string {
+	// points prepay stores the local user id in OrderID
+	if record.OrderType == "points" && record.OrderID != nil {
+		var u models.User
+		if err := tx.Where("id = ?", *record.OrderID).First(&u).Error; err == nil {
+			return u.ID
+		}
+	}
+	var u models.User
+	if err := tx.Where("iam_sub = ?", record.UserID).First(&u).Error; err == nil {
+		return u.ID
+	}
+	return ""
 }
 
 func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
@@ -266,9 +290,13 @@ func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now tim
 		log.Printf("[applySideEffects] failed to add points: %v", err)
 		return err
 	}
+	localUserID := resolveLocalUserID(tx, record)
+	if localUserID == "" {
+		return fmt.Errorf("local user not found for iam_sub %s", record.UserID)
+	}
 	pt := models.PointsTransaction{
 		ID:          uuid.New().String(),
-		UserID:      record.UserID,
+		UserID:      localUserID,
 		TenantID:    record.TenantID,
 		Type:        "prepaid_purchase",
 		Amount:      record.Amount,
@@ -280,7 +308,7 @@ func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now tim
 		return err
 	}
 	// Re-evaluate membership level after prepaid purchase
-	if err := services.CheckAndUpgradeLevel(record.UserID, nil); err != nil {
+	if err := services.CheckAndUpgradeLevel(localUserID, nil); err != nil {
 		log.Printf("[applySideEffects] membership level check failed: %v", err)
 	}
 	return nil
