@@ -2538,7 +2538,6 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 {
   "code": 20000,
   "data": {
-    "prepaid_points": 500.00,
     "promo_points": 100.00
   }
 }
@@ -2558,10 +2557,10 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
     "list": [
       {
         "id": "uuid",
-        "type": "prepaid_purchase",
-        "amount": 500.00,
-        "balance_after_prepaid": 1000.00,
-        "description": "预购点数",
+        "type": "promo_earn",
+        "amount": 100.00,
+        "balance_after": 100.00,
+        "description": "签到获赠",
         "created_at": "2026-06-28T00:00:00Z"
       }
     ],
@@ -2572,48 +2571,18 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 }
 ```
 
----
-
-**接口**: `POST /api/user/points/purchase`
-
-**说明**: 预购预付点数
-
-**请求 Body**:
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| amount | decimal | 购买金额 |
-
-**请求示例**:
-```json
-{ "amount": 500 }
-```
-
-**响应**:
-```json
-{
-  "code": 20000,
-  "data": {
-    "new_balance": 1000.00,
-    "transaction_id": "uuid"
-  }
-}
-```
-
----
-
 ### 8.11.1 创建预付支付
 
 **接口**: `POST /api/pay/prepay`
 
-**说明**: 创建预付支付记录。支持预付点/赠点抵扣，抵扣后仅支付现金差额。
+**说明**: 创建预付支付记录。支持赠点抵扣，抵扣后仅支付现金差额。
 
 **请求 Body**:
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | order_id | uuid | 订单 ID |
 | order_type | string | rent / repair / points / damage / renewal |
-| amount | decimal | 现金支付金额（总额 − 预付点 − 赠点） |
-| prepaid_used | decimal | 预付点抵扣金额（默认 0） |
+| amount | decimal | 现金支付金额（总额 − 赠点） |
 | gift_used | decimal | 赠点抵扣金额（默认 0） |
 | open_id | string | 微信 openid（仅 JSAPI 支付，可选） |
 
@@ -2623,16 +2592,15 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "order_id": "fb7f4596-4fea-458e-9ab9-cd39f4ccf8fd",
   "order_type": "rent",
   "amount": 558.00,
-  "prepaid_used": 282.00,
   "gift_used": 0
 }
 ```
 
 **Mock 模式行为**（`WECHAT_PAY_MOCK_MODE=true`）:
 - 立即标记支付记录为 `paid`
-- 扣减用户 `prepaid_points` / `promo_points` 余额（`GREATEST(x - n, 0)` 防负）
-- 更新订单 `prepaid_points_used` / `gift_points_used`
-- 写入 `points_transactions` 审计记录（type=`prepaid_used`）
+- 扣减用户 `promo_points` 余额（`GREATEST(x - n, 0)` 防负）
+- 更新订单 `gift_points_used`
+- 写入 `points_transactions` 审计记录（type=`gift_used`）
 
 **响应**:
 ```json
@@ -2659,7 +2627,6 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "data": {
     "name": "用户昵称",
     "onboarding_completed": false,
-    "prepaid_points": 0,
     "promo_points": 0
   }
 }
@@ -2708,7 +2675,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `POST /api/rental/calculate`
 
-**说明**: 计算租金阶梯明细、押金、物流费、积分上限。用户可在返回限额内选择赠点/预付点使用量以计算现金差额。
+**说明**: 计算租金阶梯明细、押金、物流费、积分上限。用户可在返回限额内选择赠点使用量以计算现金差额。
 
 **请求 Body**:
 ```json
@@ -2728,20 +2695,16 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
       {"days_min": 31, "days_max": 70, "discount_percent": 5, "days_in_tier": 40, "effective_rate": 95, "subtotal": 3800}
     ],
     "total_rent": 6800,
-    "member_discount_percent": 0,
-    "member_discount_amount": 0,
     "deposit": 2000,
     "shipping_fee": 50,
     "gift_points_max": 100,
-    "prepaid_points_max": 500,
     "gift_points_used": 0,
-    "prepaid_points_used": 0,
     "cash_to_pay": 8850
   }
 }
 ```
 
-> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。预付点上限制 = 用户预付点余额。现金 = 总支付额 − 赠点 − 预付点。
+> 赠点上限 = `min(用户赠点余额, 总支付额 × PointsPolicy.MaxPayRatio)`。现金 = 总支付额 − 赠点。
 
 ---
 
@@ -2763,10 +2726,8 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
     "gift_cap": 75.00,
     "gift_points_refunded": 125.00,
     "cash_paid": 1000.00,
-    "prepaid_points_used": 200.00,
     "total_refund": 450.00,
     "cash_refundable": 450.00,
-    "prepaid_refunded": 0.00,
     "overdue_charges_total": 0.00
   }
 }
@@ -2781,7 +2742,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **请求 Body**:
 | 字段 | 类型 | 默认 | 说明 |
 |------|------|------|------|
-| refund_method | string | "prepaid" | "prepaid" / "cash_withdrawal" |
+| refund_method | string | "cash_withdrawal" | "cash_withdrawal" |
 
 **响应**:
 ```json
@@ -2790,7 +2751,6 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "data": {
     "settlement_id": "uuid",
     "cash_refundable": 450.00,
-    "prepaid_refunded": 0.00,
     "gift_points_refunded": 125.00
   }
 }
@@ -2828,7 +2788,6 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
         "order_id": "uuid",
         "charge_date": "2026-06-28",
         "amount": 75.00,
-        "deducted_from_prepaid": 50.00,
         "remaining_balance": 25.00,
         "status": "partial",
         "failure_reason": null,
@@ -4458,7 +4417,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | plan_name | string | 政策名称 |
-| plan_type | string | 类型: membership_discount / overdue_discount / seasonal |
+| plan_type | string | 类型: overdue_discount / seasonal |
 | is_active | bool | 是否启用 |
 | applicable_levels | string | 适用会员级别 ID 列表 (逗号分隔) |
 

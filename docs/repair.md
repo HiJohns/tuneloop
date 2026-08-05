@@ -146,9 +146,9 @@ returned → appealing → (管理员关闭) → closed
 
 #### 阶段 3：待付款（`pending_payment`）
 
-- 付款页显示计费明细（会员优惠 / 预付点数 / 赠点）
+- 付款页显示计费明细（赠点）
 - 全权应付 = 材料 + 服务 + 物流；受控应付 = 材料 + 服务 + 物流 + 中转服务 + 中转物流
-- 支付取整：现金/运费/总额 `Math.ceil()`；赠点/预付点上限 `Math.floor()`；赠点开关由商户管理员设置
+- 支付取整：现金/运费/总额 `Math.ceil()`；赠点上限 `Math.floor()`；赠点开关由商户管理员设置
 - 调试阶段跳过实际支付 → 支付完成页 → `pending_ship`
 
 **API**：`POST /api/repair-requests/:id/pay`
@@ -235,7 +235,7 @@ returned → appealing → (管理员关闭) → closed
 
 > 回退不重新报价：B/C/D 段物流与中转服务在发货前已锁定，中断时乐器仍走完全程，故仅用"检查费"置换"材料+服务费"；退款封底 0。
 
-**支付取整**：现金/运费/总额 `Math.ceil()`；赠点/预付点上限 `Math.floor()`。
+**支付取整**：现金/运费/总额 `Math.ceil()`；赠点上限 `Math.floor()`。
 
 **API（部分待建）**：`GET/PUT /api/config/repair/check-fee`（系统级）+ 中转费经中转处理接口写入 `repair_transit_orders`。
 

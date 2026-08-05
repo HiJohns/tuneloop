@@ -230,7 +230,7 @@ CREATE TABLE order_refund_records (
 | 1 | 租赁费用 | 小程序内 / H5 / PC | JSAPI / H5 / Native | 三端均可触发 |
 | 2 | 报修费用 | 小程序内 | JSAPI | 仅小程序 |
 | 3 | 逾期扣款 | 后台自动 | 委托代扣 | 需用户签约（远期） |
-| 4 | 购买预付点 | 小程序内 | JSAPI | 注册引导 + 会员中心 |
+| 4 | 会员入会费 | 小程序内 | JSAPI | 注册引导 |
 | 5 | 押金退款 | 后台自动 | 退款 API | 原路退回 |
 | 6 | 结算退款 | 后台自动 | 退款 API | 原路退回 |
 | 7 | 报修增补差价 | 小程序内 | JSAPI | renegotiation quote |
@@ -250,8 +250,8 @@ CREATE TABLE order_refund_records (
     │   ├── damage_amount ≤ deposit → 自动扣除押金，退还差额 → deposit_refunding
     │   └── damage_amount > deposit → 进入支付确认页
     │       ├── 展示：定损金额、押金抵扣、应补差额
-    │       ├── 允许输入预付点抵扣（与租赁结算页一致）
-    │       ├── 现金差额 = damage_amount - deposit - prepaid_points_used
+    │       ├── 允许输入赠点抵扣（与租赁结算页一致）
+    │       ├── 现金差额 = damage_amount - deposit - gift_points_used
     │       └── 调用 WeChat Pay JSAPI 支付现金差额
     │           ├── 支付成功 → order.status = completed, 押金全额扣除
     │           └── 支付失败/超时 → 可重试，超时未完成转申诉
@@ -269,7 +269,7 @@ CREATE TABLE order_refund_records (
 ```
 
 **关键设计点**：
-- 支付确认页复用租赁结算页组件（费用明细 + 预付点输入 + 现金差额）
+- 支付确认页复用租赁结算页组件（费用明细 + 赠点输入 + 现金差额）
 - `order_payment_records.order_type = 'damage'`，`order_id` 指向 DamageReport.ID
 - 申诉调整后可能产生第二次支付（原始定损支付已发生的不可逆，新的按差额补/退）
 
@@ -339,7 +339,7 @@ WECHAT_PAY_MOCK_MODE=true         # 测试环境下设为 true，走模拟支付
 | 筛选项 | 类型 | 可选值 |
 |--------|------|------|
 | 时间范围 | date range | 开始日期 ~ 结束日期 |
-| 支付类别 | multi-select | 租赁支付 / 报修支付 / 点数购买 / 退款 / 逾期扣款 |
+| 支付类别 | multi-select | 租赁支付 / 报修支付 / 退款 / 逾期扣款 |
 | 支付方式 | select | 全部 / JSAPI / H5 / Native / 模拟（测试） |
 | 支付状态 | select | 全部 / 待支付 / 已支付 / 退款中 / 已退款 / 失败 |
 | 商户订单号 | text input | out_trade_no 精确搜索 |
@@ -403,7 +403,7 @@ wx.requestPayment 失败回调:
 ### 8.3 逾期扣款失败处置
 
 ```
-扣款失败（委托代扣返回失败 / prepaid 余额不足）:
+扣款失败（委托代扣返回失败 / 赠点余额不足）:
   1. 创建 OverdueCharge 记录 status='failed'
   2. 通知商户管理员（merchant_admin）：
      - 站内通知 + 邮件："订单 #{id} 逾期扣款失败，金额 ¥{amount}"
@@ -424,10 +424,10 @@ wx.requestPayment 失败回调:
 - [ ] 支付回调 → 更新订单状态
 - [ ] `order_payment_records` 建表
 
-### Phase 2 — 报修 + 买点（1 周）
+### Phase 2 — 报修 + 入会费（1 周）
 - [ ] 2. 报修费用支付
-- [ ] 4. 购买预付点支付（会员中心 + 注册后引导）
-- [ ] `POST /api/pay/prepay` 支持 `order_type=points`
+- [ ] 3. 会员入会费支付（注册后引导）
+- [ ] `POST /api/pay/prepay` 支持 `order_type=membership`
 
 ### Phase 3 — 退款（1 周）
 - [ ] 5. 押金退款
