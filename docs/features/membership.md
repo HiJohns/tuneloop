@@ -23,11 +23,10 @@
 | 2 | 中级 | 5000 |
 | 3 | 高级 | 10000 |
 
-### 1.2 新增表：`promo_plans`（会员折扣政策与促销方案）
+### 1.2 新增表：`promo_plans`（促销方案）
 
-此表承载两类用途：
-1. **会员折扣政策**：长期生效，无需起止时间。`scope_type` 仅可为 `system` / `merchant`（不可为 `site` — 网点无制订权）。
-2. **促销方案活动**：时间限定促销。`scope_type` 可为 `system` / `merchant` / `site`。
+此表承载促销方案活动：时间限定促销。`scope_type` 可为 `system` / `merchant` / `site`。
+会员折扣政策已移除（#1543），会员权益改由赠点体系表达（消费返赠点、注册赠点等）。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -43,11 +42,9 @@
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
-**plan_type 约束**：
-- `discount_policy`（会员折扣政策）：`scope_type` 仅可为 `system` / `merchant`
+**plan_type 约束**（#1543）：
+- `discount_policy` 已弃用（会员折扣政策移除）
 - `promo_campaign`（促销方案活动）：`scope_type` 可为 `system` / `merchant` / `site`
-
-**CHECK 约束**：`(plan_type = 'discount_policy' AND scope_type != 'site') OR (plan_type = 'promo_campaign')`
 
 ### 1.3 新增表：`promo_plan_details`（促销方案明细）
 
@@ -56,7 +53,6 @@
 | `id` | UUID | PK |
 | `promo_plan_id` | UUID | FK → promo_plans.id |
 | `level_id` | integer | FK → membership_levels.id |
-| `rent_discount` | decimal(5,4) | 租金折扣率（如 0.9 = 9折） |
 | `deposit_discount` | decimal(5,4) | 押金折扣率 |
 | `overdue_discount` | decimal(5,4) | 逾期租金折扣率 |
 
@@ -81,6 +77,8 @@
 
 权限：仅系统管理员可管理比例（`rebate:manage` cus_perm）。
 
+> **注意**：`rebate_config` 的 `rent_ratio` 在每单消费完成后用于计算 loyalty 赠点（#1542）和介绍人返佣赠点（#1535），按会员级别逐级提高（#1536）。
+
 ### 1.5 新增表：`points_policies`（促销点数政策，三级可覆盖）
 
 | 字段 | 类型 | 说明 |
@@ -100,7 +98,6 @@
 |------|------|------|
 | `membership_level_id` | integer | FK → membership_levels.id |
 | `total_spending` | decimal | 消费金额总计（跨商户累计） |
-| `prepaid_points` | decimal | 预付点数 |
 | `promo_points` | decimal | 促销点数 |
 
 ### 1.7 乐器表（`instruments`）新增字段
@@ -140,7 +137,6 @@
 {
   "base_daily_rent": 10.00,
   "rent_days": 30,
-  "membership_discount_rate": 0.9,
   "promo_discount_rates": [0.95],
   "final_daily_rent": 8.55,
   "total_amount": 256.50,
@@ -149,13 +145,12 @@
   ],
   "applied_policies": [
     {"type": "tier_discount", "plan_name": "阶梯折扣"},
-    {"type": "membership_discount", "plan_name": "系统默认", "rate": 0.9},
     {"type": "promo_campaign", "plan_name": "夏日促销", "rate": 0.95}
   ]
 }
 ```
 
-> 注：`tier_segments[i].discount` 为含所有折扣的累计系数（阶梯折扣 × 会员折扣 × 促销折扣）。`final_daily_rent` 为加权平均日租金。`total_amount` = Σ(segment.rate × segment.discount × segment.days)。
+> 注：`tier_segments[i].discount` 为含所有折扣的累计系数（阶梯折扣 × 促销折扣）。`final_daily_rent` 为加权平均日租金。`total_amount` = Σ(segment.rate × segment.discount × segment.days)。
 
 ---
 
@@ -164,7 +159,7 @@
 ### 2.1 级别升级
 
 - 用户注册即为初级会员
-- `total_spending` 跨所有商户累计（租金 + 购买点数）
+- `total_spending` 跨所有商户累计（租金）
 - 不计入累积：运费、押金、损坏赔偿、使用点数支付的租金
 - 达到阈值自动升级到对应级别
 - 仅升级不降级
@@ -172,19 +167,10 @@
 ### 2.2 折扣计算
 
 ```
-最终日租金 = 基础日租 × 阶梯折扣 × (乐器折扣开关 ? 会员折扣 : 1.0) × 促销折扣
+最终日租金 = 基础日租 × 阶梯折扣 × 促销折扣
 ```
 
-叠加规则：阶梯定价折扣 × (乐器开关 ? 会员折扣 : 1.0) × 促销折扣（乘法叠加）。
-
-- `乐器折扣开关` = `instrument_promo_overrides.enabled`（仅对 discount 类型），false 时会员折扣不参与计算
-
-例：基础价 10 元/天，高级会员（9折），促销方案（95折），乐器启用折扣：
-- 第 1~30 天：10 × 1.0 × 0.9 × 0.95 = 8.55 元/天
-- 第 181~365 天：10 × 0.7 × 0.9 × 0.95 = 5.99 元/天
-
-例：同场景但乐器**禁用**折扣：
-- 第 1~30 天：10 × 1.0 × 1.0 × 0.95 = 9.50 元/天（会员折扣被跳过）
+叠加规则：阶梯定价折扣 × 促销折扣（乘法叠加）。
 
 **计算透明度要求**：
 - 购物车/结算页面须展示完整计算过程：**原价 → 适用政策（名称+折扣率）→ 最终价格**
@@ -195,19 +181,6 @@
 - 折扣政策和返点政策均可设置为长期有效（不设 `end_date`，或设 `end_date` 为 null）
 - UI 上明确提供"长期有效"选项，而非强制填写截止日期
 - 长期政策的优先级低于有时间限制的政策（便于临时促销覆盖长期折扣）
-
-### 2.3 会员折扣政策（两级覆盖，非促销活动）
-
-会员折扣政策按级别定义折扣率（存储在 `promo_plans` / `promo_plan_details`），是**长期生效的基础政策**，非有起止时间的促销活动。
-
-| 级别 | 制订者 | 覆盖范围 | 优先级 |
-|------|--------|---------|:---:|
-| 系统 | sys_admin | 全站默认 | 低 |
-| 商户 | merchant_admin | 本商户所有网点（覆盖系统） | 高 |
-
-- 商户管理员可采纳系统默认方案（不创建），或创建本商户方案覆盖系统
-- 商户方案影响本商户下**所有网点**，网点管理员无权创建或修改会员折扣政策
-- 网点管理员仅可决定单件乐器是否适用该政策（通过 `instrument_promo_overrides`，不修改政策本身）
 
 ### 2.3a 促销方案活动（三级，时间限定）
 
@@ -243,7 +216,7 @@
 
 ### 2.4a 返点发放规则
 
-- **发放时机**：订单状态变为 `leased`（租赁中，即确认收货后）时发放
+- **发放时机**：订单状态变为 `completed`（消费完成后）时发放（详见 #1542 loyalty 赠点自动发放）。
 - **存入字段**：`users.promo_points`
 - **发放比例**：按用户当前 `membership_level_id` 对应的 `rebate_config.rent_ratio` × 实际支付月租金
 - **订单取消/提前终止**：按实际租赁天数比例追回已发放返点（从 `promo_points` 中扣除）
@@ -272,7 +245,6 @@
 | 用例 | 操作 |
 |------|------|
 | 管理会员级别 | 增删改级别名称、门槛金额 |
-| 设置系统会员折扣政策 | 创建/修改折扣方案，指定各级别折扣率、起止时间、是否可叠加 |
 | 设置返点比例（按级别） | 为每个会员级别配置不同的租金→点数返还比例 |
 | 设置系统点数政策 | 配置点数使用百分比上限、有效期 |
 
@@ -281,7 +253,6 @@
 | 用例 | 操作 |
 |------|------|
 | 查看本商户各级会员 | 列表，按级别筛选 |
-| 设置商户会员折扣政策 | 采纳系统默认方案，或制订本商户方案覆盖系统 |
 | 决定是否参与返点 | 仅 opt-in/opt-out，不修改比例 |
 | 设置商户点数政策 | 覆盖系统政策 |
 | 授予促销点数 | 将来实现 |
@@ -291,7 +262,6 @@
 | 用例 | 操作 |
 |------|------|
 | 设置网点促销方案 | 覆盖上级方案 |
-| 按乐器决定折扣政策适用 | 开启/关闭单件乐器的会员折扣政策适用（不修改政策本身） |
 | 按乐器决定返点政策适用 | 开启/关闭单件乐器的返点政策适用（不修改政策本身） |
 | 设置网点点数政策 | 覆盖上级政策 |
 | 授予促销点数 | 将来实现 |
@@ -303,7 +273,7 @@
 |------|------|
 | 查看会员级别 | 显示当前级别名称和徽章，距下一级别所需消费金额进度条 |
 | 查看累计消费 | `total_spending` 为**全平台累计**；本商户累计通过 `SUM(orders.total_amount WHERE tenant_id=当前商户)` 实时计算，不单独存储字段 |
-| 查看点数余额 | 显示 `promo_points` + `prepaid_points` 及有效期 |
+| 查看点数余额 | 显示 `promo_points` 及有效期 |
 | 查看订单价格明细 | 订单详情页展示 `pricing_breakdown`：原价 → 各项折扣 → 最终价格 |
 | 下单时查看价格计算 | 购物车/结算页逐行展示折扣计算过程（见 §2.2） |
 | 使用促销点数抵扣 | 下单时选择使用点数 |
@@ -317,11 +287,9 @@
 | 操作 | 权限 | 说明 |
 |------|------|------|
 | 管理级别表 | `membership:manage` | 新增 cus_perm，仅 sys_admin |
-| 管理/创建系统会员折扣政策 | sys_admin + `promo:manage` | 全站默认折扣方案 |
-| 管理/创建商户会员折扣政策 | merchant_admin + `promo:manage` | 可采纳系统方案或创建本商户方案覆盖；影响本商户所有网点 |
 | 管理/创建返点比例（按级别） | `rebate:manage` | 新增 cus_perm，仅 sys_admin |
 | 商户决定是否参与返点 | merchant_admin | 仅 opt-in/opt-out，不修改比例 |
-| 决定乐器是否适用折扣/返点 | `promo:override` | 新增 cus_perm，site_admin，通过 `instrument_promo_overrides` 开关，不修改政策本身 |
+| 决定乐器是否适用返点 | `promo:override` | 新增 cus_perm，site_admin，通过 `instrument_promo_overrides` 开关，不修改政策本身。`discount` 类型仅用于促销活动，会员折扣已移除。 |
 | 管理促销方案活动（各级） | 对应级管理员 | 时间限定促销活动，非基础折扣政策 |
 | 管理促销点数政策 | 对应级管理员 + `points:manage` | 新增 cus_perm，三级可覆盖 |
 | 设置乐器最低可租级别 | site_admin / site_member | 创建/编辑乐器时设置 |

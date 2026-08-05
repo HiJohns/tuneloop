@@ -27,7 +27,7 @@
 * **微信支付集成**：支持微信支付（JSAPI 小程序内 / H5 移动端 / Native PC 扫码）。`WECHAT_PAY_MOCK_MODE=true` 时走模拟支付流程（直接成功），适用于开发/测试环境。
 * **支付记录**：每笔支付记录写入 `order_payment_records` 表，含 `out_trade_no`、`transaction_id`、金额、方式、状态，支持 PC 端 `/admin/payments` 页面对账。
 * **退款处理**：押金退还和结算退款通过微信退款 API 原路退回，记录写入 `order_refund_records`。
-  * **订单完成触发结算**（#1530）：`InspectReturn` good 验收、`ResolveAppeal`/`AgreeDamage` 申诉完成 → 自动调用 `computeSettlement` 引擎执行退款。退款顺序：赠点超 cap 部分 → 预付点优先 → 剩余退现金。`ConfirmSettlement`（用户手动结算）与自动结算统一走同一引擎。
+  * **订单完成触发结算**（#1537）：`InspectReturn` good 验收、`ResolveAppeal`/`AgreeDamage` 申诉完成 → 自动调用 `computeSettlement` 引擎执行退款。退款顺序：赠点超 cap 部分退回 promo_points → 剩余现金退款。`ConfirmSettlement`（用户手动结算）与自动结算统一走同一引擎。
 * **协议签署**：集成在线租用协议，确保租赁合规。
 
 ### 4. 维保服务门户
@@ -150,12 +150,12 @@
 
 ### 5.1 会员级别
 
-系统支持三级会员（初级/中级/高级），按跨商户累计消费金额自动升级，仅升级不降级。会员级别影响乐器租赁价格计算（会员折扣）。
+系统支持三级会员（初级/中级/高级），按跨商户累计消费金额自动升级，仅升级不降级。会员级别影响乐器租赁价格计算（loyalty 返点比例）。
 
 **累计消费统计**：由 `services.CheckAndUpgradeLevel` 实时聚合（非 `users.total_spending` 字段，该字段仅作展示缓存）：
-- 预付点采购（`order_payment_records` order_type='points'）
 - 已完成订单实际租金（`settlements.actual_rent_amount`，已按实际租期折算，提前归还自动扣减）
 - 续期支付（order_type='renewal'）
+- 会员入会费（order_type='membership'，#1532）
 - 报修支付（order_type='repair'）
 - 扣除退款（`order_refund_records` status='refunded'）
 
@@ -191,13 +191,12 @@
 
 ### 费用明细展示
 
-支付确认页需展示：各阶明细（天数范围 × 日费 × 折扣 = 小计）→ 总租金 → 会员折扣（如有） → 押金 → 物流费 → 赠点/预付点上限制 → 现金差额
+支付确认页需展示：各阶明细（天数范围 × 日费 × 折扣 = 小计）→ 总租金 → 押金 → 物流费 → 赠点上限制 → 现金差额
 
 ### 折扣要素
 | 折扣类型 | 来源 | 说明 |
 |---------|------|------|
 | 阶梯折扣 | 阶梯定义 | 按天数分段累加（非统一折扣率），见 `docs/features/membership.md §2.2` |
-| 会员折扣 | membership_levels | 通过 `PromoPlanDetail.RentDiscount`，见 `docs/features/membership.md §2.2` |
 | 促销折扣 | promo_plan_details | 按 instrument_promo_overrides 判断是否适用 |
 | 逾期费率 | promo_plan_details (overdue_discount) | 默认 1.5× 日租金 |
 
@@ -207,6 +206,6 @@
 
 **逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases.md §2.5`。
 
-**订单完成结算**（#1530）：订单进入 `completed` 状态时（good 验收、damaged 申诉/协商完成、损坏赔偿支付回调），自动调用 `computeSettlement` 计算实际开销（实际租期 × tier 阶梯定价 + 损坏赔偿），与最初付款比对得出退款金额，按**赠点 → 预付点 → 现金**顺序执行退款并创建 `settlements` + `points_transactions` 记录。`DepositRefundScheduler` 仅处理 `deposit_refunding` 超时兜底，完成后 `deposit_refunded=true` 避免重复。详见 `docs/cases.md §2.7`。
+**订单完成结算**（#1537）：订单进入 `completed` 状态时（good 验收、damaged 申诉/协商完成、损坏赔偿支付回调），自动调用 `computeSettlement` 计算实际开销（实际租期 × tier 阶梯定价 + 损坏赔偿），与最初付款比对得出退款金额，按**赠点超cap → 现金**顺序执行退款并创建 `settlements` + `points_transactions` 记录。`DepositRefundScheduler` 仅处理 `deposit_refunding` 超时兜底，完成后 `deposit_refunded=true` 避免重复。详见 `docs/cases.md §2.7`。
 
 ---
