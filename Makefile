@@ -162,7 +162,7 @@ release: clean-prerelease
 	bash ~/scripts/upload_to_seafile.sh ~/test.zip /debug/uem-core/5.2/test
 	@echo "Upload complete -> Seafile /debug/uem-core/5.2/test/test.zip"
 	# 3. Trigger prerelease deployment on cadenza (downloads + deploy.sh)
-	ssh cadenza ~/download.sh $(PKG_NAME).zip
+	ssh cadenza "~/download.sh $(PKG_NAME).zip"
 	@echo "Deploy triggered on cadenza (download.sh $(PKG_NAME).zip)"
 
 # Backward-compatible alias
