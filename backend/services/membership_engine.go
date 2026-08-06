@@ -71,3 +71,35 @@ func aggregateUserSpending(userID string, db *gorm.DB) float64 {
 	}
 	return total
 }
+
+// GetGiftRatios returns the membership gift ratio config for a level,
+// or nil if none is configured/active (#1536, #1542).
+func GetGiftRatios(levelID int) *models.MembershipGiftRatio {
+	if levelID <= 0 {
+		return nil
+	}
+	db := database.GetDB()
+	var r models.MembershipGiftRatio
+	if err := db.Where("level_id = ? AND is_active = ?", levelID, true).First(&r).Error; err != nil {
+		return nil
+	}
+	return &r
+}
+
+// FindReferrer looks up the referrer of a user via the referrals table.
+// Returns the referrer's User record (with MembershipLevelID) or nil.
+func FindReferrer(userID string) *models.User {
+	if userID == "" {
+		return nil
+	}
+	db := database.GetDB()
+	var referral models.Referral
+	if err := db.Where("referee_id = ?", userID).First(&referral).Error; err != nil {
+		return nil
+	}
+	var referrer models.User
+	if err := db.Where("id = ?", referral.ReferrerID).First(&referrer).Error; err != nil {
+		return nil
+	}
+	return &referrer
+}

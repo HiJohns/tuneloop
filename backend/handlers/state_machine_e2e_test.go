@@ -30,7 +30,7 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	}
 	database.SetDB(db)
 
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{})
+	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Notification{}, &models.OrderPaymentRecord{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{})
 	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.LeaseSession{}))
@@ -43,6 +43,7 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	require.NoError(t, db.Migrator().CreateTable(&models.PointsTransaction{}))
 	require.NoError(t, db.Migrator().AutoMigrate(&models.User{}))
 	require.NoError(t, db.Migrator().CreateTable(&models.DamageReport{}))
+	require.NoError(t, db.Migrator().CreateTable(&models.MembershipGiftRatio{}))
 	// iam_sub is excluded from migration (-:migration tag); add manually
 	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
 		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
@@ -764,4 +765,68 @@ func TestScenarioA_RejectDamageVariant(t *testing.T) {
 		require.NoError(t, db.Where("object_id = ? AND category = ?", orderID, "damage").First(&appeal).Error)
 		require.Equal(t, "划痕是原有磨损，非本次租赁造成", appeal.Description)
 	})
+}
+
+// TestExecuteRefund_LoyaltyPoints verifies #1542: on order completion,
+// the user receives loyalty gift points = rent × self_spend_ratio of
+// their membership level.
+func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
+	// Reset tables via setup
+	setupE2ETestEnv(t)
+	db := database.GetDB()
+	userID := "00000000-0000-0000-0000-00000000aa01"
+	levelID := 2
+
+	// User at level 2
+	require.NoError(t, db.Create(&models.User{
+		ID:                userID,
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		OrgID:             "00000000-0000-0000-0000-000000000000",
+		Username:          "loyalty_user",
+		MembershipLevelID: &levelID,
+		PromoPoints:       0,
+		Status:            "active",
+	}).Error)
+
+	// Level 2 ratio: 5%
+	require.NoError(t, db.Create(&models.MembershipGiftRatio{
+		ID:             "00000000-0000-0000-0000-00000000aa02",
+		LevelID:        levelID,
+		SelfSpendRatio: 0.05,
+		IsActive:       true,
+	}).Error)
+
+	now := time.Now()
+	start := now.AddDate(0, 0, -30).Format("2006-01-02")
+	end := now.Format("2006-01-02")
+	order := models.Order{
+		ID:               "00000000-0000-0000-0000-00000000aa03",
+		TenantID:         "00000000-0000-0000-0000-000000000000",
+		UserID:           userID,
+		CashPaid:         6030,
+		PrepaidPointsUsed: 0,
+		GiftPointsUsed:    0,
+		Deposit:           3000,
+		ShippingFee:       30,
+		StartDate:         &start,
+		EndDate:           &end,
+		ReturnedAt:        &now,
+		Status:            "completed",
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+	}
+
+	tx := db.Begin()
+	_, err := executeRefund(tx, order)
+	require.NoError(t, err)
+	tx.Commit()
+
+	// Loyalty points = 3000 × 5% = 150
+	var user models.User
+	require.NoError(t, db.First(&user, "id = ?", userID).Error)
+	require.Equal(t, 150.0, user.PromoPoints, "loyalty points = 3000 × 5%")
+
+	// Points transaction recorded
+	var pt models.PointsTransaction
+	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "loyalty").First(&pt).Error)
+	require.Equal(t, 150.0, pt.Amount)
 }

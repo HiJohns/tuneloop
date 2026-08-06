@@ -368,6 +368,73 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		return nil, fmt.Errorf("failed to update total spending: %w", err)
 	}
 
+	// Loyalty gift points (#1542): order completed → credit gift points
+	// proportional to actual rent × level ratio.
+	var orderUser models.User
+	if err := tx.Where("id = ?", order.UserID).First(&orderUser).Error; err == nil {
+		var selfRatio float64
+		if orderUser.MembershipLevelID != nil {
+			if ratios := services.GetGiftRatios(*orderUser.MembershipLevelID); ratios != nil {
+				selfRatio = ratios.SelfSpendRatio
+			}
+		}
+		if selfRatio > 0 {
+			loyaltyPoints := math.Floor(result.RentPayable * selfRatio)
+			if loyaltyPoints > 0 {
+				if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+					"promo_points": gorm.Expr("promo_points + ?", loyaltyPoints),
+					"updated_at":   time.Now(),
+				}).Error; err != nil {
+					log.Printf("[executeRefund] loyalty points credit failed for %s: %v", order.UserID, err)
+				} else {
+					tx.Create(&models.PointsTransaction{
+						ID:          uuid.New().String(),
+						UserID:      order.UserID,
+						TenantID:    order.TenantID,
+						Type:        "loyalty",
+						Amount:      loyaltyPoints,
+						OrderID:     &order.ID,
+						Description: fmt.Sprintf("消费返赠点: 租金 ¥%.2f × %.2f%%", result.RentPayable, selfRatio*100),
+						CreatedAt:   time.Now(),
+					})
+				}
+			}
+		}
+
+		// Referral commission (#1542 + #1535): referrer gets gift points
+		// proportional to the referred user's rent × referrer-level ratio.
+		if referrer := services.FindReferrer(order.UserID); referrer != nil {
+			var refRatio float64
+			if referrer.MembershipLevelID != nil {
+				if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil {
+					refRatio = ratios.ReferralSpendRatio
+				}
+			}
+			if refRatio > 0 {
+				refPoints := math.Floor(result.RentPayable * refRatio)
+				if refPoints > 0 {
+					if err := tx.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
+						"promo_points": gorm.Expr("promo_points + ?", refPoints),
+						"updated_at":   time.Now(),
+					}).Error; err != nil {
+						log.Printf("[executeRefund] referral points credit failed for %s: %v", referrer.ID, err)
+					} else {
+						tx.Create(&models.PointsTransaction{
+							ID:          uuid.New().String(),
+							UserID:      referrer.ID,
+							TenantID:    order.TenantID,
+							Type:        "referral",
+							Amount:      refPoints,
+							OrderID:     &order.ID,
+							Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
+							CreatedAt:   time.Now(),
+						})
+					}
+				}
+			}
+		}
+	}
+
 	return &result, nil
 }
 
