@@ -255,7 +255,7 @@ export default function Home() {
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
       {/* Z=0: Carousel — original visible on top, blur replaces on scroll */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: '#915F38' }}>
         {/* Original carousel */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 0 : 1, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
