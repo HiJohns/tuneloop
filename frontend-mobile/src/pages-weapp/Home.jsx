@@ -311,9 +311,8 @@ export default function Home() {
       </View>
     </View>
 
-      {/* Carousel dots — hide on scroll */}
-      {!scrolled && (
-        <View style={{ position: 'absolute', left: 0, right: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 8 }}>
+      {/* Carousel dots — fade on scroll */}
+        <View style={{ position: 'absolute', left: 0, right: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bottom: 8, opacity: scrolled ? 0 : 1 }}>
           <View style={{ display: 'flex', alignItems: 'center' }}>
             {(banners.length > 0 ? banners : Array.from({ length: 3 })).map((_, i) => {
               const r = currentBanner < 0 ? banners.length - 1 : currentBanner >= banners.length ? 0 : currentBanner
@@ -327,13 +326,12 @@ export default function Home() {
             })}
           </View>
         </View>
-      )}
 
       {/* Swipe layer — intercepts touch and mouse over the banner area; only
           active before scrolling (banner hidden after scroll, and it would
           otherwise block sticky menu taps at the same z-index) */}
-      {banners.length > 0 && !scrolled && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240 }}
+      {banners.length > 0 && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240, opacity: scrolled ? 0 : 1 }}
           onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
           onTouchEnd={(e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
