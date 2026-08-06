@@ -46,6 +46,11 @@ export default function Payment() {
         setLoading(false)
         return
       }
+      if (pType === 'membership') {
+        setData({ type: 'membership', title: '会员入会费', amount: pAmount, details: null, wallet: null })
+        setLoading(false)
+        return
+      }
       try {
         const resp = await apiFetch(`${baseUrl}/pay/calculate`, {
           method: 'POST',
@@ -122,7 +127,13 @@ export default function Payment() {
         const d = result.data
         if (d.mock) {
           Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
-          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+          setTimeout(() => {
+            if (pType === 'membership') {
+              Taro.redirectTo({ url: '/pages-weapp/profile/index' })
+            } else {
+              Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` })
+            }
+          }, 2000)
         } else if (d.data?.prepay_id) {
           setPrepayData(d)
         } else {

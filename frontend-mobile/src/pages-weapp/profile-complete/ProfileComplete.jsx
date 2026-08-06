@@ -94,12 +94,9 @@ export default function ProfileComplete() {
           }
         }
         eventBus.emit('loginSuccess')
-        const pages = Taro.getCurrentPages()
-        if (pages.length > 1) {
-          Taro.navigateBack()
-        } else {
-          Taro.redirectTo({ url: '/pages-weapp/profile/index' })
-        }
+        // Membership fee payment (#1532): redirect to payment page
+        const fee = result.data?.membership_fee || 99
+        Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&amount=${fee}&id=${result.data?.user_id || ''}` })
       } else {
         Taro.showToast({ title: result.message || '注册失败, 请重试', icon: 'none', duration: 3000 })
       }

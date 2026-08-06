@@ -424,9 +424,23 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		}
 	}
 
+	membershipFee := 99.0
+	var feeSetting models.SystemSetting
+	if err := h.db.Where("setting_key = ?", "membership_fee").First(&feeSetting).Error; err == nil {
+		if v, perr := strconv.ParseFloat(feeSetting.SettingValue, 64); perr == nil {
+			membershipFee = v
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": tokenResp,
+		"data": gin.H{
+			"access_token":   tokenResp.AccessToken,
+			"token_type":     tokenResp.TokenType,
+			"expires_in":     tokenResp.ExpiresIn,
+			"refresh_token":  tokenResp.RefreshToken,
+			"membership_fee": membershipFee, // registration fee (#1532)
+		},
 	})
 }
 

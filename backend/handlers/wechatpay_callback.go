@@ -185,8 +185,11 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			Update("stock_status", "rented").Error
 	case "repair":
 		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error
-	case "points":
-		return applyPointsPurchase(tx, record, now)
+	case "membership":
+		// Membership registration fee (#1532): payment recorded; gift
+		// points and referral bonuses are credited during registration
+		// (PostRegister). Nothing else to apply.
+		return nil
 	case "damage":
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
 			return err
@@ -288,41 +291,6 @@ func resolveLocalUserID(tx *gorm.DB, record *models.OrderPaymentRecord) string {
 		return u.ID
 	}
 	return ""
-}
-
-func applyPointsPurchase(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
-	if record.OrderID == nil {
-		return nil
-	}
-	if err := tx.Model(&models.User{}).Where("id = ?", *record.OrderID).
-		Updates(map[string]interface{}{
-			"updated_at": now,
-		}).Error; err != nil {
-		log.Printf("[applySideEffects] failed to add points: %v", err)
-		return err
-	}
-	localUserID := resolveLocalUserID(tx, record)
-	if localUserID == "" {
-		return fmt.Errorf("local user not found for iam_sub %s", record.UserID)
-	}
-	pt := models.PointsTransaction{
-		ID:          uuid.New().String(),
-		UserID:      localUserID,
-		TenantID:    record.TenantID,
-		Type:        "prepaid_purchase",
-		Amount:      record.Amount,
-		Description: "微信支付充值预付点",
-		CreatedAt:   now,
-	}
-	if err := tx.Create(&pt).Error; err != nil {
-		log.Printf("[applySideEffects] failed to record points transaction: %v", err)
-		return err
-	}
-	// Re-evaluate membership level after prepaid purchase
-	if err := services.CheckAndUpgradeLevel(localUserID, nil); err != nil {
-		log.Printf("[applySideEffects] membership level check failed: %v", err)
-	}
-	return nil
 }
 
 func StartPaymentScheduler(db *gorm.DB) {
