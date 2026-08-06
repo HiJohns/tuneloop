@@ -326,13 +326,12 @@ export default function Home() {
           </View>
         </View>
 
-      {/* Swipe layer — intercepts touch and mouse over the banner area; only
-          active before scrolling (banner hidden after scroll, and it would
-          otherwise block sticky menu taps at the same z-index) */}
-      {banners.length > 0 && !scrolled && (
+      {/* Swipe layer — always present (avoid DOM reflow), touch handlers
+          disabled when scrolled so underlying menu receives taps (#1540). */}
+      {banners.length > 0 && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240 }}
-          onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
-          onTouchEnd={(e) => {
+          onTouchStart={!scrolled ? (e) => { bannerTouchStartXRef.current = e.touches[0].clientX } : undefined}
+          onTouchEnd={!scrolled ? (e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
             if (Math.abs(diff) > 50) {
               lastSwipeRef.current = Date.now()
@@ -345,7 +344,7 @@ export default function Home() {
               const currentItem = banners[currentBanner >= 0 && currentBanner < banners.length ? currentBanner : 0]
               if (currentItem?.link_url) nav(currentItem.link_url)
             }
-          }}
+          } : undefined}
         />
       )}
 
