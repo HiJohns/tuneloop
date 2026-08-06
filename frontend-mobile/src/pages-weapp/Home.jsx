@@ -372,7 +372,7 @@ export default function Home() {
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
         <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
-          scrollY showScrollbar={false} scrollTop={scrollYRef.current}
+          scrollY showScrollbar={false}
           onScroll={e => {
             const newY = e.detail?.scrollTop ?? 0
             scrollYRef.current = newY
@@ -392,13 +392,7 @@ export default function Home() {
             scrollTimerRef.current = setTimeout(() => {
             const ns = scrollYRef.current > 50, nm = scrollYRef.current > 100
             if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-            if (nm !== menuStuckRef.current) {
-              // Compensate for in-flow menu disappearing/reappearing:
-              // the menu (stickyMenuHeight=48px) is removed from
-              // ScrollView content when sticky, shifting everything.
-              scrollYRef.current += nm ? stickyMenuHeight : -stickyMenuHeight
-              menuStuckRef.current = nm; setMenuStuck(nm)
-            }
+            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
             }, 500)
           }}>
           <View style={{ height: '100px' }}></View>
