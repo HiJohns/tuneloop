@@ -1164,6 +1164,76 @@ const getNavBarLayout = () => {
 
 ---
 
+### 方法论 8：微信小程序页面调试效率提升（Home.jsx 16轮实战）
+
+> 来源：#1540 首页点击不灵敏 + 粘连菜单回弹 + 背景露白，横跨 16 个提交。
+
+#### 核心教训
+
+**1. 条件渲染是回弹之母**
+
+微信 `<scroll-view>` 中任何 `{cond && <Element/>}` 都会导致 DOM 插入/移除 → ScrollView 内容高度变化 → 原生重排 → 视觉回弹。**在滚动路径中，一律用 `opacity` 替代 `&&`。**
+
+```jsx
+// ❌ 回弹根源
+{menuStuck && <View><Menu/></View>}
+
+// ✅ 无重排
+<View style={{ opacity: menuStuck ? 1 : 0, height: 48 }}><Menu/></View>
+```
+
+例外：主动触摸捕获层（如 swipe 手势层）用 `z-index` 切换（`scrolled ? 0 : 10002`）而非 opacity——因为 opacity:0 仍拦截触摸事件。
+
+**2. `position:sticky` 在微信中不可靠**
+
+微信 `<scroll-view>` 内及 `position:fixed` 容器内 `sticky` 均不生效。用双菜单（in-flow + fixed）+ 透明度切换模拟。
+
+**3. 全屏 `position:fixed` 层产生触摸死区**
+
+即使 `z-index:0`（最低），`position:fixed; inset:0` 的透明层在微信 WebView 中仍可拦截触摸事件（尤其安卓）。限高或设为绝对定位。
+
+**4. 内容高度稳定是防回弹的关键**
+
+- 菜单/占位区域保持**固定高度**（不可因条件渲染伸缩）
+- 列表底部加**大垫片**（2000px）确保 ScrollView 内容始终 > viewport
+- 分类切换时**不重置** scroll 引用（`scrollYRef`）
+
+**5. 背景层必须有 fallback 颜色**
+
+即使图片 404，背景色（banner `bg_color`）仍能轮换，避免全白。模糊层也要带 `backgroundColor` 兜底。
+
+#### 调试效率原则
+
+| 原则 | 方法 |
+|------|------|
+| **一次改一件事** | 每次只改 1 个元素 / 1 个属性，构建上传，立即验证 |
+| **数据多样性测试** | 必须用「多/中/少 三项」类别切换验证（#1540 绝大多数问题只在短列表时暴露） |
+| **scroll 相关 → 先关 debounce** | 500ms 延迟掩盖 root cause，临时注释 `setTimeout` 快速定位 |
+| **布局不变性优先** | 任何 JS 状态变化都不应改变 ScrollView 内任何元素的 **尺寸和位置**——这是零回弹的充要条件 |
+| **预生产先验再推** | 手机真机 + 桌面模拟器双验证；桌面端微信打开的是正式版旧代码，只有预生产体验版才有修复 |
+
+#### 最终生效的首页布局原则
+
+遵循方法论 3（Z 轴图层分解）：
+
+```
+Z=0    → 走马灯 (fixed, fullscreen, banner bg_color)
+Z=40   → 指示点 (absolute, opacity)
+Z=50   → 购物车 (fixed)
+Z=100  → 内容区 (fixed, top=contentTop, 透明 ScrollView)
+Z=10000→ 搜索栏 (fixed, 居中对齐胶囊)
+Z=10002→ swipe层 (absolute, 滚动时 z→0 穿透)
+Z=10002→ 粘连菜单 (fixed, 双菜单 opacity 切换, 固定高度 48px)
+```
+
+**关键规则**：
+- 走马灯始终 `bottom:0`（全屏），永不限高
+- 菜单始终占 48px（in-flow + fixed 双份，opacity 切换）
+- 列表底部始终 `height:2000px` 垫片
+- 所有 `&&` 条件渲染均已替换
+
+---
+
 ### 2026-07-07: 生产服发布/调试/数据库操作经验总结
 
 #### 发布流程
