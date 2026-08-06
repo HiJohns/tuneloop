@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 	"tuneloop-backend/middleware"
@@ -367,6 +368,28 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 			} else {
 				refCode := newUser.ID[:8]
 				h.db.Model(&newUser).Update("ref_code", refCode)
+				// Membership registration gift points (#1533): credit
+				// promo_points on registration completion (default 99,
+				// configurable via system_settings membership_gift_points).
+				giftPoints := 99.0
+				var giftSetting models.SystemSetting
+				if err := h.db.Where("setting_key = ?", "membership_gift_points").First(&giftSetting).Error; err == nil {
+					if v, perr := strconv.ParseFloat(giftSetting.SettingValue, 64); perr == nil {
+						giftPoints = v
+					}
+				}
+				if giftPoints > 0 {
+					h.db.Model(&newUser).Update("promo_points", gorm.Expr("promo_points + ?", giftPoints))
+					h.db.Create(&models.PointsTransaction{
+						ID:          uuid.New().String(),
+						UserID:      newUser.ID,
+						TenantID:    newUser.TenantID,
+						Type:        "registration",
+						Amount:      giftPoints,
+						Description: "会员注册赠点",
+						CreatedAt:   time.Now(),
+					})
+				}
 				if req.Ref != "" && req.Ref != refCode {
 				var referrer models.User
 				if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
