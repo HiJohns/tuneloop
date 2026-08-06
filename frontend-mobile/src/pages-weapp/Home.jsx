@@ -360,34 +360,33 @@ export default function Home() {
         </View>
       </View>
 
-      {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
-        <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
-          scrollY showScrollbar={false}
-          onScroll={e => {
-            const newY = e.detail?.scrollTop ?? 0
-            scrollYRef.current = newY
+      {/* B: ScrollView — fills space between search bar and bottom, transparent bg lets carousel show through */}
+      <ScrollView style={{ position: 'absolute', left: 0, right: 0, top: contentTop, bottom: 0, backgroundColor: 'transparent', zIndex: 100 }}
+        scrollY showScrollbar={false} enhanced
+        onScroll={e => {
+          const newY = e.detail?.scrollTop ?? 0
+          scrollYRef.current = newY
 
-            // Blur: show 300ms after scroll starts
-            if (newY >= 20 && !blurTimerRef.current) {
-              blurTimerRef.current = setTimeout(() => setBlurVisible(true), 300)
-            }
-            // Hide blur when back near top (< 20px)
-            if (newY < 20) {
-              if (blurTimerRef.current) { clearTimeout(blurTimerRef.current); blurTimerRef.current = null }
-              if (blurVisible) setBlurVisible(false)
-            }
+          // Blur: show 300ms after scroll starts
+          if (newY >= 20 && !blurTimerRef.current) {
+            blurTimerRef.current = setTimeout(() => setBlurVisible(true), 300)
+          }
+          // Hide blur when back near top (< 20px)
+          if (newY < 20) {
+            if (blurTimerRef.current) { clearTimeout(blurTimerRef.current); blurTimerRef.current = null }
+            if (blurVisible) setBlurVisible(false)
+          }
 
-            // Search, dots, sticky menu: debounced after scroll stops
-            if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-            scrollTimerRef.current = setTimeout(() => {
-            const ns = scrollYRef.current > 50
-            if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-            }, 500)
-          }}>
-          <View style={{ height: '100px' }}></View>
+          // Search visibility: debounced after scroll stops
+          if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+          scrollTimerRef.current = setTimeout(() => {
+          const ns = scrollYRef.current > 50
+          if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+          }, 500)
+        }}>
+        <View style={{ height: '100px' }}></View>
 
-        <View style={{ position: 'sticky', top: menuTop, zIndex: 10002, backgroundColor: 'transparent', height: stickyMenuHeight }}>
+        <View style={{ position: 'sticky', top: 0, zIndex: 10002, backgroundColor: 'transparent', height: stickyMenuHeight }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
 
@@ -428,6 +427,7 @@ export default function Home() {
           </Text>
         )}
       </View>
+      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5' }}>
       <BottomNav
         active="home"
         tabs={[
@@ -437,7 +437,7 @@ export default function Home() {
           { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
         ]}
       />
-    </View>
+      </View>
     </View>
   )
 }
