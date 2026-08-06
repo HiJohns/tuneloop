@@ -118,6 +118,7 @@ const (
 	OrderStatusCancelled        = "cancelled"
 	OrderStatusDepositRefunding = "deposit_refunding"
 	OrderStatusDamageAppealing  = "damage_appealing"
+	OrderStatusPendingDamageResponse = "pending_damage_response"
 	OrderStatusExpired          = "expired"
 	OrderStatusTransferred      = "transferred"
 )
@@ -193,7 +194,7 @@ type Order struct {
 	Deposit              float64    `gorm:"type:decimal(10,2);default:0" json:"deposit"`
 	ShippingFee          float64    `gorm:"type:decimal(10,2);default:0" json:"shipping_fee"`
 	AccumulatedMonths    int        `gorm:"default:0" json:"accumulated_months"`
-	Status               string     `gorm:"type:varchar(20);default:'reserved';index" json:"status"`
+	Status               string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
 	StartDate            *string    `gorm:"type:date" json:"start_date"`
 	EndDate              *string    `gorm:"type:date" json:"end_date"`
 	TrackingNumber       *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
@@ -832,8 +833,8 @@ type OrderStatusHistory struct {
 	TenantID   string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	OrgID      *string   `gorm:"type:uuid;index" json:"org_id"`
 	OrderID    string    `gorm:"type:uuid;not null;index" json:"order_id"`
-	StatusFrom string    `gorm:"type:varchar(20)" json:"status_from"`
-	StatusTo   string    `gorm:"type:varchar(20)" json:"status_to"`
+	StatusFrom string    `gorm:"type:varchar(40)" json:"status_from"`
+	StatusTo   string    `gorm:"type:varchar(40)" json:"status_to"`
 	Notes      string    `gorm:"type:text" json:"notes"`
 	ChangedBy  *string   `gorm:"type:uuid;index" json:"changed_by"`
 	ChangedAt  time.Time `json:"changed_at"`

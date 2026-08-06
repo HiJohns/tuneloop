@@ -323,6 +323,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		Condition    string    `json:"condition" binding:"required"`
 		Notes        string    `json:"notes"`
 		Photos       []string  `json:"photos"`
+		DamageAmount float64   `json:"damage_amount"` // staff-set compensation (#1544)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -370,6 +371,9 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
+	if req.Condition == "damaged" && req.DamageAmount > 0 {
+		assessment.EstimatedCost = &req.DamageAmount
+	}
 	if req.Photos != nil {
 		if b, err := json.Marshal(req.Photos); err == nil {
 			assessment.Photos = string(b)
@@ -409,7 +413,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	// Update order status
 	newStatus := models.OrderStatusCompleted
 	if req.Condition == "damaged" {
-		newStatus = models.OrderStatusReturning
+		newStatus = models.OrderStatusPendingDamageResponse
 	}
 	updateFields := map[string]interface{}{
 		"status": newStatus,
@@ -501,7 +505,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	notificationContent := "您的乐器租赁订单已完成，押金将退还至您的账户。"
 	if req.Condition == "damaged" {
 		notificationTitle = "归还验收有损坏"
-		notificationContent = fmt.Sprintf("您的乐器归还验收发现损坏，定损金额将根据评估结果从押金中扣除。定损理由：%s", req.Notes)
+		notificationContent = fmt.Sprintf("您的订单 %s 验收发现损坏，赔偿金额 ¥%.2f。请在订单详情中确认接受或拒绝。定损理由：%s", orderID[:8], req.DamageAmount, req.Notes)
 	}
 	notification := models.Notification{
 		TenantID: tenantID,

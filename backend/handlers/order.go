@@ -687,8 +687,7 @@ func ReturnOrder(c *gin.Context) {
 // CancelOrder cancels an order (pending -> cancelled)
 func CancelOrder(c *gin.Context) {
 	orderID := c.Param("id")
-	if orderID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
+	if orderID == "" {		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order_id is required",
 		})
@@ -1232,4 +1231,154 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
 		"orders": orders,
 	}})
+}
+
+// AcceptDamage is called by the customer when they accept the staff's
+// damage compensation assessment (#1544). Order goes from
+// pending_damage_response to deposit_refunding; the frontend then
+// navigates to the refund confirmation page.
+func AcceptDamage(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order_id is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	// Customer ownership check (userOptionalAuth, no tenant context)
+	userID := middleware.GetUserID(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
+
+	var order models.Order
+	if err := db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	if order.Status != models.OrderStatusPendingDamageResponse {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order not in pending_damage_response status"})
+		return
+	}
+
+	// Mark damage assessment accepted
+	if err := db.Model(&models.DamageAssessment{}).
+		Where("order_id = ? AND status = ?", orderID, "damaged").
+		Update("status", "accepted").Error; err != nil {
+		log.Printf("[AcceptDamage] failed to update assessment: %v", err)
+	}
+
+	// Order → deposit_refunding
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).
+		Update("status", models.OrderStatusDepositRefunding).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"order_id": orderID, "status": models.OrderStatusDepositRefunding}})
+}
+
+// RejectDamage is called by the customer when they reject the staff's
+// damage compensation and want to appeal (#1544). Creates an Appeal
+// record and moves the order to damage_appealing for merchant admin
+// resolution.
+func RejectDamage(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order_id is required"})
+		return
+	}
+
+	var req struct {
+		AppealReason string   `json:"appeal_reason"`
+		Images       []string `json:"images"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		return
+	}
+	if req.AppealReason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "appeal_reason is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	userID := middleware.GetUserID(ctx)
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		userID = localUser.ID
+	}
+
+	var order models.Order
+	if err := db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	if order.Status != models.OrderStatusPendingDamageResponse {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order not in pending_damage_response status"})
+		return
+	}
+
+	// Find the damage assessment for this order
+	var assessment models.DamageAssessment
+	if err := db.Where("order_id = ? AND status = ?", orderID, "damaged").First(&assessment).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no damage assessment found for this order"})
+		return
+	}
+
+	imagesJSON := "[]"
+	if len(req.Images) > 0 {
+		if b, err := json.Marshal(req.Images); err == nil {
+			imagesJSON = string(b)
+		}
+	}
+
+	// Create appeal record
+	appellantID := localUser.IAMSub
+	if appellantID == "" {
+		appellantID = userID
+	}
+	orgID := order.OrgID
+	siteID := "00000000-0000-0000-0000-000000000000"
+	if orgID == "" {
+		orgID = "00000000-0000-0000-0000-000000000000"
+	}
+	appeal := models.Appeal{
+		ID:             uuid.New().String(),
+		TenantID:       order.TenantID,
+		OrgID:          orgID,
+		SiteID:         siteID,
+		Category:       "damage",
+		ObjectType:     "order",
+		ObjectID:       orderID,
+		AppellantID:    appellantID,
+		Description:    req.AppealReason,
+		Images:         imagesJSON,
+		DamageReportID: &assessment.ID,
+		AppealReason:   &req.AppealReason,
+		CreatedAt:      time.Now(),
+	}
+	if localUser.ID != "" {
+		appeal.UserID = &localUser.ID
+	}
+	if err := db.Create(&appeal).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create appeal: " + err.Error()})
+		return
+	}
+
+	// Order → damage_appealing
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", orderID, order.TenantID).
+		Update("status", models.OrderStatusDamageAppealing).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"order_id": orderID, "appeal_id": appeal.ID, "status": models.OrderStatusDamageAppealing}})
 }

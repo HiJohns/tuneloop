@@ -256,7 +256,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	switch req.Decision {
 	case "no_damage":
 		finalAmount = 0
-		nextOrderStatus = models.OrderStatusCompleted
+		nextOrderStatus = models.OrderStatusDepositRefunding
 		damageReport.Status = "cancelled"
 		damageReport.DepositDeducted = 0
 		notifType = "appeal"
@@ -279,7 +279,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			notifTitle = "申诉结果：金额调整"
 			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", req.AdjustAmount, order.Deposit, order.Deposit-req.AdjustAmount)
 		} else if req.AdjustAmount == order.Deposit {
-			nextOrderStatus = models.OrderStatusCompleted
+			nextOrderStatus = models.OrderStatusDepositRefunding
 			notifType = "appeal"
 			notifActionType = "info"
 			notifTitle = "申诉结果"
@@ -336,7 +336,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			notifTitle = "申诉结果：金额确认"
 			notifContent = fmt.Sprintf("确认定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", finalAmount, order.Deposit, order.Deposit-finalAmount)
 		} else if finalAmount == order.Deposit {
-			nextOrderStatus = models.OrderStatusCompleted
+			nextOrderStatus = models.OrderStatusDepositRefunding
 			notifType = "appeal"
 			notifActionType = "info"
 			notifTitle = "申诉结果"
@@ -374,8 +374,8 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 		log.Printf("[ResolveAppeal] Failed to update order status: %v", err)
 	}
 
-	// Update instrument if order completed
-	if nextOrderStatus == models.OrderStatusCompleted {
+	// Update instrument if order completed or refunding
+	if nextOrderStatus == models.OrderStatusCompleted || nextOrderStatus == models.OrderStatusDepositRefunding {
 		if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
 			log.Printf("[ResolveAppeal] Failed to update instrument status: %v", err)
 		}

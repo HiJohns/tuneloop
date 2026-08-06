@@ -617,6 +617,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/orders/:id", handlers.GetOrder)
 				userOptionalAuth.GET("/orders/:id/logs", handlers.GetOrderLogs)
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
+				userOptionalAuth.POST("/orders/:id/accept-damage", handlers.AcceptDamage)
+				userOptionalAuth.POST("/orders/:id/reject-damage", handlers.RejectDamage)
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)

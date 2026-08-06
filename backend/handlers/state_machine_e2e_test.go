@@ -75,6 +75,8 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	router.PUT("/api/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
 	router.POST("/api/orders/:id/pay", PayOrder)
 	router.POST("/api/orders/:id/return", ReturnOrder)
+	router.POST("/api/orders/:id/accept-damage", AcceptDamage)
+	router.POST("/api/orders/:id/reject-damage", RejectDamage)
 
 	return router, tenantID, userID, orgID, instrumentID
 }
@@ -262,6 +264,7 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 			"scan_time":     time.Now().UTC(),
 			"condition":     "damaged",
 			"notes":         "琴颈断裂",
+			"damage_amount": 500,
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
@@ -269,7 +272,19 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		require.Equal(t, http.StatusOK, w.Code)
-		testutil.AssertState(t, orderID, models.OrderStatusCompleted)
+		// New flow (#1544): damaged → pending_damage_response, customer must respond
+		testutil.AssertState(t, orderID, models.OrderStatusPendingDamageResponse)
+	})
+
+	t.Run("A8_AcceptDamage", func(t *testing.T) {
+		reqBody := map[string]interface{}{}
+		jsonBody, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/orders/"+orderID+"/accept-damage", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+		testutil.AssertState(t, orderID, models.OrderStatusDepositRefunding)
 	})
 }
 
@@ -697,4 +712,56 @@ func TestComputeSettlement_LateReturn(t *testing.T) {
 	require.GreaterOrEqual(t, totalRefund, 1500.0, "Late return: refund should be >= ¥1500")
 	require.LessOrEqual(t, totalRefund, 2000.0, "Late return: refund should be <= ¥2000")
 	require.Equal(t, 750.0, result.OverdueChargesTotal)
+}
+
+// TestScenarioA_RejectDamageVariant verifies the reject-damage path (#1544):
+// damaged inspection → pending_damage_response → customer rejects → creates
+// appeal → order → damage_appealing.
+func TestScenarioA_RejectDamageVariant(t *testing.T) {
+	router, tenantID, userID, orgID, instrumentID := setupE2ETestEnv(t)
+	if router == nil {
+		return
+	}
+	db := database.GetDB()
+	orderID := createTestOrder(t, db, tenantID, orgID, userID, instrumentID)
+
+	step(t, router, orderID, "pay")
+	stepShip(t, router, orderID)
+	stepDeliver(t, router, orderID)
+	stepReturn(t, router, orderID)
+
+	t.Run("InspectDamaged", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"instrument_sn": "SN-REJECT",
+			"scan_time":     time.Now().UTC(),
+			"condition":     "damaged",
+			"notes":         "漆面划痕",
+			"damage_amount": 300,
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+		testutil.AssertState(t, orderID, models.OrderStatusPendingDamageResponse)
+	})
+
+	t.Run("RejectDamage", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"appeal_reason": "划痕是原有磨损，非本次租赁造成",
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest("POST", "/api/orders/"+orderID+"/reject-damage", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+		testutil.AssertState(t, orderID, models.OrderStatusDamageAppealing)
+
+		// Appeal record created
+		var appeal models.Appeal
+		require.NoError(t, db.Where("object_id = ? AND category = ?", orderID, "damage").First(&appeal).Error)
+		require.Equal(t, "划痕是原有磨损，非本次租赁造成", appeal.Description)
+	})
 }

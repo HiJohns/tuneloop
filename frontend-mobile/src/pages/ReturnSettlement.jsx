@@ -8,6 +8,7 @@ export default function ReturnSettlement() {
   const [orderId, setOrderId] = useState('')
   const [loading, setLoading] = useState(true)
   const [settlement, setSettlement] = useState(null)
+  const [confirming, setConfirming] = useState(false)
 
   const fetchSettlement = async (orderID) => {
     try {
@@ -17,6 +18,29 @@ export default function ReturnSettlement() {
       }
     } catch {}
     setLoading(false)
+  }
+
+  const handleConfirmRefund = async () => {
+    if (!orderId) return
+    setConfirming(true)
+    try {
+      const resp = await api.post(`/user/settlements/${orderId}`, { refund_method: 'cash_withdrawal' })
+      if (resp?.code === 20000) {
+        Taro.showToast({ title: '退款已确认', icon: 'success' })
+        setTimeout(() => {
+          if (env.isMiniProgram) {
+            Taro.redirectTo({ url: '/pages-weapp/my-leases/index' })
+          } else {
+            navigation.redirect('/my-leases')
+          }
+        }, 800)
+      } else {
+        Taro.showModal({ title: '确认失败', content: resp?.message || '请重试', showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '确认失败', content: err.message || '网络错误', showCancel: false })
+    }
+    setConfirming(false)
   }
 
   useEffect(() => {
@@ -80,6 +104,12 @@ export default function ReturnSettlement() {
               <Text className="font-bold">¥{num(s?.overdue_charges_total)}</Text>
             </View>
           )}
+          {s?.damage_deducted > 0 && (
+            <View className="flex justify-between text-red-500">
+              <Text className="font-medium">损坏赔偿</Text>
+              <Text className="font-bold">-¥{num(s?.damage_deducted)}</Text>
+            </View>
+          )}
         </View>
         <View className="mt-3 bg-amber-50 rounded-xl p-3">
           <Text className="text-xs text-amber-600 leading-relaxed block">
@@ -90,23 +120,33 @@ export default function ReturnSettlement() {
 
       {/* Confirm button */}
       <View className="px-4 mt-8 pb-10">
-        <View
-          className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
-          onClick={() => {
-            if (env.isMiniProgram) {
-              const pages = Taro.getCurrentPages()
-              if (pages.length > 1) {
-                Taro.navigateBack()
+        {s?.damage_deducted > 0 ? (
+          <View
+            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
+            style={{ opacity: confirming ? 0.5 : 1 }}
+            onClick={confirming ? undefined : handleConfirmRefund}
+          >
+            <Text className="text-white">{confirming ? '确认中...' : '确认退款'}</Text>
+          </View>
+        ) : (
+          <View
+            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
+            onClick={() => {
+              if (env.isMiniProgram) {
+                const pages = Taro.getCurrentPages()
+                if (pages.length > 1) {
+                  Taro.navigateBack()
+                } else {
+                  Taro.redirectTo({ url: '/pages-weapp/my-leases/index' })
+                }
               } else {
-                Taro.redirectTo({ url: '/pages-weapp/my-leases/index' })
+                navigation.redirect('/my-leases')
               }
-            } else {
-              navigation.redirect('/my-leases')
-            }
-          }}
-        >
-          <Text className="text-white">知道了，返回订单列表</Text>
-        </View>
+            }}
+          >
+            <Text className="text-white">知道了，返回订单列表</Text>
+          </View>
+        )}
       </View>
     </View>
   )

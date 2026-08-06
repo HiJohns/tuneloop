@@ -91,7 +91,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		return
 	}
 
-	if order.Status != models.OrderStatusInLease && order.Status != models.OrderStatusReturning {
+	if order.Status != models.OrderStatusInLease && order.Status != models.OrderStatusReturning && order.Status != models.OrderStatusDepositRefunding {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order not in settlement status"})
 		return
 	}
