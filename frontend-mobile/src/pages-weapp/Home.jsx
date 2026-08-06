@@ -249,6 +249,9 @@ export default function Home() {
   }, [banners.length])
 
   const handleCategoryChange = (catId) => {
+    // Reset scroll when category changes: the list content changes,
+    // making the old scrollTop invalid, causing visual jump (#1540).
+    scrollYRef.current = 0
     setSelectedCategory(catId)
   }
 
@@ -387,9 +390,15 @@ export default function Home() {
             // Search, dots, sticky menu: debounced after scroll stops
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
             scrollTimerRef.current = setTimeout(() => {
-              const ns = scrollYRef.current > 50, nm = scrollYRef.current > 100
-              if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-              if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+            const ns = scrollYRef.current > 50, nm = scrollYRef.current > 100
+            if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+            if (nm !== menuStuckRef.current) {
+              // Compensate for in-flow menu disappearing/reappearing:
+              // the menu (stickyMenuHeight=48px) is removed from
+              // ScrollView content when sticky, shifting everything.
+              scrollYRef.current += nm ? stickyMenuHeight : -stickyMenuHeight
+              menuStuckRef.current = nm; setMenuStuck(nm)
+            }
             }, 500)
           }}>
           <View style={{ height: '100px' }}></View>
