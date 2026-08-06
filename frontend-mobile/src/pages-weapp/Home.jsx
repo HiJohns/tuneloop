@@ -354,10 +354,12 @@ export default function Home() {
         />
       )}
 
-      {/* A: Search button — fixed near top, aligned below capsule */}
-      <View onClick={() => nav('/pages-weapp/search/index')} style={{ position: 'fixed', top: searchTop, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, width: 150, height: Math.max(24, navBar.menuHeight - 2), borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-        <Text style={{ fontSize: 14, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>🔍</Text>
-        <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>搜索乐器</Text>
+      {/* A: Search button — fixed near top, centered horizontally */}
+      <View onClick={() => nav('/pages-weapp/search/index')} style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop }}>
+        <View style={{ width: 150, height: Math.max(24, navBar.menuHeight - 2), borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Text style={{ fontSize: 14, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>🔍</Text>
+          <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>搜索乐器</Text>
+        </View>
       </View>
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
@@ -395,12 +397,11 @@ export default function Home() {
           }}>
           <View style={{ height: '100px' }}></View>
 
-        {!menuStuck && (
-        <View style={{ backgroundColor: 'transparent' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
+        <View style={{ height: stickyMenuHeight, backgroundColor: 'transparent' }}>
+          <View style={{ opacity: menuStuck ? 0 : 1 }}>
+            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
+          </View>
         </View>
-        )}
-        {menuStuck && <View style={{ height: stickyMenuHeight, backgroundColor: 'transparent' }} />}
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         {loading ? (
