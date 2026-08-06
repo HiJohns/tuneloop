@@ -63,6 +63,9 @@ function SingleCheckout({ id, navigate }) {
   const [submitting, setSubmitting] = useState(false)
   const [user, setUser] = useState(null)
   const [selectedAddressId, setSelectedAddressId] = useState('')
+  const [discountCode, setDiscountCode] = useState('')
+  const [discountInfo, setDiscountInfo] = useState(null)
+  const [discountChecking, setDiscountChecking] = useState(false)
   const [useNewAddress, setUseNewAddress] = useState(false)
   const [newAddress, setNewAddress] = useState({ recipient_name: '', phone: '', province: '', city: '', district: '', detail: '', postal_code: '' })
   const [saveAddress, setSaveAddress] = useState(true)
@@ -153,6 +156,31 @@ function SingleCheckout({ id, navigate }) {
     setDays(Math.max(1, Math.min(730, parseInt(value) || 1)))
   }
 
+  const handleApplyDiscount = async () => {
+    const code = discountCode.trim()
+    if (!code) return
+    setDiscountChecking(true)
+    try {
+      const resp = await apiFetch(`${env.apiBaseUrl}/discount-codes/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000 && result.data) {
+        setDiscountInfo(result.data)
+        dialog.alert(`优惠码有效：${result.data.policy_name}（租金${((1 - result.data.rent_discount) * 100).toFixed(0)}%折扣）`)
+      } else {
+        setDiscountInfo(null)
+        dialog.alert(result.message || '优惠码无效')
+      }
+    } catch (e) {
+      setDiscountInfo(null)
+      dialog.alert('优惠码校验失败')
+    }
+    setDiscountChecking(false)
+  }
+
   const handleSubmit = async () => {
     if (!useNewAddress && !selectedAddressId) {
       dialog.alert('请选择收货地址')
@@ -188,6 +216,7 @@ function SingleCheckout({ id, navigate }) {
         rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
+      if (discountCode.trim()) body.discount_code = discountCode.trim()
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -292,6 +321,29 @@ function SingleCheckout({ id, navigate }) {
               <Text className="text-zinc-400">物流费</Text>
               <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{shippingFee}</Text>
             </View>
+            <View className="flex items-center gap-2 pt-1">
+              <Input
+                value={discountCode}
+                onInput={e => setDiscountCode(e.detail.value)}
+                placeholder="优惠码（选填）"
+                className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                style={{ flex: 1, border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}
+              />
+              <Button
+                size="mini"
+                disabled={discountChecking}
+                onClick={handleApplyDiscount}
+                style={{ backgroundColor: '#915F38', color: '#fff', borderRadius: 8, fontSize: 13 }}
+              >
+                <Text style={{ color: '#fff', fontSize: 13 }}>{discountChecking ? '校验中...' : '使用'}</Text>
+              </Button>
+            </View>
+            {discountInfo && (
+              <View className="flex justify-between text-green-600 text-xs">
+                <Text className="font-medium">优惠({discountInfo.policy_name})</Text>
+                <Text className="font-bold">-{(1 - discountInfo.rent_discount) * 100}%</Text>
+              </View>
+            )}
             <View className="border-t pt-2 flex justify-between font-bold text-base">
               <Text className="text-zinc-900">合计</Text>
               <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>

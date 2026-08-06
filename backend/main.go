@@ -275,6 +275,11 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		membershipAdmin.PUT("/admin/rebate-config", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateRebateConfig)
 		membershipAdmin.GET("/admin/gift-ratios", middleware.RequireCusPerm("rebate:manage"), handlers.GetGiftRatios)
 		membershipAdmin.PUT("/admin/gift-ratios", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateGiftRatios)
+		membershipAdmin.POST("/admin/discount-policies", middleware.RequireCusPerm("rebate:manage"), handlers.CreateDiscountPolicy)
+		membershipAdmin.GET("/admin/discount-policies", middleware.RequireCusPerm("rebate:manage"), handlers.ListDiscountPolicies)
+		membershipAdmin.POST("/admin/discount-codes", middleware.RequireCusPerm("rebate:manage"), handlers.CreateDiscountCode)
+		membershipAdmin.GET("/admin/discount-codes", middleware.RequireCusPerm("rebate:manage"), handlers.ListDiscountCodes)
+		membershipAdmin.GET("/admin/discount-code-usages", middleware.RequireCusPerm("rebate:manage"), handlers.ListDiscountCodeUsages)
 
 		// Merchant rebate opt-in
 		merchantRebate := authRequired.Group("")
@@ -621,6 +626,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
 				userOptionalAuth.POST("/orders/:id/accept-damage", handlers.AcceptDamage)
 				userOptionalAuth.POST("/orders/:id/reject-damage", handlers.RejectDamage)
+				userOptionalAuth.POST("/discount-codes/apply", handlers.ApplyDiscountCode)
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)

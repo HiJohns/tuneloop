@@ -64,6 +64,7 @@ type RentCalcInput struct {
 	TotalPrice        float64
 	ShippingFee       float64
 	PricingTiers      []PricingTierConfig
+	DiscountCode      string // redeemable discount code (#1539)
 }
 
 var defaultTiers = []PricingTierConfig{
@@ -149,6 +150,19 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	}
 
 	cumulativeDiscount := promoRate
+
+	// Discount code (#1539): multiply rent discount factor into the chain.
+	if input.DiscountCode != "" {
+		if policy := resolveDiscountPolicy(db, input.DiscountCode); policy != nil {
+			cumulativeDiscount *= policy.RentDiscount
+			result.AppliedPolicies = append(result.AppliedPolicies, AppliedPolicy{
+				Type:     "discount_code",
+				PlanName: policy.Name,
+				Rate:     policy.RentDiscount,
+			})
+		}
+	}
+
 	totalAmount := 0.0
 	weightedSum := 0.0
 	for i := range result.TierSegments {
@@ -270,4 +284,46 @@ func CalculateRenewalPricing(
 
 	renewalCost = math.Round(renewalCost*100) / 100
 	return renewalCost, renewalSegments
+}
+
+// resolveDiscountPolicy looks up a discount code and returns its active
+// policy, or nil if the code is unknown/inactive/expired/usage-limited
+// (#1539).
+func resolveDiscountPolicy(db *gorm.DB, code string) *models.DiscountPolicy {
+	var dc models.DiscountCode
+	if err := db.Where("code = ? AND is_active = ?", code, true).First(&dc).Error; err != nil {
+		return nil
+	}
+	if dc.MaxUses > 0 && dc.UsageCount >= dc.MaxUses {
+		return nil
+	}
+	if dc.ExpiresAt != nil && time.Now().After(*dc.ExpiresAt) {
+		return nil
+	}
+	var policy models.DiscountPolicy
+	if err := db.Where("id = ? AND is_active = ?", dc.PolicyID, true).First(&policy).Error; err != nil {
+		return nil
+	}
+	if policy.ValidFrom != nil && time.Now().Before(*policy.ValidFrom) {
+		return nil
+	}
+	if policy.ValidTo != nil && time.Now().After(*policy.ValidTo) {
+		return nil
+	}
+	return &policy
+}
+
+// ResolveDiscountCode validates a code and returns both the code record
+// and its active policy (or nils). Used at order creation to record
+// usage (#1539).
+func ResolveDiscountCode(db *gorm.DB, code string) (*models.DiscountCode, *models.DiscountPolicy) {
+	policy := resolveDiscountPolicy(db, code)
+	if policy == nil {
+		return nil, nil
+	}
+	var dc models.DiscountCode
+	if err := db.Where("code = ? AND is_active = ?", code, true).First(&dc).Error; err != nil {
+		return nil, nil
+	}
+	return &dc, policy
 }

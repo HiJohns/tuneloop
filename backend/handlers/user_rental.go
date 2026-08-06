@@ -187,6 +187,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Notes             string      `json:"notes"`
 		PrepaidPointsUsed float64     `json:"prepaid_points_used"`
 		GiftPointsUsed    float64     `json:"gift_points_used"`
+		DiscountCode      string      `json:"discount_code"` // redeemable code (#1539)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -415,6 +416,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		BaseDailyRate:     baseRate,
 		LeaseTerm:         days,
 		InstrumentID:      req.InstrumentID,
+		DiscountCode:      req.DiscountCode,
 		TenantID:          effectiveTenantID,
 		OrgID:             &effectiveOrgID,
 		Deposit:           deposit,
@@ -515,6 +517,26 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
 		return
+	}
+
+	// Record discount code usage and increment usage count (#1539)
+	if req.DiscountCode != "" {
+		if dc, policy := services.ResolveDiscountCode(tx, req.DiscountCode); dc != nil && policy != nil {
+			discountAmount := order.CashPaid * (1 - policy.RentDiscount)
+			if policy.MaxAmount > 0 && discountAmount > policy.MaxAmount {
+				discountAmount = policy.MaxAmount
+			}
+			tx.Create(&models.DiscountCodeUsage{
+				ID:             uuid.New().String(),
+				CodeID:         dc.ID,
+				OrderID:        order.ID,
+				UserID:         userID,
+				DiscountAmount: discountAmount,
+				CreatedAt:      time.Now(),
+			})
+			tx.Model(&models.DiscountCode{}).Where("id = ?", dc.ID).
+				Update("usage_count", gorm.Expr("usage_count + 1"))
+		}
 	}
 
 	// Deduct points from wallet (inside transaction)
