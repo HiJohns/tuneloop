@@ -423,7 +423,7 @@ export default function Home() {
         </View>
         {/* Bottom spacer: ensures ScrollView content exceeds viewport
             so native scroll doesn't reset when list reloads short (#1540). */}
-        <View style={{ height: 700 }} />
+        <View style={{ height: 2000 }} />
       </ScrollView>
       <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50 }}>
         <Text style={{ fontSize: 20 }}>🛒</Text>
