@@ -110,6 +110,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		TrackingNumber string    `json:"tracking_number" binding:"required"`
 		Company        string    `json:"company" binding:"required"`
 		ShippedAt      time.Time `json:"shipped_at" binding:"required"`
+		ShippingFee    float64   `json:"shipping_fee"` // actual fee filled by staff (#1541)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -137,12 +138,16 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	shippedAt := req.ShippedAt
 	company := req.Company
 	trackingNumber := req.TrackingNumber
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(map[string]interface{}{
+	updateFields := map[string]interface{}{
 		"tracking_number": trackingNumber,
 		"courier_company": company,
 		"shipped_at":      shippedAt,
 		"status":          targetStatus,
-	}).Error; err != nil {
+	}
+	if req.ShippingFee > 0 {
+		updateFields["shipping_fee"] = req.ShippingFee
+	}
+	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(updateFields).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})
 		return
 	}

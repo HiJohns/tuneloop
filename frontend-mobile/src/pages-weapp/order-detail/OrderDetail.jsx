@@ -44,7 +44,7 @@ export default function OrderDetail() {
   const [logPage, setLogPage] = useState(1)
   const [logHasMore, setLogHasMore] = useState(false)
   const [showContract, setShowContract] = useState(false)
-  const [logisticsForm, setLogisticsForm] = useState({ company: '', trackingNumber: '' })
+  const [logisticsForm, setLogisticsForm] = useState({ company: '', trackingNumber: '', shippingFee: '' })
   const [logisticsPhotos, setLogisticsPhotos] = useState([])
   const [logisticsSubmitting, setLogisticsSubmitting] = useState(false)
   const [receivePhotos, setReceivePhotos] = useState([])
@@ -273,12 +273,13 @@ export default function OrderDetail() {
           shipped_at: new Date().toISOString(),
           courier_company: logisticsForm.company,
           photos: photoUrls,
+          shipping_fee: logisticsForm.shippingFee ? Number(logisticsForm.shippingFee) : 0,
         }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '发货成功', icon: 'success' })
-        setLogisticsForm({ company: '', trackingNumber: '' })
+        setLogisticsForm({ company: '', trackingNumber: '', shippingFee: '' })
         setLogisticsPhotos([])
         setTimeout(() => Taro.navigateBack(), 800)
       } else {
@@ -675,6 +676,16 @@ export default function OrderDetail() {
                 value={logisticsForm.trackingNumber}
                 onInput={e => setLogisticsForm(prev => ({ ...prev, trackingNumber: e.detail.value }))}
                 placeholder="SF1234567890"
+                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </View>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流费(元)</Text>
+              <Input
+                type="digit"
+                value={logisticsForm.shippingFee}
+                onInput={e => setLogisticsForm(prev => ({ ...prev, shippingFee: e.detail.value }))}
+                placeholder="按实际运费填写"
                 style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
               />
             </View>
