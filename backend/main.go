@@ -273,6 +273,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		membershipAdmin.DELETE("/admin/membership-levels/:id", middleware.RequireCusPerm("membership:manage"), handlers.DeleteMembershipLevel)
 		membershipAdmin.GET("/admin/rebate-config", middleware.RequireCusPerm("rebate:manage"), handlers.GetRebateConfig)
 		membershipAdmin.PUT("/admin/rebate-config", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateRebateConfig)
+		membershipAdmin.GET("/admin/gift-ratios", middleware.RequireCusPerm("rebate:manage"), handlers.GetGiftRatios)
+		membershipAdmin.PUT("/admin/gift-ratios", middleware.RequireCusPerm("rebate:manage"), handlers.UpdateGiftRatios)
 
 		// Merchant rebate opt-in
 		merchantRebate := authRequired.Group("")

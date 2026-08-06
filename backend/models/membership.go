@@ -19,6 +19,22 @@ type RebateConfig struct {
 
 func (RebateConfig) TableName() string { return "rebate_config" }
 
+// MembershipGiftRatio defines per-membership-level gift point ratios (#1536).
+// Used by: self spend loyalty (#1542), referral registration bonus (#1534),
+// referral spend commission (#1535).
+type MembershipGiftRatio struct {
+	ID                 string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	LevelID            int       `gorm:"not null;uniqueIndex" json:"level_id"`
+	SelfSpendRatio     float64   `gorm:"type:decimal(5,4);not null;default:0" json:"self_spend_ratio"`
+	ReferralRegPoints  float64   `gorm:"type:decimal(10,2);not null;default:0" json:"referral_reg_points"`
+	ReferralSpendRatio float64   `gorm:"type:decimal(5,4);not null;default:0" json:"referral_spend_ratio"`
+	IsActive           bool      `gorm:"not null;default:true" json:"is_active"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+func (MembershipGiftRatio) TableName() string { return "membership_gift_ratios" }
+
 type PromoPlan struct {
 	ID        string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	PlanType  string     `gorm:"type:varchar(20);not null;default:'promo_campaign'" json:"plan_type"`
