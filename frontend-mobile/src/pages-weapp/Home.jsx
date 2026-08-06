@@ -393,7 +393,7 @@ export default function Home() {
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
 
-        <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
+        <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80, minHeight: 500 }}>
         {loading ? (
           Array(3).fill(0).map((_, i) => (
             <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
