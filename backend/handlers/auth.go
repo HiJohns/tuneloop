@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -366,15 +368,34 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 				refCode := newUser.ID[:8]
 				h.db.Model(&newUser).Update("ref_code", refCode)
 				if req.Ref != "" && req.Ref != refCode {
-					var referrer models.User
-					if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
-						h.db.Create(&models.Referral{
-							ReferrerID: referrer.ID,
-							RefereeID:  newUser.ID,
-							RefCode:    req.Ref,
-							Status:     "registered",
-						})
+				var referrer models.User
+				if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
+					h.db.Create(&models.Referral{
+						ReferrerID: referrer.ID,
+						RefereeID:  newUser.ID,
+						RefCode:    req.Ref,
+						Status:     "registered",
+					})
+					// Referrer registration bonus (#1534): credit
+					// referral_reg_points per the referrer's membership level.
+					if referrer.MembershipLevelID != nil {
+						if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
+							h.db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
+								"promo_points": gorm.Expr("promo_points + ?", ratios.ReferralRegPoints),
+								"updated_at":   time.Now(),
+							})
+							h.db.Create(&models.PointsTransaction{
+								ID:          uuid.New().String(),
+								UserID:      referrer.ID,
+								TenantID:    referrer.TenantID,
+								Type:        "referral_reg",
+								Amount:      ratios.ReferralRegPoints,
+								Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
+								CreatedAt:   time.Now(),
+							})
+						}
 					}
+				}
 				}
 			}
 		}
