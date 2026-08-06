@@ -355,11 +355,9 @@ export default function Home() {
       )}
 
       {/* A: Search button — fixed near top, aligned below capsule */}
-      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.windowWidth - navBar.menuRight + 8) : 0 }}>
-        <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 150, height: Math.max(24, navBar.menuHeight - 2), borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 0, paddingBottom: 0, backgroundColor: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 14, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>🔍</Text>
-          <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>搜索乐器</Text>
-        </View>
+      <View onClick={() => nav('/pages-weapp/search/index')} style={{ position: 'fixed', top: searchTop, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, width: 150, height: Math.max(24, navBar.menuHeight - 2), borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <Text style={{ fontSize: 14, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>🔍</Text>
+        <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>搜索乐器</Text>
       </View>
 
       {/* Menu — fixed overlay when stuck, z above search bar */}
@@ -402,6 +400,7 @@ export default function Home() {
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
         )}
+        {menuStuck && <View style={{ height: stickyMenuHeight, backgroundColor: 'transparent' }} />}
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         {loading ? (
@@ -432,7 +431,7 @@ export default function Home() {
         )}
         </View>
       </ScrollView>
-      <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50 }}>
+      <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 200 }}>
         <Text style={{ fontSize: 20 }}>🛒</Text>
         {cartItemCount > 0 && (
           <Text style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', color: '#fff', fontSize: 10, width: 20, height: 20, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
