@@ -129,9 +129,11 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const scrollYRef = useRef(0)
   const [scrolled, setScrolled] = useState(false)
+  const [menuStuck, setMenuStuck] = useState(false)
   const [subMenuCat, setSubMenuCat] = useState(null)
   const [blurVisible, setBlurVisible] = useState(false)
   const scrolledRef = useRef(false)
+  const menuStuckRef = useRef(false)
   const scrollTimerRef = useRef(null)
   const blurTimerRef = useRef(null)
 
@@ -350,41 +352,48 @@ export default function Home() {
         />
       )}
 
-      {/* A: Search button — fixed near top, centered horizontally */}
-      <View onClick={() => nav('/pages-weapp/search/index')} style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop }}>
-        <View style={{ width: 150, height: Math.max(24, navBar.menuHeight - 2), borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      {/* A: Search button — fixed near top, aligned below capsule */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10000, display: 'flex', justifyContent: 'center', top: searchTop, paddingRight: navBar.menuRight ? Math.max(0, navBar.windowWidth - navBar.menuRight + 8) : 0 }}>
+        <View onClick={() => nav('/pages-weapp/search/index')} style={{ width: 150, height: Math.max(24, navBar.menuHeight - 2), borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 0, paddingBottom: 0, backgroundColor: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.55)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 14, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>🔍</Text>
           <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.75)', textShadow: '0 1px 2px rgba(255,255,255,0.3)' }}>搜索乐器</Text>
         </View>
       </View>
 
-      {/* B: ScrollView — fills space between search bar and bottom, transparent bg lets carousel show through */}
-      <ScrollView style={{ position: 'absolute', left: 0, right: 0, top: contentTop, bottom: 0, backgroundColor: 'transparent', zIndex: 100 }}
-        scrollY showScrollbar={false} enhanced
-        onScroll={e => {
-          const newY = e.detail?.scrollTop ?? 0
-          scrollYRef.current = newY
+      {/* Menu — fixed overlay when stuck, z above search bar */}
+        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop, height: stickyMenuHeight, overflow: 'hidden', opacity: menuStuck ? 1 : 0 }}>
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
+        </View>
 
-          // Blur: show 300ms after scroll starts
-          if (newY >= 20 && !blurTimerRef.current) {
-            blurTimerRef.current = setTimeout(() => setBlurVisible(true), 300)
-          }
-          // Hide blur when back near top (< 20px)
-          if (newY < 20) {
-            if (blurTimerRef.current) { clearTimeout(blurTimerRef.current); blurTimerRef.current = null }
-            if (blurVisible) setBlurVisible(false)
-          }
+      {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
+        <ScrollView style={{ height: '100%', backgroundColor: 'transparent' }}
+          scrollY showScrollbar={false}
+          onScroll={e => {
+            const newY = e.detail?.scrollTop ?? 0
+            scrollYRef.current = newY
 
-          // Search visibility: debounced after scroll stops
-          if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-          scrollTimerRef.current = setTimeout(() => {
-          const ns = scrollYRef.current > 50
-          if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-          }, 500)
-        }}>
-        <View style={{ height: '100px' }}></View>
+            // Blur: show 300ms after scroll starts
+            if (newY >= 20 && !blurTimerRef.current) {
+              blurTimerRef.current = setTimeout(() => setBlurVisible(true), 300)
+            }
+            // Hide blur when back near top (< 20px)
+            if (newY < 20) {
+              if (blurTimerRef.current) { clearTimeout(blurTimerRef.current); blurTimerRef.current = null }
+              if (blurVisible) setBlurVisible(false)
+            }
 
-        <View style={{ position: 'sticky', top: 0, zIndex: 10002, backgroundColor: 'transparent', height: stickyMenuHeight }}>
+            // Search, dots, sticky menu: debounced after scroll stops
+            if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+            scrollTimerRef.current = setTimeout(() => {
+            const ns = scrollYRef.current > 50, nm = scrollYRef.current > 100
+            if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
+            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+            }, 500)
+          }}>
+          <View style={{ height: '100px' }}></View>
+
+        <View style={{ height: stickyMenuHeight, backgroundColor: 'transparent', opacity: menuStuck ? 0 : 1 }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
 
@@ -417,7 +426,7 @@ export default function Home() {
         )}
         </View>
       </ScrollView>
-      <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 200 }}>
+      <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50 }}>
         <Text style={{ fontSize: 20 }}>🛒</Text>
         {cartItemCount > 0 && (
           <Text style={{ position: 'absolute', top: -4, right: -4, backgroundColor: '#ef4444', color: '#fff', fontSize: 10, width: 20, height: 20, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
@@ -425,7 +434,6 @@ export default function Home() {
           </Text>
         )}
       </View>
-      <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5' }}>
       <BottomNav
         active="home"
         tabs={[
@@ -435,7 +443,7 @@ export default function Home() {
           { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
         ]}
       />
-      </View>
+    </View>
     </View>
   )
 }
