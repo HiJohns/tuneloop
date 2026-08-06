@@ -393,7 +393,7 @@ export default function Home() {
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
 
-        <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80, minHeight: 500 }}>
+        <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         {loading ? (
           Array(3).fill(0).map((_, i) => (
             <View key={i} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 12, display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: 16 }}>
@@ -421,6 +421,9 @@ export default function Home() {
           </View>
         )}
         </View>
+        {/* Bottom spacer: ensures ScrollView content exceeds viewport
+            so native scroll doesn't reset when list reloads short (#1540). */}
+        <View style={{ height: 300 }} />
       </ScrollView>
       <View onClick={handleCartClick} style={{ position: 'fixed', bottom: 96, right: 16, backgroundColor: '#002140', padding: 12, borderRadius: 999, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 50 }}>
         <Text style={{ fontSize: 20 }}>🛒</Text>
