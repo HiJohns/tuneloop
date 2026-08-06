@@ -362,12 +362,12 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — fixed overlay when stuck, z above search bar */}
-      {menuStuck && (
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop, height: stickyMenuHeight, overflow: 'hidden' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
-        </View>
-      )}
+      {/* Menu — fixed overlay when stuck, z above search bar; always
+          rendered (opacity-toggled) to avoid DOM insertion/removal
+          reflow when menuStuck transitions (#1540). */}
+      <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop, height: stickyMenuHeight, overflow: 'hidden', opacity: menuStuck ? 1 : 0 }}>
+        <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
+      </View>
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
       <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 100, top: contentTop, bottom: 0 }}>
