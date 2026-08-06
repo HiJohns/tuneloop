@@ -255,7 +255,7 @@ export default function Home() {
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
       {/* Z=0: Carousel — original visible on top, blur replaces on scroll */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 0, height: 240 }}>
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
         {/* Original carousel */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 0 : 1, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
@@ -326,12 +326,12 @@ export default function Home() {
           </View>
         </View>
 
-      {/* Swipe layer — always present (avoid DOM reflow), touch handlers
-          disabled when scrolled so underlying menu receives taps (#1540). */}
+      {/* Swipe layer — always present (no DOM reflow). z-index drops to 0
+          when scrolled so underlying menu receives taps (#1540). */}
       {banners.length > 0 && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240 }}
-          onTouchStart={!scrolled ? (e) => { bannerTouchStartXRef.current = e.touches[0].clientX } : undefined}
-          onTouchEnd={!scrolled ? (e) => {
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 240, zIndex: scrolled ? 0 : 10002 }}
+          onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
+          onTouchEnd={(e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
             if (Math.abs(diff) > 50) {
               lastSwipeRef.current = Date.now()
@@ -344,7 +344,7 @@ export default function Home() {
               const currentItem = banners[currentBanner >= 0 && currentBanner < banners.length ? currentBanner : 0]
               if (currentItem?.link_url) nav(currentItem.link_url)
             }
-          } : undefined}
+          }}
         />
       )}
 
