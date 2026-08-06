@@ -249,9 +249,6 @@ export default function Home() {
   }, [banners.length])
 
   const handleCategoryChange = (catId) => {
-    // Reset scroll when category changes: the list content changes,
-    // making the old scrollTop invalid, causing visual jump (#1540).
-    scrollYRef.current = 0
     setSelectedCategory(catId)
   }
 
@@ -332,8 +329,8 @@ export default function Home() {
       {/* Swipe layer — intercepts touch and mouse over the banner area; only
           active before scrolling (banner hidden after scroll, and it would
           otherwise block sticky menu taps at the same z-index) */}
-      {banners.length > 0 && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240, opacity: scrolled ? 0 : 1 }}
+      {banners.length > 0 && !scrolled && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10002, height: 240 }}
           onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
           onTouchEnd={(e) => {
             const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
