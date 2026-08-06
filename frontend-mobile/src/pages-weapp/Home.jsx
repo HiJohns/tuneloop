@@ -255,7 +255,7 @@ export default function Home() {
   return (
     <View style={{ height: '100vh', width: '100vw', position: 'relative' }}>
       {/* Z=0: Carousel — original visible on top, blur replaces on scroll */}
-      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: '#915F38' }}>
+      <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, backgroundColor: banners.length === 0 ? '#915F38' : 'transparent' }}>
         {/* Original carousel */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 0 : 1, transition: 'opacity 0.3s' }}>
         {banners.length > 0 && (
@@ -303,7 +303,7 @@ export default function Home() {
         )}
       </View>
 
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s' }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: scrolled ? 1 : 0, transition: 'opacity 0.3s', backgroundColor: banners.length > 0 ? (banners[normalizedBannerIdx]?.bg_color || '#915F38') : 'transparent' }}>
         {banners.length > 0 && (
             <BannerImage src={blurUrl(banners[normalizedBannerIdx]?.image_url)} aspectRatio={banners[normalizedBannerIdx]?.aspect_ratio} />
         )}
