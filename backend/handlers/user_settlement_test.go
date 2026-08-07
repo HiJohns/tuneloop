@@ -49,7 +49,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          500,
-		CashPaid:         3000,
+		CashPaid:         3500, // rent 3000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -103,7 +103,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          500,
-		CashPaid:         1000,
+		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -170,7 +170,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          500,
-		CashPaid:         1000,
+		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
