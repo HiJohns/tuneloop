@@ -544,7 +544,6 @@ export default function InstrumentForm({ open: controlledOpen, onCancel, onSubmi
               const p = pricingArr[0]
               form.setFieldsValue({
                 deposit: p.deposit || undefined,
-                shipping_fee: p.shipping_fee || 0,
                 overdue_daily_fee: p.overdue_daily_fee || p.daily_rent || 0,
               })
             }
@@ -989,7 +988,6 @@ const loadCategoryChildren = async (node) => {
         pricing: {
           daily_rent: values.base_daily_rate || 0,
           deposit: values.deposit || undefined,
-          shipping_fee: values.shipping_fee || 0,
           overdue_daily_fee: values.overdue_daily_fee || values.base_daily_rate || 0,
         },
         images: images,
@@ -1326,9 +1324,6 @@ const loadCategoryChildren = async (node) => {
                       : `建议: ¥${dr * 7} (日租金×7)`
                   })()} />
              </Form.Item>
-            <Form.Item label="物流费(¥)" name="shipping_fee">
-              <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
-            </Form.Item>
             <Form.Item label="逾期日费(¥/天)" name="overdue_daily_fee">
               <InputNumber min={0} precision={2} prefix="¥" style={{ width: 200 }} />
             </Form.Item>

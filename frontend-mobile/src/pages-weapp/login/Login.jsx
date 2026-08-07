@@ -28,21 +28,23 @@ async function handleWxLogin() {
       storage.setItem('token', result.data.token)
       Taro.hideLoading()
       eventBus.emit('loginSuccess')
+      // New user (incl. GUEST from openid-not-found): must go to registration
+      // FIRST — a stale post_auth_redirect must not hijack the flow (#1535).
+      if (result.data.is_new === true) {
+        Taro.redirectTo({ url: '/pages-weapp/profile-complete/index' })
+        return
+      }
       const postAuth = session.getItem('post_auth_redirect')
       if (postAuth) {
         session.removeItem('post_auth_redirect')
         navigatePostAuth(postAuth)
         return
       }
-      if (result.data.is_new === false) {
-        const pages = Taro.getCurrentPages()
-        if (pages.length > 1) {
-          Taro.navigateBack()
-        } else {
-          Taro.switchTab({ url: '/pages-weapp/home/index' })
-        }
+      const pages = Taro.getCurrentPages()
+      if (pages.length > 1) {
+        Taro.navigateBack()
       } else {
-        Taro.redirectTo({ url: '/pages-weapp/profile-complete/index' })
+        Taro.switchTab({ url: '/pages-weapp/home/index' })
       }
       return
     }

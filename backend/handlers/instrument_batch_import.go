@@ -81,7 +81,7 @@ func DownloadCSVTemplate(c *gin.Context) {
 	var properties []models.Property
 	db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&properties)
 
-	headers := []string{"识别码*", "分类名称*", "网点名称*", "级别名称*", "描述", "原价", "日租金", "押金", "物流费", "逾期租金"}
+	headers := []string{"识别码*", "分类名称*", "网点名称*", "级别名称*", "描述", "原价", "日租金", "押金", "逾期租金"}
 
 	for _, prop := range properties {
 		headers = append(headers, prop.Caption)
@@ -218,10 +218,6 @@ func PreviewBatchImport(c *gin.Context) {
 			case "押金", "deposit":
 				if val != "" {
 					fields["deposit"] = val
-				}
-			case "物流费", "shipping_fee":
-				if val != "" {
-					fields["shipping_fee"] = val
 				}
 			case "逾期租金", "逾期日费", "overdue_daily_fee":
 				if val != "" {
@@ -607,7 +603,6 @@ func ExecuteBatchImport(c *gin.Context) {
 				}
 			}
 			loadPricingField("deposit")
-			loadPricingField("shipping_fee")
 			loadPricingField("overdue_daily_fee")
 			if len(pricingMap) > 0 {
 				existingPricing := map[string]interface{}{}
@@ -990,7 +985,7 @@ func BatchImportInstruments(c *gin.Context) {
 				return fmt.Errorf("日租金未填或无效：CSV 中「日租金」列必须填入大于 0 的金额")
 			}
 			pricingMap := map[string]float64{}
-			for _, key := range []string{"deposit", "shipping_fee", "overdue_daily_fee"} {
+			for _, key := range []string{"deposit", "overdue_daily_fee"} {
 				if valStr, ok := instData[key].(string); ok && valStr != "" {
 					if val, err := strconv.ParseFloat(valStr, 64); err == nil {
 						pricingMap[key] = val

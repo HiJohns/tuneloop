@@ -156,7 +156,7 @@ export default function BatchImport() {
                 description={
                   <div>
                     <p>CSV 文件包含以下列：<strong>识别码、分类名称、网点名称、级别名称、描述</strong></p>
-                    <p>定价列（可选）：原价、日租金、押金、物流费、逾期租金（留空则不设置）</p>
+                    <p>定价列（可选）：原价、日租金、押金、逾期租金（留空则不设置）</p>
                     <p>创建方式：在 Excel 中编辑数据后，另存为 CSV UTF-8（逗号分隔）格式。</p>
                     <p><a onClick={downloadTemplate} style={{ cursor: 'pointer' }}>📄 下载模板文件</a></p>
                     <p style={{ marginTop: 8 }}>分类列可填写：钢琴、立式钢琴、三角钢琴、小提琴、打击乐器等</p>
