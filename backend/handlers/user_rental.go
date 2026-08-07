@@ -389,8 +389,36 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		})
 	}
 
-	// Total = rent subtotal (from pricing_breakdown) + deposit + shipping
+	// Calculate pricing_breakdown via rent calculator (before amount math:
+	// TotalAmount includes discount-code/promo factors that must drive the
+	// charged total — #1569).
+	pricingBreakdown, err := services.CalculatePricingBreakdown(services.RentCalcInput{
+		BaseDailyRate:     baseRate,
+		LeaseTerm:         days,
+		InstrumentID:      req.InstrumentID,
+		DiscountCode:      req.DiscountCode,
+		TenantID:          effectiveTenantID,
+		OrgID:             &effectiveOrgID,
+		Deposit:           deposit,
+		DepositMethod:     depositMethod,
+		DepositRatio:      depositRatio,
+		DepositMultiplier: depositMultiplier,
+		TotalPrice:        totalPrice,
+		ShippingFee:       shippingFee,
+		PricingTiers:      pricingTiers,
+	})
+	pricingBreakdownJSON := ""
+	if err == nil && pricingBreakdown != nil {
+		pricingBreakdownJSON = services.FormatPricingBreakdownJSON(pricingBreakdown)
+	}
+
+	// Total = rent subtotal (from pricing_breakdown, discount-inclusive) +
+	// deposit + shipping. Fall back to dailyRate×days when the breakdown is
+	// unavailable (should not happen).
 	rentSubtotal := dailyRent * float64(days)
+	if pricingBreakdown != nil && pricingBreakdown.TotalAmount > 0 {
+		rentSubtotal = pricingBreakdown.TotalAmount
+	}
 	totalAmount := rentSubtotal + deposit + shippingFee
 
 	// Points wallet validation
@@ -428,27 +456,6 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	if cashPaid < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points exceed total amount"})
 		return
-	}
-
-	// Calculate pricing_breakdown via rent calculator
-	pricingBreakdown, err := services.CalculatePricingBreakdown(services.RentCalcInput{
-		BaseDailyRate:     baseRate,
-		LeaseTerm:         days,
-		InstrumentID:      req.InstrumentID,
-		DiscountCode:      req.DiscountCode,
-		TenantID:          effectiveTenantID,
-		OrgID:             &effectiveOrgID,
-		Deposit:           deposit,
-		DepositMethod:     depositMethod,
-		DepositRatio:      depositRatio,
-		DepositMultiplier: depositMultiplier,
-		TotalPrice:        totalPrice,
-		ShippingFee:       shippingFee,
-		PricingTiers:      pricingTiers,
-	})
-	pricingBreakdownJSON := ""
-	if err == nil && pricingBreakdown != nil {
-		pricingBreakdownJSON = services.FormatPricingBreakdownJSON(pricingBreakdown)
 	}
 
 	// Create order
