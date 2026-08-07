@@ -285,9 +285,10 @@ export default function Home() {
         </View>
       )}
 
-        {/* Swipe layer — intercepts touch and mouse over the banner area */}
+        {/* Swipe layer — intercepts touch and mouse over the banner area.
+            z drops to 0 once scrolled so the fixed menu becomes clickable (#1572). */}
         {banners.length > 0 && (
-          <View className="absolute top-0 left-0 right-0 z-[10002]" style={{ height: 240 }}
+          <View className={`absolute top-0 left-0 right-0 ${scrolled ? 'z-0' : 'z-[10002]'}`} style={{ height: 240 }}
             onTouchStart={(e) => { bannerTouchStartXRef.current = e.touches[0].clientX }}
             onTouchEnd={(e) => {
               const diff = e.changedTouches[0].clientX - bannerTouchStartXRef.current
