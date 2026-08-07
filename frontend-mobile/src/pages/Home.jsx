@@ -93,7 +93,7 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 50
-  const menuStuck = scrollY > 140
+  const menuScroll = Math.min(scrollY, 140)
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
     sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0))
@@ -333,23 +333,17 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — fixed overlay when stuck, z above search bar */}
-      {menuStuck && (
-        <View className="fixed left-0 right-0 z-[10001] bg-transparent" style={{ top: '102px' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
-        </View>
-      )}
+      {/* Menu — fixed, follows scroll (top = 242 - min(s,140)), stops at 102px */}
+      <View className="fixed left-0 right-0 z-[10001] bg-transparent" style={{ top: `${242 - menuScroll}px` }}>
+        <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
+      </View>
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '102px', bottom: 0, overflow: 'hidden' }}>
+       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}>
         <ScrollView className="flex-1 overflow-y-auto bg-transparent"
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
           <View style={{ height: '140px' }}></View>
-
-          <View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
-            <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />
-          </View>
 
         <View>
           <View className="px-4 pt-4 pb-20" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

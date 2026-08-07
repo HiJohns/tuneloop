@@ -135,11 +135,11 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const scrollYRef = useRef(0)
   const [scrolled, setScrolled] = useState(false)
-  const [menuStuck, setMenuStuck] = useState(false)
+  const [menuScroll, setMenuScroll] = useState(0)
   const [subMenuCat, setSubMenuCat] = useState(null)
   const [blurVisible, setBlurVisible] = useState(false)
   const scrolledRef = useRef(false)
-  const menuStuckRef = useRef(false)
+  const menuScrollRef = useRef(0)
   const scrollTimerRef = useRef(null)
   const blurTimerRef = useRef(null)
 
@@ -165,7 +165,7 @@ export default function Home() {
   const searchTop = navBar.menuTop
   const menuTop = navBar.menuTop + navBar.menuHeight + 8
   const stickyMenuHeight = 48 // MenuContent: outer padding 4×2 + item padding 10×2 + text 18 + border 2
-  const contentTop = menuTop
+  const contentTop = menuTop + stickyMenuHeight
 
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
@@ -378,8 +378,10 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — fixed overlay when stuck, z above search bar */}
-        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop, height: stickyMenuHeight, overflow: 'hidden', opacity: menuStuck ? 1 : 0 }}>
+      {/* Menu — fixed, follows scroll (top = m+148 - min(s,148)), stops at m.
+          List viewport (clip container) starts at m+h, so the menu region
+          m..m+h is never overlapped by list cards. */}
+        <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop + 100 + stickyMenuHeight - menuScroll, height: stickyMenuHeight, overflow: 'hidden' }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
         </View>
 
@@ -401,10 +403,11 @@ export default function Home() {
               if (blurVisible) setBlurVisible(false)
             }
 
-            // Sticky menu: sync immediately (no debounce) so the swap happens
-            // exactly when the in-flow menu's top edge touches menuTop (zero-jump)
-            const nm = newY > 100 + stickyMenuHeight
-            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+            // Menu: follow scroll (capped at 100+48 so it stops at menuTop).
+            // Sync immediately — list viewport clips at m+h so cards can never
+            // enter the menu region; no swap animation needed.
+            const ms = Math.min(newY, 100 + stickyMenuHeight)
+            if (ms !== menuScrollRef.current) { menuScrollRef.current = ms; setMenuScroll(ms) }
 
             // Search, dots: debounced after scroll stops
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
@@ -414,10 +417,6 @@ export default function Home() {
             }, 500)
           }}>
           <View style={{ height: `${100 + stickyMenuHeight}px` }}></View>
-
-        <View style={{ height: stickyMenuHeight, backgroundColor: 'transparent', opacity: menuStuck ? 0 : 1 }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
-        </View>
 
         <View style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 80 }}>
         {loading ? (
