@@ -334,6 +334,25 @@ func GetOrder(c *gin.Context) {
 		})
 	}
 
+	// Fetch guarantors for deposit-free orders (#1557)
+	type guarantorEntry struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Phone   string `json:"phone"`
+		Company string `json:"company"`
+		Title   string `json:"title"`
+		Address string `json:"address"`
+	}
+	var guarantors []guarantorEntry
+	if order.DepositWaived {
+		db.Table("order_guarantors og").
+			Select("g.id, g.name, g.phone, g.company, g.title, g.address").
+			Joins("JOIN guarantors g ON g.id = og.guarantor_id").
+			Where("og.order_id = ?", order.ID).
+			Order("g.created_at ASC").
+			Scan(&guarantors)
+	}
+
 	orderData := map[string]interface{}{
 		"id":                    order.ID,
 		"tenant_id":             order.TenantID,
@@ -349,6 +368,8 @@ func GetOrder(c *gin.Context) {
 		"lease_term":            order.LeaseTerm,
 		"deposit_mode":          order.DepositMode,
 		"deposit":               order.Deposit,
+		"deposit_waived":        order.DepositWaived,
+		"guarantors":            guarantors,
 		"shipping_fee":          order.ShippingFee,
 		"accumulated_months":    order.AccumulatedMonths,
 		"status":                order.Status,
@@ -881,6 +902,138 @@ func CancelOrderByCustomer(c *gin.Context) {
 			"order_id":   orderID,
 			"old_status": models.OrderStatusReserved,
 			"new_status": models.OrderStatusCancelled,
+		},
+	})
+}
+
+// StaffCancelOrder POST /api/warehouse/orders/:id/staff-cancel
+// Site staff cancels a paid/pending_shipment order (e.g. deposit-free order
+// whose guarantors fail verification, #1557). Refunds the original payment
+// path like the customer cancellation flow.
+func StaffCancelOrder(c *gin.Context) {
+	orderID := c.Param("id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order_id is required"})
+		return
+	}
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	if order.Status != models.OrderStatusPaid && order.Status != models.OrderStatusPendingShipment {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "order can only be cancelled by staff when status is paid or pending_shipment"})
+		return
+	}
+
+	oldStatus := order.Status
+
+	// Restore instrument availability
+	db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable)
+
+	if err := db.Model(&order).Update("status", models.OrderStatusCancelled).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to cancel order"})
+		return
+	}
+
+	// Resolve operator identity (IAM sub → local user name)
+	operatorID := middleware.GetUserID(ctx)
+	operatorName := ""
+	var localUser models.User
+	if err := db.Where("iam_sub = ?", operatorID).First(&localUser).Error; err == nil && localUser.Name != "" {
+		operatorName = localUser.Name
+	}
+
+	// Record status history
+	history := models.OrderStatusHistory{
+		ID:         uuid.New().String(),
+		TenantID:   order.TenantID,
+		OrderID:    orderID,
+		StatusFrom: oldStatus,
+		StatusTo:   models.OrderStatusCancelled,
+		Notes:      "员工取消订单",
+		ChangedBy:  stringPtr(operatorID),
+		ChangedAt:  time.Now(),
+	}
+	db.Create(&history)
+
+	// Record order log with reason
+	logEvent := "员工取消订单"
+	if req.Reason != "" {
+		logEvent = fmt.Sprintf("员工取消订单: %s", req.Reason)
+	}
+	db.Create(&models.OrderLog{
+		OrderID:      orderID,
+		Event:        logEvent,
+		OperatorID:   stringPtr(operatorID),
+		OperatorName: stringPtr(operatorName),
+		CreatedAt:    time.Now(),
+	})
+
+	// Refund prepaid points if used
+	refundOrderPoints(db, &order)
+
+	// Initiate original-path refund with WeChat Pay
+	refundAmount := order.CashPaid
+	refundStatus := ""
+	if refundAmount > 0 {
+		outRefundNo := fmt.Sprintf("scn_%s_%d", orderID[:8], time.Now().Unix())
+		refundRecord := models.OrderRefundRecord{
+			ID:          uuid.New().String(),
+			TenantID:    order.TenantID,
+			Amount:      refundAmount,
+			OutRefundNo: &outRefundNo,
+			Reason:      strPtr("员工取消订单"),
+			Status:      "pending",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+		if wechatpay.GetConfig().MockMode {
+			refundRecord.Status = "refunded"
+		} else {
+			var paymentRecord models.OrderPaymentRecord
+			if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
+				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
+				cfg := wechatpay.GetConfig()
+				client := wechatpay.GetClient()
+				_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
+					OutTradeNo:   *paymentRecord.OutTradeNo,
+					OutRefundNo:  outRefundNo,
+					TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
+					RefundAmount: cfg.AmountToCents(refundAmount),
+					Reason:       "员工取消订单",
+					NotifyURL:    cfg.RefundNotifyURL,
+				})
+				if refundErr != nil {
+					refundRecord.Status = "failed"
+					fr := refundErr.Error()
+					refundRecord.FailReason = &fr
+					log.Printf("[StaffCancelOrder] refund failed for order %s: %v", orderID, refundErr)
+				}
+			}
+		}
+		db.Create(&refundRecord)
+		refundStatus = refundRecord.Status
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"order_id":      orderID,
+			"old_status":    oldStatus,
+			"new_status":    models.OrderStatusCancelled,
+			"refund_amount": refundAmount,
+			"refund_status": refundStatus,
 		},
 	})
 }

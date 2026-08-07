@@ -80,7 +80,14 @@ export default function OrderPayment() {
           <Descriptions.Item label="租赁结束">{order.end_date}</Descriptions.Item>
           <Descriptions.Item label="天数">{order.lease_term} 天</Descriptions.Item>
           <Descriptions.Item label="月租金">¥{order.monthly_rent}</Descriptions.Item>
-          <Descriptions.Item label="押金">¥{order.deposit}</Descriptions.Item>
+          <Descriptions.Item label="押金">
+            {order.deposit_waived ? <span className="text-green-600 font-semibold">免押金</span> : `¥${order.deposit}`}
+          </Descriptions.Item>
+          {order.deposit_waived && (
+            <Descriptions.Item label="担保人">
+              {(order.guarantors || []).map(g => `${g.name}(${g.phone})`).join('、') || '-'}
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="总计">
             <span className="text-2xl font-bold text-blue-600">
               ¥{order.total_amount || order.monthly_rent}

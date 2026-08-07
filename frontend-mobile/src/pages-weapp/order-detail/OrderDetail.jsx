@@ -291,6 +291,33 @@ export default function OrderDetail() {
     setLogisticsSubmitting(false)
   }
 
+  const handleStaffCancel = async () => {
+    Taro.showModal({
+      title: '确认取消订单',
+      content: '取消后不可恢复，已付款将原路退回。',
+      success: async (res) => {
+        if (!res.confirm) return
+        setActionLoading(true)
+        try {
+          const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/staff-cancel`, {
+            method: 'POST',
+            body: JSON.stringify({ reason: '担保人不符合要求' }),
+          })
+          const result = await resp.json()
+          if (result.code === 20000) {
+            Taro.showToast({ title: '订单已取消', icon: 'success' })
+            setTimeout(() => Taro.navigateBack(), 800)
+          } else {
+            Taro.showModal({ title: '取消失败', content: result.message, showCancel: false })
+          }
+        } catch (err) {
+          Taro.showModal({ title: '取消失败', content: err.message, showCancel: false })
+        }
+        setActionLoading(false)
+      },
+    })
+  }
+
   if (loading) {
     return (
       <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
@@ -575,7 +602,7 @@ export default function OrderDetail() {
                       </View>
                     )
                   })()}
-                  {deposit > 0 && (
+                  {deposit > 0 && !order.deposit_waived && (
                     <View>
                       <Row label="押金" value={`¥${Number(deposit).toFixed(2)}`} />
                       {pb?.deposit_method && (
@@ -587,12 +614,33 @@ export default function OrderDetail() {
                       )}
                     </View>
                   )}
+                  {order.deposit_waived && (
+                    <Row label="押金" value="免押金" color="#16a34a" />
+                  )}
                   {shippingFee > 0 && <Row label="物流费" value={`¥${shippingFee.toFixed(2)}`} />}
                 </View>
               )}
             </View>
           )}
         </View>
+
+        {/* Guarantor info (deposit-free orders, #1557) */}
+        {order.deposit_waived && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>担保人信息</Text>
+            {(order.guarantors || []).length > 0 ? order.guarantors.map((g, i) => (
+              <View key={g.id || i} style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#000' }}>{g.name} · {g.phone}</Text>
+                {g.company || g.title ? (
+                  <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>{[g.company, g.title].filter(Boolean).join(' / ')}</Text>
+                ) : null}
+                {g.address ? <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>{g.address}</Text> : null}
+              </View>
+            )) : (
+              <Text style={{ fontSize: 12, color: '#a1a1aa' }}>暂无担保人信息</Text>
+            )}
+          </View>
+        )}
 
         {/* Settlement Detail */}
         {order.settlement && (
@@ -652,6 +700,30 @@ export default function OrderDetail() {
               const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
               return <Row label="净支出" value={`¥${Math.max(0, paid - refunded).toFixed(2)}`} />
             })()}
+          </View>
+        )}
+
+        {/* Staff: deposit-free warning + guarantors (#1557) */}
+        {showStaffShip && order.deposit_waived && (
+          <View style={{ backgroundColor: '#fef3c7', margin: 16, borderRadius: 16, padding: 16, border: '1px solid #fde68a' }}>
+            <View style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400e' }}>本订单为免押金订单</Text>
+            </View>
+            <Text style={{ fontSize: 12, color: '#b45309', marginBottom: 10, lineHeight: 18 }}>
+              请核实以下担保人信息，若担保人不符合要求应取消订单：
+            </Text>
+            {(order.guarantors || []).map((g, i) => (
+              <View key={g.id || i} style={{ backgroundColor: '#fff', borderRadius: 8, padding: 10, marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#000' }}>{g.name} - {g.phone}</Text>
+                <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>{[g.company, g.title].filter(Boolean).join(' / ') || '-'}</Text>
+                {g.address && <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>{g.address}</Text>}
+              </View>
+            ))}
+            <View onClick={actionLoading ? undefined : handleStaffCancel}
+              style={{ ...btnStyle('#ef4444'), opacity: actionLoading ? 0.5 : 1, marginTop: 4 }}>
+              {actionLoading ? '处理中...' : '❌ 取消订单'}
+            </View>
           </View>
         )}
 

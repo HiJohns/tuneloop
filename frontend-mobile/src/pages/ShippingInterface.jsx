@@ -18,6 +18,7 @@ export default function ShippingInterface() {
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [codeInput, setCodeInput] = useState('')
   const [lookupError, setLookupError] = useState('')
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -141,6 +142,29 @@ export default function ShippingInterface() {
     setSubmitting(false)
   }
 
+  const handleStaffCancel = async () => {
+    if (!orderId) return
+    const confirmed = await dialog.confirm('确认取消订单？取消后费用将原路退还，且无法恢复。')
+    if (!confirmed) return
+    setCancelling(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/staff-cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: '担保人不符合要求' }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.alert('订单已取消，费用已原路退还')
+        navigate('/staff/orders')
+      } else {
+        dialog.alert('取消失败: ' + result.message)
+      }
+    } catch (err) {
+      dialog.alert('取消失败: ' + err.message)
+    }
+    setCancelling(false)
+  }
+
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
@@ -214,7 +238,32 @@ export default function ShippingInterface() {
               </View>
             </View>
 
-            {/* Customer Info (legacy section) */}
+            {/* Deposit-free warning card (#1557) */}
+            {order.deposit_waived && (
+              <View className="bg-amber-50 border border-amber-300 mt-3 rounded-2xl p-4">
+                <Text className="font-black text-amber-700 mb-2">⚠️ 本订单为免押金订单</Text>
+                <Text className="text-xs text-amber-700 leading-relaxed">
+                  如担保人不符合要求，请取消订单（费用将原路退还）。
+                </Text>
+                {(order.guarantors || []).length > 0 && (
+                  <View className="mt-2 space-y-1.5">
+                    {order.guarantors.map((g, i) => (
+                      <Text key={g.id || i} className="block text-xs text-amber-800 bg-white rounded-lg px-2.5 py-1.5">
+                        {g.name} · {g.phone}
+                        {(g.company || g.title) ? ` · ${[g.company, g.title].filter(Boolean).join(' / ')}` : ''}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+                <Button
+                  onClick={handleStaffCancel}
+                  disabled={cancelling}
+                  className="w-full mt-3 py-2.5 bg-red-500 text-white rounded-xl font-black disabled:opacity-50"
+                >
+                  {cancelling ? '处理中...' : '取消订单'}
+                </Button>
+              </View>
+            )}
             {order.delivery_address && (
               <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
                 <Text className="font-black text-black mb-3 flex items-center gap-2">

@@ -440,7 +440,7 @@ export default function OrderDetail() {
                       <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
                     </View>
                   )}
-                  {deposit > 0 && (
+                  {deposit > 0 && !order.deposit_waived && (
                     <>
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">押金</Text>
@@ -455,6 +455,12 @@ export default function OrderDetail() {
                     )}
                     </>
                   )}
+                  {order.deposit_waived && (
+                    <View className="flex justify-between text-sm">
+                      <Text className="text-zinc-500 font-medium">押金</Text>
+                      <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">免押金</Text>
+                    </View>
+                  )}
                   {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">物流费</Text>
@@ -467,6 +473,22 @@ export default function OrderDetail() {
           )}
         </View>
       </View>
+
+      {/* Guarantor info (deposit-free orders, #1557) */}
+      {order.deposit_waived && (
+        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
+          <Text className="text-base font-black text-black mb-3">担保人信息</Text>
+          {(order.guarantors || []).length > 0 ? order.guarantors.map((g, i) => (
+            <View key={g.id || i} className="bg-gray-50 rounded-lg p-2.5 mb-2">
+              <Text className="block text-sm font-semibold text-black">{g.name} · {g.phone}</Text>
+              {(g.company || g.title) && <Text className="block text-xs text-zinc-500 mt-0.5">{[g.company, g.title].filter(Boolean).join(' / ')}</Text>}
+              {g.address && <Text className="block text-xs text-zinc-500 mt-0.5">{g.address}</Text>}
+            </View>
+          )) : (
+            <Text className="text-xs text-zinc-400">暂无担保人信息</Text>
+          )}
+        </View>
+      )}
 
       {/* Settlement Detail (for completed orders) */}
       {settlement && (

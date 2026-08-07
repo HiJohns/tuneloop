@@ -188,6 +188,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		PrepaidPointsUsed float64     `json:"prepaid_points_used"`
 		GiftPointsUsed    float64     `json:"gift_points_used"`
 		DiscountCode      string      `json:"discount_code"` // redeemable code (#1539)
+		DepositWaived     bool        `json:"deposit_waived"` // deposit-free application (#1557)
+		GuarantorIDs      []string    `json:"guarantor_ids"`  // guarantors for deposit-free order (#1557)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -341,6 +343,23 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	deposit := pricingResult.Deposit
 	shippingFee := pricingResult.ShippingFee
 
+	// Deposit-free order: require at least 2 guarantors owned by this user,
+	// then zero out the deposit before any amount calculation (#1557).
+	if req.DepositWaived {
+		if len(req.GuarantorIDs) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires at least 2 guarantors"})
+			return
+		}
+		var guarantorCount int64
+		if err := db.Model(&models.Guarantor{}).
+			Where("id IN ? AND user_id = ?", req.GuarantorIDs, userID).
+			Count(&guarantorCount).Error; err != nil || int(guarantorCount) != len(req.GuarantorIDs) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid guarantor_ids: guarantors must belong to you"})
+			return
+		}
+		deposit = 0
+	}
+
 	// Determine deposit calculation method for audit trail
 	depositMethod := "base_daily_rate"
 	depositRatio := 0.0
@@ -445,6 +464,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		LeaseTerm:         months,
 		MonthlyRent:       0,
 		Deposit:           deposit,
+		DepositWaived:     req.DepositWaived,
 		ShippingFee:       shippingFee,
 		Status:            models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
 		StartDate:         &startDateStr,
@@ -491,6 +511,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		"notes":               req.Notes,
 		"prepaid_points_used": req.PrepaidPointsUsed,
 		"gift_points_used":    req.GiftPointsUsed,
+		"deposit_waived":      req.DepositWaived,
+		"guarantor_ids":       req.GuarantorIDs,
 	}
 	if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
 		snapStr := string(reqSnapshotJSON)
@@ -517,6 +539,17 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order: " + err.Error()})
 		return
+	}
+
+	// Link guarantors to the order (#1557)
+	if req.DepositWaived {
+		for _, gid := range req.GuarantorIDs {
+			if err := tx.Create(&models.OrderGuarantor{OrderID: order.ID, GuarantorID: gid}).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to link guarantors"})
+				return
+			}
+		}
 	}
 
 	// Record discount code usage and increment usage count (#1539)
@@ -689,6 +722,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			RentDays     int    `json:"rent_days"`
 		} `json:"items" binding:"required,min=1"`
 		DeliveryAddress interface{} `json:"delivery_address"`
+		DepositWaived   bool        `json:"deposit_waived"` // deposit-free application (#1557)
+		GuarantorIDs    []string    `json:"guarantor_ids"`  // shared guarantors for all items (#1557)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -730,6 +765,21 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			} else if inst.CurrentSiteID != nil {
 				effectiveOrgID = inst.CurrentSiteID.String()
 			}
+		}
+	}
+
+	// Deposit-free batch order: require at least 2 guarantors owned by this user (#1557)
+	if req.DepositWaived {
+		if len(req.GuarantorIDs) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "deposit-free order requires at least 2 guarantors"})
+			return
+		}
+		var guarantorCount int64
+		if err := db.Model(&models.Guarantor{}).
+			Where("id IN ? AND user_id = ?", req.GuarantorIDs, userID).
+			Count(&guarantorCount).Error; err != nil || int(guarantorCount) != len(req.GuarantorIDs) {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid guarantor_ids: guarantors must belong to you"})
+			return
 		}
 	}
 
@@ -869,6 +919,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		deposit := pricingResult.Deposit
 		shippingFee := pricingResult.ShippingFee
 
+		// Deposit-free batch order: zero out deposit before amount calculation (#1557)
+		if req.DepositWaived {
+			deposit = 0
+		}
+
 		// Calculate pricing_breakdown (needed for payment page display)
 		pricingTiers := make([]services.PricingTierConfig, 0, len(pricingResult.Tiers))
 		for _, t := range pricingResult.Tiers {
@@ -910,6 +965,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			LeaseTerm:    months,
 			MonthlyRent: 0,
 			Deposit:      deposit,
+			DepositWaived: req.DepositWaived,
 			ShippingFee:  shippingFee,
 			Status:             models.OrderStatusReserved,
 			StartDate:          &startDateStr,
@@ -948,6 +1004,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			"rent_days":        days,
 			"instrument_id":    item.InstrumentID,
 			"delivery_address": req.DeliveryAddress,
+			"deposit_waived":   req.DepositWaived,
+			"guarantor_ids":    req.GuarantorIDs,
 		}
 		if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
 			snapStr := string(reqSnapshotJSON)
@@ -974,6 +1032,17 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create order for " + item.InstrumentID})
 			return
+		}
+
+		// Link guarantors to this order (batch shares the same guarantors) (#1557)
+		if req.DepositWaived {
+			for _, gid := range req.GuarantorIDs {
+				if err := tx.Create(&models.OrderGuarantor{OrderID: order.ID, GuarantorID: gid}).Error; err != nil {
+					tx.Rollback()
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to link guarantors for " + item.InstrumentID})
+					return
+				}
+			}
 		}
 
 		// Create lease session

@@ -433,6 +433,12 @@ export const addressesApi = {
   delete: (id) => api.delete(`/user/addresses/${id}`),
 }
 
+export const guarantorsApi = {
+  list: () => api.get('/user/guarantors'),
+  create: (data) => api.post('/user/guarantors', data),
+  delete: (id) => api.delete(`/user/guarantors/${id}`),
+}
+
 export const pointsApi = {
   balance: () => api.get('/user/points/balance'),
   transactions: (params) => api.get('/user/points/transactions', params),

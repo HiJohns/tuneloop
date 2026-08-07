@@ -93,6 +93,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	userOnboardingHandler := handlers.NewUserOnboardingHandler()
 	userSettlementHandler := handlers.NewUserSettlementHandler()
 	userPointsHandler := handlers.NewUserPointsHandler()
+	guarantorHandler := handlers.NewGuarantorHandler()
 	bannerHandler := handlers.NewBannerHandler()
 
 	// Bulk import handler (Issue #423)
@@ -600,6 +601,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.PUT("/warehouse/orders/:id/shipping", warehouseHandler.UpdateShipping)
 			authRequired.PUT("/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
 			authRequired.PUT("/warehouse/orders/:id/damage", warehouseHandler.AssessDamage)
+			// Issue #1557: Staff cancel (e.g. deposit-free order guarantor fails verification)
+			authRequired.POST("/warehouse/orders/:id/staff-cancel", handlers.StaffCancelOrder)
 
 			// Issue #307: User Rental Routes
 			// /user/instruments require tenant context (org binding required)
@@ -654,6 +657,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)
 				userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
 				userOptionalAuth.POST("/user/points/purchase", userPointsHandler.PurchasePoints)
+				userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
+				userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
+				userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)
 
 				userOptionalAuth.GET("/user/settlements/:id/calculate", userSettlementHandler.CalculateSettlement)
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)

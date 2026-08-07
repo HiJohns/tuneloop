@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
@@ -73,6 +73,13 @@ function SingleCheckout({ id, nav }) {
   const [rentalCalcLoading, setRentalCalcLoading] = useState(false)
   const [daysInputText, setDaysInputText] = useState('30')
 
+  const [depositWaived, setDepositWaived] = useState(false)
+  const [guarantors, setGuarantors] = useState([])
+  const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
+  const [showAddGuarantor, setShowAddGuarantor] = useState(false)
+  const [newGuarantor, setNewGuarantor] = useState({ name: '', phone: '', company: '', title: '', address: '' })
+  const [savingGuarantor, setSavingGuarantor] = useState(false)
+
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === newAddress.province)
   const cityNames = selectedProv ? selectedProv.children.map(c => c.name) : []
@@ -129,6 +136,12 @@ function SingleCheckout({ id, nav }) {
         if (pv2Result.code === 20000) {
           setPricingV2(pv2Result.data)
         }
+
+        const gRes = await apiFetch(`${env.apiBaseUrl}/user/guarantors`)
+        const gResult = await gRes.json()
+        if (gResult.code === 20000) {
+          setGuarantors(gResult.data?.list || [])
+        }
       } catch (err) {
         console.error('Failed to load checkout data:', err)
       }
@@ -161,7 +174,8 @@ function SingleCheckout({ id, nav }) {
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
   const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
   const shippingFee = pricingV2?.shipping_fee || parsePricing(instrument?.pricing)[0]?.shipping_fee || 0
-  const totalAmount = totalRent + deposit + shippingFee
+  const effectiveDeposit = depositWaived ? 0 : deposit
+  const totalAmount = totalRent + effectiveDeposit + shippingFee
   const startDate = new Date().toISOString().slice(0, 10)
   const returnDate = calculateEndDate(new Date(), days).toISOString().slice(0, 10)
 
@@ -178,6 +192,10 @@ function SingleCheckout({ id, nav }) {
     }
     if (useNewAddress && !newAddress.recipient_name) {
       dialog.alert('请填写收货人')
+      return
+    }
+    if (depositWaived && selectedGuarantorIds.length < 2) {
+      dialog.alert('免押金订单需至少选择 2 位担保人')
       return
     }
 
@@ -219,6 +237,10 @@ function SingleCheckout({ id, nav }) {
         rent_days: days,
       }
       if (deliveryAddress) body.delivery_address = deliveryAddress
+      if (depositWaived) {
+        body.deposit_waived = true
+        body.guarantor_ids = selectedGuarantorIds
+      }
 
       const resp = await ordersApi.create(body)
       if (resp.code === 20000 || resp.code === 20100) {
@@ -236,6 +258,34 @@ function SingleCheckout({ id, nav }) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
     }
     setSubmitting(false)
+  }
+
+  const handleSaveGuarantor = async () => {
+    if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
+      dialog.alert('请填写担保人姓名和电话')
+      return
+    }
+    setSavingGuarantor(true)
+    try {
+      const resp = await guarantorsApi.create(newGuarantor)
+      if (resp.code === 20000) {
+        const saved = resp.data
+        setGuarantors(prev => [...prev, saved])
+        setSelectedGuarantorIds(prev => [...prev, saved.id])
+        setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '' })
+        setShowAddGuarantor(false)
+        Taro.showToast({ title: '担保人已保存', icon: 'success' })
+      } else {
+        dialog.alert('保存失败: ' + (resp.message || '未知错误'))
+      }
+    } catch (err) {
+      dialog.alert('保存失败: ' + (err?.message || '网络错误'))
+    }
+    setSavingGuarantor(false)
+  }
+
+  const toggleGuarantor = (gid) => {
+    setSelectedGuarantorIds(prev => prev.includes(gid) ? prev.filter(x => x !== gid) : [...prev, gid])
   }
 
   if (loading) return <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#a1a1aa' }}>加载中...</Text></View>
@@ -288,6 +338,91 @@ function SingleCheckout({ id, nav }) {
           </View>
         </View>
 
+        {/* Deposit-free application (#1557) */}
+        <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
+          <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setDepositWaived(!depositWaived)}>
+            <Text style={{ fontWeight: '900', color: '#000' }}>申请免押金</Text>
+            <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
+              <View style={{ position: 'absolute', top: 2, left: depositWaived ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transition: 'left 0.2s' }} />
+            </View>
+          </View>
+          <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 6 }}>免押金订单可免除押金，需提供担保人信息供核验</Text>
+
+          {depositWaived && (
+            <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
+              <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: '#b45309', lineHeight: 18 }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
+              </View>
+
+              {guarantors.length > 0 && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 }}>已保存担保人</Text>
+                  {guarantors.map(g => (
+                    <View key={g.id} style={{ display: 'flex', alignItems: 'center', padding: 10, border: selectedGuarantorIds.includes(g.id) ? '1px solid #915F38' : '1px solid #e4e4e7', borderRadius: 8, backgroundColor: selectedGuarantorIds.includes(g.id) ? '#fffbeb' : 'transparent', marginBottom: 8 }}
+                      onClick={() => toggleGuarantor(g.id)}>
+                      <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: selectedGuarantorIds.includes(g.id) ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 }}>
+                        {selectedGuarantorIds.includes(g.id) && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
+                      </View>
+                      <View style={{ flex: '1 1 0%', minWidth: 0 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#000' }}>{g.name} · {g.phone}</Text>
+                        <Text style={{ fontSize: 11, color: '#9ca3af' }}>{[g.company, g.title].filter(Boolean).join(' / ') || '-'}</Text>
+                        {g.address && <Text style={{ fontSize: 11, color: '#9ca3af' }}>{g.address}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {showAddGuarantor && (
+                <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 }}>新增担保人</Text>
+                  <View style={{ display: 'flex', marginBottom: 8 }}>
+                    <View style={{ flex: '1 1 0%', marginRight: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>姓名*</Text>
+                      <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder="担保人姓名"
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                    </View>
+                    <View style={{ flex: '1 1 0%' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话*</Text>
+                      <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                    </View>
+                  </View>
+                  <View style={{ display: 'flex', marginBottom: 8 }}>
+                    <View style={{ flex: '1 1 0%', marginRight: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>公司/单位</Text>
+                      <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder="公司/单位"
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                    </View>
+                    <View style={{ flex: '1 1 0%' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>职务</Text>
+                      <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder="职务"
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                    </View>
+                  </View>
+                  <View style={{ marginBottom: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址</Text>
+                    <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
+                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%' }} />
+                  </View>
+                  <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
+                    style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>
+                    {savingGuarantor ? '保存中...' : '保存担保人'}
+                  </Button>
+                </View>
+              )}
+
+              <Text style={{ fontSize: 13, color: '#915F38', marginBottom: 8 }} onClick={() => setShowAddGuarantor(!showAddGuarantor)}>
+                {showAddGuarantor ? '− 收起' : '+ 新增担保人'}
+              </Text>
+
+              <Text style={{ fontSize: 12, color: selectedGuarantorIds.length < 2 ? '#ef4444' : '#16a34a', fontWeight: '600' }}>
+                {selectedGuarantorIds.length >= 2 ? `已选 ${selectedGuarantorIds.length} 位担保人` : `已选 ${selectedGuarantorIds.length}/2（需至少 2 位担保人）`}
+              </Text>
+            </View>
+          )}
+        </View>
+
         <View style={{ backgroundColor: '#fff', borderRadius: 16, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', padding: 16, marginBottom: 12 }}>
           <Text style={{ fontWeight: '900', color: '#000', marginBottom: 12 }}>费用明细</Text>
           <View style={{ fontSize: 14 }}>
@@ -306,7 +441,10 @@ function SingleCheckout({ id, nav }) {
             )}
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ color: '#a1a1aa' }}>押金</Text>
-              <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{deposit}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</Text>
+              <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                {depositWaived ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>(免押金)</Text></Text>
+                  : <>¥{deposit}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
+              </Text>
             </View>
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ color: '#a1a1aa' }}>物流费</Text>
@@ -316,7 +454,7 @@ function SingleCheckout({ id, nav }) {
               <Text style={{ color: '#18181b' }}>合计</Text>
               <Text style={{ color: '#915F38', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit} + 物流费 ¥{shippingFee}</Text>
+            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(2)} + 押金 ¥{effectiveDeposit} + 物流费 ¥{shippingFee}</Text>
           </View>
         </View>
 
@@ -457,6 +595,13 @@ function BatchCheckout({ nav }) {
   const [saveAddress, setSaveAddress] = useState(true)
   const [user, setUser] = useState(null)
 
+  const [depositWaived, setDepositWaived] = useState(false)
+  const [guarantors, setGuarantors] = useState([])
+  const [selectedGuarantorIds, setSelectedGuarantorIds] = useState([])
+  const [showAddGuarantor, setShowAddGuarantor] = useState(false)
+  const [newGuarantor, setNewGuarantor] = useState({ name: '', phone: '', company: '', title: '', address: '' })
+  const [savingGuarantor, setSavingGuarantor] = useState(false)
+
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === newAddress.province)
   const cityNames = selectedProv ? selectedProv.children.map(c => c.name) : []
@@ -492,6 +637,13 @@ function BatchCheckout({ nav }) {
       } catch (e) {
         setUseNewAddress(true)
       }
+      try {
+        const gRes = await apiFetch(`${env.apiBaseUrl}/user/guarantors`)
+        const gResult = await gRes.json()
+        if (gResult.code === 20000) {
+          setGuarantors(gResult.data?.list || [])
+        }
+      } catch {}
     }
     loadData()
   }, [])
@@ -545,10 +697,10 @@ function BatchCheckout({ nav }) {
         groupRent += p.rent
         groupDeposit += p.deposit
       }
-      total += groupRent + groupDeposit + (group.shippingFee || 0)
+      total += groupRent + (depositWaived ? 0 : groupDeposit) + (group.shippingFee || 0)
     }
     return total
-  }, [groups])
+  }, [groups, depositWaived])
 
   const handleSubmit = async () => {
     if (cartItems.length === 0) return
@@ -558,6 +710,10 @@ function BatchCheckout({ nav }) {
     }
     if (useNewAddress && !newAddress.recipient_name) {
       dialog.alert('请填写收货人')
+      return
+    }
+    if (depositWaived && selectedGuarantorIds.length < 2) {
+      dialog.alert('免押金订单需至少选择 2 位担保人')
       return
     }
 
@@ -600,6 +756,10 @@ function BatchCheckout({ nav }) {
       }))
       const body = { items }
       if (deliveryAddress) body.delivery_address = deliveryAddress
+      if (depositWaived) {
+        body.deposit_waived = true
+        body.guarantor_ids = selectedGuarantorIds
+      }
       const orderResp = await ordersApi.batchCreate(body)
       if (orderResp.code === 20000) {
         const orders = orderResp.data?.orders || []
@@ -619,6 +779,34 @@ function BatchCheckout({ nav }) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
     }
     setSubmitting(false)
+  }
+
+  const handleSaveGuarantor = async () => {
+    if (!newGuarantor.name.trim() || !newGuarantor.phone.trim()) {
+      dialog.alert('请填写担保人姓名和电话')
+      return
+    }
+    setSavingGuarantor(true)
+    try {
+      const resp = await guarantorsApi.create(newGuarantor)
+      if (resp.code === 20000) {
+        const saved = resp.data
+        setGuarantors(prev => [...prev, saved])
+        setSelectedGuarantorIds(prev => [...prev, saved.id])
+        setNewGuarantor({ name: '', phone: '', company: '', title: '', address: '' })
+        setShowAddGuarantor(false)
+        Taro.showToast({ title: '担保人已保存', icon: 'success' })
+      } else {
+        dialog.alert('保存失败: ' + (resp.message || '未知错误'))
+      }
+    } catch (err) {
+      dialog.alert('保存失败: ' + (err?.message || '网络错误'))
+    }
+    setSavingGuarantor(false)
+  }
+
+  const toggleGuarantor = (gid) => {
+    setSelectedGuarantorIds(prev => prev.includes(gid) ? prev.filter(x => x !== gid) : [...prev, gid])
   }
 
   if (cartItems.length === 0) {
@@ -649,7 +837,7 @@ function BatchCheckout({ nav }) {
                 groupRent += p.rent
                 groupDeposit += p.deposit
               })
-              const groupSubtotal = groupRent + groupDeposit + (group.shippingFee || 0)
+              const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit) + (group.shippingFee || 0)
               return (
                 <View key={group.tenant_id || 'unknown'} style={{ backgroundColor: 'rgba(250,250,250,0.4)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
                   <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -683,7 +871,7 @@ function BatchCheckout({ nav }) {
                   })}
                   <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(228,228,231,0.6)' }}>
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
-                      押金 ¥{groupDeposit} + 运费 ¥{group.shippingFee || 0}
+                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`} + 运费 ¥{group.shippingFee || 0}
                     </Text>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{groupSubtotal}</Text>
                   </View>
@@ -694,6 +882,90 @@ function BatchCheckout({ nav }) {
 
           <View style={{ width: '100%', backgroundColor: '#fafafa', padding: 12, borderRadius: 12, fontSize: 11, color: '#a1a1aa', lineHeight: 20 }}>
             🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
+          </View>
+
+          <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
+            <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }} onClick={() => setDepositWaived(!depositWaived)}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#6b7280' }}>申请免押金</Text>
+              <View style={{ width: 44, height: 24, borderRadius: 12, backgroundColor: depositWaived ? '#915F38' : '#d4d4d8', position: 'relative', flexShrink: 0 }}>
+                <View style={{ position: 'absolute', top: 2, left: depositWaived ? 22 : 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' }} />
+              </View>
+            </View>
+            <Text style={{ fontSize: 11, color: '#a1a1aa', marginBottom: 12 }}>免押金订单可免除押金，需提供担保人信息供核验</Text>
+
+            {depositWaived && (
+              <View style={{ marginBottom: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
+                <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 12, color: '#b45309', lineHeight: 18 }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
+                </View>
+
+                {guarantors.length > 0 && (
+                  <View style={{ marginBottom: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 }}>已保存担保人</Text>
+                    {guarantors.map(g => (
+                      <View key={g.id} style={{ display: 'flex', alignItems: 'center', padding: 10, border: selectedGuarantorIds.includes(g.id) ? '1px solid #915F38' : '1px solid #e4e4e7', borderRadius: 8, backgroundColor: selectedGuarantorIds.includes(g.id) ? '#fffbeb' : 'transparent', marginBottom: 8 }}
+                        onClick={() => toggleGuarantor(g.id)}>
+                        <View style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid #d4d4d8', backgroundColor: selectedGuarantorIds.includes(g.id) ? '#915F38' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0 }}>
+                          {selectedGuarantorIds.includes(g.id) && <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>}
+                        </View>
+                        <View style={{ flex: '1 1 0%', minWidth: 0 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#000' }}>{g.name} · {g.phone}</Text>
+                          <Text style={{ fontSize: 11, color: '#9ca3af' }}>{[g.company, g.title].filter(Boolean).join(' / ') || '-'}</Text>
+                          {g.address && <Text style={{ fontSize: 11, color: '#9ca3af' }}>{g.address}</Text>}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {showAddGuarantor && (
+                  <View style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 8 }}>新增担保人</Text>
+                    <View style={{ display: 'flex', marginBottom: 8 }}>
+                      <View style={{ flex: '1 1 0%', marginRight: 8 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>姓名*</Text>
+                        <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder="担保人姓名"
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                      </View>
+                      <View style={{ flex: '1 1 0%' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话*</Text>
+                        <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                      </View>
+                    </View>
+                    <View style={{ display: 'flex', marginBottom: 8 }}>
+                      <View style={{ flex: '1 1 0%', marginRight: 8 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>公司/单位</Text>
+                        <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder="公司/单位"
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                      </View>
+                      <View style={{ flex: '1 1 0%' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>职务</Text>
+                        <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder="职务"
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                      </View>
+                    </View>
+                    <View style={{ marginBottom: 10 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址</Text>
+                      <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%' }} />
+                    </View>
+                    <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
+                      style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>
+                      {savingGuarantor ? '保存中...' : '保存担保人'}
+                    </Button>
+                  </View>
+                )}
+
+                <Text style={{ fontSize: 12, color: '#915F38', marginBottom: 8 }} onClick={() => setShowAddGuarantor(!showAddGuarantor)}>
+                  {showAddGuarantor ? '− 收起' : '+ 新增担保人'}
+                </Text>
+
+                <Text style={{ fontSize: 12, color: selectedGuarantorIds.length < 2 ? '#ef4444' : '#16a34a', fontWeight: '600' }}>
+                  {selectedGuarantorIds.length >= 2 ? `已选 ${selectedGuarantorIds.length} 位担保人` : `已选 ${selectedGuarantorIds.length}/2（需至少 2 位担保人）`}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={{ width: '100%', borderTop: '1px dashed #e4e4e7', paddingTop: 16, marginTop: 16 }}>
