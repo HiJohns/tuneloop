@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
@@ -122,7 +122,7 @@ export default function Home() {
   }
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
-  const tenant = routerParams.tenant || null
+  const [tenant, setTenant] = useState(routerParams.tenant || null)
   const categoryFromUrl = routerParams.category_id || null
 
   const [categories, setCategories] = useState([])
@@ -241,6 +241,22 @@ export default function Home() {
     fetchInstruments().finally(() => setLoading(false))
     fetchBanners()
   }, [fetchCategories, fetchInstruments, fetchBanners])
+
+  // switchTab cannot carry query params; restore tenant persisted by the
+  // previous tab page (e.g. share-landing from Profile/MyLeases).
+  useDidShow(() => {
+    try {
+      const tp = Taro.getStorageSync('tab_params')
+      if (tp?.tenant && !routerParams.tenant) setTenant(tp.tenant)
+    } catch {}
+  })
+
+  const switchTab = (url) => {
+    try {
+      Taro.setStorageSync('tab_params', { tenant: tenant || '' })
+    } catch {}
+    Taro.switchTab({ url })
+  }
 
   useEffect(() => {
     if (!banners.length) return
@@ -442,10 +458,10 @@ export default function Home() {
       <BottomNav
         active="home"
         tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => switchTab('/pages-weapp/home/index') },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => switchTab('/pages-weapp/my-leases/index') },
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => switchTab('/pages-weapp/profile/index') },
         ]}
       />
     </View>

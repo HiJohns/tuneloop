@@ -70,7 +70,15 @@ export default function MyLeases() {
   const [hasMore, setHasMore] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  useDidShow(() => setRefreshKey(k => k + 1))
+  useDidShow(() => {
+    setRefreshKey(k => k + 1)
+    // switchTab cannot carry query params; consume status persisted by
+    // Profile's order-status entries (tab_params.status).
+    try {
+      const tp = Taro.getStorageSync('tab_params')
+      if (tp?.status) setSelectedFilter(tp.status)
+    } catch {}
+  })
 
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
@@ -297,10 +305,10 @@ export default function MyLeases() {
       <BottomNav
         active="rent"
         tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav('/pages-weapp/my-repairs/index') },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => nav('/pages-weapp/profile/index') },
+          { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
         ]}
       />
     </View>

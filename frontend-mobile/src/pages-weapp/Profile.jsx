@@ -150,7 +150,14 @@ export default function Profile() {
     storage.removeItem('token')
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
-    nav('/pages-weapp/home/index')
+    Taro.switchTab({ url: '/pages-weapp/home/index' })
+  }
+
+  const goMyLeasesStatus = (status) => {
+    try {
+      Taro.setStorageSync('tab_params', { status })
+    } catch {}
+    Taro.switchTab({ url: '/pages-weapp/my-leases/index' })
   }
 
   if (loading) {
@@ -236,21 +243,21 @@ export default function Profile() {
             </>
           ) : (
             <>
-              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-leases/index?status=reserved')}>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('reserved')}>
                 <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
                   📥
                   {orderCounts.reserved > 0 && <Badge count={orderCounts.reserved} />}
                 </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>待付款</Text>
               </View>
-              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-leases/index?status=in_lease')}>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('in_lease')}>
                 <View style={{ fontSize: 24, marginBottom: 4, position: 'relative' }}>
                   💬
                   {orderCounts.in_lease > 0 && <Badge count={orderCounts.in_lease} />}
                 </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>服务中</Text>
               </View>
-              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/my-leases/index?status=completed')}>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => goMyLeasesStatus('completed')}>
                 <View style={{ fontSize: 24, marginBottom: 4 }}>
                   ✖️
                 </View>
@@ -332,8 +339,8 @@ export default function Profile() {
       <BottomNav
         active="profile"
         tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => nav('/pages-weapp/home/index') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => nav('/pages-weapp/my-leases/index') },
+          { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
+          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
           { key: 'service', icon: '🛠️', label: '维修', onClick: () => nav('/pages-weapp/my-repairs/index') },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => {} },
         ]}
