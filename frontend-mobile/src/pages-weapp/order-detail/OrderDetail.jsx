@@ -340,6 +340,14 @@ export default function OrderDetail() {
   const returnedAt = order.returned_at ? formatDisplayDate(order.returned_at) : null
   const deposit = order.deposit || 0
   const shippingFee = order.shipping_fee || 0
+  // Shipping fee is filled by staff at dispatch (#1541); it is only shown
+  // from the shipped state onwards (shipped → completed) and hidden at
+  // order time (reserved/paid/pending_shipment) — #1570.
+  const showShippingFee = shippingFee > 0 && [
+    'shipped', 'in_transit', 'in_lease', 'returning', 'returned',
+    'completed', 'damage_appealing', 'pending_damage_response',
+    'deposit_refunding', 'expired', 'transferred',
+  ].includes(status)
   const pb = order.pricing_breakdown
   const dailyRate = (pb && (pb.final_daily_rent || pb.base_daily_rent)) || order.base_daily_rate || 0
   const actualRentDays = order.returned_at && order.start_date
@@ -617,7 +625,7 @@ export default function OrderDetail() {
                   {order.deposit_waived && (
                     <Row label="押金" value="免押金" color="#16a34a" />
                   )}
-                  {shippingFee > 0 && <Row label="物流费" value={`¥${shippingFee.toFixed(2)}`} />}
+                  {showShippingFee && <Row label="物流费" value={`¥${shippingFee.toFixed(2)}`} />}
                 </View>
               )}
             </View>

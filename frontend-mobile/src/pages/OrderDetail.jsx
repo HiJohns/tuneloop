@@ -198,6 +198,14 @@ export default function OrderDetail() {
   const status = order.status || ''
   const statusLabel = STATUS_LABELS[status] || status
   const statusColor = STATUS_COLORS[status] || 'bg-gray-100'
+  // Shipping fee is filled by staff at dispatch (#1541); shown only from
+  // shipped state onwards, hidden at order time — #1570.
+  const pbShippingFee = Number(order.pricing_breakdown?.shipping_fee || 0)
+  const showShippingFee = pbShippingFee > 0 && [
+    'shipped', 'in_transit', 'in_lease', 'returning', 'returned',
+    'completed', 'damage_appealing', 'pending_damage_response',
+    'deposit_refunding', 'expired', 'transferred',
+  ].includes(status)
 
   const startDate = formatDisplayDate(order.start_date)
   const endDate = formatDisplayDate(order.end_date)
@@ -461,10 +469,10 @@ export default function OrderDetail() {
                       <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">免押金</Text>
                     </View>
                   )}
-                  {order.pricing_breakdown.shipping_fee !== undefined && Number(order.pricing_breakdown.shipping_fee) > 0 && (
+                  {showShippingFee && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">物流费</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.pricing_breakdown.shipping_fee).toFixed(2)}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{pbShippingFee.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>

@@ -161,9 +161,10 @@ function SingleCheckout({ id, navigate }) {
 
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
   const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
-  const shippingFee = pricingV2?.shipping_fee || parsePricing(instrument?.pricing)[0]?.shipping_fee || 0
   const effectiveDeposit = depositWaived ? 0 : deposit
-  const totalAmount = totalRent + effectiveDeposit + shippingFee
+  // Shipping fee is not determined at order time (#1570): staff fills the
+  // actual fee at dispatch, not charged at checkout.
+  const totalAmount = totalRent + effectiveDeposit
   const startDate = new Date().toISOString().slice(0, 10)
   const returnDate = calculateEndDate(new Date(), days).toISOString().slice(0, 10)
 
@@ -396,10 +397,6 @@ function SingleCheckout({ id, navigate }) {
                 </Text>
               </View>
             )}
-            <View className="flex justify-between items-center">
-              <Text className="text-zinc-400">物流费</Text>
-              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{shippingFee}</Text>
-            </View>
             <View className="flex items-center gap-2 pt-1">
               <Input
                 value={discountCode}
@@ -427,7 +424,7 @@ function SingleCheckout({ id, navigate }) {
               <Text className="text-zinc-900">合计</Text>
               <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit} + 物流费 ¥{shippingFee}</Text>
+            <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit}</Text>
           </View>
         </View>
 
@@ -724,7 +721,7 @@ function BatchCheckout({ navigate }) {
         groupRent += p.rent
         groupDeposit += p.deposit
       }
-      total += groupRent + (depositWaived ? 0 : groupDeposit) + (group.shippingFee || 0)
+      total += groupRent + (depositWaived ? 0 : groupDeposit)
     }
     return total
   }, [groups, depositWaived])
@@ -865,7 +862,7 @@ function BatchCheckout({ navigate }) {
                 groupRent += p.rent
                 groupDeposit += p.deposit
               })
-              const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit) + (group.shippingFee || 0)
+              const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit)
               return (
                 <View key={group.tenant_id || 'unknown'} className="bg-zinc-50/40 rounded-xl p-3">
                   <View className="flex items-center justify-between mb-2">
@@ -898,7 +895,7 @@ function BatchCheckout({ navigate }) {
                   })}
                   <View className="flex justify-between items-center mt-1 pt-1 border-t border-zinc-200/60">
                     <Text className="text-[10px] text-zinc-400">
-                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`} + 运费 ¥{group.shippingFee || 0}
+                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`}
                     </Text>
                     <Text className="text-sm font-bold text-zinc-800">小计 ¥{groupSubtotal}</Text>
                   </View>

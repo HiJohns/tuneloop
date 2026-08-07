@@ -173,9 +173,10 @@ function SingleCheckout({ id, nav }) {
 
   const totalRent = pricingV2 ? computeTieredRent(pricingV2, days, pricingV2.base_daily_rate || 0) : 0
   const deposit = instrument?.deposit || pricingV2?.deposit || parsePricing(instrument?.pricing)[0]?.deposit || 0
-  const shippingFee = pricingV2?.shipping_fee || parsePricing(instrument?.pricing)[0]?.shipping_fee || 0
   const effectiveDeposit = depositWaived ? 0 : deposit
-  const totalAmount = totalRent + effectiveDeposit + shippingFee
+  // Shipping fee is not determined at order time (#1570): the staff fills
+  // the actual fee at dispatch, and it is not charged at checkout.
+  const totalAmount = totalRent + effectiveDeposit
   const startDate = new Date().toISOString().slice(0, 10)
   const returnDate = calculateEndDate(new Date(), days).toISOString().slice(0, 10)
 
@@ -446,15 +447,11 @@ function SingleCheckout({ id, nav }) {
                   : <>¥{deposit}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
               </Text>
             </View>
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={{ color: '#a1a1aa' }}>物流费</Text>
-              <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{shippingFee}</Text>
-            </View>
             <View style={{ borderTop: '1px solid #d4d4d8', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
               <Text style={{ color: '#18181b' }}>合计</Text>
               <Text style={{ color: '#915F38', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(2)} + 押金 ¥{effectiveDeposit} + 物流费 ¥{shippingFee}</Text>
+            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(2)} + 押金 ¥{effectiveDeposit}</Text>
           </View>
         </View>
 
@@ -697,7 +694,7 @@ function BatchCheckout({ nav }) {
         groupRent += p.rent
         groupDeposit += p.deposit
       }
-      total += groupRent + (depositWaived ? 0 : groupDeposit) + (group.shippingFee || 0)
+      total += groupRent + (depositWaived ? 0 : groupDeposit)
     }
     return total
   }, [groups, depositWaived])
@@ -837,7 +834,7 @@ function BatchCheckout({ nav }) {
                 groupRent += p.rent
                 groupDeposit += p.deposit
               })
-              const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit) + (group.shippingFee || 0)
+              const groupSubtotal = groupRent + (depositWaived ? 0 : groupDeposit)
               return (
                 <View key={group.tenant_id || 'unknown'} style={{ backgroundColor: 'rgba(250,250,250,0.4)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
                   <View style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -871,7 +868,7 @@ function BatchCheckout({ nav }) {
                   })}
                   <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(228,228,231,0.6)' }}>
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
-                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`} + 运费 ¥{group.shippingFee || 0}
+                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`}
                     </Text>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{groupSubtotal}</Text>
                   </View>
