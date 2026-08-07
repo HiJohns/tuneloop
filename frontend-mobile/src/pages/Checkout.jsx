@@ -356,47 +356,45 @@ function SingleCheckout({ id, navigate }) {
 
         <View className="bg-white rounded-2xl shadow-sm p-4">
           <Text className="font-black text-black mb-3">费用明细</Text>
-          <View className="space-y-2 text-sm">
-            <View className="flex justify-between items-center">
-              <Text className="text-zinc-400">租金 ({days}天)</Text>
-              <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{totalRent.toFixed(2)}</Text>
+          <View className="space-y-3 text-sm">
+            {/* 费用主体 */}
+            <View className="space-y-2">
+              <View className="flex justify-between items-center">
+                <Text className="text-zinc-400">租金 ({days}天)</Text>
+                <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{totalRent.toFixed(2)}</Text>
+              </View>
+              <View className="flex justify-between items-center">
+                <Text className="text-zinc-400">押金</Text>
+                {depositWaived ? (
+                  <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥0（免押金）</Text>
+                ) : (
+                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}{deposit === 0 ? <Text className="text-[10px] text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
+                )}
+              </View>
             </View>
+
+            {/* 阶梯定价说明 */}
             {pricingV2?.tiers?.length > 0 && (
-              <View className="text-xs text-zinc-400 pl-2 pb-1 border-b border-dashed">
-                {pricingV2.tiers.map((t, i) => {
-                  const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
-                  const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
-                  return <Text key={i} className="mr-3">{range}: ¥{Number(t.daily_rate).toFixed(2)}/天</Text>
-                })}
+              <View className="bg-zinc-50 rounded-lg px-3 py-2.5">
+                <View className="flex items-center gap-1 mb-1">
+                  <Text className="text-xs text-zinc-500 font-medium">阶梯定价</Text>
+                </View>
+                <View className="space-y-1">
+                  {pricingV2.tiers.map((t, i) => {
+                    const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
+                    const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
+                    return (
+                      <View key={i} className="flex justify-between text-xs">
+                        <Text className="text-zinc-400">{range}</Text>
+                        <Text className="text-zinc-600 font-medium">¥{Number(t.daily_rate).toFixed(2)}/天</Text>
+                      </View>
+                    )
+                  })}
+                </View>
               </View>
             )}
-            <View className="flex justify-between items-center">
-              <Text className="text-zinc-400">押金</Text>
-              {depositWaived ? (
-                <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥0（免押金）</Text>
-              ) : (
-                <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}{deposit === 0 ? <Text className="text-[10px] text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
-              )}
-            </View>
-            <View className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
-              <View className="flex-1 min-w-0">
-                <Text className="text-sm font-medium text-gray-700">免押金租赁</Text>
-                <Text className="block text-[10px] text-gray-400">需提供两位担保人的联系方式</Text>
-              </View>
-              <input
-                type="checkbox"
-                checked={depositWaived}
-                onChange={e => setDepositWaived(e.target.checked)}
-                className="w-5 h-5 accent-[#B98E5F]"
-              />
-            </View>
-            {depositWaived && (
-              <View className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                <Text className="text-xs text-amber-700 leading-relaxed">
-                  应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。
-                </Text>
-              </View>
-            )}
+
+            {/* 优惠码 */}
             <View className="flex items-center gap-2 pt-1">
               <Input
                 value={discountCode}
@@ -420,12 +418,37 @@ function SingleCheckout({ id, navigate }) {
                 <Text className="font-bold">-{(1 - discountInfo.rent_discount) * 100}%</Text>
               </View>
             )}
-            <View className="border-t pt-2 flex justify-between font-bold text-base">
-              <Text className="text-zinc-900">合计</Text>
-              <Text className="text-brand-primary flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>
+
+            {/* 合计 */}
+            <View className="border-t pt-3 flex justify-between items-center">
+              <Text className="font-black text-zinc-900 text-base">合计</Text>
+              <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>
             </View>
             <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit}</Text>
           </View>
+        </View>
+
+        {/* 免押金开关 */}
+        <View className="bg-white rounded-2xl shadow-sm p-4">
+          <View className="flex items-center justify-between">
+            <View>
+              <Text className="font-black text-black">免押金租赁</Text>
+              <Text className="text-xs text-zinc-400 mt-0.5">需提供两位担保人的联系方式</Text>
+            </View>
+            <input
+              type="checkbox"
+              checked={depositWaived}
+              onChange={e => setDepositWaived(e.target.checked)}
+              className="w-5 h-5 accent-[#B98E5F]"
+            />
+          </View>
+          {depositWaived && (
+            <View className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-3">
+              <Text className="text-xs text-amber-700 leading-relaxed">
+                应提供两位担保人的联系方式。我们的员工将会与他们联系确认，若担保人不符合要求，订单将被取消并退款。
+              </Text>
+            </View>
+          )}
         </View>
 
         {depositWaived && (
