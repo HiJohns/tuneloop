@@ -335,8 +335,9 @@ export default function Home() {
       </View>
 
       {/* Menu — fixed, follows scroll (top = 242 - min(s,140)), stops at 102px.
-          z above swipe layer (10002) and search bar (10003) so it is always clickable. */}
-      <View className="fixed left-0 right-0 z-[10004] bg-transparent" style={{ top: `${242 - menuScroll}px` }}>
+          inline zIndex (Tailwind arbitrary z-[x] rules are not emitted) so it
+          stays above the clip layer and is always clickable. */}
+      <View className="fixed left-0 right-0 bg-transparent" style={{ top: `${242 - menuScroll}px`, zIndex: 10004 }}>
         <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
       </View>
 
