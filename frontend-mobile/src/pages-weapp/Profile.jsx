@@ -182,7 +182,7 @@ export default function Profile() {
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
               <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={() => nav('/pages-weapp/login/index')}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : '👉 登录查看资产'}</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : '👉 登录'}</Text>
               </View>
             ) : (
               <>
