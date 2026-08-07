@@ -334,8 +334,9 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Menu — fixed, follows scroll (top = 242 - min(s,140)), stops at 102px */}
-      <View className="fixed left-0 right-0 z-[10001] bg-transparent" style={{ top: `${242 - menuScroll}px` }}>
+      {/* Menu — fixed, follows scroll (top = 242 - min(s,140)), stops at 102px.
+          z above swipe layer (10002) and search bar (10003) so it is always clickable. */}
+      <View className="fixed left-0 right-0 z-[10004] bg-transparent" style={{ top: `${242 - menuScroll}px` }}>
         <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} />
       </View>
 

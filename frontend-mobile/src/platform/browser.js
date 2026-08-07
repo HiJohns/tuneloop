@@ -3,7 +3,12 @@ export const storage = {
   setItem: (key, value) => localStorage.setItem(key, value),
   removeItem: (key) => localStorage.removeItem(key),
   getJSON: (key, defaultValue = null) => {
-    try { return JSON.parse(localStorage.getItem(key)) } catch { return defaultValue }
+    try {
+      const raw = localStorage.getItem(key)
+      if (raw === null || raw === '') return defaultValue
+      const parsed = JSON.parse(raw)
+      return parsed === null ? defaultValue : parsed
+    } catch { return defaultValue }
   },
   setJSON: (key, value) => localStorage.setItem(key, JSON.stringify(value)),
 }
