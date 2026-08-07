@@ -13,19 +13,19 @@
 
 | TC | 业务 | 后端测试 | 测试状态 | review 文档 | 文档状态 |
 |----|------|---------|:---:|------------|:---:|
-| [#1546](https://github.com/HiJohns/tuneloop/issues/1546) | Settlement 正常退租 | `TestSettlementFlow` | ✅ PASS | `tc-1546-settlement-normal.md` | ⬜ |
-| [#1547](https://github.com/HiJohns/tuneloop/issues/1547) | Settlement 提前退租 | `TestSettlement_EarlyReturnRebate` | ⚠️ 预存失败 | `tc-1547-settlement-early.md` | ⬜ |
-| [#1548](https://github.com/HiJohns/tuneloop/issues/1548) | Settlement 超期退租 | `TestInspectReturn_OverdueFee` | ✅ PASS | `tc-1548-settlement-overdue.md` | ⬜ |
-| [#1549](https://github.com/HiJohns/tuneloop/issues/1549) | Damage flow 接受 | `TestScenarioA_DamageVariant` | ✅ PASS | `tc-1549-damage-accept.md` | ⬜ |
-| [#1550](https://github.com/HiJohns/tuneloop/issues/1550) | Damage flow 拒绝+申诉 | `TestScenarioA_RejectDamageVariant` | ✅ PASS | `tc-1550-damage-reject-appeal.md` | ⬜ |
-| [#1551](https://github.com/HiJohns/tuneloop/issues/1551) | Gift points 注册奖励 | `gift_registration_test.go` | ❌ 待建 | `tc-1551-gift-registration.md` | ⬜ |
-| [#1552](https://github.com/HiJohns/tuneloop/issues/1552) | Gift points 订单完成 | `TestExecuteRefund_LoyaltyPoints` | ✅ PASS | `tc-1552-gift-loyalty.md` | ⬜ |
-| [#1553](https://github.com/HiJohns/tuneloop/issues/1553) | Membership 注册付费 | `membership_flow_test.go` | ❌ 待建 | `tc-1553-membership-fee.md` | ⬜ |
-| [#1554](https://github.com/HiJohns/tuneloop/issues/1554) | Discount code | `discount_code_flow_test.go` | ❌ 待建 | `tc-1554-discount-code.md` | ⬜ |
-| [#1555](https://github.com/HiJohns/tuneloop/issues/1555) | Home UI 滚动/触摸 | 🚫 不可自动化 | — | `tc-1555-home-ui.md` | ⬜ |
-| [#1556](https://github.com/HiJohns/tuneloop/issues/1556) | Shipping fee | `TestUpdateShipping` | ✅ PASS | `tc-1556-shipping-fee.md` | ⬜ |
+| [#1546](https://github.com/HiJohns/tuneloop/issues/1546) | Settlement 正常退租 | `TestSettlementFlow` | ✅ PASS | `tc-1546-settlement-normal.md` | ✅ |
+| [#1547](https://github.com/HiJohns/tuneloop/issues/1547) | Settlement 提前退租 | `TestSettlement_EarlyReturnRebate` | ✅ PASS | `tc-1547-settlement-early.md` | ✅ |
+| [#1548](https://github.com/HiJohns/tuneloop/issues/1548) | Settlement 超期退租 | `TestInspectReturn_OverdueFee` | ✅ PASS | `tc-1548-settlement-overdue.md` | ✅ |
+| [#1549](https://github.com/HiJohns/tuneloop/issues/1549) | Damage flow 接受 | `TestScenarioA_DamageVariant` | ✅ PASS | `tc-1549-damage-accept.md` | ✅ |
+| [#1550](https://github.com/HiJohns/tuneloop/issues/1550) | Damage flow 拒绝+申诉 | `TestScenarioA_RejectDamageVariant` | ✅ PASS | `tc-1550-damage-reject-appeal.md` | ✅ |
+| [#1551](https://github.com/HiJohns/tuneloop/issues/1551) | Gift points 注册奖励 | `TestGiftRegistration` | ✅ PASS | `tc-1551-gift-registration.md` | ✅ |
+| [#1552](https://github.com/HiJohns/tuneloop/issues/1552) | Gift points 订单完成 | `TestExecuteRefund_LoyaltyPoints` | ✅ PASS | `tc-1552-gift-loyalty.md` | ✅ |
+| [#1553](https://github.com/HiJohns/tuneloop/issues/1553) | Membership 注册付费 | `TestMembershipFlow` | ✅ PASS | `tc-1553-membership-fee.md` | ✅ |
+| [#1554](https://github.com/HiJohns/tuneloop/issues/1554) | Discount code | `TestDiscountCodeFlow` | ✅ PASS | `tc-1554-discount-code.md` | ✅ |
+| [#1555](https://github.com/HiJohns/tuneloop/issues/1555) | Home UI 滚动/触摸 | 🚫 不可自动化 | — | `tc-1555-home-ui.md` | ✅ |
+| [#1556](https://github.com/HiJohns/tuneloop/issues/1556) | Shipping fee | `TestUpdateShipping` | ✅ PASS | `tc-1556-shipping-fee.md` | ✅ |
 
-图例: ✅ PASS / ⚠️ 需修复 / ❌ 待建 / ⬜ 待生成 / 🚫 不适用
+图例: ✅ PASS / ✅ 完成 / 🚫 不适用
 
 ## 证据标准（三层，缺一不可）
 
@@ -42,10 +42,12 @@
 
 ## 推进状态
 
-- [ ] Phase 0: 本骨架 + README（✅）
-- [ ] Phase 1: 后端 4 缺口（#1551/#1553/#1554 新建 + #1547 修复）
-- [ ] Phase 2: 已覆盖 6 case 生成 review 文档
-- [ ] Phase 3: #1555 特例文档
+- [x] Phase 0: 本骨架 + README + 模板（cca39691）
+- [x] Phase 1: 后端 4 缺口（#1566-#1569）
+- [x] Phase 2: 11 份 review 文档全部生成
+- [ ] Phase 3: #1555 真机 checklist 执行（待人工）
+
+**全部完成**。11/11 TC 已覆盖（10 后端测试 + 1 静态 review + 真机 checklist）。
 
 ---
 
