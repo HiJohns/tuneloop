@@ -460,11 +460,16 @@ func parseDate(s *string) *time.Time {
 	if s == nil || *s == "" {
 		return nil
 	}
-	t, err := time.Parse("2006-01-02", *s)
-	if err != nil {
-		return nil
+	// GORM scans gorm:"type:date" columns into *string as RFC3339
+	// (e.g. "2026-07-01T00:00:00Z"), not bare "2006-01-02". Parse all
+	// layouts used by the codebase so settlement math works on
+	// DB-loaded orders (discovered by TestSettlementFlow, #1563).
+	for _, layout := range []string{"2006-01-02", time.RFC3339, "2006-01-02T15:04:05"} {
+		if t, err := time.Parse(layout, *s); err == nil {
+			return &t
+		}
 	}
-	return &t
+	return nil
 }
 
 // settlementResult holds the canonical settlement calculation for an order.
