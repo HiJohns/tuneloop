@@ -3,6 +3,17 @@ import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
 import { wxLogin, storage, session, env, request, eventBus } from '../../platform'
 
+const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
+
+// redirectTo cannot target tabBar pages; use switchTab for those.
+function navigatePostAuth(url) {
+  if (TAB_PAGES.includes(url)) {
+    Taro.switchTab({ url })
+  } else {
+    Taro.redirectTo({ url })
+  }
+}
+
 async function handleWxLogin() {
   Taro.showLoading({ title: '正在登录...' })
   try {
@@ -20,7 +31,7 @@ async function handleWxLogin() {
       const postAuth = session.getItem('post_auth_redirect')
       if (postAuth) {
         session.removeItem('post_auth_redirect')
-        Taro.redirectTo({ url: postAuth })
+        navigatePostAuth(postAuth)
         return
       }
       if (result.data.is_new === false) {
@@ -28,7 +39,7 @@ async function handleWxLogin() {
         if (pages.length > 1) {
           Taro.navigateBack()
         } else {
-          Taro.redirectTo({ url: '/pages-weapp/home/index' })
+          Taro.switchTab({ url: '/pages-weapp/home/index' })
         }
       } else {
         Taro.redirectTo({ url: '/pages-weapp/profile-complete/index' })
@@ -55,13 +66,13 @@ async function handleIAMLogin(identifier, password) {
       const postAuth = session.getItem('post_auth_redirect')
       if (postAuth) {
         session.removeItem('post_auth_redirect')
-        Taro.redirectTo({ url: postAuth })
+        navigatePostAuth(postAuth)
       } else {
         const pages = Taro.getCurrentPages()
         if (pages.length > 1) {
           Taro.navigateBack()
         } else {
-          Taro.redirectTo({ url: '/pages-weapp/profile/index' })
+          Taro.switchTab({ url: '/pages-weapp/profile/index' })
         }
       }
       return

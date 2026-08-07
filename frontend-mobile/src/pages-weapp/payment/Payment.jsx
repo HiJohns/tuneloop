@@ -92,7 +92,7 @@ export default function Payment() {
 
     if (cashAmount <= 0) {
       Taro.showToast({ title: '支付成功', icon: 'success' })
-      setTimeout(() => Taro.redirectTo({ url: '/pages-weapp/home/index' }), 2000)
+      setTimeout(() => Taro.switchTab({ url: '/pages-weapp/home/index' }), 2000)
       return
     }
 
@@ -129,7 +129,7 @@ export default function Payment() {
           Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
           setTimeout(() => {
             if (pType === 'membership') {
-              Taro.redirectTo({ url: '/pages-weapp/profile/index' })
+              Taro.switchTab({ url: '/pages-weapp/profile/index' })
             } else {
               Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` })
             }
