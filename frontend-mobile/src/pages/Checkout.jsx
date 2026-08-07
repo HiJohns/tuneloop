@@ -305,25 +305,20 @@ function SingleCheckout({ id, navigate }) {
         <Text className="text-lg font-black text-black">确认订单</Text>
       </View>
 
-      <View className="p-4 space-y-3">
-        <View className="bg-white rounded-2xl shadow-sm p-4">
-          <Text className="font-black text-black mb-2">租赁乐器</Text>
-          <View className="flex gap-3">
-            <Image
-              src={instrument.cover_image || parseImages(instrument.images)?.[0] || ''}
-              alt=""
-              className="w-20 h-20 object-cover rounded-lg bg-[#FDF4E7]"
-              onError={(e) => { e.target.style.display = 'none' }}
-            />
-            <View className="flex-1 justify-center space-y-1">
-              <Text className="font-black text-sm text-black">{instrument.name || instrument.sn || id?.slice(0, 8)}</Text>
-              <Text className="text-xs text-zinc-500">{instrument.category_name}{instrument.level_name ? ` · ${instrument.level_name}` : ''}</Text>
-              <Text className="text-xs text-zinc-400">网点: {instrument.site_name || '-'}</Text>
+      <View className="p-4">
+        <View className="mb-3">
+          <Text className="font-black text-black">租赁乐器</Text>
+          <View className="flex gap-3 mt-2">
+            <Image src={instrument?.cover_image || instrument?.images?.[0]} mode="aspectFill" className="w-20 h-20 object-cover rounded-lg bg-[#FDF4E7]" />
+            <View className="flex-1 justify-center">
+              <Text className="font-black text-sm text-black">{instrument?.name || instrument?.sn}</Text>
+              <Text className="text-xs text-zinc-500">{instrument?.category_name}</Text>
+              {instrument?.site_name && <Text className="text-xs text-zinc-400">网点: {instrument.site_name}</Text>}
             </View>
           </View>
         </View>
 
-        <View className="bg-white rounded-2xl shadow-sm p-4">
+        <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <Text className="font-black text-black mb-3 flex items-center gap-2">
             <Calendar size={16} className="text-brand-primary" />
             租期选择
@@ -354,12 +349,12 @@ function SingleCheckout({ id, navigate }) {
           </View>
         </View>
 
-        <View className="bg-white rounded-2xl shadow-sm p-4">
+        <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <Text className="font-black text-black mb-3">费用明细</Text>
-          <View className="space-y-3 text-sm">
+          <View className="text-sm">
             {/* 费用主体 */}
-            <View className="space-y-2">
-              <View className="flex justify-between items-center">
+            <View>
+              <View className="flex justify-between items-center mb-2">
                 <Text className="text-zinc-400">租金 ({days}天)</Text>
                 <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{totalRent.toFixed(2)}</Text>
               </View>
@@ -375,16 +370,16 @@ function SingleCheckout({ id, navigate }) {
 
             {/* 阶梯定价说明 */}
             {pricingV2?.tiers?.length > 0 && (
-              <View className="bg-zinc-50 rounded-lg px-3 py-2.5">
+              <View className="bg-zinc-50 rounded-lg px-3 py-2.5 mt-3">
                 <View className="flex items-center gap-1 mb-1">
                   <Text className="text-xs text-zinc-500 font-medium">阶梯定价</Text>
                 </View>
-                <View className="space-y-1">
+                <View>
                   {pricingV2.tiers.map((t, i) => {
                     const prevMax = i > 0 ? pricingV2.tiers[i - 1].days_max : 0
                     const range = t.days_max > 0 ? `${prevMax + 1}-${t.days_max}天` : `${prevMax + 1}天以上`
                     return (
-                      <View key={i} className="flex justify-between text-xs">
+                      <View key={i} className="flex justify-between text-xs mb-1">
                         <Text className="text-zinc-400">{range}</Text>
                         <Text className="text-zinc-600 font-medium">¥{Number(t.daily_rate).toFixed(2)}/天</Text>
                       </View>
@@ -395,7 +390,7 @@ function SingleCheckout({ id, navigate }) {
             )}
 
             {/* 优惠码 */}
-            <View className="flex items-center gap-2 pt-1">
+            <View className="flex items-center gap-2 mt-3">
               <Input
                 value={discountCode}
                 onInput={e => setDiscountCode(e.detail.value)}
@@ -413,23 +408,23 @@ function SingleCheckout({ id, navigate }) {
               </Button>
             </View>
             {discountInfo && (
-              <View className="flex justify-between text-green-600 text-xs">
+              <View className="flex justify-between text-green-600 text-xs mt-2">
                 <Text className="font-medium">优惠({discountInfo.policy_name})</Text>
                 <Text className="font-bold">-{(1 - discountInfo.rent_discount) * 100}%</Text>
               </View>
             )}
 
             {/* 合计 */}
-            <View className="border-t pt-3 flex justify-between items-center">
+            <View className="border-t pt-3 mt-3 flex justify-between items-center">
               <Text className="font-black text-zinc-900 text-base">合计</Text>
               <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text className="text-[10px] text-zinc-400 text-right">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit}</Text>
+            <Text className="text-[10px] text-zinc-400 text-right mt-1">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit}</Text>
           </View>
         </View>
 
         {/* 免押金开关 */}
-        <View className="bg-white rounded-2xl shadow-sm p-4">
+        <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <View className="flex items-center justify-between">
             <View>
               <Text className="font-black text-black">免押金租赁</Text>
@@ -452,15 +447,15 @@ function SingleCheckout({ id, navigate }) {
         </View>
 
         {depositWaived && (
-          <View className="bg-white rounded-2xl shadow-sm p-4">
+          <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
             <Text className="font-black text-black mb-1">担保人信息</Text>
             <Text className="text-[10px] text-zinc-400 mb-3">已选 {selectedGuarantorIds.length}/2</Text>
             {guarantors.length > 0 && (
-              <View className="space-y-2 mb-3">
-                {guarantors.map(g => (
+              <View className="mb-3">
+                {guarantors.map((g, gi) => (
                   <label
                     key={g.id}
-                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
+                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${gi > 0 ? 'mt-2' : ''} ${
                       selectedGuarantorIds.includes(g.id) ? 'border-brand-primary bg-blue-50' : 'border-gray-200'
                     }`}
                   >
@@ -480,15 +475,21 @@ function SingleCheckout({ id, navigate }) {
               </View>
             )}
             {showAddGuarantor ? (
-              <View className="space-y-2 bg-gray-50 rounded-lg p-3">
+              <View className="bg-gray-50 rounded-lg p-3">
                 <View className="grid grid-cols-2 gap-2">
                   <input className={inputClass} value={newGuarantor.name} onChange={e => setNewGuarantor(prev => ({ ...prev, name: e.target.value }))} placeholder="姓名" />
                   <input className={inputClass} value={newGuarantor.phone} onChange={e => setNewGuarantor(prev => ({ ...prev, phone: e.target.value }))} placeholder="联系电话" />
                 </View>
-                <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位（选填）" />
-                <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务（选填）" />
-                <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
-                <View className="flex gap-2">
+                <View className="mt-2">
+                  <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位（选填）" />
+                </View>
+                <View className="mt-2">
+                  <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务（选填）" />
+                </View>
+                <View className="mt-2">
+                  <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
+                </View>
+                <View className="flex gap-2 mt-3">
                   <Button
                     onClick={handleSaveGuarantor}
                     disabled={savingGuarantor}
@@ -515,18 +516,18 @@ function SingleCheckout({ id, navigate }) {
           </View>
         )}
 
-        <View className="bg-white rounded-2xl shadow-sm p-4">
+        <View className="bg-white rounded-2xl shadow-sm p-4 mb-3">
           <Text className="font-black text-black mb-3 flex items-center gap-2">
             <MapPin size={16} className="text-brand-primary" />
             收货地址
           </Text>
 
           {addresses.length > 0 && !useNewAddress && (
-            <View className="space-y-2 mb-3">
-              {addresses.map(addr => (
+            <View className="mb-3">
+              {addresses.map((addr, ai) => (
                 <label
                   key={addr.id}
-                  className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
+                  className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${ai > 0 ? 'mt-2' : ''} ${
                     selectedAddressId === addr.id ? 'border-brand-primary bg-blue-50' : 'border-gray-200'
                   }`}
                 >
@@ -548,7 +549,7 @@ function SingleCheckout({ id, navigate }) {
           )}
 
           {(addresses.length === 0 || useNewAddress) && (
-            <View className="space-y-3">
+            <View>
               <View className="grid grid-cols-2 gap-2">
                 <View>
                   <label className={labelClass}>收货人</label>
@@ -559,7 +560,7 @@ function SingleCheckout({ id, navigate }) {
                   <input className={inputClass} value={newAddress.phone} onChange={e => setNewAddress(prev => ({ ...prev, phone: e.target.value }))} placeholder="手机号" />
                 </View>
               </View>
-              <View className="grid grid-cols-3 gap-2">
+              <View className="grid grid-cols-3 gap-2 mt-3">
                 <select className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value, city: '', district: '' }))}>
                   <option value="">省</option>
                   {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
@@ -581,13 +582,13 @@ function SingleCheckout({ id, navigate }) {
                   })()}
                 </select>
               </View>
-              <View>
+              <View className="mt-3">
                 <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
               </View>
-              <View>
+              <View className="mt-3">
                 <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
-          </View>
-              <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+              </View>
+              <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer mt-3">
                 <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
                 设置为我的收货地址
               </label>
@@ -612,13 +613,13 @@ function SingleCheckout({ id, navigate }) {
           )}
         </View>
 
-        <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-sm text-amber-700">
+        <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-sm text-amber-700 mb-3">
           <Text className="font-medium mb-1">租赁须知</Text>
-          <ul className="text-xs space-y-1 text-amber-600">
+          <ul className="text-xs text-amber-600">
             <li>· 提交即生成订单，需在10分钟内完成支付</li>
-            <li>· 超时未支付订单将自动取消</li>
-            <li>· 发货前可取消订单免手续费</li>
-            <li>· 押金在归还验收后原路退还</li>
+            <li className="mt-1">· 超时未支付订单将自动取消</li>
+            <li className="mt-1">· 发货前可取消订单免手续费</li>
+            <li className="mt-1">· 押金在归还验收后原路退还</li>
           </ul>
         </View>
       </View>
@@ -868,15 +869,15 @@ function BatchCheckout({ navigate }) {
       </View>
 
       <ScrollView className="w-full flex-1 pb-28" scrollY showScrollbar={false}>
-        <View className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-zinc-100 space-y-6 flex flex-col items-center">
-          <View className="text-center space-y-1">
+        <View className="p-4 m-4 bg-white rounded-2xl shadow-sm border border-zinc-100 flex flex-col items-center">
+          <View className="text-center">
             <Text className="text-xs text-zinc-400 font-bold tracking-widest block uppercase">TOTAL PAYABLE</Text>
             <Text className="text-[#915F38] text-4xl font-black tracking-tight block">
               ¥{grandTotal.toFixed(2)}
             </Text>
           </View>
 
-          <View className="w-full border-t border-dashed border-zinc-200 pt-4 space-y-3">
+          <View className="w-full border-t border-dashed border-zinc-200 pt-4">
             {groups.map((group) => {
               let groupRent = 0
               let groupDeposit = 0
@@ -955,12 +956,12 @@ function BatchCheckout({ navigate }) {
               <Text className="text-xs font-bold text-zinc-500 mb-1">🛡 担保人信息</Text>
               <Text className="text-[10px] text-zinc-400 mb-3">已选 {selectedGuarantorIds.length}/2</Text>
               {guarantors.length > 0 && (
-                <View className="space-y-2 mb-3">
-                  {guarantors.map(g => (
+                <View className="mb-3">
+                  {guarantors.map((g, gi) => (
                     <label
                       key={g.id}
-                      className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
-                        selectedGuarantorIds.includes(g.id) ? 'border-brand-primary bg-blue-50' : 'border-zinc-200'
+                      className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${gi > 0 ? 'mt-2' : ''} ${
+                        selectedGuarantorIds.includes(g.id) ? 'border-brand-primary bg-blue-50' : 'border-gray-200'
                       }`}
                     >
                       <input
@@ -979,15 +980,21 @@ function BatchCheckout({ navigate }) {
                 </View>
               )}
               {showAddGuarantor ? (
-                <View className="space-y-2 bg-gray-50 rounded-lg p-3">
+                <View className="bg-gray-50 rounded-lg p-3">
                   <View className="grid grid-cols-2 gap-2">
                     <input className={inputClass} value={newGuarantor.name} onChange={e => setNewGuarantor(prev => ({ ...prev, name: e.target.value }))} placeholder="姓名" />
                     <input className={inputClass} value={newGuarantor.phone} onChange={e => setNewGuarantor(prev => ({ ...prev, phone: e.target.value }))} placeholder="联系电话" />
                   </View>
-                  <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位（选填）" />
-                  <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务（选填）" />
-                  <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
-                  <View className="flex gap-2">
+                  <View className="mt-2">
+                    <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位（选填）" />
+                  </View>
+                  <View className="mt-2">
+                    <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务（选填）" />
+                  </View>
+                  <View className="mt-2">
+                    <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
+                  </View>
+                  <View className="flex gap-2 mt-3">
                     <Button
                       onClick={handleSaveGuarantor}
                       disabled={savingGuarantor}
@@ -1013,12 +1020,12 @@ function BatchCheckout({ navigate }) {
             <Text className="text-xs font-bold text-zinc-500 mb-3">📍 收货地址</Text>
 
             {addresses.length > 0 && !useNewAddress && (
-              <View className="space-y-2 mb-3">
-                {addresses.map(addr => (
+              <View className="mb-3">
+                {addresses.map((addr, ai) => (
                   <label
                     key={addr.id}
-                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
-                      selectedAddressId === addr.id ? 'border-brand-primary bg-blue-50' : 'border-zinc-200'
+                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${ai > 0 ? 'mt-2' : ''} ${
+                      selectedAddressId === addr.id ? 'border-brand-primary bg-blue-50' : 'border-gray-200'
                     }`}
                   >
                     <input
@@ -1038,48 +1045,52 @@ function BatchCheckout({ navigate }) {
               </View>
             )}
 
-            {(addresses.length === 0 || useNewAddress) && (
-              <View className="space-y-3">
-                <View className="grid grid-cols-2 gap-2">
-                  <View>
-                    <label className={labelClass}>收货人</label>
-                    <input className={inputClass} value={newAddress.recipient_name} onChange={e => setNewAddress(prev => ({ ...prev, recipient_name: e.target.value }))} placeholder="姓名" />
-                  </View>
-                  <View>
-                    <label className={labelClass}>电话</label>
-                    <input className={inputClass} value={newAddress.phone} onChange={e => setNewAddress(prev => ({ ...prev, phone: e.target.value }))} placeholder="手机号" />
-                  </View>
-                </View>
-                <View className="grid grid-cols-3 gap-2">
-                  <select className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value, city: '', district: '' }))}>
-                    <option value="">省</option>
-                    {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
-                  </select>
-                  <select className={inputClass} value={newAddress.city} onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value, district: '' }))}>
-                    <option value="">市</option>
-                    {(() => {
-                      const prov = regions.find(r => r.name === newAddress.province)
-                      return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
-                    })()}
-                  </select>
-                  <select className={inputClass} value={newAddress.district} onChange={e => setNewAddress(prev => ({ ...prev, district: e.target.value }))}>
-                    <option value="">区</option>
-                    {(() => {
-                      const prov = regions.find(r => r.name === newAddress.province)
-                      if (!prov) return null
-                      const city = prov.children.find(c => c.name === newAddress.city)
-                      return city ? city.children.map((d, i) => <option key={i} value={d.name}>{d.name}</option>) : null
-                    })()}
-                  </select>
-                </View>
-                <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
-                <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
-                <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
-                  <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
-                  设置为我的收货地址
-                </label>
-              </View>
-            )}
+             {(addresses.length === 0 || useNewAddress) && (
+               <View>
+                 <View className="grid grid-cols-2 gap-2">
+                   <View>
+                     <label className={labelClass}>收货人</label>
+                     <input className={inputClass} value={newAddress.recipient_name} onChange={e => setNewAddress(prev => ({ ...prev, recipient_name: e.target.value }))} placeholder="姓名" />
+                   </View>
+                   <View>
+                     <label className={labelClass}>电话</label>
+                     <input className={inputClass} value={newAddress.phone} onChange={e => setNewAddress(prev => ({ ...prev, phone: e.target.value }))} placeholder="手机号" />
+                   </View>
+                 </View>
+                 <View className="grid grid-cols-3 gap-2 mt-3">
+                   <select className={inputClass} value={newAddress.province} onChange={e => setNewAddress(prev => ({ ...prev, province: e.target.value, city: '', district: '' }))}>
+                     <option value="">省</option>
+                     {regions.map((r, i) => <option key={i} value={r.name}>{r.name}</option>)}
+                   </select>
+                   <select className={inputClass} value={newAddress.city} onChange={e => setNewAddress(prev => ({ ...prev, city: e.target.value, district: '' }))}>
+                     <option value="">市</option>
+                     {(() => {
+                       const prov = regions.find(r => r.name === newAddress.province)
+                       return prov ? prov.children.map((c, i) => <option key={i} value={c.name}>{c.name}</option>) : null
+                     })()}
+                   </select>
+                   <select className={inputClass} value={newAddress.district} onChange={e => setNewAddress(prev => ({ ...prev, district: e.target.value }))}>
+                     <option value="">区</option>
+                     {(() => {
+                       const prov = regions.find(r => r.name === newAddress.province)
+                       if (!prov) return null
+                       const city = prov.children.find(c => c.name === newAddress.city)
+                       return city ? city.children.map((d, i) => <option key={i} value={d.name}>{d.name}</option>) : null
+                     })()}
+                   </select>
+                 </View>
+                 <View className="mt-3">
+                   <input className={inputClass} value={newAddress.detail} onChange={e => setNewAddress(prev => ({ ...prev, detail: e.target.value }))} placeholder="详细地址" />
+                 </View>
+                 <View className="mt-3">
+                   <input className={inputClass} value={newAddress.postal_code} onChange={e => setNewAddress(prev => ({ ...prev, postal_code: e.target.value }))} placeholder="邮编" pattern="\d{6}" maxLength={6} inputMode="numeric" title="请输入6位数字邮编" />
+                 </View>
+                 <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer mt-3">
+                   <input type="checkbox" checked={saveAddress} onChange={e => setSaveAddress(e.target.checked)} />
+                   设置为我的收货地址
+                 </label>
+               </View>
+             )}
 
             {addresses.length > 0 && !useNewAddress && (
               <Text className="mt-3 text-xs text-brand-primary" onClick={() => setUseNewAddress(true)}>+ 使用新地址</Text>
