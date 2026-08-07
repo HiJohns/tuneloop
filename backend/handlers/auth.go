@@ -278,7 +278,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		Name     string `json:"name" binding:"required"`
 		Phone    string `json:"phone" binding:"required"`
 		Email    string `json:"email"`
-		Password string `json:"password" binding:"required"`
+		Password string `json:"password"`
 		WxCode   string `json:"wx_code"`
 		Ref      string `json:"ref"`
 	}
@@ -294,6 +294,14 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	userName := req.Username
 	if userName == "" {
 		userName = req.Phone
+	}
+
+	// WeChat registration (#1571): no password required — identity comes from
+	// the WeChat openid (bound via wx-bind afterwards). Generate a random
+	// password only to satisfy IAM's non-empty password constraint; the user
+	// never knows it and logs in via WeChat (Channel 3) instead.
+	if req.Password == "" {
+		req.Password = "wx_" + uuid.NewString()[:20]
 	}
 
 	// Create user in beaconiam via IAMClient (uses client credentials internally)

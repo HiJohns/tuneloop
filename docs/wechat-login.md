@@ -288,54 +288,35 @@ export const getPhoneNumber = (e) => {
 
 ## 七、注册流程
 
-### 7.1 微信一键登录 → 自动注册
+### 7.1 微信一键登录 → 注册页（免密码）
 
-微信一键登录**无需独立注册页面**。首次 `getPhoneNumber` 授权时，后端自动完成注册：
-
-```
-新用户首次点击"微信一键登录"
-  → getPhoneNumber 返回 encryptedData + iv
-  → POST /api/auth/wx-login { code, encryptedData, iv }
-  → 后端解密 → 手机号、openid
-  → 查 openid + phone → 未找到
-  → 创建新用户：
-      - role = USER
-      - name = "微信用户" + phone 后 4 位  ← 临时占位
-      - phone = 解密后的手机号
-      - openid = 微信 openid
-  → 签发 JWT
-  → 返回 { token, user, is_new: true }
-```
-
-**返回 `is_new: true` 时**，前端引导进入"完善资料"页：
+**（#480 后流程）**：`wx-login` **不再自动创建账号**。openid 未绑定时返回 `wx_user_not_found`，前端进入注册页（profile-complete），用户填写用户名/姓名/手机/邮箱（**无需密码**）：
 
 ```
-┌──────────────────────────┐
-│      完善个人资料         │
-│                          │
-│   姓名: [________]       │
-│   邮箱: [________]       │
-│                          │
-│   [跳过]  [保存]         │
-│                          │
-│   ⚠️ 租赁需要真实姓名     │
-└──────────────────────────┘
+新用户点击"微信一键登录"
+  → POST /api/auth/wx-login { code }
+  → IAM 查 openid → 未找到 → 返回 wx_user_not_found
+  → 前端进入注册页 /pages-weapp/profile-complete
+  → 用户填写：用户名、姓名、手机号、邮箱（选填）
+      - 无密码字段（#1571：身份由微信 openid 保证）
+  → POST /api/auth/register { username, name, phone, email, wx_code }
+  → 后端：密码为空 → 生成随机密码（wx_ + UUID 截断，仅满足 IAM 非空约束）
+  → IAM CreateUser（skip_activation=true）→ 成功
+  → wx-bind：code 换 openid 绑定到新用户
+  → IAMLogin → JWT → 同步本地 users 表
+  → 返回 { token, is_new: true }
 ```
 
-- 用户可跳过 → 保留默认名称（`is_profile_completed = false`）
-- 用户保存 → `PUT /api/users/me { name, email }` → `is_profile_completed = true`
+**注册后**：前端跳转会员费支付页（如配置）；此后该微信一键登录直接识别 openid 登录（is_new: false）。
 
-**实名制风控拦截**：当用户名为默认占位且 `is_profile_completed = false` 时，后端在以下接口中必须硬拦截：
-- `POST /api/orders`（租赁下单）→ 返回 `40013 请先补全真实姓名`
-- `POST /api/repair-requests`（发起报修）→ 同上
-- 前端在 Checkout / CreateRepair 页面进入时前置检测，弹出阻塞式实名弹窗
+> 注：微信注册用户的随机密码不可知，后续登录走微信一键登录（Channel 3）；如需账号密码登录，可通过 IAM 侧找回/重置密码流程。
 
-### 7.2 IAM 注册（备用通道）
+### 7.2 IAM 注册（备用通道，保留密码）
 
-账号密码登录的用户如需注册新账号，通过后端中转 IAM：
+账号密码登录的用户如需注册新账号，通过后端中转 IAM（**此通道保留密码**，与微信注册免密码并存）：
 
 ```
-POST /api/auth/register
+POST /api/auth/register { username, name, phone, email, password }
 → tuneloop backend → beaconiam POST /api/v1/auth/register
 → 创建 IAM 用户 + tuneloop 本地同步
 → 返回 JWT
@@ -352,11 +333,9 @@ POST /api/auth/register
   → 想租赁 → 点"下单" → 检测到 GUEST
   → 弹登录页
   → 选择"微信一键登录"
-  → 微信弹窗授权
-  → 后端自动创建账号（is_new: true）
-  → 弹出"完善资料"页
-  → 用户填写姓名/邮箱（可跳过）
-  → role=USER → 可以下单
+  → openid 未绑定 → 进入注册页（填写用户名/姓名/手机，免密码）
+  → 注册成功 → wx-bind → role=USER
+  → 可以下单
 ```
 
 ### 7.4 注册相关的后端变更
