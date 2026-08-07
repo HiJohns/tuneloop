@@ -93,7 +93,7 @@ export default function Home() {
   const [catOffsetX, setCatOffsetX] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const scrolled = scrollY > 50
-  const menuStuck = scrollY > 130
+  const menuStuck = scrollY > 140
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
     sub_categories: categories.filter(c => c.parent_id === cat.id).sort((a, b) => (a.sort || 0) - (b.sort || 0))
@@ -341,11 +341,11 @@ export default function Home() {
       )}
 
       {/* B: clip layer — wraps both ScrollView and BottomNav, overflow:hidden clips at edges */}
-       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '142px', bottom: 0, overflow: 'hidden' }}>
+       <View className="fixed left-0 right-0 z-[100] flex flex-col" style={{ top: '102px', bottom: 0, overflow: 'hidden' }}>
         <ScrollView className="flex-1 overflow-y-auto bg-transparent"
           scrollY scrollWithAnimation enhanced showScrollbar={false}
           onScroll={e => setScrollY(e.detail?.scrollTop ?? e.target?.scrollTop ?? 0)}>
-          <View style={{ height: '100px' }}></View>
+          <View style={{ height: '140px' }}></View>
 
           <View className={menuStuck ? 'opacity-0' : 'bg-transparent'}>
             <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} />

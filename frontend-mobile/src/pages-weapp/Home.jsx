@@ -165,7 +165,7 @@ export default function Home() {
   const searchTop = navBar.menuTop
   const menuTop = navBar.menuTop + navBar.menuHeight + 8
   const stickyMenuHeight = 48 // MenuContent: outer padding 4×2 + item padding 10×2 + text 18 + border 2
-  const contentTop = menuTop + stickyMenuHeight
+  const contentTop = menuTop
 
   const topCategories = categories.filter(c => !c.parent_id).map(cat => ({
     ...cat,
@@ -401,15 +401,19 @@ export default function Home() {
               if (blurVisible) setBlurVisible(false)
             }
 
-            // Search, dots, sticky menu: debounced after scroll stops
+            // Sticky menu: sync immediately (no debounce) so the swap happens
+            // exactly when the in-flow menu's top edge touches menuTop (zero-jump)
+            const nm = newY > 100 + stickyMenuHeight
+            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
+
+            // Search, dots: debounced after scroll stops
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
             scrollTimerRef.current = setTimeout(() => {
-            const ns = scrollYRef.current > 50, nm = scrollYRef.current > 100
+            const ns = scrollYRef.current > 50
             if (ns !== scrolledRef.current) { scrolledRef.current = ns; setScrolled(ns) }
-            if (nm !== menuStuckRef.current) { menuStuckRef.current = nm; setMenuStuck(nm) }
             }, 500)
           }}>
-          <View style={{ height: '100px' }}></View>
+          <View style={{ height: `${100 + stickyMenuHeight}px` }}></View>
 
         <View style={{ height: stickyMenuHeight, backgroundColor: 'transparent', opacity: menuStuck ? 0 : 1 }}>
           <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={false} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
