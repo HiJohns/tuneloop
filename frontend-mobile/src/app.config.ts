@@ -60,6 +60,22 @@ const h5Pages = [
   'pages/user-warnings/index',
 ]
 
+// Native tabBar semantics (switchTab) without native UI: custom:true hides
+// the system tabBar and renders src/custom-tab-bar (empty shell) instead.
+// Only 3 tabs — my-repairs page does not exist in weapp yet (#1559).
+// H5 side uses react-router + its own BottomNav, so tabBar is weapp-only.
+const tabBar = isWeapp ? {
+  custom: true,
+  color: '#8a8a8a',
+  selectedColor: '#5A3B24',
+  backgroundColor: '#5A3B24',
+  list: [
+    { pagePath: 'pages-weapp/home/index', text: '首页' },
+    { pagePath: 'pages-weapp/my-leases/index', text: '租赁' },
+    { pagePath: 'pages-weapp/profile/index', text: '我的' },
+  ],
+} : undefined
+
 export default {
   pages: isWeapp ? weappPages : h5Pages,
   window: {
@@ -68,4 +84,5 @@ export default {
     navigationBarTitleText: 'TuneLoop',
     navigationBarTextStyle: 'black',
   },
+  ...(tabBar ? { tabBar } : {}),
 }
