@@ -462,9 +462,11 @@ func ExecuteBatchImport(c *gin.Context) {
 	userID := middleware.GetUserID(c.Request.Context())
 
 	type ImportResult struct {
-		SN     string `json:"sn"`
-		Status string `json:"status"`
-		Error  string `json:"error,omitempty"`
+		ID           string `json:"id"`
+		SN           string `json:"sn"`
+		CategoryName string `json:"category_name"`
+		Status       string `json:"status"`
+		Error        string `json:"error,omitempty"`
 	}
 
 	var properties []models.Property
@@ -619,6 +621,9 @@ func ExecuteBatchImport(c *gin.Context) {
 			if err := tx.Create(&instrument).Error; err != nil {
 				return fmt.Errorf("failed to create instrument: %w", err)
 			}
+
+			result.ID = instrument.ID
+			result.CategoryName = instrument.CategoryName
 
 			// Compute pricing via CalculatePricing if base_daily_rate is set
 			if instrument.BaseDailyRate != nil && *instrument.BaseDailyRate > 0 {
