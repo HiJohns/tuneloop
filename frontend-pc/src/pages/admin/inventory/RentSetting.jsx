@@ -122,11 +122,10 @@ export default function InventoryRentSetting() {
     const itemsToUpdate = tableData
       .filter(item => editedIds.has(item.id))
       .map(item => ({
-        id: item.id,
-        daily_rent: item.daily_rent,
-        deposit: item.deposit || 0,
-        shipping_fee: item.shipping_fee || 0,
-        overdue_daily_fee: item.overdue_daily_fee || item.daily_rent,
+         id: item.id,
+         daily_rent: item.daily_rent,
+         deposit: item.deposit || 0,
+         overdue_daily_fee: item.overdue_daily_fee || item.daily_rent,
       }))
     setLoading(true)
     try {
@@ -229,16 +228,6 @@ export default function InventoryRentSetting() {
       render: (value, record) => (
         <InputNumber min={0} precision={2} value={value}
           onChange={(val) => handleRentChange(record.id, 'deposit', val)}
-          style={{ width: '100%' }}
-          formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
-        />
-      ),
-    },
-    {
-      title: '物流费', dataIndex: 'shipping_fee', key: 'shipping_fee', width: 120,
-      render: (value, record) => (
-        <InputNumber min={0} precision={2} value={value}
-          onChange={(val) => handleRentChange(record.id, 'shipping_fee', val)}
           style={{ width: '100%' }}
           formatter={(val) => `¥ ${val}`} parser={(val) => val.replace(/\¥\s?/g, '')}
         />
