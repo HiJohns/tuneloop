@@ -80,7 +80,13 @@ function EditProfileModal({ visible, user, onClose, onSave, baseUrl }) {
 }
 
 export default function Profile() {
-  const nav = (url) => { Taro.navigateTo({ url }) }
+  const nav = (url) => {
+    if (Taro.getCurrentPages().length >= 9) {
+      Taro.reLaunch({ url })
+    } else {
+      Taro.navigateTo({ url })
+    }
+  }
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)

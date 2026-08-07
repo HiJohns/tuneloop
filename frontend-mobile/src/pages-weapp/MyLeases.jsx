@@ -52,7 +52,13 @@ const getActualRent = (order) => {
 }
 
 export default function MyLeases() {
-  const nav = (url) => { Taro.navigateTo({ url }) }
+  const nav = (url) => {
+    if (Taro.getCurrentPages().length >= 9) {
+      Taro.reLaunch({ url })
+    } else {
+      Taro.navigateTo({ url })
+    }
+  }
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
   const initStatus = routerParams.status || ''

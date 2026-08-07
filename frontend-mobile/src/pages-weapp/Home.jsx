@@ -113,7 +113,13 @@ function InstrumentCard({ instrument, onClick }) {
 }
 
 export default function Home() {
-  const nav = (url) => { Taro.navigateTo({ url }) }
+  const nav = (url) => {
+    if (Taro.getCurrentPages().length >= 9) {
+      Taro.reLaunch({ url })
+    } else {
+      Taro.navigateTo({ url })
+    }
+  }
   const instance = Taro.getCurrentInstance()
   const routerParams = instance.router?.params || {}
   const tenant = routerParams.tenant || null
