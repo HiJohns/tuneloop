@@ -18,6 +18,8 @@ const weappPages = [
   'pages-weapp/renewal/index',
   'pages-weapp/content/index',
   'pages-weapp/return-settlement/index',
+  'pages-weapp/messages/index',
+  'pages-weapp/message-detail/index',
 ]
 
 const h5Pages = [

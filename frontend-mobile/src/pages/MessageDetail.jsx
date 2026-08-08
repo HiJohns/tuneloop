@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Modal, message } from 'antd'
+import Taro from '@tarojs/taro'
 import { notificationApi, appealsApi } from '../services/api'
+import { dialog, env } from '../platform'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, Button, Textarea } from '@tarojs/components'
 
@@ -56,43 +57,44 @@ export default function MessageDetail() {
   const damageAmount = actionData.damage_amount || damageReport?.damage_amount || 0
   const deposit = actionData.deposit || order?.deposit || 0
 
-  const handleAccept = async () => {
-    if (damageAmount < deposit) {
-      Modal.confirm({
-        title: '确认接受定损',
-        content: `定损金额 ¥${damageAmount.toFixed(2)}，押金 ¥${deposit.toFixed(2)}，将退还差额 ¥${(deposit - damageAmount).toFixed(2)}`,
-        onOk: async () => {
-          try {
-            await appealsApi.agree(damageReport.id)
-            message.success('已接受定损，押金退还流程将开始')
-            navigate('/messages', { replace: true })
-          } catch (err) {
-            message.error('操作失败: ' + (err.message || '未知错误'))
-          }
-        },
-      })
+  const goBack = () => {
+    if (env.isMiniProgram) {
+      Taro.redirectTo({ url: '/pages-weapp/messages/index' })
     } else {
-      Modal.confirm({
-        title: '确认接受定损',
-        content: `定损金额 ¥${damageAmount.toFixed(2)}，押金 ¥${deposit.toFixed(2)}，需补缴 ¥${(damageAmount - deposit).toFixed(2)}`,
-        onOk: async () => {
-          try {
-            await appealsApi.agree(damageReport.id)
-            navigate('/payment-complete', {
-              state: {
-                paymentAmount: damageAmount - deposit,
-                damageAmount,
-                deposit,
-                merchantName: ref?.order?.merchant_name || '商户',
-                orderId: actionData.order_id || order?.id,
-              },
-              replace: true,
-            })
-          } catch (err) {
-            message.error('操作失败: ' + (err.message || '未知错误'))
-          }
-        },
-      })
+      navigate('/messages', { replace: true })
+    }
+  }
+
+  const handleAccept = async () => {
+    const ok = await dialog.confirm(
+      damageAmount < deposit
+        ? `定损金额 ¥${damageAmount.toFixed(2)}，押金 ¥${deposit.toFixed(2)}，将退还差额 ¥${(deposit - damageAmount).toFixed(2)}`
+        : `定损金额 ¥${damageAmount.toFixed(2)}，押金 ¥${deposit.toFixed(2)}，需补缴 ¥${(damageAmount - deposit).toFixed(2)}`
+    )
+    if (!ok) return
+    try {
+      await appealsApi.agree(damageReport.id)
+      if (damageAmount < deposit) {
+        dialog.toast('已接受定损，押金退还流程将开始')
+        goBack()
+      } else {
+        if (env.isMiniProgram) {
+          Taro.redirectTo({ url: `/pages-weapp/payment/index?type=damage&id=${actionData.order_id || order?.id || ''}` })
+        } else {
+          navigate('/payment-complete', {
+            state: {
+              paymentAmount: damageAmount - deposit,
+              damageAmount,
+              deposit,
+              merchantName: ref?.order?.merchant_name || '商户',
+              orderId: actionData.order_id || order?.id,
+            },
+            replace: true,
+          })
+        }
+      }
+    } catch (err) {
+      dialog.toast('操作失败: ' + (err.message || '未知错误'))
     }
   }
 
@@ -103,7 +105,7 @@ export default function MessageDetail() {
 
   const submitAppeal = async () => {
     if (!appealReason.trim()) {
-      message.warning('请输入申诉原因')
+      dialog.toast('请输入申诉原因')
       return
     }
     try {
@@ -111,15 +113,19 @@ export default function MessageDetail() {
         damage_report_id: damageReport.id,
         appeal_reason: appealReason,
       })
-      message.success('申诉已提交，等待处理')
+      dialog.toast('申诉已提交，等待处理')
       setAppealModalVisible(false)
-      navigate('/messages', { replace: true })
+      goBack()
     } catch (err) {
-      message.error('提交失败: ' + (err.message || '未知错误'))
+      dialog.toast('提交失败: ' + (err.message || '未知错误'))
     }
   }
 
   const handlePayment = () => {
+    if (env.isMiniProgram) {
+      Taro.redirectTo({ url: `/pages-weapp/payment/index?type=damage&id=${actionData.order_id || order?.id || ''}` })
+      return
+    }
     navigate('/payment-complete', {
       state: {
         paymentAmount: damageAmount - deposit,
@@ -146,7 +152,7 @@ export default function MessageDetail() {
         <View className="text-center">
           <Bell size={48} className="mx-auto text-gray-300 mb-4" />
           <Text className="text-gray-500">消息不存在</Text>
-          <Button onClick={() => navigate(-1)} className="mt-4 text-brand-primary">返回</Button>
+          <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)} className="mt-4 text-brand-primary">返回</Button>
         </View>
       </View>
     )
@@ -157,7 +163,7 @@ export default function MessageDetail() {
   return (
     <View className="min-h-screen bg-brand-bg pb-20">
       <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}>
+        <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}>
           <ArrowLeft size={20} />
         </Button>
         <Text className="text-lg font-bold">消息详情</Text>
@@ -247,21 +253,27 @@ export default function MessageDetail() {
         </View>
       </View>
 
-      <Modal
-        title="申诉"
-        open={appealModalVisible}
-        onCancel={() => setAppealModalVisible(false)}
-        onOk={submitAppeal}
-        okText="提交"
-        cancelText="取消"
-      >
-        <Textarea
-          className="w-full border rounded-lg p-3 text-sm min-h-[120px]"
-          value={appealReason}
-          onChange={e => setAppealReason(e.target.value)}
-          placeholder="请输入申诉原因..."
-        />
-      </Modal>
+      {appealModalVisible && (
+        <View style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <View style={{ width: '82%', backgroundColor: '#fff', borderRadius: 16, padding: 20 }}>
+            <Text className="text-base font-bold mb-3">申诉</Text>
+            <Textarea
+              className="w-full border rounded-lg p-3 text-sm min-h-[120px]"
+              value={appealReason}
+              onChange={e => setAppealReason(e.detail?.value ?? e.target?.value ?? '')}
+              placeholder="请输入申诉原因..."
+            />
+            <View style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+              <Button onClick={() => setAppealModalVisible(false)} style={{ flex: 1, backgroundColor: '#f4f4f5', color: '#71717a', borderRadius: 10 }}>
+                取消
+              </Button>
+              <Button onClick={submitAppeal} style={{ flex: 1, backgroundColor: '#002140', color: '#fff', borderRadius: 10 }}>
+                提交
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
