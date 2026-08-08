@@ -202,6 +202,10 @@ function SingleCheckout({ id, navigate }) {
       dialog.alert('请填写担保人姓名和联系电话')
       return
     }
+    if (!newGuarantor.company.trim() || !newGuarantor.title.trim()) {
+      dialog.alert('请填写工作单位和职务')
+      return
+    }
     setSavingGuarantor(true)
     try {
       const resp = await apiFetch(`${env.apiBaseUrl}/user/guarantors`, {
@@ -481,10 +485,10 @@ function SingleCheckout({ id, navigate }) {
                   <input className={inputClass} value={newGuarantor.phone} onChange={e => setNewGuarantor(prev => ({ ...prev, phone: e.target.value }))} placeholder="联系电话" />
                 </View>
                 <View className="mt-2">
-                  <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位（选填）" />
+                  <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位" />
                 </View>
                 <View className="mt-2">
-                  <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务（选填）" />
+                  <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务" />
                 </View>
                 <View className="mt-2">
                   <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
@@ -758,6 +762,10 @@ function BatchCheckout({ navigate }) {
       dialog.alert('请填写担保人姓名和联系电话')
       return
     }
+    if (!newGuarantor.company.trim() || !newGuarantor.title.trim()) {
+      dialog.alert('请填写工作单位和职务')
+      return
+    }
     setSavingGuarantor(true)
     try {
       const resp = await apiFetch(`${env.apiBaseUrl}/user/guarantors`, {
@@ -986,10 +994,10 @@ function BatchCheckout({ navigate }) {
                     <input className={inputClass} value={newGuarantor.phone} onChange={e => setNewGuarantor(prev => ({ ...prev, phone: e.target.value }))} placeholder="联系电话" />
                   </View>
                   <View className="mt-2">
-                    <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位（选填）" />
+                    <input className={inputClass} value={newGuarantor.company} onChange={e => setNewGuarantor(prev => ({ ...prev, company: e.target.value }))} placeholder="工作单位" />
                   </View>
                   <View className="mt-2">
-                    <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务（选填）" />
+                    <input className={inputClass} value={newGuarantor.title} onChange={e => setNewGuarantor(prev => ({ ...prev, title: e.target.value }))} placeholder="职务" />
                   </View>
                   <View className="mt-2">
                     <input className={inputClass} value={newGuarantor.address} onChange={e => setNewGuarantor(prev => ({ ...prev, address: e.target.value }))} placeholder="地址（选填）" />
