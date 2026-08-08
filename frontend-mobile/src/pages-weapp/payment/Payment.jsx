@@ -51,6 +51,19 @@ export default function Payment() {
         setLoading(false)
         return
       }
+      if (pType === 'appeal') {
+        // Appeal resolution receipt: load the settled refund from the
+        // appeal outcome (#1576).
+        try {
+          const resp = await apiFetch(`${baseUrl}/user/settlements/${pId}/calculate`)
+          const result = await resp.json()
+          if (result.code === 20000) {
+            setData({ type: 'appeal', title: '申诉结果确认', amount: result.data?.cash_refundable || 0, details: result.data, wallet: null })
+          }
+        } catch {}
+        setLoading(false)
+        return
+      }
       try {
         const resp = await apiFetch(`${baseUrl}/pay/calculate`, {
           method: 'POST',
@@ -238,7 +251,7 @@ export default function Payment() {
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 100 }}>
       <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', padding: '16px', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Text style={{ fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center' }}>
-          {isRefund ? '退款确认' : '支付确认'}
+          {pType === 'appeal' ? '申诉结果确认' : isRefund ? '退款确认' : '支付确认'}
         </Text>
       </View>
 
@@ -293,8 +306,8 @@ export default function Payment() {
           )}
         </View>
 
-        {/* Points usage (only for non-refund) */}
-        {!isRefund && pType !== 'points' && data.amount > 0 && (
+        {/* Points usage (only for non-refund, non-appeal) */}
+        {!isRefund && pType !== 'points' && pType !== 'appeal' && data.amount > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
            {(maxPrepaid > 0 || maxGift > 0) && (<>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
@@ -374,6 +387,10 @@ export default function Payment() {
               </View>
             )}
           </View>
+        ) : pType === 'appeal' ? (
+          <Button style={btnStyle('#16a34a')} onClick={() => Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${pId}` })}>
+            确认，查看订单详情
+          </Button>
         ) : prepayData?.data ? (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
@@ -491,6 +508,25 @@ function renderDetailsBlock(details, type) {
           <Row label="损失评估" value={`¥${Number(details.damage_amount || 0).toFixed(2)}`} />
           <Row label="押金抵扣" value={`-¥${Number(details.deposit_deduction || 0).toFixed(2)}`} />
           <Row label="需补付" value={`¥${Number(details.pay_amount || 0).toFixed(2)}`} bold color="#dc2626" />
+        </View>
+      </View>
+    )
+  }
+  if (type === 'appeal') {
+    // Appeal resolution receipt (#1576): shows the settled refund from the
+    // appeal outcome (ResolveAppeal/AgreeDamage already ran settlement).
+    return (
+      <View>
+        <Row label="实际租期" value={`${Number(details.actual_rent_days || 0)} 天`} />
+        <Row label="实际租金" value={`¥${Number(details.actual_rent_amount || 0).toFixed(2)}`} />
+        {Number(details.damage_deducted || 0) > 0 && (
+          <Row label="损坏扣款" value={`-¥${Number(details.damage_deducted).toFixed(2)}`} color="#dc2626" />
+        )}
+        {Number(details.overdue_fee || 0) > 0 && (
+          <Row label="逾期费用" value={`-¥${Number(details.overdue_fee).toFixed(2)}`} color="#dc2626" />
+        )}
+        <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
+          <Row label="退款金额" value={`¥${Number(details.cash_refundable || 0).toFixed(2)}`} bold color="#3b82f6" />
         </View>
       </View>
     )

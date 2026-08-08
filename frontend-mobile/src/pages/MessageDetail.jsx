@@ -260,6 +260,21 @@ export default function MessageDetail() {
             </Button>
           )}
 
+          {notification.ref_type === 'appeal' && notification.action_type === 'info' && (
+            <Button
+              onClick={() => {
+                if (env.isMiniProgram) {
+                  Taro.redirectTo({ url: `/pages-weapp/payment/index?type=appeal&id=${notification.ref_id}` })
+                } else {
+                  navigate(`/payment?type=appeal&id=${notification.ref_id}`)
+                }
+              }}
+              className="w-full mt-6 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium"
+            >
+              查看申诉结果
+            </Button>
+          )}
+
           {notification.action_type === 'repair_request' && (
             <Button
               onClick={handleRepairAction}

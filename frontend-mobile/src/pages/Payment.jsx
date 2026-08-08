@@ -26,6 +26,18 @@ export default function Payment() {
         setLoading(false)
         return
       }
+      if (pType === 'appeal') {
+        // Appeal resolution receipt: load settled refund (#1576).
+        try {
+          const resp = await apiFetch(`${baseUrl}/user/settlements/${pId}/calculate`)
+          const result = await resp.json()
+          if (result.code === 20000) {
+            setData({ type: 'appeal', title: '申诉结果确认', amount: result.data?.cash_refundable || 0, details: result.data, wallet: null })
+          }
+        } catch {}
+        setLoading(false)
+        return
+      }
       try {
         const resp = await apiFetch(`${baseUrl}/pay/calculate`, {
           method: 'POST',
@@ -65,7 +77,7 @@ export default function Payment() {
       <div className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 py-3 flex items-center">
         <span className="text-xl font-bold text-black cursor-pointer" onClick={() => navigate(-1)}>❮</span>
         <span className="text-lg font-bold flex-1 text-center">
-          {isRefund ? '退款确认' : '支付确认'}
+          {pType === 'appeal' ? '申诉结果确认' : isRefund ? '退款确认' : '支付确认'}
         </span>
         <span className="w-6" />
       </div>
@@ -118,7 +130,7 @@ export default function Payment() {
         )}
       </div>
 
-      {!isRefund && pType !== 'points' && data.amount > 0 && (
+      {!isRefund && pType !== 'points' && pType !== 'appeal' && data.amount > 0 && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
         {(maxPrepaid > 0 || maxGift > 0) && (<>
           <div className="text-sm font-black text-black mb-3">点数使用</div>
@@ -203,6 +215,13 @@ export default function Payment() {
             确认退款 ¥{Number(cashAmount).toFixed(2)}
           </button>
           )
+        ) : pType === 'appeal' ? (
+          <button
+            style={{ width: '100%', paddingTop: 14, paddingBottom: 14, backgroundColor: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none' }}
+            onClick={() => navigate(`/order/${pId}`)}
+          >
+            确认，查看订单详情
+          </button>
         ) : (
           <button
             style={{ width: '100%', paddingTop: 14, paddingBottom: 14, color: '#fff', fontWeight: 900, fontSize: 16, borderRadius: 16, border: 'none', outline: 'none', backgroundColor: cashAmount > 0 ? '#B98E5F' : '#16a34a' }}
@@ -335,6 +354,24 @@ function renderDetailsBlock(details, type) {
           <Row label="损失评估" value={`¥${Number(details.damage_amount || 0).toFixed(2)}`} />
           <Row label="押金抵扣" value={`-¥${Number(details.deposit_deduction || 0).toFixed(2)}`} />
           <Row label="需补付" value={`¥${Number(details.pay_amount || 0).toFixed(2)}`} bold color="#dc2626" />
+        </div>
+      </div>
+    )
+  }
+  if (type === 'appeal') {
+    // Appeal resolution receipt (#1576).
+    return (
+      <div>
+        <Row label="实际租期" value={`${Number(details.actual_rent_days || 0)} 天`} />
+        <Row label="实际租金" value={`¥${Number(details.actual_rent_amount || 0).toFixed(2)}`} />
+        {Number(details.damage_deducted || 0) > 0 && (
+          <Row label="损坏扣款" value={`-¥${Number(details.damage_deducted).toFixed(2)}`} color="#dc2626" />
+        )}
+        {Number(details.overdue_fee || 0) > 0 && (
+          <Row label="逾期费用" value={`-¥${Number(details.overdue_fee).toFixed(2)}`} color="#dc2626" />
+        )}
+        <div className="border-t border-zinc-100 pt-2 mt-1">
+          <Row label="退款金额" value={`¥${Number(details.cash_refundable || 0).toFixed(2)}`} bold color="#3b82f6" />
         </div>
       </div>
     )
