@@ -365,7 +365,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/batch-import/preview", handlers.PreviewBatchImport)
 		authRequired.POST("/instruments/batch-import/media", handlers.UploadBatchMedia)
 		authRequired.GET("/overdue-leases", handlers.GetOverdueLeases)
-		authRequired.GET("/orders/by-instrument-sn", middleware.RequireCusPerm("order:read"), handlers.GetOrderByInstrumentSN)
 		authRequired.GET("/orders/by-trade-no/:out_trade_no", handlers.GetOrdersByOutTradeNo)
 		authRequired.POST("/orders/:id/pickup", middleware.RequireCusPerm("order:update"), handlers.PickupOrder)
 		authRequired.POST("/orders/:id/cancel", middleware.RequireCusPerm("order:cancel"), handlers.CancelOrder)
@@ -398,8 +397,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		siteRequired := authRequired.Group("")
 		{
 			siteRequired.GET("/common/sites", siteHandler.ListSites)
-			siteRequired.GET("/common/sites/nearby", siteHandler.GetNearbySites)
-			siteRequired.GET("/common/sites/:id", siteHandler.GetSiteDetail)
 			siteRequired.POST("/merchant/sites", middleware.RequireSysPerm(middleware.SysPermOrganizationCreate), siteHandler.CreateSite)
 			siteRequired.PUT("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationUpdate), siteHandler.UpdateSite)
 			siteRequired.DELETE("/merchant/sites/:id", middleware.RequireSysPerm(middleware.SysPermOrganizationDelete), siteHandler.DeleteSite)
@@ -419,12 +416,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.POST("/users/reset-password", middleware.RequireSysPerm(middleware.SysPermUserUpdate), staffHandler.ResetPassword)
 			authRequired.GET("/users/check", staffHandler.CheckUserExists)
 			authRequired.POST("/users/:id/activate", staffHandler.ActivateUser)
-
-			// Notification routes
-			authRequired.GET("/notifications", handlers.GetNotifications)
-			authRequired.POST("/notifications/mark-all-read", handlers.MarkAllNotificationsRead)
-			authRequired.GET("/notifications/:id", handlers.GetNotificationDetail)
-			authRequired.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 			authRequired.GET("/instrument-photo-specs/:category_id", handlers.GetInstrumentPhotoSpecs)
 
 		}
@@ -583,7 +574,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 
 			// Repair appeal routes (Issues #1115, #1116, #1119)
 			authRequired.GET("/repair-appeals", handlers.ListAppeals)
-			authRequired.POST("/repair-appeals", handlers.CreateAppeal)
 			authRequired.POST("/repair-appeals/:id/close", handlers.CloseAppeal)
 			authRequired.POST("/repair-appeals/:id/review", handlers.ReviewAppeal)
 			authRequired.POST("/repair-appeals/:id/forward", handlers.ForwardAppeal)
@@ -592,8 +582,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			authRequired.GET("/appeals", appealHandler.ListAppeals)
 			authRequired.GET("/appeals/:id", appealHandler.GetAppeal)
 			authRequired.PUT("/appeals/:id/resolve", appealHandler.ResolveAppeal)
-			authRequired.POST("/appeals", appealHandler.SubmitAppeal)
-			authRequired.POST("/appeals/:id/agree", appealHandler.AgreeDamage)
 			authRequired.GET("/user/appeals", appealHandler.ListAppeals)
 
 			// Issue #306: Warehouse Routes
@@ -631,6 +619,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/orders/:id/reject-damage", handlers.RejectDamage)
 				userOptionalAuth.POST("/discount-codes/apply", handlers.ApplyDiscountCode)
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
+				userOptionalAuth.GET("/orders/by-instrument-sn", handlers.GetOrderByInstrumentSN)
+				userOptionalAuth.GET("/common/sites/nearby", siteHandler.GetNearbySites)
+				userOptionalAuth.GET("/common/sites/:id", siteHandler.GetSiteDetail)
 				userOptionalAuth.POST("/orders/:id/pay", handlers.PayOrder)
 				userOptionalAuth.POST("/orders/:id/renewal/calculate", handlers.CalculateRenewal)
 				userOptionalAuth.POST("/orders/:id/renewal/confirm", handlers.ConfirmRenewal)
@@ -665,9 +656,16 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/user/settlements/:id", userSettlementHandler.ConfirmSettlement)
 				userOptionalAuth.GET("/user/settlements/:id", userSettlementHandler.GetSettlement)
 				userOptionalAuth.GET("/notifications/unread-count", handlers.GetUnreadCount)
+				userOptionalAuth.GET("/notifications", handlers.GetNotifications)
+				userOptionalAuth.POST("/notifications/mark-all-read", handlers.MarkAllNotificationsRead)
+				userOptionalAuth.GET("/notifications/:id", handlers.GetNotificationDetail)
+				userOptionalAuth.POST("/notifications/:id/read", handlers.MarkNotificationRead)
 				userOptionalAuth.GET("/user-instruments/lookup", repairReqHandler.UserInstrumentLookup)
 				userOptionalAuth.POST("/repair-requests", repairReqHandler.Create)
 				userOptionalAuth.GET("/site-members/me", handlers.GetMyRoles)
+				userOptionalAuth.POST("/repair-appeals", handlers.CreateAppeal)
+				userOptionalAuth.POST("/appeals", appealHandler.SubmitAppeal)
+				userOptionalAuth.POST("/appeals/:id/agree", appealHandler.AgreeDamage)
 				userOptionalAuth.GET("/repair-requests", repairReqHandler.List)
 				userOptionalAuth.GET("/repair-requests/:id", repairReqHandler.Get)
 				userOptionalAuth.GET("/repair-requests/:id/records", repairReqHandler.ListRecords)

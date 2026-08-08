@@ -136,10 +136,11 @@ func GetNotificationDetail(c *gin.Context) {
 func MarkNotificationRead(c *gin.Context) {
 	ctx := c.Request.Context()
 	notificationID := c.Param("id")
+	userID := middleware.GetUserID(ctx)
 
 	db := database.GetDB().WithContext(ctx)
 
-	if err := db.Model(&models.Notification{}).Where("id = ?", notificationID).Update("status", "read").Error; err != nil {
+	if err := db.Model(&models.Notification{}).Where("id = ? AND user_id = ?", notificationID, userID).Update("status", "read").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "Failed to mark notification as read",

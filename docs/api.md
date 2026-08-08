@@ -4915,6 +4915,18 @@ POST /api/appeals/:id/agree
 }
 ```
 
+### 7.6 顾客（无组织绑定）可调用的接口（#1579）
+
+以下接口注册在 `userOptionalAuth` 组，顾客 token（oid/tid 为空）无需组织绑定即可调用：
+
+| 接口 | 说明 |
+|------|------|
+| `GET /api/notifications`、`GET /api/notifications/:id`、`POST /api/notifications/:id/read`、`POST /api/notifications/mark-all-read` | 系统消息列表/详情/已读（handler 按 user_id 过滤） |
+| `POST /api/repair-appeals` | 顾客报修申诉（列表/关闭/审核等仍为员工接口） |
+| `POST /api/appeals`、`POST /api/appeals/:id/agree` | 顾客定损申诉/同意 |
+| `GET /api/orders/by-instrument-sn` | 乐器详情页"当前租赁中"（顾客/员工共用） |
+| `GET /api/common/sites/:id`、`GET /api/common/sites/nearby` | 网点详情/附近网点（游客/顾客/员工） |
+
 ## 8. 库管工作台 API
 
 ### 8.1 获取订单列表
