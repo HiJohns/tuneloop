@@ -12,7 +12,13 @@ import (
 
 // All business tables used by integration tests. Kept in one place so
 // every flow test gets the same isolated schema (Phase 1a, #1583).
+// Order matters: referenced tables (level/category/site) must be created
+// before referencing tables (instrument) so GORM can build FKs.
 var allTables = []interface{}{
+	&models.InstrumentLevel{},
+	&models.Category{},
+	&models.Site{},
+	&models.SiteMember{},
 	&models.Instrument{},
 	&models.Order{},
 	&models.LeaseSession{},
@@ -63,8 +69,10 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 }
 
 // NewTenantIDs returns a unique tenant/org/user triple per call so
-// parallel tests never collide on the shared test DB.
+// parallel tests never collide on the shared test DB. seed must be a
+// 12-char hex string (e.g. "a1b2c3d4e5f6"); the trailing digit selects
+// tenant/org/user variants.
 func NewTenantIDs(seed string) (tenantID, orgID, userID string) {
 	base := "00000000-0000-4000-8000-" + seed
-	return base + "1", base + "2", base + "3"
+	return base[:35] + "1", base[:35] + "2", base[:35] + "3"
 }
