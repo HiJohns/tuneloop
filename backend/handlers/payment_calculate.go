@@ -146,16 +146,30 @@ func loadRepairPayment(db *gorm.DB, id, ptype string, resp *PaymentCalculateResp
 			paid = *req.PaidAmount
 		}
 		resp.Amount = math.Max(0, newTotal-paid)
+		resp.Details = map[string]interface{}{}
+
+		// Old quote (the previously accepted quote, before the requote) for
+		// the receipt comparison view (#1577).
+		var oldQuote models.RepairQuote
+		if err := db.Where("repair_request_id = ? AND id != ? AND status = ?", req.ID, quote.ID, "accepted").
+			Order("created_at DESC").First(&oldQuote).Error; err == nil {
+			oldTotal := oldQuote.MaterialFee + oldQuote.ServiceFee + oldQuote.LogisticsFee
+			resp.Details["old_quote"] = map[string]interface{}{
+				"material_fee":  oldQuote.MaterialFee,
+				"service_fee":   oldQuote.ServiceFee,
+				"logistics_fee": oldQuote.LogisticsFee,
+				"total":         oldTotal,
+			}
+		}
 	} else {
 		resp.Title = "报修支付"
 		resp.Amount = quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee
+		resp.Details = map[string]interface{}{}
 	}
-	resp.Details = map[string]interface{}{
-		"material_fee":  quote.MaterialFee,
-		"service_fee":   quote.ServiceFee,
-		"logistics_fee": quote.LogisticsFee,
-		"total":         resp.Amount,
-	}
+	resp.Details["material_fee"] = quote.MaterialFee
+	resp.Details["service_fee"] = quote.ServiceFee
+	resp.Details["logistics_fee"] = quote.LogisticsFee
+	resp.Details["total"] = resp.Amount
 }
 
 func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {

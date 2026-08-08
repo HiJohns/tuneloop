@@ -1246,7 +1246,7 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 	if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
 		title := "维修师傅重新报价"
 		content := "维修师傅给出了新的报价，请查看并确认。"
-		services.Notify(db, req.TenantID, customerUser.ID, "requote", title, content, req.ID, "repair_request")
+		services.Notify(db, req.TenantID, customerUser.ID, "requote", title, content, req.ID, "repair_request", "repair_request")
 	}
 
 	createRepairRecord(db, id, middleware.GetUserID(ctx), "requoted", "师傅重新报价", nil)

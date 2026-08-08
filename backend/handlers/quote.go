@@ -10,6 +10,7 @@ import (
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"github.com/google/uuid"
 )
 
@@ -137,6 +138,7 @@ func ListQuotes(c *gin.Context) {
 	}
 
 	// Desensitize for controlled: strip worker/site identity for USER
+	acceptedQuote := findAcceptedQuote(db, repairRequestID, "")
 	if isControlled && role == "USER" {
 		desensitized := make([]gin.H, len(quotes))
 		for i, q := range quotes {
@@ -152,11 +154,35 @@ func ListQuotes(c *gin.Context) {
 				"created_at":    q.CreatedAt,
 			}
 		}
-		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": desensitized}})
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": desensitized, "accepted_quote": acceptedQuote}})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": quotes}})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": quotes, "accepted_quote": acceptedQuote}})
+}
+
+// findAcceptedQuote returns the latest accepted quote of a repair request
+// (or a specific quote id if excludeID is set), as a gin.H summary.
+func findAcceptedQuote(db *gorm.DB, repairRequestID, excludeID string) gin.H {
+	var q models.RepairQuote
+	query := db.Where("repair_request_id = ? AND status = ?", repairRequestID, "accepted")
+	if excludeID != "" {
+		query = query.Where("id != ?", excludeID)
+	}
+	if err := query.Order("created_at DESC").First(&q).Error; err != nil {
+		return nil
+	}
+	total := q.MaterialFee + q.ServiceFee + q.LogisticsFee
+	return gin.H{
+		"id":            q.ID,
+		"quote_no":      q.QuoteNo,
+		"material_fee":  q.MaterialFee,
+		"service_fee":   q.ServiceFee,
+		"logistics_fee": q.LogisticsFee,
+		"total":         total,
+		"status":        q.Status,
+		"created_at":    q.CreatedAt,
+	}
 }
 
 // AcceptQuote marks a quote as accepted and transitions the repair request (v3).

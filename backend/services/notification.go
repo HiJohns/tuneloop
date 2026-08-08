@@ -12,18 +12,26 @@ import (
 // Notify creates a notification for a user (dual-channel: system message + WeChat).
 // WeChat sending is a log stub until template IDs and WeChat API client are configured.
 // tenantID must be provided explicitly (avoid auto-scoping issues with cross-tenant notifications).
-func Notify(db *gorm.DB, tenantID, userID, ntype, title, content, refID, refType string) {
+// Notify creates a notification. Optional variadic arg: actionType string
+// (e.g. "repair_request", "payment") — stored in ActionType for frontend
+// action-button rendering (default "info").
+func Notify(db *gorm.DB, tenantID, userID, ntype, title, content, refID, refType string, action ...string) {
+	actionType := "info"
+	if len(action) > 0 && action[0] != "" {
+		actionType = action[0]
+	}
 	notif := models.Notification{
-		ID:        uuid.New().String(),
-		TenantID:  tenantID,
-		UserID:    userID,
-		Type:      ntype,
-		Title:     title,
-		Content:   content,
-		RefID:     refID,
-		RefType:   refType,
-		Status:    "unread",
-		CreatedAt: time.Now(),
+		ID:         uuid.New().String(),
+		TenantID:   tenantID,
+		UserID:     userID,
+		Type:       ntype,
+		Title:      title,
+		Content:    content,
+		RefID:      refID,
+		RefType:    refType,
+		ActionType: actionType,
+		Status:     "unread",
+		CreatedAt:  time.Now(),
 	}
 	if err := db.Create(&notif).Error; err != nil {
 		log.Printf("[Notify] Failed to create notification for user %s: %v", userID, err)

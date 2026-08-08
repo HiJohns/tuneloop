@@ -15,6 +15,7 @@ export default function RepairRequestDetail() {
   const [records, setRecords] = useState([])
   const [roles, setRoles] = useState([])
   const [quotes, setQuotes] = useState([])
+  const [acceptedQuote, setAcceptedQuote] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [quoteForm, setQuoteForm] = useState({ material_fee: '', service_fee: '', logistics_fee: '', duration: '', comment: '' })
@@ -58,7 +59,10 @@ export default function RepairRequestDetail() {
       if (req.code === 20000) setRequest(req.data)
       if (rec.code === 20000) setRecords(rec.data?.records || [])
       if (role.code === 20000) setRoles(role.data?.roles || [])
-      if (q.code === 20000) setQuotes(q.data?.list || [])
+      if (q.code === 20000) {
+        setQuotes(q.data?.list || [])
+        setAcceptedQuote(q.data?.accepted_quote || null)
+      }
     } catch {}
     setLoading(false)
   }
@@ -325,6 +329,27 @@ export default function RepairRequestDetail() {
           {quotes.length > 0 && (
             <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
               <Text className="text-sm font-bold text-black mb-3">本网点报价 ({quotes.filter(q => q.status === 'pending').length})</Text>
+              {acceptedQuote && quotes.some(q => q.is_renegotiation) && (
+                <View className="opacity-50 border border-zinc-200 rounded-xl p-3 mb-3">
+                  <Text className="text-xs font-bold text-zinc-500 mb-2">原报价（已接受）</Text>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-500">材料费</Text>
+                    <Text className="text-xs text-zinc-700">¥{Number(acceptedQuote.material_fee || 0).toFixed(2)}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-500">服务费</Text>
+                    <Text className="text-xs text-zinc-700">¥{Number(acceptedQuote.service_fee || 0).toFixed(2)}</Text>
+                  </View>
+                  <View className="flex justify-between">
+                    <Text className="text-xs text-zinc-500">物流费</Text>
+                    <Text className="text-xs text-zinc-700">¥{Number(acceptedQuote.logistics_fee || 0).toFixed(2)}</Text>
+                  </View>
+                  <View className="flex justify-between mt-1">
+                    <Text className="text-xs font-bold text-zinc-500">原报价合计</Text>
+                    <Text className="text-xs font-bold text-zinc-700">¥{Number(acceptedQuote.total || 0).toFixed(2)}</Text>
+                  </View>
+                </View>
+              )}
               {quotes.filter(q => q.status === 'pending').map(q => (
                 <View key={q.id} className="border border-zinc-200 rounded-xl p-3 mb-3">
                   <View className="space-y-1">

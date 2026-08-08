@@ -301,11 +301,23 @@ function renderDetailsBlock(details, type) {
     }
   }
   if (type === 'repair' || type === 'requote') {
+    const oldQ = details.old_quote
     return (
       <div>
+        {type === 'requote' && oldQ && (
+          <div className="opacity-50 mb-1">
+            <Row label="原报价（材料费）" value={`¥${Number(oldQ.material_fee || 0).toFixed(2)}`} />
+            <Row label="原报价（服务费）" value={`¥${Number(oldQ.service_fee || 0).toFixed(2)}`} />
+            <Row label="原报价（物流费）" value={`¥${Number(oldQ.logistics_fee || 0).toFixed(2)}`} />
+            <Row label="原报价合计" value={`¥${Number(oldQ.total || 0).toFixed(2)}`} bold />
+          </div>
+        )}
         <Row label="材料费" value={`¥${Number(details.material_fee || 0).toFixed(2)}`} />
         <Row label="服务费" value={`¥${Number(details.service_fee || 0).toFixed(2)}`} />
         <Row label="物流费" value={`¥${Number(details.logistics_fee || 0).toFixed(2)}`} />
+        {type === 'requote' && oldQ && (
+          <Row label="需补付" value={`+¥${Math.max(0, Number(details.total || 0)).toFixed(2)}`} bold color="#dc2626" />
+        )}
       </div>
     )
   }

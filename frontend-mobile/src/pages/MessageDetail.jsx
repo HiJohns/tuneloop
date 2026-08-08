@@ -138,6 +138,15 @@ export default function MessageDetail() {
     })
   }
 
+  const handleRepairAction = () => {
+    // weapp repair module not built yet (#1559) — guide to H5 for now
+    if (env.isMiniProgram) {
+      dialog.toast('请在网页端查看报修详情')
+      return
+    }
+    navigate(`/repair-request?id=${ref?.repair_request_id || notification?.ref_id || ''}`)
+  }
+
   if (loading) {
     return (
       <View className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -248,6 +257,15 @@ export default function MessageDetail() {
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
               支付 ¥{Math.max(0, damageAmount - deposit).toFixed(2)}
+            </Button>
+          )}
+
+          {notification.action_type === 'repair_request' && (
+            <Button
+              onClick={handleRepairAction}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              查看详情 / 确认新报价
             </Button>
           )}
         </View>
