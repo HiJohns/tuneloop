@@ -1524,6 +1524,28 @@ checkRule() - 权限位过滤
 
 ---
 
+### 场景：会员注册 — 支付 — 激活
+
+**前置条件**：用户完成注册（PostRegister 创建本地用户 + 生成 ref_code）
+
+**流程**：
+1. 注册完成后跳转支付页（`/pages-weapp/payment/index?type=membership&amount=99`）
+2. 支付页显示**标准收据**（#1575）：
+   - 费用明细：VIP 会员注册 ¥99.00 + 合计 ¥99.00
+   - 权益说明：解锁全部乐器租赁服务；获赠 99 赠点（每次最多抵扣租金 {max_pay_ratio}%）
+   - 不显示点数抵扣滑块（membership 不适用点数支付）
+3. 支付（微信支付 / 模拟支付）→ 回调 `applySideEffects` case membership：
+   - 按 `MembershipLevel.MinAmount ≤ 支付金额` 匹配最高等级 → 更新 `users.membership_level_id`
+   - 赠点 99 已在注册时（PostRegister `membership_gift_points`）发放，回调不重复赠送
+4. 支付成功 toast：「会员已激活，赠点已到账」→ 跳转个人中心
+
+**关键规则**：
+- 等级激活条件：`amount >= level.MinAmount`（如 99 元 → 初级/VIP 等级）
+- 会员中心显示当前等级（不再是"普通会员"）
+- `GET /user/points` 返回 `max_pay_ratio`（PointsPolicy.MaxPayRatio，默认 0.3）供前端展示
+
+---
+
 ### 场景：会员推广二维码
 
 - **前置条件**：用户已登录，ref_code 已生成

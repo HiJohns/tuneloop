@@ -186,9 +186,26 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 	case "repair":
 		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error
 	case "membership":
-		// Membership registration fee (#1532): payment recorded; gift
-		// points and referral bonuses are credited during registration
-		// (PostRegister). Nothing else to apply.
+		// Membership fee (#1532): activate the highest level whose
+		// MinAmount <= paid amount. OrderID stores the local user id.
+		// Gift points and referral bonuses are credited during
+		// registration (PostRegister) — not repeated here.
+		if record.OrderID != nil {
+			var levels []models.MembershipLevel
+			tx.Order("min_amount ASC").Find(&levels)
+			newLevelID := 0
+			for _, l := range levels {
+				if record.Amount >= l.MinAmount {
+					newLevelID = l.ID
+				}
+			}
+			if newLevelID > 0 {
+				if err := tx.Model(&models.User{}).Where("id = ?", *record.OrderID).
+					Update("membership_level_id", newLevelID).Error; err != nil {
+					log.Printf("[applySideEffects] membership level activate failed: %v", err)
+				}
+			}
+		}
 		return nil
 	case "damage":
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {

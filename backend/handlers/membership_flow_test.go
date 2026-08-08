@@ -125,13 +125,29 @@ func TestMembershipFlow(t *testing.T) {
 	assert.Equal(t, prepayResp.Data.Data.OutTradeNo, *record.OutTradeNo)
 
 	// ------------------------------------------------------------------
-	// Step 4: Membership callback → no side effects, no error.
+	// Step 4: Membership callback → activate level, no error.
 	// ------------------------------------------------------------------
-	// applySideEffects is called by the wechatpay callback; the membership
-	// case returns nil (nothing to apply — gift points were credited at
-	// registration). Verify no panic / no error via a direct call.
+	// applySideEffects (membership case) activates the highest level whose
+	// MinAmount <= paid amount (#1575).
+	require.NoError(t, db.Create(&models.MembershipLevel{
+		ID:        1,
+		Name:      "初级会员",
+		MinAmount: 99,
+	}).Error)
+	require.NoError(t, db.Create(&models.MembershipLevel{
+		ID:        2,
+		Name:      "高级会员",
+		MinAmount: 199,
+	}).Error)
+
 	err := applySideEffects(db, &record, time.Now())
 	require.NoError(t, err, "membership payment side effects must not error")
+
+	// Level 1 (99 <= 99) activated, not level 2 (99 < 199).
+	var userAfter models.User
+	require.NoError(t, db.Where("id = ?", localUser.ID).First(&userAfter).Error)
+	require.NotNil(t, userAfter.MembershipLevelID, "membership level set after payment")
+	require.Equal(t, 1, *userAfter.MembershipLevelID, "highest level with MinAmount <= 99 activated")
 
 	// Payment record unchanged after side effects (no status flip).
 	var after models.OrderPaymentRecord

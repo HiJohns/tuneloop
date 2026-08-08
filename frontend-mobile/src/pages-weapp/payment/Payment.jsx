@@ -21,6 +21,7 @@ export default function Payment() {
   const [isPaying, setIsPaying] = useState(false)
   const [mockPaying, setMockPaying] = useState(false)
   const [mockEnabled, setMockEnabled] = useState(false)
+  const [maxPayRatio, setMaxPayRatio] = useState(0.3)
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -47,8 +48,14 @@ export default function Payment() {
         return
       }
       if (pType === 'membership') {
-        setData({ type: 'membership', title: '会员入会费', amount: pAmount, details: null, wallet: null })
+        setData({ type: 'membership', title: '会员入会费', amount: pAmount, details: { items: [{ label: 'VIP 会员注册', amount: pAmount }] }, wallet: null })
         setLoading(false)
+        // Fetch max_pay_ratio for the benefits note (#1575).
+        try {
+          const resp = await apiFetch(`${baseUrl}/user/points`)
+          const result = await resp.json()
+          if (result.code === 20000) setMaxPayRatio(result.data?.max_pay_ratio ?? 0.3)
+        } catch {}
         return
       }
       if (pType === 'appeal') {
@@ -104,7 +111,7 @@ export default function Payment() {
     const pId = params.id || ''
 
     if (cashAmount <= 0) {
-      Taro.showToast({ title: '支付成功', icon: 'success' })
+      Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
       setTimeout(() => Taro.switchTab({ url: '/pages-weapp/home/index' }), 2000)
       return
     }
@@ -139,7 +146,7 @@ export default function Payment() {
       if (result.code === 20000) {
         const d = result.data
         if (d.mock) {
-          Taro.showToast({ title: '支付成功（测试）', icon: 'success' })
+          Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功（测试）', icon: 'success' })
           setTimeout(() => {
             if (pType === 'membership') {
               Taro.switchTab({ url: '/pages-weapp/profile/index' })
@@ -172,7 +179,7 @@ export default function Payment() {
       signType: prepayData.data.sign_type,
       paySign: prepayData.data.pay_sign,
       success: () => {
-        Taro.showToast({ title: '支付成功', icon: 'success' })
+        Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
         setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
       },
       fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
@@ -307,7 +314,7 @@ export default function Payment() {
         </View>
 
         {/* Points usage (only for non-refund, non-appeal) */}
-        {!isRefund && pType !== 'points' && pType !== 'appeal' && data.amount > 0 && (
+        {!isRefund && pType !== 'points' && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
            {(maxPrepaid > 0 || maxGift > 0) && (<>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
@@ -365,6 +372,20 @@ export default function Payment() {
             <Text style={{ fontSize: 13, color: '#71717a' }}>
               金额将在提交后原路退回至您的微信支付账户，预计 1-7 个工作日到账。
             </Text>
+          </View>
+        )}
+
+        {/* Membership benefits note (#1575) */}
+        {pType === 'membership' && (
+          <View style={{ backgroundColor: '#fef9ec', margin: 16, borderRadius: 16, padding: 16 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 8 }}>成为 VIP 会员后，你将获得以下权益：</Text>
+            <View style={{ marginBottom: 4 }}>
+              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: 18 }}>· 解锁全部乐器租赁服务</Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: 18 }}>· 获赠 99 赠点，可用于抵扣租金</Text>
+              <Text style={{ fontSize: 11, color: '#a16207', lineHeight: 16, paddingLeft: 12 }}>（每次最多抵扣租金的 {Math.round((maxPayRatio || 0.3) * 100)}%）</Text>
+            </View>
           </View>
         )}
 
@@ -451,6 +472,20 @@ function Row({ label, value, color, bold, valueSize }) {
 }
 
 function renderDetailsBlock(details, type) {
+  if (type === 'membership') {
+    // Standard receipt format (#1575): item rows + total.
+    const items = details?.items || []
+    return (
+      <View>
+        {items.map((item, i) => (
+          <Row key={i} label={item.label} value={`¥${Number(item.amount || 0).toFixed(2)}`} />
+        ))}
+        <View style={{ borderTop: '1px solid #f4f4f5', marginTop: 8, paddingTop: 8 }}>
+          <Row label="合计" value={`¥${items.reduce((s, it) => s + Number(it.amount || 0), 0).toFixed(2)}`} bold />
+        </View>
+      </View>
+    )
+  }
   if (type === 'rent' && details.pricing_breakdown) {
     let pb
     try { pb = typeof details.pricing_breakdown === 'string' ? JSON.parse(details.pricing_breakdown) : details.pricing_breakdown } catch { pb = null }
