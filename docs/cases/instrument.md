@@ -27,6 +27,11 @@ steps:
         displays: [SN 唯一性校验结果, 属性候选值, 已上传媒体]
         ops:
           - {type: api, method: GET, path: /instruments/check}
+          - {type: api, method: GET, path: /instruments/levels}
+          - {type: api, method: GET, path: /instruments/filter-options}
+          - {type: api, method: GET, path: /instruments/:id/pricing-v2}
+          - {type: api, method: GET, path: /instruments/:id/media}
+          - {type: api, method: DELETE, path: /instruments/:id/media/:batch_id}
           - {type: api, method: POST, path: /media/upload}
           - {type: interact}
   - seq: 3
@@ -43,6 +48,21 @@ steps:
           - {type: api, method: POST, path: /instruments}
           - {type: navigate, target: /instruments}
     api: {method: POST, path: /instruments, params: [sn, category_id, level_id, site_id, base_daily_rate, pricing]}
+    related:
+      - {method: GET, path: /categories}
+      - {method: GET, path: /categories/:id/children}
+      - {method: POST, path: /categories}
+      - {method: PUT, path: /categories/sort}
+      - {method: PUT, path: /categories/:id}
+      - {method: DELETE, path: /categories/:id}
+      - {method: GET, path: /instrument-photo-specs/:category_id}
+      - {method: GET, path: /properties}
+      - {method: GET, path: /properties/:id/options/search}
+      - {method: POST, path: /instruments/:id/photos/upload}
+      - {method: GET, path: /instruments/:id/photos/latest}
+      - {method: GET, path: /instruments/:id/activity-log}
+      - {method: PUT, path: /instruments/:id/promo-overrides}
+      - {method: DELETE, path: /instruments/:id/media/key/:storage_key}
 ---
 
 # I-01 乐器录入
@@ -108,6 +128,18 @@ steps:
         ops:
           - {type: api, method: POST, path: /instruments/batch-import}
     api: {method: POST, path: /instruments/batch-import, params: [csv, media_zip]}
+    related:
+      - {method: GET, path: /instruments/batch-import/template}
+      - {method: POST, path: /instruments/batch-import/preview}
+      - {method: POST, path: /instruments/batch-import/media}
+      - {method: GET, path: /instruments/import/template}
+      - {method: POST, path: /instruments/import}
+      - {method: GET, path: /instruments/export}
+      - {method: POST, path: /instruments/batch-pricing}
+      - {method: PUT, path: /instruments/:id/status}
+      - {method: PUT, path: /instruments/:id/display-image}
+      - {method: PUT, path: /instruments/:id/cover-image}
+      - {method: DELETE, path: /instruments/:id/scrap}
 ---
 
 # I-02 批量导入
@@ -144,6 +176,13 @@ steps:
         displays: [乐器图片, 名称, 租金, 网点]
         ops:
           - {type: api, method: GET, path: /public/instruments}
+          - {type: api, method: GET, path: /public/instruments/search}
+          - {type: api, method: GET, path: /public/instruments/lookup}
+          - {type: api, method: GET, path: /public/categories}
+          - {type: api, method: GET, path: /public/banners}
+          - {type: api, method: GET, path: /public/sites}
+          - {type: api, method: GET, path: /public/merchants}
+          - {type: api, method: GET, path: /public/config}
     api: {method: GET, path: /public/instruments, params: [tenant?, page, pageSize]}
   - seq: 2
     action: 浏览详情
@@ -157,6 +196,8 @@ steps:
         displays: [租金政策, 级别选择, 网点位置, 服务权益]
         ops:
           - {type: api, method: GET, path: /public/instruments/:id}
+          - {type: api, method: GET, path: /public/instruments/:id/pricing-v2}
+          - {type: api, method: GET, path: /public/instruments/:id/display-media}
     api: {method: GET, path: /public/instruments/:id, params: []}
   - seq: 3
     action: 下单入口

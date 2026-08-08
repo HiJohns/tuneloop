@@ -16,6 +16,15 @@ steps:
         ops:
           - {type: api, method: POST, path: /admin/merchants}
     api: {method: POST, path: /admin/merchants, params: [name, contact, type]}
+    related:
+      - {method: GET, path: /merchants}
+      - {method: GET, path: /merchants/:id}
+      - {method: PUT, path: /merchants/:id}
+      - {method: DELETE, path: /merchants/:id}
+      - {method: GET, path: /staff}
+      - {method: GET, path: /users}
+      - {method: POST, path: /user/reset-password}
+      - {method: POST, path: /user/change-password}
 ---
 
 # B-01 商户创建

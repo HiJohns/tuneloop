@@ -16,6 +16,15 @@ steps:
         ops:
           - {type: api, method: PUT, path: /forwarding/sessions/:id/ready}
     api: {method: PUT, path: /forwarding/sessions/:id/ready, params: [service_fee, logistics_fee]}
+    related:
+      - {method: GET, path: /forwarding/sessions}
+      - {method: PUT, path: /forwarding/sessions/:id/ship}
+      - {method: PUT, path: /forwarding/sessions/:id/receive}
+      - {method: PUT, path: /forwarding/sessions/:id/last-mile}
+      - {method: PUT, path: /forwarding/sessions/:id/complete}
+      - {method: PUT, path: /forwarding/sessions/:id/lost}
+      - {method: GET, path: /transit-routes}
+      - {method: GET, path: /common/sites/nearby}
 ---
 
 # T-01 中转发货

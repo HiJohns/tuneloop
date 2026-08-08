@@ -21,6 +21,18 @@ steps:
           - {type: api, method: POST, path: /user/orders}
           - {type: navigate, target: /payment}
     api: {method: POST, path: /user/orders, params: [instrument_id, start_date, end_date, rent_days]}
+    # 关联子 API（L-01 主流程的前置/附属操作）
+    related:
+      - {method: GET, path: /user/instruments}
+      - {method: GET, path: /user/instruments/:id}
+      - {method: GET, path: /user/addresses}
+      - {method: POST, path: /user/addresses}
+      - {method: DELETE, path: /user/addresses/:id}
+      - {method: GET, path: /user/guarantors}
+      - {method: POST, path: /user/guarantors}
+      - {method: DELETE, path: /user/guarantors/:id}
+      - {method: GET, path: /categories}
+      - {method: GET, path: /public/instruments/:id/pricing-v2}
   - seq: 2
     action: 支付
     frontend:
@@ -201,6 +213,12 @@ steps:
         ops:
           - {type: api, method: PUT, path: /warehouse/orders/:id/return-inspect}
     api: {method: PUT, path: /warehouse/orders/:id/return-inspect, params: [instrument_sn, scan_time, condition]}
+    related:
+      - {method: GET, path: /overdue-leases}
+      - {method: GET, path: /orders/:id/pickup}
+      - {method: POST, path: /orders/:id/cancel}
+      - {method: GET, path: /orders/by-trade-no/:out_trade_no}
+      - {method: GET, path: /reports/assessment/:order_id}
 ---
 
 # L-03 超期归还
