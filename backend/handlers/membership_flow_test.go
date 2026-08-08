@@ -13,10 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
-	"tuneloop-backend/services/wechatpay"
 	"tuneloop-backend/testutil"
 )
 
@@ -26,40 +25,8 @@ import (
 // side effects on activation (gift points are credited at registration).
 func TestMembershipFlow(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	wechatpay.InitGlobal(wechatpay.LoadConfig()) // WECHAT_PAY_MOCK_MODE=true → mock paid
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	// Isolated tables per test run.
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.OrderPaymentRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{}, &models.PricingTemplate{}, &models.MerchantPricingConfig{}, &models.PointsPolicy{}, &models.MerchantSettlementConfig{}, &models.SystemSetting{}, &models.PromoPlan{}, &models.Referral{}, &models.MembershipLevel{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.LeaseSession{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderStatusHistory{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DamageAssessment{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Settlement{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderRefundRecord{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PointsTransaction{}))
-	require.NoError(t, db.Migrator().AutoMigrate(&models.User{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DamageReport{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MembershipGiftRatio{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PricingTemplate{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MerchantPricingConfig{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PointsPolicy{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MerchantSettlementConfig{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.SystemSetting{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PromoPlan{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Referral{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MembershipLevel{}))
-	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
-		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
-	}
+	testfixtures.SetupWechatPayMock(t)
+	db := testfixtures.SetupTestDB(t)
 
 	// Membership fee setting: 99 (default, made explicit).
 	require.NoError(t, db.Create(&models.SystemSetting{
@@ -163,7 +130,7 @@ func TestMembershipFlow(t *testing.T) {
 	// applySideEffects is called by the wechatpay callback; the membership
 	// case returns nil (nothing to apply — gift points were credited at
 	// registration). Verify no panic / no error via a direct call.
-	err = applySideEffects(db, &record, time.Now())
+	err := applySideEffects(db, &record, time.Now())
 	require.NoError(t, err, "membership payment side effects must not error")
 
 	// Payment record unchanged after side effects (no status flip).

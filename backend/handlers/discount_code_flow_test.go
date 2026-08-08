@@ -13,9 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
-	"tuneloop-backend/services/wechatpay"
 	"tuneloop-backend/testutil"
 )
 
@@ -25,41 +24,8 @@ import (
 // CreateOrder (DiscountCodeUsage row + usage_count increment).
 func TestDiscountCodeFlow(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	wechatpay.InitGlobal(wechatpay.LoadConfig())
-	config := database.LoadConfig()
-	db, err := database.InitDB(config)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
-
-	// Isolated tables per test run.
-	_ = db.Migrator().DropTable(&models.Instrument{}, &models.Order{}, &models.LeaseSession{}, &models.OrderStatusHistory{}, &models.DamageAssessment{}, &models.Settlement{}, &models.OrderRefundRecord{}, &models.OrderPaymentRecord{}, &models.PointsTransaction{}, &models.User{}, &models.DamageReport{}, &models.MembershipGiftRatio{}, &models.PricingTemplate{}, &models.MerchantPricingConfig{}, &models.PointsPolicy{}, &models.MerchantSettlementConfig{}, &models.SystemSetting{}, &models.PromoPlan{}, &models.DiscountPolicy{}, &models.DiscountCode{}, &models.DiscountCodeUsage{})
-	require.NoError(t, db.Migrator().CreateTable(&models.Instrument{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Order{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.LeaseSession{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderStatusHistory{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DamageAssessment{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.Settlement{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderRefundRecord{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.OrderPaymentRecord{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PointsTransaction{}))
-	require.NoError(t, db.Migrator().AutoMigrate(&models.User{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DamageReport{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MembershipGiftRatio{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PricingTemplate{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MerchantPricingConfig{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PointsPolicy{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.MerchantSettlementConfig{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.SystemSetting{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.PromoPlan{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DiscountPolicy{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DiscountCode{}))
-	require.NoError(t, db.Migrator().CreateTable(&models.DiscountCodeUsage{}))
-	if !db.Migrator().HasColumn(&models.User{}, "iam_sub") {
-		require.NoError(t, db.Exec(`ALTER TABLE users ADD COLUMN iam_sub varchar(255)`).Error)
-	}
+	testfixtures.SetupWechatPayMock(t)
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	userID := uuid.New().String()
