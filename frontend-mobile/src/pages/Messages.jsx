@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { message } from 'antd'
 import { notificationApi } from '../services/api'
+import { dialog } from '../platform'
 import { ArrowLeft, Bell } from 'lucide-react'
-import { View, Text, Button, ScrollView } from '@tarojs/components'
+import { View, Text, ScrollView } from '@tarojs/components'
 
 const typeConfig = {
   damage: { bg: 'bg-red-100', text: 'text-red-600', label: '定损通知' },
@@ -45,7 +45,7 @@ export default function Messages() {
     try {
       await notificationApi.markAllRead()
       setNotifications(prev => prev.map(n => ({ ...n, status: 'read' })))
-      message.success('已全部标记为已读')
+      dialog.toast('已全部标记为已读')
     } catch (err) {
       console.error('Failed to mark all read:', err)
     }
@@ -58,14 +58,12 @@ export default function Messages() {
   const unreadCount = notifications.filter(n => n.status === 'unread').length
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-20">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-        </Button>
-        <Text className="text-lg font-bold flex-1">消息</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
+        <Text className="text-lg font-black text-black flex-1">消息</Text>
         {unreadCount > 0 && (
-          <Button onClick={markAllRead} className="text-sm text-white/80">全部已读</Button>
+          <Text className="text-sm text-brand-primary ml-auto cursor-pointer" onClick={markAllRead}>全部已读</Text>
         )}
       </View>
 
@@ -82,13 +80,13 @@ export default function Messages() {
             {unreadCount > 0 && (
               <Text className="text-sm text-gray-500 mb-2">{unreadCount} 条未读</Text>
             )}
-            <View className="space-y-3">
+            <View>
               {notifications.map(notif => {
                 const type = typeConfig[notif.type] || typeConfig.order
                 return (
                   <View
                     key={notif.id}
-                    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer ${
+                    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer mb-3 ${
                       notif.status === 'unread' ? 'border-l-4 border-brand-primary' : ''
                     }`}
                     onClick={() => handleClick(notif)}
