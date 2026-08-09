@@ -508,20 +508,24 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	orgID := middleware.GetOrgID(ctx)
 	notificationTitle := "租赁完成"
 	notificationContent := "您的乐器租赁订单已完成，押金将退还至您的账户。"
+	actionType := "order"
+	actionData := strPtr(fmt.Sprintf(`{"order_id":"%s"}`, orderID))
 	if req.Condition == "damaged" {
 		notificationTitle = "归还验收有损坏"
 		notificationContent = fmt.Sprintf("您的订单 %s 验收发现损坏，赔偿金额 ¥%.2f。请在订单详情中确认接受或拒绝。定损理由：%s", orderID[:8], req.DamageAmount, req.Notes)
 	}
 	notification := models.Notification{
-		TenantID: tenantID,
-		OrgID:    orgID,
-		UserID:   order.UserID,
-		Type:     "order",
-		Title:    notificationTitle,
-		Content:  notificationContent,
-		RefID:    orderID,
-		RefType:  "order",
-		Status:   "unread",
+		TenantID:   tenantID,
+		OrgID:      orgID,
+		UserID:     order.UserID,
+		Type:       "order",
+		Title:      notificationTitle,
+		Content:    notificationContent,
+		RefID:      orderID,
+		RefType:    "order",
+		ActionType: actionType,
+		ActionData: actionData,
+		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {
 		log.Printf("[InspectReturn] Failed to create notification: %v", err)

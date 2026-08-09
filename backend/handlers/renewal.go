@@ -439,17 +439,36 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		CreatedAt: now,
 	})
 
+	// Query instrument SN so the notification identifies the instrument.
+	instrumentLabel := ""
+	if order.InstrumentID != "" {
+		var inst models.Instrument
+		if err := tx.Where("id = ?", order.InstrumentID).First(&inst).Error; err == nil {
+			if inst.SN != "" {
+				instrumentLabel = inst.SN
+			}
+			if inst.CategoryName != "" {
+				instrumentLabel = fmt.Sprintf("%s（%s）", instrumentLabel, inst.CategoryName)
+			}
+		}
+	}
+	if instrumentLabel == "" {
+		instrumentLabel = orderID[:8]
+	}
+
 	tx.Create(&models.Notification{
-		TenantID:  record.TenantID,
-		OrgID:     order.OrgID,
-		UserID:    record.UserID,
-		Type:      "renewal",
-		Title:     "续期成功",
-		Content:   fmt.Sprintf("续期 %d 天成功，新到期日：%s", meta.AdditionalDays, newEndDateStr),
-		RefID:     orderID,
-		RefType:   "order",
-		Status:    "unread",
-		CreatedAt: now,
+		TenantID:   record.TenantID,
+		OrgID:      order.OrgID,
+		UserID:     record.UserID,
+		Type:       "renewal",
+		Title:      "续期成功",
+		Content:    fmt.Sprintf("乐器 %s 续期 %d 天成功，新到期日：%s", instrumentLabel, meta.AdditionalDays, newEndDateStr),
+		RefID:      orderID,
+		RefType:    "order",
+		ActionType: "order",
+		ActionData: strPtr(fmt.Sprintf(`{"order_id":"%s"}`, orderID)),
+		Status:     "unread",
+		CreatedAt:  now,
 	})
 
 	// Re-evaluate membership level after renewal payment

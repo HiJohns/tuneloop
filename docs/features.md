@@ -210,3 +210,36 @@
 **订单完成结算**（#1537）：订单进入 `completed` 状态时（good 验收、damaged 申诉/协商完成、损坏赔偿支付回调），自动调用 `computeSettlement` 计算实际开销（实际租期 × tier 阶梯定价 + 损坏赔偿），与最初付款比对得出退款金额，按**赠点超cap → 现金**顺序执行退款并创建 `settlements` + `points_transactions` 记录。`DepositRefundScheduler` 仅处理 `deposit_refunding` 超时兜底，完成后 `deposit_refunded=true` 避免重复。详见 `docs/cases.md §2.7`。
 
 ---
+
+## 7. 通知设计规范（Notification Contract）
+
+> 来源: #1595 续期通知不明确审计。所有通知生成点必须遵循 4 项规范。
+
+### 7.1 强制清单
+
+每条通知必须包含 4 项：
+
+| # | 项目 | 说明 | 反例 |
+|---|------|------|------|
+| 1 | **Title 清晰** | 可辨识通知类型（"定损通知"、"续期成功"） | "系统通知" |
+| 2 | **Content 含业务上下文** | 至少含乐器 SN 或关联信息 | "续期 30 天成功"（无乐器） |
+| 3 | **ActionType + ActionData** | 前端可跳转查看详情 | 无 ActionType → 只读文字 |
+| 4 | **RefID + RefType** | 关联业务实体（order/repair_request） | 空 |
+
+### 7.2 ActionType 约定
+
+| ActionType | 前端行为（MessageDetail.jsx） | 示例通知 |
+|-----------|------|------|
+| `order` | 查看订单详情按钮 | 续期成功、租赁完成、归还验收 |
+| `damage_accept_reject` | 接受/拒绝定损按钮 | 定损通知 |
+| `payment` | 支付按钮 | 需补付通知 |
+| `repair_request` | 查看报修详情 | 报价、发回、重新报价 |
+| `info` | 无按钮（纯信息） | 申诉结果（ref_type=appeal 时有"查看申诉结果"） |
+
+### 7.3 ActionData JSON 约定
+
+- `{"order_id": "..."}` — 订单类通知
+- `{"damage_amount": X, "deposit": Y, "order_id": "..."}` — 定损类
+- 必须包含跳转所需的最小字段（如 order_id）
+
+---

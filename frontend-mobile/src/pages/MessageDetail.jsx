@@ -283,6 +283,22 @@ export default function MessageDetail() {
               查看详情 / 确认新报价
             </Button>
           )}
+
+          {notification.action_type === 'order' && (
+            <Button
+              onClick={() => {
+                const orderId = actionData.order_id || notification.ref_id || ''
+                if (env.isMiniProgram) {
+                  Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
+                } else {
+                  navigate(`/order/${orderId}`)
+                }
+              }}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              查看订单详情
+            </Button>
+          )}
         </View>
       </View>
 
