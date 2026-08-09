@@ -464,6 +464,10 @@ func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
 	}
 	var user models.User
 	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err == nil {
+		// Disabled users are blocked from all authenticated access (#1545).
+		if user.Status == "disabled" {
+			return "", fmt.Errorf("user is disabled")
+		}
 		return user.ID, nil
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", fmt.Errorf("failed to query user: %w", err)

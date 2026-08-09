@@ -1,0 +1,203 @@
+package handlers
+
+import (
+	"encoding/csv"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
+)
+
+// UserManagementHandler manages platform-wide registered users (#1545).
+// Registered under authRequired with RequireSysPerm(SysPermTenantList).
+type UserManagementHandler struct{}
+
+func NewUserManagementHandler() *UserManagementHandler {
+	return &UserManagementHandler{}
+}
+
+// ListUserManagement returns paginated registered users with search.
+// GET /admin/user-management?page=1&pageSize=20&search=...
+func (h *UserManagementHandler) List(c *gin.Context) {
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	search := c.Query("search")
+
+	q := db.Model(&models.User{})
+	if search != "" {
+		like := "%" + search + "%"
+		q = q.Where("username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?", like, like, like)
+	}
+
+	var total int64
+	q.Count(&total)
+
+	var users []models.User
+	if err := q.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query users"})
+		return
+	}
+
+	list := make([]gin.H, 0, len(users))
+	for _, u := range users {
+		list = append(list, userSummary(u, db))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list":  list,
+			"total": total,
+		},
+	})
+}
+
+// Get returns full detail of one user.
+// GET /admin/user-management/:id
+func (h *UserManagementHandler) Get(c *gin.Context) {
+	db := database.GetDB().WithContext(c.Request.Context())
+	var user models.User
+	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": userDetail(user, db)})
+}
+
+// Update edits editable fields (membership_level_id, promo_points, status).
+// PUT /admin/user-management/:id
+func (h *UserManagementHandler) Update(c *gin.Context) {
+	var req struct {
+		MembershipLevelID *int     `json:"membership_level_id"`
+		PromoPoints       *float64 `json:"promo_points"`
+		Status            *string  `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		return
+	}
+
+	db := database.GetDB().WithContext(c.Request.Context())
+	var user models.User
+	if err := db.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	updates := map[string]interface{}{}
+	if req.MembershipLevelID != nil {
+		updates["membership_level_id"] = *req.MembershipLevelID
+	}
+	if req.PromoPoints != nil {
+		updates["promo_points"] = *req.PromoPoints
+	}
+	if req.Status != nil {
+		if *req.Status != "active" && *req.Status != "disabled" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "status must be active or disabled"})
+			return
+		}
+		updates["status"] = *req.Status
+	}
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no editable fields provided"})
+		return
+	}
+
+	if err := db.Model(&user).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "success"})
+}
+
+// Export returns all matching users as CSV.
+// GET /admin/user-management/export?search=...
+func (h *UserManagementHandler) Export(c *gin.Context) {
+	db := database.GetDB().WithContext(c.Request.Context())
+
+	search := c.Query("search")
+	q := db.Model(&models.User{})
+	if search != "" {
+		like := "%" + search + "%"
+		q = q.Where("username ILIKE ? OR phone ILIKE ? OR wx_openid ILIKE ?", like, like, like)
+	}
+
+	var users []models.User
+	if err := q.Order("created_at DESC").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query users"})
+		return
+	}
+
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=users_%d.csv", time.Now().Unix()))
+
+	w := csv.NewWriter(c.Writer)
+	defer w.Flush()
+	w.Write([]string{"username", "wx_openid", "phone", "level", "points", "registered_at", "last_active", "status"})
+	for _, u := range users {
+		s := userSummary(u, db)
+		w.Write([]string{
+			fmt.Sprintf("%v", s["username"]),
+			fmt.Sprintf("%v", s["wx_openid"]),
+			fmt.Sprintf("%v", s["phone"]),
+			fmt.Sprintf("%v", s["level"]),
+			fmt.Sprintf("%v", s["points"]),
+			fmt.Sprintf("%v", s["registered_at"]),
+			fmt.Sprintf("%v", s["last_active"]),
+			fmt.Sprintf("%v", s["status"]),
+		})
+	}
+}
+
+func userSummary(u models.User, db *gorm.DB) gin.H {
+	levelName := ""
+	if u.MembershipLevelID != nil {
+		var lv models.MembershipLevel
+		if err := db.Where("id = ?", *u.MembershipLevelID).First(&lv).Error; err == nil {
+			levelName = lv.Name
+		}
+	}
+	return gin.H{
+		"id":            u.ID,
+		"username":      u.Username,
+		"wx_openid":     u.WxOpenid,
+		"phone":         u.Phone,
+		"level":         levelName,
+		"membership_level_id": u.MembershipLevelID,
+		"points":        u.PromoPoints,
+		"registered_at": u.CreatedAt,
+		"last_active":   u.UpdatedAt,
+		"status":        u.Status,
+	}
+}
+
+func userDetail(u models.User, db *gorm.DB) gin.H {
+	s := userSummary(u, db)
+	s["name"] = u.Name
+	s["email"] = u.Email
+	s["nickname"] = u.Nickname
+	s["is_shadow"] = u.IsShadow
+	s["total_spending"] = u.TotalSpending
+	s["role"] = u.Role
+	s["tenant_id"] = u.TenantID
+	s["org_id"] = u.OrgID
+	s["created_at"] = u.CreatedAt
+	return s
+}
+
+var _ = middleware.GetTenantID

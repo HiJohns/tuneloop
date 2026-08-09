@@ -545,15 +545,24 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 		if tokenResp != nil && tokenResp.AccessToken != "" {
 			claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
 			if parseErr == nil && claims.UserID != "" {
-				var existingUser models.User
-				if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
-					log.Printf("[WxLogin] Channel 1: iam_sub=%s not found locally, returning binding error", claims.UserID)
-					c.JSON(http.StatusConflict, gin.H{
-						"code":    40900,
-						"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
-					})
-					return
-				}
+			var existingUser models.User
+			if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
+				log.Printf("[WxLogin] Channel 1: iam_sub=%s not found locally, returning binding error", claims.UserID)
+				c.JSON(http.StatusConflict, gin.H{
+					"code":    40900,
+					"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
+				})
+				return
+			}
+			// Disabled users are blocked from login (#1545).
+			if existingUser.Status == "disabled" {
+				log.Printf("[WxLogin] Channel 1: user %s is disabled, blocking login", claims.UserID)
+				c.JSON(http.StatusForbidden, gin.H{
+					"code":    40300,
+					"message": "该账户已被禁用，请联系平台管理员",
+				})
+				return
+			}
 			}
 		}
 

@@ -69,6 +69,7 @@ import ContentEdit from './pages/admin/ContentEdit'
 import MembershipLevelsPage from './pages/System/MembershipLevelsPage'
 import RebateConfigPage from './pages/System/RebateConfigPage'
 import PromoPlanManagePage from './pages/System/PromoPlanManagePage'
+import UserManagement from './pages/System/UserManagement'
 
 import RentSetting from './pages/admin/inventory/RentSetting'
 import MerchantPricingConfig from './pages/admin/pricing/MerchantPricingConfig'
@@ -359,6 +360,7 @@ function MainLayout() {
     label: '系统管理',
     children: [
       { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
+      { key: '/system/user-management', label: '用户管理', permission: { sysPermBits: [5] } },
       { key: '/system/audit-logs', label: '操作日志' },
       { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
       { key: '/system/warnings', label: '警告管理', permission: { sysPermBits: [5] } },
@@ -453,6 +455,7 @@ function onMenuClick(e) {
     '/merchants/:id': { title: '商户详情', parent: '商户管理' },
     '/merchants/new': { title: '创建商户', parent: '商户管理' },
     '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
+    '/system/user-management': { title: '用户管理', parent: '系统管理' },
     '/system/permissions': { title: '权限管理', parent: '系统管理' },
     '/system/warnings': { title: '警告管理', parent: '系统管理' },
     '/system/warning-settings': { title: '警告配置', parent: '系统管理' },
@@ -608,6 +611,7 @@ function onMenuClick(e) {
             <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/merchants/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['audit_log:read'] }}><AuditLogPage /></ProtectedRoute>} />
+            <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><UserManagement /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/staff/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffEdit /></ProtectedRoute>} />
             <Route path="/staff/:id/reset-password" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffResetPassword /></ProtectedRoute>} />
