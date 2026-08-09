@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
 import { storage, env, request, eventBus, wxLogin } from '../../platform'
+import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
 
 export default function ProfileComplete() {
@@ -11,6 +12,8 @@ export default function ProfileComplete() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [avatar, setAvatar] = useState('')
+  const idPhotoFrontRef = useRef(null)
+  const idPhotoBackRef = useRef(null)
 
   const [province, setProvince] = useState('')
   const [city, setCity] = useState('')
@@ -71,6 +74,11 @@ export default function ProfileComplete() {
             })
           } catch {}
         }
+        // Upload pending ID photos after token is stored (#1599)
+        try {
+          if (idPhotoFrontRef.current?.uploadPending) await idPhotoFrontRef.current.uploadPending()
+          if (idPhotoBackRef.current?.uploadPending) await idPhotoBackRef.current.uploadPending()
+        } catch (e) { console.error('[Register] id photo upload failed', e) }
         if (province || city || detail) {
           if (!province || !city || !detail) {
             Taro.showToast({ title: '收货地址信息不完整，未保存', icon: 'none', duration: 2500 })
@@ -160,6 +168,16 @@ export default function ProfileComplete() {
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="邮编（选填）" value={postalCode} onInput={e => setPostalCode(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 24 }} />
+
+      <Text style={{ fontSize: 16, fontWeight: '700', color: '#000', width: '100%', marginBottom: 12 }}>身份证照片（选填）</Text>
+      <View style={{ display: 'flex', width: '100%', marginBottom: 24 }}>
+        <View style={{ flex: 1, marginRight: 8, display: 'flex', justifyContent: 'center' }}>
+          <IdPhotoUploader ref={idPhotoFrontRef} side="front" defer />
+        </View>
+        <View style={{ flex: 1, marginLeft: 8, display: 'flex', justifyContent: 'center' }}>
+          <IdPhotoUploader ref={idPhotoBackRef} side="back" defer />
+        </View>
+      </View>
 
       <View onClick={handleRegister}
         style={{ width: '100%', height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>

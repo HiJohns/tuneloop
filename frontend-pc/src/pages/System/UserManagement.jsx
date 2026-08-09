@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Table, Input, Button, Space, Modal, Form, InputNumber, Switch, message, Tag, Typography } from 'antd'
 import { DownloadOutlined } from '@ant-design/icons'
 import { api } from '../../services/api'
+import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 
 const { Text } = Typography
 
@@ -14,6 +15,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(false)
   const [detailVisible, setDetailVisible] = useState(false)
   const [current, setCurrent] = useState(null)
+  const [idPhotos, setIdPhotos] = useState({ front: '', back: '' })
   const [form] = Form.useForm()
 
   const fetchList = async (p = page, ps = pageSize, s = search) => {
@@ -45,7 +47,17 @@ export default function UserManagement() {
       promo_points: record.points,
       status: record.status === 'active',
     })
+    setIdPhotos({ front: '', back: '' })
     setDetailVisible(true)
+    // Fetch full detail (includes id_photo URLs) for the ID photo section (#1599)
+    api.get(`/admin/user-management/${record.id}`).then((resp) => {
+      if (resp?.code === 20000 && resp.data) {
+        setIdPhotos({
+          front: resp.data.id_photo_front || '',
+          back: resp.data.id_photo_back || '',
+        })
+      }
+    }).catch(() => {})
   }
 
   const handleSave = async () => {
@@ -129,6 +141,24 @@ export default function UserManagement() {
           <Form.Item label="禁用/可用" name="status" valuePropName="checked">
             <Switch checkedChildren="可用" unCheckedChildren="禁用" />
           </Form.Item>
+          {current && (
+            <Form.Item label="身份证照片">
+              <div style={{ display: 'flex', gap: 24 }}>
+                <IdPhotoDisplay
+                  side="front"
+                  initialUrl={idPhotos.front}
+                  uploadEndpoint={`/admin/user-management/${current.id}/id-photo`}
+                  deleteEndpoint={`/admin/user-management/${current.id}/id-photo`}
+                />
+                <IdPhotoDisplay
+                  side="back"
+                  initialUrl={idPhotos.back}
+                  uploadEndpoint={`/admin/user-management/${current.id}/id-photo`}
+                  deleteEndpoint={`/admin/user-management/${current.id}/id-photo`}
+                />
+              </div>
+            </Form.Item>
+          )}
         </Form>
       </Modal>
     </div>

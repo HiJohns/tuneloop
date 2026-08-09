@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
 import { api, addressesApi } from '../services/api'
 import { storage } from '../platform'
+import IdPhotoUploader from '../components/IdPhotoUploader'
 import regions from '../data/regions.json'
 
 export default function Onboarding() {
@@ -18,8 +19,6 @@ export default function Onboarding() {
   const [city, setCity] = useState('')
   const [district, setDistrict] = useState('')
   const [detail, setDetail] = useState('')
-  const [idPhotoFront, setIdPhotoFront] = useState(null)
-  const [idPhotoBack, setIdPhotoBack] = useState(null)
   const [idPhotoFrontUrl, setIdPhotoFrontUrl] = useState('')
   const [idPhotoBackUrl, setIdPhotoBackUrl] = useState('')
 
@@ -63,44 +62,6 @@ export default function Onboarding() {
     loadExistingAddress()
   }, [])
 
-  const handleIDPhotoSelect = (side, e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const url = URL.createObjectURL(file)
-    if (side === 'front') {
-      setIdPhotoFront(file)
-      setIdPhotoFrontUrl(url)
-    } else {
-      setIdPhotoBack(file)
-      setIdPhotoBackUrl(url)
-    }
-    e.target.value = ''
-  }
-
-  const clearIDPhoto = (side) => {
-    if (side === 'front') {
-      if (idPhotoFrontUrl) URL.revokeObjectURL(idPhotoFrontUrl)
-      setIdPhotoFront(null)
-      setIdPhotoFrontUrl('')
-    } else {
-      if (idPhotoBackUrl) URL.revokeObjectURL(idPhotoBackUrl)
-      setIdPhotoBack(null)
-      setIdPhotoBackUrl('')
-    }
-  }
-
-  const uploadIDPhoto = async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    const resp = await fetch('/api/user/id-photo', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + storage.getItem('token') },
-      body: formData,
-    })
-    const json = await resp.json()
-    return json.code === 20000
-  }
-
   const handleSaveAddress = async () => {
     if (!recipientName || !phone || !detail) return
     try {
@@ -118,8 +79,6 @@ export default function Onboarding() {
     setSubmitting(true)
     try {
       if (recipientName && phone && detail) await handleSaveAddress()
-      if (idPhotoFront) await uploadIDPhoto(idPhotoFront)
-      if (idPhotoBack) await uploadIDPhoto(idPhotoBack)
       await api.put('/user/onboarding', { name: name || undefined })
       navigate('/points-purchase')
     } catch { setSubmitting(false) }
@@ -198,37 +157,11 @@ export default function Onboarding() {
         <View className="mb-6">
           <View className="mb-1"><Text className="text-sm font-medium text-gray-700">身份证照片（可选）</Text></View>
           <View className="flex flex-row gap-4">
-            {/* Front side */}
-            <View className="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-3 text-center relative">
-              {idPhotoFrontUrl ? (
-                <View className="relative">
-                  <img src={idPhotoFrontUrl} alt="身份证正面" className="w-full h-32 object-cover rounded" />
-                  <View className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
-                    onClick={() => clearIDPhoto('front')}>✕</View>
-                </View>
-              ) : (
-                <View className="h-32 flex flex-col items-center justify-center" onClick={() => document.getElementById('id-front-input').click()}>
-                  <Text className="text-gray-400 text-xs">正面</Text>
-                  <Text className="text-gray-300 text-xs mt-1">点击上传</Text>
-                </View>
-              )}
-              <input type="file" id="id-front-input" accept="image/*" className="hidden" onChange={(e) => handleIDPhotoSelect('front', e)} />
+            <View className="flex-1 flex justify-center">
+              <IdPhotoUploader side="front" initialUrl={idPhotoFrontUrl} onChange={setIdPhotoFrontUrl} />
             </View>
-            {/* Back side */}
-            <View className="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-3 text-center relative">
-              {idPhotoBackUrl ? (
-                <View className="relative">
-                  <img src={idPhotoBackUrl} alt="身份证背面" className="w-full h-32 object-cover rounded" />
-                  <View className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
-                    onClick={() => clearIDPhoto('back')}>✕</View>
-                </View>
-              ) : (
-                <View className="h-32 flex flex-col items-center justify-center" onClick={() => document.getElementById('id-back-input').click()}>
-                  <Text className="text-gray-400 text-xs">背面</Text>
-                  <Text className="text-gray-300 text-xs mt-1">点击上传</Text>
-                </View>
-              )}
-              <input type="file" id="id-back-input" accept="image/*" className="hidden" onChange={(e) => handleIDPhotoSelect('back', e)} />
+            <View className="flex-1 flex justify-center">
+              <IdPhotoUploader side="back" initialUrl={idPhotoBackUrl} onChange={setIdPhotoBackUrl} />
             </View>
           </View>
         </View>

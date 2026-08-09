@@ -238,6 +238,13 @@ export default function ShippingInterface() {
               </View>
             </View>
 
+            {/* ID photo verification (#1599) */}
+            {order.user_id && (
+              <View className="mt-3">
+                <StaffIdPhotoViewer userId={order.user_id} />
+              </View>
+            )}
+
             {/* Deposit-free warning card (#1557) */}
             {order.deposit_waived && (
               <View className="bg-amber-50 border border-amber-300 mt-3 rounded-2xl p-4">

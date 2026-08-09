@@ -3,12 +3,15 @@ import Taro from '@tarojs/taro'
 import { View, Text, Input, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../../services/api'
 import { env, getInputValue } from '../../../platform'
+import IdPhotoUploader from '../../../components/IdPhotoUploader'
 
 export default function EditProfile() {
   const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [idPhotoFront, setIdPhotoFront] = useState('')
+  const [idPhotoBack, setIdPhotoBack] = useState('')
   const [saving, setSaving] = useState(false)
   const baseUrl = env.apiBaseUrl
 
@@ -24,6 +27,8 @@ export default function EditProfile() {
           setNickname(result.data.nickname || result.data.wx_nickname || result.data.name || '')
           setPhone(result.data.phone || '')
           setEmail(result.data.email || '')
+          setIdPhotoFront(result.data.id_photo_front || '')
+          setIdPhotoBack(result.data.id_photo_back || '')
         }
       } catch {}
     }
@@ -77,6 +82,17 @@ export default function EditProfile() {
           <Input value={email} onInput={e => setEmail(getInputValue(e))}
             placeholder={email ? '' : '请输入邮箱'}
             style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
+        </View>
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>身份证照片</Text>
+          <View style={{ display: 'flex', flexDirection: 'row' }}>
+            <View style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <IdPhotoUploader side="front" initialUrl={idPhotoFront} onChange={setIdPhotoFront} />
+            </View>
+            <View style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <IdPhotoUploader side="back" initialUrl={idPhotoBack} onChange={setIdPhotoBack} />
+            </View>
+          </View>
         </View>
         <Button onClick={handleSave}
           style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 16, fontWeight: '700', lineHeight: '44px', border: 'none', marginTop: 8 }}>

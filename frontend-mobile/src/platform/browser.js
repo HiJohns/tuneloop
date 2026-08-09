@@ -44,8 +44,14 @@ export const request = (url, options = {}) => fetch(url, options)
 
 export const uploadFile = (url, file, options = {}) => {
   const fd = new FormData()
-  fd.append('file', file)
-  return fetch(url, { method: 'POST', body: fd, ...options })
+  fd.append(options.name || 'file', file)
+  if (options.formData) {
+    for (const [k, v] of Object.entries(options.formData)) {
+      fd.append(k, v)
+    }
+  }
+  const { formData, name, ...rest } = options
+  return fetch(url, { method: 'POST', body: fd, headers: rest.headers, ...rest })
 }
 
 export const dialog = {

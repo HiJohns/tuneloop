@@ -4,6 +4,7 @@ import { View, Text, ScrollView, Button, Image, Video, Input, Textarea } from '@
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import RepairRecordPanel from '../components/RepairRecordPanel'
+import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
 export default function RepairRequestDetail() {
   const navigate = useNavigate()
@@ -314,6 +315,13 @@ export default function RepairRequestDetail() {
           <View><Text className="text-sm font-bold text-black mb-2">视频</Text></View>
           <Video src={`/uploads/media/${request.video_url}`} className="w-full h-48 rounded-lg" controls />
         </View>
+        )}
+
+        {/* ID photo verification for staff (#1599) */}
+        {!isCustomer && request.user_id && (
+          <View className="mt-4">
+            <StaffIdPhotoViewer userId={request.user_id} />
+          </View>
         )}
 
         {/* Repair records panel — visible to customer, technician, and staff */}

@@ -7,6 +7,7 @@ import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, User, MapPin } fro
 import { dialog, env, storage, session, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
+import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
@@ -164,6 +165,7 @@ export default function ReceivingInterface() {
               <Text>{formatDeliveryAddress(orderData.delivery_address)}</Text>
             </View>
           )}
+          {orderData.user_id && <StaffIdPhotoViewer userId={orderData.user_id} showLabel={false} />}
         </View>
       )}
 

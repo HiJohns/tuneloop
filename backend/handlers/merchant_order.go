@@ -65,6 +65,7 @@ func ListMerchantOrders(c *gin.Context) {
 		InstrumentName string  `json:"instrument_name"`
 		InstrumentSN   string  `json:"instrument_sn"`
 		SiteName       string  `json:"site_name"`
+		UserID         string  `json:"user_id"`
 		UserName       string  `json:"user_name"`
 		StartDate      string  `json:"start_date"`
 		EndDate        string  `json:"end_date"`
@@ -82,6 +83,7 @@ func ListMerchantOrders(c *gin.Context) {
 		item := OrderItem{
 			ID:        o.ID,
 			Status:    o.Status,
+			UserID:    o.UserID,
 			StartDate: startStr,
 			EndDate:   endStr,
 			CreatedAt: o.CreatedAt.Format("2006-01-02 15:04"),
