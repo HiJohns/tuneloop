@@ -307,36 +307,38 @@ function MainLayout() {
   
   const menuConfig = [
   {
-    key: 'basic',
+    key: 'platform',
     icon: <SettingOutlined />,
-    label: '基础配置',
+    label: '平台管理',
+    children: [
+      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
+      { key: '/system/user-management', label: '用户管理', permission: { sysPermBits: [16] } },
+      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:read'] } },
+      { key: '/organization/iam-sync', label: '与 IAM 同步', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
+      { key: '/system/warnings', label: '警告管理', permission: { sysPermBits: [5] } },
+      { key: '/system/warning-settings', label: '警告配置', permission: { sysPermBits: [5] } },
+    ]
+  },
+  {
+    key: 'product',
+    icon: <AppstoreOutlined />,
+    label: '商品管理',
     children: [
       { key: '/instruments/categories', label: '分类设置', permission: { cusPermCodes: ['category:manage'] } },
       { key: '/instruments/properties', label: '属性管理', permission: { cusPermCodes: ['attribute:manage'] } },
-      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
-      { key: '/system/content-edit', label: '内容编辑', permission: { cusPermCodes: ['category:manage'] } },
+      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
+      { key: '/site/stock', label: '库存监控', permission: { cusPermCodes: ['instrument:read'] } },
     ]
   },
   {
-    key: 'strategy',
+    key: 'transaction',
     icon: <ToolOutlined />,
-    label: '经营策略',
-    children: [
-      { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
-      { key: '/pricing/config', label: '定价策略', permission: { cusPermCodes: ['instrument:price_config'] } },
-      { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
-      { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
-      { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
-      { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
-    ]
-  },
-  {
-    key: 'operations',
-    icon: <AppstoreOutlined />,
-    label: '运营管理',
+    label: '交易管理',
     children: [
       { key: '/orders', label: '订单管理', permission: { cusPermCodes: ['order:read'] } },
-      { key: '/instruments/list', label: '乐器列表', permission: { cusPermCodes: ['instrument:create', 'instrument:read', 'instrument:update', 'instrument:delete'] } },
       { key: '/warehouse', label: '库管工作台', permission: { cusPermCodes: ['instrument:read', 'instrument:update'] } },
       { key: '/maintenance/sessions', label: '会话管理', permission: { cusPermCodes: ['instrument:read', 'instrument:maintain'] } },
       { key: '/transit-routes', label: '中转路由', permission: { sysPermBits: [5] } },
@@ -344,27 +346,27 @@ function MainLayout() {
     ]
   },
   {
-    key: 'organization',
-    icon: <TeamOutlined />,
-    label: '组织管理',
+    key: 'strategy',
+    icon: <SettingOutlined />,
+    label: '策略配置',
     children: [
-      { key: '/organization/sites', label: '网点管理', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
-      { key: '/staff', label: '人员管理', permission: { sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
-      { key: '/appeals', label: '申诉处理', permission: { cusPermCodes: ['appeal:read'] } },
-      { key: '/organization/iam-sync', label: '与 IAM 同步', permission: { sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true } },
+      { key: '/inventory/rent-setting', label: '租金设定', permission: { cusPermCodes: ['instrument:price'] } },
+      { key: '/pricing/config', label: '定价策略', permission: { cusPermCodes: ['instrument:price_config'] } },
+      { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
+      { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
+      { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
+      { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
+      { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
     ]
   },
   {
     key: 'system',
     icon: <SettingOutlined />,
-    label: '系统管理',
+    label: '系统设置',
     children: [
-      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [5] } },
-      { key: '/system/user-management', label: '用户管理', permission: { sysPermBits: [5] } },
+      { key: '/', label: '仪表盘' },
+      { key: '/system/content-edit', label: '内容编辑', permission: { cusPermCodes: ['category:manage'] } },
       { key: '/system/audit-logs', label: '操作日志' },
-      { key: '/system/permissions', label: '权限管理', permission: { sysPermBits: [27] } },
-      { key: '/system/warnings', label: '警告管理', permission: { sysPermBits: [5] } },
-      { key: '/system/warning-settings', label: '警告配置', permission: { sysPermBits: [5] } },
     ]
   },
   { key: '/user/profile', icon: <UserOutlined />, label: '个人中心' }
@@ -387,7 +389,7 @@ function onMenuClick(e) {
   const isItemVisible = (item, parentKey) => {
     const key = item.key || ''
     if (isNsAdmin && getNamespaceAdminMenuKeys().includes(key)) return true
-    if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0 && parentKey !== 'system') return true
+    if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0 && parentKey !== 'platform' && parentKey !== 'system') return true
     return checkPermission(item.permission, sysPerm, cusPerm, cusPermMapping)
   }
   const filteredItems = menuConfig
@@ -412,11 +414,11 @@ function onMenuClick(e) {
     ? ['/merchants']
     : [location.pathname]
   let openKeys = []
-  if (['/instruments/categories', '/instruments/properties', '/system/banners', '/system/content-edit'].includes(location.pathname)) openKeys = ['basic']
-  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels'].includes(location.pathname)) openKeys = ['strategy']
-  else if (['/instruments/list', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['operations']
-  else if (['/organization/sites', '/staff', '/appeals', '/organization/iam-sync'].includes(location.pathname)) openKeys = ['organization']
-  else if (location.pathname.startsWith('/merchants') || ['/system/audit-logs', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['system']
+  if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
+  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
+  else if (['/orders', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname)) openKeys = ['transaction']
+  else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
+  else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
   else if (location.pathname.startsWith('/user/')) openKeys = []
 
 
@@ -428,37 +430,37 @@ function onMenuClick(e) {
   ]
   
   const routeMap = {
-    '/': { title: '仪表盘 (Dashboard)', parent: '基础配置' },
-    '/instruments/categories': { title: '分类设置', parent: '基础配置' },
-    '/instruments/properties': { title: '属性管理', parent: '基础配置' },
-    '/system/banners': { title: '轮播图管理', parent: '基础配置' },
-    '/system/content-edit': { title: '内容编辑', parent: '基础配置' },
-    '/inventory/rent-setting': { title: '租金设定', parent: '经营策略' },
-    '/pricing/config': { title: '定价策略', parent: '经营策略' },
-    '/system/promo-plans': { title: '系统折扣政策', parent: '经营策略' },
-    '/repair/settings': { title: '报修设置', parent: '经营策略' },
-    '/system/rebate-config': { title: '返点配置', parent: '经营策略' },
-    '/system/membership-levels': { title: '会员级别管理', parent: '经营策略' },
-    '/orders': { title: '订单管理', parent: '运营管理' },
-    '/instruments/list': { title: '乐器列表', parent: '运营管理' },
-    '/site/stock': { title: '库存监控', parent: '运营管理' },
-    '/warehouse': { title: '库管工作台', parent: '运营管理' },
-    '/maintenance/sessions': { title: '会话管理', parent: '运营管理' },
-    '/transit-routes': { title: '中转路由', parent: '运营管理' },
-    '/overdue-alerts': { title: '逾期告警', parent: '运营管理' },
-    '/organization/sites': { title: '网点管理', parent: '组织管理' },
+    '/': { title: '仪表盘 (Dashboard)', parent: '系统设置' },
+    '/instruments/categories': { title: '分类设置', parent: '商品管理' },
+    '/instruments/properties': { title: '属性管理', parent: '商品管理' },
+    '/system/banners': { title: '轮播图管理', parent: '策略配置' },
+    '/system/content-edit': { title: '内容编辑', parent: '系统设置' },
+    '/inventory/rent-setting': { title: '租金设定', parent: '策略配置' },
+    '/pricing/config': { title: '定价策略', parent: '策略配置' },
+    '/system/promo-plans': { title: '系统折扣政策', parent: '策略配置' },
+    '/repair/settings': { title: '报修设置', parent: '策略配置' },
+    '/system/rebate-config': { title: '返点配置', parent: '策略配置' },
+    '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
+    '/orders': { title: '订单管理', parent: '交易管理' },
+    '/instruments/list': { title: '乐器列表', parent: '商品管理' },
+    '/site/stock': { title: '库存监控', parent: '商品管理' },
+    '/warehouse': { title: '库管工作台', parent: '交易管理' },
+    '/maintenance/sessions': { title: '会话管理', parent: '交易管理' },
+    '/transit-routes': { title: '中转路由', parent: '交易管理' },
+    '/overdue-alerts': { title: '逾期告警', parent: '交易管理' },
+    '/organization/sites': { title: '网点管理', parent: '平台管理' },
     '/organization/sites/new': { title: '新建网点', parent: '网点管理' },
-    '/staff': { title: '人员管理', parent: '组织管理' },
-    '/appeals': { title: '申诉处理', parent: '组织管理' },
-    '/organization/iam-sync': { title: '与 IAM 同步', parent: '组织管理' },
-    '/merchants': { title: '商户管理', parent: '系统管理' },
+    '/staff': { title: '人员管理', parent: '平台管理' },
+    '/appeals': { title: '申诉处理', parent: '平台管理' },
+    '/organization/iam-sync': { title: '与 IAM 同步', parent: '平台管理' },
+    '/merchants': { title: '商户管理', parent: '平台管理' },
     '/merchants/:id': { title: '商户详情', parent: '商户管理' },
     '/merchants/new': { title: '创建商户', parent: '商户管理' },
-    '/system/audit-logs': { title: '操作日志', parent: '系统管理' },
-    '/system/user-management': { title: '用户管理', parent: '系统管理' },
-    '/system/permissions': { title: '权限管理', parent: '系统管理' },
-    '/system/warnings': { title: '警告管理', parent: '系统管理' },
-    '/system/warning-settings': { title: '警告配置', parent: '系统管理' },
+    '/system/audit-logs': { title: '操作日志', parent: '系统设置' },
+    '/system/user-management': { title: '用户管理', parent: '平台管理' },
+    '/system/permissions': { title: '权限管理', parent: '平台管理' },
+    '/system/warnings': { title: '警告管理', parent: '平台管理' },
+    '/system/warning-settings': { title: '警告配置', parent: '平台管理' },
   }
 
 
@@ -476,7 +478,7 @@ function onMenuClick(e) {
   } else if (location.pathname.startsWith('/merchants/')) {
     pageTitle = location.pathname === '/merchants/new' ? '创建商户' : '商户详情'
     breadcrumbItems.push(
-      { title: '系统管理' },
+      { title: '平台管理' },
       { title: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/merchants'); }}>商户管理</a> },
       { title: pageTitle }
     )
@@ -611,7 +613,7 @@ function onMenuClick(e) {
             <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/merchants/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['audit_log:read'] }}><AuditLogPage /></ProtectedRoute>} />
-            <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><UserManagement /></ProtectedRoute>} />
+            <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [16] }}><UserManagement /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><StaffManagement /></ProtectedRoute>} />
             <Route path="/staff/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffEdit /></ProtectedRoute>} />
             <Route path="/staff/:id/reset-password" element={<ProtectedRoute requiredPermission={{ sysPermBits: [15] }}><StaffResetPassword /></ProtectedRoute>} />
