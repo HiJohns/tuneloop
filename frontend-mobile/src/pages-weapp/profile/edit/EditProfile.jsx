@@ -56,25 +56,25 @@ export default function EditProfile() {
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>姓名</Text>
-          <Input value={name} onInput={e => setName(e.detail.value)}
+          <Input value={name} onInput={e => setName(e.detail?.value ?? e.target?.value ?? '')}
             placeholder={name ? '' : '请输入真实姓名'}
             style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>昵称</Text>
-          <Input value={nickname} onInput={e => setNickname(e.detail.value)}
+          <Input value={nickname} onInput={e => setNickname(e.detail?.value ?? e.target?.value ?? '')}
             placeholder={nickname ? '' : '请输入昵称'}
             style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>手机号</Text>
-          <Input value={phone} onInput={e => setPhone(e.detail.value)}
+          <Input value={phone} onInput={e => setPhone(e.detail?.value ?? e.target?.value ?? '')}
             placeholder={phone ? '' : '请输入手机号'}
             style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>邮箱</Text>
-          <Input value={email} onInput={e => setEmail(e.detail.value)}
+          <Input value={email} onInput={e => setEmail(e.detail?.value ?? e.target?.value ?? '')}
             placeholder={email ? '' : '请输入邮箱'}
             style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>

@@ -397,7 +397,7 @@ function SingleCheckout({ id, navigate }) {
             <View className="flex items-center gap-2 mt-3">
               <Input
                 value={discountCode}
-                onInput={e => setDiscountCode(e.detail.value)}
+                onInput={e => setDiscountCode(e.detail?.value ?? e.target?.value ?? '')}
                 placeholder="优惠码（选填）"
                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
                 style={{ flex: 1, border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}

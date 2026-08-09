@@ -136,6 +136,7 @@ tuneloop/
 | **禁止** `import ... from 'lucide-react'` | 用 `import { IconName } from '../platform'` 替代 |
 | **禁止** 直接 `localStorage` / `fetch` | 用 `import { storage, request } from '../platform'` 替代 |
 | `.tsx` 只能做薄壳 | `.tsx` = `export { default } from '../../Xxx'` —— 任何业务逻辑必须写在 `.jsx` 中 |
+| **⚠️ pages-weapp 文件被 H5 薄壳引用时** | 必须本地 `npm run dev:h5` 手动验证该页所有 Input/Textarea 可输入。来源：#1589 EditProfile.jsx（weapp 独有）被 H5 薄壳引用后在 H5 下所有输入框失效 |
 
 ### 页面入口架构
 
