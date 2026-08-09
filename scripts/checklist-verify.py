@@ -38,7 +38,7 @@ def norm_page(page):
 
 def load_weapp_pages():
     src = open(WEAPP_CONFIG).read()
-    return set(re.findall(r"'((?:pages-weapp)/[a-z0-9-]+/index)'", src))
+    return set(re.findall(r"'((?:pages-weapp)/[a-z0-9/-]+/index)'", src))
 
 
 def load_h5_routes():
@@ -60,6 +60,20 @@ def page_exists(page, weapp_pages, h5_routes):
     if not page:
         return True  # no page declared → skip
     p = page.strip()
+    # weapp nested pages: /profile/edit → pages-weapp/profile/edit/index
+    WEAPP_NESTED = {
+        "/profile/edit": "pages-weapp/profile/edit/index",
+        "/message-detail": "pages-weapp/message-detail/index",
+        "/messages": "pages-weapp/messages/index",
+        "/membership": "pages-weapp/membership/index",
+        "/search": "pages-weapp/search/index",
+        "/renewal": "pages-weapp/renewal/index",
+        "/bind": "pages-weapp/bind/index",
+        "/content": "pages-weapp/content/index",
+        "/profile-complete": "pages-weapp/profile-complete/index",
+    }
+    if p in WEAPP_NESTED:
+        return WEAPP_NESTED[p] in weapp_pages
     # weapp form: /pages-weapp/x/index → app.config.ts 'pages-weapp/x/index'
     if p.startswith("/pages-weapp/"):
         return p.lstrip("/") in weapp_pages
@@ -90,7 +104,7 @@ def find_control(page, control, weapp_pages, h5_routes):
     if not page:
         return True
     # graphical controls without textual labels — skip text search
-    GRAPHIC_CONTROLS = {"悬浮购物车图标", "数量角标", "复选框", "滑块", "点数抵扣滑块", "图标", "单选", "角标", "调节器", "租期调节器", "乐器图片", "图片", "缩略图"}
+    GRAPHIC_CONTROLS = {"悬浮购物车图标", "数量角标", "复选框", "滑块", "点数抵扣滑块", "图标", "单选", "角标", "调节器", "租期调节器", "乐器图片", "图片", "缩略图", "昵称显示", "会员等级显示", "显示"}
     if any(g in control for g in GRAPHIC_CONTROLS):
         return True
     p = page.strip()
@@ -114,6 +128,7 @@ def find_control(page, control, weapp_pages, h5_routes):
         for cand in [
             os.path.join(REPO, "frontend-mobile", "src", rel + ".jsx"),
             os.path.join(REPO, "frontend-mobile", "src", rel + "/index.jsx"),
+            os.path.join(REPO, "frontend-mobile", "src", rel + "/EditProfile.jsx"),
         ]:
             if os.path.exists(cand):
                 source = open(cand).read()
@@ -127,9 +142,18 @@ def find_control(page, control, weapp_pages, h5_routes):
                 if os.path.exists(cand):
                     source = open(cand).read()
     else:
-        name = p.strip("/").split("/")[0]
-        comp = comp_map.get(name)
-        if comp:
+        # weapp nested pages (e.g. /profile/edit) → weapp source dir
+        WEAPP_NESTED_FILES = {
+            "/profile/edit": os.path.join(REPO, "frontend-mobile", "src", "pages-weapp", "profile", "edit", "EditProfile.jsx"),
+        }
+        if p in WEAPP_NESTED_FILES:
+            cand = WEAPP_NESTED_FILES[p]
+            if os.path.exists(cand):
+                source = open(cand).read()
+        if source is None:
+            name = p.strip("/").split("/")[0]
+            comp = comp_map.get(name)
+        if source is None and comp:
             cand = os.path.join(REPO, "frontend-mobile", "src", "pages", comp + ".jsx")
             if os.path.exists(cand):
                 source = open(cand).read()
@@ -146,7 +170,7 @@ def find_control(page, control, weapp_pages, h5_routes):
     # "照片上传" → 照片上传 / 照片; "报价卡片" → 报价卡片 / 报价
     def variants(tok):
         vs = [tok]
-        for suffix in ("卡片", "按钮", "滑块", "上传", "输入", "选择器", "信息", "展开", "抵扣"):
+        for suffix in ("卡片", "按钮", "滑块", "上传", "输入", "选择器", "信息", "展开", "抵扣", "入口", "显示"):
             if tok.endswith(suffix) and len(tok) > len(suffix) + 1:
                 vs.append(tok[: -len(suffix)])
         return vs

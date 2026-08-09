@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi } from '../services/api'
 import { env, storage, eventBus } from '../platform'
@@ -96,7 +96,10 @@ export default function Profile() {
   const baseUrl = env.apiBaseUrl
   const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? baseUrl.replace(/\/api$/, '') + url : url
 
-  useEffect(() => {
+  // Refresh user data every time the page becomes visible (e.g. returning
+  // from the profile edit page) — #1588. The eventBus subscription stays
+  // mounted once via useEffect.
+  useDidShow(() => {
     const fetchUser = async () => {
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)
@@ -108,11 +111,23 @@ export default function Profile() {
       setLoading(false)
     }
     fetchUser()
+  })
 
-    const refreshUser = () => { setLoading(true); fetchUser() }
+  useEffect(() => {
+    const refreshUser = async () => {
+      setLoading(true)
+      try {
+        const resp = await apiFetch(`${baseUrl}/users/me`)
+        const result = await resp.json()
+        if (result.code === 20000) setUser(result.data)
+      } catch (err) {
+        console.error('Failed to fetch user:', err)
+      }
+      setLoading(false)
+    }
     eventBus.on('loginSuccess', refreshUser)
     return () => eventBus.off('loginSuccess', refreshUser)
-  }, [])
+  }, [baseUrl])
 
   useEffect(() => {
     const fetchUnread = async () => {

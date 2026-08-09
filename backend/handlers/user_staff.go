@@ -730,6 +730,7 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	result := gin.H{
 		"id":            user.ID,
 		"name":          user.Name,
+		"nickname":      user.Nickname,
 		"phone":         user.Phone,
 		"email":         user.Email,
 		"avatar":        user.AvatarURL,
