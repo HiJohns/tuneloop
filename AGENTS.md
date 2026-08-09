@@ -44,6 +44,24 @@ See `prompts/instructions.md` for full port mapping. Key rule:
 - Production/Prerelease 各有独立的 beaconiam 实例、独立的 RSA 密钥对、独立的数据库、独立的 OAuth client
 - Never mix: 预生产的 token 在开发环境验证必报 `crypto/rsa: verification error`
 
+### Dev 环境工作流
+
+H5 移动端开发环境无需额外配置——代码修改通过 Vite HMR 实时生效，**不存在"代码未更新"的系统性问题**：
+
+```bash
+# 终端 1：后端（每次修改后重启）
+make run
+# → Go backend on :5556 (mobile) / :5557 (PC)，tee backend.log
+#   fuser -k 5557 确保旧进程被清理
+
+# 终端 2：H5 前端（一次启动，HMR 持续更新）
+make mobile-dev
+# → Vite dev server on :5553，@tarojs/components 别名 → taro-shim.js
+#   /api/* 请求 proxy → localhost:5556
+```
+
+**已知的 HMR 边缘情况**：新增 `platform/` 模块导出（如 `getInputValue`）后，已有的 import 链可能不自动刷新——硬刷新浏览器（`Ctrl+Shift+R`）即可。不是 bug。
+
 ## Node.js 版本要求
 
 **Taro v4 在 Node.js v24 下存在兼容性问题**（`module is not defined in ES module scope`）。`frontend-mobile` 构建必须使用 **Node.js v22 LTS**（当前: v22.22.3）。
