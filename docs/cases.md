@@ -1635,3 +1635,101 @@ checkRule() - 权限位过滤
 - **系统行为**：`PUT /api/inventory/rent-setting/batch` 批量更新选定乐器的定价字段
 - **结果**：定价字段立即生效，顾客端按新价格展示
 
+---
+
+## 完整退货-定损-申诉-退款用例
+
+> 来源：#1600 审核及重构。覆盖归还→验收→good/damaged分流→申诉→终审→退款全链路。
+
+### 路径总览
+
+```
+顾客点"归还"（in_lease/expired）
+  → 填写物流公司+单号+归还拍照
+  → POST /orders/:id/return → 订单 → returning
+  → 结算预览页（ReturnSettlement）：
+      - 显示预估结算明细（租金、押金、物流费，醒目标记"等待验收"）
+      - 此时不退款
+
+网点员工"接收"（returning）
+  → InspectReturn — 定损面板（无损坏/有损坏+拍照+备注）
+  ├── 路径 A：good（无损坏）→ 订单 → completed
+  │      → executeRefund（含物流费扣除、逾期费）
+  │      → 发退款通知（含收据明细：实际租期、租金、物流费、逾期费、押金退还）
+  │      → 顾客看到退款明细，"已退款"状态
+  │
+  └── 路径 B：damaged（有损坏）→ 订单 → pending_damage_response
+         → 发系统通知给顾客（actionType=damage_accept_reject，
+            ActionData 含 damage_amount/deposit/order_id）
+         → MessageDetail 渲染"接受"/"拒绝"按钮
+         │
+         ├── B1：顾客接受
+         │      → POST /appeals/:id/agree
+         │      → 订单 → deposit_refunding
+         │      → 跳转退款确认页（显示赔偿扣除后的退款明细）
+         │      → 确认 → executeRefund → completed
+         │      → 通知（收据明细）
+         │
+         └── B2：顾客拒绝（申诉）
+                → 填写申诉理由 → POST /appeals
+                → 订单 → damage_appealing
+                → 通知网点管理员（actionType=repair_request）
+                │
+                └── 网点管理员处理申诉
+                       → PC 端 /appeals → 可调整赔偿金额
+                       → ResolveAppeal（终审）
+                       → 订单 → completed
+                       → 执行 executeRefund
+                       → 两条通知：
+                          ① 顾客：纯通知（终审结果，无操作按钮）
+                          ② 员工："点击进入退款确认页"按钮
+                       → 退款确认 → completed（已退款）
+```
+
+### 退款通知格式（标准收据）
+
+> 适用于路径 A（good 验收）和路径 B1/B2（终审后）的退款通知。收据明细直接写入通知 Content。
+
+```
+┌──────────────────────────────────────────┐
+│  租赁结算明细                              │
+│                                          │
+│  乐器：{SN}（{分类}）                      │
+│  实际租期          {N} 天                 │
+│  ────────────────────────────             │
+│  租金              ¥{rent}               │
+│  物流费            ¥{shipping_fee}        │
+│  逾期费            ¥{overdue_fee}         │
+│  损坏赔偿          ¥{damage_amount}        │
+│  续期费用          ¥{renewal_total}       │
+│  ────────────────────────────             │
+│  应付合计          ¥{total_charged}        │
+│  已收（含押金）     ¥{total_paid}          │
+│  押金退还          ¥{deposit_refunded}     │
+│  ────────────────────────────             │
+│  实际退款          ¥{actual_refund}        │
+└──────────────────────────────────────────┘
+```
+
+各行的取值逻辑：
+- **租金**：实际天数 × 阶梯定价（与 §2.7 `computeSettlement` 同算法）
+- **物流费**：`order.shipping_fee`，无则为 0（不显示行）
+- **逾期费**：`damage_assessments.overdue_fee`（good 验收时算），无则为 0
+- **损坏赔偿**：damaged 验收时 `req.DamageAmount`，good 时为 0
+- **续期费用**：续期支付记录的 SUM(amount)，无续期为 0
+- **已收**：所有支付记录 SUM（租金+押金+物流费预收+续期）
+- **实际退款**：`已收 - 应付合计`（最小 0）
+
+### 关键规则
+
+| 规则 | 说明 |
+|------|------|
+| 物流费何时支付 | **归还时填写物流单号，但费用计入结算**——不单独收费，从押金里统一扣 |
+| good 验收后 | **自动执行 executeRefund**（含物流费/逾期费），发收据通知 |
+| damaged 验收后 | **不退款**——需顾客先响应（接受/申诉），响应后再退款 |
+| 申诉终审后 | 管理员处理申诉 → ResolveAppeal → executeRefund → 双通知 |
+| 退款通知 | 所有退款通知均包含标准收据明细 |
+| 结算预览页 | ReturnSettlement 显示"等待定损，非最终费用"醒目提示 |
+
+---
+
