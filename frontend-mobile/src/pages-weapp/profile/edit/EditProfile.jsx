@@ -17,7 +17,9 @@ export default function EditProfile() {
         const resp = await apiFetch(`${baseUrl}/users/me`)
         const result = await resp.json()
         if (result.code === 20000) {
-          setNickname(result.data.nickname || '')
+          // WeChat nickname is only the default value; the user may edit it
+          // freely (#1588). phone/email prefill from current profile.
+          setNickname(result.data.nickname || result.data.wx_nickname || result.data.name || '')
           setPhone(result.data.phone || '')
           setEmail(result.data.email || '')
         }
@@ -37,7 +39,7 @@ export default function EditProfile() {
       const result = await resp.json()
       if (result.code === 20000) {
         Taro.showToast({ title: '保存成功', icon: 'success' })
-        Taro.navigateBack()
+        setTimeout(() => Taro.navigateBack(), 800)
       } else {
         Taro.showToast({ title: result.message || '保存失败', icon: 'none' })
       }
@@ -50,20 +52,23 @@ export default function EditProfile() {
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>微信昵称</Text>
-          <Input type="nickname" value={nickname} onInput={e => setNickname(e.detail.value)}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }} />
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>昵称</Text>
+          <Input value={nickname} onInput={e => setNickname(e.detail.value)}
+            placeholder={nickname ? '' : '请输入昵称'}
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>手机号</Text>
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>手机号</Text>
           <Input value={phone} onInput={e => setPhone(e.detail.value)}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }} />
+            placeholder={phone ? '' : '请输入手机号'}
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>邮箱</Text>
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>邮箱</Text>
           <Input value={email} onInput={e => setEmail(e.detail.value)}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, padding: '0 12px', fontSize: 14, boxSizing: 'border-box' }} />
+            placeholder={email ? '' : '请输入邮箱'}
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
         </View>
         <Button onClick={handleSave}
           style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 16, fontWeight: '700', lineHeight: '44px', border: 'none', marginTop: 8 }}>

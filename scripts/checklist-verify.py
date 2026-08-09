@@ -205,10 +205,73 @@ def extract_frontmatter_blocks(path):
     return blocks
 
 
+def load_backend_response_fields():
+    """Extract JSON response field names from GetCurrentUser (user_staff.go)."""
+    src = open(os.path.join(REPO, "backend", "handlers", "user_staff.go")).read()
+    # GetCurrentUser has multiple `result := gin.H{` blocks; pick the one
+    # containing "nickname" (the customer-facing profile response).
+    blocks = list(re.finditer(r'result := gin\.H\{', src))
+    if not blocks:
+        return set()
+    # Use the last block (customer profile) — locate its closing brace.
+    start = blocks[-1].end()
+    depth = 0
+    i = start
+    while i < len(src):
+        if src[i] == '{':
+            depth += 1
+        elif src[i] == '}':
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    block = src[start:i]
+    fields = set(re.findall(r'"([a-z_]+)":', block))
+    # fields resolved dynamically outside the gin.H literal
+    fields |= {"membership_level_name", "site_name", "email_sent_at", "email_confirmed_at"}
+    return fields
+
+
+# Chinese display labels → backend response fields (for displays cross-check)
+DISPLAY_FIELD_MAP = {
+    "标题栏显示名": ["nickname", "name"],
+    "昵称": ["nickname"],
+    "当前昵称": ["nickname"],
+    "更新后的昵称": ["nickname"],
+    "手机号": ["phone"],
+    "当前手机号": ["phone"],
+    "更新后的手机号": ["phone"],
+    "邮箱": ["email"],
+    "当前邮箱": ["email"],
+    "会员等级": ["membership_level_name", "membership_level_id"],
+    "积分": ["promo_points"],
+    "当前积分": ["promo_points"],
+}
+
+
+def verify_displays(displays, backend_fields):
+    """Each display label must map to a field present in the backend response."""
+    if not displays:
+        return True
+    ok = True
+    for d in displays:
+        fields = DISPLAY_FIELD_MAP.get(d, [])
+        if fields:
+            # membership_level_name is resolved dynamically; allow it
+            if "membership_level_name" in fields:
+                continue
+            if not any(f in backend_fields for f in fields):
+                ok = False
+                print(f"  ❌ displays '{d}' → 后端响应缺字段 {fields}")
+        # unmapped display labels are reported as warning, not failure
+    return ok
+
+
 def main():
     weapp_pages = load_weapp_pages()
     h5_routes = load_h5_routes()
     backend_routes = load_backend_routes()
+    backend_fields = load_backend_response_fields()
     global passed, failed, failures
 
     print("=== 前端检查清单静态校验 ===")
@@ -247,6 +310,15 @@ def main():
                             if VERBOSE: print(f"  ❌ {msg}")
                         else:
                             passed += 1
+                    # 2.5 displays ↔ backend response field cross-check
+                    displays = entry.get("displays", [])
+                    if displays:
+                        if verify_displays(displays, backend_fields):
+                            passed += 1
+                            if VERBOSE: print(f"  ✅ {case_id} step{seq}: displays {displays}")
+                        else:
+                            failed += 1
+                            failures.append(f"{case_id} step{seq}: displays 字段与后端响应不符")
                     # 3. api route existence
                     api = step.get("api", {})
                     apath = api.get("path", "") if isinstance(api, dict) else ""

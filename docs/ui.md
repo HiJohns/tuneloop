@@ -112,6 +112,10 @@
 | **不依赖 `<Text>` 的 `margin` 类** | Taro H5 模式下 `<Text>` 的 `mb-*`/`mt-*` 等 margin 类可能被浏览器忽略 | `<Text className="mb-3">` | 用外层 `<View>` 的 padding 或 `space-y-*` 控制间距 |
 | **`flex-row` 与 `flex flex-row` 的区别** | `flex-row` 在 Tailwind 中仅设置 `flex-direction:row`，不启用 `display:flex` | `<View className="flex-row">` → 不生效 | `<View className="flex flex-row">` |
 | **`min-h-0` 防止 flex-1 溢出** | flex 子项默认 `min-height: auto`，阻止 `flex-1` 的子项收缩 | ScrollView 的 `flex-1` 推到底条以下 | ScrollView 加 `flex-1 min-h-0 overflow-y-auto` |
+| **输入框宽度不得 `100% + padding` 组合** | 小程序 `box-sizing` 默认 `content-box`（#1514），`width:100% + padding` 总宽溢出、文字贴边 | `width:'100%'` + `padding:'0 12px'` + `boxSizing:'border-box'` | `width:'100%'` + 明确的 `paddingLeft/paddingRight`，不依赖 boxSizing |
+| **表单字段必须有明确垂直间距** | 多字段表单（昵称/手机/邮箱）字段间须显式间距，避免粘连（#1588） | 字段容器 `marginBottom: 0` 或依赖浏览器默认 | 每字段容器 `marginBottom: 20` + 标签 `marginBottom: 6` |
+| **微信昵称控件不得用于可编辑昵称** | `type="nickname"` 是微信强制昵称选择器，锁死输入、无法自定义（#1588） | 编辑资料昵称框用 `type="nickname"` | 普通 `Input`，微信昵称仅作默认值预填 |
+| **多个键值对须分行分列显示** | 表单多字段不得挤在一行，须分行分列清晰展示（#1588） | 昵称/手机/邮箱连续堆叠 | 每字段独立行 + 明确标签 + 间距 |
 
 ---
 

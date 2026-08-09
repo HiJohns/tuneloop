@@ -865,7 +865,20 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 		localUpdates["nickname"] = req.Nickname
 	}
 	if len(localUpdates) > 0 {
-		db.Model(&models.User{}).Where("iam_sub = ? AND tenant_id = ?", userID, tenantID).Updates(localUpdates)
+		// Customers (USER) carry no tenant in JWT (oid/tid empty). Filtering
+		// by tenant_id = '' produces SQLSTATE 22P02 (empty string → uuid).
+		// Match by iam_sub only; tenant_id is unique per iam_sub for the
+		// local cache. Check the error — a swallowed update failure would
+		// return success to the client while the cache keeps stale values.
+		q := db.Model(&models.User{}).Where("iam_sub = ?", userID)
+		if tenantID != "" {
+			q = q.Where("tenant_id = ?", tenantID)
+		}
+		if err := q.Updates(localUpdates).Error; err != nil {
+			log.Printf("[UpdateCurrentUser] local update failed for %s: %v", userID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "资料保存失败，请重试"})
+			return
+		}
 	}
 
 	emailChanged := req.Email != ""
