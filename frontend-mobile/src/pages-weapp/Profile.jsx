@@ -185,7 +185,7 @@ export default function Profile() {
       <ScrollView style={{ width: '100%', flex: '1 1 0%' }} scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
-        <View style={{ width: '100%', background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 24, paddingRight: 24, paddingTop: 32, paddingBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
+        <View style={{ width: '100%', background: 'linear-gradient(to bottom, #FDF4E7, #fff)', paddingLeft: 24, paddingRight: 24, paddingTop: 32, paddingBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', boxSizing: 'border-box' }}>
           <View style={{ display: 'flex', alignItems: 'center' }}>
             <View style={{ width: 80, height: 80, borderRadius: 999, overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0, backgroundColor: '#e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => !isGuest && setShowEdit(true)}>
               {!isGuest && user?.avatar ? (
