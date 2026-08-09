@@ -881,7 +881,19 @@ done
 
 ## 🚨 IAM 问题处理原则
 
-### 如果问题可能出在 IAM 侧，不要在 Tuneloop 侧硬改
+### beaconiam 问题由 tuneloop 团队直接负责修复（2026-08-09 起）
+
+**以后 beaconiam 的问题都由 tuneloop 团队负责**：直接修复，并完成新版部署（预生产）。
+
+**操作步骤**：
+1. 在 beaconiam 仓库创建/定位 Issue（如 `gh issue create --repo HiJohns/beaconiam --label "status:todo"`）
+2. 在 beaconiam 仓库直接实施修复（改代码 + 补测试 + commit + push）
+3. 在 tuneloop 侧同步调整调用方式（如有）
+4. 完成 beaconiam 新版部署到预生产（build + deploy）
+5. 在 Issue 中记录修复内容 + 部署版本，关闭 Issue
+6. 关联的 tuneloop Issue 同步更新状态
+
+### 遗留旧规则（已由上述新规则替代）
 
 当遇到以下情况时，**应先在 beaconiam 仓库创建 Issue 要求协助调查**，而非在 tuneloop 侧做 workaround：
 
@@ -900,7 +912,7 @@ done
 
 ---
 
-> *Last updated: 2026-06-10*
+> *Last updated: 2026-08-09*
 
 ---
 
