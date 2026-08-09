@@ -509,10 +509,18 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	notificationTitle := "租赁完成"
 	notificationContent := "您的乐器租赁订单已完成，押金将退还至您的账户。"
 	actionType := "order"
+	refType := "order"
+	refID := orderID
 	actionData := strPtr(fmt.Sprintf(`{"order_id":"%s"}`, orderID))
 	if req.Condition == "damaged" {
 		notificationTitle = "归还验收有损坏"
 		notificationContent = fmt.Sprintf("您的订单 %s 验收发现损坏，赔偿金额 ¥%.2f。请在订单详情中确认接受或拒绝。定损理由：%s", orderID[:8], req.DamageAmount, req.Notes)
+		actionType = "damage_accept_reject"
+		actionData = strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit, orderID))
+		// Point to the damage report so MessageDetail can render the
+		// accept/reject buttons (ref_type=damage_report, ref_id=assessment).
+		refType = "damage_report"
+		refID = assessment.ID
 	}
 	notification := models.Notification{
 		TenantID:   tenantID,
@@ -521,8 +529,8 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		Type:       "order",
 		Title:      notificationTitle,
 		Content:    notificationContent,
-		RefID:      orderID,
-		RefType:    "order",
+		RefID:      refID,
+		RefType:    refType,
 		ActionType: actionType,
 		ActionData: actionData,
 		Status:     "unread",
