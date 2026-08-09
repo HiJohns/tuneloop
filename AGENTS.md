@@ -715,6 +715,15 @@ tail -100 backend/backend.log
 - 先在目标仓库建 Issue 描述问题，等待该侧分析
 - 跨仓库调试的 99% 时间消耗在"这是谁的问题"的判断上 — 先确认归属
 
+### 外部 API 调用错误处理 SOP（#1600）
+
+调用 IAM / 微信支付等外部依赖返回 error 时：
+
+1. **中止当前操作**——`return` 或 `c.Abort()`
+2. **禁止**打日志后继续执行本地 DB 写操作（反例：UpdateCurrentUser 调 IAM 失败后仍写本地缓存 → 脏数据）
+3. HTTP 状态码透传（409/400/500），附原始错误信息供前端展示
+4. 调外部写入 API 前，应先在本地做预检（如 phone/email 唯一性）→ 减少无效跨仓调用
+
 ### Environment Parity（环境差异显式化）
 
 记录 DEV vs PRERELEASE 的关键差异：

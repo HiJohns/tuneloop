@@ -1591,6 +1591,16 @@ checkRule() - 权限位过滤
   - 微信小程序：跳转 `/pages-weapp/profile/edit/index`（同字段）
 - **结果**：用户资料更新后，个人中心/会员中心即时刷新显示新信息
 
+#### 编辑资料 — 手机号/邮箱冲突
+
+- **前置条件**：用户 A 正在编辑资料；用户 B 已占用手机号 `138XXXX` 或邮箱 `a@b.com`
+- **用户操作**：用户 A 将手机号或邮箱改为已被占用的值，提交
+- **系统行为**：
+  1. 前端 `PUT /users/me { phone, email }` → tuneloop → IAM UpdateUser
+  2. IAM 检测到 phone/email 已被另一 active 用户占用 → 返回 409 `phone/email already exists`
+  3. tuneloop 透传 40900 给前端，**不更新本地 DB**（#1600）
+- **结果**：前端显示冲突提示（如「手机号已被占用」），表单不保存
+
 ---
 
 ### 场景：商户配置定价策略
