@@ -41,8 +41,16 @@ func BootstrapIAM(db *gorm.DB) error {
 		}
 		wxRedirect += "/callback"
 
+		// H5 registration page (shared mobile bundle; /register route) — the
+		// IAM login page's "register" link points here (#1597/#482).
+		registerRedirect := os.Getenv("EXTERNAL_MOBILE_URL")
+		if registerRedirect == "" {
+			registerRedirect = "http://localhost:5553"
+		}
+		registerRedirect += "/register"
+
 		apps := []AppRegistration{
-			{AppType: "web", RedirectURIs: []string{pcRedirect}, IsDefault: true},
+			{AppType: "web", RedirectURIs: []string{pcRedirect}, IsDefault: true, RegistrationRedirectURL: registerRedirect},
 			{AppType: "wechat", RedirectURIs: []string{wxRedirect}, AllowRegister: true},
 		}
 

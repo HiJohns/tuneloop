@@ -1673,6 +1673,9 @@ type AppRegistration struct {
 	RedirectURIs  []string `json:"redirect_uris"`
 	IsDefault     bool     `json:"is_default,omitempty"`
 	AllowRegister bool     `json:"allow_register,omitempty"`
+	// RegistrationRedirectURL points the IAM login page's "register" link to
+	// tuneloop's own registration page (H5 /register) (#1597/#482).
+	RegistrationRedirectURL string `json:"registration_redirect_url,omitempty"`
 }
 
 type ActivateNamespaceResponse struct {
