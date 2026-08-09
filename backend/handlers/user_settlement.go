@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -651,4 +652,42 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		ActualDays:             actualDays,
 		Breakdown:              breakdown,
 	}
+}
+
+// buildRefundReceipt generates the standard receipt text for refund
+// notifications (cases.md 退货-定损-申诉-退款用例). Fields:
+//   rent = actual rent paid, shipping_fee = order.ShippingFee,
+//   overdue = assessment overdue, damage = damage deducted,
+//   renewal = sum of paid renewal payments, total_paid = all payments,
+//   actual_refund = settlement refund amount.
+func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) string {
+	var renewalTotal float64
+	db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND order_type = ? AND status = ? AND type = ?", order.ID, "renewal", "paid", "payment").
+		Select("COALESCE(SUM(amount),0)").Scan(&renewalTotal)
+
+	var sb strings.Builder
+	sb.WriteString("租赁结算明细\n")
+	sb.WriteString(fmt.Sprintf("实际租期：%d 天\n", s.ActualDays))
+	sb.WriteString("——\n")
+	sb.WriteString(fmt.Sprintf("租金：¥%.2f\n", s.RentPayable))
+	if order.ShippingFee > 0 {
+		sb.WriteString(fmt.Sprintf("物流费：¥%.2f\n", order.ShippingFee))
+	}
+	if s.OverdueChargesTotal > 0 {
+		sb.WriteString(fmt.Sprintf("逾期费：¥%.2f\n", s.OverdueChargesTotal))
+	}
+	if s.DamageDeducted > 0 {
+		sb.WriteString(fmt.Sprintf("损坏赔偿：¥%.2f\n", s.DamageDeducted))
+	}
+	if renewalTotal > 0 {
+		sb.WriteString(fmt.Sprintf("续期费用：¥%.2f\n", renewalTotal))
+	}
+	sb.WriteString("——\n")
+	sb.WriteString(fmt.Sprintf("应付合计：¥%.2f\n", s.TotalRefund+s.RentPayable+s.DamageDeducted+s.OverdueChargesTotal))
+	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", order.CashPaid+order.PrepaidPointsUsed+order.GiftPointsUsed+order.Deposit))
+	sb.WriteString(fmt.Sprintf("押金退还：¥%.2f\n", s.RemainingDeposit))
+	sb.WriteString("——\n")
+	sb.WriteString(fmt.Sprintf("实际退款：¥%.2f", s.CashRefundable))
+	return sb.String()
 }

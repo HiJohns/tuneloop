@@ -56,6 +56,40 @@ func NotifyUsersBySite(db *gorm.DB, tenantID, siteID, ntype, title, content, ref
 	}
 }
 
+// NotifyUsersBySiteWithAction sends notifications to site members with
+// ActionType and ActionData support (for action buttons on MessageDetail).
+func NotifyUsersBySiteWithAction(db *gorm.DB, tenantID, siteID, ntype, title, content, refID, refType string, roles []string, actionType string, actionData *string) {
+	var members []struct {
+		UserID string
+	}
+	if err := db.Table("site_members").
+		Select("user_id").
+		Where("site_id = ? AND role IN ?", siteID, roles).
+		Find(&members).Error; err != nil {
+		log.Printf("[NotifyUsersBySiteWithAction] Failed to query site_members for site %s: %v", siteID, err)
+		return
+	}
+	for _, m := range members {
+		notif := models.Notification{
+			ID:         uuid.New().String(),
+			TenantID:   tenantID,
+			UserID:     m.UserID,
+			Type:       ntype,
+			Title:      title,
+			Content:    content,
+			RefID:      refID,
+			RefType:    refType,
+			ActionType: actionType,
+			ActionData: actionData,
+			Status:     "unread",
+			CreatedAt:  time.Now(),
+		}
+		if err := db.Create(&notif).Error; err != nil {
+			log.Printf("[NotifyUsersBySiteWithAction] Failed to create notification for user %s: %v", m.UserID, err)
+		}
+	}
+}
+
 // NotifyTechniciansOfSite sends a notification to all repair_technicians at a site.
 func NotifyTechniciansOfSite(db *gorm.DB, tenantID, siteID, ntype, title, content, refID, refType string) {
 	NotifyUsersBySite(db, tenantID, siteID, ntype, title, content, refID, refType, []string{"repair_technician"})

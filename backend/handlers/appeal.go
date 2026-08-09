@@ -9,6 +9,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
@@ -412,6 +413,18 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 
 	// Create notification
 	notifActionData = fmt.Sprintf(`{"final_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, finalAmount, order.Deposit, order.ID)
+
+	// If the order completed (refund triggered), enhance the customer
+	// notification with the standard receipt breakdown (#1603).
+	if nextOrderStatus == models.OrderStatusCompleted {
+		var completedOrder models.Order
+		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err == nil {
+			if result, err := executeRefund(db, completedOrder); err == nil {
+				notifContent = buildRefundReceipt(db, completedOrder, result)
+			}
+		}
+	}
+
 	notification := models.Notification{
 		TenantID:   tenantID,
 		OrgID:      middleware.GetOrgID(ctx),
@@ -427,6 +440,17 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	}
 	if err := db.Create(&notification).Error; err != nil {
 		log.Printf("[ResolveAppeal] Failed to create notification: %v", err)
+	}
+
+	// Notify site staff of the final resolution so they can review the
+	// refund (actionType='order' → 查看退款详情 button). Site is resolved
+	// via the instrument's SiteID.
+	if nextOrderStatus == models.OrderStatusCompleted {
+		var instrument models.Instrument
+		if err := db.Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil && instrument.SiteID != nil {
+			staffActionData := fmt.Sprintf(`{"order_id":"%s"}`, order.ID)
+			services.NotifyUsersBySiteWithAction(db, tenantID, instrument.SiteID.String(), "refund", "申诉终审：退款完成", notifContent, order.ID, "order", []string{"site_admin", "site_member"}, "order", &staffActionData)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

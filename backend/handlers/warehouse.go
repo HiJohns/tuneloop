@@ -475,6 +475,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 
 	// Execute final settlement + refund (#1530): good condition completes
 	// the order, so compute actual rent and refund the difference.
+	notificationContent := ""
 	if req.Condition == "good" {
 		// Re-read the order so computeSettlement sees the completed status
 		// and updated returned_at.
@@ -482,8 +483,10 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		if err := db.Where("id = ?", orderID).First(&completedOrder).Error; err != nil {
 			log.Printf("[InspectReturn] Failed to reload order for settlement: %v", err)
 		} else {
-			if _, err := executeRefund(db, completedOrder); err != nil {
+			if result, err := executeRefund(db, completedOrder); err != nil {
 				log.Printf("[InspectReturn] Settlement failed for order %s: %v", orderID, err)
+			} else {
+				notificationContent = buildRefundReceipt(db, completedOrder, result)
 			}
 		}
 	}
@@ -507,7 +510,9 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	// Send notification to user
 	orgID := middleware.GetOrgID(ctx)
 	notificationTitle := "租赁完成"
-	notificationContent := "您的乐器租赁订单已完成，押金将退还至您的账户。"
+	if notificationContent == "" {
+		notificationContent = "您的乐器租赁订单已完成，押金将退还至您的账户。"
+	}
 	actionType := "order"
 	refType := "order"
 	refID := orderID
