@@ -54,6 +54,9 @@ export const dialog = {
   toast: (msg) => window.alert(msg),
 }
 
+// H5: native <input> fires React synthetic event with e.target.value.
+export const getInputValue = (e) => e.target?.value ?? ''
+
 export const navigation = {
   redirect: (url) => { window.location.href = url },
   getCurrentPath: () => window.location.pathname + window.location.search,

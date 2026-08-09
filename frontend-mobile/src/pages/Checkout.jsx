@@ -4,7 +4,7 @@ import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
-import { dialog, env, session, storage, eventBus } from '../platform'
+import { dialog, env, session, storage, eventBus, getInputValue } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import regions from '../data/regions.json'
 
@@ -397,7 +397,7 @@ function SingleCheckout({ id, navigate }) {
             <View className="flex items-center gap-2 mt-3">
               <Input
                 value={discountCode}
-                onInput={e => setDiscountCode(e.detail?.value ?? e.target?.value ?? '')}
+                onInput={e => setDiscountCode(getInputValue(e))}
                 placeholder="优惠码（选填）"
                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
                 style={{ flex: 1, border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}

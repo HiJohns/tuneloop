@@ -194,3 +194,6 @@ export const getPhoneNumber = (e) => {
   const { encryptedData, iv } = e.detail || {}
   return { encryptedData, iv, errMsg: e.detail?.errMsg }
 }
+
+// Weapp: Taro Input component fires e.detail.value.
+export const getInputValue = (e) => e.detail?.value ?? ''
