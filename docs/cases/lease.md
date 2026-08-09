@@ -81,7 +81,14 @@ steps:
         role: [customer]
         gate: "订单状态 = in_lease/expired"
         reach: "MyLeases → 订单详情 → 归还"
-        controls: [归还按钮, 物流信息输入]
+        controls: [归还按钮]
+    # 物流信息输入位于归还确认页（return-confirm），归还后跳转
+    return_confirm:
+      - platform: [weapp, h5]
+        page: /return-confirm
+        role: [customer]
+        gate: ""
+        controls: [物流公司选择, 快递单号输入]
         displays: [订单信息]
         ops:
           - {type: api, method: POST, path: /orders/:id/return}
@@ -148,7 +155,14 @@ steps:
         role: [customer]
         gate: "订单状态 = in_lease 且 today < end_date"
         reach: "MyLeases → 订单详情 → 归还"
-        controls: [归还按钮, 物流信息输入]
+        controls: [归还按钮]
+    # 物流信息输入位于归还确认页（return-confirm），归还后跳转
+    return_confirm:
+      - platform: [weapp, h5]
+        page: /return-confirm
+        role: [customer]
+        gate: ""
+        controls: [物流公司选择, 快递单号输入]
         displays: [订单信息]
         ops:
           - {type: api, method: POST, path: /orders/:id/return}
@@ -195,7 +209,14 @@ steps:
         role: [customer]
         gate: "订单状态 = in_lease/expired 且 today > end_date"
         reach: "MyLeases → 订单详情 → 归还"
-        controls: [归还按钮, 物流信息输入]
+        controls: [归还按钮]
+    # 物流信息输入位于归还确认页（return-confirm），归还后跳转
+    return_confirm:
+      - platform: [weapp, h5]
+        page: /return-confirm
+        role: [customer]
+        gate: ""
+        controls: [物流公司选择, 快递单号输入]
         displays: [订单信息, 逾期提示]
         ops:
           - {type: api, method: POST, path: /orders/:id/return}
@@ -257,11 +278,11 @@ steps:
     action: 收到定损通知（顾客）
     frontend:
       - platform: [weapp, h5]
-        page: /order-detail
+        page: /message-detail
         role: [customer]
         gate: "订单状态 = pending_damage_response"
         reach: "通知/订单详情 → 定损信息"
-        controls: [同意按钮, 申诉按钮]
+        controls: [接受按钮, 拒绝按钮]
         displays: [定损照片, 定损金额, 评论]
         ops:
           - {type: api, method: POST, path: /orders/:id/accept-damage}

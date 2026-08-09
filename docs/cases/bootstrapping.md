@@ -14,8 +14,8 @@ steps:
         controls: [商户名称, 联系人, 类型]
         displays: []
         ops:
-          - {type: api, method: POST, path: /admin/merchants}
-    api: {method: POST, path: /admin/merchants, params: [name, contact, type]}
+          - {type: api, method: POST, path: /merchants}
+    api: {method: POST, path: /merchants, params: [name, contact, type]}
     related:
       - {method: GET, path: /merchants}
       - {method: GET, path: /merchants/:id}
@@ -55,8 +55,8 @@ steps:
         controls: [绑定按钮]
         displays: []
         ops:
-          - {type: api, method: POST, path: /site-members}
-    api: {method: POST, path: /site-members, params: [user_id, site_id, role]}
+          - {type: api, method: POST, path: /sites/:id/members}
+    api: {method: POST, path: /sites/:id/members, params: [user_id, site_id, role]}
 ---
 
 # B-02 用户绑定

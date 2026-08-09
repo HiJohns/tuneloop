@@ -183,7 +183,7 @@ steps:
           - {type: api, method: GET, path: /public/sites}
           - {type: api, method: GET, path: /public/merchants}
           - {type: api, method: GET, path: /public/config}
-    api: {method: GET, path: /public/instruments, params: [tenant?, page, pageSize]}
+    api: {method: GET, path: /public/instruments, params: ["tenant?", page, pageSize]}
   - seq: 2
     action: 浏览详情
     frontend:

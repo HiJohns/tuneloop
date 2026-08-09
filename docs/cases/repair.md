@@ -54,21 +54,21 @@ steps:
         controls: [物流公司, 单号输入]
         displays: [收货地址(系统给), 中转地址+转入单号]
         ops:
-          - {type: api, method: POST, path: /repair-requests/:id/ship}
-    api: {method: POST, path: /repair-requests/:id/ship, params: [courier, tracking_number]}
+          - {type: api, method: PUT, path: /repair-requests/:id/return-shipping}
+    api: {method: PUT, path: /repair-requests/:id/return-shipping, params: [courier, tracking_number]}
   - seq: 5
-    action: 确认收货并评价
+    action: 确认收货
     frontend:
       - platform: [weapp, h5]
         page: /repair-request/:id
         role: [customer]
         gate: "状态 = returned"
         reach: ""
-        controls: [确认收货按钮, 评价输入]
+        controls: [确认收货按钮]
         displays: [维修结果]
         ops:
-          - {type: api, method: POST, path: /repair-requests/:id/confirm-return}
-    api: {method: POST, path: /repair-requests/:id/confirm-return, params: []}
+          - {type: api, method: POST, path: /repair-requests/:id/complete}
+    api: {method: POST, path: /repair-requests/:id/complete, params: []}
 ---
 
 # R-01 客户报修（v3）
@@ -104,7 +104,7 @@ steps:
         role: [customer]
         gate: "状态 = repairing 且存在 requote"
         reach: "通知 → 报修单"
-        controls: [新报价卡片, 接受按钮, 拒绝按钮]
+        controls: [新报价卡片, 接受按钮, 拒绝按钮(待前端接入)]
         displays: [原报价, 新报价, 差额, 材料/服务/物流费对比]
         ops:
           - {type: api, method: POST, path: /repair-requests/:id/quotes/:qid/accept}

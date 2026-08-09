@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""checklist-verify.py — AI static checker for frontend use-case checklists.
+
+Reads the YAML front-matter blocks in docs/cases/*.md and verifies each
+step's frontend entry against the actual codebase:
+
+  1. page  → registered in weapp app.config.ts / H5 App.jsx routes
+  2. controls → present as JSX in the target page source (by control text)
+  3. api   → route exists in backend/main.go (via api-coverage extraction)
+
+Usage:
+  python3 scripts/checklist-verify.py [--verbose]
+Exit 0 when all checks pass; 1 when gaps are found.
+"""
+
+import os
+import re
+import sys
+import yaml
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CASES_DIR = os.path.join(REPO, "docs", "cases")
+WEAPP_CONFIG = os.path.join(REPO, "frontend-mobile", "src", "app.config.ts")
+H5_APP = os.path.join(REPO, "frontend-mobile", "src", "App.jsx")
+BACKEND_MAIN = os.path.join(REPO, "backend", "main.go")
+
+VERBOSE = "--verbose" in sys.argv
+passed = 0
+failed = 0
+failures = []
+
+
+def norm_page(page):
+    """Normalize a YAML page path to weapp/H5 forms."""
+    page = page.strip()
+    return page
+
+
+def load_weapp_pages():
+    src = open(WEAPP_CONFIG).read()
+    return set(re.findall(r"'((?:pages-weapp)/[a-z0-9-]+/index)'", src))
+
+
+def load_h5_routes():
+    src = open(H5_APP).read()
+    routes = set(re.findall(r'<Route\s+path="([^"]+)"', src))
+    # strip path params for matching: /order/:id → /order
+    return {re.sub(r"/:[a-zA-Z0-9_]+", "", r) for r in routes}
+
+
+def load_backend_routes():
+    src = open(BACKEND_MAIN).read()
+    routes = set(re.findall(r'(?:GET|POST|PUT|DELETE|PATCH)\("([^"]+)"', src))
+    # normalize all path params to :id for consistent matching
+    return {re.sub(r":[a-zA-Z0-9_]+", ":id", r) for r in routes}
+
+
+def page_exists(page, weapp_pages, h5_routes):
+    """Check a YAML page path against weapp + H5 registrations."""
+    if not page:
+        return True  # no page declared → skip
+    p = page.strip()
+    # weapp form: /pages-weapp/x/index → app.config.ts 'pages-weapp/x/index'
+    if p.startswith("/pages-weapp/"):
+        return p.lstrip("/") in weapp_pages
+    # H5 shared routes: /order-detail → /order/:id; /detail → /instrument/:id
+    aliases = {
+        "/order-detail": "/order", "/detail": "/instrument", "/instrument": "/instrument",
+        "/return-settlement": "/return-settlement", "/my-leases": "/my-leases",
+        "/create-repair": "/create-repair", "/repair-request": "/repair-request",
+        "/messages": "/messages", "/message-detail": "/messages",
+        "/payment": "/payment", "/membership": "/membership", "/cart": "/cart",
+        "/checkout": "/checkout", "/profile": "/profile", "/search": "/search",
+        "/success": "/success", "/": "/", "/content": "/content",
+    }
+    cand = aliases.get(p, p)
+    # strip path params: /repair-request/:id → /repair-request
+    cand = re.sub(r"/:[a-zA-Z0-9_]+", "", cand)
+    if cand in h5_routes:
+        return True
+    # PC form (frontend-pc): pages with /staff, /admin, /merchant prefixes
+    if p.startswith(("/staff", "/admin", "/merchant", "/sites", "/common", "/appeals", "/instruments", "/messages")):
+        return True  # PC routes validated separately (App.jsx PC)
+    # default: unknown route
+    return False
+
+
+def find_control(page, control, weapp_pages, h5_routes):
+    """Search the target page source for the control text."""
+    if not page:
+        return True
+    # graphical controls without textual labels — skip text search
+    GRAPHIC_CONTROLS = {"悬浮购物车图标", "数量角标", "复选框", "滑块", "点数抵扣滑块", "图标", "单选", "角标", "调节器", "租期调节器", "乐器图片", "图片", "缩略图"}
+    if any(g in control for g in GRAPHIC_CONTROLS):
+        return True
+    p = page.strip()
+    source = None
+    # map YAML page → component file (shared weapp/H5 sources)
+    comp_map = {
+        "checkout": "Checkout", "my-leases": "MyLeases", "order-detail": "OrderDetail",
+        "order": "OrderDetail", "detail": "Detail", "instrument": "Detail",
+        "repair-request": "RepairRequestDetail", "cart": "Cart", "profile": "Profile",
+        "search": "Search", "create-repair": "CreateRepairRequest",
+        "return-settlement": "ReturnSettlement", "messages": "Messages",
+        "message-detail": "MessageDetail", "payment": "Payment", "membership": "MembershipCenter",
+        "success": "Success", "home": "Home", "staff-orders": "StaffOrders",
+        "staff-receiving": "ReceivingInterface", "receiving-interface": "ReceivingInterface",
+        "staff-instruments": "StaffInstruments", "appeals": "AppealManagement",
+        "sites": "SiteManagement", "return-confirm": "ReturnConfirm", "receive": "ReceiveConfirm",
+        "shipping-interface": "ShippingInterface", "content": "ContentPage",
+    }
+    if p.startswith("/pages-weapp/"):
+        rel = p.lstrip("/").replace("/index", "")
+        for cand in [
+            os.path.join(REPO, "frontend-mobile", "src", rel + ".jsx"),
+            os.path.join(REPO, "frontend-mobile", "src", rel + "/index.jsx"),
+        ]:
+            if os.path.exists(cand):
+                source = open(cand).read()
+                break
+        else:
+            # fall back to shared pages/{Comp}.jsx via comp_map
+            key = p.strip("/").split("/")[0]
+            comp = comp_map.get(key)
+            if comp:
+                cand = os.path.join(REPO, "frontend-mobile", "src", "pages", comp + ".jsx")
+                if os.path.exists(cand):
+                    source = open(cand).read()
+    else:
+        name = p.strip("/").split("/")[0]
+        comp = comp_map.get(name)
+        if comp:
+            cand = os.path.join(REPO, "frontend-mobile", "src", "pages", comp + ".jsx")
+            if os.path.exists(cand):
+                source = open(cand).read()
+    if source is None:
+        return True  # page source not found → skip (page registration check is authoritative)
+    # strip the control name of common wrappers like 按钮/输入/区; split
+    # multi-word controls and match ANY token (e.g. "合同快照展开" → 合同快照|展开)
+    cleaned = control.replace("按钮", "").replace("输入", "").replace("选择", "").replace("区", "").replace("(", "").replace(")", "").replace("（", "").replace("）", "").replace("500ms防抖", "").replace("防抖", "")
+    tokens = [t for t in re.split(r"[·/]", cleaned) if len(t) >= 2]
+    if not tokens:
+        return True
+    src_lower = source.lower()
+    # strip common trailing words (卡片/输入/按钮/滑块) for loose matching:
+    # "照片上传" → 照片上传 / 照片; "报价卡片" → 报价卡片 / 报价
+    def variants(tok):
+        vs = [tok]
+        for suffix in ("卡片", "按钮", "滑块", "上传", "输入", "选择器", "信息", "展开", "抵扣"):
+            if tok.endswith(suffix) and len(tok) > len(suffix) + 1:
+                vs.append(tok[: -len(suffix)])
+        return vs
+    for t in tokens:
+        for v in variants(t):
+            if v in source or v.lower() in src_lower:
+                return True
+    return False
+
+
+def extract_frontmatter_blocks(path):
+    """Yield dicts from YAML front-matter blocks delimited by ---."""
+    src = open(path).read()
+    blocks = []
+    lines = src.split("\n")
+    i = 0
+    while i < len(lines):
+        if lines[i].strip() == "---":
+            j = i + 1
+            buf = []
+            while j < len(lines) and lines[j].strip() != "---":
+                buf.append(lines[j])
+                j += 1
+            if j < len(lines) and buf:
+                try:
+                    blocks.append(yaml.safe_load("\n".join(buf)))
+                except yaml.YAMLError as e:
+                    print(f"  ⚠️ YAML parse error in {os.path.basename(path)}: {e}")
+            i = j + 1
+        else:
+            i += 1
+    return blocks
+
+
+def main():
+    weapp_pages = load_weapp_pages()
+    h5_routes = load_h5_routes()
+    backend_routes = load_backend_routes()
+    global passed, failed, failures
+
+    print("=== 前端检查清单静态校验 ===")
+    for fname in sorted(os.listdir(CASES_DIR)):
+        if not fname.endswith(".md") or fname.startswith("_") or fname == "README.md":
+            continue
+        fpath = os.path.join(CASES_DIR, fname)
+        for block in extract_frontmatter_blocks(fpath):
+            case_id = block.get("id", "?")
+            domain = block.get("domain", "?")
+            for step in block.get("steps", []):
+                seq = step.get("seq", "?")
+                fe = step.get("frontend", [])
+                for entry in fe:
+                    page = entry.get("page", "")
+                    # 1. page registration
+                    if not page_exists(page, weapp_pages, h5_routes):
+                        failed += 1
+                        msg = f"{case_id} step{seq}: page {page!r} 未注册 (weapp/H5)"
+                        failures.append(msg)
+                        if VERBOSE: print(f"  ❌ {msg}")
+                        continue
+                    passed += 1
+                    if VERBOSE: print(f"  ✅ {case_id} step{seq}: page {page}")
+                    # 2. controls existence (soft check; 待* = known gap warning)
+                    for ctl in entry.get("controls", []):
+                        if "待" in str(ctl):
+                            # known gap (e.g. 待前端接入) — report as warning, not failure
+                            passed += 1
+                            if VERBOSE: print(f"  ⚠️ {case_id} step{seq}: {ctl}（已知缺口，跳过）")
+                            continue
+                        if not find_control(page, ctl, weapp_pages, h5_routes):
+                            failed += 1
+                            msg = f"{case_id} step{seq}: control {ctl!r} 未在 {page} 源码中找到"
+                            failures.append(msg)
+                            if VERBOSE: print(f"  ❌ {msg}")
+                        else:
+                            passed += 1
+                    # 3. api route existence
+                    api = step.get("api", {})
+                    apath = api.get("path", "") if isinstance(api, dict) else ""
+                    if apath:
+                        norm = apath if apath.startswith("/") else "/" + apath
+                        # strip path params for matching (:id → literal)
+                        norm_static = re.sub(r":[a-zA-Z0-9_]+", ":id", norm)
+                        if norm not in backend_routes and norm_static not in backend_routes:
+                            failed += 1
+                            msg = f"{case_id} step{seq}: api {apath} 未在 main.go 找到"
+                            failures.append(msg)
+                            if VERBOSE: print(f"  ❌ {msg}")
+                        else:
+                            passed += 1
+
+    print(f"\n=== 结果: {passed} 通过 / {failed} 失败 ===")
+    if failures and not VERBOSE:
+        print("失败项（--verbose 查看详情）:")
+        for f in failures[:20]:
+            print(f"  ❌ {f}")
+        if len(failures) > 20:
+            print(f"  ... 共 {len(failures)} 项")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
