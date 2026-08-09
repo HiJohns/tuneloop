@@ -52,9 +52,25 @@ func (h *UserManagementHandler) List(c *gin.Context) {
 		return
 	}
 
+	// Preload membership level names to avoid N+1 queries.
+	var levelIDs []int
+	for _, u := range users {
+		if u.MembershipLevelID != nil {
+			levelIDs = append(levelIDs, *u.MembershipLevelID)
+		}
+	}
+	levelNames := make(map[int]string, len(levelIDs))
+	if len(levelIDs) > 0 {
+		var levels []models.MembershipLevel
+		db.Where("id IN ?", levelIDs).Find(&levels)
+		for _, lv := range levels {
+			levelNames[lv.ID] = lv.Name
+		}
+	}
+
 	list := make([]gin.H, 0, len(users))
 	for _, u := range users {
-		list = append(list, userSummary(u, db))
+		list = append(list, userSummary(u, levelNames))
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -143,6 +159,21 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 		return
 	}
 
+	levelIDs := make([]int, 0)
+	for _, u := range users {
+		if u.MembershipLevelID != nil {
+			levelIDs = append(levelIDs, *u.MembershipLevelID)
+		}
+	}
+	exportLevelNames := make(map[int]string, len(levelIDs))
+	if len(levelIDs) > 0 {
+		var levels []models.MembershipLevel
+		db.Where("id IN ?", levelIDs).Find(&levels)
+		for _, lv := range levels {
+			exportLevelNames[lv.ID] = lv.Name
+		}
+	}
+
 	c.Header("Content-Type", "text/csv")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=users_%d.csv", time.Now().Unix()))
 
@@ -150,7 +181,7 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 	defer w.Flush()
 	w.Write([]string{"username", "wx_openid", "phone", "level", "points", "registered_at", "last_active", "status"})
 	for _, u := range users {
-		s := userSummary(u, db)
+		s := userSummary(u, exportLevelNames)
 		w.Write([]string{
 			fmt.Sprintf("%v", s["username"]),
 			fmt.Sprintf("%v", s["wx_openid"]),
@@ -164,13 +195,10 @@ func (h *UserManagementHandler) Export(c *gin.Context) {
 	}
 }
 
-func userSummary(u models.User, db *gorm.DB) gin.H {
+func userSummary(u models.User, levelNames map[int]string) gin.H {
 	levelName := ""
 	if u.MembershipLevelID != nil {
-		var lv models.MembershipLevel
-		if err := db.Where("id = ?", *u.MembershipLevelID).First(&lv).Error; err == nil {
-			levelName = lv.Name
-		}
+		levelName = levelNames[*u.MembershipLevelID]
 	}
 	return gin.H{
 		"id":            u.ID,
@@ -187,7 +215,14 @@ func userSummary(u models.User, db *gorm.DB) gin.H {
 }
 
 func userDetail(u models.User, db *gorm.DB) gin.H {
-	s := userSummary(u, db)
+	levelNames := make(map[int]string)
+	if u.MembershipLevelID != nil {
+		var lv models.MembershipLevel
+		if err := db.Where("id = ?", *u.MembershipLevelID).First(&lv).Error; err == nil {
+			levelNames[*u.MembershipLevelID] = lv.Name
+		}
+	}
+	s := userSummary(u, levelNames)
 	s["name"] = u.Name
 	s["email"] = u.Email
 	s["nickname"] = u.Nickname

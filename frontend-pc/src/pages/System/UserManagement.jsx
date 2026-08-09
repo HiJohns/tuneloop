@@ -78,7 +78,9 @@ export default function UserManagement() {
     { title: '最新活动', dataIndex: 'last_active', key: 'last_active', render: v => v ? new Date(v).toLocaleString() : '-' },
     { title: '状态', dataIndex: 'status', key: 'status', render: v => v === 'disabled'
       ? <Tag color="red">已禁用</Tag>
-      : <Tag color="green">可用</Tag> },
+      : v === 'active'
+        ? <Tag color="green">可用</Tag>
+        : <Tag>{v || '未知'}</Tag> },
     { title: '操作', key: 'action', render: (_, record) => (
       <Button type="link" size="small" onClick={() => openDetail(record)}>详情 / 编辑</Button>
     )},
