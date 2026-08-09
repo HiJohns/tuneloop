@@ -243,3 +243,20 @@
 - 必须包含跳转所需的最小字段（如 order_id）
 
 ---
+---
+
+## 8. 新功能文档要求（强制）
+
+> 来源： #1545 新功能审计——新功能完成后漏了 docs/cases 文档。
+
+### 8.1 检查清单
+
+每个新功能/新 API 实现后，Developer 必须确认：
+
+- [ ] docs/cases/ 下是否有对应用例文档（YAML 前置块 + 流程说明）
+- [ ] 如有新 API，api-coverage.sh 是否需要更新豁免或覆盖
+- [ ] 如有新页面，checklist-verify.py 是否需要补控件映射
+
+**反例**：#1545 平台管理员用户管理实现了 4 个 API + 1 个新页面，首次提交时无 docs/cases 文档，后续补充。
+
+*Model: deepseek/deepseek-v4-flash*

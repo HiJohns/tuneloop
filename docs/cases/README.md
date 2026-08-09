@@ -80,6 +80,7 @@ steps:               # 步骤列表
 | L-04 定损申诉 | ✅ TestScenarioA_Damage/RejectVariant | ✅ lease.md | done |
 | I-01 乐器录入 | ✅ TestInstrumentCRUD | ⬜ instrument.md | wip |
 | P-01 个人资料编辑 | ⬜ 待建 | ✅ profile.md | wip |
+| P-02 平台用户管理 | ⬜ 待建 | ✅ user-management.md | wip |
 | O-01 网点管理 | ✅ TestOrgManagement | ⬜ organization.md | wip |
 | 其余域 | 待建/已有 | 待写 | todo |
 
