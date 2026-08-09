@@ -264,6 +264,13 @@ export default function Profile() {
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/profile/edit')}>
+            <View className="flex items-center gap-2">
+              <Text className="text-lg">✏️</Text>
+              <Text className="text-base font-bold text-zinc-800">编辑资料</Text>
+            </View>
+            <Text className="text-sm text-zinc-300">❯</Text>
+          </View>
           <View className="flex justify-between items-center py-3.5 active:opacity-60">
             <View className="flex items-center gap-2">
               <Text className="text-lg">💼</Text>

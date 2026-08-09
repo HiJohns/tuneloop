@@ -5,6 +5,7 @@ import { apiFetch, getToken } from '../../../services/api'
 import { env } from '../../../platform'
 
 export default function EditProfile() {
+  const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -17,6 +18,7 @@ export default function EditProfile() {
         const resp = await apiFetch(`${baseUrl}/users/me`)
         const result = await resp.json()
         if (result.code === 20000) {
+          setName(result.data.name || '')
           // WeChat nickname is only the default value; the user may edit it
           // freely (#1588). phone/email prefill from current profile.
           setNickname(result.data.nickname || result.data.wx_nickname || result.data.name || '')
@@ -34,7 +36,7 @@ export default function EditProfile() {
       const resp = await apiFetch(`${baseUrl}/users/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, phone, email }),
+        body: JSON.stringify({ name, nickname, phone, email }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
@@ -52,6 +54,12 @@ export default function EditProfile() {
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>姓名</Text>
+          <Input value={name} onInput={e => setName(e.detail.value)}
+            placeholder={name ? '' : '请输入真实姓名'}
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
+        </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>昵称</Text>
           <Input value={nickname} onInput={e => setNickname(e.detail.value)}
