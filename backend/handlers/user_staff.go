@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"log"
@@ -747,6 +748,8 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		"membership_level_id":  user.MembershipLevelID,
 		"total_spending":       user.TotalSpending,
 		"promo_points":         user.PromoPoints,
+		"id_photo_front":       h.resolveIdPhotoURL(ctx, user.IdPhotoFront),
+		"id_photo_back":        h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
 	}
 
 	// Resolve membership level name
@@ -796,9 +799,21 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	})
 }
 
+// resolveIdPhotoURL converts a stored storage key into an accessible URL.
+func (h *UserStaffHandler) resolveIdPhotoURL(ctx context.Context, key *string) string {
+	if key == nil || *key == "" {
+		return ""
+	}
+	storage := services.NewMediaStorage()
+	url, err := storage.GetURL(ctx, *key)
+	if err != nil || url == "" {
+		return fmt.Sprintf("/uploads/media/%s", *key)
+	}
+	return url
+}
+
 // ResendEmailConfirmation POST /api/users/me/resend-email-confirmation
-func (h *UserStaffHandler) ResendEmailConfirmation(c *gin.Context) {
-	ctx := c.Request.Context()
+func (h *UserStaffHandler) ResendEmailConfirmation(c *gin.Context) {	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
 
 	iamClient := services.NewIAMClient()
@@ -821,11 +836,13 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Name     string `json:"name"`
-		Nickname string `json:"nickname"`
-		Phone    string `json:"phone"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Name           string  `json:"name"`
+		Nickname       string  `json:"nickname"`
+		Phone          string  `json:"phone"`
+		Email          string  `json:"email"`
+		Password       string  `json:"password"`
+		IdPhotoFront   *string `json:"id_photo_front"`
+		IdPhotoBack    *string `json:"id_photo_back"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
@@ -863,6 +880,12 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	}
 	if req.Nickname != "" {
 		localUpdates["nickname"] = req.Nickname
+	}
+	if req.IdPhotoFront != nil {
+		localUpdates["id_photo_front"] = *req.IdPhotoFront
+	}
+	if req.IdPhotoBack != nil {
+		localUpdates["id_photo_back"] = *req.IdPhotoBack
 	}
 	if len(localUpdates) > 0 {
 		// Customers (USER) carry no tenant in JWT (oid/tid empty). Filtering

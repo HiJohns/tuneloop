@@ -33,6 +33,8 @@ type User struct {
 	PrepaidPoints       float64    `gorm:"type:decimal;default:0" json:"-"` // deprecated (#1531)
 	PromoPoints         float64    `gorm:"type:decimal;default:0" json:"promo_points"`
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
+	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
+	IdPhotoBack         *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
 	RefCode            string     `gorm:"type:varchar(16)" json:"ref_code"`
 	DeletedAt           *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt           time.Time  `json:"created_at"`

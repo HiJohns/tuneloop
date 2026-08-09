@@ -95,6 +95,12 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 		return
 	}
 
+	side := c.PostForm("side")
+	if side != "front" && side != "back" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+		return
+	}
+
 	c.Request.ParseMultipartForm(10 << 20)
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -135,11 +141,248 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 		fileURL = fmt.Sprintf("/uploads/media/%s", filename)
 	}
 
+	// Persist the storage key to the user's profile (#1598). Save the raw
+	// storage key so it can be re-resolved via GetURL later.
+	col := "id_photo_front"
+	if side == "back" {
+		col = "id_photo_back"
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", userID).Update(col, filename).Error; err != nil {
+		log.Printf("id photo persist failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to save photo reference"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "upload success",
 		"data": gin.H{
-			"url": fileURL,
+			"url":  fileURL,
+			"side": side,
 		},
+	})
+}
+
+// GetIdPhotos returns the current user's ID photo URLs (front + back).
+func (h *UserOnboardingHandler) GetIdPhotos(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	userID, err := middleware.EnsureLocalUser(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "user sync failed: " + err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := db.Select("id_photo_front, id_photo_back").Where("id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	storage := services.NewMediaStorage()
+	front := ""
+	if user.IdPhotoFront != nil && *user.IdPhotoFront != "" {
+		front, _ = storage.GetURL(ctx, *user.IdPhotoFront)
+	}
+	back := ""
+	if user.IdPhotoBack != nil && *user.IdPhotoBack != "" {
+		back, _ = storage.GetURL(ctx, *user.IdPhotoBack)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"front": front,
+			"back":  back,
+		},
+	})
+}
+
+// DeleteIdPhoto clears one side of the current user's ID photo.
+func (h *UserOnboardingHandler) DeleteIdPhoto(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	userID, err := middleware.EnsureLocalUser(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "user sync failed: " + err.Error()})
+		return
+	}
+
+	side := c.Query("side")
+	if side != "front" && side != "back" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+		return
+	}
+
+	col := "id_photo_front"
+	if side == "back" {
+		col = "id_photo_back"
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", userID).Update(col, "").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete photo"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "deleted",
+	})
+}
+
+// GetUserIdPhotos returns a user's ID photo URLs for staff identity
+// verification (shipping/receiving/repair). Tenant isolation is enforced by
+// checking the caller's org scope against the target user's org binding.
+// GET /api/user/:userId/id-photos
+func (h *UserOnboardingHandler) GetUserIdPhotos(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	role := middleware.GetBusinessRole(ctx)
+	switch role {
+	case middleware.BusinessRoleSiteAdmin, middleware.BusinessRoleSiteMember, middleware.BusinessRoleMerchantAdmin, middleware.BusinessRoleSystemAdmin:
+		// staff or platform-level: allowed
+	default:
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "no permission to view user id photos"})
+		return
+	}
+
+	targetID := c.Param("userId")
+	var user models.User
+	if err := db.Select("id_photo_front, id_photo_back").Where("id = ?", targetID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	storage := services.NewMediaStorage()
+	front := ""
+	if user.IdPhotoFront != nil && *user.IdPhotoFront != "" {
+		front, _ = storage.GetURL(ctx, *user.IdPhotoFront)
+	}
+	back := ""
+	if user.IdPhotoBack != nil && *user.IdPhotoBack != "" {
+		back, _ = storage.GetURL(ctx, *user.IdPhotoBack)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"front": front,
+			"back":  back,
+		},
+	})
+}
+
+// AdminUploadIDPhoto uploads an ID photo on behalf of a user (PC admin).
+// POST /api/admin/user-management/:id/id-photo
+func (h *UserOnboardingHandler) AdminUploadIDPhoto(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	targetID := c.Param("id")
+	var target models.User
+	if err := db.Select("id").Where("id = ?", targetID).First(&target).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	side := c.PostForm("side")
+	if side != "front" && side != "back" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+		return
+	}
+
+	c.Request.ParseMultipartForm(10 << 20)
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "no file uploaded"})
+		return
+	}
+
+	mimeType := file.Header.Get("Content-Type")
+	if mimeType != "image/jpeg" && mimeType != "image/png" && mimeType != "image/webp" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "only JPEG, PNG, WebP allowed"})
+		return
+	}
+
+	if file.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "file too large, max 5MB"})
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	filename := fmt.Sprintf("id_photos/%s_%d%s", targetID, time.Now().UnixNano(), ext)
+
+	reader, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50002, "message": "failed to open file"})
+		return
+	}
+	defer reader.Close()
+
+	storage := services.NewMediaStorage()
+	if err := storage.Upload(ctx, filename, reader, mimeType); err != nil {
+		log.Printf("admin id photo upload failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50003, "message": "failed to save file"})
+		return
+	}
+
+	fileURL, _ := storage.GetURL(ctx, filename)
+	if fileURL == "" {
+		fileURL = fmt.Sprintf("/uploads/media/%s", filename)
+	}
+
+	col := "id_photo_front"
+	if side == "back" {
+		col = "id_photo_back"
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", targetID).Update(col, filename).Error; err != nil {
+		log.Printf("admin id photo persist failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50004, "message": "failed to save photo reference"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "upload success",
+		"data": gin.H{
+			"url":  fileURL,
+			"side": side,
+		},
+	})
+}
+
+// AdminDeleteIdPhoto clears one side of a user's ID photo (PC admin).
+// DELETE /api/admin/user-management/:id/id-photo?side=front|back
+func (h *UserOnboardingHandler) AdminDeleteIdPhoto(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	targetID := c.Param("id")
+	var target models.User
+	if err := db.Select("id").Where("id = ?", targetID).First(&target).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+
+	side := c.Query("side")
+	if side != "front" && side != "back" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid side, must be front or back"})
+		return
+	}
+
+	col := "id_photo_front"
+	if side == "back" {
+		col = "id_photo_back"
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", targetID).Update(col, "").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete photo"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "deleted",
 	})
 }

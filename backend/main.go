@@ -400,6 +400,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/admin/user-management/export", middleware.RequireSysPerm(middleware.SysPermTenantList), userManagementHandler.Export)
 		authRequired.GET("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantView), userManagementHandler.Get)
 		authRequired.PUT("/admin/user-management/:id", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userManagementHandler.Update)
+		authRequired.POST("/admin/user-management/:id/id-photo", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userOnboardingHandler.AdminUploadIDPhoto)
+		authRequired.DELETE("/admin/user-management/:id/id-photo", middleware.RequireSysPerm(middleware.SysPermTenantUpdate), userOnboardingHandler.AdminDeleteIdPhoto)
 
 		siteRequired := authRequired.Group("")
 		{
@@ -463,6 +465,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userRequired.GET("/user/ownership/:id/download", handlers.DownloadOwnershipCertificate)
 			userRequired.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
 			userRequired.PUT("/orders/:id/terminate", handlers.TerminateOrder)
+			userRequired.GET("/user/:userId/id-photos", userOnboardingHandler.GetUserIdPhotos)
 		}
 
 		maintHandler := handlers.NewMaintenanceHandler()
@@ -650,6 +653,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/onboarding", userOnboardingHandler.GetOnboardingStatus)
 				userOptionalAuth.PUT("/user/onboarding", userOnboardingHandler.CompleteOnboarding)
 				userOptionalAuth.POST("/user/id-photo", userOnboardingHandler.UploadIDPhoto)
+				userOptionalAuth.GET("/user/id-photos", userOnboardingHandler.GetIdPhotos)
+				userOptionalAuth.DELETE("/user/id-photo", userOnboardingHandler.DeleteIdPhoto)
 
 				// Points wallet routes
 				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)

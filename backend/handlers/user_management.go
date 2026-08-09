@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 )
 
 // UserManagementHandler manages platform-wide registered users (#1545).
@@ -101,6 +103,8 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 		MembershipLevelID *int     `json:"membership_level_id"`
 		PromoPoints       *float64 `json:"promo_points"`
 		Status            *string  `json:"status"`
+		IdPhotoFront      *string  `json:"id_photo_front"`
+		IdPhotoBack       *string  `json:"id_photo_back"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
@@ -127,6 +131,12 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 			return
 		}
 		updates["status"] = *req.Status
+	}
+	if req.IdPhotoFront != nil {
+		updates["id_photo_front"] = *req.IdPhotoFront
+	}
+	if req.IdPhotoBack != nil {
+		updates["id_photo_back"] = *req.IdPhotoBack
 	}
 	if len(updates) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no editable fields provided"})
@@ -232,7 +242,22 @@ func userDetail(u models.User, db *gorm.DB) gin.H {
 	s["tenant_id"] = u.TenantID
 	s["org_id"] = u.OrgID
 	s["created_at"] = u.CreatedAt
+	s["id_photo_front"] = resolveStorageKey(db.Statement.Context, u.IdPhotoFront)
+	s["id_photo_back"] = resolveStorageKey(db.Statement.Context, u.IdPhotoBack)
 	return s
+}
+
+// resolveStorageKey converts a stored media storage key into an accessible URL.
+func resolveStorageKey(ctx context.Context, key *string) string {
+	if key == nil || *key == "" {
+		return ""
+	}
+	storage := services.NewMediaStorage()
+	url, err := storage.GetURL(ctx, *key)
+	if err != nil || url == "" {
+		return fmt.Sprintf("/uploads/media/%s", *key)
+	}
+	return url
 }
 
 var _ = middleware.GetTenantID
