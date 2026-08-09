@@ -170,12 +170,10 @@ export default function MessageDetail() {
   const type = typeConfig[notification.type] || typeConfig.order
 
   return (
-    <View className="min-h-screen bg-brand-bg pb-20">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}>
-          <ArrowLeft size={20} />
-        </Button>
-        <Text className="text-lg font-bold">消息详情</Text>
+    <View className="min-h-screen bg-[#FDFBF7] pb-20">
+      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+        <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)} />
+        <Text className="text-lg font-black text-black">消息详情</Text>
       </View>
 
       <View className="p-4">
