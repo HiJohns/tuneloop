@@ -62,6 +62,8 @@ make mobile-dev
 
 **已知的 HMR 边缘情况**：新增 `platform/` 模块导出（如 `getInputValue`）后，已有的 import 链可能不自动刷新——硬刷新浏览器（`Ctrl+Shift+R`）即可。不是 bug。
 
+**后端代码变更**：Go 修改后必须 `make run` 重启。AI 无法操作你的终端——当怀疑后端未生效时，直接杀掉开发线程重新 `make run`，不要浪费时间猜测"代码是否最新"。
+
 ## Node.js 版本要求
 
 **Taro v4 在 Node.js v24 下存在兼容性问题**（`module is not defined in ES module scope`）。`frontend-mobile` 构建必须使用 **Node.js v22 LTS**（当前: v22.22.3）。
