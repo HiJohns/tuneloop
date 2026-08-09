@@ -218,6 +218,17 @@ export default function MembershipCenter() {
           </View>
         </View>
 
+        {/* Edit profile button */}
+        <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
+          <View className="items-center">
+            <Button onClick={() => navigate('/profile/edit')}
+              style={{ backgroundColor: 'transparent', color: '#000', borderRadius: 999, padding: '10px 24px', fontSize: 14, fontWeight: '700', border: '1px solid #d4d4d8' }}>
+              编辑资料
+            </Button>
+            <Text className="text-xs text-zinc-400 mt-2">修改姓名、手机号、邮箱等个人信息</Text>
+          </View>
+        </View>
+
         {/* Promo QR code */}
       <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
         <View className="items-center">
