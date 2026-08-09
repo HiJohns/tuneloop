@@ -25,7 +25,7 @@ export default function Messages() {
   const fetchNotifications = async () => {
     try {
       const resp = await notificationApi.list()
-      setNotifications(resp?.data?.list || [])
+      setNotifications(resp || [])
     } catch (err) {
       console.error('Failed to fetch notifications:', err)
     }
