@@ -1666,8 +1666,9 @@ checkRule() - 权限位过滤
          ├── B1：顾客接受
          │      → POST /appeals/:id/agree
          │      → 订单 → deposit_refunding
-         │      → 跳转退款确认页（显示赔偿扣除后的退款明细）
-         │      → 确认 → executeRefund → completed
+         │      → damage < deposit：跳转退款确认页（ReturnSettlement，显示赔偿扣除后的退款明细）
+         │        damage ≥ deposit：跳转定损支付页（Payment type=damage，需补付差额）
+         │      → 确认/支付完成 → executeRefund → completed
          │      → 通知（收据明细）
          │
          └── B2：顾客拒绝（申诉）
