@@ -547,6 +547,22 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 		log.Printf("[SubmitAppeal] Failed to create notification: %v", err)
 	}
 
+	// Notify site staff of the new appeal so they can review it
+	// (actionType='repair_request' → 查看申诉详情 button).
+	var order models.Order
+	if err := db.Where("id = ?", damageReport.LeaseID).First(&order).Error; err == nil {
+		var instrument models.Instrument
+		if err := db.Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil && instrument.SiteID != nil {
+			damageAmt := 0.0
+			if damageReport.DamageAmount != nil {
+				damageAmt = *damageReport.DamageAmount
+			}
+			staffContent := fmt.Sprintf("顾客对定损 ¥%.2f 提出申诉，请处理。申诉原因：%s", damageAmt, req.AppealReason)
+			staffActionData := fmt.Sprintf(`{"appeal_id":"%s"}`, appeal.ID)
+			services.NotifyUsersBySiteWithAction(db, tenantID, instrument.SiteID.String(), "appeal", "新申诉待处理", staffContent, appeal.ID, "appeal", []string{"site_admin", "site_member"}, "repair_request", &staffActionData)
+		}
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"code":    20000,
 		"message": "success",
