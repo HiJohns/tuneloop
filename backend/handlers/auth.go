@@ -369,6 +369,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 				Role:               "USER",
 				Status:             "active",
 				IsProfileCompleted: true,
+				OnboardingCompleted: true, // registration collects all onboarding fields (#1597)
 				WxOpenid:           boundOpenid,
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {

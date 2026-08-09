@@ -51,6 +51,7 @@ import OrderDetail from './pages/OrderDetail'
 import Onboarding from './pages/Onboarding'
 import ReturnSettlement from './pages/ReturnSettlement'
 import MembershipCenter from './pages/MembershipCenter'
+import Register from './pages/Register'
 
 function ProtectedRoute({ children, requireAuth = true }) {
   const token = getToken()
@@ -85,6 +86,18 @@ function ProtectedRoute({ children, requireAuth = true }) {
     } catch {}
   }
 
+  return children
+}
+
+// GuestRoute — for pages that must be reachable WITHOUT login (register).
+// Logged-in users are redirected to home; guests see the children directly
+// (no IAM OAuth redirect, unlike ProtectedRoute) (#1597).
+function GuestRoute({ children }) {
+  const token = getToken()
+  if (token) {
+    navigation.redirect('/')
+    return null
+  }
   return children
 }
 
@@ -231,6 +244,7 @@ function App() {
         <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
         <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/points-purchase" element={<ProtectedRoute><PointsPrePurchase /></ProtectedRoute>} />
         <Route path="/points-complete" element={<ProtectedRoute><PointsComplete /></ProtectedRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
