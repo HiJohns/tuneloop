@@ -6,6 +6,7 @@ import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, User, MapPin, Scan } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, scanQRCode } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
+import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect fill="#f3f4f6" width="200" height="200"/><text x="100" y="100" text-anchor="middle" dominant-baseline="middle" fill="#9ca3af" font-size="14">暂无图片</text></svg>')
 
