@@ -152,7 +152,7 @@ export default function Profile() {
       <ScrollView className="w-full flex-1 pb-20" scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}
-        <View className="w-full bg-gradient-to-b from-[#FDF4E7] to-white px-6 pt-8 pb-4 flex items-start justify-between relative">
+        <View className="w-full bg-gradient-to-b from-[#FDF4E7] to-white px-6 pt-8 pb-4 flex items-start relative">
           <View className="flex items-center gap-4">
             <View className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-zinc-200 flex items-center justify-center" onClick={() => setShowEdit(true)}>
               {user?.avatar ? (
@@ -175,13 +175,14 @@ export default function Profile() {
               </>
             )}
 
+            {/* 退出登录 — 与小程序一致，位于昵称下方（#1608） */}
+            <View
+              className="bg-white/80 backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center self-start mt-2 active:opacity-70"
+              onClick={handleLogout}
+            >
+              退出登录
+            </View>
           </View>
-          </View>
-          <View
-            className="bg-white/80 backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center active:opacity-70"
-            onClick={handleLogout}
-          >
-            退出登录
           </View>
         </View>
 
