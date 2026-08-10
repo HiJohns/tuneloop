@@ -212,7 +212,8 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 	require.Contains(t, notif.Content, "租金：¥3000.00")
 	require.Contains(t, notif.Content, "续期费用：¥120.00")
 	require.Contains(t, notif.Content, "押金退还：¥500.00")
-	require.Contains(t, notif.Content, "实际退款：¥500.00")
+	require.Contains(t, notif.Content, "退回微信：¥500.00")
+	require.Contains(t, notif.Content, "实际退款合计：¥500.00")
 }
 
 // TestBuildRefundReceipt_IncludesAllLines is a pure unit test of
@@ -269,7 +270,9 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	require.Contains(t, receipt, "应付合计：¥3530.00")
 	require.Contains(t, receipt, "已收（含押金）：¥4100.00")
 	require.Contains(t, receipt, "押金退还：¥500.00")
-	require.Contains(t, receipt, "实际退款：¥400.00")
+	require.Contains(t, receipt, "退回微信：¥400.00")
+	require.Contains(t, receipt, "实际退款合计：¥400.00")
+	require.Contains(t, receipt, "返点赠点到账")
 }
 
 // TestSubmitAppeal_StaffNotification verifies #1604: submitting an appeal

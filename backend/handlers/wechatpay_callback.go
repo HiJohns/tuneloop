@@ -262,11 +262,18 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		return fmt.Errorf("deduct user points: %w", err)
 	}
 	if record.OrderID != nil {
+		updates := map[string]interface{}{
+			"prepaid_points_used": points.PrepaidUsed,
+			"gift_points_used":    points.GiftUsed,
+		}
+		// Deduct gift points from cash_paid so settlement does not double
+		// count them (L-06). cash_paid was set to the full total at order
+		// creation; the gift-covered portion is not cash.
+		if points.GiftUsed > 0 {
+			updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", points.GiftUsed)
+		}
 		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
-			Updates(map[string]interface{}{
-				"prepaid_points_used": points.PrepaidUsed,
-				"gift_points_used":    points.GiftUsed,
-			}).Error; err != nil {
+			Updates(updates).Error; err != nil {
 			return fmt.Errorf("update order points: %w", err)
 		}
 	}

@@ -125,7 +125,11 @@ export default function Payment() {
             {data.details?.gift_refunded !== undefined && Number(data.details.gift_refunded) > 0 && (
               <Row label="退回赠点" value={`+¥${Number(data.details.gift_refunded).toFixed(2)}`} color="#16a34a" />
             )}
+            {data.details?.gift_cap !== undefined && Number(data.details.gift_cap) > 0 && (
+              <Row label="赠点抵扣（按当前级别比例）" value={`${Number(data.details.gift_cap).toFixed(0)} 点`} color="#16a34a" />
+            )}
             <Row label="退款金额" value={`¥${Number(data.amount).toFixed(2)}`} bold />
+            <div className="text-xs text-zinc-400 mt-2">退款完成后将按实付现金发放返点赠点，可在会员中心查看。</div>
           </div>
         )}
       </div>

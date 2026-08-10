@@ -412,15 +412,16 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	}
 
 	// Create notification
-	notifActionData = fmt.Sprintf(`{"final_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, finalAmount, order.Deposit, order.ID)
+	notifActionData = fmt.Sprintf(`{"final_amount":%.2f,"deposit":%.2f,"order_id":"%s","membership":true}`, finalAmount, order.Deposit, order.ID)
 
 	// If the order completed (refund triggered), enhance the customer
-	// notification with the standard receipt breakdown (#1603).
+	// notification with the standard receipt breakdown (#1603) + thank-you
+	// + membership link (L-06).
 	if nextOrderStatus == models.OrderStatusCompleted {
 		var completedOrder models.Order
 		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err == nil {
 			if result, err := executeRefund(db, completedOrder); err == nil {
-				notifContent = buildRefundReceipt(db, completedOrder, result)
+				notifContent = buildRefundReceipt(db, completedOrder, result) + "\n感谢您的租赁，欢迎再次光临！"
 			}
 		}
 	}

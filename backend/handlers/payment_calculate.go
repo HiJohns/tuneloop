@@ -239,11 +239,25 @@ func loadRefundPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 	}
 	resp.Title = "结算退款"
 	resp.Amount = settlement.CashRefundable
-	resp.Details = map[string]interface{}{
+	details := map[string]interface{}{
 		"cash_refundable":  settlement.CashRefundable,
 		"prepaid_refunded": settlement.PrepaidRefunded,
 		"gift_refunded":    settlement.GiftPointsRefunded,
 	}
+	// Pass through gift policy info from the settlement breakdown for
+	// receipt display: A1 (gift cap at refund time) and pay_ratio (L-06).
+	if settlement.Breakdown != "" {
+		var bd map[string]interface{}
+		if json.Unmarshal([]byte(settlement.Breakdown), &bd) == nil {
+			if v, ok := bd["gift_cap"].(float64); ok {
+				details["gift_cap"] = v
+			}
+			if v, ok := bd["pay_ratio"].(float64); ok {
+				details["pay_ratio"] = v
+			}
+		}
+	}
+	resp.Details = details
 }
 
 // loadCancelledOrderRefund serves the refund page after cancel-by-customer:

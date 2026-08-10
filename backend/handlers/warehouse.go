@@ -526,6 +526,10 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		// accept/reject buttons (ref_type=damage_report, ref_id=assessment).
 		refType = "damage_report"
 		refID = assessment.ID
+	} else {
+		// Completion notification (L-06): thank-you + membership center link
+		notificationContent = notificationContent + "\n感谢您的租赁，欢迎再次光临！"
+		actionData = strPtr(fmt.Sprintf(`{"order_id":"%s","membership":true}`, orderID))
 	}
 	notification := models.Notification{
 		TenantID:   tenantID,

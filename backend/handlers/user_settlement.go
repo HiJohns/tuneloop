@@ -38,14 +38,15 @@ func parsePricingBreakdown(pbJSON *string) (map[string]interface{}, float64, err
 	return result, finalDaily, nil
 }
 
-func parsePointsPolicySnapshot(ppsJSON *string) (map[string]interface{}, float64) {
+func parsePointsPolicySnapshot(ppsJSON *string) (map[string]interface{}, float64, float64) {
 	result := map[string]interface{}{}
 	if ppsJSON == nil || *ppsJSON == "" {
-		return result, 0
+		return result, 0, 0
 	}
 	json.Unmarshal([]byte(*ppsJSON), &result)
 	capRate, _ := result["cap_rate"].(float64)
-	return result, capRate
+	payRatio, _ := result["pay_ratio"].(float64)
+	return result, capRate, payRatio
 }
 
 func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
@@ -209,13 +210,26 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		}
 	}
 
-	// Increment total spending by actual rental amount
+	// Increment total spending by the CASH portion (C1, L-06)
+	spendingBasis := result.CashBasis
+	if spendingBasis <= 0 {
+		spendingBasis = result.RentPayable
+	}
 	if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", result.RentPayable),
+		"total_spending": gorm.Expr("total_spending + ?", spendingBasis),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update total spending"})
+		return
+	}
+
+	// Close the order (L-06): manual settlement confirmation marks the
+	// order completed, matching the auto-refund path.
+	if err := tx.Model(&models.Order{}).Where("id = ?", orderID).
+		Update("status", models.OrderStatusCompleted).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to close order"})
 		return
 	}
 
@@ -361,44 +375,60 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		return nil, fmt.Errorf("failed to mark deposit refunded: %w", err)
 	}
 
-	// Increment total spending by actual rental amount
+	// Increment total spending by the CASH portion of actual rental amount
+	// (C1 = R1 − A1, gift points excluded — prevents gift-point feedback
+	// loops, L-06). Industry practice: growth values count real spend.
+	spendingBasis := result.CashBasis
+	if spendingBasis <= 0 {
+		spendingBasis = result.RentPayable
+	}
 	if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-		"total_spending": gorm.Expr("total_spending + ?", result.RentPayable),
+		"total_spending": gorm.Expr("total_spending + ?", spendingBasis),
 		"updated_at":     time.Now(),
 	}).Error; err != nil {
 		return nil, fmt.Errorf("failed to update total spending: %w", err)
 	}
 
-	// Loyalty gift points (#1542): order completed → credit gift points
-	// proportional to actual rent × level ratio.
+	// Rebate gift points (L-06): A2 = floor(C1 × refund_ratio) credited on
+	// refund completion. refund_ratio from the user's level gift policy;
+	// legacy fallback: membership_gift_ratios.SelfSpendRatio on RentPayable.
 	var orderUser models.User
 	if err := tx.Where("id = ?", order.UserID).First(&orderUser).Error; err == nil {
-		var selfRatio float64
-		if orderUser.MembershipLevelID != nil {
-			if ratios := services.GetGiftRatios(*orderUser.MembershipLevelID); ratios != nil {
-				selfRatio = ratios.SelfSpendRatio
+		rebatePoints := 0.0
+		rebateDesc := ""
+		if policy := services.GetGiftPolicyByLevel(tx, levelIDOrZero(orderUser.MembershipLevelID)); policy != nil && policy.RefundRatio > 0 {
+			rebatePoints = math.Floor(result.CashBasis * policy.RefundRatio)
+			rebateDesc = fmt.Sprintf("退款返赠点: 实付现金 ¥%.2f × %.2f%%", result.CashBasis, policy.RefundRatio*100)
+		}
+		if rebatePoints <= 0 {
+			var selfRatio float64
+			if orderUser.MembershipLevelID != nil {
+				if ratios := services.GetGiftRatios(*orderUser.MembershipLevelID); ratios != nil {
+					selfRatio = ratios.SelfSpendRatio
+				}
+			}
+			if selfRatio > 0 {
+				rebatePoints = math.Floor(result.RentPayable * selfRatio)
+				rebateDesc = fmt.Sprintf("消费返赠点: 租金 ¥%.2f × %.2f%%", result.RentPayable, selfRatio*100)
 			}
 		}
-		if selfRatio > 0 {
-			loyaltyPoints := math.Floor(result.RentPayable * selfRatio)
-			if loyaltyPoints > 0 {
-				if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-					"promo_points": gorm.Expr("promo_points + ?", loyaltyPoints),
-					"updated_at":   time.Now(),
-				}).Error; err != nil {
-					log.Printf("[executeRefund] loyalty points credit failed for %s: %v", order.UserID, err)
-				} else {
-					tx.Create(&models.PointsTransaction{
-						ID:          uuid.New().String(),
-						UserID:      order.UserID,
-						TenantID:    order.TenantID,
-						Type:        "loyalty",
-						Amount:      loyaltyPoints,
-						OrderID:     &order.ID,
-						Description: fmt.Sprintf("消费返赠点: 租金 ¥%.2f × %.2f%%", result.RentPayable, selfRatio*100),
-						CreatedAt:   time.Now(),
-					})
-				}
+		if rebatePoints > 0 {
+			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+				"promo_points": gorm.Expr("promo_points + ?", rebatePoints),
+				"updated_at":   time.Now(),
+			}).Error; err != nil {
+				log.Printf("[executeRefund] rebate points credit failed for %s: %v", order.UserID, err)
+			} else {
+				tx.Create(&models.PointsTransaction{
+					ID:          uuid.New().String(),
+					UserID:      order.UserID,
+					TenantID:    order.TenantID,
+					Type:        "refund_rebate",
+					Amount:      rebatePoints,
+					OrderID:     &order.ID,
+					Description: rebateDesc,
+					CreatedAt:   time.Now(),
+				})
 			}
 		}
 
@@ -485,6 +515,7 @@ type settlementResult struct {
 	GiftPointsRefunded    float64
 	OverdueChargesTotal   float64
 	ActualDays            int
+	CashBasis             float64 // C1: cash actually paid for rent (R1 − A1), spending/rebate basis
 	Breakdown             map[string]interface{}
 }
 
@@ -500,7 +531,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 			}
 		}
 	}
-	_, capRate := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
+	_, capRate, snapPayRatio := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
 	var tierSegments []services.TierSegment
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
@@ -602,17 +633,56 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		earlyReturnRebate = 0
 	}
 
-	// Refund order (#1537): gift points (over cap) first via promo_points,
-	// then remaining cash via order_refund_records. Prepaid points removed.
-	cashRefundable := totalRefund
-	if cashRefundable < 0 {
-		cashRefundable = 0
+	// Refund order (#1537, L-06): differential gift-point split.
+	// A1 = floor(R1 × pay_ratio) — the gift-point usage cap recomputed at
+	// refund time against the adjusted payable R1 and the user's current
+	// membership level gift policy (snapshot pay_ratio first, then
+	// current-level policy, then legacy cap_rate, then default 0).
+	//
+	//   A1 < A0 → refund (A0 − A1) gift points to promo_points,
+	//             refund (C0 − C1) cash to WeChat (C1 = R1 − A1)
+	//   A1 ≥ A0 → gift points stay at A0, refund cash C0 − (R1 − A0)
+	//
+	// Conservation: gift_refunded + cash_refunded = R0 − R1.
+	payRatio := snapPayRatio
+	levelID := 0
+	if order.UserID != "" {
+		var u models.User
+		if err := db.Select("membership_level_id").Where("id = ?", order.UserID).First(&u).Error; err == nil && u.MembershipLevelID != nil {
+			levelID = *u.MembershipLevelID
+		}
+	}
+	if payRatio <= 0 {
+		if policy := services.GetGiftPolicyByLevel(db, levelID); policy != nil {
+			payRatio = policy.PayRatio
+		}
+	}
+	if payRatio <= 0 {
+		// legacy fallback: cap_rate (percent) → ratio
+		payRatio = capRate / 100
+	}
+	if payRatio <= 0 {
+		payRatio = 0.3
 	}
 
-	giftCap := math.Floor(rentPayable * capRate / 100)
-	giftPointsRefunded := 0.0
-	if order.GiftPointsUsed > giftCap {
-		giftPointsRefunded = order.GiftPointsUsed - giftCap
+	a0 := order.GiftPointsUsed
+	a1 := math.Floor(rentPayable * payRatio)
+	if a1 < 0 {
+		a1 = 0
+	}
+
+	var giftPointsRefunded, cashRefundable float64
+	if a1 < a0 {
+		giftPointsRefunded = a0 - a1
+		// C1 = R1 − A1; cash refund = C0 − C1 = (R0 − A0) − (R1 − A1)
+		cashRefundable = totalRefund - giftPointsRefunded
+	} else {
+		// gift stays at A0 → cash refund = R0 − (A0 + R1 − A0) = R0 − R1
+		giftPointsRefunded = 0
+		cashRefundable = totalRefund
+	}
+	if cashRefundable < 0 {
+		cashRefundable = 0
 	}
 
 	breakdown := map[string]interface{}{
@@ -633,10 +703,23 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"total_refund":             totalRefund,
 		"cash_refundable":          cashRefundable,
 		"gift_points_used":         order.GiftPointsUsed,
-		"gift_cap":                 giftCap,
+		"gift_cap":                 a1,
 		"gift_points_refunded":     giftPointsRefunded,
 		"cash_paid":                order.CashPaid,
+		"pay_ratio":                payRatio,
 		"tier_segments":            tierSegments,
+	}
+
+	// C1 = R1 − min(A1, A0): the cash portion of the adjusted payable rent.
+	// When A1 ≥ A0 the gift actually used is A0, so the cash basis is
+	// R1 − A0. Basis for total_spending accumulation and rebate points (L-06).
+	effectiveGift := a1
+	if a0 < a1 {
+		effectiveGift = a0
+	}
+	cashBasis := rentPayable - effectiveGift
+	if cashBasis < 0 {
+		cashBasis = 0
 	}
 
 	return settlementResult{
@@ -650,6 +733,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		GiftPointsRefunded:     giftPointsRefunded,
 		OverdueChargesTotal:    overdueFee,
 		ActualDays:             actualDays,
+		CashBasis:              cashBasis,
 		Breakdown:              breakdown,
 	}
 }
@@ -666,8 +750,30 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 		Where("order_id = ? AND order_type = ? AND status = ? AND type = ?", order.ID, "renewal", "paid", "payment").
 		Select("COALESCE(SUM(amount),0)").Scan(&renewalTotal)
 
+	// Instrument SN (category) for the receipt header (L-06)
+	instrumentLabel := ""
+	if order.InstrumentID != "" {
+		var inst struct {
+			SN           string
+			CategoryName string
+		}
+		if err := db.Model(&models.Instrument{}).
+			Select("sn, category_name").
+			Where("id = ?", order.InstrumentID).
+			First(&inst).Error; err == nil && inst.SN != "" {
+			if inst.CategoryName != "" {
+				instrumentLabel = fmt.Sprintf("%s（%s）", inst.SN, inst.CategoryName)
+			} else {
+				instrumentLabel = inst.SN
+			}
+		}
+	}
+
 	var sb strings.Builder
 	sb.WriteString("租赁结算明细\n")
+	if instrumentLabel != "" {
+		sb.WriteString(fmt.Sprintf("乐器：%s\n", instrumentLabel))
+	}
 	sb.WriteString(fmt.Sprintf("实际租期：%d 天\n", s.ActualDays))
 	sb.WriteString("——\n")
 	sb.WriteString(fmt.Sprintf("租金：¥%.2f\n", s.RentPayable))
@@ -685,9 +791,16 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	}
 	sb.WriteString("——\n")
 	sb.WriteString(fmt.Sprintf("应付合计：¥%.2f\n", s.TotalRefund+s.RentPayable+s.DamageDeducted+s.OverdueChargesTotal))
+	sb.WriteString(fmt.Sprintf("其中赠点抵扣：%.0f 点\n", order.GiftPointsUsed))
+	sb.WriteString(fmt.Sprintf("现金应付：¥%.2f\n", s.CashBasis))
 	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", order.CashPaid+order.PrepaidPointsUsed+order.GiftPointsUsed+order.Deposit))
 	sb.WriteString(fmt.Sprintf("押金退还：¥%.2f\n", s.RemainingDeposit))
 	sb.WriteString("——\n")
-	sb.WriteString(fmt.Sprintf("实际退款：¥%.2f", s.CashRefundable))
+	if s.GiftPointsRefunded > 0 {
+		sb.WriteString(fmt.Sprintf("退回赠点：%.0f 点\n", s.GiftPointsRefunded))
+	}
+	sb.WriteString(fmt.Sprintf("退回微信：¥%.2f\n", s.CashRefundable))
+	sb.WriteString(fmt.Sprintf("实际退款合计：¥%.2f\n", s.CashRefundable+s.GiftPointsRefunded))
+	sb.WriteString("返点赠点到账：详见会员中心")
 	return sb.String()
 }

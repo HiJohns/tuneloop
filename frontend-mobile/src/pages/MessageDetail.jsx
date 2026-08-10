@@ -283,6 +283,7 @@ export default function MessageDetail() {
           )}
 
           {notification.action_type === 'order' && (
+            <>
             <Button
               onClick={() => {
                 const orderId = actionData.order_id || notification.ref_id || ''
@@ -296,6 +297,21 @@ export default function MessageDetail() {
             >
               查看订单详情
             </Button>
+            {actionData.membership === true && (
+              <Button
+                onClick={() => {
+                  if (env.isMiniProgram) {
+                    Taro.redirectTo({ url: '/pages-weapp/membership/index' })
+                  } else {
+                    navigate('/membership')
+                  }
+                }}
+                className="w-full mt-3 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+              >
+                前往会员中心查看赠点
+              </Button>
+            )}
+            </>
           )}
         </View>
       </View>

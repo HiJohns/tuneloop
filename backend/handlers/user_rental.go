@@ -490,12 +490,13 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Snapshot the applicable points policy at time of order
 	func() {
 		var pps []struct {
-			ScopeType string `json:"scope_type"`
+			ScopeType string  `json:"scope_type"`
 			ScopeID   *string `json:"scope_id"`
+			PayRatio  float64 `json:"pay_ratio"`
 		}
 		if err := database.GetDB().WithContext(c.Request.Context()).
 			Table("points_policies").
-			Select("scope_type, scope_id").
+			Select("scope_type, scope_id, max_pay_ratio AS pay_ratio").
 			Where("is_active = ?", true).
 			Order("CASE scope_type WHEN 'site' THEN 0 WHEN 'merchant' THEN 1 WHEN 'system' THEN 2 END ASC").
 			Limit(1).
@@ -986,12 +987,13 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		// Snapshot applicable points policy
 		func() {
 			var pps []struct {
-				ScopeType string `json:"scope_type"`
+				ScopeType string  `json:"scope_type"`
 				ScopeID   *string `json:"scope_id"`
+				PayRatio  float64 `json:"pay_ratio"`
 			}
 			if err := database.GetDB().WithContext(c.Request.Context()).
 				Table("points_policies").
-				Select("scope_type, scope_id").
+				Select("scope_type, scope_id, max_pay_ratio AS pay_ratio").
 				Where("is_active = ?", true).
 				Order("CASE scope_type WHEN 'site' THEN 0 WHEN 'merchant' THEN 1 WHEN 'system' THEN 2 END ASC").
 				Limit(1).
