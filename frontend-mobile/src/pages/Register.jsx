@@ -81,9 +81,6 @@ export default function Register() {
         storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
         session.removeItem('post_auth_redirect')
 
-        // 注册收集了全部引导字段，跳过 onboarding（#1597）
-        session.setItem('onboarding_skipped', '1')
-
         // 注册成功拿到 token 后上传待传身份证（defer 模式）
         try {
           if (idPhotoFrontRef.current?.uploadPending) await idPhotoFrontRef.current.uploadPending()

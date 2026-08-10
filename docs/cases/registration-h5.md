@@ -51,8 +51,8 @@ steps:
         controls: [支付按钮]
         displays: [金额, 会员权益说明]
         ops:
-          - {type: api, method: GET, path: /user/membership/info}
-    api: {method: GET, path: /user/membership/info, params: []}
+          - {type: api, method: POST, path: /pay/calculate}
+    api: {method: POST, path: /pay/calculate, params: [type, id]}
   - seq: 5
     action: 已有账号时从注册页跳回登录
     frontend:
@@ -109,9 +109,9 @@ steps:
 
 注册页完成后：
 1. `POST /api/auth/register` 返回 token → 用户已登录
-2. 注册成功后**不**再跳转 `/onboarding`（login_reason/post_auth_redirect 已被注册流程覆盖）
-3. 注册页本身收集了 Onboarding 所需的全部字段（昵称、地址、身份证）→ Onboarding 对该用户无意义
-4. **建议**: 注册成功的用户标记 `onboarding_completed = true`，避免后续 Onboarding 拦截
+2. 注册页本身收集了 Onboarding 所需的全部字段（昵称、地址、身份证）→ Onboarding 对该用户无意义
+3. **Onboarding 页面已废弃**：注册用户标记 `onboarding_completed = true`；OAuth 登录回调默认跳首页（不再跳 `/onboarding`）；前端 `/onboarding` 路由与 Onboarding.jsx 已移除（字段收集由注册页 + 编辑资料页承担）
+4. 后端 `GET/PUT /user/onboarding` 端点保留（兼容存量数据，无前端调用方）
 
 ## IAM 侧改动（beaconiam）
 - `AppRegistration` 或 `ActivateNamespace` 时写入 `registration_redirect_url` 字段

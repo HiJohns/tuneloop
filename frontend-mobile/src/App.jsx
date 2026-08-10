@@ -48,7 +48,6 @@ import RepairQuote from './pages/RepairQuote'
 import RepairPaymentComplete from './pages/RepairPaymentComplete'
 import RepairScan from './pages/RepairScan'
 import OrderDetail from './pages/OrderDetail'
-import Onboarding from './pages/Onboarding'
 import ReturnSettlement from './pages/ReturnSettlement'
 import MembershipCenter from './pages/MembershipCenter'
 import Register from './pages/Register'
@@ -159,7 +158,7 @@ function OAuthCallback() {
             session.setItem('show_login_reason', reason)
           }
 
-          let redirectTo = session.getItem('post_auth_redirect') || '/onboarding'
+          let redirectTo = session.getItem('post_auth_redirect') || '/'
           session.removeItem('post_auth_redirect')
           navigation.redirect(redirectTo)
         } else {
@@ -243,7 +242,6 @@ function App() {
         <Route path="/cart" element={<ProtectedRoute requireAuth={false}><Cart /></ProtectedRoute>} />
         <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
         <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
-        <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/points-purchase" element={<ProtectedRoute><PointsPrePurchase /></ProtectedRoute>} />
         <Route path="/points-complete" element={<ProtectedRoute><PointsComplete /></ProtectedRoute>} />
