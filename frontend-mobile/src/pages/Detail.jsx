@@ -424,11 +424,12 @@ export default function Detail() {
         </View>
       </ScrollView>
 
-      {/* Floating cart icon */}
+      {/* Floating cart icon — high zIndex above the native ScrollView layer
+          (weapp: native scroll component can cover subsequent fixed views) */}
       <View
         onClick={() => navigate('/cart')}
-        className={`fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg z-50 ${cartBouncing ? 'scale-125' : ''}`}
-        style={{ transition: 'transform 0.3s ease-in-out' }}
+        className={`fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg ${cartBouncing ? 'scale-125' : ''}`}
+        style={{ transition: 'transform 0.3s ease-in-out', zIndex: 10004 }}
       >
         <Text className="text-xl">🛒</Text>
         {cartItemCount > 0 && (

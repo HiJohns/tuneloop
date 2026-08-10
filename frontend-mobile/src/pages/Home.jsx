@@ -378,14 +378,6 @@ export default function Home() {
         </View>
         </ScrollView>
         <View>
-        <View onClick={handleCartClick} className="fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg z-50">
-          <Text className="text-xl">🛒</Text>
-          {cartItemCount > 0 && (
-            <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-              {cartItemCount}
-            </Text>
-          )}
-        </View>
         <BottomNav
           active="home"
           tabs={[
@@ -396,6 +388,20 @@ export default function Home() {
           ]}
         />
         </View>
+      </View>
+
+      {/* Floating cart icon — OUTSIDE the B layer (overflow:hidden clip layer).
+          Inside the clip layer, weapp strict CSS clips fixed children and the
+          z-50 < z-100 stack blocks taps (#1601). Inline zIndex 10004 keeps it
+          above the content layer and sibling to the menu. */}
+      <View onClick={handleCartClick} className="fixed bottom-24 right-4 bg-[#002140] text-white p-3 rounded-full shadow-lg"
+        style={{ zIndex: 10004 }}>
+        <Text className="text-xl">🛒</Text>
+        {cartItemCount > 0 && (
+          <Text className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+            {cartItemCount}
+          </Text>
+        )}
       </View>
     </View>
   )
