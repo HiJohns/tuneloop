@@ -391,6 +391,32 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
+	// Create the damage report immediately so the damage notification's
+	// refID points to a real damage_reports row (MessageDetail renders the
+	// accept/reject buttons by loading damage_reports[id]) (#1607, L-04).
+	var damageReportID string
+	if req.Condition == "damaged" {
+		inspectOrgID := middleware.GetOrgID(ctx)
+		report := models.DamageReport{
+			ID:                uuid.New().String(),
+			TenantID:          tenantID,
+			OrgID:             inspectOrgID,
+			LeaseID:           orderID,
+			InstrumentID:      order.InstrumentID,
+			UserID:            order.UserID,
+			DamageAmount:      &req.DamageAmount,
+			DamageDescription: req.Notes,
+			Status:            "pending",
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		}
+		if err := db.Create(&report).Error; err == nil {
+			damageReportID = report.ID
+		} else {
+			log.Printf("[InspectReturn] Failed to create damage report: %v", err)
+		}
+	}
+
 	// Save return photos to instrument_media
 	if len(req.Photos) > 0 && order.InstrumentID != "" {
 		batchID := uuid.New().String()
@@ -522,10 +548,13 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		notificationContent = fmt.Sprintf("您的订单 %s 验收发现损坏，赔偿金额 ¥%.2f。请在订单详情中确认接受或拒绝。定损理由：%s", orderID[:8], req.DamageAmount, req.Notes)
 		actionType = "damage_accept_reject"
 		actionData = strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit, orderID))
-		// Point to the damage report so MessageDetail can render the
-		// accept/reject buttons (ref_type=damage_report, ref_id=assessment).
+		// Point to the damage report (created above) so MessageDetail can
+		// render the accept/reject buttons (ref_type=damage_report,
+		// ref_id=damage_report.ID) (#1607, L-04).
 		refType = "damage_report"
-		refID = assessment.ID
+		if damageReportID != "" {
+			refID = damageReportID
+		}
 	} else {
 		// Completion notification (L-06): thank-you + membership center link
 		notificationContent = notificationContent + "\n感谢您的租赁，欢迎再次光临！"
@@ -589,8 +618,10 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
-	// Only allow damage assessment for returning orders
-	if order.Status != models.OrderStatusReturning {
+	// Only allow damage assessment for returning or pending_damage_response
+	// orders (the latter: InspectReturn already moved the order forward,
+	// but AssessDamage finalizes the report details) (#1607, L-04).
+	if order.Status != models.OrderStatusReturning && order.Status != models.OrderStatusPendingDamageResponse {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "can only assess damage for orders in returning status"})
 		return
 	}
@@ -604,12 +635,8 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		return
 	}
 
-	// Update order status to returned (return completed, instrument enters maintenance)
-	if err := db.Model(&models.Order{}).Where("id = ?", orderID).
-		Update("status", models.OrderStatusReturned).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
-		return
-	}
+	// Order status stays pending_damage_response (set by InspectReturn) —
+	// do NOT override to returned (#1607, L-04 state machine fix).
 
 	// Overdue fee (#1493): late return fee is charged once at damage assessment
 	// when the order was returned after its end date.
@@ -629,22 +656,35 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 	totalDeduction := req.DamageAmount + overdueFee
 
-	// Create damage report
-	damageReport := models.DamageReport{
-		ID:                uuid.New().String(),
-		TenantID:          tenantID,
-		OrgID:             orgID,
-		LeaseID:           orderID,
-		InstrumentID:      order.InstrumentID,
-		UserID:            order.UserID,
-		DamageAmount:      &req.DamageAmount,
-		DamageDescription: req.DamageDescription,
-		Status:            "pending",
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Now(),
-	}
-	if err := db.Create(&damageReport).Error; err != nil {
-		log.Printf("[AssessDamage] Failed to create damage report: %v", err)
+	// Create damage report (reuse the one created by InspectReturn if it
+	// exists — avoid duplicates; update its amount/description instead).
+	var damageReport models.DamageReport
+	reportErr := db.Where("lease_id = ?", orderID).Order("created_at asc").First(&damageReport).Error
+	if reportErr != nil {
+		damageReport = models.DamageReport{
+			ID:                uuid.New().String(),
+			TenantID:          tenantID,
+			OrgID:             orgID,
+			LeaseID:           orderID,
+			InstrumentID:      order.InstrumentID,
+			UserID:            order.UserID,
+			DamageAmount:      &req.DamageAmount,
+			DamageDescription: req.DamageDescription,
+			Status:            "pending",
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
+		}
+		if err := db.Create(&damageReport).Error; err != nil {
+			log.Printf("[AssessDamage] Failed to create damage report: %v", err)
+		}
+	} else {
+		// Update the existing report with the finalized damage values
+		if err := db.Model(&damageReport).Updates(map[string]interface{}{
+			"damage_amount":      req.DamageAmount,
+			"damage_description": req.DamageDescription,
+		}).Error; err != nil {
+			log.Printf("[AssessDamage] Failed to update damage report: %v", err)
+		}
 	}
 
 	notification := models.Notification{

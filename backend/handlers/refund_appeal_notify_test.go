@@ -123,7 +123,10 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 		Order("created_at desc").First(&notif).Error)
 	require.Equal(t, "damage_accept_reject", notif.ActionType, "actionType drives MessageDetail accept/reject buttons")
 	require.Equal(t, "damage_report", notif.RefType)
-	require.Equal(t, resp.Data.AssessmentID, notif.RefID, "ref_id must point to the assessment")
+	// ref_id must point to a real damage_reports row (MessageDetail loads
+	// the report by id to render accept/reject buttons) (#1607, L-04)
+	var report models.DamageReport
+	require.NoError(t, db.Where("id = ?", notif.RefID).First(&report).Error, "ref_id resolves to a damage report")
 	require.NotNil(t, notif.ActionData)
 	require.Contains(t, *notif.ActionData, `"damage_amount": 200.00`)
 	require.Contains(t, *notif.ActionData, `"order_id"`)

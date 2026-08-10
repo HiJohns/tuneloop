@@ -651,6 +651,10 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	if damageAmount >= order.Deposit && damageAmount > 0 {
 		payDiff := damageAmount - order.Deposit
 		cfg := wechatpay.GetConfig()
+		if cfg == nil {
+			log.Printf("[AgreeDamage] wechatpay config missing; treating as mock completion")
+			cfg = &wechatpay.Config{MockMode: true}
+		}
 		outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
 		record := models.OrderPaymentRecord{
@@ -743,6 +747,17 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 	if err := db.Create(&notification).Error; err != nil {
 		log.Printf("[AgreeDamage] Failed to create notification: %v", err)
+	}
+
+	// L-04 path 2: customer accepted damage (deposit_refunding) → notify
+	// site staff so they can trigger the refund from the order detail.
+	if nextOrderStatus == models.OrderStatusDepositRefunding {
+		var instrument models.Instrument
+		if err := db.Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil && instrument.SiteID != nil {
+			staffContent := fmt.Sprintf("顾客已接受定损 ¥%.2f，订单进入退款中。请打开订单详情点击退款。", damageAmount)
+			staffActionData := fmt.Sprintf(`{"order_id":"%s"}`, order.ID)
+			services.NotifyUsersBySiteWithAction(db, tenantID, instrument.SiteID.String(), "refund", "定损已接受：待退款", staffContent, order.ID, "order", []string{"site_admin", "site_member"}, "order", &staffActionData)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

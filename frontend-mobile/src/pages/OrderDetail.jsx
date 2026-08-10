@@ -7,7 +7,7 @@ import { dialog, env } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
-import { ArrowLeft, User, MapPin, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar, Banknote } from 'lucide-react'
 
 const STATUS_LABELS = {
   reserved: '未支付',
@@ -71,6 +71,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [refunding, setRefunding] = useState(false)
   const [instrument, setInstrument] = useState(null)
   const [orderLogs, setOrderLogs] = useState([])
   const [logPage, setLogPage] = useState(1)
@@ -168,6 +169,28 @@ export default function OrderDetail() {
     setActionLoading(false)
   }
 
+  // Staff-triggered refund for deposit_refunding orders (L-04 path 2/3).
+  // Executes the differential settlement on the backend and jumps to the
+  // refund receipt page.
+  const handleStaffRefund = async () => {
+    if (!dialog.confirm('确认执行退款？将按结算差额退回现金与赠点。')) return
+    setRefunding(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders/${id}/refund`, {
+        method: 'POST',
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        navigate(`/payment?type=refund&id=${id}`, { replace: true })
+      } else {
+        dialog.alert('退款失败: ' + (result.message || '请重试'))
+      }
+    } catch (err) {
+      dialog.alert('退款失败: ' + err.message)
+    }
+    setRefunding(false)
+  }
+
   if (loading) {
     return (
       <View className="min-h-screen pb-20" style={{backgroundColor: '#FDFBF7'}}>
@@ -236,6 +259,7 @@ export default function OrderDetail() {
   const showStaffShip = isStaff && (status === 'paid' || status === 'pending_shipment')
   const showStaffTransit = isStaff && status === 'in_transit'
   const showStaffReceive = isStaff && status === 'returning'
+  const showStaffRefund = isStaff && status === 'deposit_refunding'
 
   return (
     <View className="h-screen flex flex-col" style={{backgroundColor: '#FDFBF7'}}>
@@ -706,6 +730,12 @@ export default function OrderDetail() {
                 <View onClick={() => navigate(`/staff/receiving?order_id=${id}`)}
                   className="w-full py-3 bg-rose-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <RotateCcw size={20} /><Text>接收</Text>
+                </View>
+              )}
+              {showStaffRefund && (
+                <View onClick={handleStaffRefund}
+                  className="w-full py-3 bg-amber-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <Banknote size={20} /><Text>{refunding ? '退款处理中...' : '退款'}</Text>
                 </View>
               )}
               {(status === 'reserved' || status === 'cancelled' || status === 'shipped' ||

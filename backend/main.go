@@ -468,6 +468,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 			userRequired.POST("/orders/:id/transfer-ownership", handlers.TriggerOwnershipTransfer)
 			userRequired.PUT("/orders/:id/terminate", handlers.TerminateOrder)
 			userRequired.GET("/user/:userId/id-photos", userOnboardingHandler.GetUserIdPhotos)
+			userRequired.POST("/orders/:id/refund", userSettlementHandler.StaffRefundOrder)
 		}
 
 		maintHandler := handlers.NewMaintenanceHandler()
@@ -627,8 +628,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/orders/:id", handlers.GetOrder)
 				userOptionalAuth.GET("/orders/:id/logs", handlers.GetOrderLogs)
 				userOptionalAuth.POST("/orders/:id/return", handlers.ReturnOrder)
-				userOptionalAuth.POST("/orders/:id/accept-damage", handlers.AcceptDamage)
-				userOptionalAuth.POST("/orders/:id/reject-damage", handlers.RejectDamage)
 				userOptionalAuth.POST("/discount-codes/apply", handlers.ApplyDiscountCode)
 				userOptionalAuth.POST("/orders/:id/cancel-by-user", handlers.CancelOrderByCustomer)
 				userOptionalAuth.GET("/orders/by-instrument-sn", handlers.GetOrderByInstrumentSN)

@@ -804,3 +804,71 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	sb.WriteString("返点赠点到账：详见会员中心")
 	return sb.String()
 }
+
+// StaffRefundOrder POST /orders/:id/refund — staff-triggered refund for an
+// order in deposit_refunding (L-04 path 2/3). Executes the differential
+// settlement (L-06), closes the order (completed) and returns the receipt.
+func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	orderID := c.Param("id")
+
+	// Staff-only: site_admin / site_member (merchant_admin & system admin
+	// also allowed for platform-level operations).
+	role := middleware.GetBusinessRole(ctx)
+	switch role {
+	case middleware.BusinessRoleSiteAdmin, middleware.BusinessRoleSiteMember,
+		middleware.BusinessRoleMerchantAdmin, middleware.BusinessRoleSystemAdmin:
+		// allowed
+	default:
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "no permission to refund orders"})
+		return
+	}
+
+	var order models.Order
+	if err := db.Where("id = ?", orderID).First(&order).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+
+	// Org isolation: site staff may only refund orders in their org.
+	if role == middleware.BusinessRoleSiteAdmin || role == middleware.BusinessRoleSiteMember {
+		orgID := middleware.GetOrgID(ctx)
+		if orgID == "" || order.OrgID != orgID {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "order does not belong to your site"})
+			return
+		}
+	}
+
+	if order.Status != models.OrderStatusDepositRefunding {
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "order is not in refunding status"})
+		return
+	}
+
+	result, err := executeRefund(db, order)
+	if err != nil {
+		log.Printf("[StaffRefundOrder] executeRefund failed for %s: %v", orderID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "refund failed: " + err.Error()})
+		return
+	}
+
+	// Close the order (L-04/L-06): deposit_refunding → completed
+	if err := db.Model(&models.Order{}).Where("id = ?", orderID).
+		Update("status", models.OrderStatusCompleted).Error; err != nil {
+		log.Printf("[StaffRefundOrder] failed to close order %s: %v", orderID, err)
+	}
+
+	receipt := buildRefundReceipt(db, order, result)
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "refund processed",
+		"data": gin.H{
+			"order_id":           orderID,
+			"cash_refundable":    result.CashRefundable,
+			"gift_points_refunded": result.GiftPointsRefunded,
+			"receipt":            receipt,
+		},
+	})
+}

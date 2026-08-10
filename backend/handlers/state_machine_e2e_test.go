@@ -76,8 +76,9 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 	router.PUT("/api/warehouse/orders/:id/return-inspect", warehouseHandler.InspectReturn)
 	router.POST("/api/orders/:id/pay", PayOrder)
 	router.POST("/api/orders/:id/return", ReturnOrder)
-	router.POST("/api/orders/:id/accept-damage", AcceptDamage)
-	router.POST("/api/orders/:id/reject-damage", RejectDamage)
+	appealHandler := NewAppealHandler()
+	router.POST("/api/user/appeals/:id/agree", appealHandler.AgreeDamage)
+	router.POST("/api/appeals", appealHandler.SubmitAppeal)
 
 	return router, tenantID, userID, orgID, instrumentID
 }
@@ -93,6 +94,7 @@ func createTestOrder(t *testing.T, db *gorm.DB, tenantID, orgID, userID, instrum
 		Status:    models.OrderStatusReserved,
 		StartDate: strPtr("2026-06-01"),
 		EndDate:   strPtr("2026-07-01"),
+		Deposit:   500,
 	})
 
 	db.Create(&models.LeaseSession{
@@ -265,7 +267,7 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 			"scan_time":     time.Now().UTC(),
 			"condition":     "damaged",
 			"notes":         "琴颈断裂",
-			"damage_amount": 500,
+			"damage_amount": 200,
 		}
 		jsonBody, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
@@ -278,9 +280,12 @@ func TestScenarioA_DamageVariant(t *testing.T) {
 	})
 
 	t.Run("A8_AcceptDamage", func(t *testing.T) {
+		// Customer agrees via the appeal endpoint (L-04: accept → deposit_refunding)
+		var report models.DamageReport
+		require.NoError(t, db.Where("lease_id = ?", orderID).First(&report).Error)
 		reqBody := map[string]interface{}{}
 		jsonBody, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/orders/"+orderID+"/accept-damage", bytes.NewBuffer(jsonBody))
+		req := httptest.NewRequest("POST", "/api/user/appeals/"+report.ID+"/agree", bytes.NewBuffer(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -749,21 +754,25 @@ func TestScenarioA_RejectDamageVariant(t *testing.T) {
 	})
 
 	t.Run("RejectDamage", func(t *testing.T) {
+		var report models.DamageReport
+		require.NoError(t, db.Where("lease_id = ?", orderID).First(&report).Error)
 		reqBody := map[string]interface{}{
-			"appeal_reason": "划痕是原有磨损，非本次租赁造成",
+			"damage_report_id": report.ID,
+			"appeal_reason":    "划痕是原有磨损，非本次租赁造成",
 		}
 		jsonBody, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/orders/"+orderID+"/reject-damage", bytes.NewBuffer(jsonBody))
+		req := httptest.NewRequest("POST", "/api/appeals", bytes.NewBuffer(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
-		require.Equal(t, http.StatusOK, w.Code)
+		require.Equal(t, http.StatusCreated, w.Code, "appeal create: %s", w.Body.String())
 		testutil.AssertState(t, orderID, models.OrderStatusDamageAppealing)
 
-		// Appeal record created
+		// Appeal record created (object = the damage report)
 		var appeal models.Appeal
-		require.NoError(t, db.Where("object_id = ? AND category = ?", orderID, "damage").First(&appeal).Error)
-		require.Equal(t, "划痕是原有磨损，非本次租赁造成", appeal.Description)
+		require.NoError(t, db.Where("object_id = ? AND category = ?", report.ID, "damage").First(&appeal).Error)
+		require.NotNil(t, appeal.AppealReason)
+		require.Equal(t, "划痕是原有磨损，非本次租赁造成", *appeal.AppealReason)
 	})
 }
 
