@@ -8,7 +8,7 @@
 |------|--------|:---:|:---:|
 | `bootstrapping.md` | 冷启动/商户/用户 | B-01~ | cases.md §0 |
 | `instrument.md` | 乐器管理 | I-01~ | cases.md §1 |
-| `lease.md` | 租赁闭环 | L-01~ | cases.md §2 |
+| `lease.md` | 租赁闭环 | L-01~L-06 | cases.md §2 |
 | `repair.md` | 维修 | R-01~ | cases.md §3 + docs/repair.md |
 | `organization.md` | 组织管理 | O-01~ | cases.md §4 |
 | `transit.md` | 中转工作流 | T-01~ | cases.md §5 |
@@ -77,7 +77,9 @@ steps:               # 步骤列表
 | L-01 正常租赁 | ✅ TestScenarioA_StandardClosedLoop | ✅ lease.md | done |
 | L-02 提前归还 | ✅ TestLeaseEarlyReturn | ✅ lease.md | done |
 | L-03 超期归还 | ✅ TestInspectReturn_OverdueFee | ✅ lease.md | done |
-| L-04 定损申诉 | ✅ TestScenarioA_Damage/RejectVariant | ✅ lease.md | done |
+| L-04 定损申诉（退款三路径） | ⚠️ 部分覆盖，待补退款闭环 | ✅ lease.md | wip |
+| L-05 赠点策略配置 | ⬜ 待建 | ✅ lease.md | todo |
+| L-06 退款差额结算与返点 | ⬜ 待建 | ✅ lease.md | todo |
 | I-01 乐器录入 | ✅ TestInstrumentCRUD | ⬜ instrument.md | wip |
 | P-01 个人资料编辑 | ⬜ 待建 | ✅ profile.md | wip |
 | P-02 平台用户管理 | ⬜ 待建 | ✅ user-management.md | wip |

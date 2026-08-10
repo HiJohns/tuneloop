@@ -371,7 +371,7 @@ flowchart TD
 | `returning` | 归还中 | 用户已提交归还，返程物流中 |
 | `returned` | 已归还 | 已废弃（#1544），归还验收后直接进入 completed 或 pending_damage_response |
 | `damage_appealing` | 申诉中 | 客户拒绝赔偿后进入申诉，等待商户管理员处理 |
-| `deposit_refunding` | 退款中 | 赔偿确认/申诉调整后，进入退款流程 |
+| `deposit_refunding` | 退款中 | 赔偿确认/申诉调整后，**员工在订单详情点「退款」**触发差额结算后 → completed |
 
 ### 2.1a pending_damage_response（待回复）
 
@@ -617,7 +617,7 @@ flowchart TD
 3. **统一支付页（Payment）**
    - 调用 `POST /api/pay/calculate { type: "rent", id }` 获取支付详情
     - 展示阶梯定价明细、押金、应付总额（物流费在发货后订单详情中展示，#1570）
-    - 支持点数抵扣：赠点（赠点上限 = min(余额, floor(应付×比例))）
+    - 支持点数抵扣：赠点（赠点上限 = min(余额, floor(应付×**用户当前级别 pay_ratio**))，比例由赠点策略配置）
     - 现金差额 = 应付总额 - 赠点使用
    - 现金差额 > 0 显示"微信支付"，= 0 显示"确认支付 ¥0（使用点数）"
    - 点击支付 → `POST /api/pay/prepay { order_id, order_type:"rent", amount }`
@@ -768,13 +768,14 @@ flowchart TD
 
 场景 A：客户接受
   客户 → 接受赔偿 → 订单 → deposit_refunding
-  → 前端跳转退款确认页（ReturnSettlement，显示退款明细含赔偿）
-  → 确认 → executeRefund → completed
+  → 系统通知员工（含订单链接）
+  → 员工订单详情点「退款」→ 差额结算 → completed
 
 场景 B：客户拒绝
   客户 → 拒绝并填写申诉理由 → 订单 → damage_appealing
-  → 商户管理员（PC 端）处理申诉 → 可调整赔偿金额
-  → 通知客户 → 订单 → deposit_refunding → 退款确认 → completed
+  → 网点或商户管理员（PC 端）处理申诉 → 可调整赔偿金额（可选）
+  → 通知客户与员工 → 订单 → deposit_refunding
+  → 员工订单详情点「退款」→ 差额结算 → completed
 ```
 
 #### 关键变化 vs 旧流程
@@ -782,10 +783,10 @@ flowchart TD
 | 项 | 旧 | 新 |
 |----|----|-----|
 | damaged 后状态 | returning（客户可不响应） | pending_damage_response（**必须响应**） |
-| 客户接受 | AgreeDamage → completed/deposit_refunding | accept-damage → deposit_refunding → 退款确认页 → completed |
-| 客户拒绝 | 可选 Appeal | reject-damage → 申诉单 → damage_appealing |
-| 申诉处理者 | 平台管理员 | **商户管理员** |
-| 退款触发 | InspectReturn(good)自动 / AgreeDamage 后自动 | 统一走退款确认页 → executeRefund |
+| 客户接受 | AgreeDamage → completed/deposit_refunding | /appeals/:id/agree → deposit_refunding → **员工点退款** → completed |
+| 客户拒绝 | 可选 Appeal | POST /appeals → 申诉单 → damage_appealing |
+| 申诉处理者 | 平台管理员 | **网点或商户管理员**（可改赔偿额） |
+| 退款触发 | InspectReturn(good)自动 / 顾客退款确认页 | **员工在订单详情点「退款」**（deposit_refunding 状态） |
 
 #### 支付页信息布局
 
@@ -1564,7 +1565,7 @@ checkRule() - 权限位过滤
 **关键规则**：
 - 等级激活条件：`amount >= level.MinAmount`（如 99 元 → 初级/VIP 等级）
 - 会员中心显示当前等级（不再是"普通会员"）
-- `GET /user/points` 返回 `max_pay_ratio`（PointsPolicy.MaxPayRatio，默认 0.3）供前端展示
+- `GET /user/points` 返回当前级别 `pay_ratio`（赠点策略 pay_ratio，供前端展示抵扣上限；旧 PointsPolicy.MaxPayRatio 默认 0.3 已并入赠点策略）
 
 ---
 
@@ -1654,8 +1655,8 @@ checkRule() - 权限位过滤
 网点员工"接收"（returning）
   → InspectReturn — 定损面板（无损坏/有损坏+拍照+备注）
   ├── 路径 A：good（无损坏）→ 订单 → completed
-  │      → executeRefund（含物流费扣除、逾期费）
-  │      → 发退款通知（含收据明细：实际租期、租金、物流费、逾期费、押金退还）
+  │      → 差额结算退款（含物流费扣除、逾期费、赠点分账，见「退款差额结算与返点」）
+  │      → 发完成通知（标准收据 + 感谢 + 赠点到账 + 会员中心链接）
   │      → 顾客看到退款明细，"已退款"状态
   │
   └── 路径 B：damaged（有损坏）→ 订单 → pending_damage_response
@@ -1666,25 +1667,27 @@ checkRule() - 权限位过滤
          ├── B1：顾客接受
          │      → POST /appeals/:id/agree
          │      → 订单 → deposit_refunding
-         │      → damage < deposit：跳转退款确认页（ReturnSettlement，显示赔偿扣除后的退款明细）
-         │        damage ≥ deposit：跳转定损支付页（Payment type=damage，需补付差额）
-         │      → 确认/支付完成 → executeRefund → completed
-         │      → 通知（收据明细）
+         │      → 系统通知员工（含订单链接）
+         │      → 员工在消息中心打开通知 → 点击链接跳订单详情
+         │      → 员工点击「退款」→ POST /orders/:id/refund
+         │      → 执行差额结算（赠点/现金分账，见「退款差额结算与返点」）
+         │      → 订单 → completed → 跳转支付页退款收据
+         │      → 完成通知（收据 + 感谢 + 赠点到账 + 会员中心链接）
          │
          └── B2：顾客拒绝（申诉）
                 → 填写申诉理由 → POST /appeals
                 → 订单 → damage_appealing
                 → 通知网点管理员（actionType=repair_request）
                 │
-                └── 网点管理员处理申诉
-                       → PC 端 /appeals → 可调整赔偿金额
-                       → ResolveAppeal（终审）
-                       → 订单 → completed
-                       → 执行 executeRefund
+                └── 网点/商户管理员处理申诉
+                       → PC 端 /appeals → 可调整赔偿金额（可选）→ 提交
+                       → ResolveAppeal（终审）→ 订单 → deposit_refunding
                        → 两条通知：
-                          ① 顾客：纯通知（终审结果，无操作按钮）
-                          ② 员工："点击进入退款确认页"按钮
-                       → 退款确认 → completed（已退款）
+                          ① 顾客：终审结果 + 收据预览
+                          ② 员工：终审完成 + 订单链接
+                       → 员工点链接跳订单详情 → 点击「退款」
+                       → POST /orders/:id/refund → 差额结算
+                       → 订单 → completed → 支付页退款收据 → 完成通知
 ```
 
 ### 退款通知格式（标准收据）
@@ -1705,10 +1708,18 @@ checkRule() - 权限位过滤
 │  续期费用          ¥{renewal_total}       │
 │  ────────────────────────────             │
 │  应付合计          ¥{total_charged}        │
+│  其中：赠点抵扣     {gift_used} 点         │
+│       现金应付     ¥{cash_payable}        │
+│  ────────────────────────────             │
 │  已收（含押金）     ¥{total_paid}          │
 │  押金退还          ¥{deposit_refunded}     │
 │  ────────────────────────────             │
-│  实际退款          ¥{actual_refund}        │
+│  退回赠点          {gift_refunded} 点      │
+│  退回微信          ¥{cash_refunded}        │
+│  实际退款合计      ¥{actual_refund}        │
+│  ────────────────────────────             │
+│  返点赠点到账      {rebate_points} 点      │
+│  前往会员中心查看 → /membership            │
 └──────────────────────────────────────────┘
 ```
 
@@ -1716,21 +1727,58 @@ checkRule() - 权限位过滤
 - **租金**：实际天数 × 阶梯定价（与 §2.7 `computeSettlement` 同算法）
 - **物流费**：`order.shipping_fee`，无则为 0（不显示行）
 - **逾期费**：`damage_assessments.overdue_fee`（good 验收时算），无则为 0
-- **损坏赔偿**：damaged 验收时 `req.DamageAmount`，good 时为 0
+- **损坏赔偿**：damaged 验收时 `req.DamageAmount`（申诉终审后为 adjust 金额），good 时为 0
 - **续期费用**：续期支付记录的 SUM(amount)，无续期为 0
 - **已收**：所有支付记录 SUM（租金+押金+物流费预收+续期）
-- **实际退款**：`已收 - 应付合计`（最小 0）
+- **赠点抵扣**：`A1 = floor(应付租金 × 当前级别 pay_ratio)` 与实付 `A0` 取小
+- **现金应付**：`C1 = 应付合计 - A1`（无押金参与时）；押金参与时另行扣减
+- **退回赠点**：`A0 - A1`（A1 < A0 时），退回 `users.promo_points`
+- **退回微信**：`C0 - C1`，走微信原路退款
+- **实际退款合计**：`已收 - 应付合计`（最小 0）= 退回赠点 + 退回微信
+- **返点赠点到账**：`A2 = floor(C1 × 当前级别 refund_ratio)`，写入 promo_points + points_transactions
 
 ### 关键规则
 
 | 规则 | 说明 |
 |------|------|
 | 物流费何时支付 | **归还时填写物流单号，但费用计入结算**——不单独收费，从押金里统一扣 |
-| good 验收后 | **自动执行 executeRefund**（含物流费/逾期费），发收据通知 |
-| damaged 验收后 | **不退款**——需顾客先响应（接受/申诉），响应后再退款 |
-| 申诉终审后 | 管理员处理申诉 → ResolveAppeal → executeRefund → 双通知 |
-| 退款通知 | 所有退款通知均包含标准收据明细 |
+| good 验收后 | **自动执行差额结算退款**（含物流费/逾期费/赠点分账），发收据通知 |
+| damaged 验收后 | **不退款**——需顾客先响应（接受/申诉），响应后由员工触发退款 |
+| 顾客接受后 | 订单 → deposit_refunding → 通知员工 → 员工订单详情点「退款」→ 差额结算 |
+| 申诉终审后 | ResolveAppeal → deposit_refunding → 双通知 → 员工订单详情点「退款」→ 差额结算 |
+| 退款通知 | 所有退款通知均包含标准收据明细（含赠点分账行 + 返点 + 会员中心链接） |
+| 关单与累计 | 退款执行后订单 `completed`（已完成/done），`total_spending` 按 **C1**（实付现金）累计 |
 | 结算预览页 | ReturnSettlement 显示"等待定损，非最终费用"醒目提示 |
+
+### 退款差额结算与返点（赠点策略）
+
+> 统一定义：付款时 `R0 = C0 + A0`（现金 + 赠点抵扣）；退款时按调整后应付 `R1` 重算。
+
+#### 付款侧（初次付款 + 续费通用）
+- 赠点抵扣上限：`A0 ≤ floor(应付总额 × 用户当前级别 pay_ratio)`
+- 比例来源：**赠点策略**（gift_policies 表，namespace_admin 在 PC「系统管理 → 赠点策略」按会员级别配置）
+- 支付快照必须落库 `pay_ratio`（PointsPolicySnapshot 仅存 scope 是缺陷，须修复）
+
+#### 退款侧差额结算
+- 调整后应付：`R1`（含阶梯折算/逾期费/损坏赔偿/续期）
+- 重算赠点上限：`A1 = floor(R1 × 当前级别 pay_ratio)`
+- 分账规则：
+  - `A1 < A0`：退 `A0−A1` 回赠点账户；退 `C0−C1` 回微信（`C1 = R1 − A1`）
+  - `A1 ≥ A0`：赠点不退（仍为 A0）；退现金 `C0 − (R1 − A0)`
+  - 守恒校验：`退赠点 + 退现金 = R0 − R1`
+- 支付回调若用了赠点，必须同步扣减 `cash_paid`（防结算双计）
+
+#### 退款后动作
+1. 订单状态 → `completed`（已完成/done）
+2. `total_spending += C1`（**实付现金口径**——行业惯例按实付计成长值，防赠点循环放大）
+3. 发放返点：`A2 = floor(C1 × 当前级别 refund_ratio)` → promo_points + points_transactions
+4. 完成通知：完整收据 + 感谢语 + 赠点到账（退回 + 返点）+ 会员中心链接
+
+#### 累计花销口径决策（R1 vs C1）
+**采用 C1（实付现金）**：
+- 行业惯例：航司里程/信用卡积分/电商成长值均按实付金额累计
+- 防循环：若按 R1（含赠点面值），「用赠点→累计消费→升级→返更多赠点」形成复利放大
+- 返点基数同为 C1，与累计口径统一
 
 ---
 

@@ -164,6 +164,24 @@
 
 详细设计见 `docs/features/membership.md`。
 
+### 5.2 赠点策略（Gift Policies）
+
+赠点策略是平台统一管理的点数规则配置，由 namespace_admin 在 PC「系统管理 → 赠点策略」维护，**分会员级别独立设置**（默认级别兜底）。
+
+**两项比例**：
+| 配置 | 说明 | 消费点 |
+|------|------|--------|
+| `pay_ratio` | 赠点使用比例：初次付款/续费时，赠点抵扣 ≤ floor(应付总额 × pay_ratio) | 支付页抵扣上限 |
+| `refund_ratio` | 退款返点比例：退款完成后按实付现金 C1 × refund_ratio 发放返点赠点 | 退款完成时发放 |
+
+**退款差额结算规则**（付款 `R0 = C0 + A0` → 退款按调整后 `R1` 重算）：
+- `A1 = floor(R1 × 当前级别 pay_ratio)`
+- `A1 < A0`：退 `A0−A1` 回赠点账户，退 `C0−C1` 回微信（`C1 = R1 − A1`）
+- 累计花销 `total_spending` 按 **C1（实付现金）** 累计，不含赠点面值（行业惯例：航司里程/信用卡积分均按实付；防赠点循环放大）
+- 返点 `A2 = floor(C1 × refund_ratio)` 与累计同口径
+
+旧体系 `points_policies.max_pay_ratio` 与 `membership_gift_ratios.SelfSpendRatio` 并入本策略。
+
 ---
 
 ## 六、 租金计算系统
@@ -207,7 +225,7 @@
 
 **逾期费收取**：逾期费在**归还验收时统一收取**（`InspectReturn` 计算，`overdue_daily_fee` 或默认 1.5× 日租金），从押金扣除。不再有每日 01:00 自动扣款（`OverdueDeductionScheduler` 仅做 `expired` 状态转移），不产生 `overdue_charges` 挂账。详见 `docs/cases.md §2.5`。
 
-**订单完成结算**（#1537）：订单进入 `completed` 状态时（good 验收、damaged 申诉/协商完成、损坏赔偿支付回调），自动调用 `computeSettlement` 计算实际开销（实际租期 × tier 阶梯定价 + 损坏赔偿），与最初付款比对得出退款金额，按**赠点超cap → 现金**顺序执行退款并创建 `settlements` + `points_transactions` 记录。`DepositRefundScheduler` 仅处理 `deposit_refunding` 超时兜底，完成后 `deposit_refunded=true` 避免重复。详见 `docs/cases.md §2.7`。
+**订单完成结算**：订单进入 `completed` 状态时（good 验收自动、damaged 接受/申诉后员工点退款、损坏赔偿支付回调），执行差额结算：按调整后应付 R1 与用户当前级别赠点策略重算赠点上限 A1，超 A1 的赠点退回 promo_points，剩余现金（C0−C1）走微信原路退款；关单后 `total_spending += C1`（实付现金口径），并按 C1 × refund_ratio 发放返点赠点（A2），最后发送完成通知（标准收据 + 感谢 + 赠点到账 + 会员中心链接）。`DepositRefundScheduler` 仅作 `deposit_refunding` 超时兜底。详见 `docs/cases.md §2.7` 与 `docs/cases/lease.md L-06`。
 
 ---
 
