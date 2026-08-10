@@ -314,3 +314,109 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 		require.Equal(t, int64(1), count, "ref must not be consumed when wx_code is empty")
 	})
 }
+
+// TestPostRegister_NoPassword_WxBind_FullFlow verifies #1597/#1571: H5
+// registration without a password must (1) generate a random IAM password,
+// (2) bind the WeChat openid when wx_code is present, (3) sync the local
+// users cache with onboarding flags, (4) credit registration gift points,
+// and (5) return a usable token.
+func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	db.Exec("DELETE FROM referrals")
+	db.Exec("DELETE FROM points_transactions")
+	db.Exec("DELETE FROM system_settings")
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000ee"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var req map[string]string
+		json.Unmarshal(body, &req)
+		if req["grant_type"] == "password" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token":  signHS256Token(t, newUserID, "NoPassUser"),
+				"expires_in":    7200,
+				"token_type":    "Bearer",
+				"refresh_token": "",
+			})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-client-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"user_id": newUserID,
+					"status":  "active",
+				},
+			})
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user_id":   newUserID,
+			"wx_openid": "openid-nopass-001",
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"name":    "无密码注册用户",
+		"phone":   "13900221133",
+		"wx_code": "wx-register-code",
+	})
+	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			AccessToken string  `json:"access_token"`
+			MembershipFee float64 `json:"membership_fee"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.NotEmpty(t, resp.Data.AccessToken, "register must return a usable token")
+	require.Equal(t, 99.0, resp.Data.MembershipFee, "default membership fee")
+
+	// Local cache synced with onboarding flags + wx openid bound.
+	var local models.User
+	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&local).Error)
+	require.Equal(t, "USER", local.Role)
+	require.True(t, local.IsProfileCompleted, "registration collects all onboarding fields (#1597)")
+	require.True(t, local.OnboardingCompleted)
+	require.Equal(t, "openid-nopass-001", local.WxOpenid, "wx_code must bind the openid (#1597)")
+	require.NotEmpty(t, local.RefCode, "ref_code derived from user id")
+
+	// Registration gift points credited (#1533).
+	require.Equal(t, 99.0, local.PromoPoints, "registration gift points")
+	var pt models.PointsTransaction
+	require.NoError(t, db.Where("user_id = ? AND type = ?", local.ID, "registration").First(&pt).Error)
+	require.Equal(t, 99.0, pt.Amount)
+}

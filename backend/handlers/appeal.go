@@ -513,11 +513,27 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 		log.Printf("[SubmitAppeal] Failed to record status history: %v", err)
 	}
 
+	// Resolve site + instrument for appeal metadata and staff notification.
+	// appeals.site_id/object_id are uuid columns — empty strings raise
+	// SQLSTATE 22P02, so fall back to a zero UUID like order.go's appeal path.
+	siteID := "00000000-0000-0000-0000-000000000000"
+	var order models.Order
+	var instrument models.Instrument
+	if err := db.Where("id = ?", damageReport.LeaseID).First(&order).Error; err == nil {
+		if err := db.Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil && instrument.SiteID != nil {
+			siteID = instrument.SiteID.String()
+		}
+	}
+
 	// Create appeal
 	appeal := models.Appeal{
 		ID:             uuid.New().String(),
 		TenantID:       tenantID,
 		OrgID:          middleware.GetOrgID(ctx),
+		SiteID:         siteID,
+		Category:       "damage",
+		ObjectType:     "damage_report",
+		ObjectID:       req.DamageReportID,
 		DamageReportID: &req.DamageReportID,
 		UserID:         &userID,
 		AppealReason:   &req.AppealReason,
@@ -549,18 +565,14 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 
 	// Notify site staff of the new appeal so they can review it
 	// (actionType='repair_request' → 查看申诉详情 button).
-	var order models.Order
-	if err := db.Where("id = ?", damageReport.LeaseID).First(&order).Error; err == nil {
-		var instrument models.Instrument
-		if err := db.Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil && instrument.SiteID != nil {
-			damageAmt := 0.0
-			if damageReport.DamageAmount != nil {
-				damageAmt = *damageReport.DamageAmount
-			}
-			staffContent := fmt.Sprintf("顾客对定损 ¥%.2f 提出申诉，请处理。申诉原因：%s", damageAmt, req.AppealReason)
-			staffActionData := fmt.Sprintf(`{"appeal_id":"%s"}`, appeal.ID)
-			services.NotifyUsersBySiteWithAction(db, tenantID, instrument.SiteID.String(), "appeal", "新申诉待处理", staffContent, appeal.ID, "appeal", []string{"site_admin", "site_member"}, "repair_request", &staffActionData)
+	if instrument.ID != "" && instrument.SiteID != nil {
+		damageAmt := 0.0
+		if damageReport.DamageAmount != nil {
+			damageAmt = *damageReport.DamageAmount
 		}
+		staffContent := fmt.Sprintf("顾客对定损 ¥%.2f 提出申诉，请处理。申诉原因：%s", damageAmt, req.AppealReason)
+		staffActionData := fmt.Sprintf(`{"appeal_id":"%s"}`, appeal.ID)
+		services.NotifyUsersBySiteWithAction(db, tenantID, instrument.SiteID.String(), "appeal", "新申诉待处理", staffContent, appeal.ID, "appeal", []string{"site_admin", "site_member"}, "repair_request", &staffActionData)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

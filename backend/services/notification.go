@@ -69,10 +69,20 @@ func NotifyUsersBySiteWithAction(db *gorm.DB, tenantID, siteID, ntype, title, co
 		log.Printf("[NotifyUsersBySiteWithAction] Failed to query site_members for site %s: %v", siteID, err)
 		return
 	}
+	// Resolve the site's org_id for the notification (notifications.org_id
+	// is a uuid column — empty string raises SQLSTATE 22P02).
+	orgID := ""
+	var site struct {
+		OrgID string
+	}
+	if err := db.Table("sites").Select("org_id").Where("id = ?", siteID).First(&site).Error; err == nil {
+		orgID = site.OrgID
+	}
 	for _, m := range members {
 		notif := models.Notification{
 			ID:         uuid.New().String(),
 			TenantID:   tenantID,
+			OrgID:      orgID,
 			UserID:     m.UserID,
 			Type:       ntype,
 			Title:      title,
