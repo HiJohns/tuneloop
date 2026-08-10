@@ -8,6 +8,23 @@ type MembershipLevel struct {
 	MinAmount float64 `gorm:"type:decimal;not null" json:"min_amount"`
 }
 
+// GiftPolicy defines per-membership-level gift point rules (#1605, L-05).
+// pay_ratio: gift points may cover up to floor(payable × pay_ratio) at
+// payment time (initial rent + renewal). refund_ratio: on refund completion,
+// rebate points = floor(cash_paid C1 × refund_ratio). level_id=0 is the
+// default fallback row for unconfigured levels.
+type GiftPolicy struct {
+	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	LevelID     int       `gorm:"not null;uniqueIndex" json:"level_id"`
+	PayRatio    float64   `gorm:"type:decimal(5,4);not null;default:0.3" json:"pay_ratio"`
+	RefundRatio float64   `gorm:"type:decimal(5,4);not null;default:0" json:"refund_ratio"`
+	IsActive    bool      `gorm:"not null;default:true" json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (GiftPolicy) TableName() string { return "gift_policies" }
+
 type RebateConfig struct {
 	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	LevelID   int       `gorm:"not null;uniqueIndex" json:"level_id"`

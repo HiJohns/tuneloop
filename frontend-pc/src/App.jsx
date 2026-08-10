@@ -68,6 +68,7 @@ import BannerManagePage from './pages/System/BannerManagePage'
 import ContentEdit from './pages/admin/ContentEdit'
 import MembershipLevelsPage from './pages/System/MembershipLevelsPage'
 import RebateConfigPage from './pages/System/RebateConfigPage'
+import GiftPolicies from './pages/System/GiftPolicies'
 import PromoPlanManagePage from './pages/System/PromoPlanManagePage'
 import UserManagement from './pages/System/UserManagement'
 
@@ -355,6 +356,7 @@ function MainLayout() {
       { key: '/system/promo-plans', label: '系统折扣政策', permission: { cusPermCodes: ['promo:manage'] } },
       { key: '/repair/settings', label: '报修设置', permission: { cusPermCodes: ['instrument:price_config'] } },
       { key: '/system/rebate-config', label: '返点配置', permission: { cusPermCodes: ['rebate:manage'] } },
+      { key: '/system/gift-policies', label: '赠点策略', permission: { cusPermCodes: ['rebate:manage'] } },
       { key: '/system/membership-levels', label: '会员级别管理', permission: { cusPermCodes: ['membership:manage'] } },
       { key: '/system/banners', label: '轮播图管理', permission: { cusPermCodes: ['banner:manage'] } },
     ]
@@ -415,7 +417,7 @@ function onMenuClick(e) {
     : [location.pathname]
   let openKeys = []
   if (['/instruments/categories', '/instruments/properties', '/instruments/list', '/site/stock'].includes(location.pathname) || location.pathname.startsWith('/instruments/')) openKeys = ['product']
-  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/membership-levels', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
+  else if (['/inventory/rent-setting', '/pricing/config', '/system/promo-plans', '/repair/settings', '/system/rebate-config', '/system/gift-policies', '/system/membership-levels', '/system/banners'].includes(location.pathname)) openKeys = ['strategy']
   else if (['/orders', '/warehouse', '/maintenance/sessions', '/transit-routes', '/overdue-alerts'].includes(location.pathname)) openKeys = ['transaction']
   else if (location.pathname.startsWith('/merchants') || ['/system/user-management', '/organization/sites', '/staff', '/appeals', '/organization/iam-sync', '/system/permissions', '/system/warnings', '/system/warning-settings'].includes(location.pathname)) openKeys = ['platform']
   else if (['/', '/system/content-edit', '/system/audit-logs'].includes(location.pathname)) openKeys = ['system']
@@ -440,6 +442,7 @@ function onMenuClick(e) {
     '/system/promo-plans': { title: '系统折扣政策', parent: '策略配置' },
     '/repair/settings': { title: '报修设置', parent: '策略配置' },
     '/system/rebate-config': { title: '返点配置', parent: '策略配置' },
+    '/system/gift-policies': { title: '赠点策略', parent: '策略配置' },
     '/system/membership-levels': { title: '会员级别管理', parent: '策略配置' },
     '/orders': { title: '订单管理', parent: '交易管理' },
     '/instruments/list': { title: '乐器列表', parent: '商品管理' },
@@ -629,6 +632,7 @@ function onMenuClick(e) {
             <Route path="/system/content-edit" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><ContentEdit /></ProtectedRoute>} />
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
             <Route path="/system/rebate-config" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><RebateConfigPage /></ProtectedRoute>} />
+            <Route path="/system/gift-policies" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['rebate:manage'] }}><GiftPolicies /></ProtectedRoute>} />
             <Route path="/system/promo-plans" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['promo:manage'] }}><PromoPlanManagePage scope="admin" /></ProtectedRoute>} />
             <Route path="/system/warnings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningManagement /></ProtectedRoute>} />
             <Route path="/system/warning-settings" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><WarningSettings /></ProtectedRoute>} />

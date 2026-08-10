@@ -31,6 +31,7 @@ var allTables = []interface{}{
 	&models.User{},
 	&models.DamageReport{},
 	&models.MembershipGiftRatio{},
+	&models.GiftPolicy{},
 	&models.PricingTemplate{},
 	&models.MerchantPricingConfig{},
 	&models.PointsPolicy{},

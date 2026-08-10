@@ -9,6 +9,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -87,10 +88,16 @@ func getWalletInfo(db *gorm.DB, userID, tenantID string, amount float64) (*Walle
 		return nil, err
 	}
 
+	// Gift policy per membership level (default row fallback) (#1605, L-05).
+	// Old points_policies max_pay_ratio remains a fallback for legacy configs.
 	maxGiftRatio := 0.3
-	policies, err := queryApplicablePointsPolicies(db, tenantID, "")
-	if err == nil && len(policies) > 0 {
-		maxGiftRatio = policies[0].MaxPayRatio
+	if policy := services.GetGiftPolicyByLevel(db, levelIDOrZero(user.MembershipLevelID)); policy != nil {
+		maxGiftRatio = policy.PayRatio
+	} else {
+		policies, err := queryApplicablePointsPolicies(db, tenantID, "")
+		if err == nil && len(policies) > 0 {
+			maxGiftRatio = policies[0].MaxPayRatio
+		}
 	}
 
 	return &WalletInfo{
@@ -98,6 +105,14 @@ func getWalletInfo(db *gorm.DB, userID, tenantID string, amount float64) (*Walle
 		MaxGiftRatio: maxGiftRatio,
 		MaxGiftAmount: math.Floor(amount * maxGiftRatio * 100 / 100),
 	}, nil
+}
+
+// levelIDOrZero dereferences an optional membership level ID.
+func levelIDOrZero(id *int) int {
+	if id == nil {
+		return 0
+	}
+	return *id
 }
 
 func loadRentPayment(db *gorm.DB, userID, id string, resp *PaymentCalculateResponse) {

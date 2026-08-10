@@ -86,6 +86,26 @@ func GetGiftRatios(levelID int) *models.MembershipGiftRatio {
 	return &r
 }
 
+// GetGiftPolicyByLevel returns the gift policy for a membership level,
+// falling back to the default row (level_id=0) when the level has no
+// active policy (#1605, L-05). Returns nil only when even the default
+// row is missing.
+func GetGiftPolicyByLevel(db *gorm.DB, levelID int) *models.GiftPolicy {
+	if db == nil {
+		db = database.GetDB()
+	}
+	var p models.GiftPolicy
+	if levelID > 0 {
+		if err := db.Where("level_id = ? AND is_active = ?", levelID, true).First(&p).Error; err == nil {
+			return &p
+		}
+	}
+	if err := db.Where("level_id = 0 AND is_active = ?", true).First(&p).Error; err == nil {
+		return &p
+	}
+	return nil
+}
+
 // FindReferrer looks up the referrer of a user via the referrals table.
 // Returns the referrer's User record (with MembershipLevelID) or nil.
 func FindReferrer(userID string) *models.User {
