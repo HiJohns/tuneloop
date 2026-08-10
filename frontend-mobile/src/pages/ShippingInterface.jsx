@@ -16,7 +16,7 @@ export default function ShippingInterface() {
   const orderId = searchParams.get('order')
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
-  const [logistics, setLogistics] = useState({ company: '', trackingNumber: '' })
+  const [logistics, setLogistics] = useState({ company: '', trackingNumber: '', shippingFee: '' })
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -26,11 +26,16 @@ export default function ShippingInterface() {
 
   const baseUrl = env.apiBaseUrl
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrder(orderId)
+  const fetchInstrumentById = async (id) => {
+    try {
+      const resp = await apiFetch(`${baseUrl}/public/instruments/${id}`)
+      const result = await resp.json()
+      if (result.code === 20000 && result.data) return result.data
+    } catch (err) {
+      console.error('Failed to fetch instrument:', err)
     }
-  }, [orderId])
+    return null
+  }
 
   const fetchOrder = async (orderId) => {
     try {
@@ -48,16 +53,11 @@ export default function ShippingInterface() {
     }
   }
 
-  const fetchInstrumentById = async (id) => {
-    try {
-      const resp = await apiFetch(`${baseUrl}/public/instruments/${id}`)
-      const result = await resp.json()
-      if (result.code === 20000 && result.data) return result.data
-    } catch (err) {
-      console.error('Failed to fetch instrument:', err)
+  useEffect(() => {
+    if (orderId) {
+      fetchOrder(orderId)
     }
-    return null
-  }
+  }, [orderId])
   const handleLookupByCode = async (code) => {
     if (!code.trim()) return
     setLookupError('')
@@ -101,7 +101,7 @@ export default function ShippingInterface() {
     setPhotos(prev => prev.filter((_, i) => i !== idx))
   }
 
-  const canSubmit = !!(logistics.company.trim() && logistics.trackingNumber.trim() && photos.length >= 1 && orderId && !submitting)
+  const canSubmit = !!(logistics.company.trim() && logistics.trackingNumber.trim() && logistics.shippingFee !== '' && photos.length >= 1 && orderId && !submitting)
 
   const handleSubmit = async () => {
     if (!canSubmit || !orderId) return
@@ -127,6 +127,7 @@ export default function ShippingInterface() {
           tracking_number: logistics.trackingNumber,
           company: logistics.company,
           shipped_at: new Date().toISOString(),
+          shipping_fee: Number(logistics.shippingFee) || 0,
           photos: photoUrls,
         }),
       })
@@ -308,6 +309,15 @@ export default function ShippingInterface() {
                 onChange={e => setLogistics({ ...logistics, trackingNumber: e.target.value })}
                 placeholder="快递单号"
                 className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={logistics.shippingFee}
+                onChange={e => setLogistics({ ...logistics, shippingFee: e.target.value })}
+                placeholder="物流费（元，发货时确定 #1541）"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
               />
             </View>
 
