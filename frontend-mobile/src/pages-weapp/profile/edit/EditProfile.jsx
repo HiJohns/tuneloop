@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../../services/api'
-import { env, getInputValue } from '../../../platform'
+import { env, dialog, getInputValue } from '../../../platform'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
 
 export default function EditProfile() {
@@ -45,13 +45,19 @@ export default function EditProfile() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        Taro.showToast({ title: '保存成功', icon: 'success' })
-        setTimeout(() => Taro.navigateBack(), 800)
+        // H5 (Vite) has no Taro runtime — use platform dialog/navigation
+        if (env.isMiniProgram) {
+          Taro.showToast({ title: '保存成功', icon: 'success' })
+          setTimeout(() => Taro.navigateBack(), 800)
+        } else {
+          dialog.toast('保存成功')
+          setTimeout(() => window.history.back(), 800)
+        }
       } else {
-        Taro.showToast({ title: result.message || '保存失败', icon: 'none' })
+        dialog.toast(result.message || '保存失败')
       }
     } catch {
-      Taro.showToast({ title: '网络错误', icon: 'none' })
+      dialog.toast('网络错误')
     }
     setSaving(false)
   }
