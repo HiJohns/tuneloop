@@ -105,8 +105,10 @@ export default function Profile() {
         const resp = await apiFetch(`${baseUrl}/users/me`)
         const result = await resp.json()
         if (result.code === 20000) setUser(result.data)
+        else setUser(null) // not logged in — clear stale UI (#1620)
       } catch (err) {
         console.error('Failed to fetch user:', err)
+        setUser(null) // token missing/invalid — clear stale UI (#1620)
       }
       setLoading(false)
     }
@@ -165,7 +167,13 @@ export default function Profile() {
     storage.removeItem('token')
     storage.removeItem('token_expiry')
     storage.removeItem('refresh_token')
-    Taro.switchTab({ url: '/pages-weapp/home/index' })
+    // Clear UI state immediately so the page does not keep showing the
+    // previous account after logout (#1620).
+    setUser(null)
+    setLoading(false)
+    // reLaunch forces a fresh page stack — switchTab would keep the
+    // cached tab state alive (stale login UI on tab return).
+    Taro.reLaunch({ url: '/pages-weapp/home/index' })
   }
 
   const goMyLeasesStatus = (status) => {
