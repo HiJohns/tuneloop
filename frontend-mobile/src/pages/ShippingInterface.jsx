@@ -333,7 +333,7 @@ export default function ShippingInterface() {
                 step="0.01"
                 value={logistics.shippingFee}
                 onChange={e => setLogistics({ ...logistics, shippingFee: e.target.value })}
-                placeholder="物流费（元，发货时确定 #1541）"
+                placeholder="物流费（元）"
                 className="w-full border rounded-lg px-3 py-2 text-sm"
               />
             </View>
