@@ -425,9 +425,9 @@ function SingleCheckout({ id, navigate }) {
             </View>
             <Text className="text-[10px] text-zinc-400 text-right mt-1">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit}</Text>
             {depositWaived ? (
-              <Text className="text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，寄出时将选用顺丰到付，请注意查收哦谢谢。</Text>
+              <Text className="block text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，寄出时将选用顺丰到付，请注意查收哦谢谢。</Text>
             ) : (
-              <Text className="text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，届时将从押金中扣除，望知悉谢谢。</Text>
+              <Text className="block text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，届时将从押金中扣除，望知悉谢谢。</Text>
             )}
           </View>
         </View>
