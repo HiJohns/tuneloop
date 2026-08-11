@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { api } from '../services/api'
-import { env, navigation } from '../platform'
+import { env, navigation, dialog } from '../platform'
 
 export default function ReturnSettlement() {
   const [orderId, setOrderId] = useState('')
@@ -26,7 +26,12 @@ export default function ReturnSettlement() {
     try {
       const resp = await api.post(`/user/settlements/${orderId}`, { refund_method: 'cash_withdrawal' })
       if (resp?.code === 20000) {
-        Taro.showToast({ title: '退款已确认', icon: 'success' })
+        // H5 has no Taro runtime — use platform dialog (#1615)
+        if (env.isMiniProgram) {
+          Taro.showToast({ title: '退款已确认', icon: 'success' })
+        } else {
+          dialog.toast('退款已确认')
+        }
         setTimeout(() => {
           if (env.isMiniProgram) {
             Taro.redirectTo({ url: '/pages-weapp/my-leases/index' })
@@ -35,10 +40,18 @@ export default function ReturnSettlement() {
           }
         }, 800)
       } else {
-        Taro.showModal({ title: '确认失败', content: resp?.message || '请重试', showCancel: false })
+        if (env.isMiniProgram) {
+          Taro.showModal({ title: '确认失败', content: resp?.message || '请重试', showCancel: false })
+        } else {
+          dialog.alert('确认失败: ' + (resp?.message || '请重试'))
+        }
       }
     } catch (err) {
-      Taro.showModal({ title: '确认失败', content: err.message || '网络错误', showCancel: false })
+      if (env.isMiniProgram) {
+        Taro.showModal({ title: '确认失败', content: err.message || '网络错误', showCancel: false })
+      } else {
+        dialog.alert('确认失败: ' + (err.message || '网络错误'))
+      }
     }
     setConfirming(false)
   }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Image, Canvas, Input } from '@tarojs/components'
 import { apiFetch, addressesApi } from '../services/api'
-import { env } from '../platform'
+import { env, dialog } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
 import QRCode from 'qrcode'
@@ -47,7 +47,7 @@ export default function MembershipCenter() {
             generateQRCanvas(h5Url)
           } else {
             QRCode.toString(h5Url, { type: 'svg', width: 256 }, (err, svg) => {
-              if (err) { Taro.showToast({ title: '二维码生成失败', icon: 'none' }); return }
+              if (err) { dialog.toast('二维码生成失败'); return }
               setQrDataUrl('data:image/svg+xml,' + encodeURIComponent(svg))
               setShowQR(true)
             })
@@ -56,7 +56,7 @@ export default function MembershipCenter() {
       }
     } catch (err) {
       console.log('[QR DEBUG] API exception:', err.message || err)
-      Taro.showToast({ title: '获取推广二维码失败', icon: 'none' })
+      dialog.toast('获取推广二维码失败')
     }
   }
 
