@@ -1,4 +1,4 @@
-.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload-prod weapp-upload-pre weapp-build weapp-build-pre weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload-prod weapp-upload-pre weapp-build weapp-build-pre weapp-build-prod weapp-cleanup weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
 NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
@@ -50,6 +50,15 @@ mobile-weapp-dev: weapp-check
 	@echo "Open WeChat Developer Tool -> import dist-weapp/"
 	@cd frontend-mobile && npm run dev:weapp
 
+# ============================================================
+# Weapp release flow (#1619)
+# Builds are archived to releases/weapp-{pre,prod}/<VERSION>/.
+# Uploads ONLY consume archived builds — never recompile.
+# Rollback = upload an older archive. Archives kept >= 180 days.
+# ============================================================
+WEAPP_RELEASE_DIR := releases
+WEAPP_AUTO_VERSION := $(shell date -u +%Y%m%d-%H%M%S)_$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+
 weapp-build: weapp-check
 	@rm -rf frontend-mobile/node_modules/.cache
 	@rm -rf frontend-mobile/dist-weapp
@@ -61,26 +70,58 @@ weapp-build-pre: weapp-check
 	@rm -rf frontend-mobile/dist-weapp
 	@echo "Building WeApp (pre-production apiBaseUrl)..."
 	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api npm run build:weapp
+	@make weapp-archive-pre VERSION=$(or $(VERSION),$(WEAPP_AUTO_VERSION))
 
-weapp-upload-prod: weapp-build
+weapp-build-prod: weapp-build
+	@make weapp-archive-prod VERSION=$(or $(VERSION),$(WEAPP_AUTO_VERSION))
+
+# Archive a build (wxss cleanup applied once at archive time — archive is
+# the ready-to-upload artifact).
+weapp-archive-pre:
+	@mkdir -p $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)
+	@rm -rf $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp
+	@cp -r frontend-mobile/dist-weapp $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp
+	@cd $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp && \
+	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' app.wxss
+	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp"
+
+weapp-archive-prod:
+	@mkdir -p $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)
+	@rm -rf $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp
+	@cp -r frontend-mobile/dist-weapp $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp
+	@cd $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp && \
+	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' app.wxss
+	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp"
+
+# Upload ONLY an archived build — never recompile.
+weapp-upload-pre:
+	@test -d $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp || (echo "ERROR: archive '$(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)' not found — run 'make weapp-build-pre VERSION=$(VERSION)' first"; exit 1)
 	@cd frontend-mobile && \
-	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' dist-weapp/app.wxss && \
 	node_modules/.bin/miniprogram-ci upload \
-		--pp dist-weapp \
+		--pp ../$(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp \
+		--pkp private.wx9f96827856269a6c.key \
+		--appid wx9f96827856269a6c \
+		--uv $(or $(VERSION),1.0.0-pre) \
+		--ud "$(or $(DESC),pre auto deploy)"
+
+weapp-upload-prod:
+	@test -d $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp || (echo "ERROR: archive '$(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)' not found — run 'make weapp-build-prod VERSION=$(VERSION)' first"; exit 1)
+	@cd frontend-mobile && \
+	node_modules/.bin/miniprogram-ci upload \
+		--pp ../$(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp \
 		--pkp private.wxcb44a1be70e356ed.key \
 		--appid wxcb44a1be70e356ed \
 		--uv $(or $(VERSION),1.0.0) \
 		--ud "$(or $(DESC),auto deploy)"
 
-weapp-upload-pre: weapp-build-pre
-	@cd frontend-mobile && \
-	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' dist-weapp/app.wxss && \
-	node_modules/.bin/miniprogram-ci upload \
-		--pp dist-weapp \
-		--pkp private.wx9f96827856269a6c.key \
-		--appid wx9f96827856269a6c \
-		--uv $(or $(VERSION),1.0.0-pre) \
-		--ud "$(or $(DESC),pre auto deploy)"
+# Delete archives older than 180 days. DRY=1 prints what would be removed.
+weapp-cleanup:
+	@echo "Scanning $(WEAPP_RELEASE_DIR)/weapp-*/ for archives older than 180 days..."
+	@find $(WEAPP_RELEASE_DIR)/weapp-pre $(WEAPP_RELEASE_DIR)/weapp-prod -mindepth 1 -maxdepth 1 -type d -mtime +180 2>/dev/null | while read d; do \
+		if [ "$(DRY)" = "1" ]; then echo "  [dry-run] would remove: $$d"; \
+		else echo "  removing: $$d"; rm -rf "$$d"; fi; \
+	done
+	@echo "weapp-cleanup done."
 
 run: run-backend
 

@@ -47,3 +47,6 @@ node_modules/
 certs/
 1582405481_20260714_cert.zip
 .opencode
+
+# Weapp release archives (#1619)
+releases/
