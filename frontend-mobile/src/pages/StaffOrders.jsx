@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { warehouseApi, apiFetch, getToken } from '../services/api'
 import { env, scanQRCode } from '../platform'
@@ -116,13 +117,21 @@ export default function StaffOrders() {
   const handleSearch = () => {
     const id = searchInput.trim()
     if (!id) return
-    navigate(`/staff/orders/${id}`)
+    if (env.isMiniProgram) {
+      Taro.navigateTo({ url: `/pages-weapp/order-detail/index?id=${id}` })
+    } else {
+      navigate(`/staff/orders/${id}`)
+    }
   }
 
   const handleQRScan = async () => {
     try {
       const result = await scanQRCode()
-      navigate(`/staff/orders/${result}`)
+      if (env.isMiniProgram) {
+        Taro.navigateTo({ url: `/pages-weapp/order-detail/index?id=${result}` })
+      } else {
+        navigate(`/staff/orders/${result}`)
+      }
     } catch {
       alert('扫码失败，请手动输入订单号')
     }
@@ -213,7 +222,7 @@ export default function StaffOrders() {
               <View
                 key={order.id}
                 className="bg-white rounded-2xl shadow-sm p-4 active:opacity-80"
-                onClick={() => navigate(`/staff/orders/${order.id}`)}
+                onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/order-detail/index?id=${order.id}` }) : navigate(`/staff/orders/${order.id}`)}
               >
                 <View className="flex items-center justify-between mb-2">
                   <Text className="text-sm font-black text-black flex-1 min-w-0 truncate">#{order.id?.slice(0, 8)}</Text>
@@ -261,15 +270,17 @@ export default function StaffOrders() {
       </View>
       </ScrollView>
 
-      <BottomNav
-        active="rent"
-        tabs={[
-          { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
-          { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate(isStaff ? '/staff/orders' : '/my-leases') },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/my-repairs') },
-          { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
-        ]}
-      />
+      {!env.isMiniProgram && (
+        <BottomNav
+          active="rent"
+          tabs={[
+            { key: 'home', icon: '🏪', label: '首页', onClick: () => navigate('/') },
+            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => navigate(isStaff ? '/staff/orders' : '/my-leases') },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => navigate(isStaff ? '/my-repairs' : '/my-repairs') },
+            { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
+          ]}
+        />
+      )}
     </View>
   )
 }

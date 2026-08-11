@@ -241,6 +241,10 @@ export default function Profile() {
             </>
           ) : isStaff ? (
             <>
+              <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/staff-orders/index')}>
+                <View style={{ fontSize: 24, marginBottom: 4 }}>📋</View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>订单管理</Text>
+              </View>
               <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 4, paddingBottom: 4, borderRadius: 12 }} onClick={() => nav('/pages-weapp/staff-instruments/index')}>
                 <View style={{ fontSize: 24, marginBottom: 4 }}>🎸</View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#3f3f46' }}>乐器管理</Text>

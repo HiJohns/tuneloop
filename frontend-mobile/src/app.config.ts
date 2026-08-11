@@ -23,6 +23,7 @@ const weappPages = [
   'pages-weapp/shipping-interface/index',
   'pages-weapp/receiving-interface/index',
   'pages-weapp/staff-receive-confirm/index',
+  'pages-weapp/staff-orders/index',
 ]
 
 const h5Pages = [
