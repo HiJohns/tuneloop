@@ -60,6 +60,20 @@ steps:
         ops:
           - {type: api, method: PUT, path: /warehouse/orders/:id/shipping}
     api: {method: PUT, path: /warehouse/orders/:id/shipping, params: [tracking_number, company, shipped_at, shipping_fee]}
+  - seq: 3b
+    action: 发货（员工，移动端跨端入口）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [staff]
+        gate: "订单状态 = paid/pending_shipment 且 isStaff"
+        reach: "员工工作台 → 订单详情 → 发货按钮 → 跳转独立发货页（L-07 seq2）"
+        controls: [发货按钮]
+        displays: [订单信息]
+        ops:
+          - {type: navigate, target: "/staff/shipping?order=:id"}
+    api: {method: PUT, path: /warehouse/orders/:id/shipping, params: [tracking_number, company, shipped_at, shipping_fee]}
+    # 预期失败项（#1614/#1613）：/staff/shipping 需在 weappPages 注册（#1610 实现后通过）
   - seq: 4
     action: 确认收货
     frontend:
@@ -685,8 +699,59 @@ steps:
 ## 已知缺口（待 #1610/#1611 实现）
 - weapp 发货/收货跳转目标页面未注册（死链）→ #1610
 - weapp 退款按钮缺失 → #1611
-- H5 员工取消订单按钮缺失 → #1611（与 weapp 对齐）
+- ~~H5 员工取消订单按钮缺失~~ → ✅ 已修复（#1616，commit 682cdd4a）
 - weapp 独立副本与共享版行为漂移 → #1611（薄壳化）
+
+---
+id: L-08
+domain: lease
+flow: 员工工作台（跨端入口）
+steps:
+  - seq: 1
+    action: 员工打开工作台
+    frontend:
+      - platform: [weapp, h5]
+        page: /profile
+        role: [staff]
+        gate: "isStaff（JWT role ≠ USER 且含 oid/tid）"
+        reach: "底部导航 → 我的 → 员工工作台金刚区"
+        controls: [乐器管理入口, 订单管理入口, 发货入口, 收货入口]
+        displays: [员工角色标识, 工作台入口列表]
+        ops: []
+    api: {}
+  - seq: 2
+    action: 进入订单管理
+    frontend:
+      - platform: [weapp, h5]
+        page: /staff/orders
+        role: [staff]
+        gate: ""
+        reach: "员工工作台 → 订单管理"
+        controls: [订单列表, 状态筛选, 分页加载]
+        displays: [订单号, 状态, 租赁人, 创建时间]
+        ops:
+          - {type: api, method: GET, path: /merchant/orders}
+    api: {method: GET, path: /merchant/orders, params: [page, pageSize, status]}
+---
+
+# L-08 员工工作台（跨端一致性）
+
+## 前置条件
+- 员工登录（site_admin/site_member），JWT 含 oid/tid
+- H5 与 weapp Profile 页均已实现员工金刚区
+
+## 流程
+1. 底部导航「我的」→ 员工视角显示工作台金刚区（顾客视角显示顾客菜单）
+2. 入口：乐器管理 / 订单管理 / 发货 / 收货（与 H5 员工金刚区一致）
+3. 订单管理 → 订单列表（GET /merchant/orders，本网点订单）
+
+## 关键规则
+- H5 与 weapp 员工工作台入口一致（#1609 调查：weapp Profile 缺员工工作台）
+- 员工订单列表在 weapp 需注册 staff-orders 页（#1611）
+- 乐器管理在 weapp 需注册 staff-instruments 页（#1612）
+
+## 验收
+- checklist-verify：L-08 各 seq 的 page/controls/api 在 weapp+h5 均通过（#1610/#1611/#1612 实现后）
 
 ---
 
