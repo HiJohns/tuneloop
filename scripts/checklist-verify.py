@@ -55,7 +55,7 @@ def load_backend_routes():
     return {re.sub(r":[a-zA-Z0-9_]+", ":id", r) for r in routes}
 
 
-def page_exists(page, weapp_pages, h5_routes):
+def page_exists(page, weapp_pages, h5_routes, platforms=None):
     """Check a YAML page path against weapp + H5 registrations."""
     if not page:
         return True  # no page declared → skip
@@ -92,16 +92,29 @@ def page_exists(page, weapp_pages, h5_routes):
     cand = re.sub(r"/:[a-zA-Z0-9_]+", "", cand)
     if cand in h5_routes:
         return True
-    # PC form (frontend-pc): pages with /staff, /admin, /merchant prefixes
+    # PC form (frontend-pc): pages with /staff, /admin, /merchant prefixes.
+    # Exemption is ONLY for PC-only cases (platform contains pc, no weapp/h5).
+    # Cross-platform cases (platform has weapp or h5) must pass the real
+    # weapp/H5 registration check below — otherwise staff-page gaps on
+    # weapp go undetected (#1613).
+    platforms = platforms or []
+    is_pc_only = ("pc" in platforms) and not ("weapp" in platforms or "h5" in platforms)
     if p.startswith(("/staff", "/admin", "/merchant", "/sites", "/common", "/appeals", "/instruments", "/messages")):
-        return True  # PC routes validated separately (App.jsx PC)
+        if is_pc_only:
+            return True  # PC routes validated separately (App.jsx PC)
+        # cross-platform: fall through to weapp/H5 checks below
     # default: unknown route
     return False
 
 
-def find_control(page, control, weapp_pages, h5_routes):
+def find_control(page, control, weapp_pages, h5_routes, platforms=None):
     """Search the target page source for the control text."""
     if not page:
+        return True
+    # PC-only cases: skip control checks (page lives in frontend-pc)
+    platforms = platforms or []
+    is_pc_only = ("pc" in platforms) and not ("weapp" in platforms or "h5" in platforms)
+    if is_pc_only and page.strip().startswith(("/staff", "/admin", "/merchant", "/sites", "/common", "/appeals", "/instruments", "/messages")):
         return True
     # graphical controls without textual labels — skip text search
     GRAPHIC_CONTROLS = {"悬浮购物车图标", "数量角标", "复选框", "滑块", "点数抵扣滑块", "图标", "单选", "角标", "调节器", "租期调节器", "乐器图片", "图片", "缩略图", "昵称显示", "会员等级显示", "显示"}
@@ -267,6 +280,26 @@ def verify_displays(displays, backend_fields):
     return ok
 
 
+def check_weapp_cross_platform(weapp_pages):
+    """Scan weapp source for Taro.navigateTo/redirectTo targets that are not
+    registered in weappPages. Catches dead-link gaps (#1609/#1610)."""
+    dead = []
+    if not os.path.isdir("frontend-mobile/src/pages-weapp"):
+        return dead
+    targets = set()
+    for root, _, files in os.walk("frontend-mobile/src/pages-weapp"):
+        for fn in files:
+            if not fn.endswith(".jsx"):
+                continue
+            src = open(os.path.join(root, fn)).read()
+            targets.update(re.findall(r"(?:/)?pages-weapp/[a-z0-9-]+/index", src))
+    for t in sorted(targets):
+        norm = t.lstrip("/")
+        if norm not in weapp_pages:
+            dead.append(f"跨端死链: {norm} 被 weapp 源码跳转引用但未注册 (app.config.ts weappPages)")
+    return dead
+
+
 def main():
     weapp_pages = load_weapp_pages()
     h5_routes = load_h5_routes()
@@ -287,8 +320,9 @@ def main():
                 fe = step.get("frontend", [])
                 for entry in fe:
                     page = entry.get("page", "")
+                    entry_platforms = entry.get("platform", [])
                     # 1. page registration
-                    if not page_exists(page, weapp_pages, h5_routes):
+                    if not page_exists(page, weapp_pages, h5_routes, entry_platforms):
                         failed += 1
                         msg = f"{case_id} step{seq}: page {page!r} 未注册 (weapp/H5)"
                         failures.append(msg)
@@ -303,7 +337,7 @@ def main():
                             passed += 1
                             if VERBOSE: print(f"  ⚠️ {case_id} step{seq}: {ctl}（已知缺口，跳过）")
                             continue
-                        if not find_control(page, ctl, weapp_pages, h5_routes):
+                        if not find_control(page, ctl, weapp_pages, h5_routes, entry_platforms):
                             failed += 1
                             msg = f"{case_id} step{seq}: control {ctl!r} 未在 {page} 源码中找到"
                             failures.append(msg)
@@ -333,6 +367,14 @@ def main():
                             if VERBOSE: print(f"  ❌ {msg}")
                         else:
                             passed += 1
+
+    # Cross-platform consistency: weapp code navigates to pages that must
+    # be registered in weappPages (catches dead-link gaps like #1609).
+    dead_links = check_weapp_cross_platform(weapp_pages)
+    for dl in dead_links:
+        failed += 1
+        failures.append(dl)
+        if VERBOSE: print(f"  ❌ {dl}")
 
     print(f"\n=== 结果: {passed} 通过 / {failed} 失败 ===")
     if failures and not VERBOSE:

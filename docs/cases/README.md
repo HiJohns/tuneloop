@@ -68,6 +68,18 @@ steps:               # 步骤列表
 
 - `api` — 调用后端 API（method + path 必填）
 - `interact` — 纯前端交互（无需 API）
+
+### checklist-verify platform 过滤语义（#1613）
+
+`scripts/checklist-verify.py` 的页面注册检查按 `platform` 字段过滤：
+
+| platform 组合 | 页面注册检查 | 说明 |
+|---------------|:---:|------|
+| 仅 `[pc]` | 跳过 weapp/H5 检查 | `/staff`、`/admin` 等 PC 页豁免（frontend-pc 单独验证） |
+| 含 `weapp` 或 `h5` | 必须真实注册 | 跨端页面在 weappPages 或 H5 react-router 任一注册即通过 |
+| 无 platform | 按现状严格检查 | 不豁免 |
+
+**跨端死链检查**：扫描 weapp 源码中 `pages-weapp/xxx` 跳转目标，未注册于 weappPages 的报「跨端死链」（捕获 #1609 类缺口）。
 - `navigate` — 页面跳转（target 必填）
 
 ## 覆盖矩阵（进展跟踪）
