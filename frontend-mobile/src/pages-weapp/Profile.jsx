@@ -143,7 +143,7 @@ export default function Profile() {
     return () => clearInterval(interval)
   }, [])
 
-  const displayName = user?.nickname || user?.name || '路人'
+  const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
   const isStaff = claims.role === 'STAFF'
