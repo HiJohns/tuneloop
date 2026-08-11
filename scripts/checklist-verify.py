@@ -25,6 +25,7 @@ H5_APP = os.path.join(REPO, "frontend-mobile", "src", "App.jsx")
 BACKEND_MAIN = os.path.join(REPO, "backend", "main.go")
 
 VERBOSE = "--verbose" in sys.argv
+BEHAVIORAL = "--behavioral" in sys.argv
 passed = 0
 failed = 0
 failures = []
@@ -280,6 +281,126 @@ def verify_displays(displays, backend_fields):
     return ok
 
 
+def check_control_gate(page, control, gate, platforms, case_id, seq):
+    """Behavioral: verify the JSX condition wrapping a control includes all
+    variables mentioned in the YAML 'gate' field (#1623 class bugs).
+    Returns a list of warning messages (empty = pass)."""
+    warnings = []
+    if not gate or not BEHAVIORAL:
+        return warnings
+    gate_vars = set(re.findall(r'([a-z_]+)\s*(?:=|$|\s)', gate))
+    if not gate_vars:
+        return warnings
+    src = _page_source(page, platforms)
+    if not src:
+        return warnings
+    escaped = re.escape(control)
+    # Skip controls with emoji or that are compound (e.g. "发货按钮(pending)")
+    if not re.search(r'[\u4e00-\u9fff]', control):
+        return warnings
+    m = re.search(escaped, src)
+    if not m:
+        return warnings
+    before = src[:m.start()]
+    last_brace = before.rfind("{")
+    if last_brace < 0:
+        return warnings
+    cond_block = src[last_brace:m.start()].split("&&")[0] if "&&" in src[last_brace:m.start()] else ""
+    cond_block = cond_block.replace("{", "").strip().split("||")[0].strip()
+    # Extract variable names from condition
+    cond_vars = set(re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)', cond_block))
+    # Check: does YAML gate mention variables missing from JSX condition?
+    missing = []
+    for gv in gate_vars:
+        if gv not in cond_block:
+            missing.append(gv)
+    if missing:
+        warnings.append(
+            f"{case_id} step{seq}: control '\\''{control}'\\'' gate 变量 {missing} 未在"
+            f" JSX 条件中找到 (gate='{gate}', cond='{cond_block[:60]}') — 可能无条件常显 (#1623 类)"
+        )
+    return warnings
+
+
+def check_data_refresh(page, platforms, case_id, seq):
+    """Behavioral: verify that a page re-fetches data on re-show (#1625 class).
+    weapp: must have useDidShow. H5: useEffect must have id-dependency."""
+    warnings = []
+    if not BEHAVIORAL:
+        return warnings
+    src = _page_source(page)
+    if not src:
+        return warnings
+    p = page.strip()
+    # Deduce the actual JSX file from page path
+    jsx_file = _page_jsx(p, platforms)
+    if not jsx_file or not os.path.exists(jsx_file):
+        return warnings
+    jsx_src = open(jsx_file).read()
+    if "weapp" in platforms and "useDidShow" not in jsx_src:
+        warnings.append(
+            f"{case_id} step{seq}: weapp 页面 '{p}' 缺 useDidShow — "
+            f"tab 切换回页面时不会重新 fetch 数据，可能残留旧状态 (#1625 类)"
+        )
+    if "h5" in platforms and "useEffect" in jsx_src:
+        # Check if useEffect has id/params dependency
+        ues = re.findall(r'useEffect\([^)]*,\s*\[([^\]]*)\]', jsx_src)
+        has_id_dep = any("id" in d or "params" in d for d in ues)
+        if not has_id_dep and any("fetch" in d.lower() or "load" in d.lower() for d in ues):
+            warnings.append(
+                f"{case_id} step{seq}: H5 页面 '{p}' useEffect 缺 id 依赖 — "
+                f"重新进入相同路由不同参数时不会重新加载数据"
+            )
+    return warnings
+
+
+def _page_jsx(page, platforms):
+    """Map a YAML page path to the actual JSX source file."""
+    p = page.strip()
+    # Shared weapp pages: /staff/shipping → pages-weapp/shipping-interface/index → pages/ShippingInterface.jsx
+    # First check if a pages-weapp shell exists
+    mappings = {
+        "/order/:id": "frontend-mobile/src/pages/OrderDetail.jsx",
+        "/order-detail": "frontend-mobile/src/pages/OrderDetail.jsx",
+        "/orders/:id": "frontend-mobile/src/pages/OrderDetail.jsx",
+        "/payment": "frontend-mobile/src/pages/Payment.jsx",
+        "/checkout": "frontend-mobile/src/pages/Checkout.jsx",
+        "/profile": "frontend-mobile/src/pages/Profile.jsx",
+        "/staff/shipping": "frontend-mobile/src/pages/ShippingInterface.jsx",
+        "/staff/receiving": "frontend-mobile/src/pages/ReceivingInterface.jsx",
+        "/staff/orders": "frontend-mobile/src/pages/StaffOrders.jsx",
+        "/messages": "frontend-mobile/src/pages/Messages.jsx",
+        "/message-detail": "frontend-mobile/src/pages/MessageDetail.jsx",
+        "/membership": "frontend-mobile/src/pages/MembershipCenter.jsx",
+        "/my-leases": "frontend-mobile/src/pages/MyLeases.jsx",
+        "/detail": "frontend-mobile/src/pages/Detail.jsx",
+        "/instrument/:id": "frontend-mobile/src/pages/Detail.jsx",
+        "/instrument": "frontend-mobile/src/pages/Detail.jsx",
+        "/return-settlement": "frontend-mobile/src/pages/ReturnSettlement.jsx",
+        "/search": "frontend-mobile/src/pages/Search.jsx",
+        "/cart": "frontend-mobile/src/pages/Cart.jsx",
+        "/renewal": "frontend-mobile/src/pages/Renewal.jsx",
+        "/repair-request": "frontend-mobile/src/pages/RepairRequestDetail.jsx",
+        "/my-repairs": "frontend-mobile/src/pages/MyRepairs.jsx",
+        "/receive-confirm": "frontend-mobile/src/pages/ReceiveConfirm.jsx",
+        "/return-confirm": "frontend-mobile/src/pages/ReturnConfirm.jsx",
+        "/": "frontend-mobile/src/pages/Home.jsx",
+    }
+    # Strip path params for matching
+    cleaned = re.sub(r"/:[a-zA-Z0-9_]+", "", p)
+    if cleaned in mappings:
+        return os.path.join(REPO, mappings[cleaned])
+    return None
+
+
+def _page_source(page, platforms=None):
+    """Load the JSX source for a page from its actual file."""
+    jsx = _page_jsx(page, platforms or [])
+    if jsx and os.path.exists(jsx):
+        return open(jsx).read()
+    return None
+
+
 def check_weapp_cross_platform(weapp_pages):
     """Scan weapp source for Taro.navigateTo/redirectTo targets that are not
     registered in weappPages. Catches dead-link gaps (#1609/#1610)."""
@@ -344,6 +465,26 @@ def main():
                             if VERBOSE: print(f"  ❌ {msg}")
                         else:
                             passed += 1
+                    # 2.6 behavioral: control gate auditing (#1623 class)
+                    if BEHAVIORAL:
+                        gate = entry.get("gate", "")
+                        for ctl in entry.get("controls", []):
+                            ctl_warnings = check_control_gate(
+                                page, ctl, gate, entry_platforms, case_id, seq
+                            )
+                            for w in ctl_warnings:
+                                failed += 1
+                                failures.append(w)
+                                if VERBOSE: print(f"  ⚠️ {w}")
+                    # 2.7 behavioral: data refresh on re-show (#1625 class)
+                    if BEHAVIORAL:
+                        refresh_warnings = check_data_refresh(
+                            page, entry_platforms, case_id, seq
+                        )
+                        for w in refresh_warnings:
+                            failed += 1
+                            failures.append(w)
+                            if VERBOSE: print(f"  ⚠️ {w}")
                     # 2.5 displays ↔ backend response field cross-check
                     displays = entry.get("displays", [])
                     if displays:
