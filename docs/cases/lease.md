@@ -565,6 +565,130 @@ steps:
 - checklist-verify.py：L-06 seq1/5 的 displays 与 OrderDetail/MessageDetail JSX 交叉验证
 
 ---
+id: L-07
+domain: lease
+flow: 订单详情页行为（角色×状态→控件矩阵）
+steps:
+  - seq: 1
+    action: 顾客视角订单操作
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [customer]
+        gate: ""
+        reach: "MyLeases → 订单详情"
+        controls: [支付按钮(reserved), 取消按钮(paid/pending_shipment), 确认收货按钮(in_transit/shipped), 续期按钮(in_lease/expired), 归还按钮(in_lease/expired)]
+        displays: [订单状态, 订单信息, 物流信息, 乐器信息]
+        ops:
+          - {type: api, method: POST, path: /pay/prepay}
+          - {type: api, method: POST, path: /orders/:id/cancel-by-user}
+          - {type: api, method: PUT, path: /warehouse/orders/:id/delivery}
+    api: {}
+  - seq: 2
+    action: 员工发货（跳转独立发货页）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [staff]
+        gate: "订单状态 = paid/pending_shipment 且 isStaff"
+        reach: "员工订单详情 → 发货按钮"
+        controls: [发货按钮]
+        displays: [订单信息]
+        ops:
+          - {type: navigate, target: "/staff/shipping?order=:id"}
+    api: {}
+  - seq: 3
+    action: 员工接收并转发（跳转独立发货页）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [staff]
+        gate: "订单状态 = in_transit 且 isStaff"
+        reach: "员工订单详情 → 接收并转发按钮"
+        controls: [接收并转发按钮]
+        displays: [订单信息]
+        ops:
+          - {type: navigate, target: "/staff/shipping?order=:id"}
+    api: {}
+  - seq: 4
+    action: 员工收货验收（跳转独立收货页）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [staff]
+        gate: "订单状态 = returning 且 isStaff"
+        reach: "员工订单详情 → 接收按钮"
+        controls: [接收按钮]
+        displays: [订单信息]
+        ops:
+          - {type: navigate, target: "/staff/receiving?order_id=:id"}
+    api: {}
+  - seq: 5
+    action: 员工退款（#1607）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [staff]
+        gate: "订单状态 = deposit_refunding 且 isStaff"
+        reach: "员工订单详情 → 退款按钮"
+        controls: [退款按钮]
+        displays: [订单信息, 定损金额, 应付差额预览]
+        ops:
+          - {type: api, method: POST, path: /orders/:id/refund}
+          - {type: navigate, target: "/payment?type=refund"}
+    api: {method: POST, path: /orders/:id/refund, params: []}
+  - seq: 6
+    action: 员工取消免押金订单（担保人不符）
+    frontend:
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [staff]
+        gate: "order.deposit_waived = true 且 isStaff（担保人卡片内）"
+        reach: "员工订单详情 → 担保人卡片 → 取消订单按钮"
+        controls: [取消订单按钮]
+        displays: [担保人信息]
+        ops:
+          - {type: api, method: POST, path: /warehouse/orders/:id/staff-cancel}
+    api: {method: POST, path: /warehouse/orders/:id/staff-cancel, params: [reason]}
+---
+
+# L-07 订单详情页行为（跨端一致性标准）
+
+## 前置条件
+- 用户已登录（顾客或员工）
+- 订单详情数据已加载（GET /orders/:id）
+
+## 跨端一致性要求（H5 与 weapp 必须一致）
+
+| 角色 | 状态 | 控件 | 动作 | 交互模式（统一） |
+|------|------|------|------|------|
+| 顾客 | reserved | 支付 | POST /pay/prepay | 订单详情内嵌 |
+| 顾客 | paid/pending_shipment | 取消 | cancel-by-user | 订单详情内嵌 |
+| 顾客 | in_transit/shipped | 确认收货 | delivery | 订单详情内嵌 |
+| 顾客 | in_lease/expired | 续期/归还 | renewal/return | 订单详情内嵌 |
+| 员工 | paid/pending_shipment | 发货 | 跳转发货页 | **跳转独立页** `/staff/shipping` |
+| 员工 | in_transit | 接收并转发 | 跳转发货页 | **跳转独立页** `/staff/shipping` |
+| 员工 | returning | 收货验收 | 跳转收货页 | **跳转独立页** `/staff/receiving` |
+| 员工 | deposit_refunding | 退款 | POST /orders/:id/refund → 收据 | 订单详情内嵌（跳收据） |
+| 员工 | deposit_waived | 取消订单 | staff-cancel（reason=担保人不符合要求） | 担保人卡片内嵌 |
+
+## 关键规则（决策记录）
+- **发货/收货采用跳转独立页模式**（订单详情页只放入口按钮，业务操作在独立页完成）——H5 现行模式，weapp 需对齐（当前 weapp 是内嵌表单，需改造为跳转，见 #1610/#1611）
+- 员工取消订单按钮仅出现在免押金订单（deposit_waived）担保人卡片内（#1557）
+- 退款按钮仅 deposit_refunding 状态（#1607）
+- weapp 的 OrderDetail 独立副本（pages-weapp/order-detail）需与共享版行为一致——最终目标：**weapp 薄壳引用共享 OrderDetail.jsx**（消除双代码库）
+
+## 验收
+- checklist-verify.py：L-07 各 seq 的 page/controls/api 在 weapp+h5 均通过（配合 #1613 修复）
+- H5 与 weapp 订单详情渲染同一控件集（真机对比）
+
+## 已知缺口（待 #1610/#1611 实现）
+- weapp 发货/收货跳转目标页面未注册（死链）→ #1610
+- weapp 退款按钮缺失 → #1611
+- H5 员工取消订单按钮缺失 → #1611（与 weapp 对齐）
+- weapp 独立副本与共享版行为漂移 → #1611（薄壳化）
+
+---
 
 ## 域级参考
 
