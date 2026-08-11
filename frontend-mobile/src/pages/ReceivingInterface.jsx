@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, User, MapPin } from 'lucide-react'
-import { dialog, env, storage, session, uploadFile } from '../platform'
+import { dialog, env, storage, session, uploadFile, navigation } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
 export default function ReceivingInterface() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const preloadedOrderId = searchParams.get('order_id')
+  const preloadedOrderId = navigation.getQueryParams().order_id || ''
   const [snInput, setSnInput] = useState('')
   const [currentItem, setCurrentItem] = useState(null)
   const [currentSN, setCurrentSN] = useState('')
@@ -69,6 +69,15 @@ export default function ReceivingInterface() {
     setCapturedPhotos(prev => [...prev, ...files].slice(0, 10))
   }
 
+  const handlePhotoCaptureWeapp = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 10 - capturedPhotos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setCapturedPhotos(prev => [...prev, ...(res.tempFilePaths || [])].slice(0, 10))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
   const checkInstrument = async (sn) => {
     try {
       const resp = await apiFetch(`${baseUrl}/instruments/check?sn=${encodeURIComponent(sn)}`)
@@ -108,7 +117,7 @@ export default function ReceivingInterface() {
         const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         })
-        const uploadResult = await uploadResp.json()
+        const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) photoUrls.push(uploadResult.data.url)
       }
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderID}/return-inspect`, {
@@ -125,9 +134,9 @@ export default function ReceivingInterface() {
       if (result.code === 20000 && condition === 'damaged') {
         const damageResp = await apiFetch(`${baseUrl}/warehouse/orders/${orderID}/damage`, { method: 'PUT', body: JSON.stringify({ damage_description: damageDesc, damage_amount: parseFloat(damageAmount) || 0 }) })
         const damageResult = await damageResp.json()
-        if (damageResult.code === 20000) { navigate('/staff/orders'); return }
+        if (damageResult.code === 20000) { env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders'); return }
         else { dialog.alert('定损评估失败: ' + damageResult.message); setSubmitting(false); return }
-      } else if (result.code === 20000) { navigate('/staff/orders'); return }
+      } else if (result.code === 20000) { env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders'); return }
       else dialog.alert('失败: ' + result.message)
       setCurrentItem(null); setCurrentSN(''); setCondition(''); setDamageDesc(''); setDamageAmount(''); setOrderID(null); setOutboundPhotos([]); setCapturedPhotos([])
     } catch (err) { dialog.alert('错误: ' + err.message) }
@@ -137,7 +146,7 @@ export default function ReceivingInterface() {
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-24">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <View onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">收货确认</Text>
       </View>
 
@@ -203,7 +212,7 @@ export default function ReceivingInterface() {
           <View className="grid grid-cols-3 gap-2 mb-3">
             {capturedPhotos.map((file, i) => (
               <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
-                <Image src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
                 <Button onClick={() => setCapturedPhotos(prev => prev.filter((_, j) => j !== i))}
                   className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center">
                   <Text className="text-white text-xs">✕</Text>
@@ -211,10 +220,16 @@ export default function ReceivingInterface() {
               </View>
             ))}
             {capturedPhotos.length < 10 && (
-              <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-zinc-400">
-                <Camera size={24} /><Text className="text-xs mt-1">拍摄</Text>
-                <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
-              </label>
+              env.isMiniProgram ? (
+                <View className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center text-zinc-400" onClick={handlePhotoCaptureWeapp}>
+                  <Camera size={24} /><Text className="text-xs mt-1">拍摄</Text>
+                </View>
+              ) : (
+                <label className="aspect-square border-2 border-dashed border-zinc-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-zinc-400">
+                  <Camera size={24} /><Text className="text-xs mt-1">拍摄</Text>
+                  <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+                </label>
+              )
             )}
           </View>
           <Text className="text-xs text-zinc-400">已拍摄 {capturedPhotos.length} 张，最多 10 张</Text>

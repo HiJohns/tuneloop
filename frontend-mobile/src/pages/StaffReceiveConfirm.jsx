@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch } from '../services/api'
-import { dialog, env, storage, session, uploadFile } from '../platform'
+import { dialog, env, storage, session, uploadFile, navigation } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
 export default function StaffReceiveConfirm() {
-  const { orderId } = useParams()
-  const [searchParams] = useSearchParams()
+  const { orderId: routeOrderId } = useParams()
   const navigate = useNavigate()
-  const instrumentId = searchParams.get('instrument')
+  const query = navigation.getQueryParams()
+  const orderId = routeOrderId || query.orderId || query.order_id || ''
+  const instrumentId = query.instrument || ''
   const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
@@ -73,7 +75,7 @@ export default function StaffReceiveConfirm() {
         const uploadResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         })
-        const uploadResult = await uploadResp.json()
+        const uploadResult = env.isMiniProgram ? JSON.parse(uploadResp.data || '{}') : await uploadResp.json()
         if (uploadResult.code === 20000 && uploadResult.data?.url) { photoUrls.push(uploadResult.data.url) }
       }
       const condition = hasDamage ? 'damaged' : 'good'
@@ -90,7 +92,11 @@ export default function StaffReceiveConfirm() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('接收确认成功')
-        navigate('/staff/orders')
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/staff/orders')
+        }
       } else { dialog.alert('接收失败: ' + (result.message || '')) }
     } catch (err) { dialog.alert('操作失败: ' + err.message) }
     setSubmitting(false)
@@ -105,12 +111,12 @@ export default function StaffReceiveConfirm() {
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-24">
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <View onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">接收确认</Text>
       </View>
 
       <ScrollView>
-      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` }) : navigate(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
         <LeaseInfo

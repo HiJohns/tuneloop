@@ -20,6 +20,9 @@ const weappPages = [
   'pages-weapp/return-settlement/index',
   'pages-weapp/messages/index',
   'pages-weapp/message-detail/index',
+  'pages-weapp/shipping-interface/index',
+  'pages-weapp/receiving-interface/index',
+  'pages-weapp/staff-receive-confirm/index',
 ]
 
 const h5Pages = [

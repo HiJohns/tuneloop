@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, User, MapPin, Scan } from 'lucide-react'
-import { dialog, env, storage, session, uploadFile, scanQRCode } from '../platform'
+import { dialog, env, storage, session, uploadFile, scanQRCode, navigation } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
@@ -12,8 +13,7 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg width
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const orderId = searchParams.get('order')
+  const orderId = (navigation.getQueryParams().order || '')
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '', shippingFee: '' })
@@ -97,6 +97,15 @@ export default function ShippingInterface() {
     setPhotos(prev => [...prev, ...files].slice(0, 10))
   }
 
+  const handlePhotoCaptureWeapp = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 10 - photos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setPhotos(prev => [...prev, ...(res.tempFilePaths || [])].slice(0, 10))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
   const removePhoto = (idx) => {
     setPhotos(prev => prev.filter((_, i) => i !== idx))
   }
@@ -115,7 +124,7 @@ export default function ShippingInterface() {
         const resp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         })
-        const result = await resp.json()
+        const result = env.isMiniProgram ? JSON.parse(resp.data || '{}') : await resp.json()
         if (result.code === 20000 && result.data?.url) {
           photoUrls.push(result.data.url)
         }
@@ -134,7 +143,11 @@ export default function ShippingInterface() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('发货成功')
-        navigate('/staff/orders')
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/staff/orders')
+        }
       } else {
         dialog.alert('发货失败: ' + result.message)
       }
@@ -157,7 +170,11 @@ export default function ShippingInterface() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('订单已取消，费用已原路退还')
-        navigate('/staff/orders')
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/staff/orders')
+        }
       } else {
         dialog.alert('取消失败: ' + result.message)
       }
@@ -170,7 +187,7 @@ export default function ShippingInterface() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+        <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} /></Button>
         <Text className="text-lg font-black text-black">发货</Text>
       </View>
 
@@ -331,7 +348,7 @@ export default function ShippingInterface() {
               <View className="grid grid-cols-3 gap-2 mb-3">
                 {photos.map((file, i) => (
                   <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
-                    <Image src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                    <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
                     <Button
                       onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
@@ -341,11 +358,18 @@ export default function ShippingInterface() {
                   </View>
                 ))}
                 {photos.length < 10 && (
-                  <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:text-brand-primary">
-                    <Camera size={24} />
-                    <Text className="text-xs mt-1">拍摄</Text>
-                    <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
-                  </label>
+                  env.isMiniProgram ? (
+                    <View className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400" onClick={handlePhotoCaptureWeapp}>
+                      <Camera size={24} />
+                      <Text className="text-xs mt-1">拍摄</Text>
+                    </View>
+                  ) : (
+                    <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400 hover:text-brand-primary">
+                      <Camera size={24} />
+                      <Text className="text-xs mt-1">拍摄</Text>
+                      <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+                    </label>
+                  )
                 )}
               </View>
               {photos.length === 0 && (

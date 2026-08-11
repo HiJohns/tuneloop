@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react'
+import Taro from '@tarojs/taro'
 import { Upload, X } from 'lucide-react'
+import { env } from '../platform'
 
 export default function ImageUploader({ onChange, maxImages = 5 }) {
   const [images, setImages] = useState([])
@@ -24,14 +26,44 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
     if (onChange) onChange(updated.map(i => i.file))
   }
 
+  const handleWeappPick = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: maxImages - images.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      const paths = res.tempFilePaths || []
+      if (images.length + paths.length > maxImages) {
+        Taro.showToast({ title: `最多上传 ${maxImages} 张图片`, icon: 'none' })
+        return
+      }
+      const newImages = paths.map((path, i) => ({
+        file: path,
+        preview: path,
+        name: `weapp_${Date.now()}_${i}.jpg`,
+        capturedAt: new Date().toISOString()
+      }))
+      const updated = [...images, ...newImages]
+      setImages(updated)
+      if (onChange) onChange(updated.map(i => i.file))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
   const removeImage = (index) => {
     const imgToRemove = images[index]
-    if (imgToRemove?.preview) {
+    if (imgToRemove?.preview && !env.isMiniProgram) {
       URL.revokeObjectURL(imgToRemove.preview)
     }
     const updated = images.filter((_, i) => i !== index)
     setImages(updated)
     if (onChange) onChange(updated.map(i => i.file))
+  }
+
+  const onPickClick = () => {
+    if (env.isMiniProgram) {
+      handleWeappPick()
+    } else {
+      fileInputRef.current?.click()
+    }
   }
 
   return (
@@ -55,7 +87,7 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
         
         {images.length < maxImages && (
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={onPickClick}
             className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-orange-500 hover:text-orange-500"
           >
             <Upload size={20} />
@@ -64,14 +96,16 @@ export default function ImageUploader({ onChange, maxImages = 5 }) {
         )}
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFileSelect}
-        className="hidden"
-      />
+      {!env.isMiniProgram && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      )}
 
       <p className="text-gray-400 text-xs">
         最多上传 {maxImages} 张图片，支持 JPG、PNG 格式
