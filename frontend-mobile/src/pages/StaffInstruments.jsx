@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { ArrowLeft, Search, Truck } from 'lucide-react'
@@ -88,7 +89,7 @@ export default function StaffInstruments() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <View onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">乐器管理</Text>
       </View>
 
@@ -119,7 +120,7 @@ export default function StaffInstruments() {
               <View
                 key={inst.id}
                 className="bg-white rounded-2xl p-4 flex gap-3 cursor-pointer active:opacity-80"
-                onClick={() => navigate(`/staff/instrument/${inst.id}`)}
+                onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/staff-instrument-detail/index?id=${inst.id}` }) : navigate(`/staff/instrument/${inst.id}`)}
               >
                 {(() => {
                   const imgSrc = inst.poster || parseImages(inst.images)[0] || PLACEHOLDER_IMAGE
@@ -170,7 +171,7 @@ export default function StaffInstruments() {
           const ok = bit !== undefined && (cusPerm & (1 << bit)) !== 0
           return ok ? (
             <Button
-              onClick={() => navigate('/staff/instrument/new')}
+              onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: '/pages-weapp/staff-instrument-form/index' }) : navigate('/staff/instrument/new')}
               className="w-14 h-14 bg-black text-white rounded-full shadow-lg flex items-center justify-center text-2xl"
             >
               +

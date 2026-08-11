@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { apiFetch } from '../services/api'
@@ -179,7 +180,11 @@ export default function StaffInstrumentForm() {
             console.warn('[StaffInstrumentForm] Failed to bind media:', e)
           }
         }
-        navigate('/staff/instruments')
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/staff/instruments')
+        }
       } else {
         dialog.alert(result.message || '创建失败')
       }
@@ -196,7 +201,7 @@ export default function StaffInstrumentForm() {
   return (
     <View className="min-h-screen bg-gray-50 pb-24">
       <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => navigate(-1)}>
+        <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}>
           <ArrowLeft size={20} />
         </Button>
         <Text className="text-lg font-bold">新建乐器</Text>

@@ -24,6 +24,9 @@ const weappPages = [
   'pages-weapp/receiving-interface/index',
   'pages-weapp/staff-receive-confirm/index',
   'pages-weapp/staff-orders/index',
+  'pages-weapp/staff-instruments/index',
+  'pages-weapp/staff-instrument-detail/index',
+  'pages-weapp/staff-instrument-form/index',
 ]
 
 const h5Pages = [

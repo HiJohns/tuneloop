@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Input, Textarea, Image } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive, Clock } from 'lucide-react'
-import { dialog, env, storage } from '../platform'
+import { dialog, env, storage, navigation } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
@@ -39,8 +40,9 @@ function parsePricing(pricing) {
 }
 
 export default function StaffInstrumentDetail() {
-  const { id } = useParams()
+  const { id: routeId } = useParams()
   const navigate = useNavigate()
+  const id = routeId || navigation.getQueryParams().id || ''
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -118,7 +120,11 @@ export default function StaffInstrumentDetail() {
       dialog.alert('乐器不在租赁中状态，无法发货')
       return
     }
-    navigate(`/staff/shipping?instrument=${instrument.id}`)
+    if (env.isMiniProgram) {
+      Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?instrument=${instrument.id}` })
+    } else {
+      navigate(`/staff/shipping?instrument=${instrument.id}`)
+    }
   }
 
   const handleReceive = async () => {
@@ -127,7 +133,11 @@ export default function StaffInstrumentDetail() {
       return
     }
     if (activeOrder) {
-      navigate(`/staff/receiving/${activeOrder.order_id}?instrument=${instrument.id}`)
+      if (env.isMiniProgram) {
+        Taro.navigateTo({ url: `/pages-weapp/staff-receive-confirm/index?orderId=${activeOrder.order_id}&instrument=${instrument.id}` })
+      } else {
+        navigate(`/staff/receiving/${activeOrder.order_id}?instrument=${instrument.id}`)
+      }
     } else {
       dialog.alert('未找到关联订单')
     }
@@ -147,7 +157,11 @@ export default function StaffInstrumentDetail() {
       const maintResult = await maintResp.json()
       if (maintResult.code === 20000) {
         dialog.alert('维修完成')
-        navigate('/staff/instruments')
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/staff/instruments')
+        }
       } else {
         dialog.alert('操作失败: ' + maintResult.message)
       }
@@ -167,7 +181,11 @@ export default function StaffInstrumentDetail() {
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('已下架')
-        navigate('/staff/instruments')
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/staff/instruments')
+        }
       } else {
         dialog.alert('操作失败: ' + result.message)
       }
@@ -207,7 +225,7 @@ export default function StaffInstrumentDetail() {
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+        <View onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <Text className="text-lg font-black text-black">乐器详情</Text>
       </View>
 
@@ -403,12 +421,12 @@ export default function StaffInstrumentDetail() {
                 </Button>
               )}
               {instrument.stock_status === 'maintenance' && has('order:update') && (
-                <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                <Button onClick={() => env.isMiniProgram ? dialog.alert('维修功能请在 H5 端使用') : navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <Wrench size={18} />报修
                 </Button>
               )}
               {(instrument.stock_status === 'returned' || instrument.stock_status === 'assessed') && has('order:update') && (
-                <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+                <Button onClick={() => env.isMiniProgram ? dialog.alert('维修功能请在 H5 端使用') : navigate(`/repair?instrument_id=${id}`)} className="flex-1 py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2">
                   <CheckCircle size={18} />完成订单
                 </Button>
               )}
@@ -420,17 +438,17 @@ export default function StaffInstrumentDetail() {
               {instrument.stock_status === 'maintenance' && (
                 <>
                   {instrument.repair_status === 'repair_pending' && (
-                    <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                    <Button onClick={() => env.isMiniProgram ? dialog.alert('维修功能请在 H5 端使用') : navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                       <CheckCircle size={18} />开始维修
                     </Button>
                   )}
                   {instrument.repair_status === 'repair_in_progress' && (
-                    <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                    <Button onClick={() => env.isMiniProgram ? dialog.alert('维修功能请在 H5 端使用') : navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-purple-500 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                       <CheckCircle size={18} />维修完成
                     </Button>
                   )}
                   {instrument.repair_status === 'repair_completed' && (
-                    <Button onClick={() => navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
+                    <Button onClick={() => env.isMiniProgram ? dialog.alert('维修功能请在 H5 端使用') : navigate(`/repair?instrument_id=${id}`)} className="py-3 bg-green-600 text-white rounded-lg font-medium flex items-center justify-center gap-2">
                       <CheckCircle size={18} />验收
                     </Button>
                   )}
