@@ -172,6 +172,9 @@ export default function OrderDetail() {
   // Staff-triggered refund for deposit_refunding orders (L-04 path 2/3).
   // Executes the differential settlement on the backend and jumps to the
   // refund receipt page.
+  // Staff-triggered refund for deposit_refunding orders (L-04 path 2/3).
+  // Executes the differential settlement on the backend and jumps to the
+  // refund receipt page.
   const handleStaffRefund = async () => {
     if (!dialog.confirm('确认执行退款？将按结算差额退回现金与赠点。')) return
     setRefunding(true)
@@ -189,6 +192,34 @@ export default function OrderDetail() {
       dialog.alert('退款失败: ' + err.message)
     }
     setRefunding(false)
+  }
+
+  // Staff cancels a deposit-waived order when the guarantor fails the
+  // requirement (#1557 / L-07 seq6). Aligns with the weapp OrderDetail.
+  const handleStaffCancel = async () => {
+    if (!dialog.confirm('确认取消订单？取消后不可恢复，已付款将原路退回。')) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/staff-cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: '担保人不符合要求' }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.toast('订单已取消')
+        // Reload order to reflect cancelled status + refund info
+        try {
+          const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+          const reloadData = await reload.json()
+          if (reloadData.code === 20000) setOrder(reloadData.data)
+        } catch { /* keep current state */ }
+      } else {
+        dialog.alert('取消失败: ' + (result.message || '请重试'))
+      }
+    } catch (err) {
+      dialog.alert('取消失败: ' + err.message)
+    }
+    setActionLoading(false)
   }
 
   if (loading) {
@@ -518,6 +549,15 @@ export default function OrderDetail() {
             </View>
           )) : (
             <Text className="text-xs text-zinc-400">暂无担保人信息</Text>
+          )}
+          {isStaff && (
+            <View
+              onClick={actionLoading ? undefined : handleStaffCancel}
+              className="w-full py-2.5 bg-red-500 text-white rounded-xl font-black text-center cursor-pointer active:opacity-80 mt-2"
+              style={{ opacity: actionLoading ? 0.5 : 1 }}
+            >
+              {actionLoading ? '处理中...' : '❌ 取消订单'}
+            </View>
           )}
         </View>
       )}
