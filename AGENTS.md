@@ -80,17 +80,46 @@ nvm use 22
 make mobile-weapp-dev
 # 或手动：nvm use 22 && cd frontend-mobile && npm run dev:weapp
 
-# 生产构建
-cd frontend-mobile && npm run build:weapp   # → dist-weapp/
+# 生产构建（编译 → 归档，不上传）
+make weapp-build-pre VERSION=x   # 预生产（prewx apiBaseUrl）
+make weapp-build-prod VERSION=x  # 生产（wx apiBaseUrl）
+# VERSION 默认自动生成：YYYYMMDD-HHMMSS_COMMITID
 
-# 上传到微信服务器（需私钥）
-make weapp-upload-prod VERSION=1.0.0 DESC="release note"
+# 上传已归档版本（不重新编译——保证发布内容 = 已验证内容）
+make weapp-upload-pre VERSION=20260811-021851_abcd1234 DESC="release note"
+make weapp-upload-prod VERSION=20260811-021851_abcd1234 DESC="release note"
 
-# 全量打包（含 weapp 产物）
-make release
+# 回退 = 上传更早归档
+make weapp-upload-pre VERSION=20260810-123456_OLDER_HASH DESC="rollback"
+
+# 清理 180 天前归档
+make weapp-cleanup DRY=1   # 预览
+make weapp-cleanup          # 实际执行
 ```
 
-**注意**：`make weapp-upload-prod` 依赖 `frontend-mobile/private.APPID.key` 私钥文件（已 gitignore）。
+#### 归档结构（#1619）
+
+```
+releases/
+├── weapp-pre/           # 预生产归档（prewx apiBaseUrl，appid wx9f96827856269a6c）
+│   └── YYYYMMDD-HHMMSS_COMMITID/
+│       └── dist-weapp/  （构建产物，app.wxss 已清理 !important）
+└── weapp-prod/          # 生产归档（wx apiBaseUrl，appid wxcb44a1be70e356ed）
+    └── ...
+```
+
+#### 关键规则
+- **上传不重新编译**：`weapp-upload-*` 依赖归档已存在（不存在则报错 exit 2），保证发布内容 = 已验证内容
+- **归档是成品**：wxss 清理在归档时执行一次，归档即 ready-to-upload
+- **回退简单**：上传更早归档即可（无需重新编译旧 commit）
+- **保留 ≥180 天**：`weapp-cleanup` 定期清理，确保审核/灰度周期内可回退
+- **私钥文件**：`frontend-mobile/private.{APPID}.key`（已 gitignore）
+
+#### 全量打包（含 weapp）
+```bash
+make release
+# 全量打包 → make release 构建后端+PC+H5，weapp 需单独 make weapp-build-*
+```
 
 ---
 

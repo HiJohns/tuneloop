@@ -232,7 +232,7 @@ npm run build:weapp # 小程序
 
 > **架构说明**：同一套 `.jsx` 代码同时编译为 H5（Vite）和微信小程序（Taro）。`src/platform/` 层根据编译目标自动切换浏览器 API ↔ Taro API。详见 `docs/weapp.md`。
 
-> **预生产小程序**：预生产环境使用独立的小程序账户，通过 `make weapp-upload-pre` 上传到不同 AppID。详见 §预生产/生产发布流程。生产版 AppID = `wxcb44a1be70e356ed`，预生产 AppID = `wx9f96827856269a6c`，私钥文件路径：`frontend-mobile/private.wx9f96827856269a6c.key`。
+> **预生产小程序**：预生产环境使用独立的小程序账户，编译后**归档到本地 `releases/weapp-pre/`**，再从归档上传（不重新编译——保证发布内容 = 已验证内容）。生产版 AppID = `wxcb44a1be70e356ed`，预生产 AppID = `wx9f96827856269a6c`。归档保留 ≥180 天，可随时回退到更早版本。详见 §小程序发布流程（#1619）。
 
 ---
 
@@ -258,13 +258,20 @@ make mobile-weapp-dev
 # 构建全量发布包（预生产，晋升生产见 §预生产/生产发布流程）
 make release
 
-# 版本管理
-make version        # 查看当前版本
-make bump-build     # 递增 build 号
+# 小程序：构建 → 归档（不上传，版本号自动生成 YYYYMMDD-HHMMSS_COMMITID）
+make weapp-build-pre VERSION=20260811-021851_abcd1234    # 预生产（prewx apiBaseUrl，appid wx9f96827856269a6c）
+make weapp-build-prod VERSION=20260811-021851_abcd1234   # 生产（wx apiBaseUrl，appid wxcb44a1be70e356ed）
 
-# 上传小程序 (需私钥)
-make weapp-upload-prod VERSION=1.0.0 DESC="release note"    # 生产版 (AppID: wxcb44a1be70e356ed)
-make weapp-upload-pre VERSION=1.0.0-pre DESC="pre deploy"    # 预生产版 (独立 AppID)
+# 小程序：上传已归档版本（不重新编译——保证发布内容 = 已验证内容）
+make weapp-upload-pre VERSION=20260811-021851_abcd1234 DESC="release note"
+make weapp-upload-prod VERSION=20260811-021851_abcd1234 DESC="release note"
+
+# 小程序：回退 = 上传更早归档（无需重新编译旧 commit）
+make weapp-upload-pre VERSION=20260810-123456_OLDER DESC="rollback"
+
+# 小程序：清理 180 天前归档
+make weapp-cleanup DRY=1   # 预览
+make weapp-cleanup          # 实际执行
 ```
 
 ### 访问地址
@@ -328,7 +335,7 @@ TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh tuneloop-pre_*.zip
 | beaconiam-pre (IAM) | 5562 | preiam.cadenzayueqi.com | `beaconiam-pre.service` |
 | tuneloop-pre (Web) | 5563 | preweb.cadenzayueqi.com | `tuneloop-pre.service` |
 | tuneloop-pre (WX) | 5564 | prewx.cadenzayueqi.com | (同一服务，双端口) |
-| tuneloop-pre (WeApp) | — | 预生产小程序 (`wx9f96827856269a6c`) | miniprogram-ci → 上传到微信服务器 |
+| tuneloop-pre (WeApp) | — | 预生产小程序 (`wx9f96827856269a6c`) | **归档流程**：构建 → `releases/weapp-pre/` → 从归档上传 |
 | DB | 5432 | — | `tuneloop_pre` / `beaconiam_pre` |
 
 ### 预生产微信小程序
@@ -340,7 +347,26 @@ TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh tuneloop-pre_*.zip
 | 私钥文件 | `frontend-mobile/private.wx9f96827856269a6c.key` | 微信公众平台 → 开发 → 开发设置 → 小程序代码上传，生成下载 |
 | App Secret | 后端 `.env` | 用于微信登录、支付等 API 调用（不参与小程序上传） |
 
-> **注意**：生产版和预生产版使用**同一份 `dist-weapp/` 构建产物**，仅上传时的 `--appid` 和 `--pkp` 不同。H5 端的构建仍由 `make release`（Vite + `--mode prerelease`）产出，不区分生产/预生产。
+> **注意**：生产版和预生产版使用**不同的 apiBaseUrl** 编译（`weapp-build-pre` → prewx，`weapp-build-prod` → wx），分别归档到 `releases/weapp-pre/` 和 `releases/weapp-prod/`。**上传不重新编译**——每次上传必须指定已存在的归档版本号（`make weapp-upload-pre VERSION=x`），确保发布内容 = 已验证内容。归档保留 ≥180 天，回退只需上传更早归档。
+
+### 小程序发布流程（#1619）
+
+```bash
+# 构建 + 归档（不上传，版本号自动生成 YYYYMMDD-HHMMSS_COMMITID）
+make weapp-build-pre VERSION=20260811-021851_abcd1234    # 预生产
+make weapp-build-prod VERSION=20260811-021851_abcd1234   # 生产
+
+# 上传已归档版本（不重新编译——保证发布内容 = 已验证内容）
+make weapp-upload-pre VERSION=20260811-021851_abcd1234 DESC="..."
+make weapp-upload-prod VERSION=20260811-021851_abcd1234 DESC="..."
+
+# 回退 = 上传更早归档（无需重新编译旧 commit）
+make weapp-upload-pre VERSION=20260810-OLDER_HASH DESC="rollback"
+
+# 清理 180 天前归档
+make weapp-cleanup DRY=1   # 预览
+make weapp-cleanup          # 实际执行
+```
 
 ### 脚本说明
 
