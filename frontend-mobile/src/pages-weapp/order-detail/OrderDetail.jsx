@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Image, Input, Button } from '@tarojs/components'
+import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env, uploadFile } from '../../platform'
 import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
@@ -45,8 +45,6 @@ export default function OrderDetail() {
   const [logHasMore, setLogHasMore] = useState(false)
   const [showContract, setShowContract] = useState(false)
   const [receivePhotos, setReceivePhotos] = useState([])
-  const [returnForm, setReturnForm] = useState({ company: '', trackingNumber: '' })
-  const [returnPhotos, setReturnPhotos] = useState([])
 
   const token = getToken()
   const isStaff = (() => {
@@ -184,33 +182,10 @@ export default function OrderDetail() {
     setActionLoading(false)
   }
 
-  const handleReturn = async () => {
-    if (!returnForm.company.trim() || !returnForm.trackingNumber.trim()) {
-      Taro.showToast({ title: '请填写物流公司和单号', icon: 'none' })
-      return
-    }
-    setActionLoading(true)
-    try {
-      const photos = await uploadPhotos(returnPhotos)
-      const resp = await apiFetch(`${baseUrl}/orders/${id}/return`, {
-        method: 'POST',
-        body: JSON.stringify({
-          courier_company: returnForm.company.trim(),
-          tracking_number: returnForm.trackingNumber.trim(),
-          photos,
-        }),
-      })
-      const result = await resp.json()
-      if (result.code === 20000) {
-        Taro.showToast({ title: '归还申请已提交', icon: 'success' })
-        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/return-settlement/index?orderId=${id}` }), 800)
-      } else {
-        Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
-      }
-    } catch (err) {
-      Taro.showModal({ title: '操作失败', content: err.message, showCancel: false })
-    }
-    setActionLoading(false)
+  const handleReturn = () => {
+    // L-07 jump-page mode: return logistics filled on the dedicated
+    // ReturnConfirm page (consistent with H5 /return/:orderId).
+    Taro.navigateTo({ url: `/pages-weapp/return-confirm/index?order=${id}` })
   }
 
   const handleStaffRefund = () => {
@@ -693,35 +668,6 @@ export default function OrderDetail() {
           </View>
         )}
 
-        {/* Customer: return logistics + photos (in_lease/expired) */}
-        {!isStaff && (status === 'in_lease' || status === 'expired') && (
-          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>归还信息</Text>
-            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流公司</Text>
-              <Input
-                type="text"
-                value={returnForm.company}
-                onInput={e => setReturnForm(prev => ({ ...prev, company: e.detail.value }))}
-                placeholder="顺丰快递"
-                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
-              />
-            </View>
-            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <Text style={{ fontSize: 13, color: '#71717a', width: 60, flexShrink: 0 }}>物流单号</Text>
-              <Input
-                type="text"
-                value={returnForm.trackingNumber}
-                onInput={e => setReturnForm(prev => ({ ...prev, trackingNumber: e.detail.value }))}
-                placeholder="SF1234567890"
-                style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid #d4d4d8', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
-              />
-            </View>
-            <Text style={{ fontSize: 13, color: '#71717a', marginBottom: 4 }}>归还拍照留档</Text>
-            <PhotoPicker photos={returnPhotos} setPhotos={setReturnPhotos} />
-          </View>
-        )}
-
         {/* Logistics */}
         {(order.tracking_number || order.courier_company) && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
@@ -843,9 +789,9 @@ export default function OrderDetail() {
               </View>
             )}
             {showReturnButton && (
-              <View onClick={actionLoading ? undefined : handleReturn}
-                style={{ ...btnStyle('#f97316'), opacity: actionLoading ? 0.5 : 1 }}>
-                {actionLoading ? '处理中...' : '↩️ 归还'}
+              <View onClick={handleReturn}
+                style={btnStyle('#f97316')}>
+                ↩️ 归还
               </View>
             )}
             {isTerminal && (
