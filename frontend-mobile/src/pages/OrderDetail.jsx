@@ -159,6 +159,12 @@ export default function OrderDetail() {
           navigate(`/payment?type=refund&id=${id}`, { replace: true })
         } else {
           setOrder(prev => ({ ...prev, status: 'cancelled' }))
+          // Reload order to sync cancelled state + hide cancel button (#1623)
+          try {
+            const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+            const reloadData = await reload.json()
+            if (reloadData.code === 20000) setOrder(reloadData.data)
+          } catch { /* keep local state */ }
         }
       } else {
         dialog.alert('取消失败: ' + result.message)
@@ -291,6 +297,9 @@ export default function OrderDetail() {
   const showStaffTransit = isStaff && status === 'in_transit'
   const showStaffReceive = isStaff && status === 'returning'
   const showStaffRefund = isStaff && status === 'deposit_refunding'
+  // Staff cancel only on cancellable states (paid/pending_shipment) —
+  // grouped with ship action, NOT in the guarantor panel (#1623).
+  const showStaffCancel = isStaff && order.deposit_waived && (status === 'paid' || status === 'pending_shipment')
 
   return (
     <View className="h-screen flex flex-col" style={{backgroundColor: '#FDFBF7'}}>
@@ -550,15 +559,6 @@ export default function OrderDetail() {
           )) : (
             <Text className="text-xs text-zinc-400">暂无担保人信息</Text>
           )}
-          {isStaff && (
-            <View
-              onClick={actionLoading ? undefined : handleStaffCancel}
-              className="w-full py-2.5 bg-red-500 text-white rounded-xl font-black text-center cursor-pointer active:opacity-80 mt-2"
-              style={{ opacity: actionLoading ? 0.5 : 1 }}
-            >
-              {actionLoading ? '处理中...' : '❌ 取消订单'}
-            </View>
-          )}
         </View>
       )}
 
@@ -758,6 +758,13 @@ export default function OrderDetail() {
                 <View onClick={() => navigate(`/staff/shipping?order=${id}`)}
                   className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <Truck size={20} /><Text>发货</Text>
+                </View>
+              )}
+              {showStaffCancel && (
+                <View onClick={actionLoading ? undefined : handleStaffCancel}
+                  className="w-full py-3 bg-red-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80"
+                  style={{ opacity: actionLoading ? 0.5 : 1 }}>
+                  {actionLoading ? '处理中...' : '❌ 取消订单'}
                 </View>
               )}
               {showStaffTransit && (

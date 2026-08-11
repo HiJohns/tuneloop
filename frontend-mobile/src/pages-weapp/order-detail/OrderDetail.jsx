@@ -293,6 +293,9 @@ export default function OrderDetail() {
   const showStaffTransit = isStaff && status === 'in_transit'
   const showStaffReceive = isStaff && status === 'returning'
   const showStaffRefund = isStaff && status === 'deposit_refunding'
+  // Staff cancel only on cancellable states, grouped with ship actions —
+  // NOT in the guarantor panel (#1623).
+  const showStaffCancel = isStaff && order.deposit_waived && (status === 'paid' || status === 'pending_shipment')
 
   const deliveryAddress = (() => {
     if (!order.delivery_address) return null
@@ -652,10 +655,6 @@ export default function OrderDetail() {
                 {g.address && <Text style={{ fontSize: 12, color: '#71717a', marginTop: 2 }}>{g.address}</Text>}
               </View>
             ))}
-            <View onClick={actionLoading ? undefined : handleStaffCancel}
-              style={{ ...btnStyle('#ef4444'), opacity: actionLoading ? 0.5 : 1, marginTop: 4 }}>
-              {actionLoading ? '处理中...' : '❌ 取消订单'}
-            </View>
           </View>
         )}
 
@@ -733,6 +732,12 @@ export default function OrderDetail() {
             {showStaffShip && (
               <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
                 style={btnStyle('#000')}>📦 发货</View>
+            )}
+            {showStaffCancel && (
+              <View onClick={actionLoading ? undefined : handleStaffCancel}
+                style={{ ...btnStyle('#ef4444'), opacity: actionLoading ? 0.5 : 1 }}>
+                {actionLoading ? '处理中...' : '❌ 取消订单'}
+              </View>
             )}
             {showStaffTransit && (
               <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
