@@ -354,7 +354,88 @@ def check_data_refresh(page, platforms, case_id, seq):
     return warnings
 
 
-def _page_jsx(page, platforms):
+def check_ui_text_pollution(page, platforms, case_id, seq):
+    """Behavioral: user-facing text must not contain internal issue refs
+    like '#1628' or '#1541' in placeholders/labels (#1628 class)."""
+    warnings = []
+    if not BEHAVIORAL:
+        return warnings
+    src = _page_source(page, platforms)
+    if not src:
+        return warnings
+    # placeholder="... #123 ..." or >... #123 ...< — issue-number in UI text
+    hits = re.findall(r'placeholder="[^"]*#\d+[^"]*"', src)
+    for h in hits:
+        warnings.append(
+            f"{case_id} step{seq}: UI 文案含内部 Issue 编号: {h[:60]} — 用户可见文本不应有 #数字 (#1628 类)"
+        )
+    return warnings
+
+
+def check_root_background(page, platforms, case_id, seq):
+    """Behavioral: page root container must use site background per ui.md
+    (#FDFBF7 浅杏 or brand-bg) — not default white (#1627 class)."""
+    warnings = []
+    if not BEHAVIORAL:
+        return warnings
+    jsx_file = _page_jsx(page, platforms)
+    if not jsx_file or not os.path.exists(jsx_file):
+        return warnings
+    jsx_src = open(jsx_file).read()
+    # Find root containers: min-h-screen / h-screen without FDFBF7/brand-bg
+    roots = re.findall(r'(?:<View|</?div)\s+className="([^"]*(?:min-h-screen|h-screen)[^"]*)"', jsx_src)
+    for rc in roots:
+        if "FDFBF7" not in rc and "brand-bg" not in rc:
+            warnings.append(
+                f"{case_id} step{seq}: 页面根容器 '{rc[:60]}' 缺站点背景色 (bg-[#FDFBF7]/bg-brand-bg) — ui.md 要求全站主背景 (#1627 类)"
+            )
+    return warnings
+
+
+def check_nested_conditional_card(page, platforms, case_id, seq):
+    """Behavioral: a card whose outer div renders unconditionally but whose
+    content is fully gated by an inner condition produces an empty panel
+    when the inner condition is false (#1626 class)."""
+    warnings = []
+    if not BEHAVIORAL:
+        return warnings
+    src = _page_source(page, platforms)
+    if not src:
+        return warnings
+    # Pattern: {cond && (<div className="...bg-white...rounded..."> ... </div>)} where
+    # the card's immediate content starts with a condition (nested gate)
+    # Detect: <div className="[^"]*(bg-white|bg-\[#)[^"]*"> followed by {cond2 && within
+    # We look for empty-card risk: card div opens, then immediately an inner
+    # conditional block without any unconditional content.
+    pattern = re.compile(
+        r'<div\s+className="([^"]*(?:bg-white|shadow-sm)[^"]*rounded[^"]*)">\s*\n\s*\{'
+    )
+    for m in pattern.finditer(src):
+        cls = m.group(1)
+        warnings.append(
+            f"{case_id} step{seq}: 卡片 '{cls[:50]}' 紧跟条件渲染块 — 条件为 false 时产生空面板 (#1626 类)，"
+            f"应将外层 div 一并纳入条件门控"
+        )
+    return warnings
+
+
+def check_replace_navigation(page, platforms, case_id, seq):
+    """Behavioral: navigate(..., {replace:true}) to key flow pages removes
+    the current page from history → back button skips it (#1629 class)."""
+    warnings = []
+    if not BEHAVIORAL:
+        return warnings
+    jsx_file = _page_jsx(page, platforms)
+    if not jsx_file or not os.path.exists(jsx_file):
+        return warnings
+    jsx_src = open(jsx_file).read()
+    hits = re.findall(r"navigate\([^)]*\{\s*replace:\s*true\s*\}", jsx_src)
+    for h in hits:
+        warnings.append(
+            f"{case_id} step{seq}: 检测到 replace:true 跳转: {h[:70]} — 会从历史栈移除当前页，"
+            f"回退键将跳过它 (#1629 类)"
+        )
+    return warnings
     """Map a YAML page path to the actual JSX source file."""
     p = page.strip()
     # Shared weapp pages: /staff/shipping → pages-weapp/shipping-interface/index → pages/ShippingInterface.jsx
@@ -484,6 +565,26 @@ def main():
                         for w in refresh_warnings:
                             failed += 1
                             failures.append(w)
+                            if VERBOSE: print(f"  ⚠️ {w}")
+                    # 2.8 behavioral: UI text pollution (issue refs in placeholders)
+                    if BEHAVIORAL:
+                        for w in check_ui_text_pollution(page, entry_platforms, case_id, seq):
+                            failed += 1; failures.append(w)
+                            if VERBOSE: print(f"  ⚠️ {w}")
+                    # 2.9 behavioral: root container background per ui.md
+                    if BEHAVIORAL:
+                        for w in check_root_background(page, entry_platforms, case_id, seq):
+                            failed += 1; failures.append(w)
+                            if VERBOSE: print(f"  ⚠️ {w}")
+                    # 2.10 behavioral: empty-panel risk (nested conditional cards)
+                    if BEHAVIORAL:
+                        for w in check_nested_conditional_card(page, entry_platforms, case_id, seq):
+                            failed += 1; failures.append(w)
+                            if VERBOSE: print(f"  ⚠️ {w}")
+                    # 2.11 behavioral: replace:true navigation skips history
+                    if BEHAVIORAL:
+                        for w in check_replace_navigation(page, entry_platforms, case_id, seq):
+                            failed += 1; failures.append(w)
                             if VERBOSE: print(f"  ⚠️ {w}")
                     # 2.5 displays ↔ backend response field cross-check
                     displays = entry.get("displays", [])
