@@ -134,9 +134,8 @@ export default function Payment() {
         )}
       </div>
 
-      {!isRefund && pType !== 'points' && pType !== 'appeal' && data.amount > 0 && (
+      {!isRefund && pType !== 'points' && pType !== 'appeal' && data.amount > 0 && (maxPrepaid > 0 || maxGift > 0) && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
-        {(maxPrepaid > 0 || maxGift > 0) && (<>
           <div className="text-sm font-black text-black mb-3">点数使用</div>
 
           {maxPrepaid > 0 && (
@@ -181,7 +180,6 @@ export default function Payment() {
           <div className="border-t border-zinc-200 pt-2">
             <Row label="现金差额" value={`¥${Number(cashAmount).toFixed(2)}`} bold />
           </div>
-          </>)}
         </div>
       )}
 
