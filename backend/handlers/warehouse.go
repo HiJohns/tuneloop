@@ -329,6 +329,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		Notes        string    `json:"notes"`
 		Photos       []string  `json:"photos"`
 		DamageAmount float64   `json:"damage_amount"` // staff-set compensation (#1544)
+		ShippingFee  float64   `json:"shipping_fee"`  // logistics fee confirmed at inspection, deducted from deposit (#1621)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -379,6 +380,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	if req.Condition == "damaged" && req.DamageAmount > 0 {
 		assessment.EstimatedCost = &req.DamageAmount
 	}
+	assessment.ShippingFee = req.ShippingFee
 	if req.Photos != nil {
 		if b, err := json.Marshal(req.Photos); err == nil {
 			assessment.Photos = string(b)

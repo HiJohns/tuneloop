@@ -341,7 +341,9 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		dailyRent = pricingResult.Tiers[0].DailyRate
 	}
 	deposit := pricingResult.Deposit
-	shippingFee := pricingResult.ShippingFee
+	// Shipping fee is NOT charged at order creation (#1621): it is
+	// confirmed at staff return-inspection (deducted from deposit).
+	shippingFee := 0.0
 
 	// Deposit-free order: require at least 2 guarantors owned by this user,
 	// then zero out the deposit before any amount calculation (#1557).
@@ -925,7 +927,9 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			dailyRent = pricingResult.Tiers[0].DailyRate
 		}
 		deposit := pricingResult.Deposit
-		shippingFee := pricingResult.ShippingFee
+		// Shipping fee is NOT charged at order creation (#1621): it is
+	// confirmed at staff return-inspection (deducted from deposit).
+	shippingFee := 0.0
 
 		// Deposit-free batch order: zero out deposit before amount calculation (#1557)
 		if req.DepositWaived {

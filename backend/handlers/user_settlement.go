@@ -614,9 +614,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	// Deposit deduction: overdue fee (charged once at return, #1493) +
-	// damage deduction. Both come off the deposit; remainder participates
-	// in the refund.
-	totalDepositDeducted := overdueFee + damageDeducted
+	// damage deduction + logistics fee confirmed at inspection (#1621).
+	// All come off the deposit; remainder participates in the refund.
+	assessmentShippingFee := assessment.ShippingFee
+	if assessmentShippingFee < 0 {
+		assessmentShippingFee = 0
+	}
+	totalDepositDeducted := overdueFee + damageDeducted + assessmentShippingFee
 	remainingDeposit := order.Deposit - totalDepositDeducted
 	if remainingDeposit < 0 {
 		remainingDeposit = 0
@@ -691,6 +695,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"deposit":                  order.Deposit,
 		"deposit_deducted_overdue": overdueFee,
 		"deposit_deducted_damage":  damageDeducted,
+		"deposit_deducted_shipping": assessmentShippingFee,
 		"remaining_deposit":        remainingDeposit,
 		"damage_deducted":          damageDeducted,
 		"overdue_fee":              overdueFee,
