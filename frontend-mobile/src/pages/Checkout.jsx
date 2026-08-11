@@ -283,7 +283,8 @@ function SingleCheckout({ id, navigate }) {
       if (resp.code === 20000 || resp.code === 20100) {
         const orderId = resp.data?.order_id
         if (orderId) {
-          navigate(`/payment?type=rent&id=${orderId}`, { replace: true })
+          // Keep /checkout in history so payment back button returns here (#1629)
+          navigate(`/payment?type=rent&id=${orderId}`)
         } else {
           navigate('/success', { replace: true })
         }
@@ -852,7 +853,8 @@ function BatchCheckout({ navigate }) {
             storage.setJSON(getCartKey(), { items: cart.items.filter(item => !ids.has(item.instrument_id || item.id)) })
             storage.removeItem('cart_checkout')
             eventBus.emit('cartUpdated')
-            navigate(`/payment?type=rent&id=${orders[0].order_id}`, { replace: true })
+            // Keep /checkout in history so payment back button returns here (#1629)
+            navigate(`/payment?type=rent&id=${orders[0].order_id}`)
           } else {
             dialog.alert('下单成功，但未生成订单')
           }
