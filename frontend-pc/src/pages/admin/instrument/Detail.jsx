@@ -578,7 +578,7 @@ export default function InstrumentDetail() {
                             />
                             {item.storage_key ? (
                               <Popconfirm title="删除此图片？" onConfirm={() => handleDeleteSingle(item.storage_key)}>
-                                <Button size="small" danger className="absolute top-0 right-0 opacity-0 group-hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
+                                <Button size="small" danger className="absolute top-0 right-0 opacity-70 hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
                               </Popconfirm>
                             ) : (
                               <Popconfirm title="删除此图片？" onConfirm={async () => {
@@ -591,7 +591,7 @@ export default function InstrumentDetail() {
                                   message.error('删除失败: ' + (e.message || ''))
                                 }
                               }}>
-                                <Button size="small" danger className="absolute top-0 right-0 opacity-0 group-hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
+                                <Button size="small" danger className="absolute top-0 right-0 opacity-70 hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
                               </Popconfirm>
                             )}
                           </div>
