@@ -161,28 +161,28 @@ export default function Profile() {
                 <Text className="text-3xl">👤</Text>
               )}
             </View>
-            <View>
-            <Text className="block text-2xl font-black text-black tracking-wide">{displayName}</Text>
-            {user?.membership_level_id && (
-              <Text className="text-xs text-amber-700 mt-0.5">
-                {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
-              </Text>
-            )}
+            <View className="flex-1 min-w-0">
+              {/* 第1行: 姓名 + 电话 水平并排 (#1634) */}
+              <View className="flex items-baseline gap-2 flex-wrap">
+                <Text className="text-2xl font-black text-black tracking-wide">{displayName}</Text>
+                {!isStaff && (
+                  <Text className="text-sm text-zinc-500">{user?.phone || '未绑定手机'}</Text>
+                )}
+              </View>
+              {user?.membership_level_id && (
+                <Text className="text-xs text-amber-700 mt-0.5">
+                  {['', '初级会员', '中级会员', '高级会员'][user.membership_level_id] || `Level ${user.membership_level_id}`}
+                </Text>
+              )}
 
-            {!isStaff && (
-              <>
-                <Text className="block text-sm text-zinc-500 mt-1.5">{user?.phone || '未绑定手机'}</Text>
-              </>
-            )}
-
-            {/* 退出登录 — 与小程序一致，位于昵称下方（#1608） */}
-            <View
-              className="bg-white/80 backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center self-start mt-2 active:opacity-70"
-              onClick={handleLogout}
-            >
-              退出登录
+              {/* 退出登录 — 与小程序一致，位于昵称下方（#1608） */}
+              <View
+                className="bg-white/80 backdrop-blur-sm border border-zinc-100 text-amber-800 text-xs font-bold px-4 h-8 rounded-full shadow-sm flex items-center justify-center self-start mt-2 active:opacity-70"
+                onClick={handleLogout}
+              >
+                退出登录
+              </View>
             </View>
-          </View>
           </View>
         </View>
 
