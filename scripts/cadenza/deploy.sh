@@ -1,9 +1,11 @@
 #!/bin/bash
+set -euo pipefail
+
 # Deploy a release zip (pre-prod or production)
 # Usage: ./deploy.sh <path/to/pkg.zip>
 #   OR set SEAFILE_DEPLOY=<download-url>
-set -euo pipefail
 
+APPS_BASE="${TUNELOOP_APPS_BASE:-/opt/tuneloop/apps}"
 FLOW_BASE="/opt/flow"
 UPLOADS_DIR="/opt/uploads"
 
@@ -34,16 +36,28 @@ PKG_NAME=$(basename "$ZIP_FILE")
 TITLE="${PKG_NAME%.zip}"
 SERVICE=$(echo "$TITLE" | cut -d_ -f1)
 
-# Auto-detect environment: pre-prod vs production
+# Auto-detect environment:
+# - tuneloop-pre_*.zip carries its environment in the package name
+# - beaconiam_*.zip is dual-environment; TUNELOOP_APPS_BASE decides the apps
+#   dir, and the systemd unit MUST follow it: /opt/tuneloop-pre/apps means the
+#   unit is beaconiam-pre (fix: never stop/start the production unit)
 if echo "$SERVICE" | grep -q "pre$"; then
     APPS_BASE="/opt/tuneloop-pre/apps"
-    SERVICE="tuneloop-pre"
-    SYSTEMD_UNIT="tuneloop-pre"
 else
-    APPS_BASE="${TUNELOOP_APPS_BASE:-/opt/tuneloop/apps}"
-    SYSTEMD_UNIT="$SERVICE"
+    APPS_BASE="${TUNELOOP_APPS_BASE:-$APPS_BASE}"
 fi
-
+case "$APPS_BASE" in
+    *"-pre"*)
+        if [[ "$SERVICE" != *-pre ]]; then
+            SYSTEMD_UNIT="${SERVICE}-pre"
+        else
+            SYSTEMD_UNIT="$SERVICE"
+        fi
+        ;;
+    *)
+        SYSTEMD_UNIT="$SERVICE"
+        ;;
+esac
 TARGET_DIR="$APPS_BASE/$SERVICE"
 
 if [ ! -d "$TARGET_DIR" ]; then
@@ -55,6 +69,8 @@ EXTRACT_DIR="$FLOW_BASE/$TITLE"
 
 echo "=========================================="
 echo "Deploying: $SERVICE ($PKG_NAME)"
+echo "  apps dir : $TARGET_DIR"
+echo "  systemd  : $SYSTEMD_UNIT"
 echo "=========================================="
 
 rm -rf "$EXTRACT_DIR"
@@ -102,12 +118,13 @@ echo "Starting $SYSTEMD_UNIT..."
 sudo systemctl start "$SYSTEMD_UNIT"
 sleep 2
 
-# Verify the service binary was updated
+# Verify the service binary was updated (binary name differs per service:
+# tuneloop for tuneloop/tuneloop-pre, beaconiam for beaconiam/beaconiam-pre)
 if [ -L "$TARGET_DIR/service" ]; then
-    BIN_TARGET=$(readlink -f "$TARGET_DIR/service/tuneloop")
-    echo "  Binary: $BIN_TARGET"
-    if [ ! -f "$BIN_TARGET" ]; then
-        echo "ERROR: binary not found at $BIN_TARGET"
+    BIN_TARGET=$(find -L "$TARGET_DIR/service" -maxdepth 1 -type f -perm -u+x ! -name "*.sh" | head -1)
+    echo "  Binary: ${BIN_TARGET:-NOT FOUND}"
+    if [ -z "$BIN_TARGET" ] || [ ! -f "$BIN_TARGET" ]; then
+        echo "ERROR: binary not found under $TARGET_DIR/service"
         exit 1
     fi
 fi
