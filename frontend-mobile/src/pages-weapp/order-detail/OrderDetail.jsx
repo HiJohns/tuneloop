@@ -544,7 +544,9 @@ export default function OrderDetail() {
                         <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginTop: -2 }}>
                           {pb.deposit_method === 'total_price'
                             ? `乐器总价值 ¥${pb.total_price || 0}`
-                            : `日租金 × ${pb.deposit_multiplier || 7}倍`}
+                            : (pb.deposit_multiplier > 0
+                                ? `日租金 × ${pb.deposit_multiplier}倍`
+                                : '')}
                         </Text>
                       )}
                     </View>

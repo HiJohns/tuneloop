@@ -522,7 +522,9 @@ export default function OrderDetail() {
                       <Text className="text-[10px] text-zinc-400 text-right -mt-1">
                         {order.pricing_breakdown.deposit_method === 'total_price'
                           ? `原价 ¥${order.pricing_breakdown.total_price || 0} × ${order.pricing_breakdown.deposit_ratio || 0}`
-                          : `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier || 7}`}
+                          : (order.pricing_breakdown.deposit_multiplier > 0
+                              ? `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier}`
+                              : '')}
                       </Text>
                     )}
                     </>
