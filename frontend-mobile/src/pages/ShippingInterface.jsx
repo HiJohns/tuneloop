@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan } from 'lucide-react'
-import { dialog, env, storage, session, uploadFile, scanQRCode, navigation } from '../platform'
+import { dialog, env, storage, session, uploadFile, scanQRCode, navigation, getInputValue } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
@@ -202,10 +202,9 @@ export default function ShippingInterface() {
               扫描乐器识别码
             </Text>
             <View className="flex gap-2">
-              <input
-                type="text"
+              <Input
                 value={codeInput}
-                onChange={e => setCodeInput(e.target.value)}
+                onInput={e => setCodeInput(getInputValue(e))}
                 placeholder="输入乐器 SN 或扫码"
                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
               />
@@ -300,26 +299,22 @@ export default function ShippingInterface() {
                 物流信息
                 <Text className="text-xs text-zinc-400 font-normal">（必填）</Text>
               </Text>
-              <input
-                type="text"
+              <Input
                 value={logistics.company}
-                onChange={e => setLogistics({ ...logistics, company: e.target.value })}
+                onInput={e => setLogistics({ ...logistics, company: getInputValue(e) })}
                 placeholder="承运公司"
                 className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
               />
-              <input
-                type="text"
+              <Input
                 value={logistics.trackingNumber}
-                onChange={e => setLogistics({ ...logistics, trackingNumber: e.target.value })}
+                onInput={e => setLogistics({ ...logistics, trackingNumber: getInputValue(e) })}
                 placeholder="快递单号"
                 className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
               />
-              <input
+              <Input
                 type="number"
-                min="0"
-                step="0.01"
                 value={logistics.shippingFee}
-                onChange={e => setLogistics({ ...logistics, shippingFee: e.target.value })}
+                onInput={e => setLogistics({ ...logistics, shippingFee: getInputValue(e) })}
                 placeholder="物流费（元）"
                 className="w-full border rounded-lg px-3 py-2 text-sm"
               />
