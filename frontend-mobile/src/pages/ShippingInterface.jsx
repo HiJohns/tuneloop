@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
-import { ArrowLeft, Camera, User, MapPin, Scan } from 'lucide-react'
+import { ArrowLeft, Camera, Scan } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, scanQRCode, navigation } from '../platform'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
@@ -186,12 +186,15 @@ export default function ShippingInterface() {
 
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
-        <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} /></Button>
-        <Text className="text-lg font-black text-black">发货</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-4 flex items-center gap-3">
+          <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+          <Text className="text-lg font-black text-black">发货</Text>
+        </View>
+      )}
 
-      <ScrollView className="p-4 space-y-3">
+      <ScrollView>
+        <View className="p-4 space-y-3">
         {!order && !orderId && (
           <View className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <Text className="font-black text-black flex items-center gap-2">
@@ -250,7 +253,7 @@ export default function ShippingInterface() {
                 )}
                 {order.delivery_address && (
                   <View className="flex items-start gap-2">
-                    <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">发货地址</Text>
+                    <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">收件地址</Text>
                     <Text className="text-sm text-black font-medium">{formatDeliveryAddress(order.delivery_address)}</Text>
                   </View>
                 )}
@@ -290,22 +293,6 @@ export default function ShippingInterface() {
                 </Button>
               </View>
             )}
-            {order.delivery_address && (
-              <View className="bg-white mt-3 rounded-2xl shadow-sm p-4">
-                <Text className="font-black text-black mb-3 flex items-center gap-2">
-                  <User size={16} />
-                  收货人信息
-                </Text>
-                {order.user_name && (
-                  <Text className="text-sm font-black text-black">{order.user_name}</Text>
-                )}
-                <View className="flex items-start gap-2 mt-1 text-sm text-zinc-500">
-                  <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                  <Text>{formatDeliveryAddress(order.delivery_address)}</Text>
-                </View>
-              </View>
-            )}
-
             {/* Logistics Info */}
             <View className="bg-white mt-3 rounded-2xl shadow-sm p-4 space-y-3">
               <Text className="font-black text-black flex items-center gap-2">
@@ -381,6 +368,7 @@ export default function ShippingInterface() {
             </View>
           </>
         )}
+        </View>
       </ScrollView>
 
       {/* Submit Button */}

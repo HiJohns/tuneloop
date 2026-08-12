@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import { ArrowLeft, ChevronRight, Package } from 'lucide-react'
+import { env } from '../platform'
+
+const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
 
 export default function InstrumentInfo({ instrument, onClick }) {
   const [imageIndex, setImageIndex] = useState(0)
 
   const displayMedia = instrument?.media?.display || []
-  const mediaImages = displayMedia.map(m => m.url)
-  const coverImage = instrument?.cover_image || instrument?.thumbnail || instrument?.poster || ''
+  const mediaImages = displayMedia.map(m => fixImg(m.url))
+  const coverImage = fixImg(instrument?.cover_image || instrument?.thumbnail || instrument?.poster || '')
   const legacyImgs = (() => {
     try {
-      return typeof instrument?.images === 'string' ? JSON.parse(instrument.images) : (instrument?.images || [])
+      const arr = typeof instrument?.images === 'string' ? JSON.parse(instrument.images) : (instrument?.images || [])
+      return Array.isArray(arr) ? arr.map(i => fixImg(i)) : []
     } catch { return [] }
   })()
   const allImgs = mediaImages.length > 0 ? mediaImages
