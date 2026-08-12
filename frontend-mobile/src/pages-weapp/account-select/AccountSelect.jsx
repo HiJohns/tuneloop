@@ -39,8 +39,9 @@ export default function AccountSelect() {
         if (result.code === 20000 && result.data) {
           setAccounts(result.data.accounts || [])
           setOpenid(result.data.openid || '')
-          // Keep the code for wx-login-select on account click
-          session.setItem('wx_login_code', code)
+          // Keep the exchange_token for wx-login-select on account click
+          // (WeChat code is single-use, consumed by wx-accounts above)
+          session.setItem('wx_login_token', result.data.exchange_token || '')
         } else {
           Taro.showToast({ title: result.message || '获取账户失败', icon: 'none' })
         }
@@ -55,11 +56,11 @@ export default function AccountSelect() {
   const handleAccountLogin = async (acc) => {
     setLoggingIn(acc.user_id)
     try {
-      const code = session.getItem('wx_login_code') || ''
+      const exchangeToken = session.getItem('wx_login_token') || ''
       const res = await request(`${env.apiBaseUrl}/auth/wx-login-select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, user_id: acc.user_id }),
+        body: JSON.stringify({ exchange_token: exchangeToken, user_id: acc.user_id }),
       })
       const result = await res.json()
       if (result.code === 20000 && result.data?.access_token) {
@@ -68,7 +69,7 @@ export default function AccountSelect() {
           storage.setItem('token_expiry', (new Date().getTime() + result.data.expires_in * 1000).toString())
         }
         if (result.data.refresh_token) storage.setItem('refresh_token', result.data.refresh_token)
-        session.removeItem('wx_login_code')
+        session.removeItem('wx_login_token')
         eventBus.emit('loginSuccess')
         const postAuth = session.getItem('post_auth_redirect')
         if (postAuth) {
@@ -104,7 +105,7 @@ export default function AccountSelect() {
         if (result.data.expires_in) {
           storage.setItem('token_expiry', (new Date().getTime() + result.data.expires_in * 1000).toString())
         }
-        session.removeItem('wx_login_code')
+        session.removeItem('wx_login_token')
         eventBus.emit('loginSuccess')
         const postAuth = session.getItem('post_auth_redirect')
         if (postAuth) {

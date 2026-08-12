@@ -542,7 +542,16 @@ func TestWxLoginSelect_Handler(t *testing.T) {
 	router.POST("/api/auth/wx-login-select", NewAuthHandler(db).WxLoginSelect)
 
 	t.Run("missing user_id is 400", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]interface{}{"code": "test-code"})
+		body, _ := json.Marshal(map[string]interface{}{"exchange_token": "tok-1"})
+		req := httptest.NewRequest("POST", "/api/auth/wx-login-select", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("missing exchange_token is 400", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]interface{}{"user_id": userID})
 		req := httptest.NewRequest("POST", "/api/auth/wx-login-select", strings.NewReader(string(body)))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -551,7 +560,7 @@ func TestWxLoginSelect_Handler(t *testing.T) {
 	})
 
 	t.Run("select login returns token", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]interface{}{"code": "test-code", "user_id": userID})
+		body, _ := json.Marshal(map[string]interface{}{"exchange_token": "tok-1", "user_id": userID})
 		req := httptest.NewRequest("POST", "/api/auth/wx-login-select", strings.NewReader(string(body)))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

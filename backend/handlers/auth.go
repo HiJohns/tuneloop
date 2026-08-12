@@ -746,8 +746,9 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"openid":   result.OpenID,
-			"accounts": accounts,
+			"openid":         result.OpenID,
+			"accounts":       accounts,
+			"exchange_token": result.ExchangeToken,
 		},
 	})
 }
@@ -755,18 +756,18 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 // WxLoginSelect logs in a specific account chosen from the multi-account list.
 func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
 	var req struct {
-		Code   string `json:"code" binding:"required"`
-		UserID string `json:"user_id" binding:"required"`
+		ExchangeToken string `json:"exchange_token" binding:"required"`
+		UserID        string `json:"user_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "missing required parameters: code, user_id",
+			"message": "missing required parameters: exchange_token, user_id",
 		})
 		return
 	}
 
-	tokenResp, err := h.iamService.WxLoginSelect(req.Code, req.UserID)
+	tokenResp, err := h.iamService.WxLoginSelect(req.ExchangeToken, req.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,

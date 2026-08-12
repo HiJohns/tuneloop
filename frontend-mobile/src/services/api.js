@@ -155,7 +155,7 @@ export async function resolveLogin(source = 'profile') {
     const resp = await platformRequest(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
     const result = await resp.json()
     if (result.code !== 20000 || !result.data) return false
-    const { accounts = [] } = result.data
+    const { accounts = [], exchange_token } = result.data
     const customers = accounts.filter(a => a.is_customer)
 
     if (source === 'checkout') {
@@ -164,7 +164,7 @@ export async function resolveLogin(source = 'profile') {
         const loginResp = await platformRequest(`${env.apiBaseUrl}/auth/wx-login-select`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, user_id: customers[0].user_id }),
+          body: JSON.stringify({ exchange_token, user_id: customers[0].user_id }),
         })
         const loginResult = await loginResp.json()
         if (loginResult.code === 20000 && storeLoginToken(loginResult.data)) {
@@ -190,7 +190,7 @@ export async function resolveLogin(source = 'profile') {
       const loginResp = await platformRequest(`${env.apiBaseUrl}/auth/wx-login-select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, user_id: accounts[0].user_id }),
+        body: JSON.stringify({ exchange_token, user_id: accounts[0].user_id }),
       })
       const loginResult = await loginResp.json()
       if (loginResult.code === 20000 && storeLoginToken(loginResult.data)) {

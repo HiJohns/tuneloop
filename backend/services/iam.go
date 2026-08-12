@@ -66,8 +66,9 @@ type WxAccount struct {
 
 // WxAccountsResult is the response from IAM GET /api/v1/auth/wx-accounts.
 type WxAccountsResult struct {
-	OpenID   string      `json:"openid"`
-	Accounts []WxAccount `json:"accounts"`
+	OpenID        string      `json:"openid"`
+	Accounts      []WxAccount `json:"accounts"`
+	ExchangeToken string      `json:"exchange_token"`
 }
 
 type PublicKeyResponse struct {
@@ -437,11 +438,12 @@ func (s *IAMService) WxAccounts(code string) (*WxAccountsResult, error) {
 
 // WxLoginSelect logs in a specific user bound to the openid (multi-account
 // selection flow). Passes user_id to IAM wx-login which validates the binding.
-func (s *IAMService) WxLoginSelect(code, userID string) (*TokenResponse, error) {
+// exchangeToken (from wx-accounts) avoids re-exchanging the single-use code.
+func (s *IAMService) WxLoginSelect(exchangeToken, userID string) (*TokenResponse, error) {
 	payload := map[string]string{
-		"code":      code,
-		"client_id": s.clientID,
-		"user_id":   userID,
+		"exchange_token": exchangeToken,
+		"client_id":      s.clientID,
+		"user_id":        userID,
 	}
 
 	jsonPayload, _ := json.Marshal(payload)
