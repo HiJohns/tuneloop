@@ -283,19 +283,19 @@ steps:
   - seq: 1
     action: 验收定损（员工）
     frontend:
-      - platform: [weapp, h5, pc]
-        page: /staff/receiving
-        role: [staff]
-        gate: "订单状态 = returning"
-        reach: "员工工作台 → 收货验收（订单详情 → 接收按钮跳转）"
-        controls: [扫码输入, 拍照, 条件选择(good/damaged), 定损金额输入, 评论输入, 无物流费, 有物流费, 物流费金额输入]
-        displays: [乐器信息, 租赁信息]
-        ops:
-          - {type: api, method: PUT, path: /warehouse/orders/:id/return-inspect}
-    api: {method: PUT, path: /warehouse/orders/:id/return-inspect, params: [instrument_sn, scan_time, condition, damage_amount, notes, shipping_fee]}
-    # 物流费（#1621）：验收时确认「有/无物流费」+ 金额，从押金扣除（computeSettlement）
-    # 路径 1（good）：验收无损坏 → 立即自动结算退款 → 汇聚 seq 8 收据
-    # 路径 2/3（damaged）：进入 seq 2 定损决策
+       - platform: [weapp, h5, pc]
+         page: /staff/receiving
+         role: [staff]
+         gate: "订单状态 = returning"
+         reach: "员工工作台 → 收货验收（订单详情 → 接收按钮跳转）"
+         controls: [扫码输入, 拍照, 条件选择(good/damaged), 定损金额输入, 评论输入]
+         displays: [乐器信息, 租赁信息]
+         ops:
+           - {type: api, method: PUT, path: /warehouse/orders/:id/return-inspect}
+     api: {method: PUT, path: /warehouse/orders/:id/return-inspect, params: [instrument_sn, scan_time, condition, damage_amount, notes]}
+     # 物流费在设计变更后于发货页填写（L-01 seq3），验收页不再录入（#1621 设计修正）
+     # 路径 1（good）：验收无损坏 → 立即自动结算退款 → 汇聚 seq 8 收据
+     # 路径 2/3（damaged）：进入 seq 2 定损决策
   - seq: 2
     action: 收到定损通知并决策（顾客）
     frontend:

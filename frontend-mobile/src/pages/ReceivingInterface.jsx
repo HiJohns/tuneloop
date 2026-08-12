@@ -20,8 +20,6 @@ export default function ReceivingInterface() {
   const [condition, setCondition] = useState('')
   const [damageDesc, setDamageDesc] = useState('')
   const [damageAmount, setDamageAmount] = useState('')
-  const [hasShippingFee, setHasShippingFee] = useState(false)
-  const [shippingFee, setShippingFee] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [photoSpecs, setPhotoSpecs] = useState([])
   const [orderID, setOrderID] = useState(null)
@@ -130,7 +128,6 @@ export default function ReceivingInterface() {
           condition,
           notes: condition === 'damaged' ? damageDesc : '',
           photos: photoUrls,
-          shipping_fee: hasShippingFee ? parseFloat(shippingFee) || 0 : 0,
         }),
       })
       const result = await resp.json()
@@ -258,27 +255,10 @@ export default function ReceivingInterface() {
               <View>
                 <Text className="text-xs font-bold text-zinc-500 mb-1">定损金额</Text>
                 <input type="number" value={damageAmount} onChange={e => setDamageAmount(e.target.value)} placeholder="请输入金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
-              </View>
-            </View>
-          )}
-
-          {/* Logistics fee (#1621): optional, deducted from deposit at settlement */}
-          <View className="mt-3 pt-3 border-t border-zinc-100">
-            <Text className="text-xs font-bold text-zinc-500 mb-2">物流费</Text>
-            <View className="flex gap-3 mb-3">
-              <Button onClick={() => { setHasShippingFee(false); setShippingFee('') }}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm ${!hasShippingFee ? 'bg-zinc-200 text-zinc-700 border-2 border-zinc-400' : 'bg-zinc-100 text-zinc-500'}`}>无物流费</Button>
-              <Button onClick={() => setHasShippingFee(true)}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm ${hasShippingFee ? 'bg-blue-100 text-blue-700 border-2 border-blue-500' : 'bg-zinc-100 text-zinc-500'}`}>有物流费</Button>
-            </View>
-            {hasShippingFee && (
-              <View>
-                <Text className="text-xs font-bold text-zinc-500 mb-1">物流费金额（将从押金中扣除）</Text>
-                <input type="number" value={shippingFee} onChange={e => setShippingFee(e.target.value)} placeholder="请输入金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
-              </View>
-            )}
-          </View>
-        </View>
+               </View>
+             </View>
+           )}
+         </View>
       )}
       </ScrollView>
 

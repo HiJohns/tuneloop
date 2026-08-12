@@ -8,8 +8,8 @@ steps:
     frontend:
       - platform: [pc]
         page: /system/user-management
-        role: [tenant_admin]
-        gate: "拥有 sys_perm bit[5]（租户管理员）"
+        role: [namespace_admin]
+        gate: "拥有 sys_perm bit[16]（平台管理员）"
         reach: "系统管理 → 用户管理"
         controls: [搜索框, 导出CSV按钮, 列表表格, 详情/编辑按钮]
         displays: [注册名, 微信号, 电话, 当前等级, 当前积分, 注册时间, 最新活动, 状态]
@@ -22,7 +22,7 @@ steps:
     frontend:
       - platform: [pc]
         page: /system/user-management
-        role: [tenant_admin]
+        role: [namespace_admin]
         gate: ""
         reach: "列表 → 详情/编辑 → Modal 弹窗"
         controls: [等级输入, 积分输入, 禁用/可用开关, 保存按钮]
@@ -36,7 +36,7 @@ steps:
     frontend:
       - platform: [pc]
         page: /system/user-management
-        role: [tenant_admin]
+        role: [namespace_admin]
         gate: ""
         reach: "列表 → 导出CSV按钮"
         controls: [导出CSV按钮]
@@ -49,7 +49,7 @@ steps:
     frontend:
       - platform: [pc]
         page: /system/user-management
-        role: [tenant_admin]
+        role: [namespace_admin]
         gate: ""
         reach: "列表 → 详情 → 禁用开关"
         controls: [禁用/可用开关, 保存按钮]
@@ -62,8 +62,8 @@ steps:
 # P-02 平台管理员用户管理
 
 ## 前置条件
-- 平台管理员（租户管理员）已登录 PC 端
-- 拥有 sys_perm bit[5]（系统管理权限）
+- 平台管理员（namespace_admin）已登录 PC 端
+- 拥有 sys_perm bit[16]（系统管理权限）
 
 ## 流程
 1. 系统管理 → 用户管理 → 列表（搜索/分页）
