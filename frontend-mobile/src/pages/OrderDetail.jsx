@@ -281,6 +281,32 @@ export default function OrderDetail() {
 
    const settlement = order.settlement
 
+   // Actual rental figures: settlement is authoritative once created; before
+   // that (returning status with returned_at set) compute from breakdown (#1635).
+   const actualReturnedAt = order.returned_at
+   const actualDays = settlement?.actual_rent_days != null ? settlement.actual_rent_days
+     : ((order.start_date && actualReturnedAt) ? calculateDays(new Date(order.start_date), new Date(actualReturnedAt)) : 0)
+   const actualRent = settlement?.actual_rent_amount != null ? settlement.actual_rent_amount
+     : (() => {
+         if (actualDays < 1) return 0
+         const pbO = order.pricing_breakdown
+         const segs = pbO?.tier_segments || []
+         if (segs.length > 0) {
+           let rent = 0
+           let cursor = 1
+           for (const seg of segs) {
+             if (cursor > actualDays) break
+             const segDays = Math.min(seg.days, actualDays - cursor + 1)
+             if (segDays > 0) rent += segDays * (seg.rate || 0) * (seg.discount ?? 1)
+             cursor += seg.days
+           }
+           return Math.round(rent * 100) / 100
+         }
+         const rate = pbO?.final_daily_rent || pbO?.base_daily_rent || 0
+         return Math.round(rate * actualDays * 100) / 100
+       })()
+   const showActualRent = (settlement && settlement.actual_rent_amount !== undefined) || (!settlement && !!actualReturnedAt)
+
    const isOverdue = (status === 'expired' || status === 'in_lease') && order.end_date && order.end_date.slice(0, 10) <= new Date().toISOString().slice(0, 10)
    const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date.slice(0, 10)), new Date()) : 0
    const overdueFee = isOverdue ? (dailyRate > 0 ? dailyRate * overdueDaysCalc : (rentSubtotal / 30) * overdueDaysCalc).toFixed(2) : 0
@@ -399,19 +425,27 @@ export default function OrderDetail() {
           )}
 
           {/* ② 实际租期与租金 */}
-          {settlement && settlement.actual_rent_amount !== undefined && (
+          {showActualRent && (
             <>
               <Text className="text-xs font-bold text-zinc-400 mt-2">实际租期与租金</Text>
-              {settlement.actual_rent_days !== undefined && (
+              {actualReturnedAt && (
                 <View className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">实际租期</Text>
-                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{settlement.actual_rent_days} 天</Text>
+                  <Text className="text-zinc-500 font-medium">实际结束日期</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{formatDisplayDate(actualReturnedAt)}</Text>
                 </View>
               )}
-              <View className="flex justify-between text-sm">
-                <Text className="text-zinc-500 font-medium">实际租金</Text>
-                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.actual_rent_amount}</Text>
-              </View>
+              {actualDays > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">实际租期</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">{actualDays} 天</Text>
+                </View>
+              )}
+              {actualRent > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">实际租金</Text>
+                  <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(actualRent).toFixed(2)}</Text>
+                </View>
+              )}
               {overdueFee > 0 && (
                 <>
                   <View className="flex justify-between text-sm">
