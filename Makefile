@@ -70,28 +70,28 @@ weapp-build-pre: weapp-check
 	@rm -rf frontend-mobile/dist-weapp
 	@echo "Building WeApp (pre-production apiBaseUrl)..."
 	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api npm run build:weapp
-	@make weapp-archive-pre VERSION=$(or $(VERSION),$(WEAPP_AUTO_VERSION))
+	@make weapp-archive-pre VERSION=$(if $(filter command line,$(origin VERSION)),$(VERSION),$(WEAPP_AUTO_VERSION))
 
 weapp-build-prod: weapp-build
-	@make weapp-archive-prod VERSION=$(or $(VERSION),$(WEAPP_AUTO_VERSION))
+	@make weapp-archive-prod VERSION=$(if $(filter command line,$(origin VERSION)),$(VERSION),$(WEAPP_AUTO_VERSION))
 
 # Archive a build (wxss cleanup applied once at archive time — archive is
 # the ready-to-upload artifact).
 weapp-archive-pre:
-	@mkdir -p $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)
-	@rm -rf $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp
-	@cp -r frontend-mobile/dist-weapp $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp
-	@cd $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp && \
+	@mkdir -p $(WEAPP_RELEASE_DIR)/weapp-pre/$(or $(VERSION),$(WEAPP_AUTO_VERSION))
+	@rm -rf $(WEAPP_RELEASE_DIR)/weapp-pre/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp
+	@cp -r frontend-mobile/dist-weapp $(WEAPP_RELEASE_DIR)/weapp-pre/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp
+	@cd $(WEAPP_RELEASE_DIR)/weapp-pre/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp && \
 	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' app.wxss
-	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp"
+	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-pre/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp"
 
 weapp-archive-prod:
-	@mkdir -p $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)
-	@rm -rf $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp
-	@cp -r frontend-mobile/dist-weapp $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp
-	@cd $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp && \
+	@mkdir -p $(WEAPP_RELEASE_DIR)/weapp-prod/$(or $(VERSION),$(WEAPP_AUTO_VERSION))
+	@rm -rf $(WEAPP_RELEASE_DIR)/weapp-prod/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp
+	@cp -r frontend-mobile/dist-weapp $(WEAPP_RELEASE_DIR)/weapp-prod/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp
+	@cd $(WEAPP_RELEASE_DIR)/weapp-prod/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp && \
 	sed -i 's/\\!//g; s/!important//g; s/\\\//-/g; s/\\//g' app.wxss
-	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp"
+	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-prod/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp"
 
 # Upload ONLY an archived build — never recompile.
 weapp-upload-pre:
