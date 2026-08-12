@@ -28,6 +28,7 @@ const weappPages = [
   'pages-weapp/my-repairs/index',
   'pages-weapp/receive-confirm/index',
   'pages-weapp/return-confirm/index',
+  'pages-weapp/account-select/index',
 ]
 
 const h5Pages = [

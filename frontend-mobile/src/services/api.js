@@ -1,4 +1,4 @@
-import { storage, session, cookie, request as platformRequest, dialog, navigation, env } from '../platform'
+import { storage, session, cookie, request as platformRequest, dialog, navigation, env, wxLogin as wxLoginCode, eventBus } from '../platform'
 
 export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback']
 
@@ -112,9 +112,9 @@ export function redirectToLogin(reason) {
   cookie.remove('token')
 
   if (isWeChatMiniProgram()) {
-    wx.miniProgram.redirectTo({
-      url: '/pages/login/login'
-    })
+    // Multi-account login routing (#1639): reason='checkout' → source='checkout'
+    // (cart submit / instant rent), anything else → source='profile' (我的).
+    resolveLogin(reason === 'checkout' ? 'checkout' : 'profile')
   } else {
     const wxConfig = window.APP_CONFIG?.wx || {}
     const iamUrl = wxConfig.iamExternalUrl || env.iamExternalUrl
@@ -126,6 +126,85 @@ export function redirectToLogin(reason) {
     const redirectUri = encodeURIComponent(navigation.getOrigin() + '/callback')
     const authUrl = `${iamUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`
     navigation.redirect(authUrl)
+  }
+}
+
+// storeLoginToken persists a wx-login-select token and emits loginSuccess.
+function storeLoginToken(data) {
+  if (!data?.access_token) return false
+  storage.setItem('token', data.access_token)
+  if (data.expires_in) {
+    storage.setItem('token_expiry', (new Date().getTime() + data.expires_in * 1000).toString())
+  }
+  if (data.refresh_token) storage.setItem('refresh_token', data.refresh_token)
+  cachePermissions(parseJWT(data.access_token))
+  eventBus.emit('loginSuccess')
+  return true
+}
+
+// resolveLogin implements the WeChat multi-account login routing (#1639).
+// source='profile' (个人中心「我的」): 0 → register, 1 → direct login,
+// N → account-select page. source='checkout' (购物车提交/立即租赁):
+// customer account exists → direct login; otherwise → register prompt modal.
+// Only meaningful inside the WeChat mini-program (weapp).
+export async function resolveLogin(source = 'profile') {
+  if (!env.isMiniProgram) return false
+  try {
+    const code = await wxLoginCode()
+    if (!code) return false
+    const resp = await platformRequest(`${env.apiBaseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
+    const result = await resp.json()
+    if (result.code !== 20000 || !result.data) return false
+    const { accounts = [] } = result.data
+    const customers = accounts.filter(a => a.is_customer)
+
+    if (source === 'checkout') {
+      if (customers.length > 0) {
+        // Direct login as the customer and return to the target page
+        const loginResp = await platformRequest(`${env.apiBaseUrl}/auth/wx-login-select`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, user_id: customers[0].user_id }),
+        })
+        const loginResult = await loginResp.json()
+        if (loginResult.code === 20000 && storeLoginToken(loginResult.data)) {
+          return true
+        }
+        dialog.alert(loginResult.message || '登录失败，请重试')
+        return false
+      }
+      // No customer account → register prompt
+      const wantRegister = await dialog.confirm('您尚未注册会员，要注册吗？')
+      if (wantRegister) {
+        navigation.navigateTo(`/pages-weapp/profile-complete/index?mode=member`)
+      }
+      return false
+    }
+
+    // source='profile'
+    if (accounts.length === 0) {
+      navigation.navigateTo('/pages-weapp/profile-complete/index')
+      return false
+    }
+    if (accounts.length === 1) {
+      const loginResp = await platformRequest(`${env.apiBaseUrl}/auth/wx-login-select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, user_id: accounts[0].user_id }),
+      })
+      const loginResult = await loginResp.json()
+      if (loginResult.code === 20000 && storeLoginToken(loginResult.data)) {
+        return true
+      }
+      dialog.alert(loginResult.message || '登录失败，请重试')
+      return false
+    }
+    navigation.navigateTo('/pages-weapp/account-select/index')
+    return false
+  } catch (err) {
+    console.error('[resolveLogin] failed:', err)
+    dialog.alert('登录失败，请重试')
+    return false
   }
 }
 

@@ -115,7 +115,7 @@ export default function Home() {
     const token = getToken()
     if (!token) {
       session.setItem('post_auth_redirect', '/cart')
-      redirectToLogin()
+      redirectToLogin('checkout')
       return
     }
     navigate('/cart')

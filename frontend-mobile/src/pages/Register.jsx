@@ -14,7 +14,6 @@ export default function Register() {
   const [searchParams] = useSearchParams()
   const baseUrl = env.apiBaseUrl
 
-  const [username, setUsername] = useState('')
   const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
   const [phone, setPhone] = useState('')
@@ -52,7 +51,6 @@ export default function Register() {
   }
 
   const handleRegister = async () => {
-    if (!username.trim()) { alert('请输入用户名'); return }
     if (!name.trim()) { alert('请输入姓名'); return }
     if (!phone.trim()) { alert('请输入手机号'); return }
     if (!/^1[3-9]\d{9}$/.test(phone.trim())) { alert('手机号格式不正确'); return }
@@ -61,9 +59,8 @@ export default function Register() {
     setSaving(true)
     try {
       const body = {
-        username: username.trim(),
         name: name.trim(),
-        nickname: nickname.trim(),
+        nickname: nickname.trim() || name.trim(),
         phone: phone.trim(),
         email: email.trim(),
         password,
@@ -121,19 +118,13 @@ export default function Register() {
         <View className="mb-8"><Text className="text-gray-500 text-center text-sm block">填写信息即可开始租赁</Text></View>
 
         <View className="mb-4">
-          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">用户名 <Text className="text-red-500">*</Text></Text></View>
-          <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
-            placeholder="请输入用户名" value={username} onChange={e => setUsername(e.target.value)} />
-        </View>
-
-        <View className="mb-4">
           <View className="mb-1"><Text className="text-sm font-medium text-gray-700">姓名 <Text className="text-red-500">*</Text></Text></View>
           <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
             placeholder="请输入真实姓名" value={name} onChange={e => setName(e.target.value)} />
         </View>
 
         <View className="mb-4">
-          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">昵称（选填）</Text></View>
+          <View className="mb-1"><Text className="text-sm font-medium text-gray-700">昵称（微信昵称，可编辑）</Text></View>
           <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm"
             placeholder="输入您的昵称" value={nickname} onChange={e => setNickname(e.target.value)} />
         </View>

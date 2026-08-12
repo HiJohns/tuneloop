@@ -6,7 +6,6 @@ import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
 
 export default function ProfileComplete() {
-  const [username, setUsername] = useState('')
   const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
   const [phone, setPhone] = useState('')
@@ -22,6 +21,8 @@ export default function ProfileComplete() {
   const [postalCode, setPostalCode] = useState('')
 
   const [saving, setSaving] = useState(false)
+  // mode=member: 从购物车提交/立即租赁的员工弹窗进入 — 隐藏「用户名密码登录」
+  const [mode, setMode] = useState('')
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -37,6 +38,7 @@ export default function ProfileComplete() {
       const decoded = decodeURIComponent(params.scene)
       if (decoded.startsWith('ref=')) storage.setItem('ref_code', decoded.slice(4))
     }
+    if (params.mode) setMode(params.mode)
   }, [])
 
   const handleChooseAvatar = () => {
@@ -46,12 +48,11 @@ export default function ProfileComplete() {
   }
 
   const handleRegister = async () => {
-    if (!username.trim()) { Taro.showToast({ title: '请输入用户名', icon: 'none' }); return }
     if (!name.trim()) { Taro.showToast({ title: '请输入姓名', icon: 'none' }); return }
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
     setSaving(true)
     try {
-      const body = { username: username.trim(), name: name.trim(), nickname: nickname.trim(), phone: phone.trim(), email: email.trim() }
+      const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim() }
       const wxCode = await wxLogin()
       if (wxCode) { body.wx_code = wxCode }
       const refCode = storage.getItem('ref_code')
@@ -110,6 +111,10 @@ export default function ProfileComplete() {
     setSaving(false)
   }
 
+  const goAccountSelect = () => {
+    Taro.redirectTo({ url: '/pages-weapp/account-select/index' })
+  }
+
   return (
     <View style={{ height: '100vh', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 32 }}>
       <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 8, marginTop: 32 }}>注册账号</Text>
@@ -124,11 +129,13 @@ export default function ProfileComplete() {
         )}
       </View>
 
-      <Input placeholder="用户名" value={username} onInput={e => setUsername(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
+      <View style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+        <Text style={{ color: '#a1a1aa', fontSize: 14 }}>昵称</Text>
+        <Input value={nickname} onInput={e => setNickname(e.detail.value)}
+          placeholder="微信昵称（可编辑）"
+          style={{ flex: 1, height: 44, fontSize: 14, marginLeft: 8 }} />
+      </View>
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
-        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
-      <Input type="nickname" placeholder="微信昵称（选填）" value={nickname} onInput={e => setNickname(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
@@ -183,7 +190,10 @@ export default function ProfileComplete() {
         style={{ width: '100%', height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
         <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '注册中...' : '注册'}</Text>
       </View>
-      <Text style={{ fontSize: 14, color: '#a1a1aa' }} onClick={() => Taro.navigateBack()}>返回</Text>
+      {mode !== 'member' && (
+        <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>用户名密码登录</Text>
+      )}
+      <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block' }} onClick={() => Taro.navigateBack()}>返回</Text>
     </View>
   )
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Video } from '@tarojs/components'
-import { apiFetch, getCartKey, getToken } from '../services/api'
+import { apiFetch, getCartKey, getToken, resolveLogin } from '../services/api'
 import { env, getWindowSize, previewImage, session, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
@@ -420,7 +420,7 @@ export default function Detail() {
                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>{isInCart ? '已加入购物车' : '加入购物车'}</Text>
               </View>
               <View
-                onClick={() => {
+                onClick={async () => {
                   const token = getToken()
                   let role = ''
                   try {
@@ -431,7 +431,8 @@ export default function Detail() {
                   } catch {}
                   if (!token || role === 'GUEST') {
                     session.setItem('post_auth_redirect', `/pages-weapp/detail/index?id=${id}`)
-                    Taro.navigateTo({ url: '/pages-weapp/login/index' })
+                    const ok = await resolveLogin('checkout')
+                    if (ok) nav(`/pages-weapp/checkout/index?id=${id}`)
                     return
                   }
                   nav(`/pages-weapp/checkout/index?id=${id}`)

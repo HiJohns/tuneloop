@@ -69,6 +69,19 @@ export default function Cart() {
 
   const getItemId = (item) => item.instrument_id || item.id
 
+  // #1639 购物车合并去重：按 instrument_id + 租期（rent_qty/days）去重
+  const mergeDedup = (accountItems, guestItems) => {
+    const merged = accountItems.slice()
+    guestItems.forEach(guestItem => {
+      const dup = merged.some(i =>
+        getItemId(i) === getItemId(guestItem) &&
+        (i.rent_qty || i.days || 30) === (guestItem.rent_qty || guestItem.days || 30)
+      )
+      if (!dup) merged.push(guestItem)
+    })
+    return merged
+  }
+
   useEffect(() => {
     const data = storage.getJSON(getCartKey(), { items: [] }) || { items: [] }
     setCartItems(data.items)
@@ -77,19 +90,14 @@ export default function Cart() {
 
     const token = getToken()
     if (!token) return
+    // 登录后自动合并游客购物车（去重），不再弹 confirm（#1639 方案 b）
     const guestData = storage.getJSON('cart', { items: [] })
-    if (guestData.items?.length > 0 && dialog.confirm(`是否将之前加入的 ${guestData.items.length} 件乐器合并到当前购物车？`)) {
-      const merged = data.items.slice()
-      guestData.items.forEach(guestItem => {
-        if (!merged.some(i => getItemId(i) === getItemId(guestItem))) {
-          merged.push(guestItem)
-        }
-      })
+    if (guestData.items?.length > 0) {
+      const merged = mergeDedup(data.items, guestData.items)
       storage.setJSON(getCartKey(), { items: merged })
       storage.setJSON('cart', { items: [] })
       setCartItems(merged)
-    } else if (guestData.items?.length > 0) {
-      storage.setJSON('cart', { items: [] })
+      eventBus.emit('cartUpdated')
     }
   }, [])
 
@@ -218,7 +226,7 @@ export default function Cart() {
     const token = getToken()
     if (!token) {
       session.setItem('post_auth_redirect', '/checkout')
-      redirectToLogin()
+      redirectToLogin('checkout')
       return
     }
     const selItems = cartItems.filter(item => selected.has(getItemId(item)))

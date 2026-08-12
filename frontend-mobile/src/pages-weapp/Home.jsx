@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, getCartKey, redirectToLogin } from '../services/api'
+import { apiFetch, getToken, getCartKey, redirectToLogin, resolveLogin } from '../services/api'
 import { env, dialog, getWindowSize, storage, session } from '../platform'
 import BottomNav from '../components-weapp/BottomNav'
 
@@ -185,11 +185,12 @@ export default function Home() {
     } catch { return 0 }
   })()
 
-  const handleCartClick = () => {
+  const handleCartClick = async () => {
     const token = getToken()
     if (!token) {
       session.setItem('post_auth_redirect', '/pages-weapp/cart/index')
-      Taro.navigateTo({ url: '/pages-weapp/login/index' })
+      const ok = await resolveLogin('checkout')
+      if (ok) Taro.reLaunch({ url: '/pages-weapp/cart/index' })
       return
     }
     nav('/pages-weapp/cart/index')

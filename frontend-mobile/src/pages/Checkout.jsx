@@ -83,7 +83,7 @@ function SingleCheckout({ id, navigate }) {
     const token = getToken()
     if (!token) {
       session.setItem('post_auth_redirect', `/checkout/${id}`)
-      redirectToLogin()
+      redirectToLogin('checkout')
       return
     }
 
@@ -673,7 +673,7 @@ function BatchCheckout({ navigate }) {
     const token = getToken()
     if (!token) {
       session.setItem('post_auth_redirect', '/checkout')
-      redirectToLogin()
+      redirectToLogin('checkout')
       return
     }
     const loadData = async () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, notificationApi } from '../services/api'
+import { apiFetch, getToken, notificationApi, resolveLogin } from '../services/api'
 import { env, storage, eventBus } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
@@ -146,7 +146,8 @@ export default function Profile() {
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
-  const isStaff = claims.role === 'STAFF'
+  // isStaff 统一判定（#1639）：role === 'STAFF' 或 oid/tid 非空（员工有组织绑定）
+  const isStaff = claims.role === 'STAFF' || !!(claims.oid || claims.tid)
   const isGuest = claims.role === 'GUEST' || (!token && user === null)
   const hasGuestToken = claims.role === 'GUEST'
 
@@ -174,6 +175,18 @@ export default function Profile() {
     // reLaunch forces a fresh page stack — switchTab would keep the
     // cached tab state alive (stale login UI on tab return).
     Taro.reLaunch({ url: '/pages-weapp/home/index' })
+  }
+
+  const handleSwitchAccount = () => {
+    Taro.navigateTo({ url: '/pages-weapp/account-select/index' })
+  }
+
+  // 来源 A 分流（#1639）：未登录点击「我的」→ wx.login → wx-accounts → 0/1/N
+  const handleGuestLogin = async () => {
+    const ok = await resolveLogin('profile')
+    if (ok) {
+      Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+    }
   }
 
   const goMyLeasesStatus = (status) => {
@@ -204,7 +217,7 @@ export default function Profile() {
             </View>
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
-              <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={() => nav('/pages-weapp/login/index')}>
+              <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={handleGuestLogin}>
                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : '👉 登录'}</Text>
               </View>
             ) : (
@@ -218,11 +231,21 @@ export default function Profile() {
               {!isStaff && (
                 <Text style={{ fontSize: 14, color: '#71717a', marginTop: 6 }}>{user?.phone || '未绑定手机'}</Text>
               )}
-              <View
-                style={{ marginTop: 8, backgroundColor: 'rgba(255,255,255,0.8)', border: '1px solid #f4f4f5', color: '#92400e', fontSize: 12, fontWeight: '700', padding: '0 16px', height: 32, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}
-                onClick={handleLogout}
-              >
-                退出登录
+              <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                <View
+                  style={{ backgroundColor: 'rgba(255,255,255,0.8)', border: '1px solid #f4f4f5', color: '#92400e', fontSize: 12, fontWeight: '700', padding: '0 16px', height: 32, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}
+                  onClick={handleLogout}
+                >
+                  退出登录
+                </View>
+                {isStaff && (
+                  <View
+                    style={{ marginLeft: 8, backgroundColor: 'rgba(255,255,255,0.8)', border: '1px solid #f4f4f5', color: '#92400e', fontSize: 12, fontWeight: '700', padding: '0 16px', height: 32, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}
+                    onClick={handleSwitchAccount}
+                  >
+                    切换账户
+                  </View>
+                )}
               </View>
               </>
             )}

@@ -19,6 +19,7 @@ backend/handlers.test
 frontend-pc/dist/
 frontend-mobile/dist/
 frontend-mobile/dist-weapp/
+frontend-mobile/dist-h5/
 
 # Prerelease environment
 prerelease/
