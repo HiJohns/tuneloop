@@ -601,6 +601,8 @@ ssh cadenza
 - 构建服务器（SSH 别名 `opencode`）是唯一可执行 `make release` 的环境
 - `/opt/tuneloop/apps/tuneloop/` 内的 `service`/`www`/`mobile`/`database` 为指向版本快照的软链接
 - **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git → 构建打包 → 生产部署流程。
+- **⚠️ 结构变化必须伴随迁移逻辑**（教训：#483 wx_user_bindings 新增表未迁移旧 `users.wx_openid` → 生产所有旧绑定用户微信登录 `wx_user_not_found`）。判断标准：合并前 `git diff` 涉及任何表/字段（含 AutoMigrate 模型、SQL 迁移、结构相关 DDL）时，必须同时提供迁移/回填方案，并在预生产执行 + 幂等重启验证。完整发布检查见 `docs/release-checklist.md`。
+- **beaconiam 结构迁移**：beaconiam 用启动时幂等迁移（`cmd/api/main.go` 的 `runXxxMigration` + `schema_migrations` 标记），不依赖 AutoMigrate 自动建列。读写路径如有旧机制遗留数据（如 `users.wx_openid`），同时提供运行时 fallback 双保险，避免迁移未跑时功能全断。
 
 ### 部署流程 (Deployment Flow)
 
