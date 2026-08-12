@@ -149,8 +149,12 @@ def find_control(page, control, weapp_pages, h5_routes, platforms=None):
                 break
         else:
             # fall back to shared pages/{Comp}.jsx via comp_map
-            key = p.strip("/").split("/")[0]
-            comp = comp_map.get(key)
+            parts = p.strip("/").split("/")
+            # /staff/receiving → key candidates: staff-receiving, staff, receiving
+            key = parts[0]
+            if parts[0] == "staff" and len(parts) > 1:
+                key = "staff-" + parts[1]
+            comp = comp_map.get(key) or comp_map.get(parts[0]) or comp_map.get(parts[-1] if len(parts) > 1 else parts[0])
             if comp:
                 cand = os.path.join(REPO, "frontend-mobile", "src", "pages", comp + ".jsx")
                 if os.path.exists(cand):
