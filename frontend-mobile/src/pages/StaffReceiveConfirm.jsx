@@ -94,6 +94,8 @@ export default function StaffReceiveConfirm() {
         dialog.alert('接收确认成功')
         if (env.isMiniProgram) {
           Taro.navigateBack()
+        } else if (condition === 'good') {
+          navigate(`/return-settlement/${orderId}`)
         } else {
           navigate('/staff/orders')
         }

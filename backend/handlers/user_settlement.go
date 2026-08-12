@@ -285,7 +285,8 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
 		GiftPointsRefunded:  result.GiftPointsRefunded,
 		CashRefundable:      result.CashRefundable,
-		RefundMethod:        "prepaid",
+		PrepaidRefunded:     0, // no prepaid-points deduction logic yet (#1636)
+		RefundMethod:        "wechat_pay",
 		RefundStatus:        "pending",
 		OverdueChargesTotal: result.OverdueChargesTotal,
 		Breakdown:           string(breakdownJSON),
