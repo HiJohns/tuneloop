@@ -6,6 +6,12 @@ import { formatDisplayDate } from '../utils/format'
 
 const baseUrl = env.apiBaseUrl
 
+function clampPoints(raw, max) {
+  const v = parseInt(raw, 10)
+  if (Number.isNaN(v)) return 0
+  return Math.min(Math.max(0, v), Math.floor(max))
+}
+
 export default function Payment() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -144,12 +150,11 @@ export default function Payment() {
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500 w-[72px]">使用</span>
               <div className="flex-1 flex items-center gap-2">
-                <input type="range" min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
+                <input type="number" min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
                   value={prepaidUsed}
-                  onChange={e => setPrepaidUsed(parseInt(e.target.value) || 0)}
-                  className="flex-1"
+                  onChange={e => setPrepaidUsed(clampPoints(e.target.value, Math.min(maxPrepaid, data.amount)))}
+                  className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-right"
                 />
-                <span className="text-xs text-zinc-600 w-12 text-right">{prepaidUsed}</span>
               </div>
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>
@@ -162,12 +167,11 @@ export default function Payment() {
             <div className="flex items-center mt-1">
               <span className="text-xs text-zinc-500 w-[72px]">使用</span>
               <div className="flex-1 flex items-center gap-2">
-                <input type="range" min={0} max={Math.min(maxGift, data.amount)} step={1}
+                <input type="number" min={0} max={Math.min(maxGift, data.amount)} step={1}
                   value={giftUsed}
-                  onChange={e => setGiftUsed(parseInt(e.target.value) || 0)}
-                  className="flex-1"
+                  onChange={e => setGiftUsed(clampPoints(e.target.value, Math.min(maxGift, data.amount)))}
+                  className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-right"
                 />
-                <span className="text-xs text-zinc-600 w-12 text-right">{giftUsed}</span>
               </div>
               <span className="text-xs text-zinc-500 ml-1">点</span>
             </div>

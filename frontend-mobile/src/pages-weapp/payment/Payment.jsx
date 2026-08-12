@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, ScrollView, Input, Slider } from '@tarojs/components'
+import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch } from '../../services/api'
 import { env } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
 
 const baseUrl = env.apiBaseUrl
+
+function clampPoints(raw, max) {
+  const v = parseInt(raw, 10)
+  if (Number.isNaN(v)) return 0
+  return Math.min(Math.max(0, v), Math.floor(max))
+}
 
 export default function Payment() {
   const params = Taro.getCurrentInstance().router?.params || {}
@@ -325,11 +331,10 @@ export default function Payment() {
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
                 <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Slider min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
-                    value={prepaidUsed} style={{ flex: 1, margin: 0, padding: 0 }}
-                    onChange={e => setPrepaidUsed(e.detail.value)}
+                  <Input type="number" value={String(prepaidUsed || '')}
+                    onInput={e => setPrepaidUsed(clampPoints(e.detail.value, Math.min(maxPrepaid, data.amount)))}
+                    style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '6px 10px', fontSize: 13, textAlign: 'right' }}
                   />
-                  <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{prepaidUsed}</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
@@ -342,11 +347,10 @@ export default function Payment() {
               <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
                 <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
                 <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Slider min={0} max={Math.min(maxGift, data.amount)} step={1}
-                    value={giftUsed} style={{ flex: 1, margin: 0, padding: 0 }}
-                    onChange={e => setGiftUsed(e.detail.value)}
+                  <Input type="number" value={String(giftUsed || '')}
+                    onInput={e => setGiftUsed(clampPoints(e.detail.value, Math.min(maxGift, data.amount)))}
+                    style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '6px 10px', fontSize: 13, textAlign: 'right' }}
                   />
-                  <Text style={{ fontSize: 13, color: '#52525b', width: 48, textAlign: 'right' }}>{giftUsed}</Text>
                 </View>
                 <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
               </View>
