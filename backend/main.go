@@ -188,6 +188,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 	api.POST("/auth/login", authHandler.PostLogin)
 	api.POST("/auth/register", authHandler.PostRegister)
 	api.POST("/auth/wx-login", authHandler.WxLogin)
+	api.GET("/auth/wx-accounts", authHandler.WxAccounts)
+	api.POST("/auth/wx-login-select", authHandler.WxLoginSelect)
 	api.POST("/auth/wx-phone-code", authHandler.WxPhoneCode)
 	api.POST("/auth/refresh", authHandler.Refresh)
 	api.POST("/wx/login", authHandler.WxLogin)

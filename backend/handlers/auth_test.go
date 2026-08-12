@@ -165,8 +165,9 @@ func TestWxLogin_Channel3_ExistingLocalUser_IsNewFalse(t *testing.T) {
 }
 
 // newRegisterMockServer serves the IAM endpoints PostRegister needs:
-// client-credentials token, user creation, and wx-login returning an HS256
-// token so ValidateToken accepts it locally.
+// client-credentials token, user creation, wx-accounts (pre-check), wx-bind,
+// and wx-login returning an HS256 token so ValidateToken accepts it locally.
+// accountsResp overrides the wx-accounts response (default: empty accounts).
 func newRegisterMockServer(t *testing.T, newUserID, name string) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
@@ -200,6 +201,20 @@ func newRegisterMockServer(t *testing.T, newUserID, name string) *httptest.Serve
 			"expires_in":    7200,
 			"token_type":    "Bearer",
 			"refresh_token": "",
+		})
+	})
+	mux.HandleFunc("/api/v1/auth/wx-accounts", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"openid":   "openid-register-001",
+			"accounts": []interface{}{},
+		})
+	})
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user_id":   newUserID,
+			"wx_openid": "openid-register-001",
 		})
 	})
 	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +269,7 @@ func TestPostRegister_RefConsumption(t *testing.T) {
 	register := func(wxCode, ref string) *httptest.ResponseRecorder {
 		body, _ := json.Marshal(map[string]interface{}{
 			"name":     "New User",
+			"nickname": "微信昵称",
 			"phone":    "13900139000",
 			"password": "secret123",
 			"wx_code":  wxCode,
@@ -375,6 +391,13 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 			"wx_openid": "openid-nopass-001",
 		})
 	})
+	mux.HandleFunc("/api/v1/auth/wx-accounts", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"openid":   "openid-nopass-001",
+			"accounts": []interface{}{},
+		})
+	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
@@ -383,9 +406,10 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
 
 	body, _ := json.Marshal(map[string]interface{}{
-		"name":    "无密码注册用户",
-		"phone":   "13900221133",
-		"wx_code": "wx-register-code",
+		"name":     "无密码注册用户",
+		"nickname": "无密码昵称",
+		"phone":    "13900221133",
+		"wx_code":  "wx-register-code",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
@@ -419,4 +443,256 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	var pt models.PointsTransaction
 	require.NoError(t, db.Where("user_id = ? AND type = ?", local.ID, "registration").First(&pt).Error)
 	require.Equal(t, 99.0, pt.Amount)
+}
+
+// newWxAccountsMockServer serves GET /api/v1/auth/wx-accounts with the given
+// account list (0/1/N routing tests).
+func newWxAccountsMockServer(t *testing.T, accounts []map[string]interface{}) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/wx-accounts", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"openid":   "openid-accounts-001",
+			"accounts": accounts,
+		})
+	})
+	return httptest.NewServer(mux)
+}
+
+// TestWxAccounts_Handler verifies GET /auth/wx-accounts: code required, and
+// is_customer enrichment (org_id/tenant_id empty → customer).
+func TestWxAccounts_Handler(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	accounts := []map[string]interface{}{
+		{
+			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f1", "name": "顾客小张",
+			"nickname": "小张", "role": "USER", "org_id": "", "tenant_id": "",
+		},
+		{
+			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f2", "name": "员工小李",
+			"nickname": "小李", "role": "STAFF",
+			"org_id": "6d1e2c3a-0000-4000-8000-0000000000f3",
+			"tenant_id": "6d1e2c3a-0000-4000-8000-0000000000f4",
+		},
+	}
+	srv := newWxAccountsMockServer(t, accounts)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.GET("/api/auth/wx-accounts", NewAuthHandler(db).WxAccounts)
+
+	t.Run("missing code is 400", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/auth/wx-accounts", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("accounts returned with is_customer", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/auth/wx-accounts?code=test-code", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				OpenID   string `json:"openid"`
+				Accounts []struct {
+					UserID     string `json:"user_id"`
+					IsCustomer bool   `json:"is_customer"`
+					OrgID      string `json:"org_id"`
+					TenantID   string `json:"tenant_id"`
+				} `json:"accounts"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 20000, resp.Code)
+		require.Equal(t, "openid-accounts-001", resp.Data.OpenID)
+		require.Len(t, resp.Data.Accounts, 2)
+		require.True(t, resp.Data.Accounts[0].IsCustomer, "no org/tenant → customer")
+		require.False(t, resp.Data.Accounts[1].IsCustomer, "has org/tenant → staff")
+	})
+}
+
+// TestWxLoginSelect_Handler verifies POST /auth/wx-login-select: params
+// required, token returned with user_id forwarded.
+func TestWxLoginSelect_Handler(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	userID := "6d1e2c3a-0000-4000-8000-0000000000f5"
+	srv := newWxLoginMockServer(t, userID, "SelectUser")
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/wx-login-select", NewAuthHandler(db).WxLoginSelect)
+
+	t.Run("missing user_id is 400", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]interface{}{"code": "test-code"})
+		req := httptest.NewRequest("POST", "/api/auth/wx-login-select", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("select login returns token", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]interface{}{"code": "test-code", "user_id": userID})
+		req := httptest.NewRequest("POST", "/api/auth/wx-login-select", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				AccessToken string `json:"access_token"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 20000, resp.Code)
+		require.NotEmpty(t, resp.Data.AccessToken)
+	})
+}
+
+// TestPostRegister_CustomerExists_409 verifies the "one customer per openid"
+// pre-check (#1638): when wx-accounts reports an existing customer account,
+// registration is rejected with 409 and NO user is created.
+func TestPostRegister_CustomerExists_409(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	db.Exec("DELETE FROM referrals")
+	db.Exec("DELETE FROM points_transactions")
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	// wx-accounts returns an existing customer → must reject before CreateUser
+	accounts := []map[string]interface{}{
+		{
+			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f6", "name": "已注册顾客",
+			"nickname": "已注册", "role": "USER", "org_id": "", "tenant_id": "",
+		},
+	}
+	srv := newWxAccountsMockServer(t, accounts)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"name":     "新用户",
+		"nickname": "新昵称",
+		"phone":    "13900331122",
+		"wx_code":  "wx-code-customer-exists",
+	})
+	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code)
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40900, resp.Code)
+	require.Contains(t, resp.Message, "该微信已注册会员")
+}
+
+// TestPostRegister_WxBindFailure_Aborts verifies the #1637 red-line fix:
+// a WxBind failure must abort registration with the error surfaced (409),
+// never log-and-continue with a successful registration.
+func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	db.Exec("DELETE FROM referrals")
+	db.Exec("DELETE FROM points_transactions")
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000f7"
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-client-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"user_id": newUserID,
+					"status":  "active",
+				},
+			})
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+	mux.HandleFunc("/api/v1/auth/wx-accounts", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"openid":   "openid-bindfail-001",
+			"accounts": []interface{}{},
+		})
+	})
+	// wx-bind fails (409 already bound) — registration MUST abort
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(map[string]string{"error": "openid already bound"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"name":     "绑定失败用户",
+		"nickname": "绑定失败",
+		"phone":    "13900442255",
+		"wx_code":  "wx-code-bind-fail",
+	})
+	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusConflict, w.Code)
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40900, resp.Code)
+	require.Contains(t, resp.Message, "微信绑定失败")
 }

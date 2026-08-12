@@ -3,6 +3,66 @@
 > 来源: cases.md §2 迁移 | 用例编号: L-01 ~ L-04 | YAML 前置块供 AI 静态检查
 
 ---
+
+id: L-00
+domain: lease
+flow: 登录分流（购物车提交/立即租赁触发）
+steps:
+  - seq: 1
+    action: 未登录触发登录分流（来源 B）
+    frontend:
+      - platform: [weapp]
+        page: /checkout
+        role: [guest]
+        gate: "未登录且点击提交订单/立即租赁"
+        reach: "Checkout 提交 / Detail 立即租赁 → wx.login → GET /auth/wx-accounts"
+        controls: [提交订单按钮, 立即租赁按钮]
+        displays: []
+        ops:
+          - {type: api, method: GET, path: /auth/wx-accounts, params: [code]}
+    api: {method: GET, path: /auth/wx-accounts, params: [code]}
+  - seq: 2
+    action: 有顾客账户直接登录回目标页
+    frontend:
+      - platform: [weapp]
+        page: /checkout
+        role: [guest]
+        gate: "accounts 含 is_customer=true"
+        reach: "wx-accounts → 有顾客 → wx-login-select 登录 → 回目标页"
+        controls: []
+        displays: []
+        ops:
+          - {type: api, method: POST, path: /auth/wx-login-select, params: [code, user_id]}
+          - {type: navigate, target: /checkout, gate: "登录成功后回原页面"}
+    api: {method: POST, path: /auth/wx-login-select, params: [code, user_id]}
+  - seq: 3
+    action: 无顾客账户弹注册提示
+    frontend:
+      - platform: [weapp]
+        page: /checkout
+        role: [guest]
+        gate: "无顾客账户（0 账户或只有员工）"
+        reach: "wx-accounts → 无顾客 → 弹「您尚未注册会员，要注册吗？」"
+        controls: [注册提示弹窗, 确认按钮, 取消按钮]
+        displays: []
+        ops:
+          - {type: navigate, target: "/profile-complete?mode=member", gate: "弹窗选「是」"}
+          - {type: navigate, target: /checkout, gate: "弹窗选「否」→ 停留原页"}
+    api: {}
+  - seq: 4
+    action: 购物车合并去重（登录后）
+    frontend:
+      - platform: [weapp]
+        page: /cart
+        role: [customer]
+        gate: "登录完成"
+        reach: "游客 cart 与 cart_${userId} 合并去重（instrument_id + 租期）→ 清空游客 cart"
+        controls: []
+        displays: []
+        ops: []
+    api: {}
+---
+
 id: L-01
 domain: lease
 flow: 正常租赁

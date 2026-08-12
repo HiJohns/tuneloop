@@ -23,7 +23,7 @@ steps:
         role: [guest]
         gate: ""
         reach: "/register 页面直接访问"
-        controls: [用户名输入, 姓名输入, 手机号输入, 邮箱输入, 密码输入, 头像上传, 昵称输入, 收货地址省市区选择, 身份证正反面上传]
+        controls: [姓名输入, 手机号输入, 邮箱输入, 密码输入, 头像上传, 昵称输入, 收货地址省市区选择, 身份证正反面上传]
         displays: []
         ops: []
     api: {}
@@ -39,7 +39,7 @@ steps:
         displays: [提交中状态]
         ops:
           - {type: api, method: POST, path: /auth/register}
-    api: {method: POST, path: /auth/register, params: [username, name, nickname, phone, email, password, ref]}
+    api: {method: POST, path: /auth/register, params: [nickname, name, phone, email, password, ref]}
   - seq: 4
     action: 注册成功后跳转会员费支付
     frontend:
@@ -88,8 +88,8 @@ steps:
 
 ## 流程
 1. IAM 登录页底部显示「没有账号？注册」链接 → 跳转 `/register`
-2. 用户填写注册信息（用户名、姓名、手机号必填）→ 提交 `POST /api/auth/register`
-3. 后端：IAM 建户 → 微信绑定（H5 无 wx_code，此步跳过）→ 密码登录获取 JWT → 本地 users 表同步 → 注册赠点（99pt）+ 推荐奖励（如有 ref）
+2. 用户填写注册信息（姓名、手机号必填；昵称 = 微信昵称可编辑，#1638 去用户名）→ 提交 `POST /api/auth/register`
+3. 后端：IAM 建户（用户名由 phone 派生，无 username 输入路径）→ 微信绑定（H5 无 wx_code，此步跳过）→ 密码登录获取 JWT → 本地 users 表同步 → 注册赠点（99pt）+ 推荐奖励（如有 ref）
 4. 前端存储 token → 重定向到会员费支付页（`/payment?type=membership`）
 5. 会员费支付完成后 → 会员等级激活（`applySideEffects`）→ 进入首页
 
@@ -99,6 +99,7 @@ steps:
 |------|---------|------------------------------|
 | 后端 API | `POST /api/auth/register`（同） | `POST /api/auth/register`（同） |
 | 身份来源 | 用户名+密码 | 微信 openid（wx_code） |
+| 用户名 | 无输入框（phone 派生） | 无输入框（phone 派生，#1639 改造） |
 | 注册赠点 | 99pt（同） | 99pt（同） |
 | 推荐系统 | ✅（ref 参数） | ✅（ref 参数 + scene） |
 | 头像上传 | ✅（自定义文件选择器） | ✅（微信原生选择器） |

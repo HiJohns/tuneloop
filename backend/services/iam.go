@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -51,6 +52,22 @@ type TokenResponse struct {
 	ExpiresIn    int    `json:"expires_in"`
 	TokenType    string `json:"token_type"`
 	WxOpenid     string `json:"wx_openid"`
+}
+
+// WxAccount is one account bound to a WeChat openid (beaconiam multi-binding).
+type WxAccount struct {
+	UserID   string `json:"user_id"`
+	Name     string `json:"name"`
+	Nickname string `json:"nickname"`
+	Role     string `json:"role"`
+	OrgID    string `json:"org_id"`
+	TenantID string `json:"tenant_id"`
+}
+
+// WxAccountsResult is the response from IAM GET /api/v1/auth/wx-accounts.
+type WxAccountsResult struct {
+	OpenID   string      `json:"openid"`
+	Accounts []WxAccount `json:"accounts"`
 }
 
 type PublicKeyResponse struct {
@@ -393,6 +410,64 @@ func (s *IAMService) WxLogin(code string) (*TokenResponse, error) {
 	return &tokenResp, nil
 }
 
+// WxAccounts exchanges a WeChat login code for the openid and returns every
+// account bound to it (0/1/N). Used for login routing and the register-time
+// "one customer per openid" check.
+func (s *IAMService) WxAccounts(code string) (*WxAccountsResult, error) {
+	reqURL := fmt.Sprintf("%s/api/v1/auth/wx-accounts?code=%s&client_id=%s",
+		s.baseURL, url.QueryEscape(code), url.QueryEscape(s.clientID))
+	resp, err := s.httpClient.Get(reqURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-accounts endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[IAM DEBUG] WxAccounts non-200 status=%d body=%s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("IAM wx-accounts returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var result WxAccountsResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-accounts response: %w", err)
+	}
+	return &result, nil
+}
+
+// WxLoginSelect logs in a specific user bound to the openid (multi-account
+// selection flow). Passes user_id to IAM wx-login which validates the binding.
+func (s *IAMService) WxLoginSelect(code, userID string) (*TokenResponse, error) {
+	payload := map[string]string{
+		"code":      code,
+		"client_id": s.clientID,
+		"user_id":   userID,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := s.httpClient.Post(
+		fmt.Sprintf("%s/api/v1/auth/wx-login", s.baseURL),
+		"application/json",
+		bytes.NewBuffer(jsonPayload),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call IAM wx-login endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[IAM DEBUG] WxLoginSelect non-200 status=%d body=%s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("IAM wx-login returned status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResp TokenResponse
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse wx-login response: %w", err)
+	}
+	return &tokenResp, nil
+}
+
 // WxBindResult is the response from IAM POST /api/v1/auth/wx-bind.
 type WxBindResult struct {
 	UserID   string `json:"user_id"`
@@ -487,10 +562,13 @@ func GetSMTPHost() string {
 	return ""
 }
 
-func (s *IAMService) WxPhone(encryptedData, iv string) (map[string]interface{}, error) {
+func (s *IAMService) WxPhone(encryptedData, iv, userID string) (map[string]interface{}, error) {
 	payload := map[string]string{
 		"encrypted_data": encryptedData,
 		"iv":             iv,
+	}
+	if userID != "" {
+		payload["user_id"] = userID
 	}
 
 	jsonPayload, _ := json.Marshal(payload)

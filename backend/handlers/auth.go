@@ -273,8 +273,7 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 func (h *AuthHandler) PostRegister(c *gin.Context) {
 	var req struct {
-		Username string `json:"username"`
-		Nickname string `json:"nickname"`
+		Nickname string `json:"nickname" binding:"required"`
 		Name     string `json:"name" binding:"required"`
 		Phone    string `json:"phone" binding:"required"`
 		Email    string `json:"email"`
@@ -291,9 +290,39 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		return
 	}
 
-	userName := req.Username
+	// Username is derived from phone (#1638: registration no longer accepts
+	// a username input; the legacy fallback is removed).
+	userName := req.Phone
 	if userName == "" {
-		userName = req.Phone
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "phone is required",
+		})
+		return
+	}
+
+	// "One customer per openid" pre-check (#1638): when wx_code is present,
+	// resolve the openid's bound accounts BEFORE creating the user — if a
+	// customer account (no org/tenant) already exists, reject with 409 so
+	// the user is routed to login instead of creating a duplicate member.
+	if req.WxCode != "" {
+		accounts, accErr := h.iamService.WxAccounts(req.WxCode)
+		if accErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "wx-accounts pre-check failed: " + accErr.Error(),
+			})
+			return
+		}
+		for _, a := range accounts.Accounts {
+			if a.OrgID == "" && a.TenantID == "" {
+				c.JSON(http.StatusConflict, gin.H{
+					"code":    40900,
+					"message": "该微信已注册会员，请直接登录",
+				})
+				return
+			}
+		}
 	}
 
 	// WeChat registration (#1571): no password required — identity comes from
@@ -330,13 +359,20 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	// If wx_code provided, bind the WeChat identity to the newly created
 	// IAM user (beaconiam #480: wx-login no longer auto-creates accounts,
 	// so registration must bind the openid explicitly via wx-bind).
+	// #1637 red-line fix: a WxBind failure MUST abort with the error surfaced
+	// to the frontend — never log-and-continue (silent error swallowing).
 	var boundOpenid string
 	if req.WxCode != "" {
-		if bindResult, bindErr := h.iamService.WxBind(req.WxCode, createResp.UserID); bindErr != nil {
+		bindResult, bindErr := h.iamService.WxBind(req.WxCode, createResp.UserID)
+		if bindErr != nil {
 			log.Printf("[Register] WxBind failed for user %s: %v", createResp.UserID, bindErr)
-		} else {
-			boundOpenid = bindResult.WxOpenid
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "微信绑定失败: " + bindErr.Error(),
+			})
+			return
 		}
+		boundOpenid = bindResult.WxOpenid
 	}
 
 	// Login to get JWT via password grant
@@ -470,7 +506,11 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 
 	// Channel 1 (weapp one-click): has encryptedData + iv → decrypt phone → find/create USER
 	if req.EncryptedData != "" && req.IV != "" {
-		phoneResp, err := h.iamService.WxPhone(req.EncryptedData, req.IV)
+		// user_id is unknown at this point (login not yet resolved); pass empty
+		// so IAM resolves the session_key via the openid path (single-binding
+		// compatible). Multi-account flows go through wx-accounts + select
+		// (frontend #1639) instead.
+		phoneResp, err := h.iamService.WxPhone(req.EncryptedData, req.IV, "")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
@@ -669,10 +709,83 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 	})
 }
 
+// WxAccounts returns all accounts bound to the WeChat openid (login routing 0/1/N).
+func (h *AuthHandler) WxAccounts(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "missing required parameter: code",
+		})
+		return
+	}
+
+	result, err := h.iamService.WxAccounts(code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "wx-accounts failed: " + err.Error(),
+		})
+		return
+	}
+
+	// is_customer: no org/tenant binding (tuneloop-side judgment, not from IAM)
+	accounts := make([]map[string]interface{}, 0, len(result.Accounts))
+	for _, a := range result.Accounts {
+		accounts = append(accounts, map[string]interface{}{
+			"user_id":     a.UserID,
+			"name":        a.Name,
+			"nickname":    a.Nickname,
+			"role":        a.Role,
+			"org_id":      a.OrgID,
+			"tenant_id":   a.TenantID,
+			"is_customer": a.OrgID == "" && a.TenantID == "",
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"openid":   result.OpenID,
+			"accounts": accounts,
+		},
+	})
+}
+
+// WxLoginSelect logs in a specific account chosen from the multi-account list.
+func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
+	var req struct {
+		Code   string `json:"code" binding:"required"`
+		UserID string `json:"user_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "missing required parameters: code, user_id",
+		})
+		return
+	}
+
+	tokenResp, err := h.iamService.WxLoginSelect(req.Code, req.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "wx-login-select failed: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": tokenResp,
+	})
+}
+
 func (h *AuthHandler) WxPhone(c *gin.Context) {
 	var req struct {
 		EncryptedData string `json:"encrypted_data" binding:"required"`
 		IV            string `json:"iv" binding:"required"`
+		UserID        string `json:"user_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -683,7 +796,7 @@ func (h *AuthHandler) WxPhone(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.iamService.WxPhone(req.EncryptedData, req.IV)
+	resp, err := h.iamService.WxPhone(req.EncryptedData, req.IV, req.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
