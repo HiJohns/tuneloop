@@ -231,10 +231,12 @@ export default function OrderDetail() {
   if (loading) {
     return (
       <View className="min-h-screen pb-20" style={{backgroundColor: '#FDFBF7'}}>
-        <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-          <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-          <Text className="text-lg font-bold">订单详情</Text>
-        </View>
+        {!env.isMiniProgram && (
+          <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+            <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+            <Text className="text-lg font-bold">订单详情</Text>
+          </View>
+        )}
         <View className="text-center text-zinc-500 py-12 font-black">加载中...</View>
       </View>
     )
@@ -243,10 +245,12 @@ export default function OrderDetail() {
   if (!order) {
     return (
       <View className="min-h-screen pb-20" style={{backgroundColor: '#FDFBF7'}}>
-        <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-          <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
-          <Text className="text-lg font-bold">订单详情</Text>
-        </View>
+        {!env.isMiniProgram && (
+          <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+            <Button onClick={() => navigate(-1)}><ArrowLeft size={20} /></Button>
+            <Text className="text-lg font-bold">订单详情</Text>
+          </View>
+        )}
         <View className="text-center text-gray-400 py-12">
           <Package size={48} className="mx-auto mb-3 opacity-50" />
           <Text>订单未找到</Text>
@@ -329,10 +333,12 @@ export default function OrderDetail() {
 
   return (
     <View className="h-screen flex flex-col" style={{backgroundColor: '#FDFBF7'}}>
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-        <Text className="text-lg font-black text-black">订单详情</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+          <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+          <Text className="text-lg font-black text-black">订单详情</Text>
+        </View>
+      )}
 
       <ScrollView className="flex-1 overflow-y-auto">
       {/* Order ID + Status */}

@@ -145,10 +145,12 @@ export default function ReceivingInterface() {
 
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-24">
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-        <Text className="text-lg font-black text-black">收货确认</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+          <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+          <Text className="text-lg font-black text-black">收货确认</Text>
+        </View>
+      )}
 
       <ScrollView className="flex-1">
       {/* Scan/Input panel — only show when no order_id preloaded */}

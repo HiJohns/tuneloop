@@ -102,10 +102,12 @@ export default function ReceiveConfirm() {
 
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-24">
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-        <Text className="text-lg font-black text-black">确认收货</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+          <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+          <Text className="text-lg font-black text-black">确认收货</Text>
+        </View>
+      )}
 
       <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
 

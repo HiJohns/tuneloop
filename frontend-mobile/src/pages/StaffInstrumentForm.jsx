@@ -200,12 +200,14 @@ export default function StaffInstrumentForm() {
 
   return (
     <View className="min-h-screen bg-gray-50 pb-24">
-      <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
-        <Button onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}>
-          <ArrowLeft size={20} />
-        </Button>
-        <Text className="text-lg font-bold">新建乐器</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
+          <Button onClick={() => navigate(-1)}>
+            <ArrowLeft size={20} />
+          </Button>
+          <Text className="text-lg font-bold">新建乐器</Text>
+        </View>
+      )}
 
       <View className="p-4 space-y-4">
         <View className="bg-white rounded-xl p-4 space-y-4">

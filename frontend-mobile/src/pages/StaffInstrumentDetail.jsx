@@ -224,10 +224,12 @@ export default function StaffInstrumentDetail() {
 
   return (
     <View className="min-h-screen pb-24" style={{backgroundColor: '#FDFBF7'}}>
-      <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
-        <View onClick={() => env.isMiniProgram ? Taro.navigateBack() : navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-        <Text className="text-lg font-black text-black">乐器详情</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
+          <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+          <Text className="text-lg font-black text-black">乐器详情</Text>
+        </View>
+      )}
 
       <View className="p-4 space-y-4">
         {/* Image */}

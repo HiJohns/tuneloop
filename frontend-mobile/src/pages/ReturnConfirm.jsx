@@ -96,10 +96,12 @@ export default function ReturnConfirm() {
 
   return (
     <View className="min-h-screen pb-24" style={{ backgroundColor: '#FDFBF7' }}>
-      <View className="px-4 pt-4 pb-3 flex items-center gap-2" style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)' }}>
-        <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
-        <Text className="text-lg font-black text-black">归还乐器</Text>
-      </View>
+      {!env.isMiniProgram && (
+        <View className="px-4 pt-4 pb-3 flex items-center gap-2" style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)' }}>
+          <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
+          <Text className="text-lg font-black text-black">归还乐器</Text>
+        </View>
+      )}
 
       <ScrollView>
       <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
