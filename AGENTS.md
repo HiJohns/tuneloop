@@ -555,6 +555,12 @@ pending_ship → shipping → inspecting → quoted → pending_payment → pend
 - 即使 SSH 可达，也**必须先与用户确认**，由用户决定是否执行。
 - 此规则同时适用于开发环境的数据库，修改前也需确认。
 
+**严禁**：API 调用链中**静默吞错**（silent error swallowing）。
+- 任何 handler 调用外部 API（IAM / 微信支付 / 微信登录）返回 error 时，**必须将错误信息返回给前端**——不得仅 `log.Printf` 后继续执行，返回 HTTP 200。
+- 包括但不限于：注册时微信绑定失败（WxBind 409）、IAM 创建用户失败、支付回调验签失败等。
+- 违反判定：`if err != nil { log.Printf(...); /* 无 return */ }` 且后续代码路径可达 HTTP 200 → **红线违规**。
+- 反例：#1637 注册时 WxBind 返回 409 被静默吞掉，用户注册成功但微信未绑定，换端登录收到 `wx_user_not_found`。
+
 ---
 
 ## 🖥️ 生产服务器访问 (Production Server Access)
@@ -752,6 +758,7 @@ tail -100 backend/backend.log
 2. **禁止**打日志后继续执行本地 DB 写操作（反例：UpdateCurrentUser 调 IAM 失败后仍写本地缓存 → 脏数据）
 3. HTTP 状态码透传（409/400/500），附原始错误信息供前端展示
 4. 调外部写入 API 前，应先在本地做预检（如 phone/email 唯一性）→ 减少无效跨仓调用
+5. **静默吞错是红线违禁**（见上方 🚫 红线禁令）：`if err != nil { log.Printf(...); /* 无 return */ }` 且后续 HTTP 200 可达 → 禁止
 
 ### Environment Parity（环境差异显式化）
 
