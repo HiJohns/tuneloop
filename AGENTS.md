@@ -593,9 +593,8 @@ ssh cadenza
 
 ### 发布策略
 
-- 部署流程为半手动流水线：`git push → build server (opencode) 手动 make release → scp/Seafile → cadenza ./deploy.sh`
-- **非中国工作时间**：scp 直传 cadenza 通常正常可用
-- **中国工作时间**（工作日 9:00-18:00 CST）：scp 直连几乎必然超时，需走 Seafile 迂回备线：本地 `push_seafile.sh` → cadenza `download.sh`
+- 部署流程为半手动流水线：`git push → build server (opencode) 手动 make release → Seafile → cadenza download.sh`
+- **上传统一走 Seafile 迂回**（tuneloop 与 beaconiam 均如此，不再区分工作时间/非工作时间）：本地 `make release` 内已自动完成 `cp ~/test.zip → upload_to_seafile.sh → ssh cadenza "~/download.sh <pkg>.zip"`，无需手动 scp
 - 生产服的版本快照按时间戳命名（如 `tuneloop_20260703-061912_720fb6c0`）
 - 本地 Windows 开发机不参与部署链路（无 SSH 通道、无 Linux 构建环境）
 - 构建服务器（SSH 别名 `opencode`）是唯一可执行 `make release` 的环境
@@ -603,6 +602,13 @@ ssh cadenza
 - **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git → 构建打包 → 生产部署流程。
 - **⚠️ 结构变化必须伴随迁移逻辑**（教训：#483 wx_user_bindings 新增表未迁移旧 `users.wx_openid` → 生产所有旧绑定用户微信登录 `wx_user_not_found`）。判断标准：合并前 `git diff` 涉及任何表/字段（含 AutoMigrate 模型、SQL 迁移、结构相关 DDL）时，必须同时提供迁移/回填方案，并在预生产执行 + 幂等重启验证。完整发布检查见 `docs/release-checklist.md`。
 - **beaconiam 结构迁移**：beaconiam 用启动时幂等迁移（`cmd/api/main.go` 的 `runXxxMigration` + `schema_migrations` 标记），不依赖 AutoMigrate 自动建列。读写路径如有旧机制遗留数据（如 `users.wx_openid`），同时提供运行时 fallback 双保险，避免迁移未跑时功能全断。
+
+### beaconiam 部署方式（2026-08-14 起与 tuneloop 统一）
+
+- beaconiam `make release` 与 tuneloop 一致：构建 `beaconiam_YYYYMMDD-HHMMSS_COMMITID.zip` → `cp ~/test.zip` → `upload_to_seafile.sh ~/test.zip /debug/uem-core/5.2/test` → `ssh cadenza "~/download.sh beaconiam_<ts>.zip"`
+- `cadenza:~/download.sh` 用**固定 Seafile 分享链接**下载并执行 `sudo TUNELOOP_APPS_BASE=/opt/tuneloop-pre/apps ./deploy.sh <pkg>`——`deploy.sh` 按 zip 内目录名自动识别 beaconiam（预生产），**不再需要手动 `cd /opt/flow && TUNELOOP_APPS_BASE=... ./deploy.sh`**
+- **生产部署**（预生产验证后）：`ssh cadenza 'cd /opt/flow && ./deploy.sh beaconiam_<ts>.zip'`（不带 TUNELOOP_APPS_BASE → 生产 `/opt/tuneloop/apps/beaconiam`）
+- 注意：tuneloop 与 beaconiam 共用同一个固定 Seafile 链接（`test.zip`），两个 `make release` 需顺序执行（上传→立即 download.sh），不可并行
 
 ### 部署流程 (Deployment Flow)
 
@@ -957,7 +963,7 @@ done
 1. 在 beaconiam 仓库创建/定位 Issue（如 `gh issue create --repo HiJohns/beaconiam --label "status:todo"`）
 2. 在 beaconiam 仓库直接实施修复（改代码 + 补测试 + commit + push）
 3. 在 tuneloop 侧同步调整调用方式（如有）
-4. 完成 beaconiam 新版部署到预生产（build + deploy）
+4. 完成 beaconiam 新版部署到预生产（`make release` 自动 Seafile 上传 + `download.sh` 部署，见上「beaconiam 部署方式」）
 5. 在 Issue 中记录修复内容 + 部署版本，关闭 Issue
 6. 关联的 tuneloop Issue 同步更新状态
 
