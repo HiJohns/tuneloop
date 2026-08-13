@@ -1251,7 +1251,7 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 
 	// Resolve the user's iam_sub (JWT sub IS the iam_sub in this system).
 	iamService := services.NewIAMService()
-	result, err := iamService.WxBind(req.Code, userID)
+	result, err := iamService.WxBind("", req.Code, userID)
 	if err != nil {
 		log.Printf("[WxBindCurrentUser] bind failed for user %s: %v", userID, err)
 		c.JSON(http.StatusConflict, gin.H{
