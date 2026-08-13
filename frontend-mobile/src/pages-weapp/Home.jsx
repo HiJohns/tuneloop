@@ -464,7 +464,13 @@ export default function Home() {
         tabs={[
           { key: 'home', icon: '🏪', label: '首页', onClick: () => switchTab('/pages-weapp/home/index') },
           { key: 'rent', icon: '🪕', label: '租赁', onClick: () => switchTab('/pages-weapp/my-leases/index') },
-          { key: 'service', icon: '🛠️', label: '维修', onClick: () => dialog.toast('功能开发中') },
+          { key: 'service', icon: '🛠️', label: '维修', onClick: () => {
+            if (Taro.getCurrentPages().length >= 9) {
+              Taro.reLaunch({ url: '/pages-weapp/my-repairs/index' })
+            } else {
+              Taro.navigateTo({ url: '/pages-weapp/my-repairs/index' })
+            }
+          } },
           { key: 'profile', icon: '👤', label: '我的', onClick: () => switchTab('/pages-weapp/profile/index') },
         ]}
       />

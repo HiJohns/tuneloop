@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
 import { apiFetch, getToken } from '../services/api'
 import { env } from '../platform'
 import BottomNav from '../components/BottomNav'
+import BottomNavWeapp from '../components-weapp/BottomNav'
 
 const statusLabels = {
   pending_assessment: '待评估', transit_processing: '中转处理中',
@@ -307,6 +309,17 @@ export default function MyRepairs() {
         )}
       </ScrollView>
 
+      {env.isMiniProgram ? (
+        <BottomNavWeapp
+          active="service"
+          tabs={[
+            { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
+            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: '/pages-weapp/my-repairs/index' }) },
+            { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
+          ]}
+        />
+      ) : (
       <BottomNav
         active="service"
         tabs={[
@@ -316,6 +329,7 @@ export default function MyRepairs() {
           { key: 'profile', icon: '👤', label: '我的', onClick: () => navigate('/profile') },
         ]}
       />
+      )}
     </View>
   )
 }

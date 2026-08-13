@@ -8,6 +8,7 @@ import { formatDisplayDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { Package, Search, Scan } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
+import BottomNavWeapp from '../components-weapp/BottomNav'
 
 const MAIN_TABS = [
   { key: 'active', label: '进行中' },
@@ -270,7 +271,17 @@ export default function StaffOrders() {
       </View>
       </ScrollView>
 
-      {!env.isMiniProgram && (
+      {env.isMiniProgram ? (
+        <BottomNavWeapp
+          active="rent"
+          tabs={[
+            { key: 'home', icon: '🏪', label: '首页', onClick: () => Taro.switchTab({ url: '/pages-weapp/home/index' }) },
+            { key: 'rent', icon: '🪕', label: '租赁', onClick: () => Taro.switchTab({ url: '/pages-weapp/my-leases/index' }) },
+            { key: 'service', icon: '🛠️', label: '维修', onClick: () => Taro.redirectTo({ url: '/pages-weapp/my-repairs/index' }) },
+            { key: 'profile', icon: '👤', label: '我的', onClick: () => Taro.switchTab({ url: '/pages-weapp/profile/index' }) },
+          ]}
+        />
+      ) : (
         <BottomNav
           active="rent"
           tabs={[
