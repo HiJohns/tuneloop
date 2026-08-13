@@ -503,14 +503,16 @@ type WxBindResult struct {
 	WxOpenid string `json:"wx_openid"`
 }
 
-// WxBind exchanges a WeChat login code and binds the openid to the given
-// IAM user. Used during the registration flow: the user is created first,
-// then the WeChat identity is bound (beaconiam #480).
-func (s *IAMService) WxBind(code, userID string) (*WxBindResult, error) {
+// WxBind exchanges a WeChat login code (or consumes a single-use
+// exchange_token minted by wx-accounts, #1640) and binds the openid to the
+// given IAM user. Used during the registration flow: the user is created
+// first, then the WeChat identity is bound (beaconiam #480).
+func (s *IAMService) WxBind(exchangeToken, code, userID string) (*WxBindResult, error) {
 	payload := map[string]string{
-		"code":      code,
-		"client_id": s.clientID,
-		"user_id":   userID,
+		"client_id":      s.clientID,
+		"user_id":        userID,
+		"exchange_token": exchangeToken,
+		"code":           code,
 	}
 
 	jsonPayload, _ := json.Marshal(payload)
@@ -528,7 +530,7 @@ func (s *IAMService) WxBind(code, userID string) (*WxBindResult, error) {
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[IAM DEBUG] WxBind non-200 status=%d body=%s", resp.StatusCode, string(body))
-		return nil, fmt.Errorf("IAM wx-bind returned status: %d, body: %s", resp.StatusCode, string(body))
+		return nil, newIAMAPIError(resp.StatusCode, body)
 	}
 
 	var result WxBindResult

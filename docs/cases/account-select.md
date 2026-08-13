@@ -86,9 +86,9 @@ steps:
         controls: [昵称输入, 姓名输入, 手机号输入, 注册按钮, 用户名密码登录链接]
         displays: []
         ops:
-          - {type: api, method: POST, path: /auth/register, params: [nickname, name, phone, wx_code]}
+          - {type: api, method: POST, path: /auth/register, params: [nickname, name, phone, exchange_token]}
           - {type: navigate, target: /account-select, gate: "点击「用户名密码登录」且非 mode=member"}
-    api: {method: POST, path: /auth/register, params: [nickname, name, phone, wx_code]}
+    api: {method: POST, path: /auth/register, params: [nickname, name, phone, exchange_token]}
   - seq: 7
     action: 会员中心切换账户
     frontend:

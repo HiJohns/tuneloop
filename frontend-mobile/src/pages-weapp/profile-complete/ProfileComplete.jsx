@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
-import { storage, env, request, eventBus, wxLogin } from '../../platform'
+import { storage, session, env, request, eventBus, wxLogin } from '../../platform'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
 
@@ -53,8 +53,16 @@ export default function ProfileComplete() {
     setSaving(true)
     try {
       const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim() }
-      const wxCode = await wxLogin()
-      if (wxCode) { body.wx_code = wxCode }
+      // Registration binds via the exchange_token minted by wx-accounts
+      // (#1644) — the raw code is single-use and already consumed. Fall back
+      // to a fresh wx.login code when no token is available (H5/expired).
+      const exchangeToken = session.getItem('wx_login_token') || ''
+      if (exchangeToken) {
+        body.exchange_token = exchangeToken
+      } else {
+        const wxCode = await wxLogin()
+        if (wxCode) { body.wx_code = wxCode }
+      }
       const refCode = storage.getItem('ref_code')
       if (refCode) { body.ref = refCode }
       const res = await request(`${env.apiBaseUrl}/auth/register`, {

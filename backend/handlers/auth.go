@@ -274,13 +274,14 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 func (h *AuthHandler) PostRegister(c *gin.Context) {
 	var req struct {
-		Nickname string `json:"nickname" binding:"required"`
-		Name     string `json:"name" binding:"required"`
-		Phone    string `json:"phone" binding:"required"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		WxCode   string `json:"wx_code"`
-		Ref      string `json:"ref"`
+		Nickname       string `json:"nickname" binding:"required"`
+		Name           string `json:"name" binding:"required"`
+		Phone          string `json:"phone" binding:"required"`
+		Email          string `json:"email"`
+		Password       string `json:"password"`
+		WxCode         string `json:"wx_code"`
+		ExchangeToken  string `json:"exchange_token"`
+		Ref            string `json:"ref"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -300,30 +301,6 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 			"message": "phone is required",
 		})
 		return
-	}
-
-	// "One customer per openid" pre-check (#1638): when wx_code is present,
-	// resolve the openid's bound accounts BEFORE creating the user — if a
-	// customer account (no org/tenant) already exists, reject with 409 so
-	// the user is routed to login instead of creating a duplicate member.
-	if req.WxCode != "" {
-		accounts, accErr := h.iamService.WxAccounts(req.WxCode)
-		if accErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "wx-accounts pre-check failed: " + accErr.Error(),
-			})
-			return
-		}
-		for _, a := range accounts.Accounts {
-			if a.OrgID == "" && a.TenantID == "" {
-				c.JSON(http.StatusConflict, gin.H{
-					"code":    40900,
-					"message": "该微信已注册会员，请直接登录",
-				})
-				return
-			}
-		}
 	}
 
 	// WeChat registration (#1571): no password required — identity comes from
@@ -350,26 +327,42 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 	}
 	createResp, createErr := iamClient.CreateUser(createReq)
 	if createErr != nil {
+		// Map duplicate-key failures to a friendly 409 (never raw IAM text).
+		if strings.Contains(createErr.Error(), "already exists") || strings.Contains(createErr.Error(), "conflict") {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "该手机号或邮箱已注册，请直接登录",
+			})
+			return
+		}
+		log.Printf("[Register] CreateUser failed: %v", createErr)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "IAM register failed: " + createErr.Error(),
+			"message": "注册失败，请稍后重试",
 		})
 		return
 	}
 
-	// If wx_code provided, bind the WeChat identity to the newly created
-	// IAM user (beaconiam #480: wx-login no longer auto-creates accounts,
-	// so registration must bind the openid explicitly via wx-bind).
+	// Bind the WeChat identity to the newly created IAM user. Prefer the
+	// single-use exchange_token minted by wx-accounts (#1640/#1644): the raw
+	// WeChat code is single-use and a pre-check via wx-accounts would consume
+	// it (40163). wx_code is the fallback (H5 / expired token paths).
 	// #1637 red-line fix: a WxBind failure MUST abort with the error surfaced
 	// to the frontend — never log-and-continue (silent error swallowing).
 	var boundOpenid string
-	if req.WxCode != "" {
-		bindResult, bindErr := h.iamService.WxBind(req.WxCode, createResp.UserID)
+	if req.ExchangeToken != "" || req.WxCode != "" {
+		bindResult, bindErr := h.iamService.WxBind(req.ExchangeToken, req.WxCode, createResp.UserID)
 		if bindErr != nil {
 			log.Printf("[Register] WxBind failed for user %s: %v", createResp.UserID, bindErr)
+			// Roll back the freshly created user so re-registration with the
+			// same phone does not hit "already exists" (#1644).
+			purgeErr := iamClient.PurgeUser(createResp.UserID)
+			if purgeErr != nil {
+				log.Printf("[Register] purge rollback failed for user %s: %v", createResp.UserID, purgeErr)
+			}
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40900,
-				"message": "微信绑定失败: " + bindErr.Error(),
+				"message": "微信绑定失败，请重试",
 			})
 			return
 		}

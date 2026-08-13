@@ -745,10 +745,10 @@ func TestWxLoginSelect_FriendlyErrors(t *testing.T) {
 	})
 }
 
-// TestPostRegister_CustomerExists_409 verifies the "one customer per openid"
-// pre-check (#1638): when wx-accounts reports an existing customer account,
-// registration is rejected with 409 and NO user is created.
-func TestPostRegister_CustomerExists_409(t *testing.T) {
+// TestPostRegister_PhoneExists_409 verifies duplicate phone registration is
+// rejected with a friendly 409 (#1644): CreateUser conflict → "该手机号或邮箱
+// 已注册" instead of raw IAM error passthrough.
+func TestPostRegister_PhoneExists_409(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
@@ -759,14 +759,27 @@ func TestPostRegister_CustomerExists_409(t *testing.T) {
 	t.Setenv("IAM_SECRET", testIAMSecret)
 	t.Setenv("IAM_NAMESPACE", "test-ns")
 
-	// wx-accounts returns an existing customer → must reject before CreateUser
-	accounts := []map[string]interface{}{
-		{
-			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f6", "name": "已注册顾客",
-			"nickname": "已注册", "role": "USER", "org_id": "", "tenant_id": "",
-		},
-	}
-	srv := newWxAccountsMockServer(t, accounts)
+	// CreateUser endpoint returns 409 conflict → registration must reject
+	// with the friendly duplicate message and NOT create a user.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-client-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"error":"phone already exists"}`))
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	services.SetIAMInternalURLForTesting(srv.URL)
 
@@ -777,7 +790,7 @@ func TestPostRegister_CustomerExists_409(t *testing.T) {
 		"name":     "新用户",
 		"nickname": "新昵称",
 		"phone":    "13900331122",
-		"wx_code":  "wx-code-customer-exists",
+		"wx_code":  "wx-code-dup",
 	})
 	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
@@ -791,7 +804,8 @@ func TestPostRegister_CustomerExists_409(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 40900, resp.Code)
-	require.Contains(t, resp.Message, "该微信已注册会员")
+	require.Contains(t, resp.Message, "该手机号或邮箱已注册")
+	require.NotContains(t, resp.Message, "IAM register failed")
 }
 
 // TestPostRegister_WxBindFailure_Aborts verifies the #1637 red-line fix:
@@ -838,11 +852,18 @@ func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
 			"accounts": []interface{}{},
 		})
 	})
-	// wx-bind fails (409 already bound) — registration MUST abort
+	// wx-bind fails (409 already bound) — registration MUST abort (409),
+	// and the freshly created user must be purged (#1644 rollback).
 	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 		json.NewEncoder(w).Encode(map[string]string{"error": "openid already bound"})
+	})
+	purged := false
+	mux.HandleFunc("/api/v1/users/"+newUserID+"/purge", func(w http.ResponseWriter, r *http.Request) {
+		purged = true
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "purged"})
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
@@ -870,6 +891,77 @@ func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 40900, resp.Code)
 	require.Contains(t, resp.Message, "微信绑定失败")
+	require.True(t, purged, "WxBind failure must purge the freshly created user")
+}
+
+// TestPostRegister_ExchangeToken_Flow verifies the #1644 register path: an
+// exchange_token (minted by wx-accounts) is forwarded to IAM wx-bind instead
+// of the raw WeChat code — no code re-consumption (40163).
+func TestPostRegister_ExchangeToken_Flow(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	db.Exec("DELETE FROM referrals")
+	db.Exec("DELETE FROM points_transactions")
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000ff"
+	var bindBody map[string]string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-client-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"user_id": newUserID,
+					"status":  "active",
+				},
+			})
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&bindBody)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user_id":   newUserID,
+			"wx_openid": "openid-exchangetoken-001",
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"name":           "exchange_token 注册用户",
+		"nickname":       "token 昵称",
+		"phone":          "13900556677",
+		"exchange_token": "exch-tok-abc123",
+	})
+	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	require.NotNil(t, bindBody, "wx-bind must be called")
+	require.Equal(t, "exch-tok-abc123", bindBody["exchange_token"])
+	require.Equal(t, "", bindBody["code"], "raw code must NOT be sent when exchange_token is used")
 }
 
 // TestPostRegister_NicknameRequired verifies the #1638 contract: nickname is

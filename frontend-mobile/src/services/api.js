@@ -183,6 +183,10 @@ export async function resolveLogin(source = 'profile') {
 
     // source='profile'
     if (accounts.length === 0) {
+      // Keep the exchange_token for the registration flow (#1644): the
+      // WeChat code is single-use and consumed by wx-accounts above, so
+      // wx-bind during register must use the exchange_token instead.
+      session.setItem('wx_login_token', exchange_token || '')
       navigation.navigateTo('/pages-weapp/profile-complete/index')
       return false
     }

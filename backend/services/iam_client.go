@@ -814,6 +814,20 @@ func (c *IAMClient) CreateUser(req *CreateUserRequest) (*CreateUserResponse, err
 	return &result.Data, nil
 }
 
+// PurgeUser physically deletes an IAM user (and wx bindings / org relations).
+// Used for registration-flow rollback when wx-bind fails after CreateUser —
+// soft deactivation does not release username/email/phone uniqueness (#1644).
+func (c *IAMClient) PurgeUser(userID string) error {
+	respBody, statusCode, err := c.doRequest("DELETE", "/api/v1/users/"+userID+"/purge", nil)
+	if err != nil {
+		return fmt.Errorf("PurgeUser request failed: %w", err)
+	}
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("PurgeUser returned status %d: %s", statusCode, string(respBody))
+	}
+	return nil
+}
+
 func (c *IAMClient) CreateUserWithToken(token string, req *CreateUserRequest) (*CreateUserResponse, error) {
 	respBody, statusCode, err := c.doRequestWithToken("POST", "/api/v1/users", token, req)
 	if err != nil {
