@@ -518,6 +518,68 @@ func TestWxAccounts_Handler(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
+	t.Run("zero accounts returns empty list", func(t *testing.T) {
+		emptySrv := newWxAccountsMockServer(t, []map[string]interface{}{})
+		defer emptySrv.Close()
+		services.SetIAMInternalURLForTesting(emptySrv.URL)
+
+		// Rebuild handler so IAMService picks up the new mock URL
+		router2 := gin.New()
+		router2.GET("/api/auth/wx-accounts", NewAuthHandler(db).WxAccounts)
+
+		req := httptest.NewRequest("GET", "/api/auth/wx-accounts?code=test-code-zero", nil)
+		w := httptest.NewRecorder()
+		router2.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				OpenID   string                   `json:"openid"`
+				Accounts []map[string]interface{} `json:"accounts"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 20000, resp.Code)
+		require.Equal(t, "openid-accounts-001", resp.Data.OpenID)
+		require.Empty(t, resp.Data.Accounts, "zero accounts → empty list")
+	})
+
+	t.Run("single account returns one entry", func(t *testing.T) {
+		oneSrv := newWxAccountsMockServer(t, []map[string]interface{}{
+			{
+				"user_id": "6d1e2c3a-0000-4000-8000-0000000000f1", "name": "顾客小张",
+				"nickname": "小张", "role": "USER", "org_id": "", "tenant_id": "",
+			},
+		})
+		defer oneSrv.Close()
+		services.SetIAMInternalURLForTesting(oneSrv.URL)
+
+		// Rebuild handler so IAMService picks up the new mock URL
+		router3 := gin.New()
+		router3.GET("/api/auth/wx-accounts", NewAuthHandler(db).WxAccounts)
+
+		req := httptest.NewRequest("GET", "/api/auth/wx-accounts?code=test-code-one", nil)
+		w := httptest.NewRecorder()
+		router3.ServeHTTP(w, req)
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				OpenID   string `json:"openid"`
+				Accounts []struct {
+					UserID     string `json:"user_id"`
+					IsCustomer bool   `json:"is_customer"`
+				} `json:"accounts"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 20000, resp.Code)
+		require.Len(t, resp.Data.Accounts, 1)
+		require.True(t, resp.Data.Accounts[0].IsCustomer, "single customer account")
+	})
+
 	t.Run("accounts returned with is_customer", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/auth/wx-accounts?code=test-code", nil)
 		w := httptest.NewRecorder()
@@ -741,4 +803,134 @@ func TestPostRegister_WxBindFailure_Aborts(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 40900, resp.Code)
 	require.Contains(t, resp.Message, "微信绑定失败")
+}
+
+// TestPostRegister_NicknameRequired verifies the #1638 contract: nickname is
+// a required field (binding:"required") — a register request without it
+// must be rejected with 400 before any IAM call.
+func TestPostRegister_NicknameRequired(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"name":  "无昵称用户",
+		"phone": "13900556677",
+	})
+	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40002, resp.Code)
+	require.Contains(t, resp.Message, "Nickname")
+}
+
+// TestPostRegister_UsernameDerivedFromPhone verifies the #1638 data-integrity
+// contract: the legacy username input path is removed — a request that sends
+// a username field must have it ignored, and the IAM CreateUser payload must
+// carry username = phone.
+func TestPostRegister_UsernameDerivedFromPhone(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+	require.NoError(t, db.AutoMigrate(&models.Referral{}, &models.PointsTransaction{}, &models.SystemSetting{}))
+	db.Exec("DELETE FROM referrals")
+	db.Exec("DELETE FROM points_transactions")
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000f8"
+	var createdUsername string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var req map[string]string
+		json.Unmarshal(body, &req)
+		if req["grant_type"] == "password" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token":  signHS256Token(t, newUserID, "DerivedUser"),
+				"expires_in":    7200,
+				"token_type":    "Bearer",
+				"refresh_token": "",
+			})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"access_token": "mock-client-token",
+			"expires_in":   3600,
+			"token_type":   "Bearer",
+		})
+	})
+	mux.HandleFunc("/api/v1/users", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			body, _ := io.ReadAll(r.Body)
+			var req struct {
+				Username string `json:"username"`
+			}
+			json.Unmarshal(body, &req)
+			createdUsername = req.Username
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"user_id": newUserID,
+					"status":  "active",
+				},
+			})
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
+	mux.HandleFunc("/api/v1/auth/wx-accounts", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"openid":   "openid-derived-001",
+			"accounts": []interface{}{},
+		})
+	})
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user_id":   newUserID,
+			"wx_openid": "openid-derived-001",
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/auth/register", NewAuthHandler(db).PostRegister)
+
+	// Send a legacy username field that must be IGNORED (#1638)
+	body, _ := json.Marshal(map[string]interface{}{
+		"username": "legacy_username_ignored",
+		"name":     "派生用户",
+		"nickname": "派生昵称",
+		"phone":    "13900668899",
+		"wx_code":  "wx-code-derived",
+	})
+	req := httptest.NewRequest("POST", "/api/auth/register", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "13900668899", createdUsername,
+		"IAM CreateUser username must be derived from phone, not the ignored username field")
 }
