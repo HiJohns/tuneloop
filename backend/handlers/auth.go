@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -722,9 +723,10 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 
 	result, err := h.iamService.WxAccounts(code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status, msg := wxAuthErrorMessage(err)
+		c.JSON(status, gin.H{
 			"code":    50000,
-			"message": "wx-accounts failed: " + err.Error(),
+			"message": msg,
 		})
 		return
 	}
@@ -767,6 +769,27 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 	})
 }
 
+// wxAuthErrorMessage maps an IAM wx-auth API error to a user-friendly message.
+// The raw error is always logged for diagnostics; the frontend only sees the
+// mapped message (never internal IAM details).
+func wxAuthErrorMessage(err error) (int, string) {
+	var iamErr *services.IAMAPIError
+	if errors.As(err, &iamErr) {
+		switch iamErr.ErrorCode {
+		case "account not active":
+			return http.StatusForbidden, "账户已停用，请联系管理员"
+		case "wx_user_not_found":
+			return http.StatusNotFound, "该微信号尚未注册，请先注册"
+		case "invalid wechat code":
+			return http.StatusBadRequest, "微信登录凭证失效，请重试"
+		}
+		log.Printf("[wxAuth] IAM error mapped to generic: %v", err)
+		return http.StatusInternalServerError, "微信登录失败，请稍后重试"
+	}
+	log.Printf("[wxAuth] non-IAM error: %v", err)
+	return http.StatusInternalServerError, "微信登录失败，请稍后重试"
+}
+
 // WxLoginSelect logs in a specific account chosen from the multi-account list.
 func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
 	var req struct {
@@ -783,9 +806,10 @@ func (h *AuthHandler) WxLoginSelect(c *gin.Context) {
 
 	tokenResp, err := h.iamService.WxLoginSelect(req.ExchangeToken, req.UserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status, msg := wxAuthErrorMessage(err)
+		c.JSON(status, gin.H{
 			"code":    50000,
-			"message": "wx-login-select failed: " + err.Error(),
+			"message": msg,
 		})
 		return
 	}

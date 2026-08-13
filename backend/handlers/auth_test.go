@@ -42,9 +42,21 @@ func signHS256Token(t *testing.T, userID, name string) string {
 
 func newWxLoginMockServer(t *testing.T, userID, name string) *httptest.Server {
 	t.Helper()
+	return newWxLoginMockServerWithStatus(t, userID, name, http.StatusOK, "")
+}
+
+// newWxLoginMockServerWithStatus serves a configurable wx-login response:
+// status=200 → success token; otherwise → JSON error body with errBody.
+func newWxLoginMockServerWithStatus(t *testing.T, userID, name string, status int, errBody string) *httptest.Server {
+	t.Helper()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/auth/wx-login", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if status != http.StatusOK {
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(errBody))
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"access_token":  signHS256Token(t, userID, name),
 			"expires_in":    7200,
@@ -677,6 +689,59 @@ func TestWxLoginSelect_Handler(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		require.Equal(t, 20000, resp.Code)
 		require.NotEmpty(t, resp.Data.AccessToken)
+	})
+}
+
+// TestWxLoginSelect_FriendlyErrors verifies IAM failures are mapped to
+// user-friendly messages, never raw IAM error passthrough (#1643).
+func TestWxLoginSelect_FriendlyErrors(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	db := database.GetDB()
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	selectRouter := func(srv *httptest.Server) *gin.Engine {
+		services.SetIAMInternalURLForTesting(srv.URL)
+		router := gin.New()
+		router.POST("/api/auth/wx-login-select", NewAuthHandler(db).WxLoginSelect)
+		return router
+	}
+	postSelect := func(router *gin.Engine) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]interface{}{"exchange_token": "tok-1", "user_id": "6d1e2c3a-0000-4000-8000-0000000000f5"})
+		req := httptest.NewRequest("POST", "/api/auth/wx-login-select", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("403 account not active → 账户已停用", func(t *testing.T) {
+		srv := newWxLoginMockServerWithStatus(t, "u1", "n1", http.StatusForbidden, `{"error":"account not active"}`)
+		defer srv.Close()
+		w := postSelect(selectRouter(srv))
+		require.Equal(t, http.StatusForbidden, w.Code)
+		require.Contains(t, w.Body.String(), "账户已停用")
+		require.NotContains(t, w.Body.String(), "IAM wx-login returned")
+	})
+
+	t.Run("404 wx_user_not_found → 注册引导", func(t *testing.T) {
+		srv := newWxLoginMockServerWithStatus(t, "u1", "n1", http.StatusNotFound, `{"error":"wx_user_not_found"}`)
+		defer srv.Close()
+		w := postSelect(selectRouter(srv))
+		require.Equal(t, http.StatusNotFound, w.Code)
+		require.Contains(t, w.Body.String(), "该微信号尚未注册")
+		require.NotContains(t, w.Body.String(), "wx-login-select failed")
+	})
+
+	t.Run("other error → generic 500", func(t *testing.T) {
+		srv := newWxLoginMockServerWithStatus(t, "u1", "n1", http.StatusBadGateway, `{"error":"upstream down"}`)
+		defer srv.Close()
+		w := postSelect(selectRouter(srv))
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		require.Contains(t, w.Body.String(), "微信登录失败")
+		require.NotContains(t, w.Body.String(), "upstream down")
 	})
 }
 

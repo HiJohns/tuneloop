@@ -23,6 +23,33 @@ func init() {
 	godotenv.Load()
 }
 
+// IAMAPIError is a structured error returned when an IAM API call fails with
+// a non-200 status. ErrorCode is the "error" field parsed from the IAM JSON
+// error body, allowing handlers to map it to user-friendly messages.
+type IAMAPIError struct {
+	StatusCode int
+	ErrorCode  string
+	Body       string
+}
+
+func (e *IAMAPIError) Error() string {
+	return fmt.Sprintf("IAM returned status: %d, body: %s", e.StatusCode, e.Body)
+}
+
+// newIAMAPIError builds an IAMAPIError from a non-200 response body, parsing
+// the "error" field if the body is JSON.
+func newIAMAPIError(statusCode int, body []byte) *IAMAPIError {
+	var parsed struct {
+		Error string `json:"error"`
+	}
+	_ = json.Unmarshal(body, &parsed)
+	return &IAMAPIError{
+		StatusCode: statusCode,
+		ErrorCode:  parsed.Error,
+		Body:       string(body),
+	}
+}
+
 var (
 	iamInternalURL              = os.Getenv("BEACONIAM_INTERNAL_URL")
 	iamExternalURL              = os.Getenv("BEACONIAM_EXTERNAL_URL")
@@ -426,7 +453,7 @@ func (s *IAMService) WxAccounts(code string) (*WxAccountsResult, error) {
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[IAM DEBUG] WxAccounts non-200 status=%d body=%s", resp.StatusCode, string(body))
-		return nil, fmt.Errorf("IAM wx-accounts returned status: %d, body: %s", resp.StatusCode, string(body))
+		return nil, newIAMAPIError(resp.StatusCode, body)
 	}
 
 	var result WxAccountsResult
@@ -460,7 +487,7 @@ func (s *IAMService) WxLoginSelect(exchangeToken, userID string) (*TokenResponse
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[IAM DEBUG] WxLoginSelect non-200 status=%d body=%s", resp.StatusCode, string(body))
-		return nil, fmt.Errorf("IAM wx-login returned status: %d, body: %s", resp.StatusCode, string(body))
+		return nil, newIAMAPIError(resp.StatusCode, body)
 	}
 
 	var tokenResp TokenResponse
