@@ -109,9 +109,15 @@ func UpdatePointsPolicy(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	updates := map[string]interface{}{}
-	if req.MaxPayRatio != nil { updates["max_pay_ratio"] = *req.MaxPayRatio }
-	if req.ValidDays != nil { updates["valid_days"] = *req.ValidDays }
-	if req.IsActive != nil { updates["is_active"] = *req.IsActive }
+	if req.MaxPayRatio != nil {
+		updates["max_pay_ratio"] = *req.MaxPayRatio
+	}
+	if req.ValidDays != nil {
+		updates["valid_days"] = *req.ValidDays
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
 	if err := db.Model(&models.PointsPolicy{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return

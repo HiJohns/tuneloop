@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
-	"gorm.io/gorm"
 )
 
 func setupPropertyResolutionTest(t *testing.T) (*gorm.DB, string) {
@@ -200,14 +200,14 @@ func TestBuildPropertyResolutions_CategoryScoped_Independent(t *testing.T) {
 		{
 			Row: 2, SN: "SN001", Valid: true,
 			Fields: map[string]interface{}{
-				"prop_品牌":      "雅马哈",
+				"prop_品牌":     "雅马哈",
 				"category_id": catPianoID,
 			},
 		},
 		{
 			Row: 3, SN: "SN002", Valid: true,
 			Fields: map[string]interface{}{
-				"prop_品牌":      "雅马哈",
+				"prop_品牌":     "雅马哈",
 				"category_id": catViolinID,
 			},
 		},

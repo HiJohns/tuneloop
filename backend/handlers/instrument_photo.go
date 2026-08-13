@@ -109,7 +109,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 	batchID := uuid.New().String()
 	timestamp := time.Now().Format("20060102_150405")
 	batchDir := fmt.Sprintf("batch_%s", timestamp)
-	
+
 	// Create directory structure: uploads/photos/{tenant_id}/{instrument_sn}/{batch_dir}/
 	tenantID := instrument.TenantID
 	if tenantID == "" {
@@ -122,7 +122,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 
 	photoBaseDir := filepath.Join(".", "uploads", "photos", tenantID, instrumentSN)
 	batchPath := filepath.Join(photoBaseDir, batchDir)
-	
+
 	if err := os.MkdirAll(batchPath, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50001,
@@ -138,9 +138,9 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		Timestamp time.Time `json:"timestamp"`
 		Size      int64     `json:"size"`
 	}
-	
+
 	var photos []photoMetadata
-	
+
 	// Helper to save a single file and return metadata
 	saveFile := func(file *multipart.FileHeader) (*photoMetadata, error) {
 		src, err := file.Open()
@@ -167,7 +167,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 			Size:      file.Size,
 		}, nil
 	}
-	
+
 	for _, file := range files {
 		photo, err := saveFile(file)
 		if err != nil {
@@ -301,7 +301,7 @@ func UploadInstrumentPhotos(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Update latest using service only AFTER successful DB save
 	if err := photoService.UpdateLatest(tenantID, instrumentSN, batchDir); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

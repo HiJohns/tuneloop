@@ -189,10 +189,14 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		// Sync IAM user to local users table (same pattern as WxLogin)
 		var existing models.User
 		if err := h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error; err != nil {
-				tenantID := claims.TenantID
-			if tenantID == "" { tenantID = "00000000-0000-0000-0000-000000000000" }
+			tenantID := claims.TenantID
+			if tenantID == "" {
+				tenantID = "00000000-0000-0000-0000-000000000000"
+			}
 			orgID := claims.OrgID
-			if orgID == "" { orgID = "00000000-0000-0000-0000-000000000000" }
+			if orgID == "" {
+				orgID = "00000000-0000-0000-0000-000000000000"
+			}
 			newUser := models.User{
 				IAMSub:   claims.UserID,
 				TenantID: tenantID,
@@ -274,14 +278,14 @@ func (h *AuthHandler) PostLogin(c *gin.Context) {
 
 func (h *AuthHandler) PostRegister(c *gin.Context) {
 	var req struct {
-		Nickname       string `json:"nickname" binding:"required"`
-		Name           string `json:"name" binding:"required"`
-		Phone          string `json:"phone" binding:"required"`
-		Email          string `json:"email"`
-		Password       string `json:"password"`
-		WxCode         string `json:"wx_code"`
-		ExchangeToken  string `json:"exchange_token"`
-		Ref            string `json:"ref"`
+		Nickname      string `json:"nickname" binding:"required"`
+		Name          string `json:"name" binding:"required"`
+		Phone         string `json:"phone" binding:"required"`
+		Email         string `json:"email"`
+		Password      string `json:"password"`
+		WxCode        string `json:"wx_code"`
+		ExchangeToken string `json:"exchange_token"`
+		Ref           string `json:"ref"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -385,22 +389,26 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 		var existing models.User
 		if h.db.Where("iam_sub = ?", claims.UserID).First(&existing).Error != nil {
 			tenantID := claims.TenantID
-			if tenantID == "" { tenantID = "00000000-0000-0000-0000-000000000000" }
+			if tenantID == "" {
+				tenantID = "00000000-0000-0000-0000-000000000000"
+			}
 			orgID := claims.OrgID
-			if orgID == "" { orgID = "00000000-0000-0000-0000-000000000000" }
+			if orgID == "" {
+				orgID = "00000000-0000-0000-0000-000000000000"
+			}
 			newUser := models.User{
-				IAMSub:             claims.UserID,
-				TenantID:           tenantID,
-				OrgID:              orgID,
-				Username:           userName,
-				Name:               req.Name,
-				Phone:              req.Phone,
-				Email:              req.Email,
-				Role:               "USER",
-				Status:             "active",
-				IsProfileCompleted: true,
+				IAMSub:              claims.UserID,
+				TenantID:            tenantID,
+				OrgID:               orgID,
+				Username:            userName,
+				Name:                req.Name,
+				Phone:               req.Phone,
+				Email:               req.Email,
+				Role:                "USER",
+				Status:              "active",
+				IsProfileCompleted:  true,
 				OnboardingCompleted: true, // registration collects all onboarding fields (#1597)
-				WxOpenid:           boundOpenid,
+				WxOpenid:            boundOpenid,
 			}
 			if createErr := h.db.Create(&newUser).Error; createErr != nil {
 				log.Printf("[Register] Failed to create local user for iam_sub %s: %v", claims.UserID, createErr)
@@ -430,34 +438,34 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 					})
 				}
 				if req.Ref != "" && req.Ref != refCode {
-				var referrer models.User
-				if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
-					h.db.Create(&models.Referral{
-						ReferrerID: referrer.ID,
-						RefereeID:  newUser.ID,
-						RefCode:    req.Ref,
-						Status:     "registered",
-					})
-					// Referrer registration bonus (#1534): credit
-					// referral_reg_points per the referrer's membership level.
-					if referrer.MembershipLevelID != nil {
-						if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
-							h.db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-								"promo_points": gorm.Expr("promo_points + ?", ratios.ReferralRegPoints),
-								"updated_at":   time.Now(),
-							})
-							h.db.Create(&models.PointsTransaction{
-								ID:          uuid.New().String(),
-								UserID:      referrer.ID,
-								TenantID:    referrer.TenantID,
-								Type:        "referral_reg",
-								Amount:      ratios.ReferralRegPoints,
-								Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
-								CreatedAt:   time.Now(),
-							})
+					var referrer models.User
+					if h.db.Where("ref_code = ?", req.Ref).First(&referrer).Error == nil {
+						h.db.Create(&models.Referral{
+							ReferrerID: referrer.ID,
+							RefereeID:  newUser.ID,
+							RefCode:    req.Ref,
+							Status:     "registered",
+						})
+						// Referrer registration bonus (#1534): credit
+						// referral_reg_points per the referrer's membership level.
+						if referrer.MembershipLevelID != nil {
+							if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
+								h.db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
+									"promo_points": gorm.Expr("promo_points + ?", ratios.ReferralRegPoints),
+									"updated_at":   time.Now(),
+								})
+								h.db.Create(&models.PointsTransaction{
+									ID:          uuid.New().String(),
+									UserID:      referrer.ID,
+									TenantID:    referrer.TenantID,
+									Type:        "referral_reg",
+									Amount:      ratios.ReferralRegPoints,
+									Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
+									CreatedAt:   time.Now(),
+								})
+							}
 						}
 					}
-				}
 				}
 			}
 		}
@@ -580,24 +588,24 @@ func (h *AuthHandler) WxLogin(c *gin.Context) {
 		if tokenResp != nil && tokenResp.AccessToken != "" {
 			claims, parseErr := h.iamService.ValidateToken(tokenResp.AccessToken)
 			if parseErr == nil && claims.UserID != "" {
-			var existingUser models.User
-			if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
-				log.Printf("[WxLogin] Channel 1: iam_sub=%s not found locally, returning binding error", claims.UserID)
-				c.JSON(http.StatusConflict, gin.H{
-					"code":    40900,
-					"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
-				})
-				return
-			}
-			// Disabled users are blocked from login (#1545).
-			if existingUser.Status == "disabled" {
-				log.Printf("[WxLogin] Channel 1: user %s is disabled, blocking login", claims.UserID)
-				c.JSON(http.StatusForbidden, gin.H{
-					"code":    40300,
-					"message": "该账户已被禁用，请联系平台管理员",
-				})
-				return
-			}
+				var existingUser models.User
+				if h.db.Where("iam_sub = ?", claims.UserID).First(&existingUser).Error != nil {
+					log.Printf("[WxLogin] Channel 1: iam_sub=%s not found locally, returning binding error", claims.UserID)
+					c.JSON(http.StatusConflict, gin.H{
+						"code":    40900,
+						"message": "微信账号绑定异常，请重新绑定。如已绑定请重新登录 Web 端账号后再次尝试。",
+					})
+					return
+				}
+				// Disabled users are blocked from login (#1545).
+				if existingUser.Status == "disabled" {
+					log.Printf("[WxLogin] Channel 1: user %s is disabled, blocking login", claims.UserID)
+					c.JSON(http.StatusForbidden, gin.H{
+						"code":    40300,
+						"message": "该账户已被禁用，请联系平台管理员",
+					})
+					return
+				}
 			}
 		}
 
@@ -895,8 +903,8 @@ func (h *AuthHandler) WxPhoneCode(c *gin.Context) {
 	}
 	defer phoneResp.Body.Close()
 	var phoneResult struct {
-		ErrCode int `json:"errcode"`
-		ErrMsg  string `json:"errmsg"`
+		ErrCode   int    `json:"errcode"`
+		ErrMsg    string `json:"errmsg"`
 		PhoneInfo struct {
 			PhoneNumber     string `json:"phoneNumber"`
 			PurePhoneNumber string `json:"purePhoneNumber"`

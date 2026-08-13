@@ -25,8 +25,8 @@ func setupTestContext(sysPerm, cusPerm int64) (*gin.Context, *httptest.ResponseR
 }
 
 func TestRequireSysPerm_BitSet(t *testing.T) {
-	c, w := setupTestContext(255, 0)                      // sys_perm = 255 (all bits 0-7 set)
-	middleware := RequireSysPerm(SysPermTenantView)        // bit 5
+	c, w := setupTestContext(255, 0)                // sys_perm = 255 (all bits 0-7 set)
+	middleware := RequireSysPerm(SysPermTenantView) // bit 5
 	middleware(c)
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected 200 OK, got %d. sys_perm=255, bit=5 should pass", w.Code)
@@ -34,8 +34,8 @@ func TestRequireSysPerm_BitSet(t *testing.T) {
 }
 
 func TestRequireSysPerm_BitNotSet(t *testing.T) {
-	c, w := setupTestContext(0, 0)                        // sys_perm = 0
-	middleware := RequireSysPerm(SysPermTenantCreate)      // bit 7
+	c, w := setupTestContext(0, 0)                    // sys_perm = 0
+	middleware := RequireSysPerm(SysPermTenantCreate) // bit 7
 	middleware(c)
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected 200 OK (backward compat), got %d", w.Code)
@@ -43,8 +43,8 @@ func TestRequireSysPerm_BitNotSet(t *testing.T) {
 }
 
 func TestRequireSysPerm_SpecificBitMissing(t *testing.T) {
-	c, w := setupTestContext(1<<SysPermTenantView, 0)     // Only tenant_view set
-	middleware := RequireSysPerm(SysPermTenantCreate)      // bit 7, NOT set
+	c, w := setupTestContext(1<<SysPermTenantView, 0) // Only tenant_view set
+	middleware := RequireSysPerm(SysPermTenantCreate) // bit 7, NOT set
 	middleware(c)
 	if w.Code != http.StatusForbidden {
 		t.Errorf("Expected 403, got %d. Only bit 5 set, bit 7 should fail", w.Code)

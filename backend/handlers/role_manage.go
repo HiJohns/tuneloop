@@ -37,12 +37,12 @@ func (LocalRole) TableName() string {
 }
 
 type RoleResp struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Code          string   `json:"code"`
-	CusPermCodes  []string `json:"cus_perm_codes"`
-	IsSystem      bool     `json:"is_system"`
-	PermissionCount int    `json:"permission_count"`
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	Code            string   `json:"code"`
+	CusPermCodes    []string `json:"cus_perm_codes"`
+	IsSystem        bool     `json:"is_system"`
+	PermissionCount int      `json:"permission_count"`
 }
 
 func (h *RoleManageHandler) ListRoles(c *gin.Context) {

@@ -35,7 +35,7 @@ type User struct {
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
 	IdPhotoBack         *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
-	RefCode            string     `gorm:"type:varchar(16)" json:"ref_code"`
+	RefCode             string     `gorm:"type:varchar(16)" json:"ref_code"`
 	DeletedAt           *time.Time `gorm:"index" json:"deleted_at"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
@@ -85,8 +85,8 @@ type Instrument struct {
 	RepairWorkerID     *string    `gorm:"type:uuid;index" json:"repair_worker_id"`
 	Properties         string     `gorm:"type:jsonb;default:'{}'" json:"properties"`
 	MinMembershipLevel *int       `gorm:"type:int" json:"min_membership_level"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 type Referral struct {
@@ -108,21 +108,21 @@ const (
 )
 
 const (
-	OrderStatusReserved         = "reserved"
-	OrderStatusPaid             = "paid"
-	OrderStatusPendingShipment  = "pending_shipment"
-	OrderStatusInTransit        = "in_transit"
-	OrderStatusShipped          = "shipped"
-	OrderStatusInLease          = "in_lease"
-	OrderStatusReturning        = "returning"
-	OrderStatusReturned         = "returned"
-	OrderStatusCompleted        = "completed"
-	OrderStatusCancelled        = "cancelled"
-	OrderStatusDepositRefunding = "deposit_refunding"
-	OrderStatusDamageAppealing  = "damage_appealing"
+	OrderStatusReserved              = "reserved"
+	OrderStatusPaid                  = "paid"
+	OrderStatusPendingShipment       = "pending_shipment"
+	OrderStatusInTransit             = "in_transit"
+	OrderStatusShipped               = "shipped"
+	OrderStatusInLease               = "in_lease"
+	OrderStatusReturning             = "returning"
+	OrderStatusReturned              = "returned"
+	OrderStatusCompleted             = "completed"
+	OrderStatusCancelled             = "cancelled"
+	OrderStatusDepositRefunding      = "deposit_refunding"
+	OrderStatusDamageAppealing       = "damage_appealing"
 	OrderStatusPendingDamageResponse = "pending_damage_response"
-	OrderStatusExpired          = "expired"
-	OrderStatusTransferred      = "transferred"
+	OrderStatusExpired               = "expired"
+	OrderStatusTransferred           = "transferred"
 )
 
 const (
@@ -184,39 +184,39 @@ type InstrumentPhotoSpec struct {
 }
 
 type Order struct {
-	ID                   string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID             string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID                string     `gorm:"type:uuid;index" json:"org_id"`
-	UserID               string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	InstrumentID         string     `gorm:"type:uuid;not null" json:"instrument_id"`
-	Level                string     `gorm:"type:varchar(20);not null" json:"level"`
-	LeaseTerm            int        `gorm:"not null" json:"lease_term"`
-	DepositMode          string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
-	MonthlyRent          float64    `gorm:"type:decimal(10,2);not null" json:"monthly_rent"`
-	Deposit              float64    `gorm:"type:decimal(10,2);default:0" json:"deposit"`
-	DepositWaived        bool       `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
-	ShippingFee          float64    `gorm:"type:decimal(10,2);default:0" json:"shipping_fee"`
-	AccumulatedMonths    int        `gorm:"default:0" json:"accumulated_months"`
-	Status               string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
-	StartDate            *string    `gorm:"type:date" json:"start_date"`
-	EndDate              *string    `gorm:"type:date" json:"end_date"`
-	TrackingNumber       *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
-	CourierCompany       *string    `gorm:"type:varchar(100)" json:"courier_company"`
-	ShippedAt            *time.Time `gorm:"type:timestamp" json:"shipped_at"`
-	DeliveredAt          *time.Time `gorm:"type:timestamp" json:"delivered_at"`
-	ReturnedAt           *time.Time `gorm:"type:timestamp" json:"returned_at"`
-	DepositRefunded      bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
-	PricingBreakdown     *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
-	CashPaid             float64    `gorm:"type:decimal(10,2);not null;default:0" json:"cash_paid"`
-	PrepaidPointsUsed    float64    `gorm:"type:decimal(10,2);not null;default:0" json:"prepaid_points_used"`
-	GiftPointsUsed       float64    `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_used"`
-	PointsPolicySnapshot *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
-	RequestSnapshot      *string    `gorm:"type:jsonb" json:"request_snapshot"`
-	PricingConfigSnapshot *string   `gorm:"type:jsonb" json:"pricing_config_snapshot"`
-	CurrentPaymentSessionID *string  `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
-	PaymentDeadline        *time.Time `json:"payment_deadline"`
-	CreatedAt              time.Time  `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID                      string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID                string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID                   string     `gorm:"type:uuid;index" json:"org_id"`
+	UserID                  string     `gorm:"type:uuid;not null;index" json:"user_id"`
+	InstrumentID            string     `gorm:"type:uuid;not null" json:"instrument_id"`
+	Level                   string     `gorm:"type:varchar(20);not null" json:"level"`
+	LeaseTerm               int        `gorm:"not null" json:"lease_term"`
+	DepositMode             string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
+	MonthlyRent             float64    `gorm:"type:decimal(10,2);not null" json:"monthly_rent"`
+	Deposit                 float64    `gorm:"type:decimal(10,2);default:0" json:"deposit"`
+	DepositWaived           bool       `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
+	ShippingFee             float64    `gorm:"type:decimal(10,2);default:0" json:"shipping_fee"`
+	AccumulatedMonths       int        `gorm:"default:0" json:"accumulated_months"`
+	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
+	StartDate               *string    `gorm:"type:date" json:"start_date"`
+	EndDate                 *string    `gorm:"type:date" json:"end_date"`
+	TrackingNumber          *string    `gorm:"type:varchar(100);index" json:"tracking_number"`
+	CourierCompany          *string    `gorm:"type:varchar(100)" json:"courier_company"`
+	ShippedAt               *time.Time `gorm:"type:timestamp" json:"shipped_at"`
+	DeliveredAt             *time.Time `gorm:"type:timestamp" json:"delivered_at"`
+	ReturnedAt              *time.Time `gorm:"type:timestamp" json:"returned_at"`
+	DepositRefunded         bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
+	PricingBreakdown        *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
+	CashPaid                float64    `gorm:"type:decimal(10,2);not null;default:0" json:"cash_paid"`
+	PrepaidPointsUsed       float64    `gorm:"type:decimal(10,2);not null;default:0" json:"prepaid_points_used"`
+	GiftPointsUsed          float64    `gorm:"type:decimal(10,2);not null;default:0" json:"gift_points_used"`
+	PointsPolicySnapshot    *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
+	RequestSnapshot         *string    `gorm:"type:jsonb" json:"request_snapshot"`
+	PricingConfigSnapshot   *string    `gorm:"type:jsonb" json:"pricing_config_snapshot"`
+	CurrentPaymentSessionID *string    `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
+	PaymentDeadline         *time.Time `json:"payment_deadline"`
+	CreatedAt               time.Time  `json:"created_at"`
+	UpdatedAt               time.Time  `json:"updated_at"`
 }
 
 type MerchantSettlementConfig struct {
@@ -249,16 +249,16 @@ type Settlement struct {
 }
 
 type OverdueCharge struct {
-	ID                   string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	OrderID              string    `gorm:"type:uuid;not null;index" json:"order_id"`
-	ChargeDate           string    `gorm:"type:date;not null;index" json:"charge_date"`
-	Amount               float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
-	DeductedFromDeposit  float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_deposit"`
-	DeductedFromPrepaid  float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_prepaid"`
-	RemainingBalance     float64   `gorm:"type:decimal(10,2);not null;default:0" json:"remaining_balance"`
-	Status               string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
-	FailureReason        *string   `gorm:"type:varchar(500)" json:"failure_reason"`
-	CreatedAt            time.Time `json:"created_at"`
+	ID                  string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID             string    `gorm:"type:uuid;not null;index" json:"order_id"`
+	ChargeDate          string    `gorm:"type:date;not null;index" json:"charge_date"`
+	Amount              float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	DeductedFromDeposit float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_deposit"`
+	DeductedFromPrepaid float64   `gorm:"type:decimal(10,2);not null;default:0" json:"deducted_from_prepaid"`
+	RemainingBalance    float64   `gorm:"type:decimal(10,2);not null;default:0" json:"remaining_balance"`
+	Status              string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
+	FailureReason       *string   `gorm:"type:varchar(500)" json:"failure_reason"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type OrderLog struct {
@@ -272,22 +272,22 @@ type OrderLog struct {
 
 // PaymentSession 统一支付会话表（替代 OrderPaymentRecord + OrderRefundRecord）
 type PaymentSession struct {
-	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID       string     `gorm:"type:uuid;index:idx_payment_sessions_tenant;not null" json:"tenant_id"`
-	UserID         string     `gorm:"type:uuid;index:idx_payment_sessions_user;not null" json:"user_id"`
-	Type           string     `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
-	Status         string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
-	Amount         float64    `gorm:"type:decimal(10,2);not null" json:"amount"`
-	Breakdown      *string    `gorm:"type:jsonb" json:"breakdown,omitempty"`
-	WalletSnapshot *string    `gorm:"type:jsonb" json:"wallet_snapshot,omitempty"`
-	OutTradeNo     *string    `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
-	TransactionID  *string    `gorm:"type:varchar(64)" json:"transaction_id"`
-	Method         *string    `gorm:"type:varchar(20)" json:"method"`
-	FailReason     *string    `gorm:"type:text" json:"fail_reason"`
-	RawResponse    *string    `gorm:"type:jsonb" json:"raw_response"`
-	RefundFromID   *string    `gorm:"type:uuid" json:"refund_from_id,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID       string    `gorm:"type:uuid;index:idx_payment_sessions_tenant;not null" json:"tenant_id"`
+	UserID         string    `gorm:"type:uuid;index:idx_payment_sessions_user;not null" json:"user_id"`
+	Type           string    `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
+	Status         string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	Amount         float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Breakdown      *string   `gorm:"type:jsonb" json:"breakdown,omitempty"`
+	WalletSnapshot *string   `gorm:"type:jsonb" json:"wallet_snapshot,omitempty"`
+	OutTradeNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
+	TransactionID  *string   `gorm:"type:varchar(64)" json:"transaction_id"`
+	Method         *string   `gorm:"type:varchar(20)" json:"method"`
+	FailReason     *string   `gorm:"type:text" json:"fail_reason"`
+	RawResponse    *string   `gorm:"type:jsonb" json:"raw_response"`
+	RefundFromID   *string   `gorm:"type:uuid" json:"refund_from_id,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // SessionOrderLink 支付会话与订单的多对多关联（支持合并付款）
@@ -298,24 +298,24 @@ type SessionOrderLink struct {
 
 // OrderPaymentRecord 支付记录表（包含完整审计字段）— 已废弃，由 PaymentSession 替代
 type OrderPaymentRecord struct {
-	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID       string     `gorm:"type:uuid;index:idx_payment_tenant;not null" json:"tenant_id"`
-	OrgID          *string    `gorm:"type:uuid" json:"org_id,omitempty"`
-	UserID         string     `gorm:"type:uuid;index:idx_payment_user;not null" json:"user_id"`
-	OrderID        *string    `gorm:"type:uuid;index:idx_payment_order" json:"order_id,omitempty"`
-	OrderType      string     `gorm:"type:varchar(20);not null" json:"order_type"`
-	OutTradeNo     *string    `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
-	TransactionID  *string    `gorm:"type:varchar(64)" json:"transaction_id"`
-	Amount         float64    `gorm:"type:decimal(10,2);not null" json:"amount"`
-	Type           string     `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
-	Status         string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
-	Method         *string    `gorm:"type:varchar(20)" json:"method"`
-	PrepayID       *string    `gorm:"type:varchar(64)" json:"prepay_id"`
-	CodeURL        *string    `gorm:"type:text" json:"code_url"`
-	FailReason     *string    `gorm:"type:text" json:"fail_reason"`
-	RawResponse    *string    `gorm:"type:jsonb" json:"raw_response"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID      string    `gorm:"type:uuid;index:idx_payment_tenant;not null" json:"tenant_id"`
+	OrgID         *string   `gorm:"type:uuid" json:"org_id,omitempty"`
+	UserID        string    `gorm:"type:uuid;index:idx_payment_user;not null" json:"user_id"`
+	OrderID       *string   `gorm:"type:uuid;index:idx_payment_order" json:"order_id,omitempty"`
+	OrderType     string    `gorm:"type:varchar(20);not null" json:"order_type"`
+	OutTradeNo    *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
+	TransactionID *string   `gorm:"type:varchar(64)" json:"transaction_id"`
+	Amount        float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Type          string    `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
+	Status        string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	Method        *string   `gorm:"type:varchar(20)" json:"method"`
+	PrepayID      *string   `gorm:"type:varchar(64)" json:"prepay_id"`
+	CodeURL       *string   `gorm:"type:text" json:"code_url"`
+	FailReason    *string   `gorm:"type:text" json:"fail_reason"`
+	RawResponse   *string   `gorm:"type:jsonb" json:"raw_response"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // OrderRefundRecord 退款记录表（支持部分退款，与支付记录一对多）

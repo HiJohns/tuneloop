@@ -194,7 +194,6 @@ func TestIAMIntegration_ConfirmationCallback(t *testing.T) {
 		Status:      "pending",
 		IsShadow:    true,
 		CreditScore: 600,
-		
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -285,7 +284,6 @@ func TestIAMIntegration_UserUpdate_EmailChange(t *testing.T) {
 		Status:      "active",
 		IsShadow:    false,
 		CreditScore: 600,
-		
 	}
 	require.NoError(t, db.Create(&user).Error)
 
@@ -645,13 +643,13 @@ func TestIAMIntegration_DualRoleBindings(t *testing.T) {
 
 	uniq := uuid.New().String()[:8]
 	merchantReq := map[string]interface{}{
-		"name":             "Test DualRole " + uniq,
-		"address":          "Test",
-		"admin_name":       "DualRole Admin",
-		"admin_username":   "dualrole_" + uniq,
-		"admin_email":      "dualrole_" + uniq + "@example.com",
-		"admin_phone":    "13800000" + uniq,
-		"skip_activation":  true,
+		"name":            "Test DualRole " + uniq,
+		"address":         "Test",
+		"admin_name":      "DualRole Admin",
+		"admin_username":  "dualrole_" + uniq,
+		"admin_email":     "dualrole_" + uniq + "@example.com",
+		"admin_phone":     "13800000" + uniq,
+		"skip_activation": true,
 	}
 
 	body, _ := json.Marshal(merchantReq)

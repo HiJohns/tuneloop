@@ -12,8 +12,8 @@ import (
 
 // BulkImportHandler handles batch import requests for organizations and accounts.
 type BulkImportHandler struct {
-	iamClient  *services.IAMClient
-	permReg    *services.PermissionRegistry
+	iamClient *services.IAMClient
+	permReg   *services.PermissionRegistry
 }
 
 // NewBulkImportHandler creates a new bulk import handler.

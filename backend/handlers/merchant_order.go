@@ -78,8 +78,12 @@ func ListMerchantOrders(c *gin.Context) {
 	list := make([]OrderItem, 0, len(orders))
 	for _, o := range orders {
 		startStr, endStr := "", ""
-		if o.StartDate != nil { startStr = *o.StartDate }
-		if o.EndDate != nil { endStr = *o.EndDate }
+		if o.StartDate != nil {
+			startStr = *o.StartDate
+		}
+		if o.EndDate != nil {
+			endStr = *o.EndDate
+		}
 		item := OrderItem{
 			ID:        o.ID,
 			Status:    o.Status,
@@ -100,18 +104,32 @@ func ListMerchantOrders(c *gin.Context) {
 				if err := db.Raw("SELECT iam_sub FROM users WHERE id = ? LIMIT 1", o.UserID).Scan(&iamSub).Error; err == nil && iamSub != "" {
 					iamClient := services.NewIAMClient()
 					if iamUser, err2 := iamClient.GetUser(iamSub); err2 == nil && iamUser != nil {
-						if iamUser.Name != "" { item.UserName = iamUser.Name }
-						if item.UserName == "" { item.UserName = iamUser.Username }
-						if item.UserName == "" { item.UserName = iamUser.Email }
-						if item.UserName == "" { item.UserName = iamUser.Phone }
+						if iamUser.Name != "" {
+							item.UserName = iamUser.Name
+						}
+						if item.UserName == "" {
+							item.UserName = iamUser.Username
+						}
+						if item.UserName == "" {
+							item.UserName = iamUser.Email
+						}
+						if item.UserName == "" {
+							item.UserName = iamUser.Phone
+						}
 					}
 				}
 			}
 		}
 		// Timestamps
-		if o.DeliveredAt != nil { item.DeliveredAt = o.DeliveredAt.Format("2006-01-02") }
-		if o.ShippedAt != nil { item.ShippedAt = o.ShippedAt.Format("2006-01-02") }
-		if o.ReturnedAt != nil { item.ReturnedAt = o.ReturnedAt.Format("2006-01-02") }
+		if o.DeliveredAt != nil {
+			item.DeliveredAt = o.DeliveredAt.Format("2006-01-02")
+		}
+		if o.ShippedAt != nil {
+			item.ShippedAt = o.ShippedAt.Format("2006-01-02")
+		}
+		if o.ReturnedAt != nil {
+			item.ReturnedAt = o.ReturnedAt.Format("2006-01-02")
+		}
 		// Fetch instrument name/SN
 		var inst models.Instrument
 		if db.First(&inst, "id = ?", o.InstrumentID).Error == nil {

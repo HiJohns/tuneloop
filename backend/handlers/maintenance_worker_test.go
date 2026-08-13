@@ -111,7 +111,9 @@ func TestListMaintenanceWorkers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	var response struct {
 		Code int `json:"code"`
-		Data struct{ List []map[string]interface{} `json:"list"` } `json:"data"`
+		Data struct {
+			List []map[string]interface{} `json:"list"`
+		} `json:"data"`
 	}
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)

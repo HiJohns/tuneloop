@@ -21,17 +21,17 @@ import (
 
 type IAMClaims struct {
 	jwt.RegisteredClaims
-	Tid       string   `json:"tid"`
-	Oid       string   `json:"oid"`
-	Gid       string   `json:"gid"`
-	Nid       string   `json:"nid"`
-	Role      string   `json:"role"`
-	Own       bool     `json:"own"`
-	Name      string   `json:"name"`
-	Roles     []string `json:"roles"`
-	SysPerm   int64    `json:"sys_perm"`
-	CusPerm   int64    `json:"cus_perm"`
-	CusPermExt string  `json:"cus_perm_ext,omitempty"`
+	Tid        string   `json:"tid"`
+	Oid        string   `json:"oid"`
+	Gid        string   `json:"gid"`
+	Nid        string   `json:"nid"`
+	Role       string   `json:"role"`
+	Own        bool     `json:"own"`
+	Name       string   `json:"name"`
+	Roles      []string `json:"roles"`
+	SysPerm    int64    `json:"sys_perm"`
+	CusPerm    int64    `json:"cus_perm"`
+	CusPermExt string   `json:"cus_perm_ext,omitempty"`
 }
 
 type ContextKey string

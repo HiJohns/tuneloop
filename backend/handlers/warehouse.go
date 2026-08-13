@@ -581,13 +581,13 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"order_id":          orderID,
-			"status":            newStatus,
-			"condition":         req.Condition,
-			"assessment_id":     assessment.ID,
-			"overdue_days":      overdueDays,
+			"order_id":           orderID,
+			"status":             newStatus,
+			"condition":          req.Condition,
+			"assessment_id":      assessment.ID,
+			"overdue_days":       overdueDays,
 			"overdue_daily_rate": overdueDailyRate,
-			"overdue_fee":       overdueFee,
+			"overdue_fee":        overdueFee,
 		},
 	})
 }
@@ -708,13 +708,13 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"order_id":          orderID,
-			"status":            models.OrderStatusReturning,
-			"damage_amount":     req.DamageAmount,
-			"overdue_days":      overdueDays,
+			"order_id":           orderID,
+			"status":             models.OrderStatusReturning,
+			"damage_amount":      req.DamageAmount,
+			"overdue_days":       overdueDays,
 			"overdue_daily_rate": overdueDailyRate,
-			"overdue_fee":       overdueFee,
-			"total_deduction":   totalDeduction,
+			"overdue_fee":        overdueFee,
+			"total_deduction":    totalDeduction,
 		},
 	})
 }

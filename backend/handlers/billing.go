@@ -100,7 +100,7 @@ func GetBillingReport(c *gin.Context) {
 	type OrderRow struct {
 		OrderID        string  `json:"order_id"`
 		CreatedAt      string  `json:"created_at"`
-		InstrumentName string `json:"instrument_name"`
+		InstrumentName string  `json:"instrument_name"`
 		UserName       string  `json:"user_name"`
 		CashPaid       float64 `json:"cash_paid"`
 		PrepaidUsed    float64 `json:"prepaid_used"`
@@ -164,11 +164,11 @@ func GetBillingReport(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"summary": gin.H{
-				"total_orders":      total,
-				"total_cash_paid":   math.Round(summary.TotalCashPaid*100) / 100,
+				"total_orders":       total,
+				"total_cash_paid":    math.Round(summary.TotalCashPaid*100) / 100,
 				"total_prepaid_used": math.Round(summary.TotalPrepaid*100) / 100,
-				"total_gift_used":   math.Round(summary.TotalGift*100) / 100,
-				"total_refund":      math.Round(totalRefund*100) / 100,
+				"total_gift_used":    math.Round(summary.TotalGift*100) / 100,
+				"total_refund":       math.Round(totalRefund*100) / 100,
 			},
 			"list":      rows,
 			"total":     total,

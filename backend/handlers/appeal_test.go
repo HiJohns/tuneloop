@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"net/http"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"

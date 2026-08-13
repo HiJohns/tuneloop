@@ -77,8 +77,8 @@ func (h *InventoryHandler) ListInventory(c *gin.Context) {
 			// No sites at all
 			if err := database.GetDB().WithContext(ctx).Where("tenant_id = ? AND status = 'active'", tid).Find(&sites).Error; err == nil && len(sites) == 0 {
 				c.JSON(http.StatusOK, gin.H{
-					"code":    20000,
-					"data":    gin.H{"list": []interface{}{}, "total": 0},
+					"code": 20000,
+					"data": gin.H{"list": []interface{}{}, "total": 0},
 				})
 				return
 			}
@@ -295,18 +295,18 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 
 	// Transform data to include brand, model, site_name, and daily_rent
 	type RentSettingItem struct {
-		ID                string  `json:"id"`
-		SN                string  `json:"sn"`
-		CategoryName      string  `json:"category_name"`
-		LevelName         string  `json:"level_name"`
-		Brand             string  `json:"brand"`
-		Model             string  `json:"model"`
-		SiteName          string  `json:"site_name"`
-		DailyRent         float64 `json:"daily_rent"`
-		Deposit           float64 `json:"deposit"`
-		ShippingFee      float64 `json:"shipping_fee"`
-		OverdueDailyFee  float64 `json:"overdue_daily_fee"`
-		TotalPrice       *float64 `json:"total_price"`
+		ID              string   `json:"id"`
+		SN              string   `json:"sn"`
+		CategoryName    string   `json:"category_name"`
+		LevelName       string   `json:"level_name"`
+		Brand           string   `json:"brand"`
+		Model           string   `json:"model"`
+		SiteName        string   `json:"site_name"`
+		DailyRent       float64  `json:"daily_rent"`
+		Deposit         float64  `json:"deposit"`
+		ShippingFee     float64  `json:"shipping_fee"`
+		OverdueDailyFee float64  `json:"overdue_daily_fee"`
+		TotalPrice      *float64 `json:"total_price"`
 	}
 
 	var items []RentSettingItem
@@ -346,18 +346,18 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 		}
 
 		items = append(items, RentSettingItem{
-			ID:                inst.ID,
-			SN:                inst.SN,
-			CategoryName:      inst.CategoryName,
-			LevelName:        inst.LevelName,
-			Brand:             brand,
-			Model:             model,
-			SiteName:          siteName,
-			DailyRent:         dailyRent,
-			Deposit:          deposit,
-			ShippingFee:      shippingFee,
-			OverdueDailyFee:  overdueDailyFee,
-			TotalPrice:       inst.TotalPrice,
+			ID:              inst.ID,
+			SN:              inst.SN,
+			CategoryName:    inst.CategoryName,
+			LevelName:       inst.LevelName,
+			Brand:           brand,
+			Model:           model,
+			SiteName:        siteName,
+			DailyRent:       dailyRent,
+			Deposit:         deposit,
+			ShippingFee:     shippingFee,
+			OverdueDailyFee: overdueDailyFee,
+			TotalPrice:      inst.TotalPrice,
 		})
 	}
 
@@ -379,8 +379,8 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	var req struct {
 		Items []struct {
-			ID               string  `json:"id" binding:"required"`
-			DailyRent        float64 `json:"daily_rent"`
+			ID              string  `json:"id" binding:"required"`
+			DailyRent       float64 `json:"daily_rent"`
 			Deposit         float64 `json:"deposit"`
 			ShippingFee     float64 `json:"shipping_fee"`
 			OverdueDailyFee float64 `json:"overdue_daily_fee"`
@@ -477,7 +477,7 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 			updateQuery = scopedDB
 		}
 		if err := updateQuery.Updates(map[string]interface{}{
-			"pricing":          string(updatedPricing),
+			"pricing":           string(updatedPricing),
 			"pricing_overrides": string(overridesJSON),
 		}).Error; err != nil {
 			log.Printf("[WARN] Failed to update pricing for instrument %s: %v", item.ID, err)

@@ -150,20 +150,20 @@ func (h *MerchantHandler) GetMerchant(c *gin.Context) {
 // CreateMerchant POST /api/merchants - Create a new merchant
 func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	var input struct {
-		Name              string                    `json:"name" binding:"required"`
-		Phone             string                    `json:"phone"`
-		Address           string                    `json:"address"`
-		MerchantType      string                    `json:"merchant_type"`
-		TransitAddress    string                    `json:"transit_address"`
-		TransitPhone      string                    `json:"transit_phone"`
+		Name               string                   `json:"name" binding:"required"`
+		Phone              string                   `json:"phone"`
+		Address            string                   `json:"address"`
+		MerchantType       string                   `json:"merchant_type"`
+		TransitAddress     string                   `json:"transit_address"`
+		TransitPhone       string                   `json:"transit_phone"`
 		TransitContactName string                   `json:"transit_contact_name"`
-		AdminUID          string                    `json:"admin_uid"`
-		AdminName         string                    `json:"admin_name"`
-		AdminUsername     string                    `json:"admin_username"`
-		AdminEmail        string                    `json:"admin_email"`
-		AdminPhone        string                    `json:"admin_phone"`
-		UserIDs           []map[string]interface{}   `json:"user_ids"`
-		SkipActivation    bool                      `json:"skip_activation"`
+		AdminUID           string                   `json:"admin_uid"`
+		AdminName          string                   `json:"admin_name"`
+		AdminUsername      string                   `json:"admin_username"`
+		AdminEmail         string                   `json:"admin_email"`
+		AdminPhone         string                   `json:"admin_phone"`
+		UserIDs            []map[string]interface{} `json:"user_ids"`
+		SkipActivation     bool                     `json:"skip_activation"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -417,9 +417,9 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, adminIAMSub, iamOrgID, t.Code); err != nil {
 						log.Printf("[CreateMerchant] Warning: failed to assign merchant_admin role: %v", err)
 						roleErrors = append(roleErrors, gin.H{
-							"user_id": adminIAMSub,
+							"user_id":       adminIAMSub,
 							"template_code": "merchant_admin",
-							"error": err.Error(),
+							"error":         err.Error(),
 						})
 					} else {
 						log.Printf("[CreateMerchant] Assigned merchant_admin role to %s", adminIAMSub)
@@ -492,14 +492,14 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Name              string `json:"name"`
-		Phone             string `json:"phone"`
-		Address           string `json:"address"`
-		MerchantType      string `json:"merchant_type"`
-		TransitAddress    string `json:"transit_address"`
-		TransitPhone      string `json:"transit_phone"`
+		Name               string `json:"name"`
+		Phone              string `json:"phone"`
+		Address            string `json:"address"`
+		MerchantType       string `json:"merchant_type"`
+		TransitAddress     string `json:"transit_address"`
+		TransitPhone       string `json:"transit_phone"`
 		TransitContactName string `json:"transit_contact_name"`
-		AdminUID          string `json:"admin_uid"`
+		AdminUID           string `json:"admin_uid"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -680,9 +680,9 @@ func parseInt(s string, defaultValue int) int {
 func initSystemRoles(db *gorm.DB, iamClient *services.IAMClient, tenantID, nsID string) {
 	log.Printf("[initSystemRoles] Starting role init for tenant=%s ns=%s", tenantID, nsID)
 	systemRoles := map[string][]string{
-		"merchant_admin": {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
-		"site_admin":     {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
-		"site_member":    {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
+		"merchant_admin":    {"instrument:create", "instrument:read", "instrument:update", "instrument:delete", "instrument:price", "instrument:price_config", "instrument:maintain", "order:create", "order:read", "order:update", "order:cancel"},
+		"site_admin":        {"instrument:create", "instrument:read", "instrument:update", "instrument:price", "instrument:maintain", "order:read", "order:update", "order:cancel"},
+		"site_member":       {"instrument:create", "instrument:read", "instrument:update", "instrument:maintain", "order:create", "order:read", "order:update"},
 		"repair_technician": {"instrument:read", "instrument:maintain"},
 	}
 	for code, codes := range systemRoles {

@@ -16,7 +16,7 @@ import (
 )
 
 type PrepayRequest struct {
-	OrderID     string  `json:"order_id"` // required for rent/repair/damage; empty allowed for points/renewal
+	OrderID     string  `json:"order_id"`                      // required for rent/repair/damage; empty allowed for points/renewal
 	OrderType   string  `json:"order_type" binding:"required"` // rent | repair | damage | renewal | membership
 	Amount      float64 `json:"amount" binding:"required"`
 	OpenID      string  `json:"open_id,omitempty"`
@@ -25,23 +25,23 @@ type PrepayRequest struct {
 }
 
 type PrepayResponse struct {
-	Mock    bool            `json:"mock,omitempty"`
-	Success bool            `json:"success"`
-	Message string          `json:"message,omitempty"`
-	Data    *PrepayData     `json:"data,omitempty"`
+	Mock    bool        `json:"mock,omitempty"`
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Data    *PrepayData `json:"data,omitempty"`
 }
 
 type PrepayData struct {
-	OutTradeNo   string `json:"out_trade_no"`
-	PrepayID     string `json:"prepay_id,omitempty"`
-	CodeURL      string `json:"code_url,omitempty"`
-	H5URL        string `json:"h5_url,omitempty"`
-	AppID        string `json:"app_id,omitempty"`
-	TimeStamp    string `json:"time_stamp,omitempty"`
-	NonceStr     string `json:"nonce_str,omitempty"`
-	Package      string `json:"package,omitempty"`
-	SignType     string `json:"sign_type,omitempty"`
-	PaySign      string `json:"pay_sign,omitempty"`
+	OutTradeNo string `json:"out_trade_no"`
+	PrepayID   string `json:"prepay_id,omitempty"`
+	CodeURL    string `json:"code_url,omitempty"`
+	H5URL      string `json:"h5_url,omitempty"`
+	AppID      string `json:"app_id,omitempty"`
+	TimeStamp  string `json:"time_stamp,omitempty"`
+	NonceStr   string `json:"nonce_str,omitempty"`
+	Package    string `json:"package,omitempty"`
+	SignType   string `json:"sign_type,omitempty"`
+	PaySign    string `json:"pay_sign,omitempty"`
 }
 
 func PrepayOrder(c *gin.Context) {
@@ -159,31 +159,31 @@ func PrepayOrder(c *gin.Context) {
 			result, err := client.CreateNativeOrder(ctx, wechatpay.NativeParams{
 				OutTradeNo:  outTradeNo,
 				TotalAmount: cfg.AmountToCents(req.Amount),
-			Description: fmt.Sprintf("乐器租赁订单"),
-			NotifyURL:   cfg.NotifyURL,
-		})
-		if err != nil {
-			record.Status = "failed"
-			fr := err.Error()
-			record.FailReason = &fr
+				Description: fmt.Sprintf("乐器租赁订单"),
+				NotifyURL:   cfg.NotifyURL,
+			})
+			if err != nil {
+				record.Status = "failed"
+				fr := err.Error()
+				record.FailReason = &fr
+				db.Create(&record)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
+				return
+			}
+			record.Method = strPtr("native")
+			record.CodeURL = &result.CodeURL
 			db.Create(&record)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
-			return
-		}
-		record.Method = strPtr("native")
-		record.CodeURL = &result.CodeURL
-		db.Create(&record)
-		c.JSON(http.StatusOK, gin.H{
-			"code": 20000,
-			"data": PrepayResponse{
-				Success: true,
-				Data: &PrepayData{
-					OutTradeNo: outTradeNo,
-					CodeURL:    result.CodeURL,
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": PrepayResponse{
+					Success: true,
+					Data: &PrepayData{
+						OutTradeNo: outTradeNo,
+						CodeURL:    result.CodeURL,
+					},
 				},
-			},
-		})
-		return
+			})
+			return
 		}
 
 		// JSAPI payment (mini-program)
@@ -346,10 +346,10 @@ func QueryPayment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"out_trade_no":    req.OutTradeNo,
-			"trade_state":     wxResult.TradeState,
-			"transaction_id":  wxResult.TransactionID,
-			"paid":            wxResult.TradeState == "SUCCESS",
+			"out_trade_no":   req.OutTradeNo,
+			"trade_state":    wxResult.TradeState,
+			"transaction_id": wxResult.TransactionID,
+			"paid":           wxResult.TradeState == "SUCCESS",
 		},
 	})
 }

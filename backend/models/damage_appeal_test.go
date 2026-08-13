@@ -134,7 +134,7 @@ func TestRelationships(t *testing.T) {
 	damageReportID := uuid.New().String()
 	userID := uuid.New().String()
 
-	tr  := "Test relationship"
+	tr := "Test relationship"
 	appeal := Appeal{
 		ID:             uuid.New().String(),
 		DamageReportID: &damageReportID,

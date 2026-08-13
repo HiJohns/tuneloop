@@ -658,18 +658,18 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
 		record := models.OrderPaymentRecord{
-			ID:        uuid.New().String(),
-			TenantID:  tenantID,
-			UserID:    userID,
-			OrderID:   &order.ID,
-			OrderType: "damage",
+			ID:         uuid.New().String(),
+			TenantID:   tenantID,
+			UserID:     userID,
+			OrderID:    &order.ID,
+			OrderType:  "damage",
 			OutTradeNo: &outTradeNo,
-			Amount:    payDiff,
-			Type:      "payment",
-			Status:    "pending",
-			Method:    strPtr("jsapi"),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			Amount:     payDiff,
+			Type:       "payment",
+			Status:     "pending",
+			Method:     strPtr("jsapi"),
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
 		}
 
 		if cfg.MockMode {
@@ -680,12 +680,12 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		} else {
 			db.Create(&record)
 			c.JSON(http.StatusOK, gin.H{
-				"code": 20000,
+				"code":    20000,
 				"message": "请完成支付",
 				"data": gin.H{
 					"payment_required": true,
-					"amount":          payDiff,
-					"out_trade_no":    outTradeNo,
+					"amount":           payDiff,
+					"out_trade_no":     outTradeNo,
 					"damage_report_id": damageID,
 				},
 			})

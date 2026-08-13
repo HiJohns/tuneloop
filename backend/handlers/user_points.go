@@ -87,9 +87,9 @@ func (h *UserPointsHandler) ListTransactions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"list":  transactions,
-			"total": total,
-			"page":  page,
+			"list":      transactions,
+			"total":     total,
+			"page":      page,
 			"page_size": pageSize,
 		},
 	})
@@ -155,7 +155,7 @@ func (h *UserPointsHandler) PurchasePoints(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": gin.H{
-				"mock":        true,
+				"mock":           true,
 				"prepaid_points": newPrepaid,
 			},
 		})
@@ -177,5 +177,3 @@ func (h *UserPointsHandler) PurchasePoints(c *gin.Context) {
 		},
 	})
 }
-
-

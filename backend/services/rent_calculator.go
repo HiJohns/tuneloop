@@ -18,29 +18,29 @@ type PricingTierConfig struct {
 }
 
 type TierSegment struct {
-	Tier  int     `json:"tier"`
-	Days  int     `json:"days"`
-	Rate  float64 `json:"rate"`
+	Tier     int     `json:"tier"`
+	Days     int     `json:"days"`
+	Rate     float64 `json:"rate"`
 	Discount float64 `json:"discount"`
-	Subtotal  float64 `json:"subtotal"`
+	Subtotal float64 `json:"subtotal"`
 }
 
 type PricingBreakdown struct {
-	BaseDailyRent      float64            `json:"base_daily_rent"`
-	RentDays           int                `json:"rent_days"`
-	PromoDiscountRates []float64          `json:"promo_discount_rates,omitempty"`
-	FinalDailyRent     float64            `json:"final_daily_rent"`
-	TotalAmount        float64            `json:"total_amount"`
+	BaseDailyRent      float64   `json:"base_daily_rent"`
+	RentDays           int       `json:"rent_days"`
+	PromoDiscountRates []float64 `json:"promo_discount_rates,omitempty"`
+	FinalDailyRent     float64   `json:"final_daily_rent"`
+	TotalAmount        float64   `json:"total_amount"`
 
-	Deposit           float64  `json:"deposit"`
-	DepositMethod     string   `json:"deposit_method"`
-	DepositRatio      float64  `json:"deposit_ratio,omitempty"`
-	DepositMultiplier float64  `json:"deposit_multiplier,omitempty"`
-	TotalPrice        float64  `json:"total_price,omitempty"`
-	ShippingFee       float64  `json:"shipping_fee,omitempty"`
+	Deposit           float64 `json:"deposit"`
+	DepositMethod     string  `json:"deposit_method"`
+	DepositRatio      float64 `json:"deposit_ratio,omitempty"`
+	DepositMultiplier float64 `json:"deposit_multiplier,omitempty"`
+	TotalPrice        float64 `json:"total_price,omitempty"`
+	ShippingFee       float64 `json:"shipping_fee,omitempty"`
 
-	PricingTiers    []PricingTierConfig `json:"pricing_tiers,omitempty"`
-	TierSegments    []TierSegment       `json:"tier_segments"`
+	PricingTiers []PricingTierConfig `json:"pricing_tiers,omitempty"`
+	TierSegments []TierSegment       `json:"tier_segments"`
 
 	AppliedPolicies []AppliedPolicy `json:"applied_policies"`
 }
@@ -115,12 +115,12 @@ func CalculatePricingBreakdown(input RentCalcInput) (*PricingBreakdown, error) {
 	db := database.GetDB().WithContext(nil)
 
 	result := &PricingBreakdown{
-		BaseDailyRent:    input.BaseDailyRate,
-		RentDays:         input.LeaseTerm,
+		BaseDailyRent:      input.BaseDailyRate,
+		RentDays:           input.LeaseTerm,
 		PromoDiscountRates: []float64{},
-		AppliedPolicies:  []AppliedPolicy{},
-		PricingTiers:     input.PricingTiers,
-		TierSegments:     ComputeTierSegments(input.LeaseTerm, input.PricingTiers),
+		AppliedPolicies:    []AppliedPolicy{},
+		PricingTiers:       input.PricingTiers,
+		TierSegments:       ComputeTierSegments(input.LeaseTerm, input.PricingTiers),
 	}
 
 	promoRate := 1.0

@@ -41,7 +41,7 @@ func (h *UserOnboardingHandler) GetOnboardingStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"name":                user.Name,
+			"name":                 user.Name,
 			"onboarding_completed": user.OnboardingCompleted,
 			"promo_points":         user.PromoPoints,
 		},

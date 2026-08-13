@@ -254,11 +254,11 @@ func ImportOrganizationsCSV(ctx context.Context, r io.Reader, tenantID string, i
 			siteByName[org.Name] = siteInfo{ID: newSite.ID, OrgID: orgID}
 
 			// Create IAM organization with parent
-		iamReq := &CreateOrganizationRequest{
-			Name:             org.Name,
-			NamespaceID:      iamClient.GetNamespace(),
-			NotificationLang: culture,
-		}
+			iamReq := &CreateOrganizationRequest{
+				Name:             org.Name,
+				NamespaceID:      iamClient.GetNamespace(),
+				NotificationLang: culture,
+			}
 			if parentID != nil && parentOrgID != "" {
 				iamReq.ParentID = parentOrgID
 			}

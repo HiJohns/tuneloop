@@ -27,17 +27,17 @@ import (
 var importSessions = make(map[string]*ImportSession)
 
 type PropertyResolution struct {
-	PropertyID       string `json:"property_id"`
-	PropertyName     string `json:"property_name"`
-	PropertyCaption  string `json:"property_caption"`
-	Value            string `json:"value"`
-	Status           string `json:"status"`
-	ResolvedValue    string `json:"resolved_value,omitempty"`
-	ScopeType        string `json:"scope_type"`
-	ScopeCategoryID  string `json:"scope_category_id,omitempty"`
-	ScopeCategoryName string `json:"scope_category_name,omitempty"`
-	ScopeParentValue string `json:"scope_parent_value,omitempty"`
-	ExistingOptions  []OptionItem `json:"existing_options,omitempty"`
+	PropertyID        string       `json:"property_id"`
+	PropertyName      string       `json:"property_name"`
+	PropertyCaption   string       `json:"property_caption"`
+	Value             string       `json:"value"`
+	Status            string       `json:"status"`
+	ResolvedValue     string       `json:"resolved_value,omitempty"`
+	ScopeType         string       `json:"scope_type"`
+	ScopeCategoryID   string       `json:"scope_category_id,omitempty"`
+	ScopeCategoryName string       `json:"scope_category_name,omitempty"`
+	ScopeParentValue  string       `json:"scope_parent_value,omitempty"`
+	ExistingOptions   []OptionItem `json:"existing_options,omitempty"`
 }
 
 type OptionItem struct {

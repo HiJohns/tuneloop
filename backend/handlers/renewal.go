@@ -24,15 +24,15 @@ type RenewalCalculateRequest struct {
 }
 
 type RenewalCalculateResponse struct {
-	RenewalCost      float64                `json:"renewal_cost"`
-	OverdueBalance   float64                `json:"overdue_balance"`
-	TotalAmount      float64                `json:"total_amount"`
-	NewEndDate       string                 `json:"new_end_date"`
-	MinAdditionalDays int                  `json:"min_additional_days"`
-	TierBreakdown    []services.TierSegment `json:"tier_breakdown"`
-	DailyRate        float64                `json:"daily_rate"`
-	OverdueDailyRate float64                `json:"overdue_daily_rate"`
-	OverdueDays      int                    `json:"overdue_days"`
+	RenewalCost       float64                `json:"renewal_cost"`
+	OverdueBalance    float64                `json:"overdue_balance"`
+	TotalAmount       float64                `json:"total_amount"`
+	NewEndDate        string                 `json:"new_end_date"`
+	MinAdditionalDays int                    `json:"min_additional_days"`
+	TierBreakdown     []services.TierSegment `json:"tier_breakdown"`
+	DailyRate         float64                `json:"daily_rate"`
+	OverdueDailyRate  float64                `json:"overdue_daily_rate"`
+	OverdueDays       int                    `json:"overdue_days"`
 }
 
 type RenewalConfirmRequest struct {
@@ -177,15 +177,15 @@ func CalculateRenewal(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": RenewalCalculateResponse{
-			RenewalCost:      renewalCost,
-			OverdueBalance:   overdueBalance,
-			TotalAmount:      renewalCost + overdueBalance,
-			NewEndDate:       newEndDate.Format("2006-01-02"),
+			RenewalCost:       renewalCost,
+			OverdueBalance:    overdueBalance,
+			TotalAmount:       renewalCost + overdueBalance,
+			NewEndDate:        newEndDate.Format("2006-01-02"),
 			MinAdditionalDays: minAdditionalDays,
-			TierBreakdown:    tierBreakdown,
-			DailyRate:        baseRate,
-			OverdueDailyRate: 0,
-			OverdueDays:      overdueDays,
+			TierBreakdown:     tierBreakdown,
+			DailyRate:         baseRate,
+			OverdueDailyRate:  0,
+			OverdueDays:       overdueDays,
 		},
 	})
 }
@@ -422,7 +422,7 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 	renewalAmount := record.Amount
 	if record.Status == "paid" && renewalAmount > 0 {
 		tx.Model(&models.Order{}).Where("id = ?", orderID).Updates(map[string]interface{}{
-			"cash_paid":          gorm.Expr("cash_paid + ?", renewalAmount),
+			"cash_paid":           gorm.Expr("cash_paid + ?", renewalAmount),
 			"prepaid_points_used": gorm.Expr("prepaid_points_used + ?", 0), // renewal is cash (WeChat Pay)
 		})
 	}

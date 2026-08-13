@@ -69,7 +69,7 @@ func (h *SetupHandler) InitializeSystem(c *gin.Context) {
 	// TODO: Call IAM to create user with Project Admin role
 	// For now, create a local shadow user
 	// In production, this should call IAM API
-	
+
 	user := models.User{
 		IAMSub:        "system-admin-" + input.Email, // Placeholder
 		TenantID:      "default-tenant",              // Will be set properly by middleware

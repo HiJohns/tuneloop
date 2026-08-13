@@ -53,26 +53,26 @@ type MembershipGiftRatio struct {
 func (MembershipGiftRatio) TableName() string { return "membership_gift_ratios" }
 
 type PromoPlan struct {
-	ID        string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	PlanType  string     `gorm:"type:varchar(20);not null;default:'promo_campaign'" json:"plan_type"`
-	ScopeType string     `gorm:"type:varchar(20);not null" json:"scope_type"`
-	ScopeID   *string    `gorm:"type:uuid" json:"scope_id"`
-	Name      string     `gorm:"type:varchar(100);not null" json:"name"`
-	StartDate *string    `gorm:"type:date" json:"start_date"`
-	EndDate   *string    `gorm:"type:date" json:"end_date"`
-	Stackable bool       `gorm:"not null;default:false" json:"stackable"`
-	IsActive  bool       `gorm:"not null;default:true" json:"is_active"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	PlanType  string    `gorm:"type:varchar(20);not null;default:'promo_campaign'" json:"plan_type"`
+	ScopeType string    `gorm:"type:varchar(20);not null" json:"scope_type"`
+	ScopeID   *string   `gorm:"type:uuid" json:"scope_id"`
+	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
+	StartDate *string   `gorm:"type:date" json:"start_date"`
+	EndDate   *string   `gorm:"type:date" json:"end_date"`
+	Stackable bool      `gorm:"not null;default:false" json:"stackable"`
+	IsActive  bool      `gorm:"not null;default:true" json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type PromoPlanDetail struct {
-	ID               string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	PromoPlanID      string  `gorm:"type:uuid;not null;index" json:"promo_plan_id"`
-	LevelID          int     `gorm:"not null" json:"level_id"`
-	RentDiscount     float64 `gorm:"type:decimal(5,4)" json:"rent_discount"`
-	DepositDiscount  float64 `gorm:"type:decimal(5,4)" json:"deposit_discount"`
-	OverdueDiscount  float64 `gorm:"type:decimal(5,4)" json:"overdue_discount"`
+	ID              string  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	PromoPlanID     string  `gorm:"type:uuid;not null;index" json:"promo_plan_id"`
+	LevelID         int     `gorm:"not null" json:"level_id"`
+	RentDiscount    float64 `gorm:"type:decimal(5,4)" json:"rent_discount"`
+	DepositDiscount float64 `gorm:"type:decimal(5,4)" json:"deposit_discount"`
+	OverdueDiscount float64 `gorm:"type:decimal(5,4)" json:"overdue_discount"`
 }
 
 type PointsPolicy struct {
@@ -85,10 +85,10 @@ type PointsPolicy struct {
 }
 
 type InstrumentPromoOverride struct {
-	ID             string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	TenantID       string    `gorm:"type:uuid;not null;index" json:"tenant_id"`
-	InstrumentID   string    `gorm:"type:uuid;not null;index" json:"instrument_id"`
-	OverrideType   string    `gorm:"type:varchar(20);not null" json:"override_type"`
-	Enabled        bool      `gorm:"not null;default:true" json:"enabled"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	TenantID     string    `gorm:"type:uuid;not null;index" json:"tenant_id"`
+	InstrumentID string    `gorm:"type:uuid;not null;index" json:"instrument_id"`
+	OverrideType string    `gorm:"type:varchar(20);not null" json:"override_type"`
+	Enabled      bool      `gorm:"not null;default:true" json:"enabled"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }

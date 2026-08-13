@@ -434,7 +434,7 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			AccessToken string  `json:"access_token"`
+			AccessToken   string  `json:"access_token"`
 			MembershipFee float64 `json:"membership_fee"`
 		} `json:"data"`
 	}
@@ -508,13 +508,13 @@ func TestWxAccounts_Handler(t *testing.T) {
 		{
 			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f2", "name": "员工小李",
 			"nickname": "小李", "role": "STAFF",
-			"org_id": "6d1e2c3a-0000-4000-8000-0000000000f3",
+			"org_id":    "6d1e2c3a-0000-4000-8000-0000000000f3",
 			"tenant_id": "6d1e2c3a-0000-4000-8000-0000000000f4",
 		},
 		{
 			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f7", "name": "员工无商户",
 			"nickname": "小孙", "role": "STAFF",
-			"org_id": "6d1e2c3a-0000-4000-8000-0000000000f8",
+			"org_id":    "6d1e2c3a-0000-4000-8000-0000000000f8",
 			"tenant_id": "6d1e2c3a-0000-4000-8000-0000000000f9",
 		},
 	}

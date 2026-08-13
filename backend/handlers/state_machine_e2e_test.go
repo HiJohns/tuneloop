@@ -86,15 +86,15 @@ func setupE2ETestEnv(t *testing.T) (*gin.Engine, string, string, string, string)
 func createTestOrder(t *testing.T, db *gorm.DB, tenantID, orgID, userID, instrumentID string) string {
 	orderID := uuid.New().String()
 	db.Create(&models.Order{
-		ID:        orderID,
-		TenantID:  tenantID,
-		OrgID:     orgID,
-		UserID:    userID,
+		ID:           orderID,
+		TenantID:     tenantID,
+		OrgID:        orgID,
+		UserID:       userID,
 		InstrumentID: instrumentID,
-		Status:    models.OrderStatusReserved,
-		StartDate: strPtr("2026-06-01"),
-		EndDate:   strPtr("2026-07-01"),
-		Deposit:   500,
+		Status:       models.OrderStatusReserved,
+		StartDate:    strPtr("2026-06-01"),
+		EndDate:      strPtr("2026-07-01"),
+		Deposit:      500,
 	})
 
 	db.Create(&models.LeaseSession{
@@ -477,12 +477,12 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 
 	// User row with prepaid points (required for points refund)
 	require.NoError(t, db.Create(&models.User{
-		ID:             userID,
-		TenantID:       tenantID,
-		OrgID:          orgID,
-		Username:       "refund_test_user",
-		PrepaidPoints:  1000,
-		Status:         "active",
+		ID:            userID,
+		TenantID:      tenantID,
+		OrgID:         orgID,
+		Username:      "refund_test_user",
+		PrepaidPoints: 1000,
+		Status:        "active",
 	}).Error)
 
 	orderID := uuid.New().String()
@@ -809,10 +809,10 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 	start := now.AddDate(0, 0, -30).Format("2006-01-02")
 	end := now.Format("2006-01-02")
 	order := models.Order{
-		ID:               "00000000-0000-0000-0000-00000000aa03",
-		TenantID:         "00000000-0000-0000-0000-000000000000",
-		UserID:           userID,
-		CashPaid:         6030,
+		ID:                "00000000-0000-0000-0000-00000000aa03",
+		TenantID:          "00000000-0000-0000-0000-000000000000",
+		UserID:            userID,
+		CashPaid:          6030,
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
 		Deposit:           3000,

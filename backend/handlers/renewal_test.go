@@ -104,12 +104,12 @@ func TestRenewal_Overdue_MinDaysValidation(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			RenewalCost     float64 `json:"renewal_cost"`
-			OverdueBalance  float64 `json:"overdue_balance"`
-			TotalAmount     float64 `json:"total_amount"`
-			NewEndDate      string  `json:"new_end_date"`
-			MinAdditionalDays int   `json:"min_additional_days"`
-			OverdueDailyRate float64 `json:"overdue_daily_rate"`
+			RenewalCost       float64 `json:"renewal_cost"`
+			OverdueBalance    float64 `json:"overdue_balance"`
+			TotalAmount       float64 `json:"total_amount"`
+			NewEndDate        string  `json:"new_end_date"`
+			MinAdditionalDays int     `json:"min_additional_days"`
+			OverdueDailyRate  float64 `json:"overdue_daily_rate"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp))

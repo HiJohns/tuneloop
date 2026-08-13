@@ -5,14 +5,14 @@ import (
 )
 
 type Config struct {
-	MchID              string
-	AppID              string
-	APIv3Key           string
-	CertSerialNo       string
-	PrivateKeyPath     string
-	NotifyURL          string
-	RefundNotifyURL    string
-	MockMode           bool
+	MchID           string
+	AppID           string
+	APIv3Key        string
+	CertSerialNo    string
+	PrivateKeyPath  string
+	NotifyURL       string
+	RefundNotifyURL string
+	MockMode        bool
 }
 
 func LoadConfig() *Config {
@@ -49,7 +49,7 @@ func LoadConfig() *Config {
 }
 
 func (c *Config) AmountToCents(yuan float64) int64 {
-	return int64(yuan * 100 + 0.5)
+	return int64(yuan*100 + 0.5)
 }
 
 func (c *Config) CentsToYuan(cents int64) float64 {

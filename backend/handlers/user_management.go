@@ -211,16 +211,16 @@ func userSummary(u models.User, levelNames map[int]string) gin.H {
 		levelName = levelNames[*u.MembershipLevelID]
 	}
 	return gin.H{
-		"id":            u.ID,
-		"username":      u.Username,
-		"wx_openid":     u.WxOpenid,
-		"phone":         u.Phone,
-		"level":         levelName,
+		"id":                  u.ID,
+		"username":            u.Username,
+		"wx_openid":           u.WxOpenid,
+		"phone":               u.Phone,
+		"level":               levelName,
 		"membership_level_id": u.MembershipLevelID,
-		"points":        u.PromoPoints,
-		"registered_at": u.CreatedAt,
-		"last_active":   u.UpdatedAt,
-		"status":        u.Status,
+		"points":              u.PromoPoints,
+		"registered_at":       u.CreatedAt,
+		"last_active":         u.UpdatedAt,
+		"status":              u.Status,
 	}
 }
 

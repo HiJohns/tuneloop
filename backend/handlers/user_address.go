@@ -114,9 +114,9 @@ func (h *UserAddressHandler) CreateAddress(c *gin.Context) {
 	tx.Commit()
 
 	c.JSON(http.StatusCreated, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
-		"data": addr,
+		"data":    addr,
 	})
 }
 
@@ -183,7 +183,7 @@ func (h *UserAddressHandler) UpdateAddress(c *gin.Context) {
 	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 	})
 }
@@ -222,7 +222,7 @@ func (h *UserAddressHandler) SetDefaultAddress(c *gin.Context) {
 	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 	})
 }
@@ -246,7 +246,7 @@ func (h *UserAddressHandler) DeleteAddress(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
+		"code":    20000,
 		"message": "success",
 	})
 }

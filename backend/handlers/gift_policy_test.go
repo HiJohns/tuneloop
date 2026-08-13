@@ -73,7 +73,7 @@ func TestGiftPolicyCRUD(t *testing.T) {
 	router.ServeHTTP(w3, req3)
 	require.Equal(t, http.StatusOK, w3.Code)
 	var resp struct {
-		Code int            `json:"code"`
+		Code int                      `json:"code"`
 		Data []map[string]interface{} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w3.Body.Bytes(), &resp))

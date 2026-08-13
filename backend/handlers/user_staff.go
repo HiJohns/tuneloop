@@ -150,16 +150,16 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Username           string    `json:"username"`
-		Name               string    `json:"name" binding:"required"`
-		Phone              string    `json:"phone" binding:"required"`
-		Email              string    `json:"email"`
-		Position           string    `json:"position"`
-		SiteID             uuid.UUID `json:"site_id"`
-		Role               string    `json:"role"`
-		Password           string    `json:"password"`
-		AutoGenerate       bool      `json:"auto_generate"`
-		ForcePasswordChange bool     `json:"force_password_change"`
+		Username            string    `json:"username"`
+		Name                string    `json:"name" binding:"required"`
+		Phone               string    `json:"phone" binding:"required"`
+		Email               string    `json:"email"`
+		Position            string    `json:"position"`
+		SiteID              uuid.UUID `json:"site_id"`
+		Role                string    `json:"role"`
+		Password            string    `json:"password"`
+		AutoGenerate        bool      `json:"auto_generate"`
+		ForcePasswordChange bool      `json:"force_password_change"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -348,8 +348,8 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
 				if t.Code == resolvedRole {
-				if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, user.IAMSub, orgID, t.Code); err != nil {
-					log.Printf("[CreateUser] AssignRoleTemplateToUserWithToken failed for user %s code %s: %v", user.IAMSub, resolvedRole, err)
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, user.IAMSub, orgID, t.Code); err != nil {
+						log.Printf("[CreateUser] AssignRoleTemplateToUserWithToken failed for user %s code %s: %v", user.IAMSub, resolvedRole, err)
 					}
 					break
 				}
@@ -629,9 +629,9 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 					newOrgID = tenantID
 				}
 
-			if existingUser.OrgID != "" {
-				oldOrgID = existingUser.OrgID
-			}
+				if existingUser.OrgID != "" {
+					oldOrgID = existingUser.OrgID
+				}
 
 				if existingUser.IAMSub != "" {
 					oldUnbound := false
@@ -702,55 +702,55 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	if err := db.Where("iam_sub = ? AND deleted_at IS NULL", userID).First(&user).Error; err != nil {
 		// Fallback: try querying by local id (for users whose iam_sub doesn't match JWT sub)
 		if err2 := db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error; err2 != nil {
-		result := gin.H{
-			"id":            userID,
-			"role":          middleware.GetRole(ctx),
-			"business_role": middleware.GetBusinessRole(ctx),
-			"gid":           middleware.GetGid(ctx),
-			"sys_perm":      middleware.GetSysPerm(ctx),
-			"cus_perm":      middleware.GetCusPerm(ctx),
-			"cus_perm_ext":  middleware.GetCusPermExt(ctx),
-			"site_id":       nil,
-		}
-		if orgID := middleware.GetOrgID(ctx); orgID != "" {
-			var site models.Site
-			if err := db.Where("org_id = ? AND status = ?", orgID, "active").First(&site).Error; err == nil {
-				result["site_id"] = site.ID
-				result["site_name"] = site.Name
+			result := gin.H{
+				"id":            userID,
+				"role":          middleware.GetRole(ctx),
+				"business_role": middleware.GetBusinessRole(ctx),
+				"gid":           middleware.GetGid(ctx),
+				"sys_perm":      middleware.GetSysPerm(ctx),
+				"cus_perm":      middleware.GetCusPerm(ctx),
+				"cus_perm_ext":  middleware.GetCusPermExt(ctx),
+				"site_id":       nil,
 			}
+			if orgID := middleware.GetOrgID(ctx); orgID != "" {
+				var site models.Site
+				if err := db.Where("org_id = ? AND status = ?", orgID, "active").First(&site).Error; err == nil {
+					result["site_id"] = site.ID
+					result["site_name"] = site.Name
+				}
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"code":    20000,
+				"message": "success",
+				"data":    result,
+			})
+			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"code":    20000,
-			"message": "success",
-			"data":    result,
-		})
-		return
-	}
 	}
 
 	result := gin.H{
-		"id":            user.ID,
-		"username":      user.Username,
-		"name":          user.Name,
-		"nickname":      user.Nickname,
-		"phone":         user.Phone,
-		"email":         user.Email,
-		"avatar":        user.AvatarURL,
-		"position":      user.Position,
+		"id":                    user.ID,
+		"username":              user.Username,
+		"name":                  user.Name,
+		"nickname":              user.Nickname,
+		"phone":                 user.Phone,
+		"email":                 user.Email,
+		"avatar":                user.AvatarURL,
+		"position":              user.Position,
 		"force_password_change": user.ForcePasswordChange,
-		"wx_openid":     user.WxOpenid,
-		"role":          middleware.GetRole(ctx),
-		"business_role": middleware.GetBusinessRole(ctx),
-		"gid":           middleware.GetGid(ctx),
-		"sys_perm":      middleware.GetSysPerm(ctx),
-		"cus_perm":      middleware.GetCusPerm(ctx),
-		"cus_perm_ext":  middleware.GetCusPermExt(ctx),
-		"site_id":              nil,
-		"membership_level_id":  user.MembershipLevelID,
-		"total_spending":       user.TotalSpending,
-		"promo_points":         user.PromoPoints,
-		"id_photo_front":       h.resolveIdPhotoURL(ctx, user.IdPhotoFront),
-		"id_photo_back":        h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
+		"wx_openid":             user.WxOpenid,
+		"role":                  middleware.GetRole(ctx),
+		"business_role":         middleware.GetBusinessRole(ctx),
+		"gid":                   middleware.GetGid(ctx),
+		"sys_perm":              middleware.GetSysPerm(ctx),
+		"cus_perm":              middleware.GetCusPerm(ctx),
+		"cus_perm_ext":          middleware.GetCusPermExt(ctx),
+		"site_id":               nil,
+		"membership_level_id":   user.MembershipLevelID,
+		"total_spending":        user.TotalSpending,
+		"promo_points":          user.PromoPoints,
+		"id_photo_front":        h.resolveIdPhotoURL(ctx, user.IdPhotoFront),
+		"id_photo_back":         h.resolveIdPhotoURL(ctx, user.IdPhotoBack),
 	}
 
 	// Resolve membership level name
@@ -766,9 +766,18 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	if user.IsShadow {
 		if iamUser, err := iamClient.GetUser(user.IAMSub); err == nil && iamUser != nil {
 			updates := map[string]interface{}{}
-			if iamUser.Name != "" { updates["name"] = iamUser.Name; result["name"] = iamUser.Name }
-			if iamUser.Email != "" { updates["email"] = iamUser.Email; result["email"] = iamUser.Email }
-			if iamUser.Phone != "" { updates["phone"] = iamUser.Phone; result["phone"] = iamUser.Phone }
+			if iamUser.Name != "" {
+				updates["name"] = iamUser.Name
+				result["name"] = iamUser.Name
+			}
+			if iamUser.Email != "" {
+				updates["email"] = iamUser.Email
+				result["email"] = iamUser.Email
+			}
+			if iamUser.Phone != "" {
+				updates["phone"] = iamUser.Phone
+				result["phone"] = iamUser.Phone
+			}
 			if len(updates) > 0 {
 				updates["is_shadow"] = false
 				db.Model(&user).Updates(updates)
@@ -777,7 +786,10 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	}
 
 	// Load user's primary site from site_members
-	var memberSite struct{ SiteID string; SiteName string }
+	var memberSite struct {
+		SiteID   string
+		SiteName string
+	}
 	if err := db.Table("site_members").
 		Select("site_members.site_id, sites.name as site_name").
 		Joins("JOIN sites ON sites.id = site_members.site_id").
@@ -814,7 +826,8 @@ func (h *UserStaffHandler) resolveIdPhotoURL(ctx context.Context, key *string) s
 }
 
 // ResendEmailConfirmation POST /api/users/me/resend-email-confirmation
-func (h *UserStaffHandler) ResendEmailConfirmation(c *gin.Context) {	ctx := c.Request.Context()
+func (h *UserStaffHandler) ResendEmailConfirmation(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
 
 	iamClient := services.NewIAMClient()
@@ -837,13 +850,13 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
-		Name           string  `json:"name"`
-		Nickname       string  `json:"nickname"`
-		Phone          string  `json:"phone"`
-		Email          string  `json:"email"`
-		Password       string  `json:"password"`
-		IdPhotoFront   *string `json:"id_photo_front"`
-		IdPhotoBack    *string `json:"id_photo_back"`
+		Name         string  `json:"name"`
+		Nickname     string  `json:"nickname"`
+		Phone        string  `json:"phone"`
+		Email        string  `json:"email"`
+		Password     string  `json:"password"`
+		IdPhotoFront *string `json:"id_photo_front"`
+		IdPhotoBack  *string `json:"id_photo_back"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
@@ -1209,9 +1222,9 @@ func generatePassword() string {
 }
 
 var (
-	reUpper   = regexp.MustCompile(`[A-Z]`)
-	reLower   = regexp.MustCompile(`[a-z]`)
-	reDigit   = regexp.MustCompile(`[0-9]`)
+	reUpper = regexp.MustCompile(`[A-Z]`)
+	reLower = regexp.MustCompile(`[a-z]`)
+	reDigit = regexp.MustCompile(`[0-9]`)
 )
 
 func validatePassword(password string) error {

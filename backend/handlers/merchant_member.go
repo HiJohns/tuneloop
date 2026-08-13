@@ -130,14 +130,14 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				nuUsername = nu.Email
 			}
 			createReq := &services.CreateUserRequest{
-				Username:         nuUsername,
-				Name:             nu.Name,
-				Email:            nu.Email,
-				Phone:            nu.Phone,
-				Reason:           "商户成员 - " + merchant.Name,
-				OperatorID:       operatorID,
-				SkipActivation:   input.SkipActivation,
-				Password:         generatePassword(),
+				Username:              nuUsername,
+				Name:                  nu.Name,
+				Email:                 nu.Email,
+				Phone:                 nu.Phone,
+				Reason:                "商户成员 - " + merchant.Name,
+				OperatorID:            operatorID,
+				SkipActivation:        input.SkipActivation,
+				Password:              generatePassword(),
 				SendNotificationEmail: input.SkipActivation,
 			}
 			if input.SkipActivation {
@@ -354,8 +354,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 	}
 
 	responseData := gin.H{
-		"merchant_id":     merchantID,
-		"directly_added":  directlyAdded,
+		"merchant_id":    merchantID,
+		"directly_added": directlyAdded,
 	}
 	if len(bindErrors) > 0 {
 		responseData["bind_errors"] = bindErrors

@@ -69,11 +69,11 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 
 	// Support both old and new request format
 	var input struct {
-		UserID        string                   `json:"user_id"` // Old format (backward compatibility)
-		Role          string                   `json:"role" default:"Staff"`
-		UserIDs       []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
-		SkipActivation bool                    `json:"skip_activation"`
-		NewUsers      []struct {
+		UserID         string                   `json:"user_id"` // Old format (backward compatibility)
+		Role           string                   `json:"role" default:"Staff"`
+		UserIDs        []map[string]interface{} `json:"user_ids"` // New format: array of {user_id, role}
+		SkipActivation bool                     `json:"skip_activation"`
+		NewUsers       []struct {
 			Username string `json:"username"`
 			Name     string `json:"name"`
 			Email    string `json:"email"`
@@ -139,12 +139,12 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 				nuUsername = nu.Email
 			}
 			createReq := &services.CreateUserRequest{
-				Username:    nuUsername,
-				Name:        nu.Name,
-				Email:       nu.Email,
-				Phone:       nu.Phone,
-				Reason:      "网点成员 - " + site.Name,
-				OperatorID:  operatorID,
+				Username:       nuUsername,
+				Name:           nu.Name,
+				Email:          nu.Email,
+				Phone:          nu.Phone,
+				Reason:         "网点成员 - " + site.Name,
+				OperatorID:     operatorID,
 				SkipActivation: input.SkipActivation,
 			}
 			// Always generate password (IAM requires it), conditionally show to user
@@ -323,15 +323,15 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 				for _, t := range templates {
 					if t.Code == templateCode {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, site.OrgID, t.Code); err != nil {
-						log.Printf("[AddMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
-						roleErrors = append(roleErrors, gin.H{
-							"user_id":       userID,
-							"template_code": templateCode,
-							"error":         err.Error(),
-						})
-					}
-					break
+						if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, site.OrgID, t.Code); err != nil {
+							log.Printf("[AddMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
+							roleErrors = append(roleErrors, gin.H{
+								"user_id":       userID,
+								"template_code": templateCode,
+								"error":         err.Error(),
+							})
+						}
+						break
 					}
 				}
 			} else {
@@ -443,8 +443,8 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 			if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 				for _, t := range templates {
 					if t.Code == templateCode {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.Code); err != nil {
-						log.Printf("[UpdateMemberRole] AssignRoleTemplate failed: %v", err)
+						if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, site.OrgID, t.Code); err != nil {
+							log.Printf("[UpdateMemberRole] AssignRoleTemplate failed: %v", err)
 						}
 						break
 					}

@@ -101,11 +101,21 @@ func UpdatePromoPlan(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	updates := map[string]interface{}{}
-	if req.Name != nil { updates["name"] = *req.Name }
-	if req.StartDate != nil { updates["start_date"] = *req.StartDate }
-	if req.EndDate != nil { updates["end_date"] = *req.EndDate }
-	if req.Stackable != nil { updates["stackable"] = *req.Stackable }
-	if req.IsActive != nil { updates["is_active"] = *req.IsActive }
+	if req.Name != nil {
+		updates["name"] = *req.Name
+	}
+	if req.StartDate != nil {
+		updates["start_date"] = *req.StartDate
+	}
+	if req.EndDate != nil {
+		updates["end_date"] = *req.EndDate
+	}
+	if req.Stackable != nil {
+		updates["stackable"] = *req.Stackable
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
 	if err := db.Model(&models.PromoPlan{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return
@@ -168,11 +178,11 @@ func UpdatePromoPlanDetails(c *gin.Context) {
 	tx.Where("promo_plan_id = ?", planID).Delete(&models.PromoPlanDetail{})
 	for _, d := range req.Details {
 		detail := models.PromoPlanDetail{
-			PromoPlanID:      planID,
-			LevelID:          d.LevelID,
-			RentDiscount:     *d.RentDiscount,
-			DepositDiscount:  *d.DepositDiscount,
-			OverdueDiscount:  *d.OverdueDiscount,
+			PromoPlanID:     planID,
+			LevelID:         d.LevelID,
+			RentDiscount:    *d.RentDiscount,
+			DepositDiscount: *d.DepositDiscount,
+			OverdueDiscount: *d.OverdueDiscount,
 		}
 		if err := tx.Create(&detail).Error; err != nil {
 			tx.Rollback()

@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
-	"gorm.io/gorm"
 )
 
 // TestRefundDiff_PointsOverCap: A1 < A0 → refund (A0−A1) gift points,
@@ -36,15 +36,15 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:    uuid.New().String(),
-		StartDate:       strPtr("2026-07-01"),
-		EndDate:         strPtr("2026-07-30"),
-		LeaseTerm:       30,
-		Status:          models.OrderStatusReturned,
-		ReturnedAt:      &returnedAt,
-		Deposit:         500,
-		CashPaid:        2000,
-		GiftPointsUsed:  1000,
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-07-01"),
+		EndDate:          strPtr("2026-07-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusReturned,
+		ReturnedAt:       &returnedAt,
+		Deposit:          500,
+		CashPaid:         2000,
+		GiftPointsUsed:   1000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -90,15 +90,15 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:    uuid.New().String(),
-		StartDate:       strPtr("2026-07-01"),
-		EndDate:         strPtr("2026-07-30"),
-		LeaseTerm:       30,
-		Status:          models.OrderStatusReturned,
-		ReturnedAt:      &returnedAt,
-		Deposit:         500,
-		CashPaid:        2500,
-		GiftPointsUsed:  500,
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-07-01"),
+		EndDate:          strPtr("2026-07-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusReturned,
+		ReturnedAt:       &returnedAt,
+		Deposit:          500,
+		CashPaid:         2500,
+		GiftPointsUsed:   500,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -136,15 +136,15 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:    uuid.New().String(),
-		StartDate:       strPtr("2026-07-01"),
-		EndDate:         strPtr("2026-07-30"),
-		LeaseTerm:       30,
-		Status:          models.OrderStatusReturned,
-		ReturnedAt:      &returnedAt,
-		Deposit:         500,
-		CashPaid:        2000,
-		GiftPointsUsed:  1000,
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-07-01"),
+		EndDate:          strPtr("2026-07-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusReturned,
+		ReturnedAt:       &returnedAt,
+		Deposit:          500,
+		CashPaid:         2000,
+		GiftPointsUsed:   1000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -180,15 +180,15 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:    uuid.New().String(),
-		StartDate:       strPtr("2026-07-01"),
-		EndDate:         strPtr("2026-07-30"),
-		LeaseTerm:       30,
-		Status:          models.OrderStatusCompleted,
-		ReturnedAt:      &returnedAt,
-		Deposit:         500,
-		CashPaid:        2000,
-		GiftPointsUsed:  1000,
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-07-01"),
+		EndDate:          strPtr("2026-07-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusCompleted,
+		ReturnedAt:       &returnedAt,
+		Deposit:          500,
+		CashPaid:         2000,
+		GiftPointsUsed:   1000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -226,15 +226,15 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:    uuid.New().String(),
-		StartDate:       strPtr("2026-07-01"),
-		EndDate:         strPtr("2026-07-30"),
-		LeaseTerm:       30,
-		Status:          models.OrderStatusDepositRefunding,
-		ReturnedAt:      &returnedAt,
-		Deposit:         500,
-		CashPaid:        2000,
-		GiftPointsUsed:  1000,
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-07-01"),
+		EndDate:          strPtr("2026-07-30"),
+		LeaseTerm:        30,
+		Status:           models.OrderStatusDepositRefunding,
+		ReturnedAt:       &returnedAt,
+		Deposit:          500,
+		CashPaid:         2000,
+		GiftPointsUsed:   1000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -267,11 +267,11 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 	}).Error)
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
-		InstrumentID:    uuid.New().String(),
-		Status:          models.OrderStatusPaid,
-		Deposit:         500,
-		CashPaid:        3000, // full total at creation
-		GiftPointsUsed:  0,
+		InstrumentID:     uuid.New().String(),
+		Status:           models.OrderStatusPaid,
+		Deposit:          500,
+		CashPaid:         3000, // full total at creation
+		GiftPointsUsed:   0,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

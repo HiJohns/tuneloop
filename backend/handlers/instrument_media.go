@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"image"
 	"image/jpeg"
 	"io"
@@ -19,7 +20,6 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
-	"github.com/disintegration/imaging"
 
 	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"

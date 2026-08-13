@@ -29,8 +29,8 @@ type PaymentCalculateResponse struct {
 }
 
 type WalletInfo struct {
-	PromoPoints  float64 `json:"promo_points"`
-	MaxGiftRatio float64 `json:"max_gift_ratio"`
+	PromoPoints   float64 `json:"promo_points"`
+	MaxGiftRatio  float64 `json:"max_gift_ratio"`
 	MaxGiftAmount float64 `json:"max_gift_amount"`
 }
 
@@ -101,8 +101,8 @@ func getWalletInfo(db *gorm.DB, userID, tenantID string, amount float64) (*Walle
 	}
 
 	return &WalletInfo{
-		PromoPoints:  user.PromoPoints,
-		MaxGiftRatio: maxGiftRatio,
+		PromoPoints:   user.PromoPoints,
+		MaxGiftRatio:  maxGiftRatio,
 		MaxGiftAmount: math.Floor(amount * maxGiftRatio * 100 / 100),
 	}, nil
 }
@@ -218,14 +218,14 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 	resp.Amount = payAmount
 	resp.Details = map[string]interface{}{
 		"paid_breakdown": map[string]float64{
-			"rent_subtotal":  rentSubtotal,
-			"deposit":        order.Deposit,
-			"shipping_fee":   order.ShippingFee,
-			"paid_total":     rentSubtotal + order.Deposit + order.ShippingFee,
+			"rent_subtotal": rentSubtotal,
+			"deposit":       order.Deposit,
+			"shipping_fee":  order.ShippingFee,
+			"paid_total":    rentSubtotal + order.Deposit + order.ShippingFee,
 		},
-		"damage_amount":    damageAmount,
+		"damage_amount":     damageAmount,
 		"deposit_deduction": math.Min(order.Deposit, damageAmount),
-		"pay_amount":       payAmount,
+		"pay_amount":        payAmount,
 	}
 }
 
@@ -272,15 +272,15 @@ func loadCancelledOrderRefund(db *gorm.DB, id string, resp *PaymentCalculateResp
 	resp.Title = "取消订单退款"
 	resp.Amount = total
 	resp.Details = map[string]interface{}{
-		"total_paid":        total,
-		"cash_paid":         order.CashPaid,
-		"prepaid_used":      order.PrepaidPointsUsed,
-		"gift_used":         order.GiftPointsUsed,
-		"total_refund":      total,
-		"cash_refundable":   order.CashPaid,
-		"prepaid_refunded":  order.PrepaidPointsUsed,
-		"gift_refunded":     order.GiftPointsUsed,
-		"cancel_refund":     true,
+		"total_paid":       total,
+		"cash_paid":        order.CashPaid,
+		"prepaid_used":     order.PrepaidPointsUsed,
+		"gift_used":        order.GiftPointsUsed,
+		"total_refund":     total,
+		"cash_refundable":  order.CashPaid,
+		"prepaid_refunded": order.PrepaidPointsUsed,
+		"gift_refunded":    order.GiftPointsUsed,
+		"cancel_refund":    true,
 	}
 }
 

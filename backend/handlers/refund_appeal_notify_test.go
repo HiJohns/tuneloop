@@ -155,17 +155,17 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 	start := "2026-08-01"
 	end := "2026-08-30"
 	order := models.Order{
-		ID:           uuid.New().String(),
-		TenantID:     tenantID,
-		OrgID:        orgID,
-		UserID:       userID,
-		InstrumentID: instrument.ID,
-		Status:       models.OrderStatusReturning,
-		StartDate:    &start,
-		EndDate:      &end,
-		LeaseTerm:    30,
-		Deposit:      500,
-		CashPaid:     3500,
+		ID:               uuid.New().String(),
+		TenantID:         tenantID,
+		OrgID:            orgID,
+		UserID:           userID,
+		InstrumentID:     instrument.ID,
+		Status:           models.OrderStatusReturning,
+		StartDate:        &start,
+		EndDate:          &end,
+		LeaseTerm:        30,
+		Deposit:          500,
+		CashPaid:         3500,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -228,14 +228,14 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	userID := uuid.New().String()
 
 	order := models.Order{
-		ID:          uuid.New().String(),
-		TenantID:    tenantID,
-		OrgID:       uuid.New().String(),
-		UserID:      userID,
-		InstrumentID: uuid.New().String(),
-		Deposit:     500,
-		CashPaid:    3500,
-		ShippingFee: 50,
+		ID:             uuid.New().String(),
+		TenantID:       tenantID,
+		OrgID:          uuid.New().String(),
+		UserID:         userID,
+		InstrumentID:   uuid.New().String(),
+		Deposit:        500,
+		CashPaid:       3500,
+		ShippingFee:    50,
 		GiftPointsUsed: 100,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -252,14 +252,14 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	}).Error)
 
 	s := &settlementResult{
-		RentPayable:           3000,
-		TotalRentPaid:         3000,
-		RemainingDeposit:      500,
-		DamageDeducted:        100,
-		OverdueChargesTotal:   30,
-		TotalRefund:           400,
-		CashRefundable:        400,
-		ActualDays:            30,
+		RentPayable:         3000,
+		TotalRentPaid:       3000,
+		RemainingDeposit:    500,
+		DamageDeducted:      100,
+		OverdueChargesTotal: 30,
+		TotalRefund:         400,
+		CashRefundable:      400,
+		ActualDays:          30,
 	}
 	receipt := buildRefundReceipt(db, order, s)
 
@@ -405,17 +405,17 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 	start := "2026-08-01"
 	end := "2026-08-30"
 	order := models.Order{
-		ID:           uuid.New().String(),
-		TenantID:     tenantID,
-		OrgID:        orgID,
-		UserID:       userID,
-		InstrumentID: instrument.ID,
-		Status:       models.OrderStatusDamageAppealing,
-		StartDate:    &start,
-		EndDate:      &end,
-		LeaseTerm:    30,
-		Deposit:      500,
-		CashPaid:     3500,
+		ID:               uuid.New().String(),
+		TenantID:         tenantID,
+		OrgID:            orgID,
+		UserID:           userID,
+		InstrumentID:     instrument.ID,
+		Status:           models.OrderStatusDamageAppealing,
+		StartDate:        &start,
+		EndDate:          &end,
+		LeaseTerm:        30,
+		Deposit:          500,
+		CashPaid:         3500,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

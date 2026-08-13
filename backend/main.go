@@ -161,8 +161,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 					"iamClientId":    iamWXClientID,
 					"iamRedirectUri": iamWXRedirectURI,
 				},
-				"appName": "TuneLoop",
-				"version": Version,
+				"appName":    "TuneLoop",
+				"version":    Version,
 				"debug_mode": os.Getenv("DEBUG_MODE") == "true",
 			},
 		})

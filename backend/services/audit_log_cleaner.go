@@ -17,8 +17,8 @@ type AuditLogCleaner struct {
 
 func NewAuditLogCleaner() *AuditLogCleaner {
 	return &AuditLogCleaner{
-		db:     database.GetDB(),
-		done:   make(chan bool),
+		db:   database.GetDB(),
+		done: make(chan bool),
 	}
 }
 

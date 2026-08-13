@@ -24,11 +24,11 @@ type activityEvent struct {
 }
 
 type activitySession struct {
-	OrderID   string           `json:"order_id"`
-	Status    string           `json:"status"`
-	StartDate string           `json:"start_date"`
-	EndDate   string           `json:"end_date"`
-	Events    []activityEvent  `json:"events"`
+	OrderID   string          `json:"order_id"`
+	Status    string          `json:"status"`
+	StartDate string          `json:"start_date"`
+	EndDate   string          `json:"end_date"`
+	Events    []activityEvent `json:"events"`
 }
 
 // statusToBatchType maps order status transitions to their relevant batch_type.

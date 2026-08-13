@@ -243,7 +243,10 @@ func (h *MaintenanceSessionHandler) Inspect(c *gin.Context) {
 
 	// Auto-update order and instrument status on passed inspection
 	if req.Result == "passed" {
-		var ticket struct{ OrderID string; InstrumentID string }
+		var ticket struct {
+			OrderID      string
+			InstrumentID string
+		}
 		if err := db.Table("maintenance_tickets").Select("order_id, instrument_id").Where("id = ?", session.MaintenanceTicketID).First(&ticket).Error; err == nil {
 			if ticket.OrderID != "" {
 				db.Model(&models.Order{}).Where("id = ?", ticket.OrderID).Update("status", models.OrderStatusCompleted)
@@ -326,18 +329,18 @@ func (h *MaintenanceSessionHandler) ListSessions(c *gin.Context) {
 	result := make([]gin.H, len(sessions))
 	for i, session := range sessions {
 		item := gin.H{
-			"id":                     session.ID,
-			"maintenance_ticket_id":  session.MaintenanceTicketID,
-			"worker_id":              session.WorkerID,
-			"status":                 session.Status,
-			"start_time":             session.StartTime,
-			"end_time":               session.EndTime,
-			"progress_notes":         session.ProgressNotes,
-			"completion_notes":       session.CompletionNotes,
-			"inspection_result":      session.InspectionResult,
-			"inspection_comment":     session.InspectionComment,
-			"created_at":             session.CreatedAt,
-			"updated_at":             session.UpdatedAt,
+			"id":                    session.ID,
+			"maintenance_ticket_id": session.MaintenanceTicketID,
+			"worker_id":             session.WorkerID,
+			"status":                session.Status,
+			"start_time":            session.StartTime,
+			"end_time":              session.EndTime,
+			"progress_notes":        session.ProgressNotes,
+			"completion_notes":      session.CompletionNotes,
+			"inspection_result":     session.InspectionResult,
+			"inspection_comment":    session.InspectionComment,
+			"created_at":            session.CreatedAt,
+			"updated_at":            session.UpdatedAt,
 		}
 
 		result[i] = item
@@ -347,9 +350,9 @@ func (h *MaintenanceSessionHandler) ListSessions(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"list":  result,
-			"total": total,
-			"page":  page,
+			"list":      result,
+			"total":     total,
+			"page":      page,
 			"page_size": pageSize,
 		},
 	})
@@ -388,27 +391,27 @@ func (h *MaintenanceSessionHandler) GetSession(c *gin.Context) {
 	recordData := make([]gin.H, len(records))
 	for i, record := range records {
 		recordData[i] = gin.H{
-			"id":         record.ID,
+			"id":          record.ID,
 			"record_type": record.RecordType,
-			"content":    record.Content,
-			"created_at": record.CreatedAt,
+			"content":     record.Content,
+			"created_at":  record.CreatedAt,
 		}
 	}
 
 	result := gin.H{
 		"id":                    session.ID,
 		"maintenance_ticket_id": session.MaintenanceTicketID,
-		"worker_id":            session.WorkerID,
-		"status":               session.Status,
-		"start_time":           session.StartTime,
-		"end_time":             session.EndTime,
-		"progress_notes":       session.ProgressNotes,
-		"completion_notes":     session.CompletionNotes,
-		"inspection_result":    session.InspectionResult,
-		"inspection_comment":   session.InspectionComment,
-		"created_at":           session.CreatedAt,
-		"updated_at":           session.UpdatedAt,
-		"records":              recordData,
+		"worker_id":             session.WorkerID,
+		"status":                session.Status,
+		"start_time":            session.StartTime,
+		"end_time":              session.EndTime,
+		"progress_notes":        session.ProgressNotes,
+		"completion_notes":      session.CompletionNotes,
+		"inspection_result":     session.InspectionResult,
+		"inspection_comment":    session.InspectionComment,
+		"created_at":            session.CreatedAt,
+		"updated_at":            session.UpdatedAt,
+		"records":               recordData,
 	}
 
 	c.JSON(http.StatusOK, gin.H{

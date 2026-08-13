@@ -151,8 +151,8 @@ func (h *RepairHandler) AcceptRepair(c *gin.Context) {
 	}
 
 	if err := db.Model(&inst).Updates(map[string]interface{}{
-		"stock_status":    "available",
-		"repair_status":   nil,
+		"stock_status":     "available",
+		"repair_status":    nil,
 		"repair_worker_id": nil,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to accept repair"})

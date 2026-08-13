@@ -37,9 +37,9 @@ func TestOrgManagement(t *testing.T) {
 			// POST /api/v1/namespaces/{ns}/organizations → org_id
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"code":    20000,
-				"message": "success",
-				"org_id":  "11111111-1111-4111-8111-111111111111",
+				"code":     20000,
+				"message":  "success",
+				"org_id":   "11111111-1111-4111-8111-111111111111",
 				"admin_id": "22222222-2222-4222-8222-222222222222",
 			})
 		},
@@ -83,7 +83,7 @@ func TestOrgManagement(t *testing.T) {
 	var createResp struct {
 		Code int `json:"code"`
 		Data struct {
-			ID string `json:"id"`
+			ID   string `json:"id"`
 			Site struct {
 				ID string `json:"id"`
 			} `json:"site"`

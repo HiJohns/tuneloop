@@ -78,7 +78,7 @@ func (h *AssessmentHandler) GetAssessmentData(c *gin.Context) {
 				"photos": outboundPhotos,
 			},
 			"return_condition": gin.H{
-				"photos":      returnPhotos,
+				"photos":       returnPhotos,
 				"damage_level": damageLevel,
 			},
 			"assessment_status": "pending",

@@ -25,13 +25,13 @@ func newRealClient(cfg *Config) Client {
 // ---- JSAPI ----
 
 type jsapiReq struct {
-	AppID       string       `json:"appid"`
-	MchID       string       `json:"mchid"`
-	Description string       `json:"description"`
-	OutTradeNo  string       `json:"out_trade_no"`
-	NotifyURL   string       `json:"notify_url"`
-	Amount      amountReq    `json:"amount"`
-	Payer       jsapiPayer   `json:"payer"`
+	AppID       string     `json:"appid"`
+	MchID       string     `json:"mchid"`
+	Description string     `json:"description"`
+	OutTradeNo  string     `json:"out_trade_no"`
+	NotifyURL   string     `json:"notify_url"`
+	Amount      amountReq  `json:"amount"`
+	Payer       jsapiPayer `json:"payer"`
 }
 
 type amountReq struct {
@@ -184,18 +184,18 @@ func (c *realClient) CloseOrder(ctx context.Context, outTradeNo string) error {
 // ---- Refund ----
 
 type refundReq struct {
-	OutTradeNo  string    `json:"out_trade_no,omitempty"`
-	TransactionID string  `json:"transaction_id,omitempty"`
-	OutRefundNo string    `json:"out_refund_no"`
-	Reason      string    `json:"reason,omitempty"`
-	NotifyURL   string    `json:"notify_url,omitempty"`
-	Amount      refundAmt `json:"amount"`
+	OutTradeNo    string    `json:"out_trade_no,omitempty"`
+	TransactionID string    `json:"transaction_id,omitempty"`
+	OutRefundNo   string    `json:"out_refund_no"`
+	Reason        string    `json:"reason,omitempty"`
+	NotifyURL     string    `json:"notify_url,omitempty"`
+	Amount        refundAmt `json:"amount"`
 }
 
 type refundAmt struct {
-	Refund    int64  `json:"refund"`
-	Total     int64  `json:"total"`
-	Currency  string `json:"currency"`
+	Refund   int64  `json:"refund"`
+	Total    int64  `json:"total"`
+	Currency string `json:"currency"`
 }
 
 type refundResp struct {
@@ -232,11 +232,11 @@ func (c *realClient) QueryRefund(ctx context.Context, outRefundNo string) (*Refu
 // ---- VerifyPaymentCallback ----
 
 type callbackNotify struct {
-	ID           string    `json:"id"`
-	CreateTime   string    `json:"create_time"`
-	ResourceType string    `json:"resource_type"`
-	EventType    string    `json:"event_type"`
-	Summary      string    `json:"summary"`
+	ID           string           `json:"id"`
+	CreateTime   string           `json:"create_time"`
+	ResourceType string           `json:"resource_type"`
+	EventType    string           `json:"event_type"`
+	Summary      string           `json:"summary"`
 	Resource     callbackResource `json:"resource"`
 }
 
@@ -258,11 +258,11 @@ type transactionResult struct {
 }
 
 type refundCallbackResult struct {
-	OutTradeNo  string `json:"out_trade_no"`
-	OutRefundNo string `json:"out_refund_no"`
-	RefundID    string `json:"refund_id"`
+	OutTradeNo   string `json:"out_trade_no"`
+	OutRefundNo  string `json:"out_refund_no"`
+	RefundID     string `json:"refund_id"`
 	RefundStatus string `json:"refund_status"`
-	Amount      struct {
+	Amount       struct {
 		Total int64 `json:"total"`
 	} `json:"amount"`
 }

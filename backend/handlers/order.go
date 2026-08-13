@@ -354,41 +354,41 @@ func GetOrder(c *gin.Context) {
 	}
 
 	orderData := map[string]interface{}{
-		"id":                    order.ID,
-		"tenant_id":             order.TenantID,
-		"user_id":               order.UserID,
-		"user_name":             userName,
-		"user_email":            userEmail,
-		"user_phone":            userPhone,
-		"instrument_id":         order.InstrumentID,
-		"instrument_name":       instrumentName,
-		"instrument_category":   instrumentCategory,
-		"instrument_sn":         instrumentSN,
-		"level":                 order.Level,
-		"lease_term":            order.LeaseTerm,
-		"deposit_mode":          order.DepositMode,
-		"deposit":               order.Deposit,
-		"deposit_waived":        order.DepositWaived,
-		"guarantors":            guarantors,
-		"shipping_fee":          order.ShippingFee,
-		"accumulated_months":    order.AccumulatedMonths,
-		"status":                order.Status,
-		"start_date":            order.StartDate,
-		"end_date":              order.EndDate,
-		"tracking_number":       order.TrackingNumber,
-		"courier_company":       order.CourierCompany,
-		"shipped_at":            order.ShippedAt,
-		"delivered_at":          order.DeliveredAt,
-		"returned_at":           order.ReturnedAt,
-		"delivery_address":      deliveryAddress,
-		"created_at":            order.CreatedAt,
-		"updated_at":            order.UpdatedAt,
-		"paid_at":               paidAt,
-		"pricing_breakdown":     pricingBreakdownData,
-		"settlement":            settlementData,
-		"order_logs":            orderLogs,
-		"payment_records":       paymentEntries,
-		"refund_records":        refundEntries,
+		"id":                  order.ID,
+		"tenant_id":           order.TenantID,
+		"user_id":             order.UserID,
+		"user_name":           userName,
+		"user_email":          userEmail,
+		"user_phone":          userPhone,
+		"instrument_id":       order.InstrumentID,
+		"instrument_name":     instrumentName,
+		"instrument_category": instrumentCategory,
+		"instrument_sn":       instrumentSN,
+		"level":               order.Level,
+		"lease_term":          order.LeaseTerm,
+		"deposit_mode":        order.DepositMode,
+		"deposit":             order.Deposit,
+		"deposit_waived":      order.DepositWaived,
+		"guarantors":          guarantors,
+		"shipping_fee":        order.ShippingFee,
+		"accumulated_months":  order.AccumulatedMonths,
+		"status":              order.Status,
+		"start_date":          order.StartDate,
+		"end_date":            order.EndDate,
+		"tracking_number":     order.TrackingNumber,
+		"courier_company":     order.CourierCompany,
+		"shipped_at":          order.ShippedAt,
+		"delivered_at":        order.DeliveredAt,
+		"returned_at":         order.ReturnedAt,
+		"delivery_address":    deliveryAddress,
+		"created_at":          order.CreatedAt,
+		"updated_at":          order.UpdatedAt,
+		"paid_at":             paidAt,
+		"pricing_breakdown":   pricingBreakdownData,
+		"settlement":          settlementData,
+		"order_logs":          orderLogs,
+		"payment_records":     paymentEntries,
+		"refund_records":      refundEntries,
 	}
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
@@ -708,7 +708,8 @@ func ReturnOrder(c *gin.Context) {
 // CancelOrder cancels an order (pending -> cancelled)
 func CancelOrder(c *gin.Context) {
 	orderID := c.Param("id")
-	if orderID == "" {		c.JSON(http.StatusBadRequest, gin.H{
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "order_id is required",
 		})
@@ -874,7 +875,7 @@ func CancelOrderByCustomer(c *gin.Context) {
 			refundStatus = refundRecord.Status
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"code":    20000,
+			"code": 20000,
 			"data": gin.H{
 				"order_id":      orderID,
 				"old_status":    oldStatus,
@@ -882,14 +883,14 @@ func CancelOrderByCustomer(c *gin.Context) {
 				"refund_amount": refundAmount,
 				"refund_status": refundStatus,
 				"breakdown": gin.H{
-					"total_paid":    order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-					"cash_paid":     order.CashPaid,
-					"prepaid_used":  order.PrepaidPointsUsed,
-					"gift_used":     order.GiftPointsUsed,
-					"total_refund":  order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-					"cash_refund":   order.CashPaid,
+					"total_paid":     order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
+					"cash_paid":      order.CashPaid,
+					"prepaid_used":   order.PrepaidPointsUsed,
+					"gift_used":      order.GiftPointsUsed,
+					"total_refund":   order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
+					"cash_refund":    order.CashPaid,
 					"prepaid_refund": order.PrepaidPointsUsed,
-					"gift_refund":   order.GiftPointsUsed,
+					"gift_refund":    order.GiftPointsUsed,
 				},
 			},
 		})
@@ -1075,13 +1076,13 @@ func GetOrderByInstrumentSN(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"order_id":       order.ID,
-			"order_status":   order.Status,
-			"instrument_id":  instrument.ID,
-			"instrument_sn":  sn,
-			"start_date":     order.StartDate,
-			"end_date":       order.EndDate,
-			"deposit":        order.Deposit,
+			"order_id":      order.ID,
+			"order_status":  order.Status,
+			"instrument_id": instrument.ID,
+			"instrument_sn": sn,
+			"start_date":    order.StartDate,
+			"end_date":      order.EndDate,
+			"deposit":       order.Deposit,
 		},
 	})
 }
@@ -1385,4 +1386,3 @@ func GetOrdersByOutTradeNo(c *gin.Context) {
 		"orders": orders,
 	}})
 }
-

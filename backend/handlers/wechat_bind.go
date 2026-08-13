@@ -140,7 +140,7 @@ func (h *WechatBindHandler) PollBindToken(c *gin.Context) {
 // ConfirmBind completes the binding (WeChat MP side).
 func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	var req struct {
-		Token   string `json:"token" binding:"required"`
+		Token    string `json:"token" binding:"required"`
 		WxOpenid string `json:"wx_openid" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -155,7 +155,12 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	entry, exists := bindTokens[req.Token]
 	if !exists || entry.Status != "pending" {
 		bindTokensMu.Unlock()
-		log.Printf("[ConfirmBind] token not found or used: exists=%v status=%q", exists, func() string { if exists { return entry.Status } ; return "n/a" }())
+		log.Printf("[ConfirmBind] token not found or used: exists=%v status=%q", exists, func() string {
+			if exists {
+				return entry.Status
+			}
+			return "n/a"
+		}())
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40004, "message": "invalid or expired token"})
 		return
 	}

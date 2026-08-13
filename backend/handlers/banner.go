@@ -325,30 +325,48 @@ func FixEXIFFile(path string) error {
 		return nil
 	}
 	f, err := os.Open(path)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	orient := readEXIFOrientation(f)
 	f.Close()
-	if orient == 0 || orient == 1 { return nil }
+	if orient == 0 || orient == 1 {
+		return nil
+	}
 	img, err := imaging.Open(path)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	switch orient {
-	case 3:  img = imaging.Rotate180(img)
-	case 6:  img = imaging.Rotate270(img) // CW 90°
-	case 8:  img = imaging.Rotate90(img)  // CCW 90°
-	default: return nil
+	case 3:
+		img = imaging.Rotate180(img)
+	case 6:
+		img = imaging.Rotate270(img) // CW 90°
+	case 8:
+		img = imaging.Rotate90(img) // CCW 90°
+	default:
+		return nil
 	}
 	return imaging.Save(img, path)
 }
 
 // readEXIFOrientation returns the EXIF Orientation value (0 if not found).
 func readEXIFOrientation(f *os.File) int {
-	if f == nil { return 0 }
+	if f == nil {
+		return 0
+	}
 	x, err := exif.Decode(f)
-	if err != nil { return 0 }
+	if err != nil {
+		return 0
+	}
 	tag, err := x.Get(exif.Orientation)
-	if err != nil { return 0 }
+	if err != nil {
+		return 0
+	}
 	val, err := tag.Int(0)
-	if err != nil { return 0 }
+	if err != nil {
+		return 0
+	}
 	return val
 }
 
@@ -356,15 +374,25 @@ func readEXIFOrientation(f *os.File) int {
 func RotateByEXIF(img image.Image, rawData []byte) image.Image {
 	r := bytes.NewReader(rawData)
 	x, err := exif.Decode(r)
-	if err != nil { return img }
+	if err != nil {
+		return img
+	}
 	tag, err := x.Get(exif.Orientation)
-	if err != nil { return img }
+	if err != nil {
+		return img
+	}
 	val, err := tag.Int(0)
-	if err != nil { return img }
+	if err != nil {
+		return img
+	}
 	switch val {
-	case 3:  return imaging.Rotate180(img)
-	case 6:  return imaging.Rotate270(img)
-	case 8:  return imaging.Rotate90(img)
-	default: return img
+	case 3:
+		return imaging.Rotate180(img)
+	case 6:
+		return imaging.Rotate270(img)
+	case 8:
+		return imaging.Rotate90(img)
+	default:
+		return img
 	}
 }

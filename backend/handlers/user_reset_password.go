@@ -108,7 +108,7 @@ func ResetPasswordSelf(c *gin.Context) {
 		"code":    20000,
 		"message": fmt.Sprintf("密码重置邮件已发送至 %s，请查收", emailMasked),
 		"data": gin.H{
-			"email_masked":      emailMasked,
+			"email_masked":       emailMasked,
 			"expires_in_minutes": 60,
 		},
 	})

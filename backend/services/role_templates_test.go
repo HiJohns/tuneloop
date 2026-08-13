@@ -6,8 +6,8 @@ import (
 
 func TestGetRoleTemplate(t *testing.T) {
 	tests := []struct {
-		code    string
-		wantOk  bool
+		code     string
+		wantOk   bool
 		wantName string
 	}{
 		{"namespace_admin", true, "命名空间管理员"},
@@ -101,7 +101,7 @@ func TestGetAllValidRoleTemplateCodes(t *testing.T) {
 func TestGetBusinessRole(t *testing.T) {
 	tests := []struct {
 		roleTemplate string
-		wantRole    string
+		wantRole     string
 	}{
 		{"site_admin", "organization_admin"},
 		{"merchant_admin", "tenant_admin"},

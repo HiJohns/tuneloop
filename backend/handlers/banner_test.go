@@ -87,8 +87,8 @@ func TestBanner_CRUD(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	var createResp struct {
-		Code    int            `json:"code"`
-		Message string         `json:"message"`
+		Code    int                    `json:"code"`
+		Message string                 `json:"message"`
 		Data    map[string]interface{} `json:"data"`
 	}
 	err := json.Unmarshal(w.Body.Bytes(), &createResp)

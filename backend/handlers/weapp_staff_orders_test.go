@@ -50,7 +50,7 @@ func staffOrdersSeed(t *testing.T, tenantID, orgID, userID string) (string, stri
 	order := models.Order{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
 		UserID: userID, InstrumentID: inst.ID,
-		Status: models.OrderStatusPaid,
+		Status:  models.OrderStatusPaid,
 		Deposit: 500, CashPaid: 3000,
 	}
 	require.NoError(t, db.Create(&order).Error)

@@ -64,8 +64,8 @@ func TransitOrderReceive(c *gin.Context) {
 func TransitOrderRepack(c *gin.Context) {
 	id := c.Param("id")
 	var req struct {
-		Company string `json:"company"`
-		Number  string `json:"number"`
+		Company string   `json:"company"`
+		Number  string   `json:"number"`
 		Photos  []string `json:"photos"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.Number == "" {

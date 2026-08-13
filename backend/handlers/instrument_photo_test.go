@@ -21,7 +21,7 @@ func TestPhotoBatchResponseStructure(t *testing.T) {
 		StoragePath:  "/uploads/test.zip",
 		PhotoCount:   5,
 	}
-	
+
 	assert.Equal(t, "test-batch-id", resp.BatchID)
 	assert.Equal(t, "test-instrument-id", resp.InstrumentID)
 	assert.Equal(t, "outbound", resp.BatchType)

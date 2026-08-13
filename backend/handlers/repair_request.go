@@ -576,14 +576,14 @@ func (h *RepairRequestHandler) ListRecords(c *gin.Context) {
 	result := make([]gin.H, len(records))
 	for i, r := range records {
 		item := gin.H{
-			"id":           r.ID,
+			"id":                r.ID,
 			"repair_request_id": r.RepairRequestID,
-			"worker_id":    r.WorkerID,
-			"worker_name":  workerNameMap[r.WorkerID],
-			"comment":      r.Comment,
-			"photos":       r.Photos,
-			"record_type":  r.RecordType,
-			"created_at":   r.CreatedAt,
+			"worker_id":         r.WorkerID,
+			"worker_name":       workerNameMap[r.WorkerID],
+			"comment":           r.Comment,
+			"photos":            r.Photos,
+			"record_type":       r.RecordType,
+			"created_at":        r.CreatedAt,
 		}
 		result[i] = item
 	}

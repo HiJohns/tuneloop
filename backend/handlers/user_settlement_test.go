@@ -192,15 +192,15 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 	// Damage report: 100 deducted from deposit
 	damageAmount := 100.0
 	require.NoError(t, db.Create(&models.DamageReport{
-		ID:           newTestUUID(),
-		TenantID:     tenantID,
-		OrgID:        orgID,
-		LeaseID:      order.ID,
-		InstrumentID: instrument.ID,
-		UserID:       userID,
-		DamageAmount: &damageAmount,
+		ID:              newTestUUID(),
+		TenantID:        tenantID,
+		OrgID:           orgID,
+		LeaseID:         order.ID,
+		InstrumentID:    instrument.ID,
+		UserID:          userID,
+		DamageAmount:    &damageAmount,
 		DepositDeducted: 100,
-		Status:       "accepted",
+		Status:          "accepted",
 	}).Error)
 
 	result := computeSettlement(order, db)

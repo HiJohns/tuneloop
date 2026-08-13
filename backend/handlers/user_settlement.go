@@ -162,13 +162,13 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		outRefundNo := fmt.Sprintf("sttl_%s_%d", orderID[:8], time.Now().Unix())
 
 		refundRecord := models.OrderRefundRecord{
-			ID:              uuid.New().String(),
-			TenantID:        order.TenantID,
-			Amount:          result.CashRefundable,
-			Reason:          strPtr("租赁结算退款"),
-			Status:          "pending",
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
+			ID:        uuid.New().String(),
+			TenantID:  order.TenantID,
+			Amount:    result.CashRefundable,
+			Reason:    strPtr("租赁结算退款"),
+			Status:    "pending",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
 
 		if cfg.MockMode || !paymentFound {
@@ -316,13 +316,13 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		outRefundNo := fmt.Sprintf("sttl_%s_%d", order.ID[:8], time.Now().Unix())
 
 		refundRecord := models.OrderRefundRecord{
-			ID:              uuid.New().String(),
-			TenantID:        order.TenantID,
-			Amount:          result.CashRefundable,
-			Reason:          strPtr("租赁结算退款"),
-			Status:          "pending",
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
+			ID:        uuid.New().String(),
+			TenantID:  order.TenantID,
+			Amount:    result.CashRefundable,
+			Reason:    strPtr("租赁结算退款"),
+			Status:    "pending",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
 
 		var paymentRecord models.OrderPaymentRecord
@@ -506,18 +506,18 @@ func parseDate(s *string) *time.Time {
 
 // settlementResult holds the canonical settlement calculation for an order.
 type settlementResult struct {
-	RentPayable           float64
-	TotalRentPaid         float64
-	RemainingDeposit      float64
+	RentPayable            float64
+	TotalRentPaid          float64
+	RemainingDeposit       float64
 	DepositDeductedOverdue float64
-	DamageDeducted        float64
-	TotalRefund           float64
-	CashRefundable        float64
-	GiftPointsRefunded    float64
-	OverdueChargesTotal   float64
-	ActualDays            int
-	CashBasis             float64 // C1: cash actually paid for rent (R1 − A1), spending/rebate basis
-	Breakdown             map[string]interface{}
+	DamageDeducted         float64
+	TotalRefund            float64
+	CashRefundable         float64
+	GiftPointsRefunded     float64
+	OverdueChargesTotal    float64
+	ActualDays             int
+	CashBasis              float64 // C1: cash actually paid for rent (R1 − A1), spending/rebate basis
+	Breakdown              map[string]interface{}
 }
 
 // computeSettlement performs the tier-based rent calculation and refund math.
@@ -692,29 +692,29 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	breakdown := map[string]interface{}{
-		"original_total":           order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-		"total_rent_paid":          totalRentPaid,
-		"deposit":                  order.Deposit,
-		"deposit_deducted_overdue": overdueFee,
-		"deposit_deducted_damage":  damageDeducted,
+		"original_total":            order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
+		"total_rent_paid":           totalRentPaid,
+		"deposit":                   order.Deposit,
+		"deposit_deducted_overdue":  overdueFee,
+		"deposit_deducted_damage":   damageDeducted,
 		"deposit_deducted_shipping": shippingFee,
-		"remaining_deposit":        remainingDeposit,
-		"damage_deducted":          damageDeducted,
-		"overdue_fee":              overdueFee,
-		"overdue_days":             assessment.OverdueDays,
-		"early_return_rebate":      earlyReturnRebate,
-		"rent_payable":             rentPayable,
-		"actual_rent_amount":       rentPayable, // backward-compatible alias
-		"actual_rent_days":         actualDays,
-		"final_daily_rent":         finalDailyRent,
-		"total_refund":             totalRefund,
-		"cash_refundable":          cashRefundable,
-		"gift_points_used":         order.GiftPointsUsed,
-		"gift_cap":                 a1,
-		"gift_points_refunded":     giftPointsRefunded,
-		"cash_paid":                order.CashPaid,
-		"pay_ratio":                payRatio,
-		"tier_segments":            tierSegments,
+		"remaining_deposit":         remainingDeposit,
+		"damage_deducted":           damageDeducted,
+		"overdue_fee":               overdueFee,
+		"overdue_days":              assessment.OverdueDays,
+		"early_return_rebate":       earlyReturnRebate,
+		"rent_payable":              rentPayable,
+		"actual_rent_amount":        rentPayable, // backward-compatible alias
+		"actual_rent_days":          actualDays,
+		"final_daily_rent":          finalDailyRent,
+		"total_refund":              totalRefund,
+		"cash_refundable":           cashRefundable,
+		"gift_points_used":          order.GiftPointsUsed,
+		"gift_cap":                  a1,
+		"gift_points_refunded":      giftPointsRefunded,
+		"cash_paid":                 order.CashPaid,
+		"pay_ratio":                 payRatio,
+		"tier_segments":             tierSegments,
 	}
 
 	// C1 = R1 − min(A1, A0): the cash portion of the adjusted payable rent.
@@ -747,10 +747,11 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 
 // buildRefundReceipt generates the standard receipt text for refund
 // notifications (cases.md 退货-定损-申诉-退款用例). Fields:
-//   rent = actual rent paid, shipping_fee = order.ShippingFee,
-//   overdue = assessment overdue, damage = damage deducted,
-//   renewal = sum of paid renewal payments, total_paid = all payments,
-//   actual_refund = settlement refund amount.
+//
+//	rent = actual rent paid, shipping_fee = order.ShippingFee,
+//	overdue = assessment overdue, damage = damage deducted,
+//	renewal = sum of paid renewal payments, total_paid = all payments,
+//	actual_refund = settlement refund amount.
 func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) string {
 	var renewalTotal float64
 	db.Model(&models.OrderPaymentRecord{}).
@@ -872,10 +873,10 @@ func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
 		"code":    20000,
 		"message": "refund processed",
 		"data": gin.H{
-			"order_id":           orderID,
-			"cash_refundable":    result.CashRefundable,
+			"order_id":             orderID,
+			"cash_refundable":      result.CashRefundable,
 			"gift_points_refunded": result.GiftPointsRefunded,
-			"receipt":            receipt,
+			"receipt":              receipt,
 		},
 	})
 }

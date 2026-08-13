@@ -187,7 +187,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Notes             string      `json:"notes"`
 		PrepaidPointsUsed float64     `json:"prepaid_points_used"`
 		GiftPointsUsed    float64     `json:"gift_points_used"`
-		DiscountCode      string      `json:"discount_code"` // redeemable code (#1539)
+		DiscountCode      string      `json:"discount_code"`  // redeemable code (#1539)
 		DepositWaived     bool        `json:"deposit_waived"` // deposit-free application (#1557)
 		GuarantorIDs      []string    `json:"guarantor_ids"`  // guarantors for deposit-free order (#1557)
 	}
@@ -297,7 +297,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// Calculate rental amount
-	days := 	services.CalculateDays(startDate, endDate)
+	days := services.CalculateDays(startDate, endDate)
 	months := days / 30
 
 	// Validate rent_days against date-derived days (audit integrity)
@@ -531,14 +531,14 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	// Snapshot pricing config + calculation inputs for audit
 	pricingConfigSnapshot := map[string]interface{}{
-		"base_daily_rate":     baseRate,
-		"total_price":         totalPrice,
-		"merchant_config":     merchantConfigJSON,
-		"tiers":               pricingResult.Tiers,
+		"base_daily_rate":       baseRate,
+		"total_price":           totalPrice,
+		"merchant_config":       merchantConfigJSON,
+		"tiers":                 pricingResult.Tiers,
 		"calculated_daily_rent": dailyRent,
-		"deposit":             deposit,
-		"shipping_fee":        shippingFee,
-		"days":                days,
+		"deposit":               deposit,
+		"shipping_fee":          shippingFee,
+		"days":                  days,
 	}
 	if pcSnapshotJSON, err := json.Marshal(pricingConfigSnapshot); err == nil {
 		snapStr := string(pcSnapshotJSON)
@@ -903,7 +903,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 
 		// Calculate pricing
-	days := services.CalculateDays(startDate, endDate)
+		days := services.CalculateDays(startDate, endDate)
 		months := days / 30
 
 		// Validate rent_days against date-derived days (audit integrity)
@@ -928,8 +928,8 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 		deposit := pricingResult.Deposit
 		// Shipping fee is NOT charged at order creation (#1621): it is
-	// confirmed at staff return-inspection (deducted from deposit).
-	shippingFee := 0.0
+		// confirmed at staff return-inspection (deducted from deposit).
+		shippingFee := 0.0
 
 		// Deposit-free batch order: zero out deposit before amount calculation (#1557)
 		if req.DepositWaived {
@@ -946,15 +946,15 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		}
 		var pricingBreakdownJSON *string
 		pb, calcErr := services.CalculatePricingBreakdown(services.RentCalcInput{
-			BaseDailyRate:     baseRate,
-			LeaseTerm:         days,
-			InstrumentID:      item.InstrumentID,
-			TenantID:          effectiveTenantID,
-			OrgID:             &effectiveOrgID,
-			Deposit:           deposit,
-			ShippingFee:       shippingFee,
-			TotalPrice:        totalPrice,
-			PricingTiers:      pricingTiers,
+			BaseDailyRate: baseRate,
+			LeaseTerm:     days,
+			InstrumentID:  item.InstrumentID,
+			TenantID:      effectiveTenantID,
+			OrgID:         &effectiveOrgID,
+			Deposit:       deposit,
+			ShippingFee:   shippingFee,
+			TotalPrice:    totalPrice,
+			PricingTiers:  pricingTiers,
 		})
 		if calcErr == nil && pb != nil {
 			pbJSON := services.FormatPricingBreakdownJSON(pb)
@@ -968,24 +968,24 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		endDateStr := item.EndDate
 
 		order := models.Order{
-			ID:           uuid.New().String(),
-			TenantID:     effectiveTenantID,
-			OrgID:        effectiveOrgID,
-			UserID:       userID,
-			InstrumentID: item.InstrumentID,
-			Level:        lockedInstrument.Level,
-			LeaseTerm:    months,
-			MonthlyRent: 0,
-			Deposit:      deposit,
-			DepositWaived: req.DepositWaived,
-			ShippingFee:  shippingFee,
-			Status:             models.OrderStatusReserved,
-			StartDate:          &startDateStr,
-			EndDate:            &endDateStr,
-			PaymentDeadline:    computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
-			CreatedAt:          time.Now(),
-			UpdatedAt:          time.Now(),
-			PricingBreakdown:   pricingBreakdownJSON,
+			ID:               uuid.New().String(),
+			TenantID:         effectiveTenantID,
+			OrgID:            effectiveOrgID,
+			UserID:           userID,
+			InstrumentID:     item.InstrumentID,
+			Level:            lockedInstrument.Level,
+			LeaseTerm:        months,
+			MonthlyRent:      0,
+			Deposit:          deposit,
+			DepositWaived:    req.DepositWaived,
+			ShippingFee:      shippingFee,
+			Status:           models.OrderStatusReserved,
+			StartDate:        &startDateStr,
+			EndDate:          &endDateStr,
+			PaymentDeadline:  computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
+			CreatedAt:        time.Now(),
+			UpdatedAt:        time.Now(),
+			PricingBreakdown: pricingBreakdownJSON,
 		}
 
 		// Snapshot applicable points policy

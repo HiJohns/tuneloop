@@ -34,10 +34,10 @@ func (h *PropertyHandler) ListProperties(c *gin.Context) {
 
 	type PropertyOptionResponse struct {
 		models.PropertyOption
-		DisplayValue  string `json:"display_value"`
-		SubmitterName string `json:"submitter_name,omitempty"`
-		SiteName      string `json:"site_name,omitempty"`
-		MerchantName  string `json:"merchant_name,omitempty"`
+		DisplayValue   string `json:"display_value"`
+		SubmitterName  string `json:"submitter_name,omitempty"`
+		SiteName       string `json:"site_name,omitempty"`
+		MerchantName   string `json:"merchant_name,omitempty"`
 		InstrumentLink string `json:"instrument_link,omitempty"`
 	}
 

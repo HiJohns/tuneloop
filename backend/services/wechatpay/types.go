@@ -3,11 +3,11 @@ package wechatpay
 import "context"
 
 type JSAPIParams struct {
-	OutTradeNo   string
-	OpenID       string
-	TotalAmount  int64  // cents
-	Description  string
-	NotifyURL    string
+	OutTradeNo  string
+	OpenID      string
+	TotalAmount int64 // cents
+	Description string
+	NotifyURL   string
 }
 
 type NativeParams struct {
@@ -45,7 +45,7 @@ type QueryResult struct {
 	TradeState    string `json:"trade_state"`    // SUCCESS / REFUND / NOTPAY / CLOSED / REVOKED
 	TransactionID string `json:"transaction_id"` // 微信支付单号
 	OutTradeNo    string `json:"out_trade_no"`
-	Amount        int64  `json:"amount"`         // cents
+	Amount        int64  `json:"amount"` // cents
 	PaidAt        string `json:"paid_at"`
 }
 
@@ -54,18 +54,18 @@ type CallbackResult struct {
 	TransactionID string `json:"transaction_id"`
 	Amount        int64  `json:"amount"`
 	Success       bool   `json:"success"`
-	EventType     string `json:"event_type"`   // TRANSACTION.SUCCESS / REFUND.SUCCESS
+	EventType     string `json:"event_type"`    // TRANSACTION.SUCCESS / REFUND.SUCCESS
 	OutRefundNo   string `json:"out_refund_no"` // 退款单号（仅退款回调有值）
 	RefundID      string `json:"refund_id"`     // 微信退款单号（仅退款回调有值）
 }
 
 type RefundParams struct {
-	OutTradeNo  string
-	OutRefundNo string
-	TotalAmount int64  // cents, total amount of original order
+	OutTradeNo   string
+	OutRefundNo  string
+	TotalAmount  int64 // cents, total amount of original order
 	RefundAmount int64 // cents, amount to refund
-	Reason      string
-	NotifyURL   string
+	Reason       string
+	NotifyURL    string
 }
 
 type RefundResult struct {
