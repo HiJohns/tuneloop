@@ -129,3 +129,80 @@ func TestGetInstrument_MediaDisplayStorageKey(t *testing.T) {
 	require.True(t, hasKey, "media.display item must carry storage_key (#1646)")
 	require.Equal(t, storageKey, sk)
 }
+
+// TestGetPublicCategories_IgnoresHomeMenuConfig verifies #1645: the public
+// category list is driven ONLY by category.visible/sort — a stale
+// home_menu_config (visible_ids without sub-categories) must not override
+// hide/sort or filter out sub-categories.
+func TestGetPublicCategories_IgnoresHomeMenuConfig(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	tenantID := uuid.New().String()
+	_, _, _ = setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	// Two top-level categories (sort 1/2) + one sub-category (sort 1)
+	catA := uuid.New().String()
+	catB := uuid.New().String()
+	subCat := uuid.New().String()
+	for _, c := range []struct {
+		id       string
+		name     string
+		parentID string
+		visible  bool
+		sort     int
+	}{
+		{catA, "分类A", "", true, 1},
+		{catB, "分类B", "", true, 2},
+		{subCat, "子分类A1", catA, true, 1},
+	} {
+		res := db.Exec(`INSERT INTO categories (id, tenant_id, name, level, visible, sort, created_at)
+			VALUES (?, ?, ?, 1, ?, ?, NOW())`,
+			c.id, tenantID, c.name, c.visible, c.sort)
+		require.NoError(t, res.Error)
+	}
+
+	// Stale home_menu_config: only catA visible, no sub-categories
+	db.Exec(`INSERT INTO system_settings (id, tenant_id, setting_key, setting_value, updated_at)
+		VALUES (gen_random_uuid(), ?, 'home_menu_config', ?, NOW())`,
+		tenantID, `{"visible_ids":["`+catA+`"],"sort_order":{"`+catA+`":9}}`)
+
+	router := setupTestRouter(t, tenantID, uuid.New().String())
+	router.GET("/public/categories", GetPublicCategories)
+
+	req := httptest.NewRequest("GET", "/public/categories?tenant="+tenantID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				ID       string `json:"id"`
+				Name     string `json:"name"`
+				ParentID string `json:"parent_id"`
+			} `json:"list"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	// home_menu_config must be ignored: all categories (incl. sub-category)
+	// returned — no visible_ids filtering, no sort_order override.
+	require.Len(t, resp.Data.List, 4, "home_menu_config must not filter categories (Piano+3)")
+	ids := []string{resp.Data.List[0].ID, resp.Data.List[1].ID, resp.Data.List[2].ID, resp.Data.List[3].ID}
+	require.Contains(t, ids, catA)
+	require.Contains(t, ids, catB)
+	require.Contains(t, ids, subCat, "sub-category must not be filtered out")
+	// sort ASC applies: 分类B (sort=2) must be last, after the sort=1 group.
+	require.Equal(t, catB, resp.Data.List[3].ID, "sort ASC: 分类B (sort=2) last")
+	// Sub-category (sort=1) must be within the leading sort=1 group.
+	require.Contains(t, ids[:3], subCat, "sub-category (sort=1) within leading group")
+}

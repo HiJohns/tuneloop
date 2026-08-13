@@ -353,60 +353,11 @@ func GetPublicCategories(c *gin.Context) {
 		return
 	}
 
-	// Check for home menu config (visible categories + sort order)
-	var homeConfig models.SystemSetting
-	if tenantID != "" {
-		db.Where("tenant_id = ? AND setting_key = ?", tenantID, "home_menu_config").First(&homeConfig)
-	} else {
-		db.Where("setting_key = ? AND setting_value IS NOT NULL", "home_menu_config").First(&homeConfig)
-	}
-	if homeConfig.SettingValue != "" {
-		type menuConfig struct {
-			VisibleIDs []string       `json:"visible_ids"`
-			SortOrder  map[string]int `json:"sort_order"`
-		}
-		var cfg menuConfig
-		if err := json.Unmarshal([]byte(homeConfig.SettingValue), &cfg); err == nil && len(cfg.VisibleIDs) > 0 {
-			idSet := make(map[string]bool, len(cfg.VisibleIDs))
-			for _, id := range cfg.VisibleIDs {
-				idSet[id] = true
-			}
-			filtered := make([]models.Category, 0, len(cfg.VisibleIDs))
-			for _, id := range cfg.VisibleIDs {
-				for _, cat := range categories {
-					if cat.ID == id {
-						filtered = append(filtered, cat)
-						break
-					}
-				}
-			}
-			// If sort_order provided, apply it
-			if cfg.SortOrder != nil && len(cfg.SortOrder) > 0 {
-				sorted := make([]models.Category, len(filtered))
-				for _, cat := range filtered {
-					pos := cfg.SortOrder[cat.ID]
-					if pos < 0 || pos >= len(filtered) {
-						pos = len(filtered) - 1
-					}
-					for sorted[pos].ID != "" {
-						pos++
-						if pos >= len(filtered) {
-							pos = 0
-						}
-					}
-					sorted[pos] = cat
-				}
-				filtered = sorted
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"code": 20000,
-				"data": gin.H{
-					"list": filtered,
-				},
-			})
-			return
-		}
-	}
+	// Note (#1645): category display is driven ONLY by category.visible/sort
+	// (maintained via the PC category admin page). The legacy home_menu_config
+	// system setting is deprecated and must NOT override it — a stale
+	// visible_ids entry would both mask admin hide/sort changes and filter
+	// out sub-categories.
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -806,13 +757,13 @@ func SearchInstruments(c *gin.Context) {
 	}
 
 	type SearchResult struct {
-		ID             string  `json:"id"`
-		SN             string  `json:"sn"`
-		CategoryName   string  `json:"category_name"`
-		LevelName      string  `json:"level_name"`
-		StockStatus    string  `json:"stock_status"`
-		BaseDailyRate  *float64 `json:"base_daily_rate"`
-		CoverImage     string  `json:"cover_image"`
+		ID            string   `json:"id"`
+		SN            string   `json:"sn"`
+		CategoryName  string   `json:"category_name"`
+		LevelName     string   `json:"level_name"`
+		StockStatus   string   `json:"stock_status"`
+		BaseDailyRate *float64 `json:"base_daily_rate"`
+		CoverImage    string   `json:"cover_image"`
 	}
 	list := make([]SearchResult, len(instruments))
 	for i, inst := range instruments {
