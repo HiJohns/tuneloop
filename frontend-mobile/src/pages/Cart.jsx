@@ -227,32 +227,6 @@ export default function Cart() {
     }
   }
 
-  const increaseRentQty = (itemId) => {
-    setCartItems(prev => {
-      const updated = prev.map(item => {
-        if (getItemId(item) === itemId) {
-          return { ...item, rent_qty: (item.rent_qty || item.days || 30) + 1 }
-        }
-        return item
-      })
-      storage.setJSON(getCartKey(), { items: updated })
-      return updated
-    })
-  }
-
-  const decreaseRentQty = (itemId) => {
-    setCartItems(prev => {
-      const updated = prev.map(item => {
-        if (getItemId(item) === itemId) {
-          return { ...item, rent_qty: Math.max(1, (item.rent_qty || item.days || 30) - 1) }
-        }
-        return item
-      })
-      storage.setJSON(getCartKey(), { items: updated })
-      return updated
-    })
-  }
-
   const handleCheckout = () => {
     const token = getToken()
     if (!token) {
@@ -369,20 +343,11 @@ export default function Cart() {
 
                           {/* Right column: info + pricing */}
                           <View className="flex-1 flex flex-col space-y-2 min-w-0">
-                            <View className="flex items-center justify-between">
-                              <View className="flex-1 min-w-0">
-                                <Text className="text-xl font-black text-black tracking-wide truncate block">{item.sn || item.name || '未知乐器'}</Text>
-                                <View className="flex items-center space-x-1 mt-1">
-                                  {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
-                                  <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
-                                </View>
-                              </View>
-                              <View className="flex-shrink-0 ml-2">
-                                <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50">
-                                  <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => decreaseRentQty(itemId)}>—</Text>
-                                  <Text className="px-2 text-black font-black text-xs">{item.rent_qty || item.days || 30}天</Text>
-                                  <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => increaseRentQty(itemId)}>+</Text>
-                                </View>
+                            <View className="flex-1 min-w-0">
+                              <Text className="text-xl font-black text-black tracking-wide truncate block">{item.sn || item.name || '未知乐器'}</Text>
+                              <View className="flex items-center space-x-1 mt-1">
+                                {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
+                                <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
                               </View>
                             </View>
 
