@@ -1229,3 +1229,43 @@ func validatePassword(password string) error {
 	}
 	return nil
 }
+
+// WxBindCurrentUser binds the current user's IAM account to the WeChat
+// openid obtained from a wx.login() code (#1639 计划 §五：编辑资料页员工绑定微信).
+// POST /api/users/me/wx-bind  { code }
+func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "code is required"})
+		return
+	}
+
+	ctx := c.Request.Context()
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "unauthorized"})
+		return
+	}
+
+	// Resolve the user's iam_sub (JWT sub IS the iam_sub in this system).
+	iamService := services.NewIAMService()
+	result, err := iamService.WxBind(req.Code, userID)
+	if err != nil {
+		log.Printf("[WxBindCurrentUser] bind failed for user %s: %v", userID, err)
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "微信绑定失败: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"wx_openid": result.WxOpenid,
+		},
+	})
+}

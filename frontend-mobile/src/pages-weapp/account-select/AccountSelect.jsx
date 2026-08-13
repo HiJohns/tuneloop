@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
 import { request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
-import { getToken } from '../../services/api'
 
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
 
@@ -19,7 +18,6 @@ function navigatePostAuth(url) {
 // 「用户名密码登录」展开面板 + 「注册为会员」入口。
 export default function AccountSelect() {
   const [accounts, setAccounts] = useState([])
-  const [openid, setOpenid] = useState('')
   const [loading, setLoading] = useState(true)
   const [showPwd, setShowPwd] = useState(false)
   const [identifier, setIdentifier] = useState('')
@@ -28,6 +26,8 @@ export default function AccountSelect() {
   const [pwdLoggingIn, setPwdLoggingIn] = useState(false)
 
   const hasCustomer = accounts.some(a => a.is_customer)
+  // 用户名密码登录入口仅员工场景显示（#1639 审计 Bug 3）
+  const hasStaff = accounts.some(a => !a.is_customer)
 
   useEffect(() => {
     const load = async () => {
@@ -38,7 +38,6 @@ export default function AccountSelect() {
         const result = await res.json()
         if (result.code === 20000 && result.data) {
           setAccounts(result.data.accounts || [])
-          setOpenid(result.data.openid || '')
           // Keep the exchange_token for wx-login-select on account click
           // (WeChat code is single-use, consumed by wx-accounts above)
           session.setItem('wx_login_token', result.data.exchange_token || '')
@@ -169,7 +168,7 @@ export default function AccountSelect() {
         </View>
       )}
 
-      {accounts.length > 0 && (
+      {hasStaff && (
         <View onClick={() => setShowPwd(!showPwd)}
           style={{ padding: '10px 4px', display: 'flex', justifyContent: 'center' }}>
           <Text style={{ color: '#915F38', fontSize: 14, fontWeight: '600' }}>{showPwd ? '收起' : '用户名密码登录'}</Text>

@@ -707,6 +707,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				// WeChat binding (PC → WeChat scan)
 				userOptionalAuth.POST("/users/me/wechat-bind", bindHandler.GenBindToken)
 				userOptionalAuth.GET("/users/me/wechat-bind/:token", bindHandler.PollBindToken)
+				userOptionalAuth.POST("/users/me/wx-bind", staffHandler.WxBindCurrentUser)
 				userOptionalAuth.POST("/users/me/wechat-unbind", bindHandler.Unbind)
 			}
 

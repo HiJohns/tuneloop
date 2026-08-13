@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 )
@@ -933,4 +935,92 @@ func TestPostRegister_UsernameDerivedFromPhone(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Equal(t, "13900668899", createdUsername,
 		"IAM CreateUser username must be derived from phone, not the ignored username field")
+}
+
+// TestWxBindCurrentUser verifies POST /api/users/me/wx-bind (#1639 计划 §五):
+// binds the current user (JWT sub = iam_sub) to the WeChat openid via IAM,
+// surfaces bind failures instead of swallowing them.
+func TestWxBindCurrentUser(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	userID := "6d1e2c3a-0000-4000-8000-0000000000f9"
+	token := signHS256Token(t, userID, "BindUser")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/auth/wx-bind", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var req map[string]string
+		json.Unmarshal(body, &req)
+		if req["code"] == "bad-code" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{"error": "openid already bound to another user"})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user_id":   userID,
+			"wx_openid": "openid-bind-me-001",
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	router := gin.New()
+	router.POST("/api/users/me/wx-bind", (&UserStaffHandler{}).WxBindCurrentUser)
+
+	doBind := func(code string) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]interface{}{"code": code})
+		req := httptest.NewRequest("POST", "/api/users/me/wx-bind", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		// Simulate IAMInterceptor: JWT sub → context user id
+		ctx := context.WithValue(req.Context(), middleware.ContextKeyUserID, userID)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("missing code is 400", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/api/users/me/wx-bind", strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		ctx := context.WithValue(req.Context(), middleware.ContextKeyUserID, userID)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("successful bind returns wx_openid", func(t *testing.T) {
+		w := doBind("good-code")
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp struct {
+			Code int `json:"code"`
+			Data struct {
+				WxOpenid string `json:"wx_openid"`
+			} `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 20000, resp.Code)
+		require.Equal(t, "openid-bind-me-001", resp.Data.WxOpenid)
+	})
+
+	t.Run("bind failure surfaces 409 not swallowed", func(t *testing.T) {
+		w := doBind("bad-code")
+		require.Equal(t, http.StatusConflict, w.Code)
+		var resp struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		}
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+		require.Equal(t, 40900, resp.Code)
+		require.Contains(t, resp.Message, "微信绑定失败")
+	})
 }

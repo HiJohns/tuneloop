@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../../services/api'
-import { env, dialog, getInputValue } from '../../../platform'
+import { env, dialog, getInputValue, wxLogin as wxLoginCode } from '../../../platform'
+import { parseJWT } from '../../../platform/init'
 import IdPhotoUploader from '../../../components/IdPhotoUploader'
 
 export default function EditProfile() {
@@ -13,7 +14,13 @@ export default function EditProfile() {
   const [idPhotoFront, setIdPhotoFront] = useState('')
   const [idPhotoBack, setIdPhotoBack] = useState('')
   const [saving, setSaving] = useState(false)
+  const [bindingWx, setBindingWx] = useState(false)
   const baseUrl = env.apiBaseUrl
+
+  const token = getToken()
+  const claims = token ? parseJWT(token) : {}
+  // 员工判定统一口径（#1639）：role === 'STAFF' 或 oid/tid 非空
+  const isStaff = claims.role === 'STAFF' || !!(claims.oid || claims.tid)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -62,6 +69,30 @@ export default function EditProfile() {
     setSaving(false)
   }
 
+  // 员工绑定微信（#1639 计划 §五）：wx.login 拿 code → POST /users/me/wx-bind
+  const handleBindWx = async () => {
+    if (bindingWx) return
+    setBindingWx(true)
+    try {
+      const code = await wxLoginCode()
+      if (!code) { dialog.toast('获取微信登录凭证失败'); setBindingWx(false); return }
+      const resp = await apiFetch(`${baseUrl}/users/me/wx-bind`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.toast('微信绑定成功')
+      } else {
+        dialog.toast(result.message || '微信绑定失败')
+      }
+    } catch {
+      dialog.toast('网络错误')
+    }
+    setBindingWx(false)
+  }
+
   return (
     <View style={{ height: '100vh', backgroundColor: '#f4f4f5', display: 'flex', flexDirection: 'column' }}>
       <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 12, padding: 16 }}>
@@ -100,6 +131,15 @@ export default function EditProfile() {
             </View>
           </View>
         </View>
+        {isStaff && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>微信账户</Text>
+            <View onClick={handleBindWx}
+              style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 14, color: '#915F38', fontWeight: '600' }}>{bindingWx ? '绑定中...' : '绑定微信账户'}</Text>
+            </View>
+          </View>
+        )}
         <Button onClick={handleSave}
           style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 16, fontWeight: '700', lineHeight: '44px', border: 'none', marginTop: 8 }}>
           {saving ? '保存中...' : '保存'}
