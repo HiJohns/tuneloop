@@ -12,6 +12,14 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
   </svg>
 `)
 
+// Relative /uploads/media/... paths must be resolved to an absolute URL for
+// the weapp <Image> component (same fixImg pattern as Detail.jsx).
+function fixImg(url, baseUrl) {
+  if (!url) return url
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  return baseUrl.replace(/\/api$/, '') + url
+}
+
 function parseImages(images) {
   if (!images) return []
   if (Array.isArray(images)) return images
@@ -138,28 +146,33 @@ export default function Cart() {
     const checkStockStatus = async () => {
       const items = storage.getJSON(getCartKey(), { items: [] })?.items || []
       if (!items.length) return
-      const updated = await Promise.all(items.map(async (item) => {
-        if (!item.instrument_id) return item
+      const stockMap = new Map()
+      await Promise.all(items.map(async (item) => {
+        if (!item.instrument_id) return
         try {
           const res = await apiFetch(`${env.apiBaseUrl}/public/instruments/${item.instrument_id}`)
           const data = await res.json()
           if (data.code === 20000 && data.data?.stock_status) {
-            return { ...item, stock_status: data.data.stock_status }
+            stockMap.set(getItemId(item), data.data.stock_status)
           }
         } catch {}
-        return item
       }))
-      setCartItems(updated)
-      storage.setJSON(getCartKey(), { items: updated })
+      // Merge stock_status into the CURRENT state (not a stale storage read)
+      // so enrichMissingPricing's daily_rent/deposit completion is preserved.
+      setCartItems(prev => {
+        const updated = prev.map(item => {
+          const st = stockMap.get(getItemId(item))
+          return st !== undefined ? { ...item, stock_status: st } : item
+        })
+        storage.setJSON(getCartKey(), { items: updated })
+        return updated
+      })
       // Drop rented-out items from the selection so they never count toward
       // grandTotal / checkout (#1659).
       setSelected(prev => {
         const next = new Set(prev)
-        updated.forEach(item => {
-          const st = item.stock_status
-          if (st && st !== 'available' && next.has(getItemId(item))) {
-            next.delete(getItemId(item))
-          }
+        stockMap.forEach((st, id) => {
+          if (st !== 'available' && next.has(id)) next.delete(id)
         })
         return next
       })
@@ -293,7 +306,7 @@ export default function Cart() {
                     {group.items.map((item) => {
                       const rentedOut = isRentedOut(item)
                       const images = parseImages(item.images)
-                      const imgSrc = item.cover_image || images[0] || PLACEHOLDER_IMAGE
+                      const imgSrc = fixImg(item.cover_image || images[0], env.apiBaseUrl) || PLACEHOLDER_IMAGE
                       const itemId = getItemId(item)
                       const pricing = getItemPricing(item)
                       const itemSubtotal = pricing.rent + pricing.deposit + (pricing.shippingFee || 0)
