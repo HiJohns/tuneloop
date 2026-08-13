@@ -145,9 +145,11 @@ export default function AccountSelect() {
             </View>
             <View style={{ minWidth: 0 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#18181b', display: 'block' }} numberOfLines={1}>{acc.nickname || acc.name || '未命名账户'}</Text>
-              <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>
-                {acc.is_customer ? '顾客账户' : '员工账户'}
-              </Text>
+              {!acc.is_customer && (
+                <Text style={{ fontSize: 12, color: '#a1a1aa', display: 'block', marginTop: 2 }}>
+                  {[acc.merchant_name, acc.site_name].filter(Boolean).join('-') || '员工账户'}
+                </Text>
+              )}
             </View>
           </View>
           <View style={{ backgroundColor: '#915F38', borderRadius: 999, padding: '6px 14px', flexShrink: 0 }}>

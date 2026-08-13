@@ -732,7 +732,7 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 	// is_customer: no org/tenant binding (tuneloop-side judgment, not from IAM)
 	accounts := make([]map[string]interface{}, 0, len(result.Accounts))
 	for _, a := range result.Accounts {
-		accounts = append(accounts, map[string]interface{}{
+		acc := map[string]interface{}{
 			"user_id":     a.UserID,
 			"name":        a.Name,
 			"nickname":    a.Nickname,
@@ -740,7 +740,21 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 			"org_id":      a.OrgID,
 			"tenant_id":   a.TenantID,
 			"is_customer": a.OrgID == "" && a.TenantID == "",
-		})
+		}
+		if !acc["is_customer"].(bool) {
+			// Staff accounts: enrich with merchant/site display names so the
+			// account list can show 「商户名-网点名」 (docs/cases/account-select.md).
+			var merchantName, siteName string
+			if a.TenantID != "" {
+				h.db.Raw("SELECT name FROM merchants WHERE tenant_id = ? LIMIT 1", a.TenantID).Scan(&merchantName)
+			}
+			if a.OrgID != "" {
+				h.db.Raw("SELECT name FROM sites WHERE org_id = ? LIMIT 1", a.OrgID).Scan(&siteName)
+			}
+			acc["merchant_name"] = merchantName
+			acc["site_name"] = siteName
+		}
+		accounts = append(accounts, acc)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

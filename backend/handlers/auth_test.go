@@ -461,7 +461,8 @@ func newWxAccountsMockServer(t *testing.T, accounts []map[string]interface{}) *h
 }
 
 // TestWxAccounts_Handler verifies GET /auth/wx-accounts: code required, and
-// is_customer enrichment (org_id/tenant_id empty → customer).
+// is_customer enrichment (org_id/tenant_id empty → customer), plus merchant/site
+// display names for staff accounts (#1641).
 func TestWxAccounts_Handler(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
@@ -469,6 +470,21 @@ func TestWxAccounts_Handler(t *testing.T) {
 
 	t.Setenv("IAM_SECRET", testIAMSecret)
 	t.Setenv("IAM_NAMESPACE", "test-ns")
+
+	// Merchant + Site rows so the staff account gets display names.
+	require.NoError(t, db.Create(&models.Merchant{
+		ID:       "6d1e2c3a-0000-4000-8000-0000000000f5",
+		TenantID: "6d1e2c3a-0000-4000-8000-0000000000f4",
+		OrgID:    "6d1e2c3a-0000-4000-8000-0000000000f3",
+		AdminUID: "6d1e2c3a-0000-4000-8000-0000000000f2",
+		Name:     "测试琴行",
+	}).Error)
+	require.NoError(t, db.Create(&models.Site{
+		ID:       "6d1e2c3a-0000-4000-8000-0000000000f6",
+		TenantID: "6d1e2c3a-0000-4000-8000-0000000000f4",
+		OrgID:    "6d1e2c3a-0000-4000-8000-0000000000f3",
+		Name:     "旗舰店",
+	}).Error)
 
 	accounts := []map[string]interface{}{
 		{
@@ -480,6 +496,12 @@ func TestWxAccounts_Handler(t *testing.T) {
 			"nickname": "小李", "role": "STAFF",
 			"org_id": "6d1e2c3a-0000-4000-8000-0000000000f3",
 			"tenant_id": "6d1e2c3a-0000-4000-8000-0000000000f4",
+		},
+		{
+			"user_id": "6d1e2c3a-0000-4000-8000-0000000000f7", "name": "员工无商户",
+			"nickname": "小孙", "role": "STAFF",
+			"org_id": "6d1e2c3a-0000-4000-8000-0000000000f8",
+			"tenant_id": "6d1e2c3a-0000-4000-8000-0000000000f9",
 		},
 	}
 	srv := newWxAccountsMockServer(t, accounts)
@@ -507,19 +529,34 @@ func TestWxAccounts_Handler(t *testing.T) {
 			Data struct {
 				OpenID   string `json:"openid"`
 				Accounts []struct {
-					UserID     string `json:"user_id"`
-					IsCustomer bool   `json:"is_customer"`
-					OrgID      string `json:"org_id"`
-					TenantID   string `json:"tenant_id"`
+					UserID       string `json:"user_id"`
+					IsCustomer   bool   `json:"is_customer"`
+					OrgID        string `json:"org_id"`
+					TenantID     string `json:"tenant_id"`
+					MerchantName string `json:"merchant_name"`
+					SiteName     string `json:"site_name"`
 				} `json:"accounts"`
 			} `json:"data"`
 		}
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		require.Equal(t, 20000, resp.Code)
 		require.Equal(t, "openid-accounts-001", resp.Data.OpenID)
-		require.Len(t, resp.Data.Accounts, 2)
+		require.Len(t, resp.Data.Accounts, 3)
 		require.True(t, resp.Data.Accounts[0].IsCustomer, "no org/tenant → customer")
 		require.False(t, resp.Data.Accounts[1].IsCustomer, "has org/tenant → staff")
+		require.False(t, resp.Data.Accounts[2].IsCustomer, "staff without merchant rows")
+
+		// Customer account: no merchant/site enrichment.
+		require.Empty(t, resp.Data.Accounts[0].MerchantName)
+		require.Empty(t, resp.Data.Accounts[0].SiteName)
+
+		// Staff account with matching merchant/site rows.
+		require.Equal(t, "测试琴行", resp.Data.Accounts[1].MerchantName)
+		require.Equal(t, "旗舰店", resp.Data.Accounts[1].SiteName)
+
+		// Staff account without merchant/site rows: empty strings, no error.
+		require.Empty(t, resp.Data.Accounts[2].MerchantName)
+		require.Empty(t, resp.Data.Accounts[2].SiteName)
 	})
 }
 
