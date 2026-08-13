@@ -1,4 +1,7 @@
 import { Component } from 'react'
+// First import: inject atob/btoa polyfill before any JWT parsing runs
+// (weapp JSCore has no global atob — #1653).
+import './platform/polyfill'
 import { initializeApp, setInitDeps } from './platform/init'
 import { initPermissionMapping, publicRoutes } from './services/api'
 
