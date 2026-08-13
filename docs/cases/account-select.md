@@ -150,6 +150,8 @@ steps:
 - 昵称 = 微信昵称（可编辑，#1589 教训：可输入，不用 type="nickname"）
 - 底部「用户名密码登录」→ 账户列表页
 - `?mode=member`（员工弹窗进入）→ 隐藏「用户名密码登录」
+- 注册提交绑定身份：优先传 `exchange_token`（wx-accounts mint，单次、5min TTL）；无 token 时 fallback 新 `wx.login()` code
+- **exchange_token 过期重试**（#1648）：exchange_token 超过 5min 过期 → 注册返回 409「微信绑定失败」→ 前端清除 session `wx_login_token` → 用户重试时走新 `wx.login()` code（全新 code，无 40163）
 
 ## 会员中心（Profile）
 - 纯用户（无关联员工账户）→ 只有「退出登录」
@@ -168,7 +170,8 @@ steps:
 - 购物车合并去重
 - eslint 0 no-undef + H5/weapp build 通过
 - checklist-verify.py --behavioral 通过（本 cases 的 navigate/gate 条目兜底）
+- 注册 exchange_token 过期后重试走新 code（无死循环）
 
 ---
 
-*Last updated: 2026-08-12*
+*Last updated: 2026-08-13*
