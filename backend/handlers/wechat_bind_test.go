@@ -22,7 +22,8 @@ import (
 
 // newWxAPIStub serves both /cgi-bin/token and /wxa/getwxacodeunlimit.
 // failWxacode=true makes the wxacode endpoint return a JSON error.
-func newWxAPIStub(t *testing.T, failWxacode bool) *httptest.Server {
+// When captureReq is non-nil, the parsed wxacode request body is stored there.
+func newWxAPIStub(t *testing.T, failWxacode bool, captureReq *map[string]interface{}) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -34,6 +35,11 @@ func newWxAPIStub(t *testing.T, failWxacode bool) *httptest.Server {
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(`{"errcode":40013,"errmsg":"invalid appid"}`))
 				return
+			}
+			if captureReq != nil {
+				var body map[string]interface{}
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				*captureReq = body
 			}
 			w.Header().Set("Content-Type", "image/jpeg")
 			_, _ = w.Write([]byte("fake-wxacode-image-bytes"))
@@ -62,7 +68,8 @@ func TestGenBindToken_Success(t *testing.T) {
 	user := models.User{ID: "6d1e2c3a-0000-4000-8000-000000000101", IAMSub: "iam-sub-0001", TenantID: "00000000-0000-0000-0000-000000000001", OrgID: "00000000-0000-0000-0000-000000000000", Username: "bindtest"}
 	require.NoError(t, db.Create(&user).Error)
 
-	wxStub := newWxAPIStub(t, false)
+	var captured map[string]interface{}
+	wxStub := newWxAPIStub(t, false, &captured)
 	defer wxStub.Close()
 	services.SetWxAPIBaseURLForTesting(wxStub.URL)
 	t.Setenv("WX_APPID", "wx-test-appid")
@@ -95,6 +102,13 @@ func TestGenBindToken_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "fake-wxacode-image-bytes", string(raw))
 
+	// Request must carry check_path=false (page may only exist in the targeted
+	// env_version build — with true, unpublished apps get 41030 invalid page).
+	require.NotNil(t, captured, "wxacode request body must be captured")
+	require.Equal(t, false, captured["check_path"])
+	require.Equal(t, "bind_"+resp.Data.Token, captured["scene"])
+	require.Equal(t, "pages-weapp/bind/index", captured["page"])
+
 	// PollBindToken must report pending right after generation.
 	require.Equal(t, "pending", lookupBindStatus(resp.Data.Token))
 }
@@ -107,7 +121,7 @@ func TestGenBindToken_WxacodeFailure(t *testing.T) {
 	user := models.User{ID: "6d1e2c3a-0000-4000-8000-000000000102", IAMSub: "iam-sub-0002", TenantID: "00000000-0000-0000-0000-000000000001", OrgID: "00000000-0000-0000-0000-000000000000", Username: "bindtest2"}
 	require.NoError(t, db.Create(&user).Error)
 
-	wxStub := newWxAPIStub(t, true)
+	wxStub := newWxAPIStub(t, true, nil)
 	defer wxStub.Close()
 	services.SetWxAPIBaseURLForTesting(wxStub.URL)
 	t.Setenv("WX_APPID", "wx-test-appid")

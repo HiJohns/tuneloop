@@ -98,11 +98,17 @@ type wxacodeRequest struct {
 	Page       string `json:"page"`
 	Width      int    `json:"width"`
 	EnvVersion string `json:"env_version,omitempty"`
+	CheckPath  bool   `json:"check_path"`
 }
 
 // GetWxacodeUnlimited calls getwxacodeunlimit. envVersion selects which
 // mini-program build the scanned QR opens ("develop"/"trial"/"release");
 // pass GetWxEnvVersion() unless a specific override is needed.
+//
+// check_path=false: the page only needs to exist in the targeted env_version
+// build. With check_path=true (default) WeChat requires the page in the
+// published release build and returns 41030 invalid page for apps that have
+// never released a production version (both tuneloop appids hit this).
 func GetWxacodeUnlimited(accessToken, scene, page, envVersion string) ([]byte, error) {
 	url := fmt.Sprintf("%s/wxa/getwxacodeunlimit?access_token=%s", wxAPIBaseURL, accessToken)
 	reqBody := wxacodeRequest{
@@ -110,6 +116,7 @@ func GetWxacodeUnlimited(accessToken, scene, page, envVersion string) ([]byte, e
 		Page:       page,
 		Width:      430,
 		EnvVersion: envVersion,
+		CheckPath:  false,
 	}
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
