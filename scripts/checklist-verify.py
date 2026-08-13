@@ -440,6 +440,9 @@ def check_replace_navigation(page, platforms, case_id, seq):
             f"回退键将跳过它 (#1629 类)"
         )
     return warnings
+
+
+def _page_jsx(page, platforms=None):
     """Map a YAML page path to the actual JSX source file."""
     p = page.strip()
     # Shared weapp pages: /staff/shipping → pages-weapp/shipping-interface/index → pages/ShippingInterface.jsx
