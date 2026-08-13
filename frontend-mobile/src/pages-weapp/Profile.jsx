@@ -197,12 +197,12 @@ export default function Profile() {
   }
 
   if (loading) {
-    return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}><Text style={{ color: '#a1a1aa' }}>加载中...</Text></View>
+    return <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}><Text style={{ color: '#a1a1aa' }}>加载中...</Text></View>
   }
 
   return (
     <ErrorBoundary>
-    <View style={{ height: '100vh', width: '100vw', backgroundColor: '#fafafa', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <View style={{ height: '100vh', width: '100vw', backgroundColor: '#FDFBF7', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <ScrollView style={{ width: '100%', flex: '1 1 0%' }} scrollY showScrollbar={false}>
 
         {/* 1. 头部渐变身份区 */}

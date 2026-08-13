@@ -7,7 +7,7 @@ import { ArrowLeft, Phone, Calendar } from 'lucide-react'
 
 function ServiceCard({ order }) {
   return (
-    <View className="bg-white rounded-xl shadow-sm p-4">
+    <View className="bg-[#FDFBF7] rounded-xl shadow-sm p-4">
       <View className="space-y-2">
         <View className="flex items-center justify-between">
           <Text className="font-medium text-brand-text">{order.assetName}</Text>

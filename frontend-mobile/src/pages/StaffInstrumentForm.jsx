@@ -199,7 +199,7 @@ export default function StaffInstrumentForm() {
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1'
 
   return (
-    <View className="min-h-screen bg-gray-50 pb-24">
+    <View className="min-h-screen bg-[#FDFBF7] pb-24">
       {!env.isMiniProgram && (
         <View className="bg-brand-primary text-white px-4 py-4 flex items-center gap-3">
           <Button onClick={() => navigate(-1)}>

@@ -56,7 +56,7 @@ export default function SiteDetail() {
   if (!site) return <View className="p-4">网点不存在</View>;
 
   return (
-    <View className="min-h-screen bg-gray-50 pb-20">
+    <View className="min-h-screen bg-[#FDFBF7] pb-20">
       <View className="relative h-48 bg-white">
         {site.images && site.images.length > 0 ? (
           <Image.PreviewGroup>

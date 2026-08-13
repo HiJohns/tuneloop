@@ -17,7 +17,7 @@ export default function PointsPrePurchase() {
   }
 
   return (
-    <ScrollView scrollY className="h-screen bg-gradient-to-b from-blue-50 to-white">
+    <ScrollView scrollY className="h-screen bg-gradient-to-b from-[#FDF4E7] to-[#FDFBF7]">
       <View className="px-5 pt-12 pb-8">
         <View className="mb-2"><Text className="text-2xl font-bold text-center block">预购点数</Text></View>
         <View className="mb-8"><Text className="text-gray-500 text-center text-sm block">预购点数可抵扣租金，更优惠</Text></View>

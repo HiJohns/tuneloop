@@ -54,7 +54,7 @@ export default function TransitWorkflow() {
 
   if (step === 'receive' || step === 'repack') {
     return (
-      <View className="h-screen bg-zinc-50">
+      <View className="h-screen bg-[#FDFBF7]">
         <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center">
           <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
           <Text className="text-lg font-bold flex-1">{step === 'receive' ? '收货拆包' : '转包发货'}</Text>

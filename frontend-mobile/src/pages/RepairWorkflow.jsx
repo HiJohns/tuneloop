@@ -78,7 +78,7 @@ export default function RepairWorkflow() {
 
   if (!instrumentId) {
     return (
-      <View className="h-screen bg-zinc-50 flex items-center justify-center p-4">
+      <View className="h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
         <Text className="text-zinc-400">请扫描或选择乐器</Text>
       </View>
     )

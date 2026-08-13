@@ -21,7 +21,7 @@ export default function PointsComplete() {
   }, [])
 
   return (
-    <ScrollView scrollY className="h-screen bg-gradient-to-b from-blue-50 to-white">
+    <ScrollView scrollY className="h-screen bg-gradient-to-b from-[#FDF4E7] to-[#FDFBF7]">
       <View className="px-5 pt-12 pb-8 flex flex-col items-center">
         <View className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-4">
           <Text className="text-white text-3xl">✓</Text>

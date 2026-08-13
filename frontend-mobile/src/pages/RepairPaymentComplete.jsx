@@ -7,7 +7,7 @@ export default function RepairPaymentComplete() {
   const state = location.state || {}
 
   return (
-    <View className="flex flex-col h-screen bg-zinc-50">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="flex-1 flex flex-col items-center justify-center px-8">
         <View className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-6">
           <Text className="text-5xl">🎉</Text>

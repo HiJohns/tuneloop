@@ -26,7 +26,7 @@ export default function UserRepairs() {
   }, [])
 
   return (
-    <View className="flex flex-col h-screen bg-zinc-50">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center">我的报修</Text>

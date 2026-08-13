@@ -165,7 +165,7 @@ export default function MembershipCenter() {
 
   return (
     <>
-    <ScrollView className="h-screen w-screen bg-zinc-50">
+    <ScrollView className="h-screen w-screen bg-[#FDFBF7]">
       {/* Navigation bar — H5 only, weapp uses native nav */}
       {!env.isMiniProgram && (
       <View className="flex items-center px-4 py-3 bg-white border-b border-zinc-100">

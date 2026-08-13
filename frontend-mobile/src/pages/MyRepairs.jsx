@@ -108,7 +108,7 @@ export default function MyRepairs() {
   }
 
   return (
-    <View className="flex flex-col h-screen bg-zinc-50">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg font-black text-black">维修</Text>
       </View>

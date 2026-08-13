@@ -45,7 +45,7 @@ export default function Success() {
 
   if (checking) {
     return (
-      <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
+      <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFBF7' }}>
         <Text style={{ color: '#a1a1aa' }}>验证支付状态...</Text>
       </View>
     )
@@ -53,7 +53,7 @@ export default function Success() {
 
   if (!paid) {
     return (
-      <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: '#fafafa' }}>
+      <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: '#FDFBF7' }}>
         <View style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
           <View style={{ width: 128, height: 128, borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
             <Text style={{ fontSize: 48 }}>⚠️</Text>
@@ -67,7 +67,7 @@ export default function Success() {
   }
 
   return (
-    <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: '#fafafa' }}>
+    <View style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: '#FDFBF7' }}>
       <View style={{ flex: '1 1 0%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingLeft: 32, paddingRight: 32 }}>
         <View style={{ width: 128, height: 128, borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
           <Text style={{ fontSize: 48 }}>🎉</Text>

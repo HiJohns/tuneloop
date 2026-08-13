@@ -115,7 +115,7 @@ export default function CreateRepairRequest() {
   }
 
   return (
-    <View className="h-screen bg-gray-50 flex flex-col">
+    <View className="h-screen bg-[#FDFBF7] flex flex-col">
       <View className="bg-gradient-to-b from-blue-50 to-white px-4 py-3">
         <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center">创建报修单</Text>

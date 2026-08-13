@@ -28,7 +28,7 @@ export default function UserWarnings() {
   )
 
   return (
-    <View className="h-screen bg-zinc-50">
+    <View className="h-screen bg-[#FDFBF7]">
       <View className="bg-white px-4 py-3 border-b border-zinc-100">
         <Text className="text-lg font-bold">警告（{warnings.length}）</Text>
       </View>

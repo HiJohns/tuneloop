@@ -243,7 +243,7 @@ export default function RepairRequestDetail() {
   const status = request.status
 
   return (
-    <View className="flex flex-col h-screen bg-zinc-50">
+    <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
         <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">报修详情</Text>

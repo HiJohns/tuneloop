@@ -39,7 +39,7 @@ export default function Search() {
   }
 
   return (
-    <View className="h-screen bg-zinc-100 flex flex-col">
+    <View className="h-screen bg-[#FDFBF7] flex flex-col">
       <View className="bg-white px-4 py-3 flex items-center gap-2 border-b border-zinc-100">
         <View onClick={() => navigate(-1)}><ArrowLeft size={20} className="text-black" /></View>
         <input

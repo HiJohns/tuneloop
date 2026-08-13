@@ -81,7 +81,7 @@ export default function Booking() {
   }
 
   return (
-    <View className="min-h-screen bg-gray-50 pb-20">
+    <View className="min-h-screen bg-[#FDFBF7] pb-20">
       {/* Header */}
       <View className="bg-white border-b px-4 py-4 flex items-center gap-3">
         <Button onClick={() => navigate(-1)}>

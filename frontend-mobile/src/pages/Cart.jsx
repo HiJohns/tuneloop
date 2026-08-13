@@ -240,7 +240,7 @@ export default function Cart() {
   }
 
   return (
-    <View className="container h-screen w-screen bg-zinc-100 overflow-hidden flex flex-col relative antialiased">
+    <View className="container h-screen w-screen bg-[#FDFBF7] overflow-hidden flex flex-col relative antialiased">
       <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0">
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">购物车</Text>

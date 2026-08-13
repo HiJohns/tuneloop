@@ -112,7 +112,7 @@ export default function Register() {
   }
 
   return (
-    <ScrollView scrollY className="h-screen bg-gray-50">
+    <ScrollView scrollY className="h-screen bg-[#FDFBF7]">
       <View className="px-5 pt-12 pb-8">
         <View className="mb-1"><Text className="text-2xl font-bold text-center block">注册账号</Text></View>
         <View className="mb-8"><Text className="text-gray-500 text-center text-sm block">填写信息即可开始租赁</Text></View>

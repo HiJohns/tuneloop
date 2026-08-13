@@ -13,7 +13,7 @@ export default function Success() {
   }, [])
 
   return (
-    <View className="container h-screen w-screen bg-zinc-50 overflow-hidden flex flex-col relative antialiased">
+    <View className="container h-screen w-screen bg-[#FDFBF7] overflow-hidden flex flex-col relative antialiased">
       <View className="flex-1 flex flex-col items-center justify-center px-8">
         <View className="w-32 h-32 rounded-full bg-green-100 flex items-center justify-center mb-6">
           <Text className="text-5xl">🎉</Text>
