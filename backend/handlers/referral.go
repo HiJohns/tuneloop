@@ -45,7 +45,7 @@ func (h *ReferralHandler) GetPromoQR(c *gin.Context) {
 	accessToken, tokenErr := services.GetWxAccessToken()
 	if tokenErr == nil {
 		scene := "ref=" + user.RefCode
-		imgData, err := services.GetWxacodeUnlimited(accessToken, scene, "pages-weapp/profile-complete/index")
+		imgData, err := services.GetWxacodeUnlimited(accessToken, scene, "pages-weapp/profile-complete/index", services.GetWxEnvVersion())
 		if err == nil {
 			b64 := base64.StdEncoding.EncodeToString(imgData)
 			wxacodeBase64 = &b64

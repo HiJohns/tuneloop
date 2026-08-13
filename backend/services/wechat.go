@@ -21,7 +21,28 @@ var (
 	cachedToken     string
 	cachedTokenExp  time.Time
 	tokenCacheMutex sync.RWMutex
+	// wxAPIBaseURL is injectable for tests (mirrors SetIAMInternalURLForTesting).
+	wxAPIBaseURL = "https://api.weixin.qq.com"
 )
+
+// SetWxAPIBaseURLForTesting overrides the WeChat API base URL for tests.
+func SetWxAPIBaseURLForTesting(url string) {
+	wxAPIBaseURL = url
+}
+
+// GetWxEnvVersion returns the mini-program env_version for wxacode QR codes:
+// an explicit WX_ENV_VERSION wins; otherwise IAM_NAMESPACE=tuneloop-pre
+// resolves to "trial" (prerelease scans open the trial build), everything
+// else defaults to "release".
+func GetWxEnvVersion() string {
+	if v := os.Getenv("WX_ENV_VERSION"); v != "" {
+		return v
+	}
+	if os.Getenv("IAM_NAMESPACE") == "tuneloop-pre" {
+		return "trial"
+	}
+	return "release"
+}
 
 func GetWxAccessToken() (string, error) {
 	tokenCacheMutex.RLock()
@@ -46,7 +67,7 @@ func GetWxAccessToken() (string, error) {
 		return "", fmt.Errorf("WX_APPID or WX_APPSECRET not configured")
 	}
 
-	url := fmt.Sprintf("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s", appID, appSecret)
+	url := fmt.Sprintf("%s/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s", wxAPIBaseURL, appID, appSecret)
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("failed to get WeChat access token: %w", err)
@@ -73,17 +94,22 @@ func GetWxAccessToken() (string, error) {
 }
 
 type wxacodeRequest struct {
-	Scene string `json:"scene"`
-	Page  string `json:"page"`
-	Width int    `json:"width"`
+	Scene      string `json:"scene"`
+	Page       string `json:"page"`
+	Width      int    `json:"width"`
+	EnvVersion string `json:"env_version,omitempty"`
 }
 
-func GetWxacodeUnlimited(accessToken, scene, page string) ([]byte, error) {
-	url := fmt.Sprintf("https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=%s", accessToken)
+// GetWxacodeUnlimited calls getwxacodeunlimit. envVersion selects which
+// mini-program build the scanned QR opens ("develop"/"trial"/"release");
+// pass GetWxEnvVersion() unless a specific override is needed.
+func GetWxacodeUnlimited(accessToken, scene, page, envVersion string) ([]byte, error) {
+	url := fmt.Sprintf("%s/wxa/getwxacodeunlimit?access_token=%s", wxAPIBaseURL, accessToken)
 	reqBody := wxacodeRequest{
-		Scene: scene,
-		Page:  page,
-		Width: 430,
+		Scene:      scene,
+		Page:       page,
+		Width:      430,
+		EnvVersion: envVersion,
 	}
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {

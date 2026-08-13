@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Card, Button, Modal, message, Tag, QRCode } from 'antd'
+import { Card, Button, Modal, message, Tag } from 'antd'
 import { WechatOutlined, LinkOutlined } from '@ant-design/icons'
 import api from '../services/api'
 
 export default function WechatBinding() {
   const [showQR, setShowQR] = useState(false)
   const [qrToken, setQrToken] = useState('')
+  const [qrBase64, setQrBase64] = useState('')
   const [bound, setBound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [polling, setPolling] = useState(false)
@@ -20,7 +21,12 @@ export default function WechatBinding() {
     try {
       const res = await api.post('/users/me/wechat-bind')
       if (res.code === 20000) {
+        if (!res.data.wxacode_base64) {
+          message.error('二维码生成失败，请重试')
+          return
+        }
         setQrToken(res.data.token)
+        setQrBase64(res.data.wxacode_base64)
         setShowQR(true)
         setPolling(true)
       }
@@ -76,8 +82,6 @@ export default function WechatBinding() {
     })
   }
 
-  const qrValue = `${window.location.origin}/api/wechat-bind/confirm-page?token=${qrToken}`
-
   return (
     <Card title={<span><WechatOutlined /> 微信绑定</span>} style={{ marginBottom: 16 }}>
       {loading ? null : bound ? (
@@ -100,11 +104,17 @@ export default function WechatBinding() {
         width={360}
       >
         <div style={{ textAlign: 'center', padding: 16 }}>
-          {qrToken && (
-            <QRCode value={qrValue} size={256} style={{ margin: '0 auto 16px' }} />
+          {qrBase64 && (
+            <img
+              src={`data:image/png;base64,${qrBase64}`}
+              alt="微信小程序码"
+              width={256}
+              height={256}
+              style={{ margin: '0 auto 16px', display: 'block' }}
+            />
           )}
           <p style={{ color: '#999', fontSize: 13 }}>
-            打开微信「扫一扫」扫描二维码完成绑定
+            打开微信「扫一扫」扫描小程序码，在小程序中完成绑定
           </p>
           {(polling && showQR) && <p style={{ color: '#ff4d4f', fontSize: 12 }}>二维码 5 分钟有效，扫码后自动绑定</p>}
         </div>

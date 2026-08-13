@@ -8,7 +8,13 @@ export default function Bind() {
 
   useEffect(() => {
     const params = Taro.getCurrentInstance().router?.params || {}
-    const token = params.token
+    // Two entry paths: direct query param (?token=) and mini-program code
+    // scene (scene=bind_<token>, URL-encoded). See #1640.
+    let token = params.token || ''
+    if (!token && params.scene) {
+      const decoded = decodeURIComponent(params.scene)
+      if (decoded.startsWith('bind_')) token = decoded.slice(5)
+    }
     if (!token) {
       setStatus('error')
       return

@@ -1,16 +1,15 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -53,7 +52,11 @@ func NewWechatBindHandler() *WechatBindHandler {
 	return &WechatBindHandler{}
 }
 
-// GenBindToken generates a binding token for the current user (PC side).
+// GenBindToken generates a binding token and a mini-program QR code (PC side).
+// The QR is a WeChat mini-program code: scanning it opens the Bind page in the
+// mini-program where wx.login() can obtain the real openid (a browser page
+// cannot). Token is 16 hex chars so scene "bind_<token>" fits the 32-char
+// wxacode scene limit.
 func (h *WechatBindHandler) GenBindToken(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
@@ -66,8 +69,14 @@ func (h *WechatBindHandler) GenBindToken(c *gin.Context) {
 		return
 	}
 
+	randBytes := make([]byte, 8)
+	if _, err := rand.Read(randBytes); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to generate bind token"})
+		return
+	}
+	token := hex.EncodeToString(randBytes)
+
 	// Generate bind token
-	token := uuid.New().String()
 	bindTokensMu.Lock()
 	bindTokens[token] = &bindTokenEntry{
 		UserID:    user.ID,
@@ -76,12 +85,33 @@ func (h *WechatBindHandler) GenBindToken(c *gin.Context) {
 	}
 	bindTokensMu.Unlock()
 
-	qrURL := "/api/wechat-bind/confirm-page?token=" + token
+	// Generate the mini-program code (wxacode.getunlimit). A failure here MUST
+	// surface to the caller — a fake openid binding is worse than no binding.
+	accessToken, tokenErr := services.GetWxAccessToken()
+	if tokenErr != nil {
+		log.Printf("[GenBindToken] wx access token failed: %v", tokenErr)
+		bindTokensMu.Lock()
+		delete(bindTokens, token)
+		bindTokensMu.Unlock()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to generate binding QR code"})
+		return
+	}
+	imgData, codeErr := services.GetWxacodeUnlimited(accessToken, "bind_"+token, "pages-weapp/bind/index", services.GetWxEnvVersion())
+	if codeErr != nil {
+		log.Printf("[GenBindToken] wxacode failed: %v", codeErr)
+		bindTokensMu.Lock()
+		delete(bindTokens, token)
+		bindTokensMu.Unlock()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to generate binding QR code"})
+		return
+	}
+	wxacodeBase64 := base64.StdEncoding.EncodeToString(imgData)
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{
-			"token":      token,
-			"qrcode_url": qrURL,
+			"token":          token,
+			"wxacode_base64": wxacodeBase64,
 		},
 	})
 }
@@ -186,7 +216,10 @@ func (h *WechatBindHandler) Unbind(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "unbind success"})
 }
 
-// ConfirmBindPage serves the confirmation page scanned from QR code.
+// ConfirmBindPage serves a static guide page for old QR codes. Real binding
+// happens inside the mini-program Bind page: a browser page cannot call
+// wx.login(), so it can never obtain the real openid (see #1640 — a fake
+// openid was submitted here before).
 func (h *WechatBindHandler) ConfirmBindPage(c *gin.Context) {
 	token := c.Query("token")
 	if token == "" {
@@ -203,84 +236,20 @@ func (h *WechatBindHandler) ConfirmBindPage(c *gin.Context) {
 		return
 	}
 
-	html := `<!DOCTYPE html>
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>微信绑定</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-.card{background:#fff;border-radius:16px;padding:40px 24px;text-align:center;max-width:340px;width:100%%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-h2{font-size:20px;color:#333;margin-bottom:8px}.sub{font-size:14px;color:#999;margin-bottom:28px;line-height:1.6}
-.btn{display:inline-block;width:80%%;max-width:260px;padding:14px 32px;border:none;border-radius:999px;font-size:16px;font-weight:700;cursor:pointer;margin:0 auto}
-.btn-confirm{background:#07c160;color:#fff}.btn-confirm:disabled{background:#ccc}
-.msg{margin-top:16px;font-size:13px;color:#666}
+.card{background:#fff;border-radius:16px;padding:40px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+h2{font-size:20px;color:#333;margin-bottom:12px}.sub{font-size:14px;color:#999;margin-bottom:16px;line-height:1.8}
 </style>
 </head><body>
 <div class="card">
-<h2>欢迎绑定微信</h2>
-<p class="sub">确认后将关联您的微信号，之后可在小程序中一键登录</p>
-<button class="btn btn-confirm" onclick="confirmBind('` + token + `')">确认绑定</button>
-<p class="msg" id="msg"></p>
+<h2>请在微信小程序中完成绑定</h2>
+<p class="sub">请返回 PC 端重新点击「绑定微信」，使用微信「扫一扫」扫描新生成的小程序码，将在小程序内完成绑定。</p>
 </div>
-<script>
-function confirmBind(token) {
-  var btn = document.querySelector('.btn');
-  var msg = document.getElementById('msg');
-  btn.disabled = true;
-  btn.textContent = '绑定中...';
-  msg.textContent = '';
-  fetch('/api/wechat-bind/confirm', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({token:token, wx_openid:'wx_'+token.slice(0,8)})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.code===20000){btn.textContent='绑定成功';btn.style.background='#576b95';msg.textContent='请返回管理端查看'}
-    else{btn.disabled=false;btn.textContent='确认绑定';msg.textContent='绑定失败: '+data.message}
-  })
-  .catch(function(){btn.disabled=false;btn.textContent='确认绑定';msg.textContent='网络错误'});
-}
-</script>
-</body></html>`
-	c.Header("Content-Type", "text/html; charset=utf-8")
-	c.String(http.StatusOK, html)
-}
-
-// GetOpenID exchanges a WeChat login code for an OpenID.
-func GetOpenID(c *gin.Context) {
-	var req struct {
-		Code string `json:"code" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "code required"})
-		return
-	}
-	appID := os.Getenv("WX_APPID")
-	secret := os.Getenv("WX_SECRET")
-	if appID == "" || secret == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WeChat config not set"})
-		return
-	}
-	resp, err := http.Get(fmt.Sprintf(
-		"https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
-		appID, secret, req.Code,
-	))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "WeChat API error"})
-		return
-	}
-	defer resp.Body.Close()
-	var result struct {
-		OpenID     string `json:"openid"`
-		SessionKey string `json:"session_key"`
-		ErrCode    int    `json:"errcode"`
-		ErrMsg     string `json:"errmsg"`
-	}
-	json.NewDecoder(resp.Body).Decode(&result)
-	if result.ErrCode != 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": result.ErrMsg})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"openid": result.OpenID}})
+</body></html>`)
 }

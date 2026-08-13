@@ -1271,9 +1271,11 @@ sequenceDiagram
     PC->>API: POST /api/users/me/wechat-bind
     API->>IAM: 校验当前用户身份
     IAM-->>API: user_id
-    API->>API: 生成 bind_token (5min TTL)<br/>存入内存 map
-    API-->>PC: {token, qrcode_url}
-    PC->>PC: 渲染二维码<br/>值 = origin + /api/wechat-bind/confirm-page?token=xxx
+    API->>API: 生成 bind_token (16位hex, 5min TTL)<br/>存入内存 map
+    API->>WX: getwxacodeunlimit<br/>{scene: "bind_"+token, page: pages-weapp/bind/index, env_version}
+    WX-->>API: 小程序码图片
+    API-->>PC: {token, wxacode_base64}
+    PC->>PC: 渲染小程序码图片
     PC-->>Admin: 显示二维码弹窗
     Admin-->>Staff: 指向屏幕让人员扫码
     PC->>API: 轮询 GET /api/users/me/wechat-bind/{token} (每2秒)
@@ -1281,23 +1283,15 @@ sequenceDiagram
     Staff->>WX: 微信扫一扫
 
     rect rgb(240, 248, 255)
-        Note over Staff, API: OAuth 网页授权流程 (获取 openid)
-        WX--)Staff: 打开网页: /api/wechat-bind/confirm-page?token=xxx
-        Staff->>API: GET /api/wechat-bind/confirm-page?token=xxx
-        API->>API: 检查 token 是否有效 (pending & 未过期)
-        API-->>Staff: 302 重定向到微信 OAuth
-        Staff->>WX: GET open.weixin.qq.com/connect/oauth2/authorize
-        WX-->>Staff: 授权页面
-        Staff->>WX: 点击「授权」
-        WX-->>Staff: 302 回调 /api/wechat-bind/confirm-page?code=xxx&token=xxx
-        Staff->>API: GET confirm-page?code=xxx&token=xxx
-        API->>WX: POST /sns/oauth2/access_token?code=xxx
-        WX-->>API: {openid, access_token}
+        Note over Staff, API: 小程序内绑定 (获取真实 openid)
+        WX-->>Staff: 打开小程序 Bind 页<br/>scene=bind_xxx
+        Staff->>Staff: wx.login() 获取 code
+        Staff->>API: POST /auth/wx-login {code}
+        API->>WX: jscode2session
+        WX-->>API: {openid (真实)}
+        API-->>Staff: {wx_openid: 真实openid}
+        Staff->>API: POST /api/wechat-bind/confirm<br/>{token, wx_openid}
     end
-
-    API->>API: 渲染确认页面 (含 openid)
-    API-->>Staff: HTML 页面: 欢迎信息 + 确认绑定按钮
-    Staff->>API: POST /api/wechat-bind/confirm<br/>{token, wx_openid}
 
     rect rgb(255, 248, 240)
         Note over API, IAM: 绑定落库
@@ -1319,10 +1313,10 @@ sequenceDiagram
 
 | 方法 | 路径 | 端 | 说明 |
 |------|------|:--:|------|
-| `POST` | `/api/users/me/wechat-bind` | PC | 生成绑定 token（需登录态） |
+| `POST` | `/api/users/me/wechat-bind` | PC | 生成绑定 token + 小程序码（需登录态） |
 | `GET` | `/api/users/me/wechat-bind/:token` | PC | PC 轮询绑定状态 |
-| `GET` | `/api/wechat-bind/confirm-page` | 微信 | 扫描二维码打开的确认页（OAuth 回调） |
-| `POST` | `/api/wechat-bind/confirm` | 微信 | 确认绑定（提交 token + wx_openid） |
+| `GET` | `/api/wechat-bind/confirm-page` | 微信 | 旧二维码引导页（已降级：绑定须在小程序完成，不再提供 OAuth 网页确认） |
+| `POST` | `/api/wechat-bind/confirm` | 小程序 | 确认绑定（提交 token + wx_openid，openid 须为 wx.login 换取的实时 openid） |
 | `POST` | `/api/users/me/wechat-unbind` | PC | 解绑微信 |
 
 #### token 生命周期
