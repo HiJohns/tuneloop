@@ -116,12 +116,12 @@ func GetInstrumentByID(c *gin.Context) {
 		// Object-format pricing (single source of truth, #1487): base_daily_rate
 		// matches the first tier so detail-page displays stay consistent.
 		computedObj := map[string]interface{}{
-			"daily_rent":       computed.BaseDailyRate,
-			"base_daily_rate":  computed.BaseDailyRate,
-			"tiers":            computed.Tiers,
-			"deposit":          computed.Deposit,
-			"deposit_mode":     computed.DepositMode,
-			"shipping_fee":     computed.ShippingFee,
+			"daily_rent":      computed.BaseDailyRate,
+			"base_daily_rate": computed.BaseDailyRate,
+			"tiers":           computed.Tiers,
+			"deposit":         computed.Deposit,
+			"deposit_mode":    computed.DepositMode,
+			"shipping_fee":    computed.ShippingFee,
 		}
 		raw, _ := json.Marshal(computedObj)
 		pricingField = json.RawMessage(raw)
@@ -225,12 +225,13 @@ func GetInstrumentByID(c *gin.Context) {
 		Order("sort_order asc, created_at desc").
 		Find(&mediaList).Error; err == nil && len(mediaList) > 0 {
 		type mediaItem struct {
-			BatchID   string `json:"batch_id"`
-			BatchType string `json:"batch_type"`
-			FileType  string `json:"file_type"`
-			URL       string `json:"url"`
-			ThumbURL  string `json:"thumb_url,omitempty"`
-			SortOrder int    `json:"sort_order"`
+			BatchID    string `json:"batch_id"`
+			BatchType  string `json:"batch_type"`
+			FileType   string `json:"file_type"`
+			StorageKey string `json:"storage_key"`
+			URL        string `json:"url"`
+			ThumbURL   string `json:"thumb_url,omitempty"`
+			SortOrder  int    `json:"sort_order"`
 		}
 		type batchInfo struct {
 			BatchID   string `json:"batch_id"`
@@ -249,11 +250,12 @@ func GetInstrumentByID(c *gin.Context) {
 				continue
 			}
 			item := mediaItem{
-				BatchID:   m.BatchID,
-				BatchType: m.BatchType,
-				FileType:  m.FileType,
-				URL:       url,
-				SortOrder: m.SortOrder,
+				BatchID:    m.BatchID,
+				BatchType:  m.BatchType,
+				FileType:   m.FileType,
+				StorageKey: m.StorageKey,
+				URL:        url,
+				SortOrder:  m.SortOrder,
 			}
 			if m.IsDisplay && m.FileType != "video" {
 				displayItems = append(displayItems, item)
