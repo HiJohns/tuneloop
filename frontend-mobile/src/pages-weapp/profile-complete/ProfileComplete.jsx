@@ -70,6 +70,10 @@ export default function ProfileComplete() {
         body: JSON.stringify(body),
       })
       const result = await res.json()
+      // exchange_token is single-use (5min TTL); clear it on both success and
+      // failure so a retry (or a later session) never reuses an expired token
+      // and always falls back to a fresh wx.login code (#1648).
+      session.removeItem('wx_login_token')
       if (result.code === 20000 && result.data?.access_token) {
         storage.setItem('token', result.data.access_token)
         storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
