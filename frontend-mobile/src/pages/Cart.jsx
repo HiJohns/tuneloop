@@ -62,10 +62,7 @@ function getItemPricing(item) {
 export default function Cart() {
   const navigate = useNavigate()
   const [cartItems, setCartItems] = useState([])
-  const [previewImages, setPreviewImages] = useState([])
-  const [previewIndex, setPreviewIndex] = useState(-1)
   const [selected, setSelected] = useState(new Set())
-  const previewTouchStartX = useRef(0)
 
   const getItemId = (item) => item.instrument_id || item.id
 
@@ -230,16 +227,6 @@ export default function Cart() {
     }
   }
 
-  const openPreview = (images, index) => {
-    setPreviewImages(images)
-    setPreviewIndex(index)
-  }
-
-  const closePreview = () => {
-    setPreviewIndex(-1)
-    setPreviewImages([])
-  }
-
   const increaseRentQty = (itemId) => {
     setCartItems(prev => {
       const updated = prev.map(item => {
@@ -359,7 +346,7 @@ export default function Cart() {
                             <View
                               className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center"
                               style={{ position: 'relative' }}
-                              onClick={rentedOut ? undefined : () => openPreview(images.length > 0 ? images : [imgSrc], 0)}
+                              onClick={rentedOut ? undefined : () => navigate(`/instrument/${itemId}`)}
                             >
                               <Image
                                 src={imgSrc}
@@ -445,35 +432,9 @@ export default function Cart() {
           onClick={handleCheckout}
           disabled={grandTotal <= 0}
         >
-          去结算
-        </Button>
-      </View>
-
-      {previewIndex >= 0 && previewImages.length > 0 && (
-        <View
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
-          onClick={closePreview}
-        >
-          <Image
-            src={previewImages[previewIndex]}
-            className="max-w-[90%] max-h-[80%] object-contain"
-            mode="aspectFit"
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={(e) => { previewTouchStartX.current = e.touches[0].clientX }}
-            onTouchEnd={(e) => {
-              const diff = e.changedTouches[0].clientX - previewTouchStartX.current
-              if (Math.abs(diff) > 50) {
-                if (diff < 0 && previewIndex < previewImages.length - 1) {
-                  setPreviewIndex(prev => prev + 1)
-                } else if (diff > 0 && previewIndex > 0) {
-                  setPreviewIndex(prev => prev - 1)
-                }
-              }
-            }}
-          />
-          <Text className="absolute bottom-12 text-white/60 text-sm">点击空白区域关闭</Text>
-        </View>
-      )}
+           去结算
+         </Button>
+       </View>
     </View>
   )
 }

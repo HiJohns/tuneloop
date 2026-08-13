@@ -75,6 +75,12 @@ export default function Detail() {
       nav('/pages-weapp/cart/index')
       return
     }
+    // #1657: guard against tapping add-to-cart before instrument data loads —
+    // otherwise the snapshot gets empty cover_image/name.
+    if (!instrument?.id) {
+      Taro.showToast({ title: '乐器信息加载中，请稍候', icon: 'none' })
+      return
+    }
     try {
       const cartData = storage.getJSON(getCartKey(), {items: []}) || {items: []}
       cartData.items.push({
