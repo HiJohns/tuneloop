@@ -63,6 +63,86 @@ steps:
     api: {}
 ---
 
+id: L-00B
+domain: lease
+flow: 购物车乐器已被租走的处理
+steps:
+  - seq: 1
+    action: 购物车条目渲染已租出状态
+    frontend:
+      - platform: [weapp, h5]
+        page: /cart
+        role: [customer, guest]
+        gate: "乐器 stock_status != available（已被租走/锁定）"
+        reach: "购物车加载 → 校验条目库存状态 → 非 available 标记已租出"
+        controls: []
+        displays: [已租出条目（封面图黑白 + 「已被租出」标记）]
+        ops: []
+    api: {method: GET, path: /public/instruments/:id, params: [stock_status]}
+  - seq: 2
+    action: 已租出条目不可选中/不可提交
+    frontend:
+      - platform: [weapp, h5]
+        page: /cart
+        role: [customer, guest]
+        gate: "条目已租出"
+        reach: "已租出条目 checkbox 禁用；选中集不含该条目；grandTotal 不含其价格"
+        controls: [勾选框（禁用）]
+        displays: []
+        ops: []
+    api: {}
+  - seq: 3
+    action: 提交订单后端校验库存 + 加锁
+    frontend:
+      - platform: [weapp, h5]
+        page: /checkout
+        role: [customer]
+        gate: "提交 POST /user/orders"
+        reach: "后端校验乐器 stock_status == available，否则拒绝；通过后创建订单（reserved 待支付）即加锁"
+        controls: [提交订单按钮]
+        displays: []
+        ops:
+          - {type: api, method: POST, path: /user/orders}
+    api: {method: POST, path: /user/orders, params: [instrument_id, ...]}
+  - seq: 4
+    action: 锁释放（与待支付状态同步）
+    frontend:
+      - platform: [backend]
+        page: ""
+        role: [system]
+        gate: "订单 reserved 超 payment_deadline 未支付"
+        reach: "reserved_order_scheduler 超时释放 → 订单取消 → 乐器 stock_status 恢复 available"
+        controls: []
+        displays: []
+        ops: []
+    api: {}
+---
+
+# L-00B 购物车乐器已被租走的处理
+
+## 前置条件
+- 购物车条目对应乐器 `stock_status` 非 available（已被他人租走/锁定/维修等）
+
+## 流程
+1. 购物车加载时校验每件乐器库存状态（`GET /public/instruments/:id` 或列表接口含 stock_status）
+2. 非 available 条目：封面图黑白 + 显示「已被租出」标记；checkbox 禁用、不可选中、不计入小计
+3. 提交订单（POST /user/orders）：后端**再次校验** `stock_status == available`，非 available 拒绝（409/400 + 提示「该乐器已被租出」）
+4. 校验通过创建订单（reserved 待支付）即**加锁**（乐器不可再被下单）
+5. 锁释放：reserved 超 `payment_deadline` 未支付 → scheduler 取消订单 → 恢复 available
+
+## 关键规则
+- **前端校验是体验优化，后端校验是安全底线**（并发/绕过前端均以后端为准）
+- 加锁 = 创建 reserved 订单（乐器的 stock_status 在订单有效期内视为锁定）
+- 锁释放与现有 `reserved_order_scheduler.go` 的 payment_deadline 机制同步（复用，不新造）
+
+## 验收
+- 已租出条目：黑白封面 + 不可选 + 不计价
+- 提交订单时后端拒绝已租出乐器
+- reserved 超时后乐器恢复可租
+- Go 测试：后端校验 + 加锁 + 释放
+
+---
+
 id: L-01
 domain: lease
 flow: 正常租赁

@@ -69,6 +69,12 @@ export default function Cart() {
 
   const getItemId = (item) => item.instrument_id || item.id
 
+  // #1659: instrument rented out (or otherwise unavailable) in the cart
+  const isRentedOut = (item) => {
+    const st = item.stock_status
+    return st && st !== 'available'
+  }
+
   // #1639 购物车合并去重：按 instrument_id + 租期（rent_qty/days）去重
   const mergeDedup = (accountItems, guestItems) => {
     const merged = accountItems.slice()
@@ -128,8 +134,46 @@ export default function Cart() {
     if (cartItems.length > 0) enrichMissingPricing()
   }, [cartItems.length])
 
+  // #1659: refresh stock_status of every cart item so rented-out instruments
+  // are shown as unavailable (grayscale + disabled checkbox). Frontend check
+  // is UX-only; the backend CreateOrder re-validates as the hard boundary.
+  useEffect(() => {
+    const checkStockStatus = async () => {
+      const items = storage.getJSON(getCartKey(), { items: [] })?.items || []
+      if (!items.length) return
+      const updated = await Promise.all(items.map(async (item) => {
+        if (!item.instrument_id) return item
+        try {
+          const res = await apiFetch(`${env.apiBaseUrl}/public/instruments/${item.instrument_id}`)
+          const data = await res.json()
+          if (data.code === 20000 && data.data?.stock_status) {
+            return { ...item, stock_status: data.data.stock_status }
+          }
+        } catch {}
+        return item
+      }))
+      setCartItems(updated)
+      storage.setJSON(getCartKey(), { items: updated })
+      // Drop rented-out items from the selection so they never count toward
+      // grandTotal / checkout (#1659).
+      setSelected(prev => {
+        const next = new Set(prev)
+        updated.forEach(item => {
+          const st = item.stock_status
+          if (st && st !== 'available' && next.has(getItemId(item))) {
+            next.delete(getItemId(item))
+          }
+        })
+        return next
+      })
+    }
+    checkStockStatus()
+  }, [])
+
   const toggleSelect = (itemId) => {
     setSelected(prev => {
+      const item = cartItems.find(i => getItemId(i) === itemId)
+      if (item && isRentedOut(item)) return prev  // #1659: rented-out cannot be selected
       const next = new Set(prev)
       if (next.has(itemId)) next.delete(itemId); else next.add(itemId)
       return next
@@ -229,7 +273,7 @@ export default function Cart() {
       redirectToLogin('checkout')
       return
     }
-    const selItems = cartItems.filter(item => selected.has(getItemId(item)))
+    const selItems = cartItems.filter(item => selected.has(getItemId(item)) && !isRentedOut(item))
     if (selItems.length === 0) return
     storage.setJSON('cart_checkout', { items: selItems })
     navigate('/checkout')
@@ -286,6 +330,7 @@ export default function Cart() {
 
                   <View className="divide-y divide-zinc-50 px-4">
                     {group.items.map((item) => {
+                      const rentedOut = isRentedOut(item)
                       const images = parseImages(item.images)
                       const imgSrc = item.cover_image || images[0] || PLACEHOLDER_IMAGE
                       const itemId = getItemId(item)
@@ -296,15 +341,16 @@ export default function Cart() {
                           {/* Checkbox column */}
                           <View className="flex-shrink-0 flex items-center" style={{ width: 28 }}>
                             <View
-                              onClick={() => toggleSelect(itemId)}
+                              onClick={() => !rentedOut && toggleSelect(itemId)}
                               style={{
                                 width: 20, height: 20, borderRadius: 4, borderWidth: 2,
-                                borderColor: selected.has(itemId) ? '#B98E5F' : '#d1d5db',
-                                backgroundColor: selected.has(itemId) ? '#B98E5F' : 'transparent',
+                                borderColor: rentedOut ? '#e4e4e7' : (selected.has(itemId) ? '#B98E5F' : '#d1d5db'),
+                                backgroundColor: rentedOut ? '#f4f4f5' : (selected.has(itemId) ? '#B98E5F' : 'transparent'),
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                opacity: rentedOut ? 0.5 : 1,
                               }}
                             >
-                              {selected.has(itemId) && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                              {!rentedOut && selected.has(itemId) && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
                             </View>
                           </View>
 
@@ -312,9 +358,24 @@ export default function Cart() {
                           <View className="flex flex-col items-center flex-shrink-0" style={{ width: 80 }}>
                             <View
                               className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center"
-                              onClick={() => openPreview(images.length > 0 ? images : [imgSrc], 0)}
+                              style={{ position: 'relative' }}
+                              onClick={rentedOut ? undefined : () => openPreview(images.length > 0 ? images : [imgSrc], 0)}
                             >
-                              <Image src={imgSrc} className="w-16 h-16 object-contain" />
+                              <Image
+                                src={imgSrc}
+                                className="w-16 h-16 object-contain"
+                                style={rentedOut ? { filter: 'grayscale(1)', opacity: 0.55 } : undefined}
+                              />
+                              {rentedOut && (
+                                <View
+                                  style={{
+                                    position: 'absolute', left: 0, right: 0, bottom: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 2,
+                                  }}
+                                >
+                                  <Text style={{ color: '#fff', fontSize: 9, textAlign: 'center', fontWeight: 'bold' }}>已被租出</Text>
+                                </View>
+                              )}
                             </View>
                             <Text className="text-xs text-red-500 font-bold mt-1" onClick={() => handleRemove(itemId)}>删除</Text>
                           </View>
