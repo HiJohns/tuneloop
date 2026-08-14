@@ -383,7 +383,7 @@ export default function Home() {
           List viewport (clip container) starts at m+h, so the menu region
           m..m+h is never overlapped by list cards. */}
         <View style={{ position: 'fixed', left: 0, right: 0, zIndex: 10002, backgroundColor: 'transparent', top: menuTop + 100 + stickyMenuHeight - menuScroll, height: stickyMenuHeight, overflow: 'hidden' }}>
-          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} />
+          <MenuContent categories={topCategories} selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} catOffsetX={catOffsetX} setCatOffsetX={setCatOffsetX} scrolled={true} subMenuCat={subMenuCat} onSetSubMenuCat={setSubMenuCat} windowWidth={navBar.windowWidth} />
         </View>
 
       {/* B: clip container — fixed, wraps ScrollView + BottomNav */}
@@ -479,7 +479,7 @@ export default function Home() {
   )
 }
 
-function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat }) {
+function MenuContent({ categories, selectedCategory, onCategoryChange, catOffsetX, setCatOffsetX, scrolled, subMenuCat, onSetSubMenuCat, windowWidth = 375 }) {
   const items = [{ id: null, name: '全部', sub_categories: [] }, ...(categories || [])]
   const localTouchRef = useRef({ x: 0, offset: 0, dragged: false })
 
@@ -487,15 +487,31 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
     ? [{ id: '__back__', name: '← 返回' }, { id: subMenuCat.id, name: '全部', sub_categories: [] }, ...(subMenuCat.sub_categories || [])]
     : items
 
+  // Estimate item width from text length (fontSize 18, CJK ≈ 18px, ASCII ≈ 10px)
+  // + 12px horizontal padding + 32px marginRight — replaces the hardcoded
+  // 120px/item and 375px screen width that left the last item unreachable (#1667).
+  const estimateWidth = (name) => {
+    let w = 0
+    for (const ch of String(name || '')) {
+      w += ch.charCodeAt(0) > 255 ? 18 : 10
+    }
+    return w + 44
+  }
+  const totalWidth = displayItems.reduce((sum, it) => sum + estimateWidth(it.name), 0)
+  const availWidth = Math.max(0, windowWidth - 56)
+  const maxOffset = Math.min(0, -(totalWidth - availWidth))
+
   const handleItemClick = (item) => {
     if (item.id === '__back__') {
       onSetSubMenuCat(null)
+      setCatOffsetX(0)
       return
     }
     const cat = categories.find(c => c.id === item.id)
     if (!subMenuCat && cat && (cat.sub_categories || []).length > 0) {
       onCategoryChange(cat.id)
       onSetSubMenuCat(cat)
+      setCatOffsetX(0)
     } else {
       onCategoryChange(item.id)
     }
@@ -510,7 +526,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
         const dx = e.touches[0].clientX - localTouchRef.current.x
         if (Math.abs(dx) > 5) {
           localTouchRef.current.dragged = true
-          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(displayItems.length * 120 - 375))))
+          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, maxOffset)))
         }
       }}
     >

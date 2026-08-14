@@ -416,9 +416,25 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
     ? [{ id: '__back__', name: '← 返回' }, { id: subMenuCat.id, name: '全部', sub_categories: [] }, ...(subMenuCat.sub_categories || [])]
     : items
 
+  // Estimate item width from text length (text-lg ≈ 18px, CJK ≈ 18px,
+  // ASCII ≈ 10px) + 40px gap — replaces the hardcoded 120px/item and 375px
+  // screen width that left the last item unreachable (#1667).
+  const estimateWidth = (name) => {
+    let w = 0
+    for (const ch of String(name || '')) {
+      w += ch.charCodeAt(0) > 255 ? 18 : 10
+    }
+    return w + 40
+  }
+  const winWidth = getWindowSize().width
+  const totalWidth = displayItems.reduce((sum, it) => sum + estimateWidth(it.name), 0)
+  const availWidth = Math.max(0, winWidth - 28)
+  const maxOffset = Math.min(0, -(totalWidth - availWidth))
+
   const handleItemClick = (item) => {
     if (item.id === '__back__') {
       setSubMenuCat(null)
+      setCatOffsetX(0)
       return
     }
     const cat = categories.find(c => c.id === item.id)
@@ -426,6 +442,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
       // Entering sub-menu: auto-select the parent category
       onCategoryChange(cat.id)
       setSubMenuCat(cat)
+      setCatOffsetX(0)
     } else {
       // Selecting a filter item (or "全部" in sub-menu)
       onCategoryChange(item.id)
@@ -440,7 +457,7 @@ function MenuContent({ categories, selectedCategory, onCategoryChange, catOffset
       onTouchMove={e => {
         const dx = e.touches[0].clientX - localTouchRef.current.x
         if (Math.abs(dx) > 5) {
-          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, -(displayItems.length * 120 - 375))))
+          setCatOffsetX(Math.min(0, Math.max(localTouchRef.current.offset + dx, maxOffset)))
         }
       }}
     >
