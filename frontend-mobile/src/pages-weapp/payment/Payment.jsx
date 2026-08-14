@@ -262,12 +262,6 @@ export default function Payment() {
 
   return (
     <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7', paddingBottom: 100 }}>
-      <View style={{ background: 'linear-gradient(to bottom, #FDF4E7, #fff)', padding: '16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Text style={{ fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center' }}>
-          {pType === 'appeal' ? '申诉结果确认' : isRefund ? '退款确认' : '支付确认'}
-        </Text>
-      </View>
-
       <ScrollView style={{ width: '100%' }}>
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>{data.title}</Text>

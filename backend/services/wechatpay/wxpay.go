@@ -22,6 +22,22 @@ func InitGlobal(cfg *Config) {
 	})
 }
 
+// ResetGlobalForTesting clears the singleton so a test can re-initialize
+// with a different config (e.g. non-mock) — production code never calls it.
+func ResetGlobalForTesting() {
+	initOnce = sync.Once{}
+	globalCfg = nil
+	globalClient = nil
+}
+
+// SetClientForTesting replaces the global client with a stub (handlers-package
+// tests use this to drive non-mock branches like membership JSAPI without
+// real WeChat credentials).
+func SetClientForTesting(c Client, cfg *Config) {
+	globalClient = c
+	globalCfg = cfg
+}
+
 func GetClient() Client {
 	return globalClient
 }

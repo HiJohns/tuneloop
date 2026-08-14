@@ -147,7 +147,7 @@ steps:
 
 ## 注册页改造
 - 去掉「用户名」输入框（#1638 后端：username 由 phone 派生）
-- 昵称 = 微信昵称（可编辑，#1589 教训：可输入，不用 type="nickname"）
+- 昵称 = 微信昵称（可编辑）：weapp 注册页（ProfileComplete，weapp 独占）用 `type="nickname"` 让微信键盘带出昵称快捷填充；H5 薄壳共享页禁用（#1589 教训：H5 下锁死输入）
 - 底部「用户名密码登录」→ 账户列表页
 - `?mode=member`（员工弹窗进入）→ 隐藏「用户名密码登录」
 - 注册提交绑定身份：优先传 `exchange_token`（wx-accounts mint，单次、5min TTL）；无 token 时 fallback 新 `wx.login()` code

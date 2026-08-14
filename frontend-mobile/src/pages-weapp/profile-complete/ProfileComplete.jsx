@@ -141,12 +141,9 @@ export default function ProfileComplete() {
         )}
       </View>
 
-      <View style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <Text style={{ color: '#a1a1aa', fontSize: 14 }}>昵称</Text>
-        <Input value={nickname} onInput={e => setNickname(e.detail.value)}
-          placeholder="微信昵称（可编辑）"
-          style={{ flex: 1, height: 44, fontSize: 14, marginLeft: 8 }} />
-      </View>
+      <Input placeholder="昵称" value={nickname} onInput={e => setNickname(e.detail.value)}
+        type="nickname"
+        style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="姓名" value={name} onInput={e => setName(e.detail.value)}
         style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 12, padding: '0 16px', boxSizing: 'border-box', fontSize: 14, lineHeight: '44px', marginBottom: 12 }} />
       <Input placeholder="手机号" value={phone} onInput={e => setPhone(e.detail.value)}

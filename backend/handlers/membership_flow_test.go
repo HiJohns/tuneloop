@@ -16,6 +16,7 @@ import (
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
+	"tuneloop-backend/services/wechatpay"
 	"tuneloop-backend/testutil"
 )
 
@@ -49,6 +50,7 @@ func TestMembershipFlow(t *testing.T) {
 
 	registerBody, _ := json.Marshal(map[string]interface{}{
 		"name":     "Membership User",
+		"nickname": "会员用户",
 		"phone":    "13800138000",
 		"password": "secret123",
 		"wx_code":  "mem-wx-code",
@@ -158,3 +160,107 @@ func TestMembershipFlow(t *testing.T) {
 // Ensure unused imports compile even when the test DB is skipped.
 var _ = context.Background()
 var _ = uuid.New
+
+// stubJSAPIClient drives the non-mock JSAPI branch of PrepayOrder without
+// real WeChat credentials (#1656 membership prepay regression guard).
+type stubJSAPIClient struct{}
+
+func (stubJSAPIClient) CreateJSAPIOrder(_ context.Context, p wechatpay.JSAPIParams) (*wechatpay.JSAPIResult, error) {
+	return &wechatpay.JSAPIResult{
+		PrepayID:  "stub_prepay_id_001",
+		Package:   "prepay_id=stub_prepay_id_001",
+		TimeStamp: "1750000000",
+		NonceStr:  "stub_nonce",
+		SignType:  "RSA",
+		Sign:      "stub_sign",
+	}, nil
+}
+func (stubJSAPIClient) CreateNativeOrder(context.Context, wechatpay.NativeParams) (*wechatpay.NativeResult, error) {
+	return &wechatpay.NativeResult{CodeURL: "stub"}, nil
+}
+func (stubJSAPIClient) CreateH5Order(context.Context, wechatpay.H5Params) (*wechatpay.H5Result, error) {
+	return &wechatpay.H5Result{}, nil
+}
+func (stubJSAPIClient) QueryOrder(context.Context, string) (*wechatpay.QueryResult, error) {
+	return &wechatpay.QueryResult{TradeState: "SUCCESS"}, nil
+}
+func (stubJSAPIClient) CloseOrder(context.Context, string) error { return nil }
+func (stubJSAPIClient) Refund(context.Context, wechatpay.RefundParams) (*wechatpay.RefundResult, error) {
+	return &wechatpay.RefundResult{}, nil
+}
+func (stubJSAPIClient) QueryRefund(context.Context, string) (*wechatpay.RefundResult, error) {
+	return &wechatpay.RefundResult{}, nil
+}
+func (stubJSAPIClient) VerifyPaymentCallback(context.Context, []byte, string, string, string, string) (*wechatpay.CallbackResult, error) {
+	return &wechatpay.CallbackResult{}, nil
+}
+
+// TestPrepayMembership_NonMock verifies the membership branch of PrepayOrder
+// (#1656): in non-mock mode the request must reach the JSAPI switch arm and
+// return a prepay_id — previously the missing branch produced an empty 200
+// (silent no-op on the client's "发起支付" button in production).
+func TestPrepayMembership_NonMock(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		MockMode:        false,
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	user := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   "6d1e2c3a-0000-4000-8000-0000000000d2",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "NonMockMember",
+		Phone:    "13800138001",
+		Role:     "USER",
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	customer := testutil.MakeCustomer("", user.ID)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	prepayBody, _ := json.Marshal(map[string]interface{}{
+		"order_type": "membership",
+		"amount":     99.0,
+		"open_id":    "mock_openid",
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Mock    bool `json:"mock"`
+			Success bool `json:"success"`
+			Data    struct {
+				PrepayID string `json:"prepay_id"`
+			} `json:"data"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	assert.False(t, resp.Data.Mock, "non-mock mode")
+	assert.True(t, resp.Data.Success)
+	assert.Equal(t, "stub_prepay_id_001", resp.Data.Data.PrepayID,
+		"membership must reach the JSAPI switch arm and return prepay_id")
+}
