@@ -38,33 +38,37 @@ function parsePricing(pricing) {
   return []
 }
 
-function computeTieredRent(pricingV2, days, baseDailyRate) {
+// computeTieredBreakdown returns per-tier segments (days / daily_rate / fee)
+// and the total rent, per the pricing_v2 tier table (#1659/#1658 refinement).
+function computeTieredBreakdown(pricingV2, days, baseDailyRate) {
   if (!pricingV2?.tiers?.length) {
-    return (pricingV2?.base_daily_rate || baseDailyRate || 0) * days
+    const rate = pricingV2?.base_daily_rate || baseDailyRate || 0
+    return { tiers: [{ days, rate, fee: rate * days }], total: rate * days }
   }
   let remaining = days
   let total = 0
   let prevMax = 0
+  const tiers = []
   for (const tier of pricingV2.tiers) {
     const tierDays = tier.days_max > 0 ? tier.days_max - prevMax : remaining
     const segDays = Math.min(tierDays, remaining)
+    if (segDays <= 0) break
+    tiers.push({ days: segDays, rate: tier.daily_rate, fee: segDays * tier.daily_rate })
     total += segDays * tier.daily_rate
     remaining -= segDays
     prevMax = tier.days_max
     if (remaining <= 0) break
   }
-  return total
+  return { tiers, total }
 }
 
 function getItemPricing(item) {
   const days = item.rent_qty || 30
   const dailyRent = item.daily_rent || 0
-  const rent = item.pricing_v2?.tiers?.length
-    ? computeTieredRent(item.pricing_v2, days, item.pricing_v2.base_daily_rate || dailyRent)
-    : dailyRent * days
+  const bd = computeTieredBreakdown(item.pricing_v2, days, dailyRent)
+  const rent = bd.total
   const deposit = item.deposit || 0
-  const shippingFee = item.shipping_fee || 0
-  return { dailyRent, deposit, rent, shippingFee }
+  return { dailyRent, deposit, rent, tiers: bd.tiers }
 }
 
 export default function Cart() {
@@ -190,6 +194,20 @@ export default function Cart() {
     })
   }
 
+  const adjustRentDays = (itemId, delta) => {
+    setCartItems(prev => {
+      const updated = prev.map(item => {
+        if (getItemId(item) === itemId) {
+          const days = Math.max(1, Math.min(365, (item.rent_qty || item.days || 30) + delta))
+          return { ...item, rent_qty: days }
+        }
+        return item
+      })
+      storage.setJSON(getCartKey(), { items: updated })
+      return updated
+    })
+  }
+
   const groups = useMemo(() => {
     const map = {}
     cartItems.forEach(item => {
@@ -201,12 +219,9 @@ export default function Cart() {
           site_name: item.site_name || '',
           site_address: item.site_address || '',
           site_phone: item.site_phone || '',
-          shippingFee: 0,
           items: [],
         }
       }
-      const itShip = item.shipping_fee || 0
-      if (itShip > map[key].shippingFee) map[key].shippingFee = itShip
       map[key].items.push(item)
     })
     return Object.values(map)
@@ -224,7 +239,7 @@ export default function Cart() {
         grpDeposit += p.deposit
       })
       if (grpRent + grpDeposit > 0) {
-        total += grpRent + grpDeposit + (group.shippingFee || 0)
+        total += grpRent + grpDeposit
       }
     })
     return total
@@ -286,8 +301,7 @@ export default function Cart() {
                 totalRent += p.rent
                 totalDeposit += p.deposit
               })
-              const groupHasSelection = totalRent + totalDeposit > 0
-              const groupSubtotal = totalRent + totalDeposit + (groupHasSelection ? (group.shippingFee || 0) : 0)
+              const groupSubtotal = totalRent + totalDeposit
 
               return (
                 <View key={group.tenant_id || 'unknown'} className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
@@ -309,11 +323,12 @@ export default function Cart() {
                       const imgSrc = fixImg(item.cover_image || images[0], env.apiBaseUrl) || PLACEHOLDER_IMAGE
                       const itemId = getItemId(item)
                       const pricing = getItemPricing(item)
-                      const itemSubtotal = pricing.rent + pricing.deposit + (pricing.shippingFee || 0)
+                      const days = item.rent_qty || item.days || 30
+                      const itemSubtotal = pricing.rent + pricing.deposit
                       return (
-                        <View key={itemId} className="py-4 flex space-y-3">
+                        <View key={itemId} className="py-4 flex items-start">
                           {/* Checkbox column */}
-                          <View className="flex-shrink-0 flex items-center" style={{ width: 28 }}>
+                          <View className="flex-shrink-0 flex items-center" style={{ width: 28, marginTop: 24 }}>
                             <View
                               onClick={() => !rentedOut && toggleSelect(itemId)}
                               style={{
@@ -328,7 +343,7 @@ export default function Cart() {
                             </View>
                           </View>
 
-                          {/* Left column: image + delete */}
+                          {/* Left column: cover image (top-aligned) */}
                           <View className="flex flex-col items-center flex-shrink-0" style={{ width: 80 }}>
                             <View
                               className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center"
@@ -354,22 +369,36 @@ export default function Cart() {
                             <Text className="text-xs text-red-500 font-bold mt-1" onClick={() => handleRemove(itemId)}>删除</Text>
                           </View>
 
-                          {/* Right column: info + pricing */}
-                          <View className="flex-1 flex flex-col space-y-2 min-w-0">
-                            <View className="flex-1 min-w-0">
-                              <Text className="text-xl font-black text-black tracking-wide truncate block">{item.sn || item.name || '未知乐器'}</Text>
-                              <View className="flex items-center space-x-1 mt-1">
-                                {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
-                                <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
+                          {/* Right column: info + tier pricing */}
+                          <View className="flex-1 flex flex-col min-w-0">
+                            {/* Row 1: SN + category/level bubbles + days stepper */}
+                            <View className="flex items-start justify-between">
+                              <View className="flex-1 min-w-0">
+                                <Text className="text-base font-black text-black tracking-wide truncate block">{item.sn || item.name || '未知乐器'}</Text>
+                                <View className="flex items-center flex-wrap gap-1 mt-1">
+                                  {item.level_name && <Text className="bg-blue-50 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0">{item.level_name}</Text>}
+                                  <Text className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-extrabold flex-shrink-0">🔶 {item.category_name || '乐器'}</Text>
+                                </View>
                               </View>
+                              {!rentedOut && (
+                                <View className="flex items-center border border-zinc-200 rounded-full h-7 px-1 bg-zinc-50/50 flex-shrink-0 ml-2">
+                                  <Text className="px-2 text-zinc-400 font-bold text-sm select-none" onClick={() => adjustRentDays(itemId, -1)}>—</Text>
+                                  <Text className="px-1 text-black font-black text-xs">{days}天</Text>
+                                  <Text className="px-2 text-zinc-600 font-bold text-sm select-none" onClick={() => adjustRentDays(itemId, 1)}>+</Text>
+                                </View>
+                              )}
                             </View>
 
-                            {/* Pricing breakdown */}
-                            <View className="text-[10px] text-right space-y-0.5 pr-2">
-                              <Text className="block text-zinc-400">租金 ¥{pricing.rent.toFixed(0)}{item.pricing_v2?.tiers?.length ? '（阶梯计价）' : `（¥${pricing.dailyRent}/天 × ${item.rent_qty || 30}天）`}</Text>
-                              <Text className="block text-zinc-400">押金 ¥{pricing.deposit}</Text>
-                              <Text className="block text-zinc-400">物流费 ¥{pricing.shippingFee || 0}</Text>
-                              <Text className="block font-bold text-zinc-500 pt-0.5">小计 ¥{itemSubtotal.toFixed(0)}</Text>
+                            {/* Tier breakdown (小票标准：阶梯天数×日租金=费用 → 租金合计 + 押金 + 总金额) */}
+                            <View className="text-[11px] text-right space-y-0.5 mt-2">
+                              {pricing.tiers.map((t, i) => (
+                                <Text key={i} className="block text-zinc-500">
+                                  {t.days}天 × ¥{t.rate}/天 = ¥{t.fee}
+                                </Text>
+                              ))}
+                              <Text className="block text-zinc-500">租金合计 ¥{pricing.rent.toFixed(0)}</Text>
+                              <Text className="block text-zinc-500">押金 ¥{pricing.deposit.toFixed(0)}</Text>
+                              <Text className="block font-bold text-black pt-0.5">总金额 ¥{itemSubtotal.toFixed(0)}</Text>
                             </View>
                           </View>
                         </View>
@@ -377,16 +406,16 @@ export default function Cart() {
                     })}
                   </View>
 
-                  <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end w-full mt-auto">
-                    <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold" style={{ maxWidth: '60%' }}>
+                  <View className="bg-zinc-50/40 border-t border-zinc-100 p-4 flex justify-between items-end flex-shrink-0 mt-auto">
+                    <View className="flex flex-col space-y-1 text-[11px] text-zinc-400 font-semibold min-w-0 flex-1">
                       <Text className="truncate">🗺️ 发货仓: {group.site_address || group.site_name || '-'}</Text>
-                      {group.site_phone && <Text>📞 电话: {group.site_phone}</Text>}
+                      {group.site_phone && <Text className="truncate">📞 电话: {group.site_phone}</Text>}
                     </View>
 
-                    <View className="text-right flex-shrink-0 whitespace-nowrap ml-4">
+                    <View className="text-right flex-shrink-0 ml-3">
                       <Text className="text-[10px] text-zinc-400 font-bold block mb-0.5">网点小计</Text>
-                      <Text className="text-black font-black text-2xl tracking-tight">
-                        ¥{groupSubtotal}
+                      <Text className="text-black font-black text-lg tracking-tight">
+                        ¥{groupSubtotal.toFixed(0)}
                       </Text>
                     </View>
                   </View>
