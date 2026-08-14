@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -16,11 +19,13 @@ import (
 )
 
 type PrepayRequest struct {
-	OrderID   string  `json:"order_id"`                      // required for rent/repair/damage; empty allowed for renewal/membership
-	OrderType string  `json:"order_type" binding:"required"` // rent | repair | damage | renewal | membership
-	Amount    float64 `json:"amount" binding:"required"`
-	OpenID    string  `json:"open_id,omitempty"`
-	GiftUsed  float64 `json:"gift_used"`
+	OrderID    string  `json:"order_id"`                      // required for rent/repair/damage; empty allowed for renewal/membership
+	OrderType  string  `json:"order_type" binding:"required"` // rent | repair | damage | renewal | membership
+	Amount     float64 `json:"amount" binding:"required"`
+	OpenID     string  `json:"open_id,omitempty"`
+	GiftUsed   float64 `json:"gift_used"`
+	SessionID  string  `json:"session_id,omitempty"`  // membership: two-phase registration session (#1663)
+	CouponCode string  `json:"coupon_code,omitempty"` // membership: discount code (OREZ/ENO)
 }
 
 type PrepayResponse struct {
@@ -74,8 +79,10 @@ func PrepayOrder(c *gin.Context) {
 
 	// membership payments have no pre-existing order: OrderID
 	// holds the local user id, resolved from the JWT (iam_sub).
+	// Two-phase session flow (#1663): the user does NOT exist locally yet
+	// (no-orphan principle) → OrderID stays nil (uuid column must be null).
 	effectiveOrderID := req.OrderID
-	if req.OrderType == "membership" && effectiveOrderID == "" {
+	if req.OrderType == "membership" && req.SessionID == "" && effectiveOrderID == "" {
 		var localUser models.User
 		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			effectiveOrderID = localUser.ID
@@ -93,12 +100,16 @@ func PrepayOrder(c *gin.Context) {
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
+	// Session flow (#1663): the payer has no account yet (no-orphan
+	// principle) — JWT user_id may be empty; store the zero UUID.
+	if req.OrderType == "membership" && req.SessionID != "" && userID == "" {
+		userID = "00000000-0000-0000-0000-000000000000"
+	}
 
 	record := models.OrderPaymentRecord{
 		ID:         uuid.New().String(),
 		TenantID:   tenantID,
 		UserID:     userID,
-		OrderID:    &effectiveOrderID,
 		OrderType:  req.OrderType,
 		OutTradeNo: &outTradeNo,
 		Amount:     req.Amount,
@@ -107,11 +118,69 @@ func PrepayOrder(c *gin.Context) {
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 	}
+	if effectiveOrderID != "" {
+		record.OrderID = &effectiveOrderID
+	}
 
 	// Store gift points usage on the payment record for callback consumption
 	if req.GiftUsed > 0 {
 		raw := fmt.Sprintf(`{"gift_used":%.2f}`, req.GiftUsed)
 		record.RawResponse = &raw
+	}
+
+	// Two-phase registration session flow (#1663): the membership fee is
+	// priced server-side from the session + optional coupon — the client's
+	// amount is ignored (计费以后端为准).
+	sessionFlow := req.OrderType == "membership" && req.SessionID != ""
+	sessionAmount := req.Amount
+	if sessionFlow {
+		var session models.RegistrationSession
+		if err := db.Where("id = ? AND status = ?", req.SessionID, "pending").First(&session).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "registration session not found or not pending"})
+			return
+		}
+		amount := session.Amount
+		couponCode := ""
+		if req.CouponCode != "" {
+			var coupon models.Coupon
+			if err := db.Where("code = ? AND active = ?", strings.ToUpper(req.CouponCode), true).First(&coupon).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid coupon code"})
+				return
+			}
+			switch coupon.Type {
+			case "waive":
+				amount = 0
+			case "percent":
+				amount = math.Round(amount*coupon.Value/100*100) / 100
+			default:
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
+				return
+			}
+			couponCode = coupon.Code
+		}
+		sessionAmount = amount
+		record.Amount = amount // server-priced; never trust the client amount
+		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": session.Amount}
+		if couponCode != "" {
+			sessionRaw["coupon_code"] = couponCode
+		}
+		if rawJSON, err := json.Marshal(sessionRaw); err == nil {
+			if record.RawResponse != nil {
+				var existing map[string]interface{}
+				if json.Unmarshal([]byte(*record.RawResponse), &existing) == nil {
+					for k, v := range sessionRaw {
+						existing[k] = v
+					}
+					if merged, err := json.Marshal(existing); err == nil {
+						mergedStr := string(merged)
+						record.RawResponse = &mergedStr
+					}
+				}
+			} else {
+				rawStr := string(rawJSON)
+				record.RawResponse = &rawStr
+			}
+		}
 	}
 
 	if cfg.MockMode {
@@ -140,6 +209,42 @@ func PrepayOrder(c *gin.Context) {
 			"code": 20000,
 			"data": PrepayResponse{
 				Mock:    true,
+				Success: true,
+				Data: &PrepayData{
+					OutTradeNo: outTradeNo,
+				},
+			},
+		})
+		return
+	}
+
+	// OREZ full waiver (amount = 0): no WeChat payment is created; the
+	// record is booked as paid and the callback-equivalent side effects run
+	// (server-side account creation) — same path as the mock mode above.
+	if sessionFlow && sessionAmount == 0 {
+		record.Status = "paid"
+		record.Method = strPtr("waived")
+		now := time.Now()
+		record.UpdatedAt = now
+
+		tx := db.Begin()
+		if err := tx.Create(&record).Error; err != nil {
+			tx.Rollback()
+			log.Printf("[PrepayOrder] failed to save waiver payment record: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
+			return
+		}
+		if err := applySideEffects(tx, &record, now); err != nil {
+			tx.Rollback()
+			log.Printf("[PrepayOrder] waiver side effects failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "payment side effects failed"})
+			return
+		}
+		tx.Commit()
+
+		c.JSON(http.StatusOK, gin.H{
+			"code": 20000,
+			"data": PrepayResponse{
 				Success: true,
 				Data: &PrepayData{
 					OutTradeNo: outTradeNo,
@@ -269,10 +374,14 @@ func PrepayOrder(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "membership payment requires open_id"})
 			return
 		}
+		amount := req.Amount
+		if sessionFlow {
+			amount = sessionAmount // server-priced (session + coupon)
+		}
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
-			TotalAmount: cfg.AmountToCents(req.Amount),
+			TotalAmount: cfg.AmountToCents(amount),
 			Description: "会员入会费",
 			NotifyURL:   cfg.NotifyURL,
 		})

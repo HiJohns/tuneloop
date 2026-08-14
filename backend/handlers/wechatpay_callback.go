@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -186,7 +187,13 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 	case "repair":
 		return tx.Model(&models.RepairRequest{}).Where("id = ?", record.OrderID).Update("status", models.RepairReqStatusPendingShip).Error
 	case "membership":
-		// Membership fee (#1532): activate the highest level whose
+		// Two-phase registration (session flow, #1663): payment completes
+		// and the account is created server-side from form_data. Guarded by
+		// the session_id marker stored in raw_response at prepay time.
+		if record.RawResponse != nil && strings.Contains(*record.RawResponse, "session_id") {
+			return completeRegistrationFromSession(tx, record, now)
+		}
+		// Legacy membership fee (#1532): activate the highest level whose
 		// MinAmount <= paid amount. OrderID stores the local user id.
 		// Gift points and referral bonuses are credited during
 		// registration (PostRegister) — not repeated here.
