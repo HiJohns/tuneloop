@@ -16,12 +16,11 @@ import (
 )
 
 type PrepayRequest struct {
-	OrderID     string  `json:"order_id"`                      // required for rent/repair/damage; empty allowed for points/renewal
-	OrderType   string  `json:"order_type" binding:"required"` // rent | repair | damage | renewal | membership
-	Amount      float64 `json:"amount" binding:"required"`
-	OpenID      string  `json:"open_id,omitempty"`
-	PrepaidUsed float64 `json:"prepaid_used"`
-	GiftUsed    float64 `json:"gift_used"`
+	OrderID   string  `json:"order_id"`                      // required for rent/repair/damage; empty allowed for renewal/membership
+	OrderType string  `json:"order_type" binding:"required"` // rent | repair | damage | renewal | membership
+	Amount    float64 `json:"amount" binding:"required"`
+	OpenID    string  `json:"open_id,omitempty"`
+	GiftUsed  float64 `json:"gift_used"`
 }
 
 type PrepayResponse struct {
@@ -73,10 +72,10 @@ func PrepayOrder(c *gin.Context) {
 
 	outTradeNo := fmt.Sprintf("%s%s%d", req.OrderType, uuid.New().String()[:8], time.Now().Unix())
 
-	// points/membership payments have no pre-existing order: OrderID
+	// membership payments have no pre-existing order: OrderID
 	// holds the local user id, resolved from the JWT (iam_sub).
 	effectiveOrderID := req.OrderID
-	if (req.OrderType == "points" || req.OrderType == "membership") && effectiveOrderID == "" {
+	if req.OrderType == "membership" && effectiveOrderID == "" {
 		var localUser models.User
 		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			effectiveOrderID = localUser.ID
@@ -109,9 +108,9 @@ func PrepayOrder(c *gin.Context) {
 		UpdatedAt:  time.Now(),
 	}
 
-	// Store points usage on the payment record for callback consumption
-	if req.PrepaidUsed > 0 || req.GiftUsed > 0 {
-		raw := fmt.Sprintf(`{"prepaid_used":%.2f,"gift_used":%.2f}`, req.PrepaidUsed, req.GiftUsed)
+	// Store gift points usage on the payment record for callback consumption
+	if req.GiftUsed > 0 {
+		raw := fmt.Sprintf(`{"gift_used":%.2f}`, req.GiftUsed)
 		record.RawResponse = &raw
 	}
 
@@ -192,42 +191,6 @@ func PrepayOrder(c *gin.Context) {
 			OpenID:      req.OpenID,
 			TotalAmount: cfg.AmountToCents(req.Amount),
 			Description: fmt.Sprintf("乐器租赁订单"),
-			NotifyURL:   cfg.NotifyURL,
-		})
-		if err != nil {
-			record.Status = "failed"
-			fr := err.Error()
-			record.FailReason = &fr
-			db.Create(&record)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
-			return
-		}
-		record.Method = strPtr("jsapi")
-		record.PrepayID = &result.PrepayID
-		db.Create(&record)
-		c.JSON(http.StatusOK, gin.H{
-			"code": 20000,
-			"data": PrepayResponse{
-				Success: true,
-				Data: &PrepayData{
-					OutTradeNo: outTradeNo,
-					PrepayID:   result.PrepayID,
-					AppID:      cfg.AppID,
-					TimeStamp:  result.TimeStamp,
-					NonceStr:   result.NonceStr,
-					Package:    result.Package,
-					SignType:   result.SignType,
-					PaySign:    result.Sign,
-				},
-			},
-		})
-
-	case "points":
-		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
-			OutTradeNo:  outTradeNo,
-			OpenID:      req.OpenID,
-			TotalAmount: cfg.AmountToCents(req.Amount),
-			Description: "预付点充值",
 			NotifyURL:   cfg.NotifyURL,
 		})
 		if err != nil {

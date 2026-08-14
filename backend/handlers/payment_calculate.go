@@ -62,8 +62,6 @@ func CalculatePayment(c *gin.Context) {
 		loadRepairPayment(db, req.ID, req.Type, &resp)
 	case "damage":
 		loadDamagePayment(db, req.ID, &resp)
-	case "points":
-		resp.Title = "预付点充值"
 	case "refund":
 		loadRefundPayment(db, req.ID, &resp)
 	case "deposit-refund":

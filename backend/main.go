@@ -664,10 +664,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/user/id-photos", userOnboardingHandler.GetIdPhotos)
 				userOptionalAuth.DELETE("/user/id-photo", userOnboardingHandler.DeleteIdPhoto)
 
-				// Points wallet routes
+				// Points wallet routes (prepaid purchase removed #1670)
 				userOptionalAuth.GET("/user/points/balance", userPointsHandler.GetBalance)
 				userOptionalAuth.GET("/user/points/transactions", userPointsHandler.ListTransactions)
-				userOptionalAuth.POST("/user/points/purchase", userPointsHandler.PurchasePoints)
 				userOptionalAuth.GET("/user/guarantors", guarantorHandler.ListGuarantors)
 				userOptionalAuth.POST("/user/guarantors", guarantorHandler.CreateGuarantor)
 				userOptionalAuth.DELETE("/user/guarantors/:id", guarantorHandler.DeleteGuarantor)

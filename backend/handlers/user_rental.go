@@ -179,17 +179,16 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 // POST /api/user/orders - Create rental order
 func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	var req struct {
-		InstrumentID      string      `json:"instrument_id" binding:"required"`
-		StartDate         string      `json:"start_date" binding:"required"`
-		EndDate           string      `json:"end_date" binding:"required"`
-		RentDays          int         `json:"rent_days"`
-		DeliveryAddress   interface{} `json:"delivery_address"`
-		Notes             string      `json:"notes"`
-		PrepaidPointsUsed float64     `json:"prepaid_points_used"`
-		GiftPointsUsed    float64     `json:"gift_points_used"`
-		DiscountCode      string      `json:"discount_code"`  // redeemable code (#1539)
-		DepositWaived     bool        `json:"deposit_waived"` // deposit-free application (#1557)
-		GuarantorIDs      []string    `json:"guarantor_ids"`  // guarantors for deposit-free order (#1557)
+		InstrumentID    string      `json:"instrument_id" binding:"required"`
+		StartDate       string      `json:"start_date" binding:"required"`
+		EndDate         string      `json:"end_date" binding:"required"`
+		RentDays        int         `json:"rent_days"`
+		DeliveryAddress interface{} `json:"delivery_address"`
+		Notes           string      `json:"notes"`
+		GiftPointsUsed  float64     `json:"gift_points_used"`
+		DiscountCode    string      `json:"discount_code"`  // redeemable code (#1539)
+		DepositWaived   bool        `json:"deposit_waived"` // deposit-free application (#1557)
+		GuarantorIDs    []string    `json:"guarantor_ids"`  // guarantors for deposit-free order (#1557)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -430,13 +429,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	req.PrepaidPointsUsed = max(0, req.PrepaidPointsUsed)
 	req.GiftPointsUsed = max(0, req.GiftPointsUsed)
-
-	if req.PrepaidPointsUsed > userWallet.PrepaidPoints {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient prepaid points"})
-		return
-	}
 
 	if req.GiftPointsUsed > 0 {
 		pointsPolicies, err := queryApplicablePointsPolicies(db, effectiveTenantID, effectiveOrgID)
@@ -454,7 +447,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 	}
 
-	cashPaid := totalAmount - req.PrepaidPointsUsed - req.GiftPointsUsed
+	cashPaid := totalAmount - req.GiftPointsUsed
 	if cashPaid < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "points exceed total amount"})
 		return
@@ -479,7 +472,6 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		StartDate:         &startDateStr,
 		EndDate:           &endDateStr,
 		CashPaid:          cashPaid,
-		PrepaidPointsUsed: req.PrepaidPointsUsed,
 		GiftPointsUsed:    req.GiftPointsUsed,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
@@ -513,16 +505,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	// Snapshot creation request for audit/compliance
 	requestSnapshot := map[string]interface{}{
-		"start_date":          req.StartDate,
-		"end_date":            req.EndDate,
-		"rent_days":           days,
-		"instrument_id":       req.InstrumentID,
-		"delivery_address":    req.DeliveryAddress,
-		"notes":               req.Notes,
-		"prepaid_points_used": req.PrepaidPointsUsed,
-		"gift_points_used":    req.GiftPointsUsed,
-		"deposit_waived":      req.DepositWaived,
-		"guarantor_ids":       req.GuarantorIDs,
+		"start_date":       req.StartDate,
+		"end_date":         req.EndDate,
+		"rent_days":        days,
+		"instrument_id":    req.InstrumentID,
+		"delivery_address": req.DeliveryAddress,
+		"notes":            req.Notes,
+		"gift_points_used": req.GiftPointsUsed,
+		"deposit_waived":   req.DepositWaived,
+		"guarantor_ids":    req.GuarantorIDs,
 	}
 	if reqSnapshotJSON, err := json.Marshal(requestSnapshot); err == nil {
 		snapStr := string(reqSnapshotJSON)
@@ -582,64 +573,36 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 	}
 
-	// Deduct points from wallet (inside transaction)
-	if req.PrepaidPointsUsed > 0 || req.GiftPointsUsed > 0 {
+	// Deduct gift points from wallet (inside transaction)
+	if req.GiftPointsUsed > 0 {
 		updates := map[string]interface{}{
 			"updated_at": time.Now(),
 		}
-		if req.PrepaidPointsUsed > 0 {
-			updates["prepaid_points"] = gorm.Expr("prepaid_points - ?", req.PrepaidPointsUsed)
-		}
-		if req.GiftPointsUsed > 0 {
-			updates["promo_points"] = gorm.Expr("promo_points - ?", req.GiftPointsUsed)
-		}
+		updates["promo_points"] = gorm.Expr("promo_points - ?", req.GiftPointsUsed)
 		if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to deduct points"})
 			return
 		}
 
-		// Create points_transaction records
-		newPrepaid := userWallet.PrepaidPoints - req.PrepaidPointsUsed
+		// Create points_transaction record
 		newPromo := userWallet.PromoPoints - req.GiftPointsUsed
 
-		if req.PrepaidPointsUsed > 0 {
-			pt := models.PointsTransaction{
-				ID:                  uuid.New().String(),
-				UserID:              userID,
-				TenantID:            effectiveTenantID,
-				Type:                "order_deduct",
-				Amount:              -req.PrepaidPointsUsed,
-				BalanceAfterPrepaid: newPrepaid,
-				BalanceAfterPromo:   newPromo,
-				OrderID:             &order.ID,
-				Description:         "订单预付点数抵扣",
-				CreatedAt:           time.Now(),
-			}
-			if err := tx.Create(&pt).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record transaction"})
-				return
-			}
+		pt := models.PointsTransaction{
+			ID:                uuid.New().String(),
+			UserID:            userID,
+			TenantID:          effectiveTenantID,
+			Type:              "order_deduct",
+			Amount:            -req.GiftPointsUsed,
+			BalanceAfterPromo: newPromo,
+			OrderID:           &order.ID,
+			Description:       "订单赠送点数抵扣",
+			CreatedAt:         time.Now(),
 		}
-		if req.GiftPointsUsed > 0 {
-			pt := models.PointsTransaction{
-				ID:                  uuid.New().String(),
-				UserID:              userID,
-				TenantID:            effectiveTenantID,
-				Type:                "order_deduct",
-				Amount:              -req.GiftPointsUsed,
-				BalanceAfterPrepaid: newPrepaid,
-				BalanceAfterPromo:   newPromo,
-				OrderID:             &order.ID,
-				Description:         "订单赠送点数抵扣",
-				CreatedAt:           time.Now(),
-			}
-			if err := tx.Create(&pt).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record transaction"})
-				return
-			}
+		if err := tx.Create(&pt).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to record transaction"})
+			return
 		}
 	}
 

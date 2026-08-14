@@ -245,13 +245,12 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		return nil
 	}
 	var points struct {
-		PrepaidUsed float64 `json:"prepaid_used"`
-		GiftUsed    float64 `json:"gift_used"`
+		GiftUsed float64 `json:"gift_used"`
 	}
 	if err := json.Unmarshal([]byte(*record.RawResponse), &points); err != nil {
 		return nil // silently ignore malformed raw_response
 	}
-	if points.PrepaidUsed <= 0 && points.GiftUsed <= 0 {
+	if points.GiftUsed <= 0 {
 		return nil
 	}
 	if err := tx.Model(&models.User{}).Where("iam_sub = ?", record.UserID).
@@ -263,15 +262,12 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	}
 	if record.OrderID != nil {
 		updates := map[string]interface{}{
-			"prepaid_points_used": points.PrepaidUsed,
-			"gift_points_used":    points.GiftUsed,
+			"gift_points_used": points.GiftUsed,
 		}
 		// Deduct gift points from cash_paid so settlement does not double
 		// count them (L-06). cash_paid was set to the full total at order
 		// creation; the gift-covered portion is not cash.
-		if points.GiftUsed > 0 {
-			updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", points.GiftUsed)
-		}
+		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", points.GiftUsed)
 		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
 			Updates(updates).Error; err != nil {
 			return fmt.Errorf("update order points: %w", err)
@@ -285,10 +281,10 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		ID:          uuid.New().String(),
 		UserID:      localUserID,
 		TenantID:    record.TenantID,
-		Type:        "prepaid_used",
-		Amount:      points.PrepaidUsed + points.GiftUsed,
+		Type:        "gift_used",
+		Amount:      points.GiftUsed,
 		OrderID:     record.OrderID,
-		Description: fmt.Sprintf("订单支付使用预付点: prepaid=%.2f, gift=%.2f", points.PrepaidUsed, points.GiftUsed),
+		Description: fmt.Sprintf("订单支付使用赠送点数: gift=%.2f", points.GiftUsed),
 		CreatedAt:   now,
 	}
 	if err := tx.Create(&pt).Error; err != nil {
@@ -303,13 +299,6 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 // order_payment_records.user_id stores the IAM subject — mixing them
 // violates points_transactions_user_id_fkey (SQLSTATE 23503).
 func resolveLocalUserID(tx *gorm.DB, record *models.OrderPaymentRecord) string {
-	// points prepay stores the local user id in OrderID
-	if record.OrderType == "points" && record.OrderID != nil {
-		var u models.User
-		if err := tx.Where("id = ?", *record.OrderID).First(&u).Error; err == nil {
-			return u.ID
-		}
-	}
 	var u models.User
 	if err := tx.Where("iam_sub = ?", record.UserID).First(&u).Error; err == nil {
 		return u.ID
