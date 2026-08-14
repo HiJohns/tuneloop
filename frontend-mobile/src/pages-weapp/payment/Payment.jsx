@@ -21,7 +21,6 @@ export default function Payment() {
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [prepaidUsed, setPrepaidUsed] = useState(0)
   const [giftUsed, setGiftUsed] = useState(0)
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
@@ -43,11 +42,6 @@ export default function Payment() {
   useEffect(() => {
     if (!pType) return
     const fetchData = async () => {
-      if (pType === 'points') {
-        setData({ type: 'points', title: '预付点充值', amount: pAmount, details: null, wallet: null })
-        setLoading(false)
-        return
-      }
       if (pType === 'renewal') {
         setData({ type: 'renewal', title: '续期支付', amount: pAmount, details: null, wallet: null })
         setLoading(false)
@@ -102,14 +96,13 @@ export default function Payment() {
   }
 
   const wallet = data.wallet || {}
-  const maxPrepaid = wallet.prepaid_points || 0
   const maxGift = Math.min(wallet.promo_points || 0, wallet.max_gift_amount || 0)
 
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
   const cashAmount = isRefund
     ? data.amount
-    : Math.max(0, data.amount - prepaidUsed - giftUsed)
+    : Math.max(0, data.amount - giftUsed)
 
   const handlePay = async (cashAmount) => {
     const params = Taro.getCurrentInstance().router?.params || {}
@@ -144,7 +137,6 @@ export default function Payment() {
           order_type: pType,
           amount: cashAmount,
           open_id: openid,
-          prepaid_used: prepaidUsed,
           gift_used: giftUsed,
         }),
       })
@@ -314,26 +306,10 @@ export default function Payment() {
         </View>
 
         {/* Points usage (only for non-refund, non-appeal) */}
-        {!isRefund && pType !== 'points' && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && (
+        {!isRefund && pType !== 'appeal' && pType !== 'membership' && data.amount > 0 && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-           {(maxPrepaid > 0 || maxGift > 0) && (<>
+           {maxGift > 0 && (<>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>点数使用</Text>
-
-            {maxPrepaid > 0 && (
-            <View style={{ marginBottom: 12 }}>
-              <Row label="预付点余额" value={`¥${Number(maxPrepaid).toFixed(2)}`} />
-              <View style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
-                <Text style={{ fontSize: 13, color: '#71717a', width: 72 }}>使用</Text>
-                <View style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Input type="number" value={String(prepaidUsed || '')}
-                    onInput={e => setPrepaidUsed(clampPoints(e.detail.value, Math.min(maxPrepaid, data.amount)))}
-                    style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 8, padding: '6px 10px', fontSize: 13, textAlign: 'right' }}
-                  />
-                </View>
-                <Text style={{ fontSize: 13, color: '#71717a', marginLeft: 4 }}>点</Text>
-              </View>
-            </View>
-            )}
 
             {maxGift > 0 && (
             <View style={{ marginBottom: 4 }}>

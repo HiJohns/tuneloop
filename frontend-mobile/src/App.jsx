@@ -16,8 +16,6 @@ import Booking from './pages/Booking'
 import Profile from './pages/Profile'
 import EditProfile from './pages/profile/edit'
 import AccountSelect from './pages/account-select'
-import PointsPrePurchase from './pages/PointsPrePurchase'
-import PointsComplete from './pages/PointsComplete'
 import ReceiveConfirm from './pages/ReceiveConfirm'
 import ReturnConfirm from './pages/ReturnConfirm'
 import MyService from './pages/MyService'
@@ -245,8 +243,6 @@ function App() {
         <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceProgress /></ProtectedRoute>} />
         <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-        <Route path="/points-purchase" element={<ProtectedRoute><PointsPrePurchase /></ProtectedRoute>} />
-        <Route path="/points-complete" element={<ProtectedRoute><PointsComplete /></ProtectedRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/membership" element={<ProtectedRoute><MembershipCenter /></ProtectedRoute>} />
       </Routes>

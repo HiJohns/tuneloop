@@ -17,21 +17,14 @@ export default function Payment() {
   const navigate = useNavigate()
   const pType = searchParams.get('type') || ''
   const pId = searchParams.get('id') || ''
-  const pAmount = parseFloat(searchParams.get('amount') || '0')
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [prepaidUsed, setPrepaidUsed] = useState(0)
   const [giftUsed, setGiftUsed] = useState(0)
 
   useEffect(() => {
     if (!pType) return
     const fetchData = async () => {
-      if (pType === 'points') {
-        setData({ type: 'points', title: '预付点充值', amount: pAmount, details: null, wallet: null })
-        setLoading(false)
-        return
-      }
       if (pType === 'appeal') {
         // Appeal resolution receipt: load settled refund (#1576).
         try {
@@ -69,14 +62,13 @@ export default function Payment() {
   }
 
   const wallet = data.wallet || {}
-  const maxPrepaid = wallet.prepaid_points || 0
   const maxGift = Math.min(wallet.promo_points || 0, wallet.max_gift_amount || 0)
 
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
   const cashAmount = isRefund
     ? data.amount
-    : Math.max(0, data.amount - prepaidUsed - giftUsed)
+    : Math.max(0, data.amount - giftUsed)
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] pb-[100px]">
@@ -140,26 +132,9 @@ export default function Payment() {
         )}
       </div>
 
-      {!isRefund && pType !== 'points' && pType !== 'appeal' && data.amount > 0 && (maxPrepaid > 0 || maxGift > 0) && (
+      {!isRefund && pType !== 'appeal' && data.amount > 0 && maxGift > 0 && (
         <div className="bg-white mx-4 mt-4 rounded-2xl p-4 shadow-sm">
           <div className="text-sm font-black text-black mb-3">点数使用</div>
-
-          {maxPrepaid > 0 && (
-          <div className="mb-3">
-            <Row label="预付点余额" value={`¥${Number(maxPrepaid).toFixed(2)}`} />
-            <div className="flex items-center mt-1">
-              <span className="text-xs text-zinc-500 w-[72px]">使用</span>
-              <div className="flex-1 flex items-center gap-2">
-                <input type="number" min={0} max={Math.min(maxPrepaid, data.amount)} step={1}
-                  value={prepaidUsed}
-                  onChange={e => setPrepaidUsed(clampPoints(e.target.value, Math.min(maxPrepaid, data.amount)))}
-                  className="flex-1 border border-zinc-200 rounded-lg px-2 py-1 text-right"
-                />
-              </div>
-              <span className="text-xs text-zinc-500 ml-1">点</span>
-            </div>
-          </div>
-          )}
 
           {maxGift > 0 && (
           <div className="mb-1">
@@ -258,7 +233,6 @@ export default function Payment() {
           order_id: pId,
           order_type: pType,
           amount: cashAmount,
-          prepaid_used: prepaidUsed,
           gift_used: giftUsed,
         }),
       })

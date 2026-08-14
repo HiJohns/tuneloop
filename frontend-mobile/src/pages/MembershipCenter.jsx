@@ -22,8 +22,6 @@ export default function MembershipCenter() {
   const [qrSrc, setQrSrc] = useState('')
   const [showQR, setShowQR] = useState(false)
   const [refCode, setRefCode] = useState('')
-  const [showRecharge, setShowRecharge] = useState(false)
-  const [customAmt, setCustomAmt] = useState('')
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
 
@@ -207,17 +205,6 @@ export default function MembershipCenter() {
           </View>
         </View>
 
-        {/* Recharge button */}
-        <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
-          <View className="items-center">
-            <Button onClick={() => setShowRecharge(true)}
-              style={{ backgroundColor: '#000', color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 14, fontWeight: '700', border: 'none' }}>
-              充值预付点
-            </Button>
-            <Text className="text-xs text-zinc-400 mt-2">购买预付点数，订单支付时抵扣现金</Text>
-          </View>
-        </View>
-
         {/* Edit profile button */}
         <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
           <View className="items-center">
@@ -357,36 +344,6 @@ export default function MembershipCenter() {
         </View>
       )}
     </ScrollView>
-
-      {/* Recharge Modal */}
-      {showRecharge && (
-        <View className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-8" onClick={() => setShowRecharge(false)}>
-          <View className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <Text className="text-lg font-black text-black mb-4 text-center">充值预付点</Text>
-            <Text className="text-xs text-zinc-400 text-center mb-4">选择充值金额，微信支付</Text>
-            <View className="flex flex-col gap-3">
-              {[100, 200, 500, 1000].map(amt => (
-                <Button key={amt}
-                  onClick={() => { setShowRecharge(false); env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/payment/index?type=points&amount=${amt}` }) : navigate(`/payment?type=points&amount=${amt}`) }}
-                  style={{ backgroundColor: '#f4f4f5', color: '#000', borderRadius: 12, padding: '12px 0', fontSize: 16, fontWeight: '700', border: 'none' }}>
-                  ¥{amt}
-                </Button>
-              ))}
-              <View className="flex items-center gap-2 mt-2">
-                <input className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center" type="number" min={1} placeholder="自定义金额" value={customAmt} onChange={e => setCustomAmt(e.target.value)} />
-                <Button onClick={() => { if (customAmt > 0) { setShowRecharge(false); env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/payment/index?type=points&amount=${customAmt}` }) : navigate(`/payment?type=points&amount=${customAmt}`) } }}
-                  style={{ backgroundColor: '#000', color: '#fff', borderRadius: 999, padding: '10px 20px', fontSize: 14, fontWeight: '700', border: 'none' }}>
-                  充值
-                </Button>
-              </View>
-            </View>
-            <Button onClick={() => setShowRecharge(false)}
-              style={{ backgroundColor: 'transparent', color: '#a1a1aa', marginTop: 16, fontSize: 14, border: 'none' }}>
-              取消
-            </Button>
-          </View>
-        </View>
-      )}
     </>
   )
 }
