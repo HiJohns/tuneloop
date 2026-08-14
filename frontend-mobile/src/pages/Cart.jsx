@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
@@ -249,14 +250,14 @@ export default function Cart() {
     return total
   }, [groups, selected])
 
-  const handleRemove = (itemId) => {
-    if (dialog.confirm('确定要删除该乐器吗？')) {
-      const updated = cartItems.filter(item => getItemId(item) !== itemId)
-      setCartItems(updated)
-      storage.setJSON(getCartKey(), { items: updated })
-      setSelected(prev => { const next = new Set(prev); next.delete(itemId); return next })
-      eventBus.emit('cartUpdated')
-    }
+  const handleRemove = async (itemId) => {
+    const ok = await dialog.confirm('确定要删除该乐器吗？')
+    if (!ok) return
+    const updated = cartItems.filter(item => getItemId(item) !== itemId)
+    setCartItems(updated)
+    storage.setJSON(getCartKey(), { items: updated })
+    setSelected(prev => { const next = new Set(prev); next.delete(itemId); return next })
+    eventBus.emit('cartUpdated')
   }
 
   const handleCheckout = () => {
@@ -278,7 +279,10 @@ export default function Cart() {
 
   return (
     <View className="container h-screen w-screen bg-[#FDFBF7] overflow-hidden flex flex-col relative antialiased">
-      <View className="w-full pt-3 pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0">
+      <View
+        className="w-full pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0"
+        style={{ paddingTop: env.isMiniProgram ? (Taro.getSystemInfoSync().statusBarHeight || 0) + 8 : 12 }}
+      >
         <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">购物车</Text>
         <View className="w-6"></View>

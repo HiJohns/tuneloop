@@ -94,13 +94,16 @@ export async function wxLogin() {
   })
 }
 
-export function redirectToLogin(reason) {
+export async function redirectToLogin(reason) {
   if (reason) {
     session.setItem('login_reason', reason)
   }
 
   if (reason && reason !== 'session_expired' && reason !== 'token_missing') {
-    if (!dialog.confirm('此功能需要登录，是否前往登录？')) return
+    // dialog.confirm is async in weapp (Taro.showModal) — must await, otherwise
+    // the confirm is bypassed and the login flow runs behind the modal.
+    const ok = await dialog.confirm('此功能需要登录，是否前往登录？')
+    if (!ok) return
   }
 
   storage.removeItem('token')
@@ -114,7 +117,7 @@ export function redirectToLogin(reason) {
   if (isWeChatMiniProgram()) {
     // Multi-account login routing (#1639): reason='checkout' → source='checkout'
     // (cart submit / instant rent), anything else → source='profile' (我的).
-    resolveLogin(reason === 'checkout' ? 'checkout' : 'profile')
+    await resolveLogin(reason === 'checkout' ? 'checkout' : 'profile')
   } else {
     const wxConfig = window.APP_CONFIG?.wx || {}
     const iamUrl = wxConfig.iamExternalUrl || env.iamExternalUrl
