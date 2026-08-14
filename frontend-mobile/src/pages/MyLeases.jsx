@@ -124,7 +124,8 @@ export default function MyLeases() {
   }, [page, baseUrl, mainTab, subFilter])
 
   const handleCancelFromList = async (orderId, status) => {
-    if (!dialog.confirm('确认取消该订单？取消后不可恢复。')) return
+    const ok = await dialog.confirm('确认取消该订单？取消后不可恢复。')
+    if (!ok) return
     try {
       const resp = await apiFetch(`${baseUrl}/orders/${orderId}/cancel-by-user`, { method: 'POST' })
       const result = await resp.json()

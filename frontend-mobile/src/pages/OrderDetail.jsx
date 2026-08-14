@@ -146,7 +146,8 @@ export default function OrderDetail() {
   }
 
   const handleCancel = async () => {
-    if (!dialog.confirm('确认取消该订单？取消后不可恢复。')) return
+    const ok = await dialog.confirm('确认取消该订单？取消后不可恢复。')
+    if (!ok) return
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/cancel-by-user`, {
@@ -182,7 +183,8 @@ export default function OrderDetail() {
   // Executes the differential settlement on the backend and jumps to the
   // refund receipt page.
   const handleStaffRefund = async () => {
-    if (!dialog.confirm('确认执行退款？将按结算差额退回现金与赠点。')) return
+    const ok = await dialog.confirm('确认执行退款？将按结算差额退回现金与赠点。')
+    if (!ok) return
     setRefunding(true)
     try {
       const resp = await apiFetch(`${baseUrl}/orders/${id}/refund`, {
@@ -203,7 +205,8 @@ export default function OrderDetail() {
   // Staff cancels a deposit-waived order when the guarantor fails the
   // requirement (#1557 / L-07 seq6). Aligns with the weapp OrderDetail.
   const handleStaffCancel = async () => {
-    if (!dialog.confirm('确认取消订单？取消后不可恢复，已付款将原路退回。')) return
+    const ok = await dialog.confirm('确认取消订单？取消后不可恢复，已付款将原路退回。')
+    if (!ok) return
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/warehouse/orders/${id}/staff-cancel`, {
