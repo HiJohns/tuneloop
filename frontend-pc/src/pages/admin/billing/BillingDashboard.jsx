@@ -18,7 +18,6 @@ const columns = [
   { title: '用户', dataIndex: 'user_name', key: 'user_name' },
   { title: '乐器', dataIndex: 'instrument_name', key: 'instrument_name' },
   { title: '实付', dataIndex: 'cash_paid', key: 'cash_paid', width: 80, render: v => `¥${Number(v).toFixed(2)}` },
-  { title: '预付点', dataIndex: 'prepaid_used', key: 'prepaid_used', width: 80, render: v => `¥${Number(v).toFixed(2)}` },
   { title: '赠点', dataIndex: 'gift_used', key: 'gift_used', width: 80, render: v => `¥${Number(v).toFixed(2)}` },
   { title: '押金', dataIndex: 'deposit', key: 'deposit', width: 80, render: v => `¥${Number(v).toFixed(2)}` },
   { title: '状态', dataIndex: 'status', key: 'status', width: 80, render: v => <Tag>{statusLabels[v] || v}</Tag> },
@@ -71,11 +70,10 @@ export default function BillingDashboard() {
       }>
         {summary && (
           <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={4}><Card><Statistic title="总订单" value={summary.total_orders} /></Card></Col>
-            <Col span={5}><Card><Statistic title="实付总额" value={summary.total_cash_paid} precision={2} prefix="¥" /></Card></Col>
-            <Col span={5}><Card><Statistic title="预付点抵扣" value={summary.total_prepaid_used} precision={2} prefix="¥" /></Card></Col>
-            <Col span={5}><Card><Statistic title="赠点抵扣" value={summary.total_gift_used} precision={2} prefix="¥" /></Card></Col>
-            <Col span={5}><Card><Statistic title="总退款" value={summary.total_refund} precision={2} prefix="¥" valueStyle={{ color: '#cf1322' }} /></Card></Col>
+            <Col span={6}><Card><Statistic title="总订单" value={summary.total_orders} /></Card></Col>
+            <Col span={6}><Card><Statistic title="实付总额" value={summary.total_cash_paid} precision={2} prefix="¥" /></Card></Col>
+            <Col span={6}><Card><Statistic title="赠点抵扣" value={summary.total_gift_used} precision={2} prefix="¥" /></Card></Col>
+            <Col span={6}><Card><Statistic title="总退款" value={summary.total_refund} precision={2} prefix="¥" valueStyle={{ color: '#cf1322' }} /></Card></Col>
           </Row>
         )}
         <Table
