@@ -112,6 +112,10 @@ export default function Cart() {
       storage.setJSON(getCartKey(), { items: merged })
       storage.setJSON('cart', { items: [] })
       setCartItems(merged)
+      // Sync selection after merge — the initial selection was derived from the
+      // (empty) account cart, so without this the merged items are never
+      // selected and grandTotal stays 0 (去结算 disabled).
+      setSelected(new Set(merged.map(i => getItemId(i))))
       eventBus.emit('cartUpdated')
     }
   }, [])

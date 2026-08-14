@@ -75,9 +75,9 @@ export default function Detail() {
       nav('/pages-weapp/cart/index')
       return
     }
-    // #1657: guard against tapping add-to-cart before instrument data loads —
-    // otherwise the snapshot gets empty cover_image/name.
-    if (!instrument?.id) {
+    // #1657: guard against tapping add-to-cart before instrument/pricing data
+    // loads — otherwise the snapshot gets empty cover_image/name/daily_rent.
+    if (!instrument?.id || !pricingV2) {
       Taro.showToast({ title: '乐器信息加载中，请稍候', icon: 'none' })
       return
     }
@@ -99,7 +99,7 @@ export default function Detail() {
         site_phone: instrument?.site_phone || '',
         tenant_id: instrument?.tenant_id || '',
         tenant_name: instrument?.tenant_name || '',
-        level_name: levelName || '',
+        level_name: instrument?.level_name || '',
         shipping_fee: pricingV2?.shipping_fee || 0,
         pricing_v2: pricingV2 ? { base_daily_rate: pricingV2.base_daily_rate, tiers: pricingV2.tiers } : null,
         rent_qty: 30,
