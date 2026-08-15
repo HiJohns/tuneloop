@@ -97,14 +97,20 @@ steps:
 
 | 维度 | H5 注册 | weapp 注册 (ProfileComplete) |
 |------|---------|------------------------------|
-| 后端 API | `POST /api/auth/register`（同） | `POST /api/auth/register`（同） |
-| 身份来源 | 用户名+密码 | 微信 openid（wx_code） |
+| 后端 API | `POST /api/auth/register`（同） | **两阶段会话制**：`POST /auth/registration-sessions`（写会话，不建户）→ 支付回调建户（#1663） |
+| 身份来源 | 用户名+密码 | 微信 openid（wx_code / exchange_token） |
 | 用户名 | 无输入框（phone 派生） | 无输入框（phone 派生，#1639 改造） |
-| 注册赠点 | 99pt（同） | 99pt（同） |
+| 注册时机 | 提交即建户返回 token | **支付会员费完成后才建户**（支付前无账户） |
+| 提交按钮 | 注册 | **支付会员费** |
+| 会员费 | 注册后跳支付页（可选） | 注册前强制支付（两阶段） |
+| 优惠码 | 无 | OREZ（全额免）/ ENO（1%） |
+| 注册赠点 | 99pt（同） | 99pt（回调建户时） |
 | 推荐系统 | ✅（ref 参数） | ✅（ref 参数 + scene） |
 | 头像上传 | ✅（自定义文件选择器） | ✅（微信原生选择器） |
 | 身份证上传 | ✅（H5 文件选择器） | ❌（待补） |
 | 收货地址 | ✅ | ✅（P-01 已覆盖） |
+
+> **注意**：H5 注册保留 `PostRegister` 直接建户的现状（H5 无微信支付会员费强制流程）。两阶段会话制仅 weapp 端（见 `docs/cases/account-select.md` P-05）。
 
 ## 与 Onboarding 页面的关系
 
@@ -130,6 +136,32 @@ steps:
 - 注册页无需区分「微信昵称」——昵称即为自由文本
 - 密码字段需要二次确认（confirm password，避免 typos）
 
+## 两阶段注册（weapp，#1663）
+
+> 仅 weapp 端（微信小程序）采用两阶段会话制，H5 保留 PostRegister 直接建户。详见 `docs/cases/account-select.md` P-05。
+
+**设计原则**：支付完成前不能使用账户；支付完成后无论何种情况留痕可追溯。
+
+### 数据模型
+- `registration_sessions`：会话表（openid / exchange_token / form_data JSONB / coupon_code / amount / status: pending→paid→completed / error / completed_at）
+- `coupons`：优惠码表（code / type: waive|percent / value / active）
+
+### 后端接口
+| 接口 | 说明 |
+|------|------|
+| `POST /auth/registration-sessions` | 写注册会话（表单 + exchange_token）→ 返回 session_id + amount（不建户） |
+| `GET /auth/registration-sessions/me` | 按 openid 查 pending 会话（「继续完成注册」恢复） |
+| `GET /auth/registration-sessions/:id/status` | 查询会话状态（前端轮询） |
+| `POST /pay/prepay`（membership 扩展） | 传 session_id + coupon_code → 后端计算金额 |
+
+### 支付回调建户（服务端权威）
+微信支付回调 → 查会话 → 标记 paid → 服务端完成注册（CreateUser + 绑定 openid + 本地同步 + 赠点 + 推荐奖励）→ 标记 completed。幂等：completed 只执行一次建户。
+
+### 优惠码（生产库默认，测试用）
+- `OREZ`：waive 全额免除（¥0，直接完成注册，仍写 payment record 留痕）
+- `ENO`：percent 1%（¥0.99）
+- 金额后端计算，前端只传 code；测试完成后删除
+
 ---
 
-*Last updated: 2026-08-09*
+*Last updated: 2026-08-14*

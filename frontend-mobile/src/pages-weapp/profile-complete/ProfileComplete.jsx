@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
-import { storage, session, env, request, eventBus, wxLogin } from '../../platform'
+import { storage, session, env, request, wxLogin } from '../../platform'
+import { apiFetch } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
 
@@ -23,6 +24,9 @@ export default function ProfileComplete() {
   const [saving, setSaving] = useState(false)
   // mode=member: 从购物车提交/立即租赁的员工弹窗进入 — 隐藏「用户名密码登录」
   const [mode, setMode] = useState('')
+  // Two-phase registration (#1663): resume an existing pending session.
+  const [resumeSid, setResumeSid] = useState('')
+  const [sessionAmount, setSessionAmount] = useState(0)
 
   const provinceNames = regions.map(r => r.name)
   const selectedProv = regions.find(r => r.name === province)
@@ -39,6 +43,24 @@ export default function ProfileComplete() {
       if (decoded.startsWith('ref=')) storage.setItem('ref_code', decoded.slice(4))
     }
     if (params.mode) setMode(params.mode)
+    // Two-phase registration (#1663): resume an existing pending session —
+    // prefill the form and skip re-creating the session on submit.
+    if (params.session_id) {
+      setResumeSid(params.session_id)
+      apiFetch(`${env.apiBaseUrl}/auth/registration-sessions/me?session_id=${params.session_id}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.code === 20000 && res.data?.form_data) {
+            const f = res.data.form_data
+            if (f.name) setName(f.name)
+            if (f.nickname) setNickname(f.nickname)
+            if (f.phone) setPhone(f.phone)
+            if (f.email) setEmail(f.email)
+          }
+          if (res.code === 20000 && res.data?.amount) setSessionAmount(res.data.amount)
+        })
+        .catch(() => {})
+    }
   }, [])
 
   const handleChooseAvatar = () => {
@@ -52,71 +74,48 @@ export default function ProfileComplete() {
     if (!phone.trim()) { Taro.showToast({ title: '请输入手机号', icon: 'none' }); return }
     setSaving(true)
     try {
-      const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim() }
-      // Registration binds via the exchange_token minted by wx-accounts
-      // (#1644) — the raw code is single-use and already consumed. Fall back
-      // to a fresh wx.login code when no token is available (H5/expired).
-      const exchangeToken = session.getItem('wx_login_token') || ''
-      if (exchangeToken) {
-        body.exchange_token = exchangeToken
-      } else {
-        const wxCode = await wxLogin()
-        if (wxCode) { body.wx_code = wxCode }
-      }
-      const refCode = storage.getItem('ref_code')
-      if (refCode) { body.ref = refCode }
-      const res = await request(`${env.apiBaseUrl}/auth/register`, {
-        method: 'POST',
-        body: JSON.stringify(body),
-      })
-      const result = await res.json()
-      // exchange_token is single-use (5min TTL); clear it on both success and
-      // failure so a retry (or a later session) never reuses an expired token
-      // and always falls back to a fresh wx.login code (#1648).
-      session.removeItem('wx_login_token')
-      if (result.code === 20000 && result.data?.access_token) {
-        storage.setItem('token', result.data.access_token)
-        storage.setItem('token_expiry', (Date.now() + (result.data.expires_in || 3600) * 1000).toString())
-        if (avatar) {
-          try {
-            await Taro.uploadFile({
-              url: `${env.apiBaseUrl}/users/me/avatar`,
-              filePath: avatar,
-              name: 'file',
-              header: { 'Authorization': 'Bearer ' + result.data.access_token },
-            })
-          } catch {}
-        }
-        // Upload pending ID photos after token is stored (#1599)
-        try {
-          if (idPhotoFrontRef.current?.uploadPending) await idPhotoFrontRef.current.uploadPending()
-          if (idPhotoBackRef.current?.uploadPending) await idPhotoBackRef.current.uploadPending()
-        } catch (e) { console.error('[Register] id photo upload failed', e) }
+      // Two-phase registration (#1663): submitting creates a pending session
+      // (no account yet) and redirects to the payment page. The account is
+      // created server-side after the membership fee callback.
+      let sid = resumeSid
+      let amount = sessionAmount
+      if (!sid) {
+        const body = { name: name.trim(), nickname: nickname.trim() || name.trim(), phone: phone.trim(), email: email.trim() }
         if (province || city || detail) {
-          if (!province || !city || !detail) {
-            Taro.showToast({ title: '收货地址信息不完整，未保存', icon: 'none', duration: 2500 })
-          } else {
-            try {
-              await request(`${env.apiBaseUrl}/user/addresses`, {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + result.data.access_token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  recipient_name: name.trim(), phone: phone.trim(),
-                  province, city, district, detail,
-                  postal_code: postalCode, is_default: true,
-                }),
-              })
-              Taro.showToast({ title: '收货地址已保存', icon: 'success', duration: 1500 })
-            } catch (e) { console.error('[Register] address save failed', e) }
-          }
+          body.address = { province, city, district, detail, postal_code: postalCode }
         }
-        eventBus.emit('loginSuccess')
-        // Membership fee payment (#1532): redirect to payment page
-        const fee = result.data?.membership_fee || 99
-        Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&amount=${fee}&id=${result.data?.user_id || ''}` })
-      } else {
-        Taro.showToast({ title: result.message || '注册失败, 请重试', icon: 'none', duration: 3000 })
+        // Registration binds via the exchange_token minted by wx-accounts
+        // (#1644) — the raw code is single-use and already consumed. Fall back
+        // to a fresh wx.login code when no token is available (expired).
+        const exchangeToken = session.getItem('wx_login_token') || ''
+        if (exchangeToken) {
+          body.exchange_token = exchangeToken
+        } else {
+          const wxCode = await wxLogin()
+          if (wxCode) { body.wx_code = wxCode }
+        }
+        const refCode = storage.getItem('ref_code')
+        if (refCode) { body.ref = refCode }
+        const res = await request(`${env.apiBaseUrl}/auth/registration-sessions`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        })
+        const result = await res.json()
+        // exchange_token is single-use (5min TTL); clear it so a retry never
+        // reuses an expired token and falls back to a fresh wx.login code
+        // (#1648).
+        session.removeItem('wx_login_token')
+        if (result.code === 20000 && result.data?.session_id) {
+          sid = result.data.session_id
+          amount = result.data.amount
+        } else {
+          Taro.showToast({ title: result.message || '提交失败, 请重试', icon: 'none', duration: 3000 })
+          setSaving(false)
+          return
+        }
       }
+      session.setItem('pending_registration_session', sid)
+      Taro.redirectTo({ url: `/pages-weapp/payment/index?type=membership&session_id=${sid}&amount=${amount}` })
     } catch (err) {
       Taro.showToast({ title: '网络错误, 请重试', icon: 'none' })
     }
@@ -197,8 +196,13 @@ export default function ProfileComplete() {
 
       <View onClick={handleRegister}
         style={{ width: '100%', height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '注册中...' : '注册'}</Text>
+        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '提交中...' : '支付会员费'}</Text>
       </View>
+      {(resumeSid || sessionAmount > 0) && (
+        <Text style={{ fontSize: 12, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }}>
+          会员费 ¥{Number(sessionAmount).toFixed(2)}{resumeSid ? '（已创建支付会话）' : ''}
+        </Text>
+      )}
       {mode !== 'member' && (
         <Text style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }} onClick={goAccountSelect}>用户名密码登录</Text>
       )}

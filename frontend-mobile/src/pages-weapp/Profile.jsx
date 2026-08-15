@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin } from '../services/api'
-import { env, storage, eventBus } from '../platform'
+import { env, storage, session, eventBus } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
 import ErrorBoundary from '../components-weapp/ErrorBoundary'
@@ -150,6 +150,35 @@ export default function Profile() {
   const isStaff = claims.role === 'STAFF' || !!(claims.oid || claims.tid)
   const isGuest = claims.role === 'GUEST' || (!token && user === null)
   const hasGuestToken = claims.role === 'GUEST'
+  // Two-phase registration (#1663): a pending registration session means the
+  // guest already filled the form once — surface "继续完成注册" instead of a
+  // fresh "注册为会员" entry.
+  const [pendingSession, setPendingSession] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const checkPendingSession = async () => {
+      if (!isGuest) return
+      const sid = session.getItem('pending_registration_session')
+      if (!sid) { setPendingSession(null); return }
+      try {
+        const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/me?session_id=${sid}`)
+        const result = await resp.json()
+        if (!cancelled) {
+          if (result.code === 20000 && result.data?.status === 'pending') {
+            setPendingSession(sid)
+          } else {
+            session.removeItem('pending_registration_session')
+            setPendingSession(null)
+          }
+        }
+      } catch {
+        if (!cancelled) setPendingSession(null)
+      }
+    }
+    checkPendingSession()
+    return () => { cancelled = true }
+  }, [isGuest, baseUrl])
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -218,7 +247,7 @@ export default function Profile() {
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
               <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={handleGuestLogin}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : '👉 登录'}</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : (pendingSession ? '✏️ 继续完成注册' : '👉 注册为会员')}</Text>
               </View>
             ) : (
               <>

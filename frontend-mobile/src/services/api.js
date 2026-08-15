@@ -190,6 +190,24 @@ export async function resolveLogin(source = 'profile') {
       // WeChat code is single-use and consumed by wx-accounts above, so
       // wx-bind during register must use the exchange_token instead.
       session.setItem('wx_login_token', exchange_token || '')
+      // Two-phase registration (#1663): if a pending registration session
+      // exists, resume it (form prefill + jump to membership payment)
+      // instead of creating a brand-new account.
+      const pendingSid = session.getItem('pending_registration_session')
+      if (pendingSid) {
+        try {
+          const statusResp = await platformRequest(`${env.apiBaseUrl}/auth/registration-sessions/me?session_id=${encodeURIComponent(pendingSid)}`)
+          const statusResult = await statusResp.json()
+          if (statusResult.code === 20000 && statusResult.data?.status === 'pending') {
+            navigation.navigateTo(`/pages-weapp/profile-complete/index?session_id=${pendingSid}`)
+            return false
+          }
+          // Session gone or already completed → clear the stale marker.
+          session.removeItem('pending_registration_session')
+        } catch {
+          session.removeItem('pending_registration_session')
+        }
+      }
       navigation.navigateTo('/pages-weapp/profile-complete/index')
       return false
     }

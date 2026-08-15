@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
-import { apiFetch } from '../../services/api'
-import { env } from '../../platform'
+import { apiFetch, resolveLogin } from '../../services/api'
+import { env, session } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
 
 const baseUrl = env.apiBaseUrl
@@ -18,6 +18,7 @@ export default function Payment() {
   const pType = params.type || ''
   const pId = params.id || ''
   const pAmount = parseFloat(params.amount || '0')
+  const pSessionId = params.session_id || ''
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -27,6 +28,11 @@ export default function Payment() {
   const [mockPaying, setMockPaying] = useState(false)
   const [mockEnabled, setMockEnabled] = useState(false)
   const [maxPayRatio, setMaxPayRatio] = useState(0.3)
+  // Two-phase registration (#1663): membership coupon preview. The final
+  // price is always computed server-side at prepay.
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponAmount, setCouponAmount] = useState(pAmount)
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -100,9 +106,85 @@ export default function Payment() {
 
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
+  // Coupon applies a preview discount (final price is server-authoritative at
+  // prepay); OREZ waives the fee entirely (¥0).
+  const displayAmount = pType === 'membership' && appliedCoupon ? couponAmount : data.amount
+
   const cashAmount = isRefund
     ? data.amount
-    : Math.max(0, data.amount - giftUsed)
+    : Math.max(0, displayAmount - giftUsed)
+
+  const applyCoupon = () => {
+    const code = (couponCode || '').trim().toUpperCase()
+    if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
+    if (code === 'OREZ') {
+      setAppliedCoupon({ code, hint: '已应用，会员费全额免除' })
+      setCouponAmount(0)
+    } else if (code === 'ENO') {
+      setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + Number(pAmount * 0.01).toFixed(2) })
+      setCouponAmount(Math.round(pAmount * 0.01 * 100) / 100)
+    } else {
+      Taro.showToast({ title: '优惠码无效（仅支持 OREZ / ENO）', icon: 'none' })
+    }
+  }
+
+  // Two-phase registration (#1663): after the membership fee is paid the
+  // account is created by the payment callback. Poll the session until it is
+  // completed, then log in via wx-login-select and land on the profile page.
+  const finishMembershipFlow = async () => {
+    if (!pSessionId) return
+    let completed = false
+    for (let i = 0; i < 10; i++) {
+      try {
+        const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`)
+        const r = await resp.json()
+        if (r.code === 20000 && r.data?.status === 'completed') { completed = true; break }
+      } catch (e) { console.warn('[payment] session status poll failed', e) }
+      await new Promise(res => setTimeout(res, 1000))
+    }
+    session.removeItem('pending_registration_session')
+    if (completed) {
+      Taro.showToast({ title: '注册成功，正在登录...', icon: 'none', duration: 1500 })
+      const ok = await resolveLogin('profile')
+      if (ok) Taro.switchTab({ url: '/pages-weapp/profile/index' })
+      else Taro.switchTab({ url: '/pages-weapp/home/index' })
+    } else {
+      Taro.showModal({ title: '注册处理中', content: '会员费已支付，账户正在创建，请稍后返回首页刷新。', showCancel: false })
+      setTimeout(() => Taro.switchTab({ url: '/pages-weapp/home/index' }), 2000)
+    }
+  }
+
+  const doPrepay = async (amountOverride) => {
+    let openid = ''
+    try {
+      const loginRes = await Taro.login()
+      if (loginRes.code) {
+        const oidResp = await apiFetch(`${baseUrl}/wechat/openid`, {
+          method: 'POST',
+          body: JSON.stringify({ code: loginRes.code }),
+        })
+        const oidData = await oidResp.json()
+        if (oidData.code === 20000) openid = oidData.data.openid
+      }
+    } catch (e) { console.warn('[payment] openid lookup failed', e) }
+
+    const body = {
+      order_id: pId,
+      order_type: pType,
+      amount: amountOverride !== undefined ? amountOverride : cashAmount,
+      open_id: openid,
+      gift_used: giftUsed,
+    }
+    if (pType === 'membership' && pSessionId) {
+      body.session_id = pSessionId
+      if (appliedCoupon) body.coupon_code = appliedCoupon.code
+    }
+    const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+    return resp.json()
+  }
 
   const handlePay = async (cashAmount) => {
     const params = Taro.getCurrentInstance().router?.params || {}
@@ -110,6 +192,25 @@ export default function Payment() {
     const pId = params.id || ''
 
     if (cashAmount <= 0) {
+      if (pType === 'membership' && pSessionId) {
+        // OREZ full waiver: still run prepay so the server books the paid
+        // record and completes the session (same path as the wechat callback).
+        setIsPaying(true)
+        try {
+          const result = await doPrepay(0)
+          if (result.code === 20000) {
+            Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
+            setTimeout(finishMembershipFlow, 2000)
+          } else {
+            Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
+          }
+        } catch (err) {
+          Taro.showModal({ title: '支付失败', content: err.message, showCancel: false })
+        } finally {
+          setIsPaying(false)
+        }
+        return
+      }
       Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
       setTimeout(() => Taro.switchTab({ url: '/pages-weapp/home/index' }), 2000)
       return
@@ -117,41 +218,23 @@ export default function Payment() {
 
     setIsPaying(true)
     try {
-      let openid = ''
-      try {
-        const loginRes = await Taro.login()
-        if (loginRes.code) {
-          const oidResp = await apiFetch(`${baseUrl}/wechat/openid`, {
-            method: 'POST',
-            body: JSON.stringify({ code: loginRes.code }),
-          })
-          const oidData = await oidResp.json()
-          if (oidData.code === 20000) openid = oidData.data.openid
-        }
-      } catch (e) { console.warn('[payment] openid lookup failed', e) }
-
-      const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
-        method: 'POST',
-        body: JSON.stringify({
-          order_id: pId,
-          order_type: pType,
-          amount: cashAmount,
-          open_id: openid,
-          gift_used: giftUsed,
-        }),
-      })
-      const result = await resp.json()
+      const result = await doPrepay()
       if (result.code === 20000) {
         const d = result.data
         if (d.mock) {
-          Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功（测试）', icon: 'success' })
-          setTimeout(() => {
-            if (pType === 'membership') {
-              Taro.switchTab({ url: '/pages-weapp/profile/index' })
-            } else {
-              Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` })
-            }
-          }, 2000)
+          if (pType === 'membership' && pSessionId) {
+            Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
+            setTimeout(finishMembershipFlow, 2000)
+          } else {
+            Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功（测试）', icon: 'success' })
+            setTimeout(() => {
+              if (pType === 'membership') {
+                Taro.switchTab({ url: '/pages-weapp/profile/index' })
+              } else {
+                Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` })
+              }
+            }, 2000)
+          }
         } else if (d.data?.prepay_id) {
           setPrepayData(d)
         } else {
@@ -177,8 +260,13 @@ export default function Payment() {
       signType: prepayData.data.sign_type,
       paySign: prepayData.data.pay_sign,
       success: () => {
-        Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
-        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+        if (pType === 'membership' && pSessionId) {
+          Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
+          setTimeout(finishMembershipFlow, 1500)
+        } else {
+          Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
+          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+        }
       },
       fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
     })
@@ -197,8 +285,13 @@ export default function Payment() {
         })
         const r = await resp.json()
         if (r.code === 20000) {
-          Taro.showToast({ title: '测试支付已提交', icon: 'success' })
-          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+          if (pType === 'membership' && pSessionId) {
+            Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
+            setTimeout(finishMembershipFlow, 1500)
+          } else {
+            Taro.showToast({ title: '测试支付已提交', icon: 'success' })
+            setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+          }
         } else {
           Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
         }
@@ -219,8 +312,13 @@ export default function Payment() {
       })
       const r = await resp.json()
       if (r.code === 20000) {
-        Taro.showToast({ title: '测试支付已提交', icon: 'success' })
-        setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+        if (pType === 'membership' && pSessionId) {
+          Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
+          setTimeout(finishMembershipFlow, 1500)
+        } else {
+          Taro.showToast({ title: '测试支付已提交', icon: 'success' })
+          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+        }
       } else {
         Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
       }
@@ -360,6 +458,36 @@ export default function Payment() {
               <Text style={{ fontSize: 12, color: '#92400e', lineHeight: 18 }}>· 获赠 99 赠点，可用于抵扣租金</Text>
               <Text style={{ fontSize: 11, color: '#a16207', lineHeight: 16, paddingLeft: 12 }}>（每次最多抵扣租金的 {Math.round((maxPayRatio || 0.3) * 100)}%）</Text>
             </View>
+          </View>
+        )}
+
+        {/* Two-phase registration (#1663): membership coupon (weapp only) */}
+        {pType === 'membership' && pSessionId && !prepayData?.data && (
+          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>优惠码</Text>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Input
+                value={couponCode}
+                onInput={e => setCouponCode(e.detail.value)}
+                placeholder="输入优惠码（测试：OREZ / ENO）"
+                placeholderStyle="color:#a1a1aa;font-size:12px"
+                style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 10, padding: '8px 12px', fontSize: 13 }}
+              />
+              <View
+                onClick={applyCoupon}
+                style={{ backgroundColor: appliedCoupon ? '#f4f4f5' : '#915F38', borderRadius: 10, padding: '8px 16px' }}
+              >
+                <Text style={{ color: appliedCoupon ? '#71717a' : '#fff', fontSize: 13, fontWeight: '600' }}>
+                  {appliedCoupon ? '已应用' : '应用'}
+                </Text>
+              </View>
+            </View>
+            {appliedCoupon && (
+              <Text style={{ fontSize: 12, color: '#16a34a', marginTop: 8, display: 'block' }}>{appliedCoupon.hint}</Text>
+            )}
+            {appliedCoupon && (
+              <Row label="优惠后金额" value={`¥${Number(couponAmount).toFixed(2)}`} bold />
+            )}
           </View>
         )}
 
