@@ -79,6 +79,22 @@ export default function Cart() {
 
   const getItemId = (item) => item.instrument_id || item.id
 
+  // Cross-end navigation. H5 uses react-router paths; weapp must use the
+  // full /pages-weapp/... page paths — Taro's react-router shim converts
+  // navigate('/xxx') into Taro.navigateTo('/pages/xxx/index'), which does
+  // NOT exist in the weapp build (all pages live under pages-weapp/), so
+  // navigation silently fails (去结算无反应 — 排查见 #1665 方法论沉淀).
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    if (to === '/') return Taro.switchTab({ url: '/pages-weapp/home/index' })
+    if (to === '/checkout') return Taro.navigateTo({ url: '/pages-weapp/checkout/index' })
+    if (typeof to === 'string' && to.startsWith('/instrument/')) {
+      return Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${to.split('/')[2]}` })
+    }
+    return Taro.navigateTo({ url: to })
+  }
+
   // #1659: instrument rented out (or otherwise unavailable) in the cart
   const isRentedOut = (item) => {
     const st = item.stock_status
@@ -270,11 +286,11 @@ export default function Cart() {
     const selItems = cartItems.filter(item => selected.has(getItemId(item)) && !isRentedOut(item))
     if (selItems.length === 0) return
     storage.setJSON('cart_checkout', { items: selItems })
-    navigate('/checkout')
+    nav('/checkout')
   }
 
   const handleGoHome = () => {
-    navigate('/')
+    nav('/')
   }
 
   return (
@@ -283,7 +299,7 @@ export default function Cart() {
         className="w-full pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0"
         style={{ paddingTop: env.isMiniProgram ? (Taro.getSystemInfoSync().statusBarHeight || 0) + 8 : 12 }}
       >
-        <Text className="text-xl font-bold text-black" onClick={() => navigate(-1)}>❮</Text>
+        <Text className="text-xl font-bold text-black" onClick={() => nav(-1)}>❮</Text>
         <Text className="text-lg font-black text-black">购物车</Text>
         <View className="w-6"></View>
       </View>
@@ -356,7 +372,7 @@ export default function Cart() {
                             <View
                               className="w-20 h-20 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center"
                               style={{ position: 'relative' }}
-                              onClick={rentedOut ? undefined : () => navigate(`/instrument/${itemId}`)}
+                              onClick={rentedOut ? undefined : () => nav(`/instrument/${itemId}`)}
                             >
                               <Image
                                 src={imgSrc}
