@@ -429,8 +429,7 @@ export default function Detail() {
           <>
             <View style={{ display: 'flex', width: '100%' }}>
               <View
-                onClick={handleAddToCart}
-                style={{ flex: '1 1 0%', height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isInCart ? '#9CA3AF' : 'linear-gradient(135deg, #E2B07E, #C98E54)', marginRight: 12, opacity: isInCart ? 0.6 : 1 }}
+                onClick={handleAddToCart}                style={{ flex: '1 1 0%', height: 48, borderRadius: 999, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isInCart ? '#9CA3AF' : 'linear-gradient(135deg, #E2B07E, #C98E54)', marginRight: 12, opacity: isInCart ? 0.6 : 1 }}
               >
                 <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>{isInCart ? '已加入购物车' : '加入购物车'}</Text>
               </View>
@@ -458,6 +457,12 @@ export default function Detail() {
               </View>
             </View>
           </>
+        ) : isRentable ? (
+          // 乐器可租但当前角色非顾客（员工/未登录顾客例外已在上分支）——显示可租提示而非"不可租赁"
+          <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, textAlign: 'center' }}>
+            <Text style={{ color: '#15803d', fontWeight: '700', fontSize: 15, display: 'block' }}>乐器可租赁</Text>
+            <Text style={{ color: '#9ca3af', fontSize: 13, marginTop: 4, display: 'block' }}>当前乐器可供租赁</Text>
+          </View>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
             <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, marginBottom: 8 }}>

@@ -460,6 +460,12 @@ export default function Detail() {
               </View>
             </View>
           </>
+        ) : isRentable ? (
+          // 乐器可租但当前角色非顾客（员工）——显示可租提示而非"不可租赁"
+          <View className="p-3 bg-green-50 rounded-lg text-center">
+            <Text className="block text-green-700 font-bold text-[15px]">乐器可租赁</Text>
+            <Text className="block text-gray-400 text-[13px] mt-1">当前乐器可供租赁</Text>
+          </View>
         ) : activeOrder ? (
           activeOrder.order_status === 'in_lease' ? (
             <View className="p-3 bg-green-50 rounded-lg space-y-2">
