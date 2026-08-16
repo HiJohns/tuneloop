@@ -109,7 +109,7 @@ func GetPublicInstruments(c *gin.Context) {
 	}
 	var thumbs []thumbResult
 	db.Raw("SELECT DISTINCT ON (instrument_id) instrument_id, storage_key "+
-		"FROM instrument_media WHERE instrument_id IN ? AND file_type = 'image' "+
+		"FROM instrument_media WHERE instrument_id IN ? AND file_type = 'image' AND is_display = true "+
 		"ORDER BY instrument_id, sort_order ASC, created_at DESC",
 		instrumentIDs).Scan(&thumbs)
 
