@@ -574,7 +574,7 @@ export default function RepairRequestDetail() {
               placeholder="物流单号" />
             <Button onClick={handleSubmitTracking} disabled={actionLoading || !trackingCompany || !trackingNumber}
               className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
-              {actionLoading ? '提交中...' : '提交发货'}
+              {actionLoading ? '处理中...' : '提交发货'}
             </Button>
           </View>
         )}

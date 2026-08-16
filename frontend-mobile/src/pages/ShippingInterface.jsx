@@ -384,7 +384,7 @@ export default function ShippingInterface() {
             disabled={!canSubmit}
             style={{ width: '100%', margin: 0, backgroundColor: canSubmit ? '#B98E5F' : '#d4d4d8', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
           >
-            {submitting ? '提交中...' : photos.length === 0 ? '请先拍照存档' : '提交'}
+            {submitting ? '处理中...' : photos.length === 0 ? '请先拍照存档' : '提交发货'}
           </Button>
         </View>
       )}

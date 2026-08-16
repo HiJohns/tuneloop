@@ -355,7 +355,7 @@ export default function StaffInstrumentForm() {
           disabled={loading || snExists}
           className="w-full py-3 bg-brand-primary text-white rounded-xl font-medium disabled:opacity-50"
         >
-          {loading ? '提交中...' : '创建乐器'}
+          {loading ? '处理中...' : '创建乐器'}
         </Button>
       </View>
     </View>

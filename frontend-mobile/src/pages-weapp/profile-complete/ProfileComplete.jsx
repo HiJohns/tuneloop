@@ -196,7 +196,7 @@ export default function ProfileComplete() {
 
       <View onClick={handleRegister}
         style={{ width: '100%', height: 44, backgroundColor: '#915F38', borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '提交中...' : '支付会员费'}</Text>
+        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>{saving ? '处理中...' : '支付会员费'}</Text>
       </View>
       {(resumeSid || sessionAmount > 0) && (
         <Text style={{ fontSize: 12, color: '#a1a1aa', textAlign: 'center', display: 'block', marginBottom: 8 }}>

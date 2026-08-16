@@ -154,7 +154,7 @@ export default function ReturnSettlement() {
             style={{ opacity: confirming ? 0.5 : 1 }}
             onClick={confirming ? undefined : handleConfirmRefund}
           >
-            <Text className="text-white">{confirming ? '确认中...' : '确认退款'}</Text>
+            <Text className="text-white">{confirming ? '处理中...' : '确认退款'}</Text>
           </View>
         ) : (
           <View

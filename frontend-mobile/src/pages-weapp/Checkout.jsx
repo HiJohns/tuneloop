@@ -575,7 +575,7 @@ function SingleCheckout({ id, nav }) {
           disabled={submitting}
           style={{ width: '100%', paddingTop: 12, paddingBottom: 12, backgroundColor: submitting ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 12, fontWeight: '900', textAlign: 'center' }}
         >
-          {submitting ? '提交中...' : '提交订单'}
+          {submitting ? '处理中...' : '提交订单'}
         </Button>
       </View>
     </View>
@@ -1065,7 +1065,7 @@ function BatchCheckout({ nav }) {
           disabled={submitting}
           style={{ width: '100%', margin: 0, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em' }}
         >
-          {submitting ? '提交中...' : `确认支付 ¥${grandTotal.toFixed(2)}`}
+          {submitting ? '处理中...' : `确认支付 ¥${grandTotal.toFixed(2)}`}
         </Button>
       </View>
     </View>

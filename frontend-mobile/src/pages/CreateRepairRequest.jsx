@@ -202,7 +202,7 @@ export default function CreateRepairRequest() {
           )}
           <Button onClick={handleSubmit} disabled={!isFormValid || submitting}
             className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center mt-2">
-            {submitting ? '提交中...' : '提交评估'}
+            {submitting ? '处理中...' : '提交评估'}
           </Button>
         </View>
       </ScrollView>

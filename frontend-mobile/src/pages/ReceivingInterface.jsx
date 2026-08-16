@@ -269,7 +269,7 @@ export default function ReceivingInterface() {
         <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
           <Button onClick={handleSubmit} disabled={submitting || !condition}
             className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
-            <CheckCircle size={20} />{submitting ? '提交中...' : '确认接收'}
+            <CheckCircle size={20} />{submitting ? '处理中...' : '确认接收'}
           </Button>
         </View>
       )}

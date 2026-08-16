@@ -177,7 +177,7 @@ export default function ReceiveConfirm() {
           className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <CheckCircle size={20} />
-          {submitting ? '提交中...' : '确认收货'}
+          {submitting ? '处理中...' : '确认收货'}
         </Button>
       </View>
     </View>

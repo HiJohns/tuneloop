@@ -249,7 +249,7 @@ export default function ReturnConfirm() {
         <Button onClick={handleSubmitReturn}
           disabled={submitting || !courierCompany.trim() || !trackingNumber.trim()}
           style={{ width: '100%', margin: 0, backgroundColor: '#f97316', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || !courierCompany.trim() || !trackingNumber.trim() ? 0.5 : 1 }}>
-          {submitting ? '提交中...' : '提交归还'}
+          {submitting ? '处理中...' : '提交归还'}
         </Button>
       </View>
     </View>
