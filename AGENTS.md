@@ -186,6 +186,21 @@ tuneloop/
 | **禁止** 直接 `localStorage` / `fetch` | 用 `import { storage, request } from '../platform'` 替代 |
 | `.tsx` 只能做薄壳 | `.tsx` = `export { default } from '../../Xxx'` —— 任何业务逻辑必须写在 `.jsx` 中 |
 | **⚠️ pages-weapp 文件被 H5 薄壳引用时** | 必须本地 `npm run dev:h5` 手动验证该页所有 Input/Textarea 可输入。来源：#1589 EditProfile.jsx（weapp 独有）被 H5 薄壳引用后在 H5 下所有输入框失效 |
+| **⚠️ 共享 .jsx 禁止裸 `navigate('/xxx')`（H5 短路径）** | weapp 端 Taro 兼容层把 `navigate(p)` 实现为 `Taro.navigateTo('/pages'+p+'/index')`，但 weapp 构建只注册 `pages-weapp/xxx/index` → 跳转静默失败（无报错无提示）。必须跨端适配：H5 用 `navigate(path)`，weapp 用完整 `Taro.navigateTo({url:'/pages-weapp/<page>/index'})`（tabBar 页用 `switchTab`，返回用 `navigateBack`）。参照：Cart.jsx `nav()` 封装（commit `b81388b8`）、StaffInstruments.jsx:125 条件分支。来源：#1665 去结算无反应、#1673 系统性清理 |
+
+### ⚠️ 跨端导航排查方法论（#1665 沉淀）
+
+「点击按钮无反应、无错误提示」的排查顺序（按成本递增）：
+
+1. **后端日志**：`tail backend/backend.log` 或预生产 `journalctl`——**无对应请求 = 纯前端问题**（按钮 disabled / JS 错误 / 导航失败）
+2. **按钮状态**：`disabled={grandTotal <= 0}` 类条件是否满足（灰色按钮点击本来就静默）
+3. **JS 运行时错误**：要求用户提供 Console 截图（React 事件处理器内抛错不会崩页面，但 console 有报错）
+4. **⚠️ 关键：验证运行时的平台转换层**——共享 .jsx 的跨端行为不能只看源码！检查 weapp 构建产物中该页面的编译结果（`dist-weapp/pages-weapp/<page>/index.js`），确认 `navigate('/xxx')` 被 Taro 兼容层转换为 `'/pages/xxx/index'`（错误）而非实际存在的 `'/pages-weapp/xxx/index'`
+5. **静态审计盲区**：路由存在（App.jsx / app.config.ts）、调用点存在 ≠ 运行时可用——Taro shim 的路径转换错误在源码和路由表里都"看起来对"
+
+**本案例教训（#1665 去结算）**：多轮排查（路由→storage key→乐器状态→grandTotal 计算）后才在构建产物中发现 `common.js` 模块 9350 的 `useNavigate` 实现 `var t="/pages"+e+"/index"`——**第 4 步应在第 2 步之后就做**，能省 90% 时间。
+
+**审计清单补充**（frontend-ui-interaction-check）：共享 .jsx 的任何 `navigate('/xxx')` 调用必须验证 weapp 端路径映射，或要求跨端封装（`nav()` 模式），否则 REJECT。
 
 ### 页面入口架构
 
