@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Input, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
-import { getToken, redirectToLogin } from '../services/api'
+import { getToken, redirectToLogin, apiFetch } from '../services/api'
 import { dialog, env, uploadFile, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -29,16 +29,21 @@ export default function ReturnConfirm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = getToken()
-        const headers = { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-        const [orderResp, instResp] = await Promise.all([
-          fetch(`${baseUrl}/orders/${orderId}`, { headers }),
-          fetch(`${baseUrl}/public/instruments/${instrumentId}`, { headers }),
-        ])
+        // apiFetch is cross-end (weapp has no global fetch) — it also
+        // injects the Authorization header automatically.
+        const orderResp = await apiFetch(`${baseUrl}/orders/${orderId}`)
         const orderResult = await orderResp.json()
-        const instResult = await instResp.json()
-        if (orderResult.code === 20000) setOrder(orderResult.data)
-        if (instResult.code === 20000) setInstrument(instResult.data)
+        if (orderResult.code === 20000) {
+          setOrder(orderResult.data)
+          // instrument: URL 参数优先，否则从订单推导（weapp 跳转可能
+          // 未带 / 带空 instrument，依赖订单自身 instrument_id 最稳）
+          const instId = instrumentId || orderResult.data.instrument_id
+          if (instId) {
+            const instResp = await apiFetch(`${baseUrl}/public/instruments/${instId}`)
+            const instResult = await instResp.json()
+            if (instResult.code === 20000) setInstrument(instResult.data)
+          }
+        }
       } catch (err) {
         console.error('Failed to load data:', err)
       }
@@ -66,12 +71,8 @@ export default function ReturnConfirm() {
           photoUrls.push(upResult.data.url)
         }
       }
-      const resp = await fetch(`${baseUrl}/orders/${orderId}/return`, {
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/return`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           courier_company: courierCompany.trim(),
           tracking_number: trackingNumber.trim(),
