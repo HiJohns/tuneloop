@@ -160,19 +160,16 @@ export default function ReturnSettlement() {
           <View
             className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
             onClick={() => {
+              // 返回订单详情页（结算页由 订单详情→归还确认→结算 进入，
+              // navigateBack 只会回归还确认页）
               if (env.isMiniProgram) {
-                const pages = Taro.getCurrentPages()
-                if (pages.length > 1) {
-                  Taro.navigateBack()
-                } else {
-                  Taro.redirectTo({ url: '/pages-weapp/my-leases/index' })
-                }
+                Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
               } else {
-                navigation.redirect('/my-leases')
+                navigation.redirect(`/order/${orderId}`)
               }
             }}
           >
-            <Text className="text-white">知道了，返回订单列表</Text>
+            <Text className="text-white">知道了，返回订单详情</Text>
           </View>
         )}
       </View>
