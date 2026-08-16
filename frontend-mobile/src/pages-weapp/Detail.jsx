@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Video } from '@tarojs/components'
 import { apiFetch, getCartKey, getToken, resolveLogin } from '../services/api'
 import { env, getWindowSize, previewImage, session, storage } from '../platform'
@@ -110,55 +110,64 @@ export default function Detail() {
     } catch {}
   }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const token = getToken()
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const token = getToken()
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
 
-        const [instRes, mediaRes, pv2Res] = await Promise.all([
-          apiFetch(`${baseUrl}/public/instruments/${id}`),
-          apiFetch(`${baseUrl}/public/instruments/${id}/display-media`),
-          apiFetch(`${baseUrl}/public/instruments/${id}/pricing-v2`),
-        ])
-        const instData = await instRes.json()
-        if (instData.code === 20000) setInstrument(instData.data)
+      const [instRes, mediaRes, pv2Res] = await Promise.all([
+        apiFetch(`${baseUrl}/public/instruments/${id}`),
+        apiFetch(`${baseUrl}/public/instruments/${id}/display-media`),
+        apiFetch(`${baseUrl}/public/instruments/${id}/pricing-v2`),
+      ])
+      const instData = await instRes.json()
+      if (instData.code === 20000) setInstrument(instData.data)
 
-        const mediaData = await mediaRes.json()
-        if (mediaData.code === 20000) setDisplayMedia(mediaData.data)
+      const mediaData = await mediaRes.json()
+      if (mediaData.code === 20000) setDisplayMedia(mediaData.data)
 
-        const pv2Data = await pv2Res.json()
-        if (pv2Data.code === 20000) setPricingV2(pv2Data.data)
+      const pv2Data = await pv2Res.json()
+      if (pv2Data.code === 20000) setPricingV2(pv2Data.data)
 
-        if (token) {
-          try {
-            const userRes = await apiFetch(`${baseUrl}/users/me`, { headers })
-            const userData = await userRes.json()
-            if (userData.code === 20000) setCurrentUser(userData.data)
-          } catch {}
-          try {
-            const inst = instData.data
-            if (inst?.sn) {
-              const orderRes = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
-              const orderData = await orderRes.json()
-              if (orderData.code === 20000 && orderData.data) setActiveOrder(orderData.data)
-            }
-          } catch {}
-          const role = (() => { try { return JSON.parse(atob((token || '').split('.')[1]))?.role } catch { return null } })()
-          if (role && role !== 'USER') {
-            try {
-              const logRes = await apiFetch(`${baseUrl}/admin/audit-logs?resource_type=instrument&resource_id=${id}&pageSize=20`, { headers })
-              const logData = await logRes.json()
-              if (logData.code === 20000) setAuditLogs(logData.data?.list || [])
-            } catch {}
+      if (token) {
+        try {
+          const userRes = await apiFetch(`${baseUrl}/users/me`, { headers })
+          const userData = await userRes.json()
+          if (userData.code === 20000) setCurrentUser(userData.data)
+        } catch {}
+        try {
+          const inst = instData.data
+          if (inst?.sn) {
+            const orderRes = await apiFetch(`${baseUrl}/orders/by-instrument-sn?sn=${encodeURIComponent(inst.sn)}`)
+            const orderData = await orderRes.json()
+            if (orderData.code === 20000 && orderData.data) setActiveOrder(orderData.data)
           }
+        } catch {}
+        const role = (() => { try { return JSON.parse(atob((token || '').split('.')[1]))?.role } catch { return null } })()
+        if (role && role !== 'USER') {
+          try {
+            const logRes = await apiFetch(`${baseUrl}/admin/audit-logs?resource_type=instrument&resource_id=${id}&pageSize=20`, { headers })
+            const logData = await logRes.json()
+            if (logData.code === 20000) setAuditLogs(logData.data?.list || [])
+          } catch {}
         }
-      } catch {}
-      setLoading(false)
-    }
+      }
+    } catch {}
+
+    setLoading(false)
+  }, [id, baseUrl])
+
+  useEffect(() => {
     fetchData()
-  }, [id])
+  }, [fetchData])
+
+  // 页面栈返回（归还/支付等流程 navigateBack 回详情旧实例）不重新 mount——
+  // 重新拉取 instrument/activeOrder，避免库存状态 stale（#1665 教训：
+  // 乐器已归还 available 但详情仍显示不可租赁）。
+  useDidShow(() => {
+    fetchData()
+  })
 
   const bannerImagesSource = Array.isArray(displayMedia?.images) && displayMedia.images.length > 0
     ? displayMedia.images.map(i => ({
