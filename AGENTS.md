@@ -202,6 +202,18 @@ tuneloop/
 
 **审计清单补充**（frontend-ui-interaction-check）：共享 .jsx 的任何 `navigate('/xxx')` 调用必须验证 weapp 端路径映射，或要求跨端封装（`nav()` 模式），否则 REJECT。
 
+### ⚠️ lineHeight 数字 = 倍数陷阱（#暖心提示 沉淀）
+
+> 来源：确认订单页「暖心提示」上下留白 120/210px——`lineHeight: 20`（数字）编译为无单位 CSS → 被解释为 **20 × fontSize(11) = 220px** 行盒，11px 文字垂直居中于 220px 行盒，上下各 ~104px 留白。
+
+**规则**：
+- React 与 Taro 都把 `line-height` 视为 **unitless 属性**（数字不加 px）——与 `width`/`padding`/`fontSize` 不同！
+- `style={{ lineHeight: 20 }}` = CSS `line-height: 20` = **20 × fontSize**（倍数），**不是 20px**
+- 要精确像素必须写字符串：`lineHeight: '20px'`
+- 仅当确实想要倍数时才用数字（如 `lineHeight: 1.4` 是合法用法）
+- 排查方法：`grep -rn "lineHeight: [0-9]" frontend-mobile/src/`（排除字符串与 1.x 倍数）
+- **审计清单**：`.jsx`/`.js` 中 `lineHeight: <整数>` 直接 REJECT（除非明确倍数意图），要求改 `'<n>px'` 字符串
+
 ### 页面入口架构
 
 ```
