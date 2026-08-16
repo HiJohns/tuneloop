@@ -942,6 +942,7 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			Deposit:          deposit,
 			DepositWaived:    req.DepositWaived,
 			ShippingFee:      shippingFee,
+			CashPaid:         orderAmount,
 			Status:           models.OrderStatusReserved,
 			StartDate:        &startDateStr,
 			EndDate:          &endDateStr,

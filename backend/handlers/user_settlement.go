@@ -561,14 +561,21 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	rentPayable := 0.0
 	actualDays := 0
 
-	// Derive actual lease period: returned_at for returned/completed orders, end_date otherwise
+	// Derive actual lease period: returned_at for returned/completed orders,
+	// end_date otherwise. Start from delivered_at (实际收货) when available so
+	// 当天收货当天归还 (北京同日, 不足 24h) 计 1 天而非自然日 2 天 (#1665 口径).
 	actualLeaseEnd := parseDate(order.EndDate)
 	if order.ReturnedAt != nil && (order.Status == "returned" || order.Status == "completed" || order.Status == "returning") {
 		rt := *order.ReturnedAt
 		actualLeaseEnd = &rt
 	}
-	if startDate != nil && actualLeaseEnd != nil {
-		actualDays = services.CalculateDays(*startDate, *actualLeaseEnd)
+	actualLeaseStart := startDate
+	if order.DeliveredAt != nil && (order.Status == "returned" || order.Status == "completed" || order.Status == "returning") {
+		actualLeaseStart = order.DeliveredAt
+	}
+	if actualLeaseStart != nil && actualLeaseEnd != nil {
+		hours := actualLeaseEnd.Sub(*actualLeaseStart).Hours()
+		actualDays = int(math.Ceil(hours / 24))
 	}
 	if actualDays < 1 {
 		actualDays = 1
