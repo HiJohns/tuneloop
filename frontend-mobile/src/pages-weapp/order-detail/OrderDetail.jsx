@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
+import { useState, useEffect, useCallback } from 'react'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env, uploadFile } from '../../platform'
@@ -75,28 +75,35 @@ export default function OrderDetail() {
     resolve()
   }, [params.id, params.out_trade_no])
 
-  useEffect(() => {
+  const loadOrder = useCallback(async () => {
     if (!id) return
-    const load = async () => {
-      try {
-        const resp = await apiFetch(`${baseUrl}/orders/${id}?logs_limit=15`)
-        const result = await resp.json()
-        if (result.code === 20000) {
-          setOrder(result.data)
-          const logs = result.data?.order_logs || []
-          setAllLogs(logs)
-          setLogHasMore(logs.length >= 15)
-          if (result.data.instrument_id) {
-            const iResp = await apiFetch(`${baseUrl}/public/instruments/${result.data.instrument_id}`)
-            const iResult = await iResp.json()
-            if (iResult.code === 20000) setInstrument(iResult.data)
-          }
+    try {
+      const resp = await apiFetch(`${baseUrl}/orders/${id}?logs_limit=15`)
+      const result = await resp.json()
+      if (result.code === 20000) {
+        setOrder(result.data)
+        const logs = result.data?.order_logs || []
+        setAllLogs(logs)
+        setLogHasMore(logs.length >= 15)
+        if (result.data.instrument_id) {
+          const iResp = await apiFetch(`${baseUrl}/public/instruments/${result.data.instrument_id}`)
+          const iResult = await iResp.json()
+          if (iResult.code === 20000) setInstrument(iResult.data)
         }
-      } catch {}
-      setLoading(false)
-    }
-    load()
-  }, [id])
+      }
+    } catch {}
+    setLoading(false)
+  }, [id, baseUrl])
+
+  useEffect(() => {
+    loadOrder()
+  }, [loadOrder])
+
+  // Page-stack return (发货/收货/退款等操作后 navigateBack) does NOT remount —
+  // reload the order so status/buttons reflect the latest state (#1665 教训).
+  useDidShow(() => {
+    if (id) loadOrder()
+  })
 
   useEffect(() => {
     if (!order) return

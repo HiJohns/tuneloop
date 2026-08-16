@@ -372,7 +372,8 @@ export default function ShippingInterface() {
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3 bg-black text-white rounded-2xl font-black disabled:opacity-50 text-base"
+            style={canSubmit ? { backgroundColor: '#B98E5F' } : { backgroundColor: '#d4d4d8' }}
+            className="w-full py-3 text-white rounded-2xl font-black text-base"
           >
             {submitting ? '提交中...' : photos.length === 0 ? '请先拍照存档' : '提交'}
           </Button>
