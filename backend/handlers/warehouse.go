@@ -297,6 +297,17 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		return
 	}
 
+	// Order timeline (order_logs) — receipt must be visible to customer
+	if err := db.Create(&models.OrderLog{
+		OrderID:      orderID,
+		Event:        "已签收，租赁开始",
+		OperatorID:   stringPtr(userID),
+		OperatorName: stringPtr(middleware.GetName(ctx)),
+		CreatedAt:    time.Now(),
+	}).Error; err != nil {
+		log.Printf("[ConfirmDelivery] failed to write order log: %v", err)
+	}
+
 	// 5. Save delivery photos to instrument_media
 	if len(req.Photos) > 0 && order.InstrumentID != "" {
 		batchID := uuid.New().String()
@@ -466,6 +477,21 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).Updates(updateFields).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update order status: " + err.Error()})
 		return
+	}
+
+	// Order timeline (order_logs) — inspection outcome must be visible
+	logEvent := "验收通过，订单完成，结算退款已自动发起"
+	if req.Condition == "damaged" {
+		logEvent = "已定损，等待顾客确认"
+	}
+	if err := db.Create(&models.OrderLog{
+		OrderID:      orderID,
+		Event:        logEvent,
+		OperatorID:   stringPtr(middleware.GetUserID(ctx)),
+		OperatorName: stringPtr(middleware.GetName(ctx)),
+		CreatedAt:    time.Now(),
+	}).Error; err != nil {
+		log.Printf("[InspectReturn] failed to write order log: %v", err)
 	}
 
 	// Overdue fee calculation (#1493): charged once at return inspection.

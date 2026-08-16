@@ -180,6 +180,16 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error; err != nil {
 			return err
 		}
+		// Order timeline (order_logs) — payment must be visible to customer
+		if record.OrderID != nil {
+			if err := tx.Create(&models.OrderLog{
+				OrderID:   *record.OrderID,
+				Event:     "已支付",
+				CreatedAt: now,
+			}).Error; err != nil {
+				log.Printf("[applySideEffects] failed to write payment order log: %v", err)
+			}
+		}
 		return tx.Model(&models.Instrument{}).
 			Where("id = (SELECT instrument_id FROM orders WHERE id = ? LIMIT 1)", record.OrderID).
 			Update("stock_status", "rented").Error

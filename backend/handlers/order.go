@@ -632,6 +632,17 @@ func ReturnOrder(c *gin.Context) {
 		return
 	}
 
+	// Order timeline (order_logs) — return submission must be visible
+	if err := db.Create(&models.OrderLog{
+		OrderID:      orderID,
+		Event:        fmt.Sprintf("已提交归还（%s，单号 %s）", req.CourierCompany, req.TrackingNumber),
+		OperatorID:   stringPtr(middleware.GetUserID(ctx)),
+		OperatorName: stringPtr(middleware.GetName(ctx)),
+		CreatedAt:    now,
+	}).Error; err != nil {
+		log.Printf("[ReturnOrder] failed to write order log: %v", err)
+	}
+
 	// Save return photos to instrument_media
 	if len(req.Photos) > 0 && order.InstrumentID != "" {
 		batchID := uuid.New().String()
