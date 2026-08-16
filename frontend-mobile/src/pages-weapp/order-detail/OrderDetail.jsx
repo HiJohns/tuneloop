@@ -376,9 +376,9 @@ export default function OrderDetail() {
           </View>
         </View>
 
-        {/* Delivery Info */}
+        {/* Delivery + Logistics (合并) */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>配送信息</Text>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>配送物流</Text>
           <View style={{ marginBottom: 8 }}>
             <View style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
               <Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>👤 下单人</Text>
@@ -402,9 +402,16 @@ export default function OrderDetail() {
               </View>
             )}
           </View>
+          {(order.courier_company || order.tracking_number || order.shipped_at) && (
+            <View style={{ borderTop: '1px dashed #e4e4e7', paddingTop: 8 }}>
+              {order.courier_company && <Row label="物流公司" value={order.courier_company} />}
+              {order.tracking_number && <Row label="物流单号" value={order.tracking_number} mono />}
+              {order.shipped_at && <Row label="发货时间" value={formatDisplayDate(order.shipped_at)} />}
+            </View>
+          )}
         </View>
 
-        {/* Order Info */}
+        {/* Order Info (合并归还信息：归还日期/实际租期由 LeaseInfo 显示) */}
         <LeaseInfo
           status={status}
           startDate={order.start_date}
@@ -415,28 +422,12 @@ export default function OrderDetail() {
           createdAt={order.created_at}
           orderId={order.id}
           paidAt={order.paid_at}
+          returnedAt={order.returned_at}
         />
 
-        {/* Return Info */}
-        {returnedAt && (
-          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>归还信息</Text>
-            <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 6 }}>
-              <Text style={{ fontSize: 13, color: '#71717a' }}>↩️ 归还日期</Text>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{returnedAt}</Text>
-            </View>
-            {order.settlement?.actual_rent_days && (
-              <View style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 6 }}>
-                <Text style={{ fontSize: 13, color: '#71717a' }}>📊 实际租期</Text>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: '#000' }}>{order.settlement.actual_rent_days} 天</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Fee Info */}
+        {/* Fee Info (合并结算明细/收支明细) */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>费用信息</Text>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>费用明细</Text>
 
           {/* ① 实付金额 */}
           {order.payment_records?.length > 0 && (
@@ -481,6 +472,53 @@ export default function OrderDetail() {
               )}
               <Row label="退款合计" value={`¥${(Number(order.settlement.cash_refundable) + Number(order.settlement.prepaid_refunded) + Number(order.settlement.gift_points_refunded)).toFixed(2)}`} color="#16a34a" />
             </>
+          )}
+
+          {/* ④ 结算（原结算明细面板并入） */}
+          {order.settlement && (
+            <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>结算</Text>
+              {order.settlement.original_rent_amount !== undefined && (
+                <Row label="原始租金" value={`¥${order.settlement.original_rent_amount}`} />
+              )}
+              {order.settlement.actual_rent_days !== undefined && (
+                <Row label="实际天数" value={`${order.settlement.actual_rent_days} 天`} />
+              )}
+              {order.settlement.overdue_charges_total !== undefined && Number(order.settlement.overdue_charges_total) > 0 && (
+                <Row label="逾期费用" value={`¥${order.settlement.overdue_charges_total}`} color="#ef4444" />
+              )}
+              {order.settlement.cash_refundable !== undefined && (
+                <Row label="可退现金" value={`¥${order.settlement.cash_refundable}`} />
+              )}
+              {order.settlement.refund_method && (
+                <Row label="退款方式" value={order.settlement.refund_method} />
+              )}
+              {order.settlement.refund_status && (
+                <Row
+                  label="退款状态"
+                  value={order.settlement.refund_status === 'completed' ? '已退款' : order.settlement.refund_status === 'pending' ? '处理中' : order.settlement.refund_status}
+                  color={order.settlement.refund_status === 'completed' ? '#16a34a' : '#f59e0b'}
+                />
+              )}
+            </View>
+          )}
+
+          {/* ⑤ 收支（原收支明细面板并入：支付/退款记录 + 净支出） */}
+          {['completed', 'returned'].includes(order?.status) && (order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (
+            <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>收支记录</Text>
+              {(order.payment_records || []).map(pr => (
+                <Row key={pr.id} label={`支付 · ${pr.method || ''}`.trim()} value={`¥${Number(pr.amount).toFixed(2)}`} />
+              ))}
+              {(order.refund_records || []).map(rf => (
+                <Row key={rf.id} label={`退款 · ${rf.method === 'prepaid' ? '预付点' : rf.method === 'cash_withdrawal' ? '现金' : '微信'}`} value={`-¥${Number(rf.amount).toFixed(2)}`} color="#16a34a" />
+              ))}
+              {(() => {
+                const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
+                const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
+                return <Row label="净支出" value={`¥${Math.max(0, paid - refunded).toFixed(2)}`} />
+              })()}
+            </View>
           )}
 
           {/* 合同快照 (collapsed) */}
@@ -580,7 +618,7 @@ export default function OrderDetail() {
         {/* Guarantor info (deposit-free orders, #1557) */}
         {order.deposit_waived && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>担保人信息</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>担保人信息</Text>
             {(order.guarantors || []).length > 0 ? order.guarantors.map((g, i) => (
               <View key={g.id || i} style={{ backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginBottom: 8 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#000' }}>{g.name} · {g.phone}</Text>
@@ -592,67 +630,6 @@ export default function OrderDetail() {
             )) : (
               <Text style={{ fontSize: 12, color: '#a1a1aa' }}>暂无担保人信息</Text>
             )}
-          </View>
-        )}
-
-        {/* Settlement Detail */}
-        {order.settlement && (
-          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>结算明细</Text>
-            {order.settlement.original_rent_amount !== undefined && (
-              <Row label="原始租金" value={`¥${order.settlement.original_rent_amount}`} />
-            )}
-            {order.settlement.actual_rent_amount !== undefined && (
-              <Row label="实收租金" value={`¥${order.settlement.actual_rent_amount}`} color="#16a34a" />
-            )}
-            {order.settlement.actual_rent_days !== undefined && (
-              <Row label="实际天数" value={`${order.settlement.actual_rent_days} 天`} />
-            )}
-            {order.settlement.overdue_charges_total !== undefined && Number(order.settlement.overdue_charges_total) > 0 && (
-              <Row label="逾期费用" value={`¥${order.settlement.overdue_charges_total}`} color="#ef4444" />
-            )}
-            {order.settlement.cash_refundable !== undefined && (
-              <Row label="可退现金" value={`¥${order.settlement.cash_refundable}`} />
-            )}
-            {order.settlement.prepaid_refunded !== undefined && (
-              <Row label="预付款退还" value={`¥${order.settlement.prepaid_refunded}`} />
-            )}
-            {order.settlement.refund_method && (
-              <Row label="退款方式" value={order.settlement.refund_method} />
-            )}
-            {order.settlement.refund_status && (
-              <Row
-                label="退款状态"
-                value={order.settlement.refund_status === 'completed' ? '已退款' : order.settlement.refund_status === 'pending' ? '处理中' : order.settlement.refund_status}
-                color={order.settlement.refund_status === 'completed' ? '#16a34a' : '#f59e0b'}
-              />
-            )}
-          </View>
-        )}
-
-        {/* 收支明细 — completed/returned orders */}
-        {['completed', 'returned'].includes(order?.status) && (order?.payment_records?.length > 0 || order?.refund_records?.length > 0) && (
-          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>收支明细</Text>
-            {order?.payment_records?.length > 0 && (<>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>支付记录</Text>
-              {order.payment_records.map(pr => (
-                <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${Number(pr.amount).toFixed(2)}`} />
-              ))}
-              <Row label="支付合计" value={`¥${order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2)}`} />
-            </>)}
-            {order?.refund_records?.length > 0 && (<>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>退款记录</Text>
-              {order.refund_records.map(rf => (
-                <Row key={rf.id} label={`${rf.method === 'prepaid' ? '退回预付点' : rf.method === 'cash_withdrawal' ? '退回现金' : '退款'}`} value={`-¥${Number(rf.amount).toFixed(2)}`} color="#16a34a" />
-              ))}
-              <Row label="退款合计" value={`-¥${order.refund_records.reduce((s, r) => s + Number(r.amount || 0), 0).toFixed(2)}`} color="#16a34a" />
-            </>)}
-            {(() => {
-              const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
-              const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
-              return <Row label="净支出" value={`¥${Math.max(0, paid - refunded).toFixed(2)}`} />
-            })()}
           </View>
         )}
 
@@ -679,28 +656,16 @@ export default function OrderDetail() {
         {/* Customer: receive photos (shipped) */}
         {!isStaff && status === 'shipped' && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 4 }}>收货拍照留档</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 4 }}>收货拍照留档</Text>
             <Text style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 8 }}>请拍摄乐器到达时的状态</Text>
             <PhotoPicker photos={receivePhotos} setPhotos={setReceivePhotos} />
-          </View>
-        )}
-
-        {/* Logistics */}
-        {(order.tracking_number || order.courier_company) && (
-          <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>物流信息</Text>
-            {order.courier_company && <Row label="🚚 物流公司" value={order.courier_company} />}
-            {order.tracking_number && (
-              <Row label="📦 物流单号" value={order.tracking_number} mono />
-            )}
-            {order.shipped_at && <Row label="📅 发货时间" value={formatDisplayDate(order.shipped_at)} />}
           </View>
         )}
 
         {/* Timeline Logs */}
         {orderLogs.length > 0 && (<>
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 12 }}>订单动态</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>订单动态</Text>
             {orderLogs.map((log, idx) => {
               const isCurrent = log.event === order.status
               const isFuture = (() => {

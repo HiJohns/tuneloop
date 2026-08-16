@@ -266,7 +266,7 @@ export default function MyLeases() {
                       )}
                       {showStaffReceive && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/order-detail/index?id=${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/receiving-interface/index?order_id=${order.id}`) }}
                           style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           接收
