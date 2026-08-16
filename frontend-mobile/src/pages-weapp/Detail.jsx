@@ -544,8 +544,8 @@ export default function Detail() {
           )
         ) : (
           <View style={{ padding: 12, backgroundColor: '#f3f4f6', borderRadius: 8, textAlign: 'center' }}>
-            <Text style={{ color: '#6b7280', fontWeight: '500' }}>该乐器目前不可租赁</Text>
-            <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>乐器已被预约，暂时无法租赁</Text>
+            <Text style={{ color: '#6b7280', fontWeight: '700', fontSize: 15, display: 'block' }}>该乐器目前不可租赁</Text>
+            <Text style={{ color: '#9ca3af', fontSize: 13, marginTop: 4, display: 'block' }}>乐器已被预约，暂时无法租赁</Text>
           </View>
         )}
       </View>

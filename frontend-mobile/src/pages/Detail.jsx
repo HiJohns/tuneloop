@@ -546,8 +546,8 @@ export default function Detail() {
           )
         ) : (
           <View className="p-3 bg-gray-100 rounded-lg text-center">
-            <Text className="text-gray-500 font-medium">该乐器目前不可租赁</Text>
-            <Text className="text-gray-400 text-sm mt-1">乐器已被预约，暂时无法租赁</Text>
+            <Text className="block text-gray-500 font-bold text-[15px]">该乐器目前不可租赁</Text>
+            <Text className="block text-gray-400 text-[13px] mt-1">乐器已被预约，暂时无法租赁</Text>
           </View>
         )}
       </View>
