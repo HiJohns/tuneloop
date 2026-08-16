@@ -51,6 +51,9 @@ func createIAMUserWithBind(iamService *services.IAMService, form *registerForm, 
 	if createErr != nil {
 		return "", "", fmt.Errorf("create IAM user: %w", createErr)
 	}
+	if createResp.UserID == "" {
+		return "", "", fmt.Errorf("empty user_id returned from IAM CreateUser")
+	}
 
 	if exchangeToken != "" || wxCode != "" {
 		bindResult, bindErr := iamService.WxBind(exchangeToken, wxCode, createResp.UserID)
@@ -170,15 +173,12 @@ func getMembershipFee(db *gorm.DB) float64 {
 // account is created server-side from the session's form_data. Idempotent —
 // a completed session is skipped (repeat callbacks only create once).
 func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRecord, now time.Time) error {
-	var raw struct {
-		SessionID string `json:"session_id"`
-	}
-	if err := json.Unmarshal([]byte(*record.RawResponse), &raw); err != nil || raw.SessionID == "" {
-		return fmt.Errorf("registration session id missing in raw_response")
+	if record.SessionID == nil || *record.SessionID == "" {
+		return fmt.Errorf("registration session id missing")
 	}
 
 	var session models.RegistrationSession
-	if err := tx.Where("id = ?", raw.SessionID).First(&session).Error; err != nil {
+	if err := tx.Where("id = ?", *record.SessionID).First(&session).Error; err != nil {
 		return fmt.Errorf("registration session not found: %w", err)
 	}
 	switch session.Status {
@@ -243,5 +243,3 @@ func activateMembershipLevelForAmount(db *gorm.DB, localUserID string, amount fl
 		}
 	}
 }
-
-

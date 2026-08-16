@@ -303,6 +303,7 @@ type OrderPaymentRecord struct {
 	OrgID         *string   `gorm:"type:uuid" json:"org_id,omitempty"`
 	UserID        string    `gorm:"type:uuid;index:idx_payment_user;not null" json:"user_id"`
 	OrderID       *string   `gorm:"type:uuid;index:idx_payment_order" json:"order_id,omitempty"`
+	SessionID     *string   `gorm:"type:uuid" json:"session_id,omitempty"` // two-phase registration session (#1663) — survives the callback (RawResponse is overwritten by the callback result)
 	OrderType     string    `gorm:"type:varchar(20);not null" json:"order_type"`
 	OutTradeNo    *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
 	TransactionID *string   `gorm:"type:varchar(64)" json:"transaction_id"`

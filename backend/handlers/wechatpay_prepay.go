@@ -160,6 +160,10 @@ func PrepayOrder(c *gin.Context) {
 		}
 		sessionAmount = amount
 		record.Amount = amount // server-priced; never trust the client amount
+		// Dedicated column: the session link must survive the payment
+		// callback, which overwrites RawResponse with the callback result
+		// (#1664 audit: real-callback session_id was lost in RawResponse).
+		record.SessionID = &req.SessionID
 		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": session.Amount}
 		if couponCode != "" {
 			sessionRaw["coupon_code"] = couponCode

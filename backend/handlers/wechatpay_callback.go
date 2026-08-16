@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -189,8 +188,10 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 	case "membership":
 		// Two-phase registration (session flow, #1663): payment completes
 		// and the account is created server-side from form_data. Guarded by
-		// the session_id marker stored in raw_response at prepay time.
-		if record.RawResponse != nil && strings.Contains(*record.RawResponse, "session_id") {
+		// the dedicated SessionID column — RawResponse is overwritten by the
+		// callback result at processPaymentCallback, so the session link can
+		// never live there (#1664 audit).
+		if record.SessionID != nil && *record.SessionID != "" {
 			return completeRegistrationFromSession(tx, record, now)
 		}
 		// Legacy membership fee (#1532): activate the highest level whose

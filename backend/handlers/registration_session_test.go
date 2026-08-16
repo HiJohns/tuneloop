@@ -137,8 +137,8 @@ func TestGetMyRegistrationSession(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			SessionID string `json:"session_id"`
-			Status    string `json:"status"`
+			SessionID string                 `json:"session_id"`
+			Status    string                 `json:"status"`
 			FormData  map[string]interface{} `json:"form_data"`
 		} `json:"data"`
 	}
@@ -230,10 +230,10 @@ func TestPrepayMembershipWithCoupon_OREZ(t *testing.T) {
 
 	db.Exec("DELETE FROM coupons") // fixed code, isolated per test
 	require.NoError(t, db.Create(&models.Coupon{
-		ID:    uuid.New().String(),
-		Code:  "OREZ",
-		Type:  "waive",
-		Value: 0,
+		ID:     uuid.New().String(),
+		Code:   "OREZ",
+		Type:   "waive",
+		Value:  0,
 		Active: true,
 	}).Error)
 
@@ -279,6 +279,8 @@ func TestPrepayMembershipWithCoupon_OREZ(t *testing.T) {
 	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
 	assert.Equal(t, 0.0, record.Amount, "OREZ re-priced to 0")
 	assert.Contains(t, *record.RawResponse, s.ID, "session_id stored on record")
+	assert.NotNil(t, record.SessionID, "session_id stored in dedicated column")
+	assert.Equal(t, s.ID, *record.SessionID, "dedicated column holds the session")
 
 	// Account created server-side (no orphan left behind).
 	var user models.User
@@ -303,10 +305,10 @@ func TestPrepayMembershipWithCoupon_ENO(t *testing.T) {
 
 	db.Exec("DELETE FROM coupons") // fixed code, isolated per test
 	require.NoError(t, db.Create(&models.Coupon{
-		ID:    uuid.New().String(),
-		Code:  "ENO",
-		Type:  "percent",
-		Value: 1,
+		ID:     uuid.New().String(),
+		Code:   "ENO",
+		Type:   "percent",
+		Value:  1,
 		Active: true,
 	}).Error)
 
@@ -366,6 +368,8 @@ func TestPrepayMembershipWithCoupon_ENO(t *testing.T) {
 	assert.InDelta(t, 0.99, record.Amount, 0.001, "ENO → 1% of 99")
 	assert.Contains(t, *record.RawResponse, "ENO", "coupon stored on record")
 	assert.Equal(t, "pending", record.Status, "real payment pending until callback")
+	assert.NotNil(t, record.SessionID, "session_id stored in dedicated column")
+	assert.Equal(t, s.ID, *record.SessionID, "dedicated column holds the session")
 }
 
 // TestPaymentCallback_RegistrationComplete covers the server-side account
@@ -388,8 +392,6 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 	assert.Equal(t, int64(0), beforeCount, "no orphan users before callback")
 
 	s := seedSession(t, db, "openid-session-cb", "exchange-cb-001", 99)
-	raw, _ := json.Marshal(map[string]interface{}{"session_id": s.ID, "original_amount": 99.0})
-	rawStr := string(raw)
 	record := models.OrderPaymentRecord{
 		ID:          uuid.New().String(),
 		TenantID:    "00000000-0000-0000-0000-000000000000",
@@ -399,7 +401,8 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 		Amount:      99.0,
 		Type:        "payment",
 		Status:      "paid",
-		RawResponse: &rawStr,
+		SessionID:   &s.ID,
+		RawResponse: strPtr(`{"session_id":"` + s.ID + `","original_amount":99}`),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -428,4 +431,103 @@ func TestPaymentCallback_RegistrationComplete(t *testing.T) {
 
 	// Coupon + full flow: coupon recorded on the session for audit.
 	assert.NotEmpty(t, session.ID)
+}
+
+// TestPaymentCallback_SessionFlow_RealCallback is the regression test for
+// the #1664 audit rejection: the REAL WeChat callback path
+// (processPaymentCallback) overwrites record.RawResponse with the callback
+// result (which has no session_id). The session link must survive via the
+// dedicated SessionID column — otherwise the account is never created and
+// the session stays pending forever.
+func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000e3"
+	srv := newRegisterMockServer(t, newUserID, "CallbackRealUser")
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		MockMode:        false,
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	s := seedSession(t, db, "openid-cb-real", "exchange-cb-real", 99)
+
+	// Prepay (real mode) persisted the record with the dedicated SessionID
+	// column and a RawResponse audit trail.
+	record := models.OrderPaymentRecord{
+		ID:          uuid.New().String(),
+		TenantID:    "00000000-0000-0000-0000-000000000000",
+		UserID:      "00000000-0000-0000-0000-000000000000", // no-orphan zero uuid
+		OrderType:   "membership",
+		OutTradeNo:  strPtr("msess-cb-real-001"),
+		Amount:      0.99,
+		Type:        "payment",
+		Status:      "pending",
+		SessionID:   &s.ID,
+		RawResponse: strPtr(`{"session_id":"` + s.ID + `","original_amount":99}`),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	require.NoError(t, db.Create(&record).Error)
+
+	// No user exists before the real callback fires.
+	var beforeCount int64
+	require.NoError(t, db.Model(&models.User{}).Count(&beforeCount).Error)
+	assert.Equal(t, int64(0), beforeCount, "no orphan users before callback")
+
+	// Real WeChat callback: processPaymentCallback overwrites RawResponse
+	// with the callback result (no session_id) — the link must come from
+	// the SessionID column.
+	callCallback := func() bool {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest("POST", "/api/wechatpay/notify", nil)
+		return processPaymentCallback(c, &wechatpay.CallbackResult{
+			OutTradeNo:    *record.OutTradeNo,
+			TransactionID: "txn-cb-real-001",
+			Amount:        99, // cents → 0.99
+			Success:       true,
+			EventType:     "TRANSACTION.SUCCESS",
+		})
+	}
+
+	require.True(t, callCallback(), "real callback processed")
+
+	// Account created server-side from the session form_data.
+	var user models.User
+	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&user).Error)
+	assert.Equal(t, "13800139000", user.Phone)
+	assert.Equal(t, "openid-register-001", user.WxOpenid, "bound via exchange_token (IAM mock openid)")
+
+	// Session completed.
+	var session models.RegistrationSession
+	require.NoError(t, db.Where("id = ?", s.ID).First(&session).Error)
+	assert.Equal(t, "completed", session.Status)
+	require.NotNil(t, session.CompletedAt)
+
+	// Record now carries the callback result in RawResponse (audit) while
+	// the SessionID column is untouched.
+	var paid models.OrderPaymentRecord
+	require.NoError(t, db.Where("id = ?", record.ID).First(&paid).Error)
+	assert.Equal(t, "paid", paid.Status)
+	assert.NotNil(t, paid.SessionID, "session link survives the callback")
+	assert.Contains(t, *paid.RawResponse, "out_trade_no", "RawResponse now holds the callback result")
+
+	// Repeat callback (same out_trade_no) → idempotent, no second account.
+	require.True(t, callCallback(), "repeat callback accepted (already processed)")
+	var userCount int64
+	require.NoError(t, db.Model(&models.User{}).Where("iam_sub = ?", newUserID).Count(&userCount).Error)
+	assert.Equal(t, int64(1), userCount, "repeat callback must not create a second account")
 }
