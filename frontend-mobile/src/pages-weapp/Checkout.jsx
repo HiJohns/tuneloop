@@ -352,7 +352,7 @@ function SingleCheckout({ id, nav }) {
           {depositWaived && (
             <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
               <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 12, color: '#b45309', lineHeight: 18 }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
+                <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
               </View>
 
               {guarantors.length > 0 && (
@@ -877,7 +877,7 @@ function BatchCheckout({ nav }) {
             })}
           </View>
 
-          <View style={{ width: '100%', backgroundColor: '#fafafa', padding: 12, borderRadius: 12, fontSize: 11, color: '#a1a1aa', lineHeight: 20 }}>
+          <View style={{ width: '100%', backgroundColor: '#fafafa', padding: 12, borderRadius: 12, fontSize: 11, color: '#a1a1aa', lineHeight: '20px' }}>
             🔒 暖心提示：资产固定押金将在乐器归还、网点网管质检合格后，按原支付渠道原路退回至您的微信零钱。
           </View>
 
@@ -893,7 +893,7 @@ function BatchCheckout({ nav }) {
             {depositWaived && (
               <View style={{ marginBottom: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 12 }}>
                 <View style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 12, color: '#b45309', lineHeight: 18 }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
+                  <Text style={{ fontSize: 12, color: '#b45309', lineHeight: '18px' }}>应提供两位担保人的联系方式。我们的员工将会与他们联系确认。</Text>
                 </View>
 
                 {guarantors.length > 0 && (

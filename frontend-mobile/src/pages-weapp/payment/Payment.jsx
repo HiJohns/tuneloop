@@ -452,11 +452,11 @@ export default function Payment() {
           <View style={{ backgroundColor: '#fef9ec', margin: 16, borderRadius: 16, padding: 16 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 8 }}>成为 VIP 会员后，你将获得以下权益：</Text>
             <View style={{ marginBottom: 4 }}>
-              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: 18 }}>· 解锁全部乐器租赁服务</Text>
+              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>· 解锁全部乐器租赁服务</Text>
             </View>
             <View>
-              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: 18 }}>· 获赠 99 赠点，可用于抵扣租金</Text>
-              <Text style={{ fontSize: 11, color: '#a16207', lineHeight: 16, paddingLeft: 12 }}>（每次最多抵扣租金的 {Math.round((maxPayRatio || 0.3) * 100)}%）</Text>
+              <Text style={{ fontSize: 12, color: '#92400e', lineHeight: '18px' }}>· 获赠 99 赠点，可用于抵扣租金</Text>
+              <Text style={{ fontSize: 11, color: '#a16207', lineHeight: '16px', paddingLeft: 12 }}>（每次最多抵扣租金的 {Math.round((maxPayRatio || 0.3) * 100)}%）</Text>
             </View>
           </View>
         )}

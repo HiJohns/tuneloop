@@ -647,7 +647,7 @@ export default function OrderDetail() {
               <Text style={{ fontSize: 16 }}>⚠️</Text>
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400e' }}>本订单为免押金订单</Text>
             </View>
-            <Text style={{ fontSize: 12, color: '#b45309', marginBottom: 10, lineHeight: 18 }}>
+            <Text style={{ fontSize: 12, color: '#b45309', marginBottom: 10, lineHeight: '18px' }}>
               请核实以下担保人信息，若担保人不符合要求应取消订单：
             </Text>
             {(order.guarantors || []).map((g, i) => (
