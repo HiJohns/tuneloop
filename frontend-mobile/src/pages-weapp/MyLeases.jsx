@@ -193,6 +193,7 @@ export default function MyLeases() {
               {orders.map(order => {
               const showReturn = !isStaff && order.status === 'in_lease'
               const showStaffReceive = isStaff && order.status === 'returning'
+              const showStaffShip = isStaff && ['paid', 'pending_shipment'].includes(order.status)
               const showPay = !isStaff && order.status === 'reserved'
               const showCancel = !isStaff && ['reserved', 'paid', 'pending_shipment'].includes(order.status)
               const showConfirm = !isStaff && order.status === 'shipped'
@@ -272,6 +273,14 @@ export default function MyLeases() {
                           接收
                         </Button>
                       )}
+                      {showStaffShip && (
+                        <Button
+                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/shipping-interface/index?order=${order.id}`) }}
+                          style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
+                        >
+                          发货
+                        </Button>
+                      )}
                       {showCancel && (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleCancelFromList(order.id, order.status) }}
@@ -280,7 +289,7 @@ export default function MyLeases() {
                           取消订单
                         </Button>
                       )}
-                      {!showPay && !showConfirm && !showReturn && !showCancel && !showStaffReceive && (
+                      {!showPay && !showConfirm && !showReturn && !showCancel && !showStaffReceive && !showStaffShip && (
                         <View style={{ width: '100%', paddingTop: 10, paddingBottom: 10, backgroundColor: '#f4f4f5', borderRadius: 12, textAlign: 'center' }}>
                           <Text style={{ color: '#a1a1aa', fontWeight: '900', fontSize: 14, textAlign: 'center' }}>等待处理</Text>
                         </View>
