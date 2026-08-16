@@ -106,4 +106,35 @@ steps:
 
 ---
 
-*Model: deepseek/deepseek-v4-flash*
+# P-02 员工个人中心（组织上下文可见性）
+
+## 前置条件
+- 员工（STAFF）已登录（JWT 含 oid/tid）
+
+## 需求来源
+- 员工登录后无法从界面上看出自己属于哪个商户、哪个网点（#1665 排查中用户反馈）
+- 跨网点员工（site_members 多网点）尤其需要知道当前上下文，避免误操作（#688 数据隔离教训）
+
+## 流程
+1. 员工登录 → 底部导航「我的」→ 个人中心
+2. 头像下方昵称后显示**小字标签**：`商户名 · 网点名`（如「新街口琴行 · 新街口店」）
+3. 数据来源：`GET /users/me` 返回 `tenant_name`（商户名）+ `site_name`（主网点名）
+
+## 前端设计
+- 标签样式：昵称（fontSize 24/900）右下方小字（fontSize 12，灰色 #71717a），如徽标形式
+- 仅员工（`isStaff`，JWT oid/tid 非空）显示；顾客不显示
+- 无网点（site_members 无记录）→ 仅显示商户名
+
+## 接口契约
+- `GET /users/me`（GetCurrentUser）须返回：
+  - `site_id` / `site_name`：主网点（site_members JOIN sites，已有）
+  - `tenant_name`：商户名（merchants 表按 tenant_id 查 name，**待补充**）
+
+## 验收
+- [ ] 员工个人中心昵称后显示「商户名 · 网点名」小字标签
+- [ ] 顾客不显示该标签
+- [ ] GET /users/me 返回 tenant_name 字段（后端测试覆盖）
+
+---
+
+*Model: deepseek/deepseek-v4-pro*

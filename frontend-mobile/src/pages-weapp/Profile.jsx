@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin } from '../services/api'
-import { env, storage, session, eventBus } from '../platform'
+import { env, storage, session, eventBus, wxLogin } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
 import ErrorBoundary from '../components-weapp/ErrorBoundary'
@@ -154,6 +154,10 @@ export default function Profile() {
   // guest already filled the form once — surface "继续完成注册" instead of a
   // fresh "注册为会员" entry.
   const [pendingSession, setPendingSession] = useState(null)
+  // P-05: the guest button label reflects the current WeChat account state —
+  // an already-registered user (≥1 bound account, just not logged in) sees
+  // "登录" instead of the misleading "注册为会员".
+  const [wechatHasAccount, setWechatHasAccount] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -177,6 +181,27 @@ export default function Profile() {
       }
     }
     checkPendingSession()
+    return () => { cancelled = true }
+  }, [isGuest, baseUrl])
+
+  // P-05: silently query wx-accounts on page entry (guest only) to decide
+  // the button label. The code consumed here is fine — the actual login
+  // (resolveLogin) re-runs wx.login for a fresh code on click.
+  useEffect(() => {
+    let cancelled = false
+    const checkWechatAccounts = async () => {
+      if (!isGuest) return
+      try {
+        const code = await wxLogin()
+        if (!code || cancelled) return
+        const resp = await apiFetch(`${baseUrl}/auth/wx-accounts?code=${encodeURIComponent(code)}`)
+        const result = await resp.json()
+        if (!cancelled && result.code === 20000) {
+          setWechatHasAccount((result.data?.accounts || []).length > 0)
+        }
+      } catch { /* keep default (注册为会员) */ }
+    }
+    checkWechatAccounts()
     return () => { cancelled = true }
   }, [isGuest, baseUrl])
 
@@ -247,11 +272,18 @@ export default function Profile() {
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
               <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={handleGuestLogin}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : (pendingSession ? '✏️ 继续完成注册' : '👉 注册为会员')}</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : (pendingSession ? '✏️ 继续完成注册' : (wechatHasAccount ? '👉 登录' : '👉 注册为会员'))}</Text>
               </View>
             ) : (
               <>
-              <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
+              <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#000', letterSpacing: '0.025em' }}>{displayName}</Text>
+                {isStaff && (user?.tenant_name || user?.site_name) && (
+                  <Text style={{ fontSize: 11, color: '#71717a', marginLeft: 8, backgroundColor: '#f4f4f5', padding: '2px 8px', borderRadius: 999, overflow: 'hidden', maxWidth: 180 }}>
+                    {[user?.tenant_name, user?.site_name].filter(Boolean).join(' · ')}
+                  </Text>
+                )}
+              </View>
               {user?.membership_level_id && (
                 <Text style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
                   {['', '初级会员', '中级会员', '高级会员'][user?.membership_level_id] || `Level ${user?.membership_level_id}`}

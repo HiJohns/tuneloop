@@ -799,6 +799,13 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 		result["site_name"] = memberSite.SiteName
 	}
 
+	// Merchant (tenant) name for staff org context (P-02): shown as a small
+	// tag next to the nickname in the profile page.
+	var merchantName string
+	if err := db.Table("merchants").Select("name").Where("tenant_id = ?", user.TenantID).Scan(&merchantName).Error; err == nil && merchantName != "" {
+		result["tenant_name"] = merchantName
+	}
+
 	// Fetch email confirmation timestamps from IAM
 	if sentAt, confirmedAt, err := iamClient.GetUserEmailStatus(user.IAMSub); err == nil {
 		result["email_sent_at"] = sentAt

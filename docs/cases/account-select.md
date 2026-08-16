@@ -170,12 +170,11 @@ steps:
 
 ### 来源 A：个人中心「我的」
 - **已登录** → 直接进会员中心（不重新查 openid）
-- **未登录** → `wx.login` → `GET /auth/wx-accounts`
-  - 0 账户 → 再查 `GET /auth/registration-sessions/me`：
-    - 有 pending 会话 → 登录按钮「**继续完成注册**」→ 注册页恢复表单
-    - 无会话 → 登录按钮「**注册为会员**」→ 注册页（显示用户名密码登录）
-  - 1 账户 → `POST /auth/wx-login-select { code, user_id }` 直接登录 → 会员中心
-  - N 账户 → 账户列表页 `/account-select`
+- **未登录** → **进入页面时静默查询** `wx.login` → `GET /auth/wx-accounts`，**按钮文案按查询结果动态决定**（非固定「注册为会员」）：
+  - 关联账户数 ≥ 1（当前微信用户已注册，只是未登录）→ 按钮「**登录**」→ 点击后 1 账户直接 wx-login-select / N 账户进账户列表页
+  - 0 账户 + 有 pending 会话 → 按钮「**继续完成注册**」→ 注册页恢复表单
+  - 0 账户 + 无 pending 会话 → 按钮「**注册为会员**」→ 注册页（显示用户名密码登录）
+- 点击按钮 → 按上述分流执行（点击时重新 `wx.login` 拿新 code，进入页面时查询消耗的 code 不影响）
 
 ### 来源 B：购物车提交 / 立即租赁
 - `wx.login` → `GET /auth/wx-accounts`
