@@ -214,6 +214,36 @@ tuneloop/
 - 排查方法：`grep -rn "lineHeight: [0-9]" frontend-mobile/src/`（排除字符串与 1.x 倍数）
 - **审计清单**：`.jsx`/`.js` 中 `lineHeight: <整数>` 直接 REJECT（除非明确倍数意图），要求改 `'<n>px'` 字符串
 
+### ⚠️ 前端实现先搜索类似实现（#归还页 沉淀）
+
+> 来源：归还页（ReturnConfirm）与发货页（ShippingInterface）同一套业务（物流信息+拍照留档），却实现了两套不同的控件：
+> - 输入框：发货页用 Taro `<Input>`（跨端可用）；归还页用原生 `<input>`（**weapp 不渲染为可编辑控件** → 无法输入）
+> - 拍照：发货页自实现 PhotoCapture（weapp 有「拍摄」按钮）；归还页用 `ImageUploader` 组件（**全 HTML 标签 div/img/button → weapp 整块不渲染** → 无添加按钮）
+
+**规则（强制）**：
+1. **实现任何 UI 功能前，先搜索仓库是否已有类似实现**：`grep -rn "关键词" frontend-mobile/src/`（如拍照/上传 → PhotoCapture/ImageUploader；物流输入 → ShippingInterface）
+2. 同业务域页面（发货/归还/接收）必须**复用同一套控件实现**，差异字段（如物流费）用条件渲染，不复制新实现
+3. 跨端页面**禁止原生 HTML 标签**（`<input>/<div>/<img>/<button>/<span>`）做交互控件——weapp 不渲染！必须用 Taro 组件（`<Input>/<View>/<Image>/<Button>`）或 platform 封装
+4. **审计清单**：diff 中出现新的原生 HTML 标签交互控件、或与既有页面重复的 UI 实现 → REJECT，要求复用/改造既有控件
+
+### ⚠️ weapp 按钮高度/样式陷阱（#归还页 沉淀）
+
+> 来源：提交归还按钮"明显比其他页高"。根因：weapp 端 Taro `<Button>` 是**原生 button 元素，自带默认样式**（padding/margin/line-height），className 的 `py-3` 等 Tailwind 类可能被原生默认样式叠加/干扰；Checkout 等页用**内联 style 固定 height 才可靠**。
+
+**规则**：
+- weapp 端按钮要精确高度 → **内联 style 固定**：`style={{ width:'100%', margin: 0, height: 48, display:'flex', alignItems:'center', justifyContent:'center' }}`（Taro Button 默认 `margin` 也会干扰，必须显式 `margin: 0`）
+- 按钮/输入框等控件高度以**全站基准**统一（如提交按钮 48px），不靠 `py-*` 推算
+- **审计清单**：新按钮依赖 className 高度且未显式 `margin: 0` → 提示核对 weapp 渲染高度；同一页面/同域按钮与基准高度不一致 → REJECT
+
+### ⚠️ 参数解析跨端一致性（#归还页 沉淀）
+
+> 来源：weapp 跳转 `?order=&instrument=` 传参，组件却用 `useParams().orderId`（H5 路径参数）读取——weapp 下 orderId 为空、instrument 未传 → 页面数据加载失败。H5 用路径参数 `/return/:orderId`，weapp 用 query 参数，**同一组件必须兼容两种来源**。
+
+**规则**：
+- 共享 .jsx 读参数必须**双源兼容**：`const id = useParams().id || searchParams.get('id') || searchParams.get('order') || ''`
+- **跳转方与接收方参数名必须一致**：weapp 跳转 URL 与组件读取的 key 逐字核对（`?order=` vs `get('order')`）
+- **审计清单**：跳转 URL 参数与目标页读取参数不一致、或组件只读一种来源 → REJECT
+
 ### 页面入口架构
 
 ```
