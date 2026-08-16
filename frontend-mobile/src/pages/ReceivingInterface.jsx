@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
-import { ArrowLeft, Camera, Scan, CheckCircle, AlertTriangle, User, MapPin } from 'lucide-react'
+import { ArrowLeft, Camera, Scan, AlertTriangle, User, MapPin } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, navigation } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -128,16 +128,22 @@ export default function ReceivingInterface() {
           condition,
           notes: condition === 'damaged' ? damageDesc : '',
           photos: photoUrls,
+          // L-04: 一次提交带 damage_amount（后端 damaged 时创建定损报告并
+          // 通知顾客决策），不再单独调 /damage 二次定损
+          damage_amount: condition === 'damaged' ? (parseFloat(damageAmount) || 0) : 0,
         }),
       })
       const result = await resp.json()
-      if (result.code === 20000 && condition === 'damaged') {
-        const damageResp = await apiFetch(`${baseUrl}/warehouse/orders/${orderID}/damage`, { method: 'PUT', body: JSON.stringify({ damage_description: damageDesc, damage_amount: parseFloat(damageAmount) || 0 }) })
-        const damageResult = await damageResp.json()
-        if (damageResult.code === 20000) { env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders'); return }
-        else { dialog.alert('定损评估失败: ' + damageResult.message); setSubmitting(false); return }
-      } else if (result.code === 20000) { env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders'); return }
-      else dialog.alert('失败: ' + result.message)
+      if (result.code === 20000) {
+        if (condition === 'damaged') {
+          dialog.alert('已提交定损，已通知顾客确认')
+        } else {
+          dialog.alert('验收通过，结算退款已自动发起')
+        }
+        env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders')
+        return
+      }
+      dialog.alert('失败: ' + result.message)
       setCurrentItem(null); setCurrentSN(''); setCondition(''); setDamageDesc(''); setDamageAmount(''); setOrderID(null); setOutboundPhotos([]); setCapturedPhotos([])
     } catch (err) { dialog.alert('错误: ' + err.message) }
     setSubmitting(false)
@@ -268,8 +274,8 @@ export default function ReceivingInterface() {
       {currentItem && (
         <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
           <Button onClick={handleSubmit} disabled={submitting || !condition}
-            className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
-            <CheckCircle size={20} />{submitting ? '处理中...' : '确认接收'}
+            style={{ width: '100%', margin: 0, backgroundColor: '#16a34a', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || !condition ? 0.5 : 1 }}>
+            {submitting ? '处理中...' : '确认接收'}
           </Button>
         </View>
       )}
