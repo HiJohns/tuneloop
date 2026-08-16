@@ -54,8 +54,10 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
   const isOverdue = displayEndDt && nowDt ? nowDt > displayEndDt : false
   const overdueDays = displayEndDt && nowDt && isOverdue ? Math.round((nowDt - displayEndDt) / 86400000) : 0
 
+  // 实际租期 = 完整天数（起始日当天归还=1 天，不足 24h 不累加）——去掉
+  // +1，否则当天收货当天归还会显示 2 天（start==end → round(0)+1）
   const leaseDays = startDt && endDt
-    ? Math.max(1, Math.round((endDt - startDt) / 86400000) + 1)
+    ? Math.max(1, Math.round((endDt - startDt) / 86400000))
     : 0
 
   // 已租天数 = 距起始日的完整天数（当天=1、次日=1、第3天=2）——去掉 +1，

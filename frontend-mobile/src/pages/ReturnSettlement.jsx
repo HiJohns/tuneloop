@@ -8,13 +8,21 @@ export default function ReturnSettlement() {
   const [orderId, setOrderId] = useState('')
   const [loading, setLoading] = useState(true)
   const [settlement, setSettlement] = useState(null)
+  const [orderDeposit, setOrderDeposit] = useState(null)
   const [confirming, setConfirming] = useState(false)
 
   const fetchSettlement = async (orderID) => {
     try {
-      const resp = await api.get(`/user/settlements/${orderID}/calculate`)
-      if (resp?.code === 20000) {
-        setSettlement(resp.data)
+      const [settleResp, orderResp] = await Promise.all([
+        api.get(`/user/settlements/${orderID}/calculate`),
+        api.get(`/orders/${orderID}`),
+      ])
+      if (settleResp?.code === 20000) {
+        setSettlement(settleResp.data)
+      }
+      // 押金在订单上（Settlement 无 deposit 字段）——收据明细完整性
+      if (orderResp?.code === 20000) {
+        setOrderDeposit(orderResp.data?.deposit ?? null)
       }
     } catch {}
     setLoading(false)
@@ -105,6 +113,12 @@ export default function ReturnSettlement() {
             <Text className="text-zinc-900 font-bold">实际租金</Text>
             <Text className="font-bold text-blue-600">¥{num(s?.actual_rent_amount)}</Text>
           </View>
+          {orderDeposit != null && (
+            <View className="flex justify-between">
+              <Text className="text-zinc-400">押金</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(orderDeposit)}</Text>
+            </View>
+          )}
           {s?.early_return_rebate > 0 && (
             <View className="flex justify-between text-green-600">
               <Text className="font-medium">提前归还退费</Text>
@@ -126,7 +140,8 @@ export default function ReturnSettlement() {
         </View>
         <View className="mt-3 bg-amber-50 rounded-xl p-3">
           <Text className="text-xs text-amber-600 leading-relaxed block">
-            以上为租金预估，最终结算与退款以网点验收定损结果为准（含超期费与定损扣款）。
+            以上为租金预估。由于乐器尚未完成验收定损，此处不显示退款金额；
+            最终结算与退款（含押金、超期费与定损扣款）以网点验收定损结果为准。
           </Text>
         </View>
       </View>

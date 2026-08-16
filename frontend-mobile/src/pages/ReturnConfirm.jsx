@@ -81,7 +81,14 @@ export default function ReturnConfirm() {
       })
       const result = await resp.json()
       if (result.code === 20000) {
-        navigate(`/return-settlement/${orderId}`, { replace: true })
+        // L-02: 归还提交 → 结算页（收据明细 + 定损说明）。weapp 必须用
+        // 完整页面路径（Taro shim 会把 /return-settlement/:id 转成不存在的
+        // /pages/return-settlement/xxx/index → 静默失败）。
+        if (env.isMiniProgram) {
+          Taro.navigateTo({ url: `/pages-weapp/return-settlement/index?orderId=${orderId}` })
+        } else {
+          navigate(`/return-settlement/${orderId}`, { replace: true })
+        }
       } else {
         dialog.alert('归还失败: ' + (result.message || ''))
       }
