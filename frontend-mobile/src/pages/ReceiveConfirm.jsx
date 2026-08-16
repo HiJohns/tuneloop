@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, Button } from '@tarojs/components'
+import { View, Text, Button, Image } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 import { apiFetch } from '../services/api'
-import { ArrowLeft, CheckCircle, Camera } from 'lucide-react'
+import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
-import ImageUploader from '../components/ImageUploader'
-import { dialog, env, storage, session, uploadFile } from '../platform'
+import { dialog, env, storage, session, uploadFile, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
 export default function ReceiveConfirm() {
-  const { orderId } = useParams()
+  const { orderId: routeOrderId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const instrumentId = searchParams.get('instrument')
+  // H5: /receive/:orderId → useParams；weapp: ?order_id= → searchParams
+  const orderId = routeOrderId || searchParams.get('order_id') || searchParams.get('orderId') || ''
+  const instrumentId = searchParams.get('instrument') || searchParams.get('instrument_id') || ''
   const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
@@ -26,11 +28,10 @@ export default function ReceiveConfirm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = storage.getItem('token') || session.getItem('token')
-        const headers = { 'Authorization': `Bearer ${token}` }
+        // apiFetch is cross-end (weapp has no global fetch) and injects auth
         const [orderResp, instResp] = await Promise.all([
-          fetch(`${baseUrl}/orders/${orderId}`, { headers }),
-          fetch(`${baseUrl}/public/instruments/${instrumentId}`, { headers }),
+          apiFetch(`${baseUrl}/orders/${orderId}`),
+          apiFetch(`${baseUrl}/public/instruments/${instrumentId}`),
         ])
         const orderResult = await orderResp.json()
         const instResult = await instResp.json()
@@ -41,10 +42,30 @@ export default function ReceiveConfirm() {
       }
       setLoading(false)
     }
-    fetchData()
-  }, [orderId, instrumentId])
+    if (orderId) fetchData()
+  }, [orderId, instrumentId, baseUrl])
+
+  // 拍照（复用发货页模式：weapp Taro.chooseImage / H5 file input）
+  const handlePhotoCapture = (e) => {
+    const files = Array.from(e.target.files || [])
+    setPhotoFiles(prev => [...prev, ...files].slice(0, 5))
+  }
+
+  const handlePhotoCaptureWeapp = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 5 - photoFiles.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setPhotoFiles(prev => [...prev, ...(res.tempFilePaths || [])].slice(0, 5))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
+  const removePhoto = (idx) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== idx))
+  }
 
   const handleConfirmReceive = async () => {
+    if (!orderId) { dialog.alert('订单不存在'); return }
     setSubmitting(true)
     try {
       const token = storage.getItem('token') || session.getItem('token')
@@ -53,23 +74,23 @@ export default function ReceiveConfirm() {
         const upResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         })
-        const upResult = await upResp.json()
+        const upResult = env.isMiniProgram ? JSON.parse(upResp.data || '{}') : await upResp.json()
         if (upResult.code === 20000 && upResult.data?.url) {
           photoUrls.push(upResult.data.url)
         }
       }
-      const resp = await fetch(`${baseUrl}/warehouse/orders/${orderId}/delivery`, {
+      const resp = await apiFetch(`${baseUrl}/warehouse/orders/${orderId}/delivery`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ delivered_at: new Date().toISOString(), photos: photoUrls }),
       })
       const result = await resp.json()
       if (result.code === 20000) {
         dialog.alert('确认收货成功')
-        navigate('/my-leases', { replace: true })
+        if (env.isMiniProgram) {
+          Taro.navigateBack()
+        } else {
+          navigate('/my-leases', { replace: true })
+        }
       } else {
         dialog.alert('确认收货失败: ' + (result.message || ''))
       }
@@ -166,7 +187,32 @@ export default function ReceiveConfirm() {
           拍照留档
         </Text>
         <Text className="text-xs text-zinc-400 mb-3">请拍摄乐器当前状态照片作为签收留档</Text>
-        <ImageUploader maxImages={5} onChange={(files) => setPhotoFiles(files)} />
+        <View className="flex flex-wrap gap-2">
+          {photoFiles.map((file, i) => (
+            <View key={i} className="relative">
+              <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} className="w-20 h-20 object-cover rounded-lg" mode="aspectFill" />
+              <View onClick={() => removePhoto(i)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                <Text className="text-white text-xs">✕</Text>
+              </View>
+            </View>
+          ))}
+          {photoFiles.length < 5 && (
+            env.isMiniProgram ? (
+              <View onClick={handlePhotoCaptureWeapp}
+                className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                <Camera size={20} />
+                <Text className="text-xs mt-1">拍摄</Text>
+              </View>
+            ) : (
+              <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400">
+                <Camera size={20} />
+                <Text className="text-xs mt-1">拍摄</Text>
+                <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+              </label>
+            )
+          )}
+        </View>
       </View>
 
       {/* Confirm Button */}
@@ -174,9 +220,8 @@ export default function ReceiveConfirm() {
         <Button
           onClick={handleConfirmReceive}
           disabled={submitting || photoFiles.length === 0}
-          className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50"
+          style={{ width: '100%', margin: 0, backgroundColor: '#16a34a', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || photoFiles.length === 0 ? 0.5 : 1 }}
         >
-          <CheckCircle size={20} />
           {submitting ? '处理中...' : '确认收货'}
         </Button>
       </View>
