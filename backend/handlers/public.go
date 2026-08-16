@@ -263,9 +263,10 @@ func GetPublicInstrumentByID(c *gin.Context) {
 		"specifications":  instrument.Specifications,
 	}
 
-	// Fetch first display image for thumbnail
+	// Fetch first DISPLAY image for thumbnail (#1099 分层: 封面/缩略图必须
+	// 来自 is_display=true 的展示图，流程记录图不得冒充封面)
 	var thumb models.InstrumentMedia
-	if db.Where("instrument_id = ? AND file_type = 'image'", id).
+	if db.Where("instrument_id = ? AND file_type = 'image' AND is_display = true", id).
 		Order("sort_order asc, created_at desc").First(&thumb).Error == nil {
 		storage := services.NewMediaStorage()
 		key := normalizeMediaKey(thumb.StorageKey)

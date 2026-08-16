@@ -884,5 +884,6 @@ function btnStyle(bgColor) {
     fontSize: 15,
     textAlign: 'center',
     cursor: 'pointer',
+    marginBottom: 12,
   }
 }

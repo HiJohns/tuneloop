@@ -58,8 +58,10 @@ export default function LeaseInfo({ status, startDate, endDate, deliveredAt, dai
     ? Math.max(1, Math.round((endDt - startDt) / 86400000) + 1)
     : 0
 
+  // 已租天数 = 距起始日的完整天数（当天=1、次日=1、第3天=2）——去掉 +1，
+  // 否则起始日会被多算一天（8-16 发货、8-17 看显示 2 而非 1）
   const currentLeaseDays = startDt && nowDt
-    ? Math.max(1, Math.round((nowDt - startDt) / 86400000) + 1)
+    ? Math.max(1, Math.round((nowDt - startDt) / 86400000))
     : 0
 
   if (!notStarted && !inLease && !ended) return null

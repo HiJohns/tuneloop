@@ -184,6 +184,18 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		return
 	}
 
+	// Order log (order_logs drives the customer-visible 订单动态 panel —
+	// without it the timeline stays empty for shipped orders)
+	if err := db.Create(&models.OrderLog{
+		OrderID:      orderID,
+		Event:        fmt.Sprintf("已发货（%s，单号 %s）", company, trackingNumber),
+		OperatorID:   stringPtr(userID),
+		OperatorName: stringPtr(middleware.GetName(ctx)),
+		CreatedAt:    time.Now(),
+	}).Error; err != nil {
+		log.Printf("[UpdateShipping] failed to write order log: %v", err)
+	}
+
 	resp := gin.H{
 		"order_id": orderID,
 		"status":   models.OrderStatusShipped,
