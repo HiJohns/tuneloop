@@ -250,6 +250,10 @@ export default function Home() {
       const tp = Taro.getStorageSync('tab_params')
       if (tp?.tenant && !routerParams.tenant) setTenant(tp.tenant)
     } catch {}
+    // Returning to the home tab (e.g. after checkout/payment) does NOT
+    // remount the page, so the instrument list keeps its pre-payment
+    // snapshot — stock_status (租赁中) would be stale. Refresh here.
+    fetchInstruments().catch(() => {})
   })
 
   const switchTab = (url) => {
