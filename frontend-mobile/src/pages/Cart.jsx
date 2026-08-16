@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
@@ -136,6 +136,15 @@ export default function Cart() {
       eventBus.emit('cartUpdated')
     }
   }, [])
+
+  // weapp 页面栈返回（如 Checkout→支付→返回）不会重新 mount——重新读
+  // storage 保证与首页角标一致（下单后购物车项已移除，页面必须同步）。
+  // H5 每次进入都重新 mount，此 hook 幂等无害（#1665 购物车 stale 教训）。
+  useDidShow(() => {
+    const data = storage.getJSON(getCartKey(), { items: [] }) || { items: [] }
+    setCartItems(data.items)
+    setSelected(new Set(data.items.map(i => getItemId(i))))
+  })
 
   useEffect(() => {
     const enrichMissingPricing = async () => {

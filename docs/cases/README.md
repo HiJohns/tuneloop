@@ -12,11 +12,12 @@
 | `repair.md` | 维修 | R-01~ | cases.md §3 + docs/repair.md |
 | `organization.md` | 组织管理 | O-01~ | cases.md §4 |
 | `transit.md` | 中转工作流 | T-01~ | cases.md §5 |
+| `cart.md` | 购物车 | C-01~ | #1665 教训沉淀（数据刷新/下单移除/跨端导航） |
 
 ## 用例编号规范
 
 - 格式：`{域前缀}-{序号}`（L-01, R-02, O-03...）
-- 域前缀：B(ootstrapping) / I(nstrument) / L(ease) / R(epair) / O(rganization) / T(ransit)
+- 域前缀：B(ootstrapping) / I(nstrument) / L(ease) / R(epair) / O(rganization) / T(ransit) / C(art)
 
 ## YAML 前置块规范（AI 消费格式）
 

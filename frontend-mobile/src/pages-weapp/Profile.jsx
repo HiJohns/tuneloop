@@ -156,8 +156,10 @@ export default function Profile() {
   const [pendingSession, setPendingSession] = useState(null)
   // P-05: the guest button label reflects the current WeChat account state —
   // an already-registered user (≥1 bound account, just not logged in) sees
-  // "登录" instead of the misleading "注册为会员".
+  // "登录" instead of the misleading "注册为会员". Until the probe query
+  // finishes the label defaults to "登录" (never flashes a wrong label).
   const [wechatHasAccount, setWechatHasAccount] = useState(false)
+  const [wechatQueryDone, setWechatQueryDone] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -198,8 +200,9 @@ export default function Profile() {
         const result = await resp.json()
         if (!cancelled && result.code === 20000) {
           setWechatHasAccount((result.data?.accounts || []).length > 0)
+          setWechatQueryDone(true)
         }
-      } catch { /* keep default (注册为会员) */ }
+      } catch { /* keep default (登录) */ }
     }
     checkWechatAccounts()
     return () => { cancelled = true }
@@ -272,7 +275,7 @@ export default function Profile() {
             <View style={{ marginLeft: 16 }}>
             {isGuest ? (
               <View style={{ backgroundColor: '#915F38', padding: '10px 24px', borderRadius: 999 }} onClick={handleGuestLogin}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : (pendingSession ? '✏️ 继续完成注册' : (wechatHasAccount ? '👉 登录' : '👉 注册为会员'))}</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{hasGuestToken ? '👋 轻触绑定手机' : (pendingSession ? '✏️ 继续完成注册' : (wechatQueryDone ? (wechatHasAccount ? '👉 登录' : '👉 注册为会员') : '👉 登录'))}</Text>
               </View>
             ) : (
               <>
