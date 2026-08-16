@@ -192,7 +192,7 @@ export default function OrderDetail() {
   const handleReturn = () => {
     // L-07 jump-page mode: return logistics filled on the dedicated
     // ReturnConfirm page (consistent with H5 /return/:orderId).
-    Taro.navigateTo({ url: `/pages-weapp/return-confirm/index?order=${id}` })
+    Taro.navigateTo({ url: `/pages-weapp/return-confirm/index?order=${id}&instrument=${instrument?.id || ''}` })
   }
 
   const handleStaffRefund = () => {

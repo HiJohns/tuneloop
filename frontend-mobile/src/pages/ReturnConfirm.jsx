@@ -10,10 +10,12 @@ import InstrumentInfo from '../components/InstrumentInfo'
 import OrderTimeline from '../components/OrderTimeline'
 
 export default function ReturnConfirm() {
-  const { orderId } = useParams()
+  const { orderId: routeOrderId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const instrumentId = searchParams.get('instrument')
+  // H5: /return/:orderId?instrument=xxx → useParams；weapp: ?order=&instrument= → searchParams
+  const orderId = routeOrderId || searchParams.get('order') || searchParams.get('orderId') || ''
+  const instrumentId = searchParams.get('instrument') || searchParams.get('instrument_id') || ''
   const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
@@ -238,7 +240,7 @@ export default function ReturnConfirm() {
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
         <Button onClick={handleSubmitReturn}
           disabled={submitting || !courierCompany.trim() || !trackingNumber.trim()}
-          className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
+          style={{ width: '100%', margin: 0, backgroundColor: '#f97316', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || !courierCompany.trim() || !trackingNumber.trim() ? 0.5 : 1 }}>
           {submitting ? '提交中...' : '提交归还'}
         </Button>
       </View>
