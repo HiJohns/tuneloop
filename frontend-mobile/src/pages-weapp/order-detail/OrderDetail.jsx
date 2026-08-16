@@ -308,8 +308,13 @@ export default function OrderDetail() {
     if (!order.delivery_address) return null
     try {
       if (typeof order.delivery_address !== 'string') return order.delivery_address
-      // Try JSON format first, fall back to plain text
-      try { return JSON.parse(order.delivery_address) } catch {}
+      // JSONB string value (e.g. "林维训 12345678 福建省...") parses to a
+      // plain string — render it as-is; object shape renders field-by-field.
+      try {
+        const parsed = JSON.parse(order.delivery_address)
+        if (typeof parsed === 'string') return parsed
+        if (parsed && typeof parsed === 'object') return parsed
+      } catch {}
       const parts = order.delivery_address.trim().split(/\s+/)
       if (parts.length >= 3) {
         return {
@@ -386,9 +391,13 @@ export default function OrderDetail() {
               <View style={{ display: 'flex', gap: 8 }}>
                 <Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>📍 地址</Text>
                 <Text style={{ fontSize: 13, color: '#000', flex: 1 }}>
-                  {deliveryAddress.recipient_name} {deliveryAddress.phone}
-                  {'\n'}
-                  {deliveryAddress.province}{deliveryAddress.city}{deliveryAddress.district} {deliveryAddress.detail}
+                  {typeof deliveryAddress === 'string' ? deliveryAddress : (
+                    <>
+                      {deliveryAddress.recipient_name} {deliveryAddress.phone}
+                      {'\n'}
+                      {deliveryAddress.province}{deliveryAddress.city}{deliveryAddress.district} {deliveryAddress.detail}
+                    </>
+                  )}
                 </Text>
               </View>
             )}

@@ -210,10 +210,14 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
-	// Fetch delivery address from lease_session
+	// Fetch delivery address from lease_session (JSONB: string value stored
+	// with quotes — #>> '{}' unwraps it; plain text passes through)
 	deliveryAddress := ""
 	var leaseSession struct{ DeliveryAddress string }
-	if err := db.Raw("SELECT COALESCE(delivery_address::text, '') as delivery_address FROM lease_sessions WHERE order_id = ? LIMIT 1", orderID).Scan(&leaseSession).Error; err == nil {
+	if err := db.Raw(`SELECT COALESCE(
+			CASE WHEN jsonb_typeof(delivery_address) = 'string' THEN delivery_address #>> '{}'
+			     ELSE delivery_address::text END, '') as delivery_address
+		FROM lease_sessions WHERE order_id = ? LIMIT 1`, orderID).Scan(&leaseSession).Error; err == nil {
 		deliveryAddress = leaseSession.DeliveryAddress
 	}
 
