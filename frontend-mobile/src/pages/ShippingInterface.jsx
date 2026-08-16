@@ -299,25 +299,35 @@ export default function ShippingInterface() {
                 物流信息
                 <Text className="text-xs text-zinc-400 font-normal">（必填）</Text>
               </Text>
-              <Input
-                value={logistics.company}
-                onInput={e => setLogistics({ ...logistics, company: getInputValue(e) })}
-                placeholder="承运公司"
-                className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
-              />
-              <Input
-                value={logistics.trackingNumber}
-                onInput={e => setLogistics({ ...logistics, trackingNumber: getInputValue(e) })}
-                placeholder="快递单号"
-                className="w-full border rounded-lg px-3 py-2 text-sm mb-3"
-              />
-              <Input
-                type="number"
-                value={logistics.shippingFee}
-                onInput={e => setLogistics({ ...logistics, shippingFee: getInputValue(e) })}
-                placeholder="物流费（元）"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-              />
+              <Text className="text-xs text-zinc-400">请填写发货物流信息，用于配送乐器</Text>
+              <View>
+                <Text className="text-xs font-bold text-zinc-500 mb-1">承运公司</Text>
+                <Input
+                  value={logistics.company}
+                  onInput={e => setLogistics({ ...logistics, company: getInputValue(e) })}
+                  placeholder="如：顺丰速运"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </View>
+              <View>
+                <Text className="text-xs font-bold text-zinc-500 mb-1">快递单号</Text>
+                <Input
+                  value={logistics.trackingNumber}
+                  onInput={e => setLogistics({ ...logistics, trackingNumber: getInputValue(e) })}
+                  placeholder="请输入快递单号"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </View>
+              <View>
+                <Text className="text-xs font-bold text-zinc-500 mb-1">物流费（元）</Text>
+                <Input
+                  type="number"
+                  value={logistics.shippingFee}
+                  onInput={e => setLogistics({ ...logistics, shippingFee: getInputValue(e) })}
+                  placeholder="请输入物流费"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </View>
             </View>
 
             {/* Photo Capture */}

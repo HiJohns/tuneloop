@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Input, Image } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
-import ImageUploader from '../components/ImageUploader'
 import { getToken, redirectToLogin } from '../services/api'
-import { dialog, env, uploadFile } from '../platform'
+import { dialog, env, uploadFile, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import OrderTimeline from '../components/OrderTimeline'
@@ -59,7 +59,7 @@ export default function ReturnConfirm() {
         const upResp = await uploadFile(`${baseUrl}/upload`, file, {
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         })
-        const upResult = await upResp.json()
+        const upResult = env.isMiniProgram ? JSON.parse(upResp.data || '{}') : await upResp.json()
         if (upResult.code === 20000 && upResult.data?.url) {
           photoUrls.push(upResult.data.url)
         }
@@ -86,6 +86,25 @@ export default function ReturnConfirm() {
       dialog.alert('操作失败: ' + err.message)
     }
     setSubmitting(false)
+  }
+
+  // 拍照（复用发货页模式：weapp Taro.chooseImage / H5 file input）
+  const handlePhotoCapture = (e) => {
+    const files = Array.from(e.target.files || [])
+    setPhotoFiles(prev => [...prev, ...files].slice(0, 5))
+  }
+
+  const handlePhotoCaptureWeapp = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 5 - photoFiles.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setPhotoFiles(prev => [...prev, ...(res.tempFilePaths || [])].slice(0, 5))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
+  const removePhoto = (idx) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
   if (loading) {
@@ -169,12 +188,12 @@ export default function ReturnConfirm() {
         <View className="space-y-3">
           <View>
             <Text className="text-xs font-bold text-zinc-500 mb-1">承运公司</Text>
-            <input type="text" value={courierCompany} onChange={e => setCourierCompany(e.target.value)}
+            <Input value={courierCompany} onInput={e => setCourierCompany(getInputValue(e))}
               placeholder="如：顺丰速运" className="w-full border rounded-lg px-3 py-2 text-sm" />
           </View>
           <View>
             <Text className="text-xs font-bold text-zinc-500 mb-1">快递单号</Text>
-            <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)}
+            <Input value={trackingNumber} onInput={e => setTrackingNumber(getInputValue(e))}
               placeholder="请输入快递单号" className="w-full border rounded-lg px-3 py-2 text-sm" />
           </View>
         </View>
@@ -186,7 +205,32 @@ export default function ReturnConfirm() {
           <Camera size={18} />拍照留档
         </Text>
         <Text className="text-xs text-zinc-400 mb-3">请拍摄乐器当前状态照片作为归还留档</Text>
-        <ImageUploader maxImages={5} onChange={(files) => setPhotoFiles(files)} />
+        <View className="flex flex-wrap gap-2">
+          {photoFiles.map((file, i) => (
+            <View key={i} className="relative">
+              <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} className="w-20 h-20 object-cover rounded-lg" mode="aspectFill" />
+              <View onClick={() => removePhoto(i)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                <Text className="text-white text-xs">✕</Text>
+              </View>
+            </View>
+          ))}
+          {photoFiles.length < 5 && (
+            env.isMiniProgram ? (
+              <View onClick={handlePhotoCaptureWeapp}
+                className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                <Camera size={20} />
+                <Text className="text-xs mt-1">拍摄</Text>
+              </View>
+            ) : (
+              <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer text-gray-400">
+                <Camera size={20} />
+                <Text className="text-xs mt-1">拍摄</Text>
+                <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoCapture} />
+              </label>
+            )
+          )}
+        </View>
       </View>
       </ScrollView>
 
@@ -195,7 +239,7 @@ export default function ReturnConfirm() {
         <Button onClick={handleSubmitReturn}
           disabled={submitting || !courierCompany.trim() || !trackingNumber.trim()}
           className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
-          <CheckCircle size={20} />{submitting ? '提交中...' : '提交归还'}
+          {submitting ? '提交中...' : '提交归还'}
         </Button>
       </View>
     </View>
