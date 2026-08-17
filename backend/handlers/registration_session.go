@@ -67,10 +67,16 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	}
 
 	// Resolve openid when a WeChat code is provided (used by
-	// GetMyRegistrationSession to resume a pending session).
+	// GetMyRegistrationSession to resume a pending session). wx-accounts mints
+	// a fresh single-use exchange_token on every call (#1682): the token the
+	// frontend captured earlier can expire before the payment callback runs,
+	// so the freshest token replaces the session one.
 	if req.WxCode != "" || req.ExchangeToken != "" {
-		if openid, err := h.resolveOpenid(req.WxCode); err == nil {
-			session.OpenID = openid
+		if res, err := h.resolveOpenidResult(req.WxCode); err == nil {
+			session.OpenID = res.OpenID
+			if res.ExchangeToken != "" {
+				session.ExchangeToken = res.ExchangeToken
+			}
 		} else {
 			log.Printf("[RegistrationSession] openid resolution skipped: %v", err)
 		}
@@ -157,15 +163,26 @@ func (h *RegistrationSessionHandler) GetRegistrationSessionStatus(c *gin.Context
 	})
 }
 
-// resolveOpenid exchanges a WeChat login code for the openid via IAM
+// resolveOpenidResult exchanges a WeChat login code for the openid via IAM
 // wx-accounts (does not consume the code's exchange_token — only the
-// subsequent wx-bind/wx-login exchange does).
-func (h *RegistrationSessionHandler) resolveOpenid(code string) (string, error) {
+// subsequent wx-bind/wx-login exchange does). Returns the full wx-accounts
+// result so callers can also refresh the session exchange_token (#1682).
+func (h *RegistrationSessionHandler) resolveOpenidResult(code string) (*services.WxAccountsResult, error) {
 	if code == "" {
-		return "", nil
+		return nil, nil
 	}
 	res, err := h.iamService.WxAccounts(code)
 	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// resolveOpenid keeps the narrow openid-only contract for callers that only
+// need the WeChat identity (GetMyRegistrationSession resume lookup).
+func (h *RegistrationSessionHandler) resolveOpenid(code string) (string, error) {
+	res, err := h.resolveOpenidResult(code)
+	if err != nil || res == nil {
 		return "", err
 	}
 	return res.OpenID, nil
