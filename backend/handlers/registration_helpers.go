@@ -109,6 +109,7 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 		OrgID:               orgID,
 		Username:            form.Phone,
 		Name:                form.Name,
+		Nickname:            form.Nickname,
 		Phone:               form.Phone,
 		Email:               form.Email,
 		Role:                "USER",
