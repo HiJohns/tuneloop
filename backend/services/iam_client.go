@@ -479,6 +479,7 @@ type CreateUserRequest struct {
 	Phone                 string  `json:"phone"`
 	Password              string  `json:"password,omitempty"`
 	SkipActivation        bool    `json:"skip_activation"`
+	Status                string  `json:"status,omitempty"` // explicit status (e.g. "init" reservation, #1682)
 	SendNotificationEmail bool    `json:"send_notification_email,omitempty"`
 	NotificationLang      string  `json:"notification_lang,omitempty"`
 	ForcePasswordChange   bool    `json:"force_password_change,omitempty"`
@@ -864,6 +865,7 @@ type UpdateUserRequest struct {
 	Email       string  `json:"email,omitempty"`
 	Phone       string  `json:"phone,omitempty"`
 	Password    string  `json:"password,omitempty"`
+	Status      string  `json:"status,omitempty"` // e.g. init → active after payment (#1682)
 	CallbackURL string  `json:"callback_url,omitempty"`
 	OperatorID  string  `json:"operator_id,omitempty"`
 	WxOpenid    *string `json:"wx_openid,omitempty"`

@@ -9,6 +9,7 @@ type RegistrationSession struct {
 	ID            string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	OpenID        string     `gorm:"column:openid;type:varchar(128);index" json:"openid"`
 	ExchangeToken string     `gorm:"type:varchar(128)" json:"-"`
+	IAMUserID     *string    `gorm:"type:uuid" json:"-"` // reserved init user (#1682)
 	FormData      string     `gorm:"type:jsonb" json:"form_data"`
 	CouponCode    string     `gorm:"type:varchar(32)" json:"coupon_code"`
 	Amount        float64    `gorm:"type:numeric(10,2)" json:"amount"`

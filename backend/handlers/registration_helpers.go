@@ -69,6 +69,30 @@ func createIAMUserWithBind(iamService *services.IAMService, form *registerForm, 
 	return createResp.UserID, openid, nil
 }
 
+// activateReservedUser activates the init user reserved at session creation
+// (#1682): UpdateUser(status → active) then WxBind via the session's
+// exchange_token. Returns the IAM user id and bound openid. Any failure
+// surfaces as an error (red-line #1637: never swallow external API errors).
+func activateReservedUser(iamService *services.IAMService, session *models.RegistrationSession) (userID, openid string, err error) {
+	userID = *session.IAMUserID
+	iamClient := services.NewIAMClient()
+	if err := iamClient.UpdateUser(userID, &services.UpdateUserRequest{
+		Status:     "active",
+		OperatorID: userID,
+	}); err != nil {
+		return "", "", fmt.Errorf("activate IAM user: %w", err)
+	}
+
+	if session.ExchangeToken != "" {
+		bindResult, bindErr := iamService.WxBind(session.ExchangeToken, "", userID)
+		if bindErr != nil {
+			return "", "", fmt.Errorf("wx-bind failed for user %s: %w", userID, bindErr)
+		}
+		openid = bindResult.WxOpenid
+	}
+	return userID, openid, nil
+}
+
 // syncLocalUserAndRewards mirrors PostRegister's local users cache sync
 // (iam_sub, ref_code, registration gift points, referral bonus). Best-effort
 // for the local cache; IAM remains the source of truth.
@@ -196,8 +220,17 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 	// The wx.login code is long expired by callback time; the single-use
 	// exchange_token minted at session creation is still valid.
 	iamService := services.NewIAMService()
-	password := "wx_" + uuid.NewString()[:20]
-	userID, openid, err := createIAMUserWithBind(iamService, &form, password, session.ExchangeToken, "")
+	var userID, openid string
+	var err error
+	if session.IAMUserID != nil {
+		// New path (#1682): the account was reserved with status=init at
+		// session creation — activate it (status → active) and bind WeChat.
+		userID, openid, err = activateReservedUser(iamService, &session)
+	} else {
+		// Legacy path: pre-#1682 sessions have no reserved user — create now.
+		password := "wx_" + uuid.NewString()[:20]
+		userID, openid, err = createIAMUserWithBind(iamService, &form, password, session.ExchangeToken, "")
+	}
 	if err != nil {
 		// Paid but account creation failed → keep a traceable failed record
 		// for manual handling (red-line #1637: error surfaced).
@@ -222,6 +255,50 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 		"updated_at":   now,
 		"error":        "",
 	}).Error
+}
+
+// StartInitReservationCleanupScheduler periodically releases stale init
+// reservations (#1682): a registration session whose reserved user stayed in
+// status=init for over initReservationTTL (24h) means the user never paid —
+// purge the IAM user (frees email/phone) and fail the session so the form
+// can be resubmitted.
+const initReservationTTL = 24 * time.Hour
+
+func StartInitReservationCleanupScheduler(db *gorm.DB) {
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			cleanupStaleInitReservations(db)
+		}
+	}()
+	log.Println("[InitReservationScheduler] started (1h interval)")
+}
+
+func cleanupStaleInitReservations(db *gorm.DB) {
+	cutoff := time.Now().Add(-initReservationTTL)
+
+	var sessions []models.RegistrationSession
+	if err := db.Where("status = ? AND iam_user_id IS NOT NULL AND created_at < ?", "pending", cutoff).Find(&sessions).Error; err != nil {
+		log.Printf("[InitReservationScheduler] query failed: %v", err)
+		return
+	}
+
+	iamClient := services.NewIAMClient()
+	for _, s := range sessions {
+		// Release the reserved IAM user (init → purge). Best-effort: if IAM
+		// already removed it, the purge is a no-op error we tolerate.
+		if s.IAMUserID != nil {
+			if err := iamClient.PurgeUser(*s.IAMUserID); err != nil {
+				log.Printf("[InitReservationScheduler] purge failed for user %s: %v", *s.IAMUserID, err)
+				continue
+			}
+			log.Printf("[InitReservationScheduler] released stale init reservation: session=%s user=%s", s.ID, *s.IAMUserID)
+		}
+		if err := db.Model(&s).Update("status", "failed").Error; err != nil {
+			log.Printf("[InitReservationScheduler] fail session %s failed: %v", s.ID, err)
+		}
+	}
 }
 
 // activateMembershipLevelForAmount activates the highest membership level

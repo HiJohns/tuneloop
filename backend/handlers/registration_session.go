@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -66,6 +67,39 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		Status:        "pending",
 	}
 
+	// Reserve the account atomically (#1682): IAM CreateUser with status=init
+	// claims email/phone/username (handler uniqueness check + init partial
+	// unique indexes) — a conflicting registration is rejected here, before
+	// any payment happens, instead of failing at the payment callback.
+	// init users cannot log in (IAM requires status=active).
+	iamClient := services.NewIAMClient()
+	reserveReq := &services.CreateUserRequest{
+		Username: form.Phone,
+		Name:     form.Name,
+		Phone:    form.Phone,
+		Email:    form.Email,
+		Password: "wx_" + uuid.NewString()[:20],
+		Status:   "init",
+	}
+	if form.Nickname != "" {
+		n := form.Nickname
+		reserveReq.Nickname = &n
+	}
+	reserveResp, reserveErr := iamClient.CreateUser(reserveReq)
+	if reserveErr != nil {
+		if strings.Contains(reserveErr.Error(), "already exists") || strings.Contains(reserveErr.Error(), "conflict") {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "该手机号或邮箱已注册，请直接登录",
+			})
+			return
+		}
+		log.Printf("[RegistrationSession] init user reservation failed: %v", reserveErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "注册失败，请稍后重试"})
+		return
+	}
+	session.IAMUserID = &reserveResp.UserID
+
 	// Resolve openid when a WeChat code is provided (used by
 	// GetMyRegistrationSession to resume a pending session). wx-accounts mints
 	// a fresh single-use exchange_token on every call (#1682): the token the
@@ -83,6 +117,10 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	}
 
 	if err := h.db.Create(&session).Error; err != nil {
+		// Release the reserved user so the email/phone is not stuck (#1682).
+		if purgeErr := iamClient.PurgeUser(*session.IAMUserID); purgeErr != nil {
+			log.Printf("[RegistrationSession] failed to release reserved user %s: %v", *session.IAMUserID, purgeErr)
+		}
 		log.Printf("[RegistrationSession] create failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create registration session"})
 		return
