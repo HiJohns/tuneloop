@@ -333,6 +333,12 @@ func cleanupStaleInitReservations(db *gorm.DB) {
 			}
 			log.Printf("[InitReservationScheduler] released stale init reservation: session=%s user=%s", s.ID, *s.IAMUserID)
 		}
+		// #1688: drop the reserved local users cache alongside the IAM user.
+		if s.LocalUserID != nil {
+			if err := db.Where("id = ?", *s.LocalUserID).Delete(&models.User{}).Error; err != nil {
+				log.Printf("[InitReservationScheduler] local cache delete failed for %s: %v", *s.LocalUserID, err)
+			}
+		}
 		if err := db.Model(&s).Update("status", "failed").Error; err != nil {
 			log.Printf("[InitReservationScheduler] fail session %s failed: %v", s.ID, err)
 		}
