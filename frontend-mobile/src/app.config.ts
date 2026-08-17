@@ -33,6 +33,14 @@ const weappPages = [
   'pages-weapp/staff-instruments/index',
   'pages-weapp/staff-instrument-detail/index',
   'pages-weapp/staff-instrument-form/index',
+  'pages-weapp/create-repair/index',
+  'pages-weapp/repair/index',
+  'pages-weapp/repair-request/index',
+  'pages-weapp/repair-quote/index',
+  'pages-weapp/payment-complete/index',
+  'pages-weapp/repair-payment-complete/index',
+  'pages-weapp/receiving-repair-scan/index',
+  'pages-weapp/repair-scan/index',
 ]
 
 const h5Pages = [
@@ -77,8 +85,9 @@ const h5Pages = [
 
 // Native tabBar semantics (switchTab) without native UI: custom:true hides
 // the system tabBar and renders src/custom-tab-bar (empty shell) instead.
-// Only 3 tabs — my-repairs page does not exist in weapp yet (#1559).
-// H5 side uses react-router + its own BottomNav, so tabBar is weapp-only.
+// my-repairs is registered as a navigateTo page (not a tab) — bottom-nav
+// tabs stay 3 (home / my-leases / profile), my-repairs reachable from the
+// repair entry (#1677). H5 side uses react-router + its own BottomNav.
 const tabBar = isWeapp ? {
   custom: true,
   color: '#8a8a8a',

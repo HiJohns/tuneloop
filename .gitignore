@@ -51,3 +51,6 @@ certs/
 
 # Weapp release archives (#1619)
 releases/
+
+# Local git worktree checkouts (dev scratch)
+.worktree-*/
