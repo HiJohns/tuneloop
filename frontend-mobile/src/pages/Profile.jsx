@@ -280,7 +280,7 @@ export default function Profile() {
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
           <View className="flex justify-between items-center py-3.5 active:opacity-60">
-            <View className="flex items-center gap-2" onClick={() => navigate('/content/contact_us')}>
+            <View className="flex items-center gap-2" onClick={() => navigate('/content?key=contact_us')}>
               <Text className="text-lg">📞</Text>
               <Text className="text-base font-bold text-zinc-800">联系我们</Text>
             </View>

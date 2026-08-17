@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Input, Textarea, Image } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive, Clock } from 'lucide-react'
-import { dialog, env, storage, navigation } from '../platform'
+import { dialog, env, storage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
@@ -40,9 +40,9 @@ function parsePricing(pricing) {
 }
 
 export default function StaffInstrumentDetail() {
-  const { id: routeId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const id = routeId || navigation.getQueryParams().id || ''
+  const id = searchParams.get('id') || ''
   const [instrument, setInstrument] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -134,9 +134,9 @@ export default function StaffInstrumentDetail() {
     }
     if (activeOrder) {
       if (env.isMiniProgram) {
-        Taro.navigateTo({ url: `/pages-weapp/staff-receive-confirm/index?orderId=${activeOrder.order_id}&instrument=${instrument.id}` })
+        Taro.navigateTo({ url: `/pages-weapp/staff-receive-confirm/index?order_id=${activeOrder.order_id}&instrument=${instrument.id}` })
       } else {
-        navigate(`/staff/receiving/${activeOrder.order_id}?instrument=${instrument.id}`)
+        navigate(`/staff/receiving?order_id=${activeOrder.order_id}&instrument=${instrument.id}`)
       }
     } else {
       dialog.alert('未找到关联订单')

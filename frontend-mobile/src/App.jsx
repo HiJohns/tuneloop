@@ -201,6 +201,7 @@ function App() {
         <Route path="/callback" element={<OAuthCallback />} />
         <Route path="/" element={<ProtectedRoute requireAuth={false}><Home /></ProtectedRoute>} />
         <Route path="/content/:key" element={<ProtectedRoute requireAuth={false}><ContentPage /></ProtectedRoute>} />
+        <Route path="/content" element={<ProtectedRoute requireAuth={false}><ContentPage /></ProtectedRoute>} />
         <Route path="/instrument/:id" element={<ProtectedRoute requireAuth={false}><Detail /></ProtectedRoute>} />
         <Route path="/search" element={<ProtectedRoute requireAuth={false}><Search /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute requireAuth={false}><Checkout /></ProtectedRoute>} />
@@ -212,19 +213,23 @@ function App() {
         <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
         <Route path="/account-select" element={<ProtectedRoute requireAuth={false}><AccountSelect /></ProtectedRoute>} />
         <Route path="/receive/:orderId" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />
+        <Route path="/receive" element={<ProtectedRoute><ReceiveConfirm /></ProtectedRoute>} />
         <Route path="/return/:orderId" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
+        <Route path="/return" element={<ProtectedRoute><ReturnConfirm /></ProtectedRoute>} />
         <Route path="/service" element={<ProtectedRoute><MyService /></ProtectedRoute>} />
         <Route path="/my-leases" element={<ProtectedRoute><MyLeases /></ProtectedRoute>} />
         <Route path="/lease-history" element={<ProtectedRoute><LeaseHistory /></ProtectedRoute>} />
         <Route path="/my-contracts" element={<ProtectedRoute><MyContracts /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
+        <Route path="/message-detail" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
         <Route path="/payment-complete" element={<ProtectedRoute><PaymentComplete /></ProtectedRoute>} />
         <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
         <Route path="/renewal/:orderId" element={<ProtectedRoute><Renewal /></ProtectedRoute>} />
 <Route path="/staff/instrument/new" element={<ProtectedRoute><StaffInstrumentForm /></ProtectedRoute>} />
 <Route path="/staff/instruments" element={<ProtectedRoute><StaffInstruments /></ProtectedRoute>} />
 <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
+        <Route path="/staff/instrument" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
         <Route path="/staff/receiving/:orderId" element={<ProtectedRoute><StaffReceiveConfirm /></ProtectedRoute>} />
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
@@ -244,6 +249,7 @@ function App() {
         <Route path="/site/:id" element={<ProtectedRoute requireAuth={false}><SiteDetail /></ProtectedRoute>} />
         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/return-settlement/:orderId" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
+        <Route path="/return-settlement" element={<ProtectedRoute><ReturnSettlement /></ProtectedRoute>} />
         <Route path="/membership" element={<ProtectedRoute><MembershipCenter /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

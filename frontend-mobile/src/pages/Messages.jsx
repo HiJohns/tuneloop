@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { notificationApi } from '../services/api'
-import { dialog } from '../platform'
+import { dialog, env } from '../platform'
 import { ArrowLeft, Bell } from 'lucide-react'
 import { View, Text, ScrollView } from '@tarojs/components'
 
@@ -52,7 +53,11 @@ export default function Messages() {
   }
 
   const handleClick = (notif) => {
-    navigate(`/messages/${notif.id}`)
+    if (env.isMiniProgram) {
+      Taro.navigateTo({ url: `/pages-weapp/message-detail/index?id=${notif.id}` })
+    } else {
+      navigate(`/message-detail?id=${notif.id}`)
+    }
   }
 
   const unreadCount = notifications.filter(n => n.status === 'unread').length

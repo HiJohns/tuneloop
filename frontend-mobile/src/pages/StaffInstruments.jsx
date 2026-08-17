@@ -122,7 +122,7 @@ export default function StaffInstruments() {
               <View
                 key={inst.id}
                 className="bg-white rounded-2xl p-4 flex gap-3 cursor-pointer active:opacity-80"
-                onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/staff-instrument-detail/index?id=${inst.id}` }) : navigate(`/staff/instrument/${inst.id}`)}
+                onClick={() => env.isMiniProgram ? Taro.navigateTo({ url: `/pages-weapp/staff-instrument-detail/index?id=${inst.id}` }) : navigate(`/staff/instrument?id=${inst.id}`)}
               >
                 {(() => {
                   const imgSrc = inst.poster || parseImages(inst.images)[0] || PLACEHOLDER_IMAGE

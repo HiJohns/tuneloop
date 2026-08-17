@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { notificationApi, appealsApi } from '../services/api'
 import { dialog, env } from '../platform'
@@ -15,8 +15,9 @@ const typeConfig = {
 }
 
 export default function MessageDetail() {
-  const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const id = searchParams.get('id') || ''
   const [notification, setNotification] = useState(null)
   const [ref, setRef] = useState(null)
   const [loading, setLoading] = useState(true)

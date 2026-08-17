@@ -269,7 +269,7 @@ export default function MyLeases() {
                         <Button
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/return/${order.id}?instrument=${order.instrument_id}`)
+                            navigate(`/return?order_id=${order.id}&instrument=${order.instrument_id}`)
                           }}
                           className="flex-1 min-w-0 py-2.5 bg-black text-white rounded-xl font-black text-sm"
                         >

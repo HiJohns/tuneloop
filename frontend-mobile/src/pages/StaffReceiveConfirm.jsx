@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch } from '../services/api'
-import { dialog, env, storage, session, uploadFile, navigation } from '../platform'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
 export default function StaffReceiveConfirm() {
-  const { orderId: routeOrderId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const query = navigation.getQueryParams()
-  const orderId = routeOrderId || query.orderId || query.order_id || ''
-  const instrumentId = query.instrument || ''
+  const orderId = searchParams.get('order_id') || ''
+  const instrumentId = searchParams.get('instrument') || ''
   const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
@@ -95,7 +94,7 @@ export default function StaffReceiveConfirm() {
         if (env.isMiniProgram) {
           Taro.navigateBack()
         } else if (condition === 'good') {
-          navigate(`/return-settlement/${orderId}`)
+          navigate(`/return-settlement?order_id=${orderId}`)
         } else {
           navigate('/staff/orders')
         }
