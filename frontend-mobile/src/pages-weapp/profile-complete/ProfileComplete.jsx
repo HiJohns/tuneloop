@@ -50,7 +50,13 @@ export default function ProfileComplete() {
       apiFetch(`${env.apiBaseUrl}/auth/registration-sessions/me?session_id=${params.session_id}`)
         .then(r => r.json())
         .then(res => {
-          if (res.code === 20000 && res.data?.form_data) {
+          // 404 → legacy/expired session (pre-#1682, no reserved user):
+          // clear the resume state so submitting creates a fresh session.
+          if (res.code !== 20000) {
+            setResumeSid('')
+            return
+          }
+          if (res.data?.form_data) {
             const f = res.data.form_data
             if (f.name) setName(f.name)
             if (f.nickname) setNickname(f.nickname)

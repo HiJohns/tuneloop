@@ -171,6 +171,15 @@ func (h *RegistrationSessionHandler) GetMyRegistrationSession(c *gin.Context) {
 		form = map[string]interface{}{}
 	}
 
+	// Legacy pre-#1682 sessions carry no reserved init user; continuing them
+	// would collide with the new reservation mechanism at the payment
+	// callback. Treat them as expired — the frontend clears the resume state
+	// and the user resubmits the form (creating a fresh reserved session).
+	if session.IAMUserID == nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "registration session expired, please resubmit"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": gin.H{

@@ -279,7 +279,7 @@ func cleanupStaleInitReservations(db *gorm.DB) {
 	cutoff := time.Now().Add(-initReservationTTL)
 
 	var sessions []models.RegistrationSession
-	if err := db.Where("status = ? AND iam_user_id IS NOT NULL AND created_at < ?", "pending", cutoff).Find(&sessions).Error; err != nil {
+	if err := db.Where("status = ? AND created_at < ?", "pending", cutoff).Find(&sessions).Error; err != nil {
 		log.Printf("[InitReservationScheduler] query failed: %v", err)
 		return
 	}
@@ -287,7 +287,8 @@ func cleanupStaleInitReservations(db *gorm.DB) {
 	iamClient := services.NewIAMClient()
 	for _, s := range sessions {
 		// Release the reserved IAM user (init → purge). Best-effort: if IAM
-		// already removed it, the purge is a no-op error we tolerate.
+		// already removed it, the purge is a no-op error we tolerate. Legacy
+		// pre-#1682 sessions have no reserved user — just fail the session.
 		if s.IAMUserID != nil {
 			if err := iamClient.PurgeUser(*s.IAMUserID); err != nil {
 				log.Printf("[InitReservationScheduler] purge failed for user %s: %v", *s.IAMUserID, err)
