@@ -17,7 +17,11 @@ const KEYS = [
 ]
 
 // Upload an image via /api/upload and insert its URL at the current cursor.
-const imageHandler = async (quillRef, currentKey) => {
+// Each editor tab gets its own ref (issue-1687): AntD Tabs mount editors
+// lazily and keep them mounted, so a single shared ref would point to the
+// last-mounted instance — image clicks in other tabs would insert into the
+// wrong editor.
+const imageHandler = async (quillRefs, currentKey) => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -29,11 +33,12 @@ const imageHandler = async (quillRef, currentKey) => {
       formData.append('file', file)
       const res = await api.uploadFile('/upload', formData)
       if (res.code === 20000 && res.data?.url) {
-        const quill = quillRef.current?.getEditor?.()
+        const quill = quillRefs.current?.[currentKey]?.getEditor?.()
         if (!quill) return
         const range = quill.getSelection(true)
-        quill.insertEmbed(range.index, 'image', res.data.url)
-        quill.setSelection(range.index + 1)
+        const index = range?.index != null ? range.index : quill.getLength()
+        quill.insertEmbed(index, 'image', res.data.url)
+        quill.setSelection(index + 1)
       } else {
         message.error(res.message || '图片上传失败')
       }
@@ -45,7 +50,7 @@ const imageHandler = async (quillRef, currentKey) => {
 export default function ContentEdit() {
   const [loading, setLoading] = useState({})
   const [values, setValues] = useState({})
-  const quillRef = useRef(null)
+  const quillRefs = useRef({})
 
   useEffect(() => {
     KEYS.forEach(k => load(k.key))
@@ -79,7 +84,7 @@ export default function ContentEdit() {
     children: (
       <div>
         <ReactQuill
-          ref={quillRef}
+          ref={el => { quillRefs.current[k.key] = el }}
           theme="snow"
           value={values[k.key] || ''}
           onChange={val => setValues(prev => ({ ...prev, [k.key]: val }))}
@@ -96,7 +101,7 @@ export default function ContentEdit() {
                 ['clean'],
               ],
               handlers: {
-                image: () => imageHandler(quillRef, k.key),
+                image: () => imageHandler(quillRefs, k.key),
               },
             },
           }}
