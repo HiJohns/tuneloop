@@ -83,10 +83,13 @@ export default function ContentEdit() {
     label: k.title,
     children: (
       <div>
+        {loading[k.key] ? <div style={{ padding: 24, color: '#999' }}>加载中...</div> : (
         <ReactQuill
           ref={el => { quillRefs.current[k.key] = el }}
           theme="snow"
-          value={values[k.key] || ''}
+          // Uncontrolled (#1687 regression): controlled value+onChange causes
+          // the editor to rebuild on every keystroke — the box disappears.
+          defaultValue={values[k.key] || ''}
           onChange={val => setValues(prev => ({ ...prev, [k.key]: val }))}
           placeholder={`请输入${k.title}内容`}
           style={{ marginBottom: 12, height: 300 }}
@@ -106,6 +109,7 @@ export default function ContentEdit() {
             },
           }}
         />
+        )}
         <div style={{ height: 48 }} />
         <Button type="primary" icon={<SaveOutlined />} onClick={() => save(k.key)} loading={loading[k.key]}>
           保存
