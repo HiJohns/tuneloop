@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Button, Input, Image } from '@tarojs/components'
-import { addressesApi } from '../services/api'
+import { addressesApi , resolveErrorMessage } from '../services/api'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
 import { Camera } from 'lucide-react'
@@ -66,7 +66,7 @@ export default function CreateRepairRequest() {
     const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
     const r = await resp.json()
     if (r.code === 20000) return r.data.file_key
-    throw new Error(r.message || 'upload failed')
+    throw new Error(resolveErrorMessage(r, 'upload failed'))
   }
 
   const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
@@ -106,7 +106,7 @@ export default function CreateRepairRequest() {
         alert('报修单已提交，等待评估')
         navigate(-1)
       } else {
-        alert(r.message || '提交失败')
+        alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch (err) {
       alert('提交失败: ' + (err.message || ''))

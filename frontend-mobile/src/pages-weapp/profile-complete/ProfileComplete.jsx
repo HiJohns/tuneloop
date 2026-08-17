@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Picker, Image } from '@tarojs/components'
 import { storage, session, env, request, wxLogin } from '../../platform'
-import { apiFetch } from '../../services/api'
+import { apiFetch , resolveErrorMessage } from '../../services/api'
 import IdPhotoUploader from '../../components/IdPhotoUploader'
 import regions from '../../data/regions.json'
 
@@ -127,7 +127,7 @@ export default function ProfileComplete() {
           sid = result.data.session_id
           amount = result.data.amount
         } else {
-          Taro.showToast({ title: result.message || '提交失败, 请重试', icon: 'none', duration: 3000 })
+          Taro.showToast({ title: resolveErrorMessage(result, '提交失败, 请重试'), icon: 'none', duration: 3000 })
           setSaving(false)
           return
         }

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Input, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
-import { getToken, redirectToLogin, apiFetch } from '../services/api'
+import { getToken, redirectToLogin, apiFetch , resolveErrorMessage } from '../services/api'
 import { dialog, env, uploadFile, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -89,7 +89,7 @@ export default function ReturnConfirm() {
           navigate(`/return-settlement?order_id=${orderId}`, { replace: true })
         }
       } else {
-        dialog.alert('归还失败: ' + (result.message || ''))
+        dialog.alert('归还失败: ' + (resolveErrorMessage(result, '')))
       }
     } catch (err) {
       dialog.alert('操作失败: ' + err.message)

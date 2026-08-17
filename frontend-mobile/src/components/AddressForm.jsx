@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addressesApi } from '../services/api'
+import { addressesApi , resolveErrorMessage } from '../services/api'
 import { X } from 'lucide-react'
 
 export default function AddressForm({ address, onClose, onSaved }) {
@@ -31,7 +31,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
         if (onSaved) onSaved()
         onClose()
       } else {
-        alert(resp.message || '保存失败')
+        alert(resolveErrorMessage(resp, '保存失败'))
       }
     } catch (err) {
       alert('保存失败: ' + (err.message || '网络错误'))

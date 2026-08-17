@@ -1,5 +1,6 @@
 import { storage, session, cookie, request as platformRequest, dialog, navigation, env, wxLogin as wxLoginCode, eventBus } from '../platform'
 
+export { resolveErrorMessage, ERROR_CODE_MAP, ERROR_MESSAGE_MAP } from './errorMessages'
 export const publicRoutes = ['/', '/instrument', '/content', '/cart', '/success', '/callback']
 
 function isPublicRoute() {

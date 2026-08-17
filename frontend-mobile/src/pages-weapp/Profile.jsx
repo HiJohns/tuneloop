@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, notificationApi, resolveLogin } from '../services/api'
+import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage } from '../services/api'
 import { env, storage, session, eventBus, wxLogin } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
@@ -43,7 +43,7 @@ function EditProfileModal({ visible, user, onClose, onSave, baseUrl }) {
           onSave(form)
         }
       } else {
-        setMsg(result.message || '更新失败')
+        setMsg(resolveErrorMessage(result, '更新失败'))
       }
     } catch (err) {
       setMsg('网络错误: ' + err.message)

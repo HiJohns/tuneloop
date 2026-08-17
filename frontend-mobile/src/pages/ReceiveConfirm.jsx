@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
 import { dialog, env, storage, session, uploadFile } from '../platform'
@@ -91,7 +91,7 @@ export default function ReceiveConfirm() {
           navigate('/my-leases', { replace: true })
         }
       } else {
-        dialog.alert('确认收货失败: ' + (result.message || ''))
+        dialog.alert('确认收货失败: ' + (resolveErrorMessage(result, '')))
       }
     } catch (err) {
       dialog.alert('操作失败: ' + err.message)

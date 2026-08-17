@@ -79,7 +79,7 @@ export default function Renewal() {
       if (result.code === 20000 && result.data?.success) {
         navigate(`/payment?type=renewal&id=${orderId}&amount=${calcResult.total_amount}`, { replace: true })
       } else {
-        alert(result.data?.message || '创建续期失败')
+        alert(resolveErrorMessage(result.data, '创建续期失败'))
       }
     } catch (err) {
       alert('网络错误')

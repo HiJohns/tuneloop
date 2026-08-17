@@ -66,7 +66,7 @@ export default function EditProfile() {
           setTimeout(() => window.history.back(), 800)
         }
       } else {
-        dialog.toast(result.message || '保存失败')
+        dialog.toast(resolveErrorMessage(result, '保存失败'))
       }
     } catch {
       dialog.toast('网络错误')
@@ -90,7 +90,7 @@ export default function EditProfile() {
       if (result.code === 20000) {
         dialog.toast('微信绑定成功')
       } else {
-        dialog.toast(result.message || '微信绑定失败')
+        dialog.toast(resolveErrorMessage(result, '微信绑定失败'))
       }
     } catch {
       dialog.toast('网络错误')

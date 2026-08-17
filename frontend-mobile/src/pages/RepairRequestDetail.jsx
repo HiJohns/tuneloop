@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Button, Image, Video, Input, Textarea } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import RepairRecordPanel from '../components/RepairRecordPanel'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
@@ -85,7 +85,7 @@ export default function RepairRequestDetail() {
         setShowQuoteForm(false)
         await fetchData()
       } else {
-        alert(r.message || '操作失败')
+        alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch (err) { alert('操作失败') }
     setActionLoading(false)
@@ -99,7 +99,7 @@ export default function RepairRequestDetail() {
       if (r.code === 20000) {
         navigate(`/repair-quote?request_id=${requestId}`)
       } else {
-        alert(r.message || '操作失败')
+        alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { alert('操作失败') }
     setActionLoading(false)
@@ -120,7 +120,7 @@ export default function RepairRequestDetail() {
         setTrackingNumber('')
         await fetchData()
       } else {
-        alert(r.message || '提交失败')
+        alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch { alert('提交失败') }
     setActionLoading(false)
@@ -143,7 +143,7 @@ export default function RepairRequestDetail() {
       })
       const r = await resp.json()
       if (r.code === 20000) { await fetchData() }
-      else { alert(r.message || '申诉提交失败') }
+      else { alert(resolveErrorMessage(r, '申诉提交失败')) }
     } catch { alert('操作失败') }
     setActionLoading(false)
   }
@@ -154,7 +154,7 @@ export default function RepairRequestDetail() {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/confirm-receipt`, { method: 'POST' })
       const r = await resp.json()
       if (r.code === 20000) { await fetchData() }
-      else { alert(r.message || '操作失败') }
+      else { alert(resolveErrorMessage(r, '操作失败')) }
     } catch { alert('操作失败') }
     setActionLoading(false)
   }
@@ -174,7 +174,7 @@ export default function RepairRequestDetail() {
         setReturnNumber('')
         await fetchData()
       } else {
-        alert(r.message || '提交失败')
+        alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch { alert('提交失败') }
     setActionLoading(false)
@@ -200,7 +200,7 @@ export default function RepairRequestDetail() {
     const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
     const r = await resp.json()
     if (r.code === 20000) return r.data.file_key
-    throw new Error(r.message || 'upload failed')
+    throw new Error(resolveErrorMessage(r, 'upload failed'))
   }
 
   const handleTechComplete = async () => {
@@ -230,7 +230,7 @@ export default function RepairRequestDetail() {
         setCompleteVideo(null)
         await fetchData()
       } else {
-        alert(r.message || '操作失败')
+        alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { alert('操作失败') }
     setActionLoading(false)

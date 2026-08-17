@@ -51,9 +51,9 @@ export default function ReturnSettlement() {
         }, 800)
       } else {
         if (env.isMiniProgram) {
-          Taro.showModal({ title: '确认失败', content: resp?.message || '请重试', showCancel: false })
+          Taro.showModal({ title: '确认失败', content: resolveErrorMessage(resp, '请重试'), showCancel: false })
         } else {
-          dialog.alert('确认失败: ' + (resp?.message || '请重试'))
+          dialog.alert('确认失败: ' + (resolveErrorMessage(resp, '请重试')))
         }
       }
     } catch (err) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, Input } from '@tarojs/components'
 import { wxLogin, storage, session, env, request, eventBus } from '../../platform'
+import { resolveErrorMessage } from '../../services/api'
 
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
 
@@ -79,7 +80,7 @@ async function handleIAMLogin(identifier, password) {
       }
       return
     }
-    Taro.showToast({ title: result.message || '登录失败 [L1]', icon: 'none' })
+    Taro.showToast({ title: resolveErrorMessage(result, '登录失败 [L1]'), icon: 'none' })
   } catch (err) {
     Taro.showToast({ title: '网络错误 ' + (err.message || ''), icon: 'none' })
   }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Picker, Checkbox } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, guarantorsApi, getCartKey , resolveErrorMessage } from '../services/api'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
@@ -253,7 +253,7 @@ function SingleCheckout({ id, nav }) {
           Taro.redirectTo({ url: '/pages-weapp/success/index' })
         }
       } else {
-        dialog.alert('下单失败: ' + (resp.message || '未知错误'))
+        dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
@@ -277,7 +277,7 @@ function SingleCheckout({ id, nav }) {
         setShowAddGuarantor(false)
         Taro.showToast({ title: '担保人已保存', icon: 'success' })
       } else {
-        dialog.alert('保存失败: ' + (resp.message || '未知错误'))
+        dialog.alert('保存失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
     } catch (err) {
       dialog.alert('保存失败: ' + (err?.message || '网络错误'))
@@ -770,7 +770,7 @@ function BatchCheckout({ nav }) {
           dialog.alert('下单成功，但未生成订单')
         }
       } else {
-        dialog.alert('下单失败: ' + (orderResp.message || '未知错误'))
+        dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
       }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
@@ -794,7 +794,7 @@ function BatchCheckout({ nav }) {
         setShowAddGuarantor(false)
         Taro.showToast({ title: '担保人已保存', icon: 'success' })
       } else {
-        dialog.alert('保存失败: ' + (resp.message || '未知错误'))
+        dialog.alert('保存失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
     } catch (err) {
       dialog.alert('保存失败: ' + (err?.message || '网络错误'))

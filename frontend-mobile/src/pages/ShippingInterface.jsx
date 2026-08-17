@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, scanQRCode, navigation, getInputValue } from '../platform'
@@ -75,7 +75,7 @@ export default function ShippingInterface() {
           setLookupError('该订单当前不可发货（状态：' + (orderStatus || '未知') + '）')
         }
       } else {
-        setLookupError(result.message || '未找到该乐器的待发货订单')
+        setLookupError(resolveErrorMessage(result, '未找到该乐器的待发货订单'))
       }
     } catch (err) {
       setLookupError('查询失败: ' + err.message)
@@ -149,7 +149,7 @@ export default function ShippingInterface() {
           navigate('/staff/orders')
         }
       } else {
-        dialog.alert('发货失败: ' + result.message)
+        dialog.alert('发货失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {
       dialog.alert('发货失败: ' + err.message)
@@ -176,7 +176,7 @@ export default function ShippingInterface() {
           navigate('/staff/orders')
         }
       } else {
-        dialog.alert('取消失败: ' + result.message)
+        dialog.alert('取消失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {
       dialog.alert('取消失败: ' + err.message)

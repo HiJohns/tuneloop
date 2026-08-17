@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
@@ -246,7 +246,7 @@ export default function Payment() {
           dialog.alert('支付失败: 暂不支持H5支付')
         }
       } else {
-        dialog.alert('支付失败: ' + result.message)
+        dialog.alert('支付失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {
       dialog.alert('支付失败: ' + err.message)

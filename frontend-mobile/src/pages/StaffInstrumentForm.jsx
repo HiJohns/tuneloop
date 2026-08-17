@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView, Input, Textarea } from '@tarojs/components'
 import { ArrowLeft, Upload, X } from 'lucide-react'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { dialog, env, storage, uploadFile } from '../platform'
 
 const BASE_URL = env.apiBaseUrl
@@ -186,7 +186,7 @@ export default function StaffInstrumentForm() {
           navigate('/staff/instruments')
         }
       } else {
-        dialog.alert(result.message || '创建失败')
+        dialog.alert(resolveErrorMessage(result, '创建失败'))
       }
     } catch (err) {
       dialog.alert('提交失败: ' + err.message)

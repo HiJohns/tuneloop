@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, resolveLogin } from '../../services/api'
+import { apiFetch, resolveLogin , resolveErrorMessage } from '../../services/api'
 import { env, session } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
 
@@ -385,7 +385,7 @@ export default function Payment() {
         Taro.showToast({ title: '模拟退款完成', icon: 'success' })
         setTimeout(() => Taro.navigateBack(), 2000)
       } else {
-        Taro.showModal({ title: '模拟退款失败', content: r.message || '未知错误', showCancel: false })
+        Taro.showModal({ title: '模拟退款失败', content: resolveErrorMessage(r, '未知错误'), showCancel: false })
       }
     } catch (err) {
       Taro.showModal({ title: '模拟退款失败', content: err.message || '网络错误', showCancel: false })

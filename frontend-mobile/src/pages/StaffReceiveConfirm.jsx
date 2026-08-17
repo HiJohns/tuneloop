@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { dialog, env, storage, session, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -98,7 +98,7 @@ export default function StaffReceiveConfirm() {
         } else {
           navigate('/staff/orders')
         }
-      } else { dialog.alert('接收失败: ' + (result.message || '')) }
+      } else { dialog.alert('接收失败: ' + (resolveErrorMessage(result, ''))) }
     } catch (err) { dialog.alert('操作失败: ' + err.message) }
     setSubmitting(false)
   }

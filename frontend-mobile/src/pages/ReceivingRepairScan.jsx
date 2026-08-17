@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Button, Image } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 
 export default function ReceivingRepairScan() {
@@ -47,7 +47,7 @@ export default function ReceivingRepairScan() {
         alert('收货成功，报修单进入维修状态')
         navigate(`/repair-request?request_id=${request.id}`)
       } else {
-        alert(r.message || '操作失败')
+        alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { alert('操作失败') }
     setActionLoading(false)
@@ -75,7 +75,7 @@ export default function ReceivingRepairScan() {
         alert('中转处理成功')
         navigate(`/repair-request?request_id=${request.id}`)
       } else {
-        alert(r.message || '操作失败')
+        alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { alert('操作失败') }
     setActionLoading(false)

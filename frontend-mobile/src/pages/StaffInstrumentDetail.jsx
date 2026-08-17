@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Button, ScrollView, Input, Textarea, Image } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Truck, Wrench, RotateCcw, CheckCircle, User, Archive, Clock } from 'lucide-react'
 import { dialog, env, storage } from '../platform'
@@ -187,7 +187,7 @@ export default function StaffInstrumentDetail() {
           navigate('/staff/instruments')
         }
       } else {
-        dialog.alert('操作失败: ' + result.message)
+        dialog.alert('操作失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {
       dialog.alert('操作失败: ' + err.message)

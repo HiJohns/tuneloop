@@ -43,7 +43,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
           setUrl(json.data.url)
           if (onChange) onChange(json.data.url)
         } else {
-          throw new Error(json.message || 'upload failed')
+          throw new Error(resolveErrorMessage(json, 'upload failed'))
         }
       } else {
         const headers = { Authorization: 'Bearer ' + getToken() }
@@ -57,7 +57,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
             setUrl(json.data.url)
             if (onChange) onChange(json.data.url)
           } else {
-            throw new Error(json.message || 'upload failed')
+            throw new Error(resolveErrorMessage(json, 'upload failed'))
           }
         }
       }
@@ -101,7 +101,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
             setPendingFile(null)
             return json.data.url
           }
-          throw new Error(json.message || 'upload failed')
+          throw new Error(resolveErrorMessage(json, 'upload failed'))
         }
         const fd = new FormData()
         fd.append('file', pendingFile)
@@ -116,7 +116,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
           setPendingFile(null)
           return json.data.url
         }
-        throw new Error(json.message || 'upload failed')
+        throw new Error(resolveErrorMessage(json, 'upload failed'))
       } catch (err) {
         if (env.isMiniProgram) {
           Taro.showToast({ title: '身份证上传失败', icon: 'none' })

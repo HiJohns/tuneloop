@@ -1,4 +1,5 @@
 import Logger from '../utils/logger'
+import { resolveErrorMessage } from './errorMessages'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -236,7 +237,7 @@ async function request(endpoint, options = {}, retryCount = 0) {
     if (response.status === 404) {
       return {
         code: 40400,
-        message: error.message || 'Resource not found',
+        message: resolveErrorMessage({ code: 40400, message: error.message }, '未找到相关数据'),
         data: null,
         status: 404
       }
@@ -245,13 +246,13 @@ async function request(endpoint, options = {}, retryCount = 0) {
     if (response.status === 409) {
       return {
         code: error.code || 40900,
-        message: error.message || 'Conflict',
+        message: resolveErrorMessage({ code: error.code || 40900, message: error.message }, '数据冲突，请刷新后重试'),
         data: error.data,
         status: 409
       }
     }
     
-    throw new Error(error.message || error.code || 'Request failed')
+    throw new Error(resolveErrorMessage({ code: error.code, message: error.message }, '请求失败，请重试'))
   }
 
   const data = await response.json()

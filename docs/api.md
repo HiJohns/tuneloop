@@ -35,6 +35,8 @@
 }
 ```
 
+> **用户可见文案（#1675）**：后端 `message` 为机器可读标识（英文为主），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`）翻译为用户友好中文。三层回退：L1 message 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 code 家族映射（如 40400 → 「未找到相关数据」）→ L3 调用点业务 fallback。完整错误码分类见 [`docs/backend_api_error_codes_report.md`](./backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`。
+
 ### 1.4 分页参数
 所有列表接口支持:
 - `page`: 页码 (默认: 1)

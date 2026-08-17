@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, ScrollView, Button, Image } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { Camera } from 'lucide-react'
 
@@ -32,7 +32,7 @@ export default function TransitWorkflow() {
         body: JSON.stringify({ photos }),
       })
       const r = await resp.json()
-      if (r.code === 20000) { setStep('repack') } else { alert(r.message) }
+      if (r.code === 20000) { setStep('repack') } else { alert(resolveErrorMessage(r)) }
     } catch {}
     setActionLoading(false)
   }
@@ -47,7 +47,7 @@ export default function TransitWorkflow() {
         body: JSON.stringify({ company, number, photos }),
       })
       const r = await resp.json()
-      if (r.code === 20000) { alert('转包完成'); navigate(-1) } else { alert(r.message) }
+      if (r.code === 20000) { alert('转包完成'); navigate(-1) } else { alert(resolveErrorMessage(r)) }
     } catch {}
     setActionLoading(false)
   }

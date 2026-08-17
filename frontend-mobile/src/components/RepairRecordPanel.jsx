@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { View, Text, Button, Image } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
@@ -27,7 +27,7 @@ const uploadFile = async (file, baseUrl) => {
   const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
   const r = await resp.json()
   if (r.code === 20000) return r.data.file_key
-  throw new Error(r.message || 'upload failed')
+  throw new Error(resolveErrorMessage(r, 'upload failed'))
 }
 
 export default function RepairRecordPanel({ instrumentId, records, onRecordAdded, baseUrl: customUrl, hideForm }) {
@@ -66,7 +66,7 @@ export default function RepairRecordPanel({ instrumentId, records, onRecordAdded
         setVideoFile(null)
         if (onRecordAdded) onRecordAdded()
       } else {
-        alert(r.message || '提交失败')
+        alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch { alert('提交失败') }
     setSubmitting(false)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input } from '@tarojs/components'
 import { request, wxLogin as wxLoginCode, storage, session, env, eventBus, getInputValue } from '../../platform'
+import { resolveErrorMessage } from '../../services/api'
 
 const TAB_PAGES = ['/pages-weapp/home/index', '/pages-weapp/my-leases/index', '/pages-weapp/profile/index']
 
@@ -42,7 +43,7 @@ export default function AccountSelect() {
           // (WeChat code is single-use, consumed by wx-accounts above)
           session.setItem('wx_login_token', result.data.exchange_token || '')
         } else {
-          Taro.showToast({ title: result.message || '获取账户失败', icon: 'none' })
+          Taro.showToast({ title: resolveErrorMessage(result, '获取账户失败'), icon: 'none' })
         }
       } catch {
         Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
@@ -79,7 +80,7 @@ export default function AccountSelect() {
         }
         return
       }
-      Taro.showToast({ title: result.message || '登录失败，请重试', icon: 'none' })
+      Taro.showToast({ title: resolveErrorMessage(result, '登录失败，请重试'), icon: 'none' })
     } catch {
       Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
     }
@@ -115,7 +116,7 @@ export default function AccountSelect() {
         }
         return
       }
-      Taro.showToast({ title: result.message || '登录失败，请重试', icon: 'none' })
+      Taro.showToast({ title: resolveErrorMessage(result, '登录失败，请重试'), icon: 'none' })
     } catch {
       Taro.showToast({ title: '网络错误，请重试', icon: 'none' })
     }

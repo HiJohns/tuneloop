@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
@@ -103,7 +103,7 @@ export default function MyRepairs() {
       })
       const result = await resp.json()
       if (result.code === 20000) { await fetchRepairs() }
-      else { alert(result.message) }
+      else { alert(resolveErrorMessage(result)) }
     } catch {}
   }
 

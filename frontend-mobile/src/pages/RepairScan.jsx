@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, Image, Input } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 
 export default function RepairScan() {
@@ -71,7 +71,7 @@ export default function RepairScan() {
         alert('转出中转处理成功')
         navigate(`/repair-request?request_id=${relayRequest.id}`)
       } else {
-        alert(r.message || '操作失败')
+        alert(resolveErrorMessage(r, '操作失败'))
       }
     } catch { alert('操作失败') }
     setSubmitting(false)

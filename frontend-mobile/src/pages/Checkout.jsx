@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey } from '../services/api'
+import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey , resolveErrorMessage } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 import { dialog, env, session, storage, eventBus, getInputValue } from '../platform'
@@ -188,7 +188,7 @@ function SingleCheckout({ id, navigate }) {
         dialog.alert(`优惠码有效：${result.data.policy_name}（租金${((1 - result.data.rent_discount) * 100).toFixed(0)}%折扣）`)
       } else {
         setDiscountInfo(null)
-        dialog.alert(result.message || '优惠码无效')
+        dialog.alert(resolveErrorMessage(result, '优惠码无效'))
       }
     } catch (e) {
       setDiscountInfo(null)
@@ -222,7 +222,7 @@ function SingleCheckout({ id, navigate }) {
         setShowAddGuarantor(false)
         dialog.alert('担保人已保存')
       } else {
-        dialog.alert('保存失败: ' + (result.message || '未知错误'))
+        dialog.alert('保存失败: ' + (resolveErrorMessage(result, '未知错误')))
       }
     } catch (err) {
       dialog.alert('保存失败: ' + (err?.message || '网络错误'))
@@ -289,7 +289,7 @@ function SingleCheckout({ id, navigate }) {
           navigate('/success', { replace: true })
         }
       } else {
-        dialog.alert('下单失败: ' + (resp.message || '未知错误'))
+        dialog.alert('下单失败: ' + (resolveErrorMessage(resp, '未知错误')))
       }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))
@@ -788,7 +788,7 @@ function BatchCheckout({ navigate }) {
         setShowAddGuarantor(false)
         dialog.alert('担保人已保存')
       } else {
-        dialog.alert('保存失败: ' + (result.message || '未知错误'))
+        dialog.alert('保存失败: ' + (resolveErrorMessage(result, '未知错误')))
       }
     } catch (err) {
       dialog.alert('保存失败: ' + (err?.message || '网络错误'))
@@ -859,7 +859,7 @@ function BatchCheckout({ navigate }) {
             dialog.alert('下单成功，但未生成订单')
           }
         } else {
-          dialog.alert('下单失败: ' + (orderResp.message || '未知错误'))
+          dialog.alert('下单失败: ' + (resolveErrorMessage(orderResp, '未知错误')))
         }
     } catch (err) {
       dialog.alert('下单失败: ' + (err?.message || '网络错误'))

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, AlertTriangle, User, MapPin } from 'lucide-react'
 import { dialog, env, storage, session, uploadFile, navigation } from '../platform'
@@ -143,7 +143,7 @@ export default function ReceivingInterface() {
         env.isMiniProgram ? Taro.navigateBack() : navigate('/staff/orders')
         return
       }
-      dialog.alert('失败: ' + result.message)
+      dialog.alert('失败: ' + resolveErrorMessage(result))
       setCurrentItem(null); setCurrentSN(''); setCondition(''); setDamageDesc(''); setDamageAmount(''); setOrderID(null); setOutboundPhotos([]); setCapturedPhotos([])
     } catch (err) { dialog.alert('错误: ' + err.message) }
     setSubmitting(false)

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Button } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
@@ -52,7 +52,7 @@ export default function RepairWorkflow() {
       if (result.code === 20000) {
         await fetchData()
       } else {
-        alert(result.message || '操作失败')
+        alert(resolveErrorMessage(result, '操作失败'))
       }
     } catch (err) {
       alert('操作失败: ' + (err.message || ''))
@@ -68,7 +68,7 @@ export default function RepairWorkflow() {
       if (result.code === 20000) {
         await fetchData()
       } else {
-        alert(result.message || '接手失败')
+        alert(resolveErrorMessage(result, '接手失败'))
       }
     } catch (err) {
       alert('接手失败: ' + (err.message || ''))
@@ -204,7 +204,7 @@ export default function RepairWorkflow() {
                   })
                   const r = await resp.json()
                   if (r.code === 20000) { await fetchData() }
-                  else { alert(r.message) }
+                  else { alert(resolveErrorMessage(r)) }
                 } catch {}
               }} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-sm text-center">
                 验收不通过

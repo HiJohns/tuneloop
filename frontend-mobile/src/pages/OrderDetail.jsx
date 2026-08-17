@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
 import { dialog, env } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
@@ -168,7 +168,7 @@ export default function OrderDetail() {
           } catch { /* keep local state */ }
         }
       } else {
-        dialog.alert('取消失败: ' + result.message)
+        dialog.alert('取消失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {
       dialog.alert('取消失败: ' + err.message)
@@ -194,7 +194,7 @@ export default function OrderDetail() {
       if (result.code === 20000) {
         navigate(`/payment?type=refund&id=${id}`, { replace: true })
       } else {
-        dialog.alert('退款失败: ' + (result.message || '请重试'))
+        dialog.alert('退款失败: ' + (resolveErrorMessage(result, '请重试')))
       }
     } catch (err) {
       dialog.alert('退款失败: ' + err.message)
@@ -223,7 +223,7 @@ export default function OrderDetail() {
           if (reloadData.code === 20000) setOrder(reloadData.data)
         } catch { /* keep current state */ }
       } else {
-        dialog.alert('取消失败: ' + (result.message || '请重试'))
+        dialog.alert('取消失败: ' + (resolveErrorMessage(result, '请重试')))
       }
     } catch (err) {
       dialog.alert('取消失败: ' + err.message)

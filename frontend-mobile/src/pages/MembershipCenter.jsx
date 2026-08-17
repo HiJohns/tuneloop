@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Image, Canvas, Input } from '@tarojs/components'
-import { apiFetch, addressesApi } from '../services/api'
+import { apiFetch, addressesApi , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
@@ -138,7 +138,7 @@ export default function MembershipCenter() {
         setShowForm(false)
         setEditingId(null)
       } else {
-        alert(resp.message || '保存失败')
+        alert(resolveErrorMessage(resp, '保存失败'))
       }
     } catch (err) {
       alert('保存失败: ' + (err.message || '网络错误'))

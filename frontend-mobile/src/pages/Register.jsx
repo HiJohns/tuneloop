@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Input, Button, ScrollView } from '@tarojs/components'
-import { apiFetch } from '../services/api'
+import { apiFetch , resolveErrorMessage } from '../services/api'
 import { env, storage, session, navigation } from '../platform'
 import { getWXConfig } from '../platform/init'
 import IdPhotoUploader from '../components/IdPhotoUploader'
@@ -103,7 +103,7 @@ export default function Register() {
         const fee = result.data?.membership_fee || 99
         navigate(`/payment?type=membership&amount=${fee}`)
       } else {
-        alert(result.message || '注册失败, 请重试')
+        alert(resolveErrorMessage(result, '注册失败, 请重试'))
       }
     } catch (err) {
       alert('网络错误, 请重试')

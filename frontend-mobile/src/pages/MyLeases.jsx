@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Image } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { env, dialog } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { Package } from 'lucide-react'
@@ -136,7 +136,7 @@ export default function MyLeases() {
           setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
         }
       } else {
-        dialog.alert('取消失败: ' + result.message)
+        dialog.alert('取消失败: ' + resolveErrorMessage(result))
       }
     } catch (err) {
       dialog.alert('取消失败: ' + err.message)
