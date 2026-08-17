@@ -136,7 +136,7 @@ export default function Payment() {
     let completed = false
     for (let i = 0; i < 10; i++) {
       try {
-        const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`)
+        const resp = await apiFetch(`${baseUrl}/auth/registration-sessions/${pSessionId}/status`, { auth: false })
         const r = await resp.json()
         if (r.code === 20000 && r.data?.status === 'completed') { completed = true; break }
       } catch (e) { console.warn('[payment] session status poll failed', e) }
@@ -171,6 +171,7 @@ export default function Payment() {
     const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
       method: 'POST',
       body: JSON.stringify(body),
+      auth: false, // #1681: anonymous — no account exists during registration
     })
     return resp.json()
   }

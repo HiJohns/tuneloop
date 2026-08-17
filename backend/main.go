@@ -251,6 +251,10 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/confirmation-sessions/:id/confirm", confirmationHandler.Confirm)
 		authRequired.POST("/confirmation-sessions/:id/reject", confirmationHandler.Reject)
 
+		// File upload — requires authentication (#1681: OptionalIAMInterceptor
+		// now passes anonymous requests through; upload must stay protected)
+		authRequired.POST("/upload", handlers.HandleUpload)
+
 		// SMS callback (no auth required)
 		api.GET("/confirmation/callback/sms", confirmationHandler.SMSCallback)
 
@@ -655,7 +659,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
 				userOptionalAuth.PUT("/users/me", staffHandler.UpdateCurrentUser)
 				userOptionalAuth.POST("/users/me/avatar", handlers.UploadUserAvatar)
-				userOptionalAuth.POST("/upload", handlers.HandleUpload)
 				userOptionalAuth.PUT("/warehouse/orders/:id/delivery", warehouseHandler.ConfirmDelivery)
 				userOptionalAuth.GET("/user/addresses", userAddressHandler.ListAddresses)
 				userOptionalAuth.POST("/user/addresses", userAddressHandler.CreateAddress)

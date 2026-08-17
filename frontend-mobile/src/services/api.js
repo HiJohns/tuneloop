@@ -413,7 +413,9 @@ export async function apiFetch(url, options = {}) {
     ...options.headers,
   }
 
-  if (token) {
+  // auth:false — anonymous calls (#1681): two-phase registration prepay runs
+  // without an account; a stale token from a previous login would 401.
+  if (token && options.auth !== false) {
     headers['Authorization'] = `Bearer ${token}`
   }
 

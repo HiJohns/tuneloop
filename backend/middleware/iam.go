@@ -225,10 +225,11 @@ func OptionalIAMInterceptor(iamService *services.IAMService, iamClient *services
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    40100,
-				"message": "missing or invalid authorization header",
-			})
+			// Anonymous pass-through (#1681): two-phase registration prepay
+			// runs without any token (no account exists yet). No claims are
+			// injected — handlers read empty userID and must tolerate it.
+			// Invalid/expired tokens still get rejected below.
+			c.Next()
 			return
 		}
 

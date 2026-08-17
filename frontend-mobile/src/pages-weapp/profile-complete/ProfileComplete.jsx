@@ -90,10 +90,13 @@ export default function ProfileComplete() {
         const exchangeToken = session.getItem('wx_login_token') || ''
         if (exchangeToken) {
           body.exchange_token = exchangeToken
-        } else {
-          const wxCode = await wxLogin()
-          if (wxCode) { body.wx_code = wxCode }
         }
+        // Always fetch a fresh wx.login code too (#1681): the exchange_token
+        // cannot resolve the openid (only a code can) — the backend stores the
+        // resolved openid on the session for the JSAPI prepay backfill. The
+        // code and the exchange_token are independent and coexist.
+        const wxCode = await wxLogin()
+        if (wxCode) { body.wx_code = wxCode }
         const refCode = storage.getItem('ref_code')
         if (refCode) { body.ref = refCode }
         const res = await request(`${env.apiBaseUrl}/auth/registration-sessions`, {
