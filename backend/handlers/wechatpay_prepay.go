@@ -287,6 +287,18 @@ func PrepayOrder(c *gin.Context) {
 
 	switch req.OrderType {
 	case "rent", "repair", "damage":
+		// #1684: backfill openid from the local users cache (wx_openid bound
+		// at registration) — the weapp Payment.jsx no longer sends open_id
+		// (#1678), so mini-program rent payments must resolve it server-side.
+		// PC keeps the Native (QR) fallback when no openid exists.
+		if req.OpenID == "" {
+			if userID != "" {
+				var localUser models.User
+				if err := db.Where("id = ?", userID).First(&localUser).Error; err == nil && localUser.WxOpenid != "" {
+					req.OpenID = localUser.WxOpenid
+				}
+			}
+		}
 		if req.OpenID == "" {
 			// Native payment (QR code) for PC
 			result, err := client.CreateNativeOrder(ctx, wechatpay.NativeParams{

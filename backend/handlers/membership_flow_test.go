@@ -302,6 +302,64 @@ func (r *recordingJSAPIClient) VerifyPaymentCallback(context.Context, []byte, st
 	return &wechatpay.CallbackResult{}, nil
 }
 
+// TestPrepayRent_OpenIDBackfillFromLocalUser verifies #1684: rent prepay
+// without open_id backfills it from the local users cache (wx_openid) so the
+// weapp payment reaches the JSAPI branch (prepay_id) instead of silently
+// falling into the PC-only Native QR branch.
+func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	rec := &recordingJSAPIClient{}
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(rec, &wechatpay.Config{
+		MockMode:        false,
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	user := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   "rent-openid-0001",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "RentUser",
+		Phone:    "13800138001",
+		Role:     "USER",
+		Status:   "active",
+		WxOpenid: "rent_openid_from_local_001",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	customer := testutil.MakeCustomer("", user.ID)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	prepayBody, _ := json.Marshal(map[string]interface{}{
+		"order_id":   uuid.New().String(),
+		"order_type": "rent",
+		"amount":     0.02,
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
+	assert.Equal(t, "rent_openid_from_local_001", rec.lastParams.OpenID,
+		"openid must be backfilled from local users.wx_openid (#1684)")
+}
+
 // TestPrepayMembership_SessionOpenIDBackfill verifies (#1678) that in the
 // two-phase registration flow the prepay handler backfills openid from the
 // pending session — the frontend no longer calls /api/wechat/openid.
