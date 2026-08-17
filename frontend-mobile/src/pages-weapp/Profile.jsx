@@ -427,6 +427,13 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* #1692: frontend package version for build attribution */}
+        {env.version && (
+          <Text style={{ display: 'block', textAlign: 'center', fontSize: 12, color: '#d4d4d8', marginTop: 24, marginBottom: 12 }}>
+            v{env.version}
+          </Text>
+        )}
+
       </ScrollView>
 
       {/* 5. 底部固定导航栏 */}
