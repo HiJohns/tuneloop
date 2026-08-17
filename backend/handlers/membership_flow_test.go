@@ -264,3 +264,88 @@ func TestPrepayMembership_NonMock(t *testing.T) {
 	assert.Equal(t, "stub_prepay_id_001", resp.Data.Data.PrepayID,
 		"membership must reach the JSAPI switch arm and return prepay_id")
 }
+
+// recordingJSAPIClient records the last JSAPI params for openid backfill
+// assertions (#1678).
+type recordingJSAPIClient struct {
+	lastParams wechatpay.JSAPIParams
+}
+
+func (r *recordingJSAPIClient) CreateJSAPIOrder(_ context.Context, p wechatpay.JSAPIParams) (*wechatpay.JSAPIResult, error) {
+	r.lastParams = p
+	return &wechatpay.JSAPIResult{
+		PrepayID:  "stub_prepay_id_002",
+		Package:   "prepay_id=stub_prepay_id_002",
+		TimeStamp: "1750000001",
+		NonceStr:  "stub_nonce",
+		SignType:  "RSA",
+		Sign:      "stub_sign",
+	}, nil
+}
+func (r *recordingJSAPIClient) CreateNativeOrder(context.Context, wechatpay.NativeParams) (*wechatpay.NativeResult, error) {
+	return &wechatpay.NativeResult{CodeURL: "stub"}, nil
+}
+func (r *recordingJSAPIClient) CreateH5Order(context.Context, wechatpay.H5Params) (*wechatpay.H5Result, error) {
+	return &wechatpay.H5Result{}, nil
+}
+func (r *recordingJSAPIClient) QueryOrder(context.Context, string) (*wechatpay.QueryResult, error) {
+	return &wechatpay.QueryResult{TradeState: "SUCCESS"}, nil
+}
+func (r *recordingJSAPIClient) CloseOrder(context.Context, string) error { return nil }
+func (r *recordingJSAPIClient) Refund(context.Context, wechatpay.RefundParams) (*wechatpay.RefundResult, error) {
+	return &wechatpay.RefundResult{}, nil
+}
+func (r *recordingJSAPIClient) QueryRefund(context.Context, string) (*wechatpay.RefundResult, error) {
+	return &wechatpay.RefundResult{}, nil
+}
+func (r *recordingJSAPIClient) VerifyPaymentCallback(context.Context, []byte, string, string, string, string) (*wechatpay.CallbackResult, error) {
+	return &wechatpay.CallbackResult{}, nil
+}
+
+// TestPrepayMembership_SessionOpenIDBackfill verifies (#1678) that in the
+// two-phase registration flow the prepay handler backfills openid from the
+// pending session — the frontend no longer calls /api/wechat/openid.
+func TestPrepayMembership_SessionOpenIDBackfill(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	rec := &recordingJSAPIClient{}
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(rec, &wechatpay.Config{
+		MockMode:        false,
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	session := models.RegistrationSession{
+		ID:       uuid.New().String(),
+		OpenID:   "session_openid_backfill_001",
+		FormData: `{"name":"T","phone":"13800138002"}`,
+		Amount:   99.0,
+		Status:   "pending",
+	}
+	require.NoError(t, db.Create(&session).Error)
+
+	router := gin.New()
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	// No open_id in the request: must be backfilled from the session.
+	prepayBody, _ := json.Marshal(map[string]interface{}{
+		"order_type": "membership",
+		"amount":     99.0,
+		"session_id": session.ID,
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
+	assert.Equal(t, "session_openid_backfill_001", rec.lastParams.OpenID,
+		"openid must be backfilled from the registration session")
+}

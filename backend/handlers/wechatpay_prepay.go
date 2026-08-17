@@ -133,8 +133,8 @@ func PrepayOrder(c *gin.Context) {
 	// amount is ignored (计费以后端为准).
 	sessionFlow := req.OrderType == "membership" && req.SessionID != ""
 	sessionAmount := req.Amount
+	var session models.RegistrationSession
 	if sessionFlow {
-		var session models.RegistrationSession
 		if err := db.Where("id = ? AND status = ?", req.SessionID, "pending").First(&session).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "registration session not found or not pending"})
 			return
@@ -374,7 +374,14 @@ func PrepayOrder(c *gin.Context) {
 		// Membership registration fee — JSAPI payment (mini-program).
 		// Missing branch previously returned an empty 200 (no switch arm
 		// matched), leaving the client with a silent no-op on "发起支付".
-		if req.OpenID == "" {
+		// openid 优先取两阶段 session 中已解析的微信身份（#1678）：weapp
+		// 创建 session 时已通过 wx code/exchange_token 解析并存库，前端
+		// 无需再调用 /api/wechat/openid。
+		openid := req.OpenID
+		if sessionFlow && openid == "" {
+			openid = session.OpenID
+		}
+		if openid == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "membership payment requires open_id"})
 			return
 		}
@@ -384,7 +391,7 @@ func PrepayOrder(c *gin.Context) {
 		}
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
-			OpenID:      req.OpenID,
+			OpenID:      openid,
 			TotalAmount: cfg.AmountToCents(amount),
 			Description: "会员入会费",
 			NotifyURL:   cfg.NotifyURL,

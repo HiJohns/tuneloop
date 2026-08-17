@@ -155,24 +155,13 @@ export default function Payment() {
   }
 
   const doPrepay = async (amountOverride) => {
-    let openid = ''
-    try {
-      const loginRes = await Taro.login()
-      if (loginRes.code) {
-        const oidResp = await apiFetch(`${baseUrl}/wechat/openid`, {
-          method: 'POST',
-          body: JSON.stringify({ code: loginRes.code }),
-        })
-        const oidData = await oidResp.json()
-        if (oidData.code === 20000) openid = oidData.data.openid
-      }
-    } catch (e) { console.warn('[payment] openid lookup failed', e) }
-
+    // openid 由后端解析（#1678）：membership 两阶段流程创建 session 时已
+    // 解析并存储微信身份，prepay 无需前端传递 open_id。
     const body = {
       order_id: pId,
       order_type: pType,
       amount: amountOverride !== undefined ? amountOverride : cashAmount,
-      open_id: openid,
+      open_id: '',
       gift_used: giftUsed,
     }
     if (pType === 'membership' && pSessionId) {
