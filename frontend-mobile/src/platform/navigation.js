@@ -26,9 +26,14 @@ const ROUTE_MAP = [
   { match: '/receive-confirm', type: 'navigateTo', url: '/pages-weapp/receive-confirm/index' },
   { match: '/return-confirm', type: 'navigateTo', url: '/pages-weapp/return-confirm/index' },
   { match: '/content',     type: 'navigateTo', url: '/pages-weapp/content/index' },
-  // No weapp target (returns null → caller falls back to
-  // dialog.alert('该功能请在 H5 端使用')):
-  // /repair* /create-repair /staff/instruments /staff/instrument* /payment-complete
+  { match: '/create-repair', type: 'navigateTo', url: '/pages-weapp/create-repair/index' },
+  { match: '/repair',      type: 'navigateTo', url: '/pages-weapp/repair/index' },
+  { match: '/repair-request', type: 'navigateTo', url: '/pages-weapp/repair-request/index' },
+  { match: '/repair-quote', type: 'navigateTo', url: '/pages-weapp/repair-quote/index' },
+  { match: '/payment-complete', type: 'navigateTo', url: '/pages-weapp/payment-complete/index' },
+  { match: '/repair-payment-complete', type: 'navigateTo', url: '/pages-weapp/repair-payment-complete/index' },
+  { match: '/receiving-repair-scan', type: 'navigateTo', url: '/pages-weapp/receiving-repair-scan/index' },
+  { match: '/repair-scan', type: 'navigateTo', url: '/pages-weapp/repair-scan/index' },
 ]
 
 // Translate an H5 react-router path (optionally with query string) into a

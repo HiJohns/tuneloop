@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, ScrollView, Button } from '@tarojs/components'
-import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { Button, ScrollView, Text, Textarea, View } from '@tarojs/components'
+import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { dialog, env, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 
 const statusLabels = {
@@ -55,7 +55,7 @@ export default function RepairWorkflow() {
         alert(resolveErrorMessage(result, '操作失败'))
       }
     } catch (err) {
-      alert('操作失败: ' + (err.message || ''))
+      dialog.alert('操作失败: ' + (err.message || ''))
     }
     setActionLoading(false)
   }
@@ -71,9 +71,14 @@ export default function RepairWorkflow() {
         alert(resolveErrorMessage(result, '接手失败'))
       }
     } catch (err) {
-      alert('接手失败: ' + (err.message || ''))
+      dialog.alert('接手失败: ' + (err.message || ''))
     }
     setActionLoading(false)
+  }
+
+  const goBack = () => {
+    if (env.isMiniProgram) Taro.navigateBack()
+    else navigate(-1)
   }
 
   if (!instrumentId) {
@@ -100,7 +105,7 @@ export default function RepairWorkflow() {
   return (
     <View className="flex flex-col h-screen bg-zinc-50">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
-        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">维修 - {instrument.sn || ''}</Text>
         <Text className={`text-xs px-2 py-1 rounded-full font-bold ${status === 'repair_completed' ? 'bg-green-100 text-green-700' : status === 'repair_in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
           {statusLabels[status] || status}
@@ -150,13 +155,13 @@ export default function RepairWorkflow() {
         {status === 'repair_in_progress' && isMyJob && (
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-2">添加记录</Text>
-            <textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm" rows={3}
-              value={comment} onChange={e => setComment(e.target.value)} placeholder="输入评论..." />
+            <Textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm"
+              value={comment} onInput={e => setComment(getInputValue(e))} placeholder="输入评论..." />
             <View className="flex gap-2 mt-2">
               <Button onClick={() => { const p = [...photos, `photo_${Date.now()}.jpg`]; setPhotos(p) }}
                 className="flex-1 py-2 bg-zinc-100 rounded-lg text-xs font-bold text-zinc-600">+ 拍照</Button>
               <Button onClick={async () => {
-                if (!comment && photos.length === 0) { alert('请输入评论或拍照'); return }
+                if (!comment && photos.length === 0) { dialog.alert('请输入评论或拍照'); return }
                 try {
                   const resp = await apiFetch(`${baseUrl}/repair/${instrumentId}/records`, {
                     method: 'POST',
@@ -194,7 +199,13 @@ export default function RepairWorkflow() {
                 验收通过
               </Button>
               <Button onClick={async () => {
-                const reason = prompt('请输入不通过原因')
+                let reason = ''
+                if (env.isMiniProgram) {
+                  const res = await Taro.showModal({ title: '验收不通过', editable: true, placeholderText: '请输入不通过原因' })
+                  reason = res.confirm ? (res.content || '') : ''
+                } else {
+                  reason = prompt('请输入不通过原因')
+                }
                 if (!reason) return
                 try {
                   const resp = await apiFetch(`${baseUrl}/repair/${instrumentId}/reject`, {

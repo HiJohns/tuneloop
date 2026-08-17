@@ -1,17 +1,27 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { CheckCircle } from 'lucide-react'
 import { View, Text, Button } from '@tarojs/components'
+import { dialog, env, toWeappRoute } from '../platform'
 
 export default function PaymentComplete() {
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state || {}
 
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
+
   if (!state.paymentAmount && state.paymentAmount !== 0) {
     return (
       <View className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-4">
         <Text className="text-gray-500 mb-4">无效访问</Text>
-        <Button onClick={() => navigate('/')} className="text-brand-primary">返回首页</Button>
+        <Button onClick={() => nav('/')} className="text-brand-primary">返回首页</Button>
       </View>
     )
   }
@@ -46,7 +56,7 @@ export default function PaymentComplete() {
         </View>
       </View>
       <Button
-        onClick={() => navigate('/profile')}
+        onClick={() => nav('/profile')}
         className="mt-6 w-full max-w-sm py-2.5 bg-brand-primary text-white rounded-lg"
       >
         返回我的订单

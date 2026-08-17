@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Image, Video, Input, Textarea } from '@tarojs/components'
-import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { dialog, env, getInputValue, toWeappRoute, uploadFile as uploadFileApi } from '../platform'
 import RepairRecordPanel from '../components/RepairRecordPanel'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
 
@@ -31,6 +32,20 @@ export default function RepairRequestDetail() {
   const [completeComment, setCompleteComment] = useState('')
   const [completePhotos, setCompletePhotos] = useState([])
   const [completeVideo, setCompleteVideo] = useState(null)
+
+  const goBack = () => {
+    if (env.isMiniProgram) Taro.navigateBack()
+    else navigate(-1)
+  }
+
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return goBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
 
   const token = getToken()
   const isCustomer = (() => {
@@ -87,7 +102,7 @@ export default function RepairRequestDetail() {
       } else {
         alert(resolveErrorMessage(r, '操作失败'))
       }
-    } catch (err) { alert('操作失败') }
+    } catch (err) { dialog.alert('操作失败') }
     setActionLoading(false)
   }
 
@@ -97,16 +112,16 @@ export default function RepairRequestDetail() {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/quotes/${quoteId}/accept`, { method: 'POST' })
       const r = await resp.json()
       if (r.code === 20000) {
-        navigate(`/repair-quote?request_id=${requestId}`)
+        nav(`/repair-quote?request_id=${requestId}`)
       } else {
         alert(resolveErrorMessage(r, '操作失败'))
       }
-    } catch { alert('操作失败') }
+    } catch { dialog.alert('操作失败') }
     setActionLoading(false)
   }
 
   const handleSubmitTracking = async () => {
-    if (!trackingCompany || !trackingNumber) { alert('请填写物流公司和单号'); return }
+    if (!trackingCompany || !trackingNumber) { dialog.alert('请填写物流公司和单号'); return }
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/tracking`, {
@@ -122,14 +137,20 @@ export default function RepairRequestDetail() {
       } else {
         alert(resolveErrorMessage(r, '提交失败'))
       }
-    } catch { alert('提交失败') }
+    } catch { dialog.alert('提交失败') }
     setActionLoading(false)
   }
 
   const handleAppeal = async () => {
     setActionLoading(true)
     try {
-      const reason = prompt('请输入申诉原因')
+      let reason = ''
+      if (env.isMiniProgram) {
+        const res = await Taro.showModal({ title: '申诉', editable: true, placeholderText: '请输入申诉原因' })
+        reason = res.confirm ? (res.content || '') : ''
+      } else {
+        reason = prompt('请输入申诉原因')
+      }
       if (!reason) { setActionLoading(false); return }
       const resp = await apiFetch(`${baseUrl}/repair-appeals`, {
         method: 'POST',
@@ -160,7 +181,7 @@ export default function RepairRequestDetail() {
   }
 
   const handleReturnShipping = async () => {
-    if (!returnCompany || !returnNumber) { alert('请填写物流公司和单号'); return }
+    if (!returnCompany || !returnNumber) { dialog.alert('请填写物流公司和单号'); return }
     setActionLoading(true)
     try {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${requestId}/return-shipping`, {
@@ -176,31 +197,55 @@ export default function RepairRequestDetail() {
       } else {
         alert(resolveErrorMessage(r, '提交失败'))
       }
-    } catch { alert('提交失败') }
+    } catch { dialog.alert('提交失败') }
     setActionLoading(false)
   }
 
-  const handlePhotoUpload = async (e) => {
-    const file = e.target?.files?.[0] || e.detail?.value?.[0]
-    if (!file) return
-    const fd = new FormData()
-    fd.append('file', file)
-    try {
-      const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
-      const r = await resp.json()
-      if (r.code === 20000) {
-        setUnpackPhotos(p => [...p, r.data.file_key])
-      }
-    } catch {}
-  }
-
   const uploadFile = async (file) => {
+    if (env.isMiniProgram) {
+      const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+      const r = JSON.parse(resp.data)
+      if (r.code === 20000) return r.data.file_key
+      throw new Error(r.message || 'upload failed')
+    }
     const fd = new FormData()
     fd.append('file', file)
     const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
     const r = await resp.json()
     if (r.code === 20000) return r.data.file_key
     throw new Error(resolveErrorMessage(r, 'upload failed'))
+  }
+
+  const handlePhotoUpload = async (file) => {
+    if (!file) return
+    try {
+      const key = await uploadFile(file)
+      setUnpackPhotos(p => [...p, key])
+    } catch {}
+  }
+
+  const handleUnpackPhotoChoose = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 9, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      for (const path of res.tempFilePaths || []) {
+        await handlePhotoUpload(path)
+      }
+    } catch {}
+  }
+
+  const handleCompletePhotoChoose = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 9 - completePhotos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setCompletePhotos(p => [...p, ...(res.tempFilePaths || [])].slice(0, 9))
+    } catch {}
+  }
+
+  const handleCompleteVideoChoose = async () => {
+    try {
+      const res = await Taro.chooseMedia({ count: 1, mediaType: ['video'], sourceType: ['camera', 'album'] })
+      const file = res.tempFiles?.[0]?.tempFilePath
+      if (file) setCompleteVideo(file)
+    } catch {}
   }
 
   const handleTechComplete = async () => {
@@ -232,7 +277,7 @@ export default function RepairRequestDetail() {
       } else {
         alert(resolveErrorMessage(r, '操作失败'))
       }
-    } catch { alert('操作失败') }
+    } catch { dialog.alert('操作失败') }
     setActionLoading(false)
   }
 
@@ -245,7 +290,7 @@ export default function RepairRequestDetail() {
   return (
     <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
-        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">报修详情</Text>
       </View>
 
@@ -517,7 +562,7 @@ export default function RepairRequestDetail() {
           <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-4">
             <Text className="text-sm font-bold text-black mb-3">待付款</Text>
             <Text className="text-xs text-zinc-500 mb-3">您已接受报价，请前往支付。</Text>
-            <Button onClick={() => navigate(`/repair-quote?request_id=${requestId}`)}
+            <Button onClick={() => nav(`/repair-quote?request_id=${requestId}`)}
               className="w-full py-3 bg-black text-white rounded-xl font-bold text-sm text-center">
               去支付
             </Button>
@@ -593,22 +638,34 @@ export default function RepairRequestDetail() {
 
             {techTab === 'complete' && (
               <View>
-                <textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm" rows={3}
-                  value={completeComment} onChange={e => setCompleteComment(e.target.value)} placeholder="输入维修备注..." />
+                <Textarea className="w-full border border-zinc-300 rounded-lg p-3 text-sm"
+                  value={completeComment} onInput={e => setCompleteComment(getInputValue(e))} placeholder="输入维修备注..." />
                 <View className="flex flex-wrap gap-2 mt-3 mb-3">
                   {completePhotos.map((f, i) => (
                     <View key={i} className="relative">
-                      <Image src={URL.createObjectURL(f)} className="w-16 h-16 rounded object-cover" />
+                      <Image src={env.isMiniProgram ? f : URL.createObjectURL(f)} className="w-16 h-16 rounded object-cover" />
                       <Text className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full text-center leading-4" onClick={() => setCompletePhotos(p => p.filter((_, j) => j !== i))}>×</Text>
                     </View>
                   ))}
+                  {env.isMiniProgram ? (
+                    <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={handleCompletePhotoChoose}>
+                      <Text className="text-2xl text-zinc-300">+</Text>
+                    </View>
+                  ) : (
                   <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.multiple=true; el.onchange=e => setCompletePhotos(p => [...p, ...Array.from(e.target.files || [])]); el.click() }}>
                     <Text className="text-2xl text-zinc-300">+</Text>
                   </View>
+                  )}
                   {!completeVideo && (
+                    env.isMiniProgram ? (
+                    <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={handleCompleteVideoChoose}>
+                      <Text className="text-xs text-zinc-300">视频</Text>
+                    </View>
+                    ) : (
                     <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='video/*'; el.onchange=e => { const f=e.target.files?.[0]; if(f) setCompleteVideo(f) }; el.click() }}>
                       <Text className="text-xs text-zinc-300">视频</Text>
                     </View>
+                    )
                   )}
                   {completeVideo && <Text className="text-xs text-zinc-500 self-center">✓ 已选视频</Text>}
                 </View>
@@ -701,9 +758,15 @@ export default function RepairRequestDetail() {
                   {unpackPhotos.length > 0 && unpackPhotos.map((p, i) => (
                     <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
                   ))}
-                  <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.onchange=e=>handlePhotoUpload(e); el.click() }}>
+                  {env.isMiniProgram ? (
+                    <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={handleUnpackPhotoChoose}>
+                      <Text className="text-2xl text-zinc-300">+</Text>
+                    </View>
+                  ) : (
+                  <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.onchange=e=>handlePhotoUpload(e.target.files?.[0]); el.click() }}>
                     <Text className="text-2xl text-zinc-300">+</Text>
                   </View>
+                  )}
                 </View>
                 <Button onClick={() => handleAction('transit-relay', { direction: 'in', transit_order_number: request.transit_order_number || '', unpack_photos: unpackPhotos })}
                   disabled={actionLoading}
@@ -796,9 +859,15 @@ export default function RepairRequestDetail() {
               {unpackPhotos.length > 0 && unpackPhotos.map((p, i) => (
                 <Image key={i} src={`/uploads/media/${p}`} className="w-16 h-16 rounded object-cover" mode="aspectFill" />
               ))}
-              <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.onchange=e=>handlePhotoUpload(e); el.click() }}>
+              {env.isMiniProgram ? (
+                <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={handleUnpackPhotoChoose}>
+                  <Text className="text-2xl text-zinc-300">+</Text>
+                </View>
+              ) : (
+              <View className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center" onClick={() => { const el = document.createElement('input'); el.type='file'; el.accept='image/*'; el.onchange=e=>handlePhotoUpload(e.target.files?.[0]); el.click() }}>
                 <Text className="text-2xl text-zinc-300">+</Text>
               </View>
+              )}
             </View>
             <Button onClick={() => handleAction('transit-relay', { direction: 'out', transit_order_number: request.transit_order_number || '', unpack_photos: unpackPhotos })}
               disabled={actionLoading}

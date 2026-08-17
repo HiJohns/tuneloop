@@ -1,14 +1,29 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
 import { apiFetch } from '../services/api'
-import { env } from '../platform'
+import { dialog, env, toWeappRoute } from '../platform'
 
 export default function RepairQuote() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const requestId = searchParams.get('request_id')
   const baseUrl = env.apiBaseUrl
+
+  const goBack = () => {
+    if (env.isMiniProgram) Taro.navigateBack()
+    else navigate(-1)
+  }
+
+  const nav = (to, opts) => {
+    if (!env.isMiniProgram) return navigate(to, opts)
+    if (to === -1) return goBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
 
   const [request, setRequest] = useState(null)
   const [acceptedQuote, setAcceptedQuote] = useState(null)
@@ -38,7 +53,7 @@ export default function RepairQuote() {
   useEffect(() => { fetchData() }, [requestId])
 
   const handlePay = () => {
-    navigate(`/payment?type=repair&id=${requestId}`, { replace: true })
+    nav(`/payment?type=repair&id=${requestId}`, { replace: true })
   }
 
   if (loading) return <View className="h-screen flex items-center justify-center"><Text className="text-zinc-400">加载中...</Text></View>
@@ -57,7 +72,7 @@ export default function RepairQuote() {
   return (
     <View className="flex flex-col h-screen bg-[#FDFBF7]">
       <View className="bg-white px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
-        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1">维修报价</Text>
       </View>
 

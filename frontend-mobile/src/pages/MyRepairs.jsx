@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
 import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
-import { env, dialog, toWeappRoute } from '../platform'
+import { dialog, env, getInputValue, toWeappRoute } from '../platform'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
 
@@ -101,10 +101,21 @@ export default function MyRepairs() {
   }
 
   const handleShipBack = async (id) => {
-    const company = prompt('输入物流公司')
-    if (!company) return
-    const number = prompt('输入物流单号')
-    if (!number) return
+    let company = ''
+    let number = ''
+    if (env.isMiniProgram) {
+      const res = await Taro.showModal({ title: '发回物流', editable: true, placeholderText: '输入物流公司' })
+      if (!res.confirm) return
+      company = res.content || ''
+      const res2 = await Taro.showModal({ title: '发回物流', editable: true, placeholderText: '输入物流单号' })
+      if (!res2.confirm) return
+      number = res2.content || ''
+    } else {
+      company = prompt('输入物流公司')
+      if (!company) return
+      number = prompt('输入物流单号')
+      if (!number) return
+    }
     try {
       const resp = await apiFetch(`${baseUrl}/repair-requests/${id}/return-shipping`, {
         method: 'PUT',
@@ -129,8 +140,8 @@ export default function MyRepairs() {
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4">
           <Text className="text-sm font-bold text-black mb-2">扫码查找乐器</Text>
           <View className="flex gap-2">
-            <input className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm"
-              value={snInput} onChange={e => setSnInput(e.target.value)} placeholder="输入乐器编号或扫码" />
+            <Input className="flex-1 border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+              value={snInput} onInput={e => setSnInput(getInputValue(e))} placeholder="输入乐器编号或扫码" />
             <Button onClick={handleSearch} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold">查找</Button>
           </View>
         </View>

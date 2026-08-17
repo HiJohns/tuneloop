@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { View, Text, ScrollView, Button, Input, Image } from '@tarojs/components'
-import { addressesApi , resolveErrorMessage } from '../services/api'
+import { Button, Image, Input, ScrollView, Text, Textarea, View } from '@tarojs/components'
+import { addressesApi, resolveErrorMessage } from '../services/api'
 import { apiFetch } from '../services/api'
-import { env } from '../platform'
+import { dialog, env, getInputValue, uploadFile as uploadFileApi } from '../platform'
 import { Camera } from 'lucide-react'
 
 export default function CreateRepairRequest() {
@@ -61,6 +61,12 @@ export default function CreateRepairRequest() {
   }
 
   const uploadFile = async (file) => {
+    if (env.isMiniProgram) {
+      const resp = await uploadFileApi(`${baseUrl}/upload`, file)
+      const r = JSON.parse(resp.data)
+      if (r.code === 20000) return r.data.file_key
+      throw new Error(r.message || 'upload failed')
+    }
     const fd = new FormData()
     fd.append('file', file)
     const resp = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd })
@@ -69,11 +75,35 @@ export default function CreateRepairRequest() {
     throw new Error(resolveErrorMessage(r, 'upload failed'))
   }
 
+  const handlePhotoChooseWeapp = async () => {
+    try {
+      const res = await Taro.chooseImage({ count: 10 - form.photos.length, sizeType: ['compressed'], sourceType: ['camera', 'album'] })
+      setForm(p => ({ ...p, photos: [...p.photos, ...(res.tempFilePaths || [])].slice(0, 10) }))
+    } catch (err) {
+      console.error('Failed to choose image:', err)
+    }
+  }
+
+  const handleVideoChooseWeapp = async () => {
+    try {
+      const res = await Taro.chooseMedia({ count: 1, mediaType: ['video'], sourceType: ['camera', 'album'] })
+      const file = res.tempFiles?.[0]?.tempFilePath
+      if (file) setForm(p => ({ ...p, video: file }))
+    } catch (err) {
+      console.error('Failed to choose video:', err)
+    }
+  }
+
+  const goBack = () => {
+    if (env.isMiniProgram) Taro.navigateBack()
+    else navigate(-1)
+  }
+
   const isFormValid = form.sn && form.instrument_type && form.brand && form.model &&
     form.description && form.photos.length > 0 && form.site_id
 
   const handleSubmit = async () => {
-    if (!isFormValid) { alert('请填写所有必填项'); return }
+    if (!isFormValid) { dialog.alert('请填写所有必填项'); return }
     setSubmitting(true)
     try {
       const photoKeys = []
@@ -103,13 +133,13 @@ export default function CreateRepairRequest() {
       })
       const r = await resp.json()
       if (r.code === 20000) {
-        alert('报修单已提交，等待评估')
-        navigate(-1)
+        dialog.alert('报修单已提交，等待评估')
+        goBack()
       } else {
         alert(resolveErrorMessage(r, '提交失败'))
       }
     } catch (err) {
-      alert('提交失败: ' + (err.message || ''))
+      dialog.alert('提交失败: ' + (err.message || ''))
     }
     setSubmitting(false)
   }
@@ -117,7 +147,7 @@ export default function CreateRepairRequest() {
   return (
     <View className="h-screen bg-[#FDFBF7] flex flex-col">
       <View className="bg-gradient-to-b from-blue-50 to-white px-4 py-3">
-        <Text className="text-lg mr-2" onClick={() => navigate(-1)}>{'<'}</Text>
+        <Text className="text-lg mr-2" onClick={goBack}>{'<'}</Text>
         <Text className="text-lg font-bold flex-1 text-center">创建报修单</Text>
       </View>
 
@@ -125,37 +155,37 @@ export default function CreateRepairRequest() {
         <View className="bg-white rounded-2xl shadow-sm p-4 mt-4 space-y-3">
           <View>
             <Text className="block text-sm font-medium text-gray-700 mb-1">识别码 *</Text>
-            <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={form.sn} onChange={e => handleSnChange(e.target.value)} placeholder="输入识别码" />
+            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={form.sn} onInput={e => handleSnChange(getInputValue(e))} placeholder="输入识别码" />
           </View>
           <View className="grid grid-cols-2 gap-2">
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">类型 *</Text>
-              <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.instrument_type} onChange={e => setForm(p => ({ ...p, instrument_type: e.target.value }))} placeholder="乐器类型" />
+              <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                value={form.instrument_type} onInput={e => setForm(p => ({ ...p, instrument_type: getInputValue(e) }))} placeholder="乐器类型" />
             </View>
             <View>
               <Text className="block text-sm font-medium text-gray-700 mb-1">品牌 *</Text>
-              <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={form.brand} onChange={e => setForm(p => ({ ...p, brand: e.target.value }))} placeholder="品牌" />
+              <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                value={form.brand} onInput={e => setForm(p => ({ ...p, brand: getInputValue(e) }))} placeholder="品牌" />
             </View>
           </View>
           <View>
             <Text className="block text-sm font-medium text-gray-700 mb-1">型号 *</Text>
-            <input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={form.model} onChange={e => setForm(p => ({ ...p, model: e.target.value }))} placeholder="型号" />
+            <Input className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={form.model} onInput={e => setForm(p => ({ ...p, model: getInputValue(e) }))} placeholder="型号" />
           </View>
           <View>
             <Text className="block text-sm font-medium text-gray-700 mb-1">描述 *</Text>
-            <textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm" rows={3}
-              value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="描述故障情况" />
+            <Textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm"
+              value={form.description} onInput={e => setForm(p => ({ ...p, description: getInputValue(e) }))} placeholder="描述故障情况" />
           </View>
           <View>
             <Text className="block text-sm font-medium text-gray-700 mb-1">照片 *（{form.photos.length} 张）</Text>
             <View className="grid grid-cols-3 gap-2 mb-2">
               {form.photos.map((file, i) => (
                 <View key={i} className="relative aspect-square rounded-lg overflow-hidden border">
-                  <Image src={URL.createObjectURL(file)} className="w-full h-full object-cover" mode="aspectFill" />
+                  <Image src={env.isMiniProgram ? file : URL.createObjectURL(file)} className="w-full h-full object-cover" mode="aspectFill" />
                   <View className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 flex items-center justify-center"
                     onClick={() => setForm(p => ({ ...p, photos: p.photos.filter((_, j) => j !== i) }))}>
                     <Text className="text-white text-xs">✕</Text>
@@ -163,12 +193,20 @@ export default function CreateRepairRequest() {
                 </View>
               ))}
               {form.photos.length < 10 && (
+                env.isMiniProgram ? (
+                  <View className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60"
+                    onClick={handlePhotoChooseWeapp}>
+                    <Camera size={24} />
+                    <Text className="text-xs mt-1">拍摄</Text>
+                  </View>
+                ) : (
                 <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 active:opacity-60">
                   <Camera size={24} />
                   <Text className="text-xs mt-1">拍摄</Text>
                   <input type="file" accept="image/*" capture="environment" multiple className="hidden"
                     onChange={e => setForm(p => ({ ...p, photos: [...p.photos, ...Array.from(e.target.files || [])].slice(0, 10) }))} />
                 </label>
+                )
               )}
             </View>
             {form.photos.length === 0 && (
@@ -177,12 +215,19 @@ export default function CreateRepairRequest() {
           </View>
           <View>
             <Text className="block text-sm font-medium text-gray-700 mb-1">视频（可选，估价用）</Text>
+            {env.isMiniProgram ? (
+              <View className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60" onClick={handleVideoChooseWeapp}>
+                <Camera size={20} className="text-gray-500" />
+                <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
+              </View>
+            ) : (
             <label className="flex items-center gap-2 py-2 bg-gray-100 rounded-lg px-3 active:opacity-60">
               <Camera size={20} className="text-gray-500" />
               <Text className="text-xs text-gray-600">{form.video ? '已选择视频' : '上传视频'}</Text>
               <input type="file" accept="video/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) setForm(p => ({ ...p, video: f })) }} />
             </label>
+            )}
           </View>
           <View>
             <Text className="block text-sm font-medium text-gray-700 mb-1">选择商户</Text>
