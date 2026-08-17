@@ -19,6 +19,7 @@ const config = {
   ],
   defineConstants: {
     'process.env.TARO_APP_API_BASE_URL': JSON.stringify(process.env.TARO_APP_API_BASE_URL || ''),
+    'process.env.TARO_APP_VERSION': JSON.stringify(process.env.TARO_APP_VERSION || ''),
   },
   framework: 'react',
   compiler: 'webpack5',

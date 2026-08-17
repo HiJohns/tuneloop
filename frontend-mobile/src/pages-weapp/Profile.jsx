@@ -393,15 +393,6 @@ export default function Profile() {
               </View>
             </View>
           )}
-          {!isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>收藏</Text>
-              </View>
-              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-            </View>
-          )}
           {!isStaff && !isGuest && (
             <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/membership/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
@@ -412,16 +403,7 @@ export default function Profile() {
             </View>
           )}
           {!isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/profile/edit/index')}>
-              <View style={{ display: 'flex', alignItems: 'center' }}>
-                <Text style={{ fontSize: 18, marginRight: 8 }}>✏️</Text>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>编辑资料</Text>
-              </View>
-              <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
-            </View>
-          )}
-          {!isGuest && (
-            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
+            <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/setting/index')}>
               <View style={{ display: 'flex', alignItems: 'center' }}>
                 <Text style={{ fontSize: 18, marginRight: 8 }}>⚙️</Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>设置</Text>
@@ -429,14 +411,14 @@ export default function Profile() {
               <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
             </View>
           )}
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }}>
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid #f4f4f5' }} onClick={() => nav('/pages-weapp/content/index?key=cooperation')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>💼</Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>商务合作</Text>
             </View>
             <Text style={{ fontSize: 14, color: '#d4d4d8' }}>❯</Text>
           </View>
-          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14 }}>
+          <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 14 }} onClick={() => nav('/pages-weapp/content/index?key=contact_us')}>
             <View style={{ display: 'flex', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, marginRight: 8 }}>📞</Text>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#27272a' }}>联系我们</Text>

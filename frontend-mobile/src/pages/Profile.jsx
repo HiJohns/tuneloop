@@ -107,8 +107,12 @@ export default function Profile() {
   const baseUrl = env.apiBaseUrl
 
   useEffect(() => {
+    // #1692: frontend package version (1.0.<git short hash>, injected at
+    // build) is authoritative for version attribution; backend config
+    // version is the fallback.
+    setAppVersion(env.version || '')
     const config = getAppConfig()
-    if (config?.version && config.version !== 'dev') setAppVersion(config.version)
+    if (!env.version && config?.version && config.version !== 'dev') setAppVersion(config.version)
     const fetchUser = async () => {
       try {
         const resp = await apiFetch(`${baseUrl}/users/me`)

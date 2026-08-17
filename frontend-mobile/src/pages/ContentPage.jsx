@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Taro from '@tarojs/taro'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, RichText } from '@tarojs/components'
 import { apiFetch } from '../services/api'
@@ -15,6 +16,19 @@ export default function ContentPage() {
   const titles = {
     rental_notice: '租赁须知',
     contact_us: '联系我们',
+    cooperation: '商务合作',
+    rental_agreement: '租用服务协议',
+    user_agreement: '用户协议',
+    privacy_policy: '隐私协议',
+    digital_certificate: '数字证书授权使用协议',
+    damage_standard: '《乐器损耗与赔偿标准》细则',
+  }
+
+  // #1686: default content when the backend has no record yet — the entry
+  // must never feel like a dead page.
+  const DEFAULT_CONTENT = {
+    cooperation: '商务合作联系方式：\n邮箱：business@cadenzayueqi.com\n电话：400-xxx-xxxx（工作日 9:00-18:00）\n\n欢迎乐器品牌、教育机构、渠道伙伴洽谈合作。',
+    contact_us: '联系我们：\n客服电话：400-xxx-xxxx\n客服邮箱：service@cadenzayueqi.com\n服务时间：每日 9:00-21:00\n\n如遇问题请前往「我的-设置」查看协议条款，或联系门店工作人员。',
   }
 
   const goBack = () => {
@@ -31,7 +45,7 @@ export default function ContentPage() {
         const res = await apiFetch(`${env.apiBaseUrl}/public/settings/${key}`)
         const result = await res.json()
         if (result.code === 20000) {
-          setContent(result.data?.value || '暂无内容')
+          setContent(result.data?.value || DEFAULT_CONTENT[key] || '暂无内容')
         }
       } catch {
         setContent('加载失败')

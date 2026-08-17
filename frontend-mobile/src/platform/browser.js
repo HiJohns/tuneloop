@@ -156,6 +156,7 @@ const isWechatBrowser = typeof window !== 'undefined' && /micromessenger/i.test(
 const isMiniProgram = typeof window !== 'undefined' && window.__wxjs_environment === 'miniprogram'
 export const env = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
+  version: import.meta.env.VITE_APP_VERSION || '',
   iamExternalUrl: import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || '',
   isDev: import.meta.env.DEV,
   isWechatBrowser,

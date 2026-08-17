@@ -166,6 +166,7 @@ export const onPageScroll = (handler) => {
 
 export const env = {
   apiBaseUrl: process.env.TARO_APP_API_BASE_URL || 'https://wx.cadenzayueqi.com/api',
+  version: process.env.TARO_APP_VERSION || '',
   iamExternalUrl: '',
   isDev: process.env.NODE_ENV === 'development',
   isWechatBrowser: false,

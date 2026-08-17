@@ -4,16 +4,24 @@
 //   initialUrl: 已上传的照片 URL（从 GET /user/id-photos 或 /users/me 预填）
 //   onChange(url): 上传成功后回调新 URL；点击删除后回调 ''
 //   defer: 延迟上传模式（注册页专用）——仅本地预览，通过 uploadPending() 显式上传
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Image } from '@tarojs/components'
 import { uploadFile, env, storage, session } from '../platform'
+import { resolveErrorMessage } from '../services/api'
 
 const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl = '', onChange, defer = false }, ref) {
   const [url, setUrl] = useState(initialUrl || '')
   const [uploading, setUploading] = useState(false)
   const [pendingFile, setPendingFile] = useState(null)
   const fileInputRef = useRef(null)
+
+  // #1686: initialUrl arrives asynchronously (EditProfile fetchUser) — the
+  // component state must follow the prop after mount, otherwise the saved
+  // id photo never shows when re-opening the edit page.
+  useEffect(() => {
+    if (initialUrl && !url) setUrl(initialUrl)
+  }, [initialUrl])
 
   const getToken = () => storage.getItem('token') || session.getItem('token')
 

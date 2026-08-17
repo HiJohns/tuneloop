@@ -18,7 +18,7 @@ build-pc:
 
 build-mobile:
 	@echo "Building Mobile frontend..."
-	cd frontend-mobile && npm install && npm run build
+	cd frontend-mobile && npm install && VITE_APP_VERSION=$(FRONTEND_VERSION) npm run build
 
 web: build-pc
 	@echo "PC frontend build completed."
@@ -58,18 +58,20 @@ mobile-weapp-dev: weapp-check
 # ============================================================
 WEAPP_RELEASE_DIR := releases
 WEAPP_AUTO_VERSION := $(shell date -u +%Y%m%d-%H%M%S)_$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+# Frontend package version shown in app UI: 1.0.<git short hash> (#1692)
+FRONTEND_VERSION := 1.0.$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
 weapp-build: weapp-check
 	@rm -rf frontend-mobile/node_modules/.cache
 	@rm -rf frontend-mobile/dist-weapp
 	@echo "Building WeApp (production apiBaseUrl)..."
-	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://wx.cadenzayueqi.com/api npm run build:weapp
+	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://wx.cadenzayueqi.com/api TARO_APP_VERSION=$(FRONTEND_VERSION) npm run build:weapp
 
 weapp-build-pre: weapp-check
 	@rm -rf frontend-mobile/node_modules/.cache
 	@rm -rf frontend-mobile/dist-weapp
 	@echo "Building WeApp (pre-production apiBaseUrl)..."
-	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api npm run build:weapp
+	@cd frontend-mobile && TARO_APP_API_BASE_URL=https://prewx.cadenzayueqi.com/api TARO_APP_VERSION=$(FRONTEND_VERSION) npm run build:weapp
 	@make weapp-archive-pre VERSION=$(if $(filter command line,$(origin VERSION)),$(VERSION),$(WEAPP_AUTO_VERSION))
 
 weapp-build-prod: weapp-build
