@@ -30,6 +30,9 @@ const weappPages = [
   'pages-weapp/receive-confirm/index',
   'pages-weapp/return-confirm/index',
   'pages-weapp/account-select/index',
+  'pages-weapp/staff-instruments/index',
+  'pages-weapp/staff-instrument-detail/index',
+  'pages-weapp/staff-instrument-form/index',
 ]
 
 const h5Pages = [
