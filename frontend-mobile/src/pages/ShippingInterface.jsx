@@ -13,7 +13,7 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg width
 
 export default function ShippingInterface() {
   const navigate = useNavigate()
-  const orderId = (navigation.getQueryParams().order || '')
+  const orderId = (navigation.getQueryParams().order_id || '')
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
   const [logistics, setLogistics] = useState({ company: '', trackingNumber: '', shippingFee: '' })

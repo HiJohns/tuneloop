@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Input, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
@@ -10,12 +10,11 @@ import InstrumentInfo from '../components/InstrumentInfo'
 import OrderTimeline from '../components/OrderTimeline'
 
 export default function ReturnConfirm() {
-  const { orderId: routeOrderId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  // H5: /return/:orderId?instrument=xxx → useParams；weapp: ?order=&instrument= → searchParams
-  const orderId = routeOrderId || searchParams.get('order') || searchParams.get('orderId') || ''
-  const instrumentId = searchParams.get('instrument') || searchParams.get('instrument_id') || ''
+  // 跨端统一 query 约定（#1674）：跳转一律 ?order_id= / ?instrument=
+  const orderId = searchParams.get('order_id') || ''
+  const instrumentId = searchParams.get('instrument') || ''
   const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)
@@ -85,9 +84,9 @@ export default function ReturnConfirm() {
         // 完整页面路径（Taro shim 会把 /return-settlement/:id 转成不存在的
         // /pages/return-settlement/xxx/index → 静默失败）。
         if (env.isMiniProgram) {
-          Taro.navigateTo({ url: `/pages-weapp/return-settlement/index?orderId=${orderId}` })
+          Taro.navigateTo({ url: `/pages-weapp/return-settlement/index?order_id=${orderId}` })
         } else {
-          navigate(`/return-settlement/${orderId}`, { replace: true })
+          navigate(`/return-settlement?order_id=${orderId}`, { replace: true })
         }
       } else {
         dialog.alert('归还失败: ' + (result.message || ''))

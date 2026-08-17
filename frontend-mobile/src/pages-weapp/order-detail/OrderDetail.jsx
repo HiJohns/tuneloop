@@ -192,7 +192,7 @@ export default function OrderDetail() {
   const handleReturn = () => {
     // L-07 jump-page mode: return logistics filled on the dedicated
     // ReturnConfirm page (consistent with H5 /return/:orderId).
-    Taro.navigateTo({ url: `/pages-weapp/return-confirm/index?order=${id}&instrument=${instrument?.id || ''}` })
+    Taro.navigateTo({ url: `/pages-weapp/return-confirm/index?order_id=${id}&instrument=${instrument?.id || ''}` })
   }
 
   const handleStaffRefund = () => {
@@ -713,7 +713,7 @@ export default function OrderDetail() {
         {isStaff ? (
           <>
             {showStaffShip && (
-              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
+              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order_id=${id}` })}
                 style={btnStyle('#000')}>📦 发货</View>
             )}
             {showStaffCancel && (
@@ -723,7 +723,7 @@ export default function OrderDetail() {
               </View>
             )}
             {showStaffTransit && (
-              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order=${id}` })}
+              <View onClick={() => Taro.navigateTo({ url: `/pages-weapp/shipping-interface/index?order_id=${id}` })}
                 style={btnStyle('#06b6d4')}>🚚 接收并转发</View>
             )}
             {showStaffReceive && (

@@ -275,7 +275,7 @@ export default function MyLeases() {
                       )}
                       {showStaffShip && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/shipping-interface/index?order=${order.id}`) }}
+                          onClick={(e) => { e.stopPropagation(); nav(`/pages-weapp/shipping-interface/index?order_id=${order.id}`) }}
                           style={{ flex: '1 1 0%', minWidth: 0, paddingTop: 10, paddingBottom: 10, backgroundColor: '#000', color: '#fff', borderRadius: 12, fontWeight: '900', fontSize: 14 }}
                         >
                           发货

@@ -244,6 +244,16 @@ tuneloop/
 - **跳转方与接收方参数名必须一致**：weapp 跳转 URL 与组件读取的 key 逐字核对（`?order=` vs `get('order')`）
 - **审计清单**：跳转 URL 参数与目标页读取参数不一致、或组件只读一种来源 → REJECT
 
+### 📌 跨端页面参数统一约定（#1674 沉淀）
+
+> 来源：#1674——双源兼容是治标（H5 路径参数 vs weapp query 两套格式并存，已致 `PUT /orders/null/delivery` 等事故）。两端（H5 react-router / weapp Taro 兼容层）均支持 `useSearchParams()` 读 query → **统一 query 格式**，消灭 useParams 兼容。
+
+**规则（强制）**：
+- **跳转一律 query 格式**：`/return?order_id=xxx`、`/receive?order_id=xxx`、`/return-settlement?order_id=xxx`、`/staff/shipping?order_id=xxx`——**禁止路径参数**（`/return/:orderId`）作为新跳转方式（H5 旧路由保留兼容老链接）
+- **参数名统一**：订单类参数一律 `order_id`（禁 `order` / `orderId` / `id` 混用）；乐器 `instrument`；页面自身参数 `key`/`id` 按语义
+- **读取一律 `searchParams.get('order_id')`**：共享 .jsx **禁止 `useParams()`** 读取（weapp 无路径参数）
+- **审计清单**：diff 中共享 .jsx 出现 `useParams`、或跳转 URL 含 `/:xxx` 路径参数、或参数名非 `order_id` → REJECT
+
 ### 📌 提交按钮文本规范（客户体验统一方法论）
 
 > 来源：#归还页 调查——各页按钮文本/进行中文案不统一（提交/提交归还/确认支付/发起支付 + 提交中/处理中/确认中 混用）。按钮文本是用户感知操作意图的第一触点。

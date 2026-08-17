@@ -452,7 +452,7 @@ export default function Detail() {
                 <Text className="text-white font-black text-base">{isInCart ? '已加入购物车' : '加入购物车'}</Text>
               </View>
               <View
-                onClick={() => navigate(`/checkout/${id}`)}
+                onClick={() => navigate(`/checkout?id=${id}`)}
                 className="flex-1 h-12 rounded-full shadow-sm flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg, #FA5E3C, #E63917)' }}
               >
@@ -480,7 +480,7 @@ export default function Detail() {
               )}
               {isCustomer && (
               <View
-                onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
+                onClick={() => navigate(`/return?order_id=${activeOrder.order_id}&instrument=${id}`)}
                 className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
               >
                 <Text>归还乐器</Text>
@@ -511,7 +511,7 @@ export default function Detail() {
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
               {currentUser?.id === activeOrder?.user_id && (
                 <View
-                  onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                  onClick={() => navigate(`/receive?order_id=${activeOrder.order_id}&instrument=${id}`)}
                   className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
                 >
                   <Text>确认收货</Text>
@@ -530,7 +530,7 @@ export default function Detail() {
                 </Text>
               )}
               <View
-                onClick={() => navigate(`/return/${activeOrder.order_id}?instrument=${id}`)}
+                onClick={() => navigate(`/return?order_id=${activeOrder.order_id}&instrument=${id}`)}
                 className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
               >
                 <Text>归还乐器</Text>
@@ -542,7 +542,7 @@ export default function Detail() {
               <Text className="text-gray-500 text-sm">该乐器正在运输途中</Text>
               {currentUser?.id === activeOrder?.user_id && (
                 <View
-                  onClick={() => navigate(`/receive/${activeOrder.order_id}?instrument=${id}`)}
+                  onClick={() => navigate(`/receive?order_id=${activeOrder.order_id}&instrument=${id}`)}
                   className="w-full py-3 bg-green-500 text-white rounded-lg font-medium mt-2 text-center"
                 >
                   <Text>确认收货</Text>

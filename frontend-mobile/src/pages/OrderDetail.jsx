@@ -800,7 +800,7 @@ export default function OrderDetail() {
           {isStaff ? (
             <>
               {showStaffShip && (
-                <View onClick={() => navigate(`/staff/shipping?order=${id}`)}
+                <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
                   className="w-full py-3 bg-black text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <Truck size={20} /><Text>发货</Text>
                 </View>
@@ -813,7 +813,7 @@ export default function OrderDetail() {
                 </View>
               )}
               {showStaffTransit && (
-                <View onClick={() => navigate(`/staff/shipping?order=${id}`)}
+                <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
                   className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <Truck size={20} /><Text>接收并转发</Text>
                 </View>
@@ -859,7 +859,7 @@ export default function OrderDetail() {
                 </Button>
               )}
               {showReceiveButton && (
-                <View onClick={() => navigate(`/receive/${id}?instrument=${order.instrument_id}`)}
+                <View onClick={() => navigate(`/receive?order_id=${id}&instrument=${order.instrument_id}`)}
                   className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <CheckCircle size={20} />确认收货
                 </View>
@@ -873,7 +873,7 @@ export default function OrderDetail() {
                     </View>
                   )}
                   {showReturnButton && (
-                    <View onClick={() => navigate(`/return/${id}?instrument=${order.instrument_id}`)}
+                    <View onClick={() => navigate(`/return?order_id=${id}&instrument=${order.instrument_id}`)}
                       className="flex-1 py-3 bg-orange-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                       <RotateCcw size={20} />归还
                     </View>

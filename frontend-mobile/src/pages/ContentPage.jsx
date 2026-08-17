@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import Taro from '@tarojs/taro'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, RichText } from '@tarojs/components'
 import { apiFetch } from '../services/api'
 import { env } from '../platform'
 
 export default function ContentPage() {
-  const params = useParams?.() || Taro.getCurrentInstance().router?.params || {}
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate?.()
-  const key = params.key || ''
+  // 跨端统一 query 约定（#1674）：跳转一律 ?key=
+  const key = searchParams.get('key') || ''
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(true)
 

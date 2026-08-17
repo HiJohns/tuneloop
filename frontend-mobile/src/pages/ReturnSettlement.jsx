@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../services/api'
 import { env, navigation, dialog } from '../platform'
 
 export default function ReturnSettlement() {
+  const [searchParams] = useSearchParams()
   const [orderId, setOrderId] = useState('')
   const [loading, setLoading] = useState(true)
   const [settlement, setSettlement] = useState(null)
@@ -65,13 +67,8 @@ export default function ReturnSettlement() {
   }
 
   useEffect(() => {
-    let id = ''
-    if (env.isMiniProgram) {
-      id = Taro.getCurrentInstance().router?.params?.orderId || ''
-    } else {
-      const m = window.location.pathname.match(/\/return-settlement\/([^/]+)/)
-      id = m ? m[1] : ''
-    }
+    // 跨端统一 query 约定（#1674）：跳转一律 ?order_id=
+    const id = searchParams.get('order_id') || ''
     setOrderId(id)
     if (id) fetchSettlement(id)
     else setLoading(false)

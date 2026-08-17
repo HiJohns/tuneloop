@@ -1,22 +1,21 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { apiFetch } from '../services/api'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
-import { dialog, env, storage, session, uploadFile, getInputValue } from '../platform'
+import { dialog, env, storage, session, uploadFile } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 
 export default function ReceiveConfirm() {
-  const { orderId: routeOrderId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  // H5: /receive/:orderId → useParams；weapp: ?order_id= → searchParams
-  const orderId = routeOrderId || searchParams.get('order_id') || searchParams.get('orderId') || ''
-  const instrumentId = searchParams.get('instrument') || searchParams.get('instrument_id') || ''
+  // 跨端统一 query 约定（#1674）：跳转一律 ?order_id= / ?instrument=
+  const orderId = searchParams.get('order_id') || ''
+  const instrumentId = searchParams.get('instrument') || ''
   const baseUrl = env.apiBaseUrl
 
   const [instrument, setInstrument] = useState(null)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, redirectToLogin, addressesApi, ordersApi, getCartKey } from '../services/api'
 import { ArrowLeft, MapPin, Clock, Calendar, Plus, CheckCircle } from 'lucide-react'
@@ -644,7 +644,7 @@ function SingleCheckout({ id, navigate }) {
           disabled={submitting}
           style={{ width: '100%', paddingTop: 12, paddingBottom: 12, backgroundColor: submitting ? 'rgba(185,142,95,0.5)' : '#B98E5F', color: '#fff', borderRadius: 12, border: 'none', outline: 'none', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          {submitting ? '提交中...' : '提交订单'}
+          {submitting ? '处理中...' : '提交订单'}
         </Button>
       </View>
     </View>
@@ -1134,7 +1134,7 @@ function BatchCheckout({ navigate }) {
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? '提交中...' : `确认支付 ¥${grandTotal.toFixed(2)}`}
+          {submitting ? '处理中...' : `确认支付 ¥${grandTotal.toFixed(2)}`}
         </Button>
       </View>
     </View>
@@ -1142,8 +1142,10 @@ function BatchCheckout({ navigate }) {
 }
 
 export default function Checkout() {
-  const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  // 跨端统一 query 约定（#1674）：单乐器直达结算 ?id=
+  const id = searchParams.get('id') || ''
   if (id) {
     return <SingleCheckout id={id} navigate={navigate} />
   }
