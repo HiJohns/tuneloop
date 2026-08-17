@@ -133,6 +133,17 @@ func PrepayOrder(c *gin.Context) {
 	// amount is ignored (计费以后端为准).
 	sessionFlow := req.OrderType == "membership" && req.SessionID != ""
 	sessionAmount := req.Amount
+
+	// Anonymous guard (#1682 regression): every flow except the two-phase
+	// membership session requires a logged-in user. An empty user_id would
+	// violate the uuid column and (with the previously unchecked Create) the
+	// payment record silently never persisted — the WeChat callback then can
+	// never find the payment and orders stay stuck after a real charge.
+	if !sessionFlow && userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
+		return
+	}
+
 	var session models.RegistrationSession
 	if sessionFlow {
 		if err := db.Where("id = ? AND status = ?", req.SessionID, "pending").First(&session).Error; err != nil {
@@ -282,13 +293,21 @@ func PrepayOrder(c *gin.Context) {
 				record.Status = "failed"
 				fr := err.Error()
 				record.FailReason = &fr
-				db.Create(&record)
+				if err := db.Create(&record).Error; err != nil {
+					log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+					return
+				}
 				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
 				return
 			}
 			record.Method = strPtr("native")
 			record.CodeURL = &result.CodeURL
-			db.Create(&record)
+			if err := db.Create(&record).Error; err != nil {
+				log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+				return
+			}
 			c.JSON(http.StatusOK, gin.H{
 				"code": 20000,
 				"data": PrepayResponse{
@@ -314,13 +333,21 @@ func PrepayOrder(c *gin.Context) {
 			record.Status = "failed"
 			fr := err.Error()
 			record.FailReason = &fr
-			db.Create(&record)
+			if err := db.Create(&record).Error; err != nil {
+				log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
 			return
 		}
 		record.Method = strPtr("jsapi")
 		record.PrepayID = &result.PrepayID
-		db.Create(&record)
+		if err := db.Create(&record).Error; err != nil {
+			log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": PrepayResponse{
@@ -354,13 +381,21 @@ func PrepayOrder(c *gin.Context) {
 			record.Status = "failed"
 			fr := err.Error()
 			record.FailReason = &fr
-			db.Create(&record)
+			if err := db.Create(&record).Error; err != nil {
+				log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
 			return
 		}
 		record.Method = strPtr("jsapi")
 		record.PrepayID = &result.PrepayID
-		db.Create(&record)
+		if err := db.Create(&record).Error; err != nil {
+			log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": PrepayResponse{
@@ -408,13 +443,21 @@ func PrepayOrder(c *gin.Context) {
 			record.Status = "failed"
 			fr := err.Error()
 			record.FailReason = &fr
-			db.Create(&record)
+			if err := db.Create(&record).Error; err != nil {
+				log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment: " + err.Error()})
 			return
 		}
 		record.Method = strPtr("jsapi")
 		record.PrepayID = &result.PrepayID
-		db.Create(&record)
+		if err := db.Create(&record).Error; err != nil {
+			log.Printf("[PrepayOrder] failed to save payment record: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save payment record"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"code": 20000,
 			"data": PrepayResponse{
