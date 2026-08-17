@@ -48,7 +48,12 @@ export default function EditProfile() {
       const resp = await apiFetch(`${baseUrl}/users/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, nickname, phone, email }),
+        body: JSON.stringify({
+          name, nickname, phone, email,
+          // #1686: id photos were never submitted — backend supports them.
+          ...(idPhotoFront ? { id_photo_front: idPhotoFront } : {}),
+          ...(idPhotoBack ? { id_photo_back: idPhotoBack } : {}),
+        }),
       })
       const result = await resp.json()
       if (result.code === 20000) {

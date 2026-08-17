@@ -17,6 +17,15 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
 
   const getToken = () => storage.getItem('token') || session.getItem('token')
 
+  // #1686: backend returns relative /uploads/media/... paths — weapp Image
+  // needs a full URL (same-origin works on H5).
+  const resolveImageUrl = (u) => {
+    if (!u || !u.startsWith('/')) return u
+    if (!env.isMiniProgram) return u
+    const base = (env.apiBaseUrl || '').replace(/\/api$/, '')
+    return base + u
+  }
+
   const uploadToServer = async (fileOrPath) => {
     setUploading(true)
     try {
@@ -159,7 +168,7 @@ const IdPhotoUploader = forwardRef(function IdPhotoUploader({ side, initialUrl =
       {url ? (
         <View className="relative w-32">
           {env.isMiniProgram ? (
-            <Image src={url} mode="aspectFill" className="w-32 h-20 rounded-lg" style={{ width: 128, height: 80 }} />
+            <Image src={resolveImageUrl(url)} mode="aspectFill" className="w-32 h-20 rounded-lg" style={{ width: 128, height: 80 }} />
           ) : (
             <img src={url} alt={`身份证${label}`} className="w-32 h-20 object-cover rounded-lg" />
           )}

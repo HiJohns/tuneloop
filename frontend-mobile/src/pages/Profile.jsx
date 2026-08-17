@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi } from '../services/api'
@@ -81,6 +82,21 @@ function EditProfileModal({ visible, user, onClose, onSave }) {
 
 export default function Profile() {
   const navigate = useNavigate()
+  // #1686: cross-end nav — H5 short path vs weapp full path (Cart.jsx pattern).
+  const nav = (to) => {
+    if (!env.isMiniProgram) { navigate(to); return }
+    const [path, query] = to.split('?')
+    const page = {
+      '/messages': 'messages',
+      '/membership': 'membership',
+      '/setting': 'setting',
+      '/profile/edit': 'profile/edit',
+      '/content': 'content',
+    }[path]
+    if (!page) { navigate(to); return }
+    const url = `/pages-weapp/${page}/index${query ? '?' + query : ''}`
+    Taro.navigateTo({ url })
+  }
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
@@ -232,7 +248,7 @@ export default function Profile() {
 
         {/* 4. 下方通用抽屉式列表 */}
         <View className="mx-4 bg-white rounded-2xl shadow-sm mt-3 p-4 divide-y divide-zinc-100">
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/messages')}>
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/messages')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">✉️</Text>
               <Text className="text-base font-bold text-zinc-800">系统信息</Text>
@@ -242,15 +258,8 @@ export default function Profile() {
               <Text className="text-sm text-zinc-300">❯</Text>
             </View>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60">
-            <View className="flex items-center gap-2">
-              <Text className="text-lg">🎁</Text>
-              <Text className="text-base font-bold text-zinc-800">收藏</Text>
-            </View>
-            <Text className="text-sm text-zinc-300">❯</Text>
-          </View>
           {!isStaff && (
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/membership')}>
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/membership')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">👑</Text>
               <Text className="text-base font-bold text-zinc-800">会员中心</Text>
@@ -258,29 +267,22 @@ export default function Profile() {
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
           )}
-          <View className="flex justify-between items-center py-3.5 active:opacity-60">
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/setting')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">⚙️</Text>
               <Text className="text-base font-bold text-zinc-800">设置</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => navigate('/profile/edit')}>
-            <View className="flex items-center gap-2">
-              <Text className="text-lg">✏️</Text>
-              <Text className="text-base font-bold text-zinc-800">编辑资料</Text>
-            </View>
-            <Text className="text-sm text-zinc-300">❯</Text>
-          </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60">
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/content?key=cooperation')}>
             <View className="flex items-center gap-2">
               <Text className="text-lg">💼</Text>
               <Text className="text-base font-bold text-zinc-800">商务合作</Text>
             </View>
             <Text className="text-sm text-zinc-300">❯</Text>
           </View>
-          <View className="flex justify-between items-center py-3.5 active:opacity-60">
-            <View className="flex items-center gap-2" onClick={() => navigate('/content?key=contact_us')}>
+          <View className="flex justify-between items-center py-3.5 active:opacity-60" onClick={() => nav('/content?key=contact_us')}>
+            <View className="flex items-center gap-2">
               <Text className="text-lg">📞</Text>
               <Text className="text-base font-bold text-zinc-800">联系我们</Text>
             </View>

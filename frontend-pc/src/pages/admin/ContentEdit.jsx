@@ -8,6 +8,12 @@ import { api } from '../../services/api'
 const KEYS = [
   { key: 'rental_notice', title: '租赁须知' },
   { key: 'contact_us', title: '联系我们' },
+  { key: 'cooperation', title: '商务合作' },
+  { key: 'rental_agreement', title: '租用服务协议' },
+  { key: 'user_agreement', title: '用户协议' },
+  { key: 'privacy_policy', title: '隐私协议' },
+  { key: 'digital_certificate', title: '数字证书授权使用协议' },
+  { key: 'damage_standard', title: '《乐器损耗与赔偿标准》细则' },
 ]
 
 // Upload an image via /api/upload and insert its URL at the current cursor.
