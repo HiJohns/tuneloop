@@ -15,7 +15,7 @@ steps:
         page: /checkout
         role: [guest]
         gate: "未登录且点击提交订单/立即租赁"
-        reach: "Checkout 提交 / Detail 立即租赁 → wx.login → GET /auth/wx-accounts"
+        reach: "Detail「立即租赁」/ Cart「去结算」点击时先检查 token（getToken）；无 token → 记 post_auth_redirect 目标 → redirectToLogin('checkout') → wx.login → GET /auth/wx-accounts"
         controls: [提交订单按钮, 立即租赁按钮]
         displays: []
         ops:
@@ -60,6 +60,20 @@ steps:
         controls: []
         displays: []
         ops: []
+    api: {}
+  - seq: 5
+    action: 注册完成后回跳原页面（#1690）
+    frontend:
+      - platform: [weapp]
+        page: /payment
+        role: [guest]
+        gate: "注册支付完成且存在 post_auth_redirect"
+        reach: "会员费支付完成（finishMembershipFlow）→ 读 session.post_auth_redirect（如 /checkout?id=xx）→ 清除标记 → 跳转回原页面；无标记则默认个人中心"
+        controls: []
+        displays: []
+        ops:
+          - {type: navigate, target: "post_auth_redirect（详情/结算页）", gate: "有标记"}
+          - {type: navigate, target: /profile, gate: "无标记"}
     api: {}
 ---
 

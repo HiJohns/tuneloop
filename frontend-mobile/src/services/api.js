@@ -179,6 +179,11 @@ export async function resolveLogin(source = 'profile') {
       // No customer account → register prompt
       const wantRegister = await dialog.confirm('您尚未注册会员，要注册吗？')
       if (wantRegister) {
+        // #1690: keep the origin (post_auth_redirect, written by the entry
+        // before redirectToLogin) so registration completion returns to it.
+        if (!session.getItem('post_auth_redirect')) {
+          session.setItem('post_auth_redirect', '/checkout')
+        }
         navigation.navigateTo(`/pages-weapp/profile-complete/index?mode=member`)
       }
       return false

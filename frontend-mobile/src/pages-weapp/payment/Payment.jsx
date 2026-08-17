@@ -173,6 +173,16 @@ export default function Payment() {
     if (completed) {
       Taro.showToast({ title: '注册成功，正在登录...', icon: 'none', duration: 1500 })
       const ok = await resolveLogin('profile')
+      // #1690: 来源 B（立即租赁/购物车支付）注册完成后回跳原页面
+      const redirect = session.getItem('post_auth_redirect')
+      if (redirect) {
+        session.removeItem('post_auth_redirect')
+        // H5 短路径 → weapp 完整路径（/checkout?id=x → /pages-weapp/checkout/index?id=x）
+        const [path, query] = redirect.split('?')
+        const weappUrl = `/pages-weapp${path}/index${query ? '?' + query : ''}`
+        Taro.redirectTo({ url: weappUrl })
+        return
+      }
       if (ok) Taro.switchTab({ url: '/pages-weapp/profile/index' })
       else Taro.switchTab({ url: '/pages-weapp/home/index' })
     } else {

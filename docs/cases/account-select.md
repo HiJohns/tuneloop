@@ -119,6 +119,19 @@ steps:
           - {type: api, method: GET, path: /auth/wx-accounts, gate: "会话 completed → 重新分流登录"}
           - {type: navigate, target: /profile, gate: "wx-accounts 1 账户 → wx-login-select 登录 → 会员中心"}
     api: {method: GET, path: /auth/registration-sessions/:id/status, params: []}
+  - seq: 6e
+    action: 注册完成回跳原页面（来源 B，#1690）
+    frontend:
+      - platform: [weapp]
+        page: /payment
+        role: [guest]
+        gate: "来源 B（立即租赁/购物车支付）且存在 post_auth_redirect"
+        reach: "支付完成登录后 → 读 session.post_auth_redirect（如 /checkout?id=xx，由入口在 redirectToLogin 前写入）→ 清除标记 → 回跳详情/结算页；无标记 → 默认会员中心"
+        controls: []
+        displays: []
+        ops:
+          - {type: navigate, target: "post_auth_redirect（详情/结算页）", gate: "有标记"}
+    api: {}
   - seq: 6d
     action: 未支付完成重进 → 继续完成注册
     frontend:

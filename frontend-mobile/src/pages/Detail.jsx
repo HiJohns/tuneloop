@@ -4,7 +4,7 @@ import { instrumentsApi, getToken, apiFetch, redirectToLogin, getCartKey } from 
 import { ArrowLeft, Shield, Clock, AlertCircle, MapPin, Bell, CheckCircle, X, ShoppingCart } from 'lucide-react'
 import { Switch, Tag } from 'antd'
 import dayjs from 'dayjs'
-import { env, storage, eventBus, getWindowSize, previewImage } from '../platform'
+import { env, storage, session, eventBus, getWindowSize, previewImage } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import { calculateDays } from '../utils/daycalc'
 import { View, Text, Image, Button, Video, ScrollView } from '@tarojs/components'
@@ -104,6 +104,18 @@ export default function Detail() {
       setCartBouncing(true)
       setTimeout(() => setCartBouncing(false), 600)
     } catch {}
+  }
+
+  // 立即租赁入口登录检查（#1690）：游客点击时先记回跳目标再走登录分流，
+  // 避免直接跳 checkout 后 prepay 匿名 401（对齐 Cart.jsx handleCheckout）。
+  const handleRentNow = () => {
+    const token = getToken()
+    if (!token) {
+      session.setItem('post_auth_redirect', `/checkout?id=${id}`)
+      redirectToLogin('checkout')
+      return
+    }
+    navigate(`/checkout?id=${id}`)
   }
 
   useEffect(() => {
@@ -452,7 +464,7 @@ export default function Detail() {
                 <Text className="text-white font-black text-base">{isInCart ? '已加入购物车' : '加入购物车'}</Text>
               </View>
               <View
-                onClick={() => navigate(`/checkout?id=${id}`)}
+                onClick={handleRentNow}
                 className="flex-1 h-12 rounded-full shadow-sm flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg, #FA5E3C, #E63917)' }}
               >
