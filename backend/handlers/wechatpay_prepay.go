@@ -21,7 +21,7 @@ import (
 type PrepayRequest struct {
 	OrderID    string  `json:"order_id"`                      // required for rent/repair/damage; empty allowed for renewal/membership
 	OrderType  string  `json:"order_type" binding:"required"` // rent | repair | damage | renewal | membership
-	Amount     float64 `json:"amount" binding:"required"`
+	Amount     float64 `json:"amount"`                        // membership: client base fee ignored — server re-prices from session+coupon (#1682)
 	OpenID     string  `json:"open_id,omitempty"`
 	GiftUsed   float64 `json:"gift_used"`
 	SessionID  string  `json:"session_id,omitempty"`  // membership: two-phase registration session (#1663)
@@ -185,6 +185,14 @@ func PrepayOrder(c *gin.Context) {
 				record.RawResponse = &rawStr
 			}
 		}
+	}
+
+	// Zero-amount guard (#1682): the membership session flow re-prices
+	// server-side (coupon OREZ → 0 waive handled below); every other flow
+	// must carry a positive amount — a 0-amount real WeChat order is invalid.
+	if !sessionFlow && req.Amount <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "amount must be positive"})
+		return
 	}
 
 	if cfg.MockMode {

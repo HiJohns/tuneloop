@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, resolveLogin } from '../../services/api'
@@ -33,6 +33,10 @@ export default function Payment() {
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponAmount, setCouponAmount] = useState(pAmount)
+  // #1682: sync ref — weapp controlled Input setState is async; clicking
+  // 应用 right after typing reads the stale state. The ref always holds the
+  // latest input value at click time.
+  const couponInputRef = useRef('')
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -115,7 +119,7 @@ export default function Payment() {
     : Math.max(0, displayAmount - giftUsed)
 
   const applyCoupon = () => {
-    const code = (couponCode || '').trim().toUpperCase()
+    const code = (couponInputRef.current || couponCode || '').trim().toUpperCase()
     if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
     if (code === 'OREZ') {
       setAppliedCoupon({ code, hint: '已应用，会员费全额免除' })
@@ -157,12 +161,18 @@ export default function Payment() {
   const doPrepay = async (amountOverride) => {
     // openid 由后端解析（#1678）：membership 两阶段流程创建 session 时已
     // 解析并存储微信身份，prepay 无需前端传递 open_id。
+    // #1682: membership 始终提交原金额（base fee）——优惠码由后端服务端
+    // 重算（OREZ → 0 走 waive 分支直接记账建号，ENO → 1%）。传 0 会触发
+    // amount 校验失败，根本到不了 waive 分支。
+    const payAmount = pType === 'membership'
+      ? (data?.amount || 0)
+      : (amountOverride !== undefined ? amountOverride : cashAmount)
     const body = {
       order_id: pId,
       order_type: pType,
-      amount: amountOverride !== undefined ? amountOverride : cashAmount,
+      amount: payAmount,
       open_id: '',
-      gift_used: giftUsed,
+      gift_used: pType === 'membership' ? 0 : giftUsed,
     }
     if (pType === 'membership' && pSessionId) {
       body.session_id = pSessionId
@@ -187,7 +197,7 @@ export default function Payment() {
         // record and completes the session (same path as the wechat callback).
         setIsPaying(true)
         try {
-          const result = await doPrepay(0)
+          const result = await doPrepay()
           if (result.code === 20000) {
             Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
             setTimeout(finishMembershipFlow, 2000)
@@ -458,7 +468,7 @@ export default function Payment() {
             <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Input
                 value={couponCode}
-                onInput={e => setCouponCode(e.detail.value)}
+                onInput={e => { couponInputRef.current = e.detail.value; setCouponCode(e.detail.value) }}
                 placeholder="输入优惠码（测试：OREZ / ENO）"
                 placeholderStyle="color:#a1a1aa;font-size:12px"
                 style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 10, padding: '8px 12px', fontSize: 13 }}
