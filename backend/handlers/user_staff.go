@@ -696,6 +696,18 @@ func (h *UserStaffHandler) GetCurrentUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
 
+	if userID == "" {
+		// Anonymous (#1681 regression): OptionalIAMInterceptor passes through
+		// requests without a token; /users/me must not fabricate an empty user
+		// object — the frontend relies on a non-20000 code to render the guest
+		// state ("注册为会员" entry) instead of a hollow "路人" profile.
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    40104,
+			"message": "not logged in",
+		})
+		return
+	}
+
 	db := database.GetDB().WithContext(ctx)
 
 	var user models.User
