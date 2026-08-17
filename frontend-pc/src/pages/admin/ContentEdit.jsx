@@ -51,6 +51,10 @@ export default function ContentEdit() {
   const [loading, setLoading] = useState({})
   const [values, setValues] = useState({})
   const quillRefs = useRef({})
+  // #1687: keystrokes must NOT re-render the parent — any re-render rebuilds
+  // the Quill editor and the box disappears. onChange writes to this ref only;
+  // save() reads from it.
+  const draftRefs = useRef({})
 
   useEffect(() => {
     KEYS.forEach(k => load(k.key))
@@ -70,7 +74,7 @@ export default function ContentEdit() {
   const save = async (key) => {
     setLoading(prev => ({ ...prev, [key]: true }))
     try {
-      const res = await api.put(`/admin/content/${key}`, { value: values[key] || '' })
+      const res = await api.put(`/admin/content/${key}`, { value: draftRefs.current[key] ?? values[key] ?? '' })
       if (res.code === 20000) {
         message.success(`${KEYS.find(k => k.key === key)?.title}已保存`)
       } else { message.error(res.message || '保存失败') }
@@ -83,14 +87,14 @@ export default function ContentEdit() {
     label: k.title,
     children: (
       <div>
-        {loading[k.key] ? <div style={{ padding: 24, color: '#999' }}>加载中...</div> : (
+        {loading[k.key] !== false ? <div style={{ padding: 24, color: '#999' }}>加载中...</div> : (
         <ReactQuill
           ref={el => { quillRefs.current[k.key] = el }}
           theme="snow"
           // Uncontrolled (#1687 regression): controlled value+onChange causes
           // the editor to rebuild on every keystroke — the box disappears.
           defaultValue={values[k.key] || ''}
-          onChange={val => setValues(prev => ({ ...prev, [k.key]: val }))}
+          onChange={val => { draftRefs.current[k.key] = val }}
           placeholder={`请输入${k.title}内容`}
           style={{ marginBottom: 12, height: 300 }}
           modules={{
