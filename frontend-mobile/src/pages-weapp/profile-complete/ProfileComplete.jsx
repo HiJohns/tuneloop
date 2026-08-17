@@ -56,6 +56,15 @@ export default function ProfileComplete() {
             if (f.nickname) setNickname(f.nickname)
             if (f.phone) setPhone(f.phone)
             if (f.email) setEmail(f.email)
+            // Resume the shipping address too — the form was fully filled
+            // before; only the basic fields were restored previously.
+            if (f.address) {
+              if (f.address.province) setProvince(f.address.province)
+              if (f.address.city) setCity(f.address.city)
+              if (f.address.district) setDistrict(f.address.district)
+              if (f.address.detail) setDetail(f.address.detail)
+              if (f.address.postal_code) setPostalCode(f.address.postal_code)
+            }
           }
           if (res.code === 20000 && res.data?.amount) setSessionAmount(res.data.amount)
         })
