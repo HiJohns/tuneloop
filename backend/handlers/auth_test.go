@@ -244,6 +244,20 @@ func newRegisterMockServer(t *testing.T, newUserID, name string) *httptest.Serve
 		}
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	})
+	// PUT /api/v1/users/:id — init → active activation (#1682/#1688).
+	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"user_id": newUserID,
+					"status":  "active",
+				},
+			})
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
 	return httptest.NewServer(mux)
 }
 

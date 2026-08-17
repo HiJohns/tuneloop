@@ -150,6 +150,12 @@ func PrepayOrder(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "registration session not found or not pending"})
 			return
 		}
+		// #1688: the payment record's user_id must reference the reserved
+		// local user (consumption records queryable after activation), not
+		// the zero UUID.
+		if session.LocalUserID != nil {
+			record.UserID = *session.LocalUserID
+		}
 		amount := session.Amount
 		couponCode := ""
 		if req.CouponCode != "" {

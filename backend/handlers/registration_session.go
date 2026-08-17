@@ -20,6 +20,8 @@ import (
 type RegistrationSessionHandler struct {
 	db         *gorm.DB
 	iamService *services.IAMService
+	// iamClient is injectable for tests (#1688); nil → NewIAMClient().
+	iamClient *services.IAMClient
 }
 
 func NewRegistrationSessionHandler(db *gorm.DB) *RegistrationSessionHandler {
@@ -27,6 +29,20 @@ func NewRegistrationSessionHandler(db *gorm.DB) *RegistrationSessionHandler {
 		db:         db,
 		iamService: services.NewIAMService(),
 	}
+}
+
+// setIAMClient overrides the IAM client used for init-user reservation
+// (tests only, #1688).
+func (h *RegistrationSessionHandler) setIAMClient(c *services.IAMClient) {
+	h.iamClient = c
+}
+
+// iamClientFor returns the injectable client or a fresh default one.
+func (h *RegistrationSessionHandler) iamClientFor() *services.IAMClient {
+	if h.iamClient != nil {
+		return h.iamClient
+	}
+	return services.NewIAMClient()
 }
 
 // CreateRegistrationSession handles POST /api/auth/registration-sessions.
@@ -72,7 +88,7 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	// unique indexes) — a conflicting registration is rejected here, before
 	// any payment happens, instead of failing at the payment callback.
 	// init users cannot log in (IAM requires status=active).
-	iamClient := services.NewIAMClient()
+	iamClient := h.iamClientFor()
 	reserveReq := &services.CreateUserRequest{
 		Username: form.Phone,
 		Name:     form.Name,
@@ -100,13 +116,42 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 	}
 	session.IAMUserID = &reserveResp.UserID
 
+	// Reserve the local users cache alongside the IAM user (#1688): the
+	// payment record's user_id must reference the real local user so the
+	// customer can query their membership-fee consumption later. The cache is
+	// created with status=init now and activated (status→active + gift
+	// points/referral) at the payment callback. Best-effort with rollback:
+	// if the local insert fails, purge the IAM reservation.
+	localUser := models.User{
+		IAMSub:             reserveResp.UserID,
+		TenantID:           "00000000-0000-0000-0000-000000000000",
+		OrgID:              "00000000-0000-0000-0000-000000000000",
+		Username:           form.Phone,
+		Name:               form.Name,
+		Nickname:           form.Nickname,
+		Phone:              form.Phone,
+		Email:              form.Email,
+		Role:               "USER",
+		Status:             "init",
+		IsProfileCompleted: true,
+	}
+	if err := h.db.Create(&localUser).Error; err != nil {
+		if purgeErr := iamClient.PurgeUser(reserveResp.UserID); purgeErr != nil {
+			log.Printf("[RegistrationSession] rollback purge failed for %s: %v", reserveResp.UserID, purgeErr)
+		}
+		log.Printf("[RegistrationSession] local user reservation failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "注册失败，请稍后重试"})
+		return
+	}
+	session.LocalUserID = &localUser.ID
+
 	// Resolve openid when a WeChat code is provided (used by
 	// GetMyRegistrationSession to resume a pending session). wx-accounts mints
 	// a fresh single-use exchange_token on every call (#1682): the token the
 	// frontend captured earlier can expire before the payment callback runs,
 	// so the freshest token replaces the session one.
 	if req.WxCode != "" || req.ExchangeToken != "" {
-		if res, err := h.resolveOpenidResult(req.WxCode); err == nil {
+		if res, err := h.resolveOpenidResult(req.WxCode); err == nil && res != nil {
 			session.OpenID = res.OpenID
 			if res.ExchangeToken != "" {
 				session.ExchangeToken = res.ExchangeToken

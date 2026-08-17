@@ -29,11 +29,28 @@ func seedSession(t *testing.T, db *gorm.DB, openid, exchangeToken string, amount
 		ID:            uuid.New().String(),
 		OpenID:        openid,
 		ExchangeToken: exchangeToken,
+		IAMUserID:     strPtr("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+		LocalUserID:   strPtr("11111111-2222-3333-4444-555555555555"),
 		FormData:      marshalForm(form),
 		Amount:        amount,
 		Status:        "pending",
 	}
 	require.NoError(t, db.Create(&s).Error)
+
+	// #1688: the local users cache is reserved alongside the session
+	// (status=init) — mirrors CreateRegistrationSession.
+	require.NoError(t, db.Create(&models.User{
+		ID:                 "11111111-2222-3333-4444-555555555555",
+		IAMSub:             "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+		TenantID:           "00000000-0000-0000-0000-000000000000",
+		OrgID:              "00000000-0000-0000-0000-000000000000",
+		Username:           "13800139000",
+		Name:               "测试会员",
+		Phone:              "13800139000",
+		Role:               "USER",
+		Status:             "init",
+		IsProfileCompleted: true,
+	}).Error)
 	return s
 }
 
@@ -49,8 +66,36 @@ func TestCreateRegistrationSession(t *testing.T) {
 		SettingValue: "99",
 	}).Error)
 
+	// IAM mock (#1688): CreateUser returns a reserved user id; PurgeUser ok.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/users":
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"user_id": "11111111-2222-3333-4444-555555555555",
+				"status":  "init",
+			})
+		case "/oauth/token", "/api/v1/auth/token":
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"access_token": "mock-client-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	// Point the injected client at the mock server.
+	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+
+	h := NewRegistrationSessionHandler(db)
+	h.setIAMClient(services.NewIAMClientWithCredentials("mock-client", "mock-secret"))
+
 	router := gin.New()
-	router.POST("/api/auth/registration-sessions", NewRegistrationSessionHandler(db).CreateRegistrationSession)
+	router.POST("/api/auth/registration-sessions", h.CreateRegistrationSession)
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"nickname":       "微信昵称",
@@ -91,10 +136,12 @@ func TestCreateRegistrationSession(t *testing.T) {
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	// No orphan users before payment.
-	var userCount int64
-	require.NoError(t, db.Model(&models.User{}).Count(&userCount).Error)
-	assert.Equal(t, int64(0), userCount, "no users before payment (no orphans)")
+	// #1688: one reserved local user (status=init) exists before payment —
+	// the payment record references it; activation happens at the callback.
+	var reserved models.User
+	require.NoError(t, db.Where("status = ?", "init").First(&reserved).Error)
+	assert.Equal(t, "13800139000", reserved.Phone)
+	assert.Equal(t, "11111111-2222-3333-4444-555555555555", reserved.IAMSub, "local cache linked to IAM init user")
 }
 
 // TestGetMyRegistrationSession covers resume-by-openid (?code=) and
@@ -295,6 +342,43 @@ func TestPrepayMembershipWithCoupon_OREZ(t *testing.T) {
 
 	// Registration gift points credited.
 	assert.Equal(t, 99.0, user.PromoPoints, "registration gift points")
+}
+
+// TestPrepayMembership_RecordUserIDReferencesReservedLocalUser verifies
+// #1688: the membership payment record's user_id is the reserved local
+// user id (not the zero UUID), so consumption records stay queryable.
+func TestPrepayMembership_RecordUserIDReferencesReservedLocalUser(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	testfixtures.SetupWechatPayMock(t)
+	db := testfixtures.SetupTestDB(t)
+
+	t.Setenv("IAM_SECRET", testIAMSecret)
+	t.Setenv("IAM_NAMESPACE", "test-ns")
+	newUserID := "6d1e2c3a-0000-4000-8000-0000000000e2"
+	srv := newRegisterMockServer(t, newUserID, "ReservedUser")
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+
+	s := seedSession(t, db, "openid-reserved-001", "exch-reserved-001", 99.0)
+
+	router := gin.New()
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	prepayBody, _ := json.Marshal(map[string]interface{}{
+		"order_type": "membership",
+		"amount":     99.0,
+		"session_id": s.ID,
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
+
+	var record models.OrderPaymentRecord
+	require.NoError(t, db.Where("session_id = ?", s.ID).First(&record).Error)
+	assert.Equal(t, "11111111-2222-3333-4444-555555555555", record.UserID,
+		"payment record user_id must reference the reserved local user (#1688)")
 }
 
 // TestPrepayMembershipWithCoupon_ENO covers the percent coupon: the fee is

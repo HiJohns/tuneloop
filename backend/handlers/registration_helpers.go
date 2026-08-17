@@ -123,8 +123,16 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 		return nil
 	}
 
-	refCode := newUser.ID[:8]
-	db.Model(&newUser).Update("ref_code", refCode)
+	grantRegistrationRewards(db, &newUser, form)
+	return &newUser
+}
+
+// grantRegistrationRewards credits ref_code, registration gift points and
+// the referral bonus on a local user (shared by the legacy create path and
+// the #1688 reserved-user activation path).
+func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm) {
+	refCode := user.ID[:8]
+	db.Model(user).Update("ref_code", refCode)
 
 	// Membership registration gift points (#1533): default 99, configurable
 	// via system_settings membership_gift_points.
@@ -136,11 +144,11 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 		}
 	}
 	if giftPoints > 0 {
-		db.Model(&newUser).Update("promo_points", gorm.Expr("promo_points + ?", giftPoints))
+		db.Model(user).Update("promo_points", gorm.Expr("promo_points + ?", giftPoints))
 		db.Create(&models.PointsTransaction{
 			ID:          uuid.New().String(),
-			UserID:      newUser.ID,
-			TenantID:    newUser.TenantID,
+			UserID:      user.ID,
+			TenantID:    user.TenantID,
 			Type:        "registration",
 			Amount:      giftPoints,
 			Description: "会员注册赠点",
@@ -154,7 +162,7 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 		if db.Where("ref_code = ?", form.Ref).First(&referrer).Error == nil {
 			db.Create(&models.Referral{
 				ReferrerID: referrer.ID,
-				RefereeID:  newUser.ID,
+				RefereeID:  user.ID,
 				RefCode:    form.Ref,
 				Status:     "registered",
 			})
@@ -170,14 +178,35 @@ func syncLocalUserAndRewards(db *gorm.DB, iamUserID, tenantID, orgID, openid str
 						TenantID:    referrer.TenantID,
 						Type:        "referral_reg",
 						Amount:      ratios.ReferralRegPoints,
-						Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
+						Description: fmt.Sprintf("介绍新用户注册奖励 %s", user.Username),
 						CreatedAt:   time.Now(),
 					})
 				}
 			}
 		}
 	}
-	return &newUser
+}
+
+// activateReservedLocalUser (#1688): the local users cache was reserved with
+// status=init at session creation — activate it (status→active, bind openid)
+// and grant the registration rewards. Best-effort cache; IAM is authoritative.
+func activateReservedLocalUser(db *gorm.DB, session *models.RegistrationSession, openid string, form *registerForm) *models.User {
+	if session.LocalUserID == nil {
+		return nil
+	}
+	var user models.User
+	if err := db.Where("id = ?", *session.LocalUserID).First(&user).Error; err != nil {
+		log.Printf("[register helper] reserved local user %s not found: %v", *session.LocalUserID, err)
+		return nil
+	}
+	db.Model(&user).Updates(map[string]interface{}{
+		"status":              "active",
+		"wx_openid":           openid,
+		"onboarding_completed": true,
+		"updated_at":          time.Now(),
+	})
+	grantRegistrationRewards(db, &user, form)
+	return &user
 }
 
 // getMembershipFee returns the membership registration fee from
@@ -245,7 +274,14 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 
 	// Local users cache + registration gift points + referral bonus
 	// (best-effort local cache; IAM is the source of truth).
-	localUser := syncLocalUserAndRewards(tx, userID, "", "", openid, &form)
+	var localUser *models.User
+	if session.LocalUserID != nil {
+		// #1688: reserved at session creation — activate the existing cache
+		// record (payment record already references this user_id).
+		localUser = activateReservedLocalUser(tx, &session, openid, &form)
+	} else {
+		localUser = syncLocalUserAndRewards(tx, userID, "", "", openid, &form)
+	}
 	if localUser != nil {
 		activateMembershipLevelForAmount(tx, localUser.ID, record.Amount)
 	}
