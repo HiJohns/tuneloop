@@ -5,7 +5,7 @@ import Taro from '@tarojs/taro'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { calculateDays } from '../utils/daycalc'
-import { dialog, env, storage, session, uploadFile } from '../platform'
+import { dialog, env, storage, session, uploadFile, toWeappRoute } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
@@ -13,6 +13,16 @@ import LeaseInfo from '../components/LeaseInfo'
 export default function ReceiveConfirm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  // Cross-end navigation (issue-1673): weapp has no react-router short paths;
+  // central toWeappRoute maps H5 paths → /pages-weapp/... page urls.
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
   // 跨端统一 query 约定（#1674）：跳转一律 ?order_id= / ?instrument=
   const orderId = searchParams.get('order_id') || ''
   const instrumentId = searchParams.get('instrument') || ''
@@ -129,7 +139,7 @@ export default function ReceiveConfirm() {
         </View>
       )}
 
-      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => nav(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
         <LeaseInfo

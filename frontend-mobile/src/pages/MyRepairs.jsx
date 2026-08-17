@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Input } from '@tarojs/components'
-import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
-import { env } from '../platform'
+import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { env, dialog, toWeappRoute } from '../platform'
 import BottomNav from '../components/BottomNav'
 import BottomNavWeapp from '../components-weapp/BottomNav'
 
@@ -17,6 +17,16 @@ const statusLabels = {
 
 export default function MyRepairs() {
   const navigate = useNavigate()
+  // Cross-end navigation (issue-1673): weapp has no react-router short paths;
+  // central toWeappRoute maps H5 paths → /pages-weapp/... page urls.
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
   const [snInput, setSnInput] = useState('')
   const [myRepairs, setMyRepairs] = useState([])
   const [pendingRepairs, setPendingRepairs] = useState([])
@@ -87,7 +97,7 @@ export default function MyRepairs() {
 
   const handleSearch = () => {
     if (!snInput.trim()) return
-    navigate(`/repair?instrument_id=${snInput.trim()}`)
+    nav(`/repair?instrument_id=${snInput.trim()}`)
   }
 
   const handleShipBack = async (id) => {
@@ -139,7 +149,7 @@ export default function MyRepairs() {
               <View className="space-y-2">
                 {repairRequests.map(r => (
                   <View key={r.id} className="border border-zinc-100 rounded-xl p-3 space-y-1 active:opacity-80"
-                    onClick={() => navigate(`/repair-request?request_id=${r.id}`)}>
+                    onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
                       <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
                       <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
@@ -175,7 +185,7 @@ export default function MyRepairs() {
               </View>
             )}
           </View>
-          <Button onClick={() => navigate('/create-repair')}
+          <Button onClick={() => nav('/create-repair')}
             className="fixed bottom-20 right-4 w-14 h-14 bg-black text-white rounded-full text-2xl font-bold shadow-lg flex items-center justify-center z-50">+</Button>
           </>
         )}
@@ -193,7 +203,7 @@ export default function MyRepairs() {
               <View className="space-y-2">
                 {myRepairs.map(inst => (
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
-                    onClick={() => navigate(`/repair?instrument_id=${inst.id}`)}>
+                    onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
                     <Text className="text-xs text-zinc-400 mt-1">
                       状态: {inst.repair_status === 'repair_in_progress' ? '维修中' : inst.repair_status}
@@ -211,7 +221,7 @@ export default function MyRepairs() {
               <View className="space-y-2">
                 {repairRequests.map(r => (
                   <View key={r.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
-                    onClick={() => navigate(`/repair-request?request_id=${r.id}`)}>
+                    onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <Text className="text-sm font-bold text-black">#{r.id?.slice(0, 8)}</Text>
                     <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
                   </View>
@@ -227,7 +237,7 @@ export default function MyRepairs() {
               <View className="space-y-2">
                 {pendingRepairs.map(inst => (
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80"
-                    onClick={() => navigate(`/repair?instrument_id=${inst.id}`)}>
+                    onClick={() => nav(`/repair?instrument_id=${inst.id}`)}>
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
                     <Text className="text-xs text-zinc-400">{inst.category_name || ''}</Text>
                     <Button className="mt-2 py-1.5 bg-black text-white rounded-lg text-xs font-bold">接单</Button>
@@ -255,7 +265,7 @@ export default function MyRepairs() {
               <View className="space-y-2">
                 {repairRequests.map(r => (
                   <View key={r.id} className="border border-zinc-100 rounded-xl p-3 space-y-1 active:opacity-80"
-                    onClick={() => navigate(`/repair-request?request_id=${r.id}`)}>
+                    onClick={() => nav(`/repair-request?request_id=${r.id}`)}>
                     <View className="flex justify-between items-center">
                       <Text className="text-sm font-bold text-black">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '#' + r.id?.slice(0, 8)}</Text>
                       <Text className="text-xs text-zinc-400">{statusLabels[r.status] || r.status}</Text>
@@ -298,7 +308,7 @@ export default function MyRepairs() {
                   <View key={inst.id} className="border border-zinc-100 rounded-xl p-3 active:opacity-80">
                     <Text className="text-sm font-bold text-black">{inst.sn || '未知SN'}</Text>
                     <Text className="text-xs text-zinc-400">{inst.category_name || ''}</Text>
-                    <Button onClick={() => navigate(`/repair?instrument_id=${inst.id}`)}
+                    <Button onClick={() => nav(`/repair?instrument_id=${inst.id}`)}
                       className="mt-2 py-1.5 bg-black text-white rounded-lg text-xs font-bold">查看</Button>
                   </View>
                 ))}

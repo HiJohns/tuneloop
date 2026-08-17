@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Button, Image, Canvas, Input } from '@tarojs/components'
-import { apiFetch, addressesApi , resolveErrorMessage } from '../services/api'
-import { env, dialog } from '../platform'
+import { apiFetch, addressesApi, resolveErrorMessage } from '../services/api'
+import { env, dialog, toWeappRoute } from '../platform'
 import { useNavigate } from 'react-router-dom'
 import regions from '../data/regions.json'
 import QRCode from 'qrcode'
@@ -23,6 +23,16 @@ export default function MembershipCenter() {
   const [showQR, setShowQR] = useState(false)
   const [refCode, setRefCode] = useState('')
   const navigate = useNavigate()
+  // Cross-end navigation (issue-1673): weapp has no react-router short paths;
+  // central toWeappRoute maps H5 paths → /pages-weapp/... page urls.
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
   const baseUrl = env.apiBaseUrl
 
   const handleGetPromo = async () => {
@@ -204,6 +214,7 @@ export default function MembershipCenter() {
           </View>
           </View>
         </View>
+
 
 
         {/* Promo QR code */}

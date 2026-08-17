@@ -198,3 +198,5 @@ export const getPhoneNumber = (e) => {
 
 // Weapp: Taro Input component fires e.detail.value.
 export const getInputValue = (e) => e.detail?.value ?? ''
+
+export { toWeappRoute } from './navigation'

@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { View, Text, Button, ScrollView, Input, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ArrowLeft, CheckCircle, Camera, Truck } from 'lucide-react'
-import { getToken, redirectToLogin, apiFetch , resolveErrorMessage } from '../services/api'
-import { dialog, env, uploadFile, getInputValue } from '../platform'
+import { getToken, redirectToLogin, apiFetch, resolveErrorMessage } from '../services/api'
+import { dialog, env, uploadFile, getInputValue, toWeappRoute } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import OrderTimeline from '../components/OrderTimeline'
@@ -12,6 +12,16 @@ import OrderTimeline from '../components/OrderTimeline'
 export default function ReturnConfirm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  // Cross-end navigation (issue-1673): weapp has no react-router short paths;
+  // central toWeappRoute maps H5 paths → /pages-weapp/... page urls.
+  const nav = (to) => {
+    if (!env.isMiniProgram) return navigate(to)
+    if (to === -1) return Taro.navigateBack()
+    const route = toWeappRoute(to)
+    if (!route) { dialog.alert('该功能请在 H5 端使用'); return }
+    if (route.type === 'switchTab') return Taro.switchTab({ url: route.url })
+    return Taro.navigateTo({ url: route.url })
+  }
   // 跨端统一 query 约定（#1674）：跳转一律 ?order_id= / ?instrument=
   const orderId = searchParams.get('order_id') || ''
   const instrumentId = searchParams.get('instrument') || ''
@@ -132,7 +142,7 @@ export default function ReturnConfirm() {
       )}
 
       <ScrollView>
-      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => navigate(`/instrument/${instrument.id}`)} />}</View>
+      <View className="mx-4">{instrument && <InstrumentInfo instrument={instrument} onClick={() => nav(`/instrument/${instrument.id}`)} />}</View>
 
       {order && (
         <>

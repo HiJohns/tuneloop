@@ -165,3 +165,5 @@ export const env = {
 }
 export const wxLogin = () => Promise.resolve('')
 export const getPhoneNumber = () => ({ encryptedData: '', iv: '' })
+
+export { toWeappRoute } from './navigation'
