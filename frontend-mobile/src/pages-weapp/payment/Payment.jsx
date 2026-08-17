@@ -119,7 +119,19 @@ export default function Payment() {
     : Math.max(0, displayAmount - giftUsed)
 
   const applyCoupon = () => {
-    const code = (couponInputRef.current || couponCode || '').trim().toUpperCase()
+    const rawInput = couponInputRef.current
+    const rawState = couponCode
+    const code = (rawInput || rawState || '').trim().toUpperCase()
+    // #1682 debug: first-click coupon may not apply — log the exact input
+    // state at click time (ref vs state race) and the resulting branch.
+    console.warn('[payment/coupon] applyCoupon click', {
+      rawInput,
+      rawState,
+      code,
+      pAmount,
+      appliedBefore: !!appliedCoupon,
+      ts: Date.now(),
+    })
     if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
     if (code === 'OREZ') {
       setAppliedCoupon({ code, hint: '已应用，会员费全额免除' })
@@ -178,6 +190,15 @@ export default function Payment() {
       body.session_id = pSessionId
       if (appliedCoupon) body.coupon_code = appliedCoupon.code
     }
+    // #1682 debug: what exactly reaches the server on prepay
+    console.warn('[payment/prepay] body', {
+      ...body,
+      appliedCoupon,
+      couponCode,
+      couponAmount,
+      displayAmount: pType === 'membership' && appliedCoupon ? couponAmount : data?.amount,
+      ts: Date.now(),
+    })
     const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
       method: 'POST',
       body: JSON.stringify(body),
