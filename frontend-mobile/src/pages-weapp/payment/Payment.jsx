@@ -119,29 +119,40 @@ export default function Payment() {
     : Math.max(0, displayAmount - giftUsed)
 
   const applyCoupon = () => {
-    const rawInput = couponInputRef.current
-    const rawState = couponCode
-    const code = (rawInput || rawState || '').trim().toUpperCase()
-    // #1682 debug: first-click coupon may not apply — log the exact input
-    // state at click time (ref vs state race) and the resulting branch.
-    console.warn('[payment/coupon] applyCoupon click', {
-      rawInput,
-      rawState,
-      code,
-      pAmount,
-      appliedBefore: !!appliedCoupon,
-      ts: Date.now(),
-    })
-    if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
-    if (code === 'OREZ') {
-      setAppliedCoupon({ code, hint: '已应用，会员费全额免除' })
-      setCouponAmount(0)
-    } else if (code === 'ENO') {
-      setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + Number(pAmount * 0.01).toFixed(2) })
-      setCouponAmount(Math.round(pAmount * 0.01 * 100) / 100)
-    } else {
-      Taro.showToast({ title: '优惠码无效（仅支持 OREZ / ENO）', icon: 'none' })
+    const tryApply = () => {
+      const rawInput = couponInputRef.current
+      const rawState = couponCode
+      const code = (rawInput || rawState || '').trim().toUpperCase()
+      // #1682 debug: first-click coupon may not apply — log the exact input
+      // state at click time (ref vs state race) and the resulting branch.
+      console.warn('[payment/coupon] applyCoupon click', {
+        rawInput,
+        rawState,
+        code,
+        pAmount,
+        appliedBefore: !!appliedCoupon,
+        ts: Date.now(),
+      })
+      if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
+      if (code === 'OREZ') {
+        setAppliedCoupon({ code, hint: '已应用，会员费全额免除' })
+        setCouponAmount(0)
+      } else if (code === 'ENO') {
+        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + Number(pAmount * 0.01).toFixed(2) })
+        setCouponAmount(Math.round(pAmount * 0.01 * 100) / 100)
+      } else {
+        Taro.showToast({ title: '优惠码无效（仅支持 OREZ / ENO）', icon: 'none' })
+      }
     }
+    // Fast typing + immediate tap: the last input event may still be in
+    // flight when the tap is handled (ref/state both empty). Retry once
+    // after 150ms — the input event lands well within that window.
+    if (!couponInputRef.current && !couponCode) {
+      console.warn('[payment/coupon] input state empty at click, retrying in 150ms', { ts: Date.now() })
+      setTimeout(tryApply, 150)
+      return
+    }
+    tryApply()
   }
 
   // Two-phase registration (#1663): after the membership fee is paid the
@@ -488,7 +499,7 @@ export default function Payment() {
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>优惠码</Text>
             <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Input
-                value={couponCode}
+                defaultValue={couponCode}
                 onInput={e => { couponInputRef.current = e.detail.value; setCouponCode(e.detail.value) }}
                 placeholder="输入优惠码（测试：OREZ / ENO）"
                 placeholderStyle="color:#a1a1aa;font-size:12px"
