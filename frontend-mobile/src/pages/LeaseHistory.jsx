@@ -10,6 +10,8 @@ const STATUS_LABELS = {
   pending: '待付款', paid: '待发货', shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
   cancelled: '已取消', expired: '超期', transferred: '已过户',
+  damage_appealing: '定损申诉', pending_damage_response: '待回应定损',
+  deposit_refunding: '押金退款中',
 }
 
 const STATUS_COLORS = {

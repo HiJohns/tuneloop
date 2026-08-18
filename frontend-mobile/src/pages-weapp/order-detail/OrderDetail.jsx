@@ -22,6 +22,9 @@ const STATUS = {
   cancelled: { color: '#ef4444', label: '已取消' },
   expired: { color: '#ef4444', label: '超期' },
   transferred: { color: '#a855f7', label: '已过户' },
+  damage_appealing: { color: '#f59e0b', label: '定损申诉' },
+  pending_damage_response: { color: '#ef4444', label: '待回应定损' },
+  deposit_refunding: { color: '#f59e0b', label: '押金退款中' },
 }
 
 const EVENT_LABELS = {

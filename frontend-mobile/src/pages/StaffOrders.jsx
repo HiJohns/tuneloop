@@ -39,6 +39,8 @@ const STATUS_LABELS = {
   in_transit: '运输中', shipped: '已发货', in_lease: '租赁中',
   returning: '归还中', returned: '已归还', completed: '已完成',
   cancelled: '已取消', expired: '超期', transferred: '已过户',
+  damage_appealing: '定损申诉', pending_damage_response: '待回应定损',
+  deposit_refunding: '押金退款中',
 }
 
 const STATUS_COLORS = {
@@ -48,6 +50,8 @@ const STATUS_COLORS = {
   reserved: 'bg-blue-100 text-blue-700', returned: 'bg-gray-100 text-gray-600',
   completed: 'bg-gray-100 text-gray-600', cancelled: 'bg-red-100 text-red-700',
   expired: 'bg-red-100 text-red-700', transferred: 'bg-purple-100 text-purple-700',
+  damage_appealing: 'bg-orange-100 text-orange-700', pending_damage_response: 'bg-red-100 text-red-700',
+  deposit_refunding: 'bg-amber-100 text-amber-700',
 }
 
 const MAIN_INCLUDE = {

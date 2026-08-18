@@ -22,6 +22,9 @@ const STATUS_LABELS = {
   cancelled: '已取消',
   expired: '超期',
   transferred: '已过户',
+  damage_appealing: '定损申诉',
+  pending_damage_response: '待回应定损',
+  deposit_refunding: '押金退款中',
 }
 
 const LIFECYCLE_ORDER = [

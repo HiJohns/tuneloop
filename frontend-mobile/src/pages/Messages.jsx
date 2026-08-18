@@ -64,6 +64,8 @@ export default function Messages() {
 
   return (
     <View className="min-h-screen bg-[#FDFBF7] pb-20">
+      {/* 手写顶条仅 H5（无原生导航栏）；weapp 用原生导航栏（#1706） */}
+      {!env.isMiniProgram && (
       <View className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 pt-4 pb-3 flex items-center gap-2">
         <ArrowLeft size={20} className="text-black cursor-pointer" onClick={() => navigate(-1)} />
         <Text className="text-lg font-black text-black flex-1">消息</Text>
@@ -71,6 +73,12 @@ export default function Messages() {
           <Text className="text-sm text-brand-primary ml-auto cursor-pointer" onClick={markAllRead}>全部已读</Text>
         )}
       </View>
+      )}
+      {env.isMiniProgram && unreadCount > 0 && (
+        <View className="px-4 pt-3 flex justify-end">
+          <Text className="text-sm text-brand-primary cursor-pointer" onClick={markAllRead}>全部已读</Text>
+        </View>
+      )}
 
       <ScrollView className="p-4">
         {loading ? (
