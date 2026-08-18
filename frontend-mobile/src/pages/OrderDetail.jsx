@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
@@ -66,7 +66,11 @@ const STATUS_COLORS = {
 }
 
 export default function OrderDetail() {
-  const { id } = useParams()
+  // #1674: weapp jumps use query (?id=); H5 legacy links may use /order/:id
+  // path param — dual-source read keeps both working.
+  const { id: pathId } = useParams()
+  const [searchParams] = useSearchParams()
+  const id = searchParams.get('id') || pathId || ''
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)

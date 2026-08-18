@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Image } from '@tarojs/components'
-import { apiFetch, getToken } from '../services/api'
+import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { ArrowLeft } from 'lucide-react'
 
@@ -14,7 +14,11 @@ function formatDate(raw) {
 }
 
 export default function Renewal() {
-  const { orderId } = useParams()
+  // #1674: weapp jumps use query (?order_id=); H5 legacy links may use
+  // /renewal/:orderId path param — dual-source read keeps both working.
+  const { orderId: pathOrderId } = useParams()
+  const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('order_id') || searchParams.get('orderId') || pathOrderId || ''
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
 
