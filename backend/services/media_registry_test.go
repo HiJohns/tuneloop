@@ -120,3 +120,50 @@ func TestReconcileHTMLRefs(t *testing.T) {
 		t.Fatalf("drop.webp should be marked unreferenced (absent from html)")
 	}
 }
+
+// TestReconcileHTMLRefs_RegistersHistoricalImage verifies the audit #1692
+// CRITICAL-2 fix: a rich-text image that was never registered (uploaded before
+// the registry existed) gets registered on the fly during reconcile, so the GC
+// directory sweep keeps it.
+func TestReconcileHTMLRefs_RegistersHistoricalImage(t *testing.T) {
+	r := newTestRegistry(t)
+	ctx := context.Background()
+
+	html := `<p>legacy <img src="/uploads/media/historical.webp"></p>`
+	if err := r.ReconcileHTMLRefs(ctx, "setting_b", html); err != nil {
+		t.Fatalf("reconcile failed: %v", err)
+	}
+
+	var asset models.MediaAsset
+	if err := r.db.Where("storage_key = ?", "historical.webp").First(&asset).Error; err != nil {
+		t.Fatalf("historical image was not registered: %v", err)
+	}
+	if !asset.IsReferenced {
+		t.Fatalf("historical image should be referenced")
+	}
+	if asset.SourceID != "setting_b" {
+		t.Fatalf("historical image source_id should be setting_b, got %s", asset.SourceID)
+	}
+}
+
+// TestRegisterAsset_RefCountBumps verifies the audit #1692 MEDIUM-3 fix:
+// re-registering the same storage_key bumps ref_count instead of staying 1.
+func TestRegisterAsset_RefCountBumps(t *testing.T) {
+	r := newTestRegistry(t)
+	ctx := context.Background()
+
+	if err := r.RegisterAsset(ctx, "shared.webp", SourceTypeContentImage, "", 10, "image"); err != nil {
+		t.Fatalf("first register failed: %v", err)
+	}
+	if err := r.RegisterAsset(ctx, "shared.webp", SourceTypeContentImage, "s1", 10, "image"); err != nil {
+		t.Fatalf("second register failed: %v", err)
+	}
+
+	var asset models.MediaAsset
+	if err := r.db.Where("storage_key = ?", "shared.webp").First(&asset).Error; err != nil {
+		t.Fatalf("load failed: %v", err)
+	}
+	if asset.RefCount != 2 {
+		t.Fatalf("ref_count should be 2 after re-register, got %d", asset.RefCount)
+	}
+}

@@ -37,7 +37,7 @@ func NewMediaRegistry() *MediaRegistry {
 
 // RegisterAsset upserts a media_assets record. Idempotent: repeated
 // registration of the same storage_key does not duplicate; the existing row is
-// refreshed and its ref_count bumped.
+// refreshed, its ref_count bumped, and last_referenced_at refreshed.
 func (r *MediaRegistry) RegisterAsset(ctx context.Context, storageKey, sourceType, sourceID string, fileSize int64, fileType string) error {
 	db := r.db.WithContext(ctx)
 	now := time.Now()
@@ -63,6 +63,7 @@ func (r *MediaRegistry) RegisterAsset(ctx context.Context, storageKey, sourceTyp
 			"source_id":          sourceID,
 			"file_size":          fileSize,
 			"file_type":          fileType,
+			"ref_count":          gorm.Expr("media_assets.ref_count + 1"),
 			"last_referenced_at": now,
 		}),
 	}).Create(&asset).Error
@@ -93,8 +94,11 @@ func (r *MediaRegistry) MarkUnreferenced(ctx context.Context, storageKey string)
 
 // ReconcileHTMLRefs extracts every /uploads/media/<key> reference from an HTML
 // blob and marks the corresponding assets as referenced (refreshing their
-// last_referenced_at), binding them to sourceID. Assets previously bound to the
-// same source_id that are no longer present in the HTML are marked unreferenced.
+// last_referenced_at), binding them to sourceID. Keys not yet registered (e.g.
+// files uploaded before the registry existed) are registered on the fly so the
+// directory sweep never treats a referenced rich-text image as an orphan.
+// Assets previously bound to the same source_id that are no longer present in
+// the HTML are marked unreferenced.
 func (r *MediaRegistry) ReconcileHTMLRefs(ctx context.Context, sourceID, html string) error {
 	db := r.db.WithContext(ctx)
 
@@ -109,6 +113,19 @@ func (r *MediaRegistry) ReconcileHTMLRefs(ctx context.Context, sourceID, html st
 
 	now := time.Now()
 	for key := range seen {
+		var cnt int64
+		if err := db.Model(&models.MediaAsset{}).Where("storage_key = ?", key).Count(&cnt).Error; err != nil {
+			return err
+		}
+		if cnt == 0 {
+			// Historical rich-text image not in the registry yet — register it
+			// so the GC directory sweep keeps it (audit #1692 CRITICAL-2).
+			if err := r.RegisterAsset(ctx, key, SourceTypeContentImage, sourceID, 0, "image"); err != nil {
+				return err
+			}
+			continue
+		}
+		// Existing asset: refresh reference state + bind to this source.
 		if err := db.Model(&models.MediaAsset{}).
 			Where("storage_key = ?", key).
 			Updates(map[string]interface{}{

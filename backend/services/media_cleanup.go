@@ -197,14 +197,29 @@ func (s *MediaCleanupService) GCOrphans(dryRun bool) (int, error) {
 }
 
 func (s *MediaCleanupService) registeredKeySet() (map[string]bool, error) {
+	m := make(map[string]bool)
+
+	// media_assets registry keys.
 	var keys []string
 	if err := s.db.Model(&models.MediaAsset{}).Pluck("storage_key", &keys).Error; err != nil {
 		return nil, fmt.Errorf("failed to load registered keys: %w", err)
 	}
-	m := make(map[string]bool, len(keys))
 	for _, k := range keys {
 		m[k] = true
 	}
+
+	// instrument_media is the authoritative source for business media — its
+	// storage keys must be protected from the directory sweep even when the
+	// asset has not (yet) been mirrored into media_assets (e.g. files uploaded
+	// before the registry existed).
+	var mediaKeys []string
+	if err := s.db.Model(&models.InstrumentMedia{}).Pluck("storage_key", &mediaKeys).Error; err != nil {
+		return nil, fmt.Errorf("failed to load instrument_media keys: %w", err)
+	}
+	for _, k := range mediaKeys {
+		m[k] = true
+	}
+
 	return m, nil
 }
 

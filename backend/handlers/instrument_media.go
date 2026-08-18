@@ -340,6 +340,12 @@ func DeleteMediaBatch(c *gin.Context) {
 		if err := storage.Delete(ctx, m.StorageKey); err != nil {
 			log.Printf("[InstrumentMedia] Failed to delete file %s: %v", m.StorageKey, err)
 		}
+		// Mirror the deletion into the media_assets registry (#1692): the
+		// physical file is gone, so the registry row must not linger as a
+		// referenced asset.
+		if err := services.NewMediaRegistry().MarkUnreferenced(ctx, m.StorageKey); err != nil {
+			log.Printf("[MediaRegistry] mark %s unreferenced failed: %v", m.StorageKey, err)
+		}
 	}
 
 	if err := db.Where("instrument_id = ? AND tenant_id = ? AND batch_id = ?", instrumentID, tenantID, batchID).
@@ -375,6 +381,10 @@ func DeleteSingleMedia(c *gin.Context) {
 
 	if err := storage.Delete(ctx, storageKey); err != nil {
 		log.Printf("[InstrumentMedia] Failed to delete file %s: %v", storageKey, err)
+	}
+	// Mirror the deletion into the media_assets registry (#1692).
+	if err := services.NewMediaRegistry().MarkUnreferenced(ctx, storageKey); err != nil {
+		log.Printf("[MediaRegistry] mark %s unreferenced failed: %v", storageKey, err)
 	}
 	if err := db.Delete(&media).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete media"})
