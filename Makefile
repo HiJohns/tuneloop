@@ -177,7 +177,7 @@ release: clean-prerelease
 	$(NVM22) cd frontend-pc && npm run build
 	cp -r frontend-pc/dist/* $(RELEASE_BUILD)/tuneloop-pre/www/
 	# Mobile frontend (Vite H5, IAM config from /api/config at runtime)
-	$(NVM22) cd frontend-mobile && npm run build -- --mode prerelease
+	$(NVM22) cd frontend-mobile && VITE_APP_VERSION=$(FRONTEND_VERSION) npm run build -- --mode prerelease
 	cp -r frontend-mobile/dist/* $(RELEASE_BUILD)/tuneloop-pre/mobile/
 	# Backend (version injected via ldflags)
 	cd backend && go build -ldflags "-X main.Version=$(VERSION)" -o $(RELEASE_BUILD)/tuneloop-pre/service/tuneloop .
