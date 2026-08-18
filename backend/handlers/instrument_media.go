@@ -362,7 +362,9 @@ func DeleteMediaBatch(c *gin.Context) {
 // DeleteSingleMedia deletes a single media item by storage_key.
 func DeleteSingleMedia(c *gin.Context) {
 	instrumentID := c.Param("id")
-	storageKey := c.Param("storage_key")
+	// Wildcard route (*storage_key) captures the full path including the
+	// leading slash for structured keys like {tenant}/{org}/xxx.webp (#1646).
+	storageKey := strings.TrimPrefix(c.Param("storage_key"), "/")
 	if instrumentID == "" || storageKey == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "instrument id and storage_key are required"})
 		return

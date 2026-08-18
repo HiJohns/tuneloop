@@ -130,6 +130,57 @@ func TestGetInstrument_MediaDisplayStorageKey(t *testing.T) {
 	require.Equal(t, storageKey, sk)
 }
 
+// TestDeleteSingleMedia_StructuredKey verifies the #1646 wildcard-route fix:
+// DELETE /instruments/:id/media/key/*storage_key matches structured keys that
+// contain slashes ({tenant}/{org}/xxx.webp) as well as single-segment keys.
+func TestDeleteSingleMedia_StructuredKey(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	for _, tc := range []struct {
+		name       string
+		storageKey string
+	}{
+		{"structured key with slashes", "t1/o1/a9a8cfb5_display_123.webp"},
+		{"single segment key", "display/main-photo.jpg"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tenantID := uuid.New().String()
+			_, instID, userID := setupTestData(t, db, tenantID)
+			defer cleanupTestData(db, tenantID)
+
+			mediaID := uuid.New().String()
+			batchID := uuid.New().String()
+			db.Exec(`INSERT INTO instrument_media (id, instrument_id, tenant_id, org_id, batch_id, batch_type, file_name, file_type, storage_key, is_display, sort_order, created_at)
+				VALUES (?, ?, ?, ?, ?, 'display', 'main.jpg', 'image', ?, true, 0, ?)`,
+				mediaID, instID, tenantID, tenantID, batchID, tc.storageKey, time.Now())
+
+			router := setupTestRouter(t, tenantID, userID)
+			router.DELETE("/instruments/:id/media/key/*storage_key", DeleteSingleMedia)
+
+			req := httptest.NewRequest("DELETE", "/instruments/"+instID+"/media/key/"+tc.storageKey, nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusOK, w.Code, "structured key delete must not 404: %s", w.Body.String())
+			var resp struct {
+				Code int `json:"code"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+			require.Equal(t, 20000, resp.Code)
+
+			var count int64
+			db.Model(&struct{}{}).Table("instrument_media").Where("id = ?", mediaID).Count(&count)
+			require.Zero(t, count, "instrument_media record must be deleted")
+		})
+	}
+}
+
 // TestGetPublicCategories_IgnoresHomeMenuConfig verifies #1645: the public
 // category list is driven ONLY by category.visible/sort — a stale
 // home_menu_config (visible_ids without sub-categories) must not override

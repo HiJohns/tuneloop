@@ -1319,6 +1319,8 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 删除对应存储文件及 DB 记录，自动同步 `Instrument.Images`/`Video`。
 
+**单条删除**: `DELETE /api/instruments/:id/media/key/*storage_key` —— `storage_key` 为结构化路径（如 `{tenant}/{org}/{uuid}_display_*.webp`，含 `/`），通配符路由匹配整段路径；删除对应物理文件 + `instrument_media` 记录，并同步 `media_assets` 引用状态（#1646/#1692）。
+
 #### 5.9.5 获取乐器媒体列表
 
 **接口**: `GET /api/instruments/:id/media`
