@@ -731,6 +731,7 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 		})
 		return
 	}
+	log.Printf("[WxAccounts] openid=%s accounts=%d", result.OpenID, len(result.Accounts))
 
 	// is_customer: no org/tenant binding (tuneloop-side judgment, not from IAM)
 	accounts := make([]map[string]interface{}, 0, len(result.Accounts))
