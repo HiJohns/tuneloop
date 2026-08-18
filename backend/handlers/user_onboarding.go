@@ -136,6 +136,10 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 		return
 	}
 
+	if err := services.NewMediaRegistry().RegisterAsset(ctx, filename, services.SourceTypeIDPhoto, userID, file.Size, "image"); err != nil {
+		log.Printf("[MediaRegistry] register id photo %s failed: %v", filename, err)
+	}
+
 	fileURL, _ := storage.GetURL(ctx, filename)
 	if fileURL == "" {
 		fileURL = fmt.Sprintf("/uploads/media/%s", filename)
@@ -146,6 +150,25 @@ func (h *UserOnboardingHandler) UploadIDPhoto(c *gin.Context) {
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	}
+	// Mark the previous id photo on this side as unreferenced before overwrite.
+	var oldUser models.User
+	if err := db.Select(col).Where("id = ?", userID).First(&oldUser).Error; err == nil {
+		var oldKey string
+		if col == "id_photo_front" {
+			if oldUser.IdPhotoFront != nil {
+				oldKey = *oldUser.IdPhotoFront
+			}
+		} else {
+			if oldUser.IdPhotoBack != nil {
+				oldKey = *oldUser.IdPhotoBack
+			}
+		}
+		if oldKey != "" && oldKey != filename {
+			if err := services.NewMediaRegistry().MarkUnreferenced(ctx, oldKey); err != nil {
+				log.Printf("[MediaRegistry] mark old id photo %s unreferenced failed: %v", oldKey, err)
+			}
+		}
 	}
 	if err := db.Model(&models.User{}).Where("id = ?", userID).Update(col, filename).Error; err != nil {
 		log.Printf("id photo persist failed: %v", err)
@@ -219,6 +242,31 @@ func (h *UserOnboardingHandler) DeleteIdPhoto(c *gin.Context) {
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	}
+	// Read the old storage key, delete the physical file, then clear the field.
+	var user models.User
+	if err := db.Select(col).Where("id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+	var oldKey string
+	if col == "id_photo_front" {
+		if user.IdPhotoFront != nil {
+			oldKey = *user.IdPhotoFront
+		}
+	} else {
+		if user.IdPhotoBack != nil {
+			oldKey = *user.IdPhotoBack
+		}
+	}
+	if oldKey != "" {
+		storage := services.NewMediaStorage()
+		if err := storage.Delete(ctx, oldKey); err != nil {
+			log.Printf("[DeleteIdPhoto] failed to delete physical file %s: %v", oldKey, err)
+		}
+		if err := services.NewMediaRegistry().MarkUnreferenced(ctx, oldKey); err != nil {
+			log.Printf("[MediaRegistry] mark id photo %s unreferenced failed: %v", oldKey, err)
+		}
 	}
 	if err := db.Model(&models.User{}).Where("id = ?", userID).Update(col, "").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete photo"})
@@ -328,6 +376,10 @@ func (h *UserOnboardingHandler) AdminUploadIDPhoto(c *gin.Context) {
 		return
 	}
 
+	if err := services.NewMediaRegistry().RegisterAsset(ctx, filename, services.SourceTypeIDPhoto, targetID, file.Size, "image"); err != nil {
+		log.Printf("[MediaRegistry] register id photo %s failed: %v", filename, err)
+	}
+
 	fileURL, _ := storage.GetURL(ctx, filename)
 	if fileURL == "" {
 		fileURL = fmt.Sprintf("/uploads/media/%s", filename)
@@ -336,6 +388,25 @@ func (h *UserOnboardingHandler) AdminUploadIDPhoto(c *gin.Context) {
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	}
+	// Mark the previous id photo on this side as unreferenced before overwrite.
+	var oldUser models.User
+	if err := db.Select(col).Where("id = ?", targetID).First(&oldUser).Error; err == nil {
+		var oldKey string
+		if col == "id_photo_front" {
+			if oldUser.IdPhotoFront != nil {
+				oldKey = *oldUser.IdPhotoFront
+			}
+		} else {
+			if oldUser.IdPhotoBack != nil {
+				oldKey = *oldUser.IdPhotoBack
+			}
+		}
+		if oldKey != "" && oldKey != filename {
+			if err := services.NewMediaRegistry().MarkUnreferenced(ctx, oldKey); err != nil {
+				log.Printf("[MediaRegistry] mark old id photo %s unreferenced failed: %v", oldKey, err)
+			}
+		}
 	}
 	if err := db.Model(&models.User{}).Where("id = ?", targetID).Update(col, filename).Error; err != nil {
 		log.Printf("admin id photo persist failed: %v", err)
@@ -375,6 +446,31 @@ func (h *UserOnboardingHandler) AdminDeleteIdPhoto(c *gin.Context) {
 	col := "id_photo_front"
 	if side == "back" {
 		col = "id_photo_back"
+	}
+	// Read the old storage key, delete the physical file, then clear the field.
+	var oldUser models.User
+	if err := db.Select(col).Where("id = ?", targetID).First(&oldUser).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	}
+	var oldKey string
+	if col == "id_photo_front" {
+		if oldUser.IdPhotoFront != nil {
+			oldKey = *oldUser.IdPhotoFront
+		}
+	} else {
+		if oldUser.IdPhotoBack != nil {
+			oldKey = *oldUser.IdPhotoBack
+		}
+	}
+	if oldKey != "" {
+		storage := services.NewMediaStorage()
+		if err := storage.Delete(ctx, oldKey); err != nil {
+			log.Printf("[AdminDeleteIdPhoto] failed to delete physical file %s: %v", oldKey, err)
+		}
+		if err := services.NewMediaRegistry().MarkUnreferenced(ctx, oldKey); err != nil {
+			log.Printf("[MediaRegistry] mark id photo %s unreferenced failed: %v", oldKey, err)
+		}
 	}
 	if err := db.Model(&models.User{}).Where("id = ?", targetID).Update(col, "").Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to delete photo"})

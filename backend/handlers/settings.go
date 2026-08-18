@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -102,6 +104,12 @@ func UpsertGlobalSetting(c *gin.Context) {
 			"updated_by":    userID,
 			"updated_at":    time.Now(),
 		})
+	}
+
+	// Reconcile embedded /uploads/media/<key> references against media_assets
+	// (#1692): mark present assets referenced, mark removed ones unreferenced.
+	if err := services.NewMediaRegistry().ReconcileHTMLRefs(c.Request.Context(), key, req.Value); err != nil {
+		log.Printf("[MediaRegistry] reconcile html refs for %s failed: %v", key, err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "saved"})

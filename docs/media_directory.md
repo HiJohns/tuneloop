@@ -1,8 +1,10 @@
 # Media Storage Architecture
 
-> Unified media storage system. All image/video files go through `instrument_media` table; JSONB `photos` fields deprecated.
+> Unified media storage system. Business media (instrument/order/repair) go through `instrument_media` table; JSONB `photos` fields deprecated. A unified `media_assets` registry tracks every physical file on disk for orphan detection and periodic cleanup.
 
 ## Data Model
+
+### `instrument_media` — business media records
 
 ```
 instrument_media
@@ -22,6 +24,24 @@ instrument_media
 ├── sort_order      INT
 └── created_at      TIMESTAMP
 ```
+
+### `media_assets` — unified physical file registry
+
+```
+media_assets
+├── id                  UUID (PK)
+├── storage_key         VARCHAR(500) (NOT NULL, UNIQUE) — physical file key (relative to uploads/media)
+├── source_type         VARCHAR(30)  — "content_image", "avatar", "id_photo", "instrument_media"
+├── source_id           VARCHAR(100) — reference entity (setting_key / user_id / instrument_id …)
+├── is_referenced       BOOLEAN      — still referenced by any content?
+├── ref_count           INT          — reference count (increment on reuse)
+├── file_size           BIGINT
+├── file_type           VARCHAR(10)
+├── created_at          TIMESTAMP
+└── last_referenced_at  TIMESTAMP    — last time a reference was observed (drives orphan grace period)
+```
+
+`instrument_media` remains the authoritative source for business media (source_type=`instrument_media`); `media_assets` is a unified index used only for orphan detection and physical-file sweep — it never makes deletion decisions for business media.
 
 ### Two-tier linking
 
@@ -62,16 +82,18 @@ instrument_media
 ```
 Frontend                           Backend
    │                                  │
-   ├── POST /upload (multipart) ──────→  HandleUpload
-   │   (file)                          │  validate type/size
-   │                                   │  storage.Upload()
-   │   ←── { file_key, url } ──────────┘
-   │
-   ├── POST /api/instruments/:id/media ──→  CreateInstrumentMedia
-   │   { batch_type, is_display, files }   │  validate batch_type
-   │                                        │  create InstrumentMedia records
-   │                                        │  generate thumbnails (images)
-   │   ←── { media: [...] } ────────────────┘
+    ├── POST /upload (multipart) ──────→  HandleUpload
+    │   (file)                          │  validate type/size
+    │                                   │  storage.Upload()
+    │                                   │  media_registry.RegisterAsset(source_type=content_image)
+    │   ←── { file_key, url } ──────────┘
+    │
+    ├── POST /api/instruments/:id/media ──→  CreateInstrumentMedia
+    │   { batch_type, is_display, files }   │  validate batch_type
+    │                                        │  create InstrumentMedia records
+    │                                        │  media_registry.RegisterAsset(source_type=instrument_media)
+    │                                        │  generate thumbnails (images)
+    │   ←── { media: [...] } ────────────────┘
 ```
 
 ### Upload-then-submit pattern
@@ -87,8 +109,18 @@ Frontend                           Backend
 | Display images (`is_display=true`) | Permanent | No |
 | Process record images | 180 days | `system_settings.media_retention_days` |
 | Video files | 180 days | (same as process records) |
+| Orphan files (unreferenced) | grace period (default 30 days) | `system_settings.media_orphan_grace_days` |
 
-Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodically and deletes eligible `instrument_media` records along with their storage files.
+Cleanup is handled by `services/media_cleanup.go` scheduler which runs periodically and deletes eligible `instrument_media` records **along with their physical storage files** (including derived `_display.webp` / `_thumb.jpg` and `video_thumb` entries). A separate orphan GC pass reconciles `media_assets` against the `uploads/media/` directory — files no longer referenced (rich-text image removed, avatar/id_photo replaced, batch-import session expired) are physically deleted after the grace period.
+
+## Storage Directories
+
+| Directory | Purpose | Governed by |
+|-----------|---------|-------------|
+| `uploads/media/` | Unified media (rich-text content images, avatars, id photos, instrument media) | `media_assets` registry + `media_cleanup.go` GC |
+| `uploads/batch/` | Batch-import ZIP extraction temp (`{sessionID}/`) | `media_cleanup.go` GC (expired session dirs) |
+| `uploads/photos/` | Legacy outbound photo mechanism (`{tenant}/{sn}/` with manifest.yaml + ZIP archive) | Historical — registered for attribution only, not refactored |
+
 
 ## Image Hierarchy
 

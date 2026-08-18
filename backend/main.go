@@ -778,6 +778,7 @@ func main() {
 	migrateWebP := flag.Bool("migrate-display-webp", false, "Convert all display images to WebP, then exit")
 	migrateBannerWebP := flag.Bool("migrate-banner-webp", false, "Convert legacy banner images to WebP, then exit")
 	migrateBannerBlur := flag.Bool("migrate-banner-blur", false, "Generate blurred _blur.webp for banner images, then exit")
+	gcMedia := flag.Bool("gc-media", false, "Garbage-collect orphan media files (unreferenced assets + batch-import dirs), then exit")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
 	downloadPlatformCert := flag.Bool("download-platform-cert", false, "Download WeChat platform certificate and exit")
@@ -893,6 +894,22 @@ func main() {
 			fmt.Printf("DRY RUN: %d banners would be converted to WebP\n", count)
 		} else {
 			fmt.Printf("Banner WebP migration complete: %d banners converted\n", count)
+		}
+		os.Exit(0)
+	}
+
+	// One-off GC: reconcile media_assets against uploads/media/ and delete orphans.
+	if *gcMedia {
+		service := services.NewMediaCleanupService()
+		count, err := service.GCOrphans(*dryRunFlag)
+		if err != nil {
+			fmt.Printf("FATAL: Media GC failed: %v\n", err)
+			os.Exit(1)
+		}
+		if *dryRunFlag {
+			fmt.Printf("DRY RUN: %d orphan media files would be deleted\n", count)
+		} else {
+			fmt.Printf("Media GC complete: %d orphan media files deleted\n", count)
 		}
 		os.Exit(0)
 	}

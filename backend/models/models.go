@@ -1011,6 +1011,22 @@ type SystemSetting struct {
 	UpdatedBy    string    `gorm:"type:varchar(255)" json:"updated_by"`
 }
 
+// MediaAsset tracks every physical file written under uploads/media/ for
+// orphan detection and periodic cleanup. instrument_media remains the
+// authoritative source for business media; MediaAsset is a unified index only.
+type MediaAsset struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	StorageKey       string    `gorm:"type:varchar(500);not null;uniqueIndex:uq_media_assets_storage_key" json:"storage_key"`
+	SourceType       string    `gorm:"type:varchar(30);not null" json:"source_type"`
+	SourceID         string    `gorm:"type:varchar(100)" json:"source_id"`
+	IsReferenced     bool      `gorm:"not null;default:true" json:"is_referenced"`
+	RefCount         int       `gorm:"not null;default:1" json:"ref_count"`
+	FileSize         int64     `gorm:"type:bigint" json:"file_size"`
+	FileType         string    `gorm:"type:varchar(10)" json:"file_type"`
+	CreatedAt        time.Time `json:"created_at"`
+	LastReferencedAt time.Time `json:"last_referenced_at"`
+}
+
 // TransitRoute maps a controlled site to its transit site.
 type TransitRoute struct {
 	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`

@@ -175,6 +175,11 @@ func CreateInstrumentMedia(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create media record"})
 			return
 		}
+		// instrument_media is the authoritative source; media_assets is a unified
+		// index for orphan detection. Registration failure is non-fatal here.
+		if err := services.NewMediaRegistry().RegisterAsset(ctx, newKey, services.SourceTypeInstrumentMedia, instrumentID, 0, f.FileType); err != nil {
+			log.Printf("[MediaRegistry] register instrument media %s failed: %v", newKey, err)
+		}
 	}
 
 	tx.Commit()
@@ -632,6 +637,11 @@ func UploadDisplayImage(c *gin.Context) {
 
 	tx.Commit()
 
+	// instrument_media is authoritative; media_assets is a unified index.
+	if err := services.NewMediaRegistry().RegisterAsset(ctx, storageKey, services.SourceTypeInstrumentMedia, instrumentID, int64(buf.Len()), "image"); err != nil {
+		log.Printf("[MediaRegistry] register display image %s failed: %v", storageKey, err)
+	}
+
 	// Get URL for response
 	url, _ := storage.GetURL(ctx, storageKey)
 	if url == "" {
@@ -727,6 +737,10 @@ func UploadCoverImage(c *gin.Context) {
 		return
 	}
 
+	if err := services.NewMediaRegistry().RegisterAsset(ctx, coverKey, services.SourceTypeInstrumentMedia, instrumentID, int64(len(coverData)), "image"); err != nil {
+		log.Printf("[MediaRegistry] register cover %s failed: %v", coverKey, err)
+	}
+
 	coverURL := "/uploads/media/" + coverKey
 	if err := db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("cover_image", coverURL).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save cover image"})
@@ -766,6 +780,10 @@ func UploadUserAvatar(c *gin.Context) {
 	if err := storage.Upload(ctx, avatarKey, bytes.NewReader(avatarData), "image/webp"); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload avatar"})
 		return
+	}
+
+	if err := services.NewMediaRegistry().RegisterAsset(ctx, avatarKey, services.SourceTypeAvatar, userID, int64(len(avatarData)), "image"); err != nil {
+		log.Printf("[MediaRegistry] register avatar %s failed: %v", avatarKey, err)
 	}
 
 	avatarURL := "/uploads/media/" + avatarKey

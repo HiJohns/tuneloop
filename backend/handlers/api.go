@@ -1100,6 +1100,10 @@ func HandleUpload(c *gin.Context) {
 			return
 		}
 
+		if err := services.NewMediaRegistry().RegisterAsset(c.Request.Context(), webpFilename, services.SourceTypeContentImage, "", int64(buf.Len()), "image"); err != nil {
+			log.Printf("[MediaRegistry] register asset %s failed: %v", webpFilename, err)
+		}
+
 		fileURL, _ := storage.GetURL(c.Request.Context(), webpFilename)
 		if fileURL == "" {
 			fileURL = fmt.Sprintf("/uploads/media/%s", webpFilename)
@@ -1123,6 +1127,10 @@ func HandleUpload(c *gin.Context) {
 			"message": "Failed to save file: " + err.Error(),
 		})
 		return
+	}
+
+	if err := services.NewMediaRegistry().RegisterAsset(c.Request.Context(), filename, services.SourceTypeContentImage, "", file.Size, "video"); err != nil {
+		log.Printf("[MediaRegistry] register asset %s failed: %v", filename, err)
 	}
 
 	fileURL, _ := storage.GetURL(c.Request.Context(), filename)
