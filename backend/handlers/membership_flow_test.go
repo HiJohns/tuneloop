@@ -325,7 +325,7 @@ func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
 
 	user := models.User{
 		ID:       uuid.New().String(),
-		IAMSub:   "rent-openid-0001",
+		IAMSub:   "11111111-2222-4333-8444-555555555555",
 		TenantID: "00000000-0000-0000-0000-000000000000",
 		OrgID:    "00000000-0000-0000-0000-000000000000",
 		Name:     "RentUser",
@@ -336,7 +336,11 @@ func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&user).Error)
 
-	customer := testutil.MakeCustomer("", user.ID)
+	// Production shape: the JWT sub is the IAM user UUID (user.IAMSub), which
+	// differs from the local users.id. Inject the IAM sub so the backfill query
+	// must match via iam_sub (regression guard for the prod incident 2026-08-18
+	// where id= matched nothing and rent prepay fell back to Native QR).
+	customer := testutil.MakeCustomer("", user.IAMSub)
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
 		ctx := customer.InjectContext(c.Request.Context())

@@ -294,7 +294,9 @@ func PrepayOrder(c *gin.Context) {
 		if req.OpenID == "" {
 			if userID != "" {
 				var localUser models.User
-				if err := db.Where("id = ?", userID).First(&localUser).Error; err == nil && localUser.WxOpenid != "" {
+				// middleware.GetUserID returns the IAM sub; the local cache
+				// links it via iam_sub, not id (prod incident 2026-08-18).
+				if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil && localUser.WxOpenid != "" {
 					req.OpenID = localUser.WxOpenid
 				}
 			}
