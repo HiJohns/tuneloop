@@ -6,6 +6,20 @@ export function formatDisplayDate(dateStr) {
   return clean
 }
 
+// formatLogTime renders "MM-DD HH:mm" for order timeline entries (#1701):
+// the current year is omitted; a leading zero pads hour/minute.
+export function formatLogTime(dateStr) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return formatDisplayDate(dateStr)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const datePart = d.getFullYear() === new Date().getFullYear() ? `${mm}-${dd}` : `${d.getFullYear()}-${mm}-${dd}`
+  return `${datePart} ${hh}:${mi}`
+}
+
 export function formatDeliveryAddress(raw) {
   if (!raw) return ''
   try {

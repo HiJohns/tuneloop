@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env, uploadFile } from '../../platform'
-import { formatDeliveryAddress, formatDisplayDate } from '../../utils/format'
+import { formatDeliveryAddress, formatDisplayDate, formatLogTime } from '../../utils/format'
 import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
 
@@ -691,8 +691,8 @@ export default function OrderDetail() {
                     }}>
                       {EVENT_LABELS[log.event] || log.event}
                     </Text>
-                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 2 }}>
-                      {formatDisplayDate(log.time || log.created_at)}
+                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 2, display: 'block' }}>
+                      {formatLogTime(log.time || log.created_at)}
                       {log.operator ? ` by ${log.operator}` : ''}
                     </Text>
                   </View>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
-import { formatDeliveryAddress, formatDisplayDate } from '../utils/format'
+import { formatDeliveryAddress, formatDisplayDate, formatLogTime } from '../utils/format'
 import { dialog, env } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -756,7 +756,7 @@ export default function OrderDetail() {
                 {EVENT_LABELS[log.event] || log.event}
               </Text>
               <Text className="text-xs text-zinc-400 mt-0.5">
-                {formatDisplayDate(log.time || log.created_at)}
+                {formatLogTime(log.time || log.created_at)}
                 {log.operator && <Text className="ml-2">by {log.operator}</Text>}
               </Text>
             </View>

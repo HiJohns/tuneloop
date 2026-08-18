@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -1235,10 +1236,45 @@ func GetOrderLogs(c *gin.Context) {
 		CreatedAt: order.CreatedAt,
 	})
 
+	// Explicit order logs (renewal, overdue, etc.) — loaded before the history
+	// pass so the dedup logic (#1701) can compare against them.
+	var orderLogs []models.OrderLog
+	db.Where("order_id = ?", orderID).Order("created_at DESC").Find(&orderLogs)
+
 	// 2. Status transitions from order_status_history
+	// Dedup (#1701): skip a history entry when an explicit order_log already
+	// describes the same transition (order_logs carries richer copy like
+	// "已发货（顺丰，单号 xx）"). Keep order_logs; drop the bare history row.
+	statusKeyword := map[string][]string{
+		"shipped":     {"已发货"},
+		"in_lease":    {"已签收", "租赁开始"},
+		"returning":   {"归还"},
+		"returned":    {"已归还"},
+		"completed":   {"完成"},
+		"cancelled":   {"取消"},
+		"expired":     {"超期", "逾期"},
+		"pending_shipment": {"发货"},
+	}
 	var history []models.OrderStatusHistory
 	db.Where("order_id = ?", orderID).Order("changed_at ASC").Find(&history)
 	for _, h := range history {
+		if keywords, ok := statusKeyword[h.StatusTo]; ok {
+			duplicated := false
+			for _, ol := range orderLogs {
+				for _, kw := range keywords {
+					if strings.Contains(ol.Event, kw) {
+						duplicated = true
+						break
+					}
+				}
+				if duplicated {
+					break
+				}
+			}
+			if duplicated {
+				continue
+			}
+		}
 		op := "顾客"
 		if h.ChangedBy != nil {
 			op = resolveOperatorName(*h.ChangedBy)
@@ -1263,14 +1299,17 @@ func GetOrderLogs(c *gin.Context) {
 		})
 	}
 
-	// 4. Explicit order logs (renewal, overdue, etc.)
-	var orderLogs []models.OrderLog
-	db.Where("order_id = ?", orderID).Order("created_at DESC").Find(&orderLogs)
+	// 4. Explicit order logs (renewal, overdue, etc.) — orderLogs loaded above
+	// (before the history pass) for dedup; reuse it here.
 	for _, ol := range orderLogs {
+		op := "system"
+		if ol.OperatorID != nil && *ol.OperatorID != "" {
+			op = resolveOperatorName(*ol.OperatorID)
+		}
 		logs = append(logs, logEntry{
 			Event:     ol.Event,
 			Time:      ol.CreatedAt,
-			Operator:  "system",
+			Operator:  op,
 			CreatedAt: ol.CreatedAt,
 		})
 	}

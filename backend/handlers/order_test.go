@@ -656,3 +656,82 @@ func TestLeaseFlow_CreateOrder_InstrumentNotAvailable(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Equal(t, float64(40002), resp["code"])
 }
+
+// TestGetOrderLogs_DedupAndOperator verifies #1701: a status-history entry that
+// duplicates an explicit order_log event (same transition) is skipped, and the
+// order_log operator resolves from OperatorID instead of hardcoded "system".
+func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	tenantID := uuid.New().String()
+	_, instID, userID := setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	orderID := uuid.New().String()
+	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 0, 'in_lease', now(), now())`,
+		orderID, tenantID, tenantID, userID, instID).Error)
+
+	// in_lease transition recorded BOTH in history and order_logs.
+	db.Exec(`INSERT INTO order_status_history (id, tenant_id, order_id, status_from, status_to, changed_by, changed_at, created_at, updated_at)
+		VALUES (?, ?, ?, 'shipped', 'in_lease', ?, now(), now(), now())`,
+		uuid.New().String(), tenantID, orderID, userID)
+	db.Exec(`INSERT INTO order_logs (id, order_id, event, operator_id, operator_name, created_at)
+		VALUES (?, ?, '已签收，租赁开始', ?, '王五', now())`,
+		uuid.New().String(), orderID, userID)
+
+	// A non-duplicated transition (paid→pending_shipment) must still appear.
+	db.Exec(`INSERT INTO order_status_history (id, tenant_id, order_id, status_from, status_to, changed_by, changed_at, created_at, updated_at)
+		VALUES (?, ?, ?, 'paid', 'pending_shipment', ?, now(), now(), now())`,
+		uuid.New().String(), tenantID, orderID, userID)
+
+	router := setupTestRouter(t, tenantID, userID)
+	router.GET("/orders/:id/logs", GetOrderLogs)
+
+	req := httptest.NewRequest("GET", "/orders/"+orderID+"/logs?pageSize=50", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []struct {
+				Event    string `json:"event"`
+				Operator string `json:"operator"`
+			} `json:"logs"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	// "已签收，租赁开始" (order_log) present; bare history in_lease entry skipped.
+	hasSigned := false
+	hasBareInLease := false
+	for _, l := range resp.Data.List {
+		if l.Event == "已签收，租赁开始" {
+			hasSigned = true
+			if l.Operator == "system" {
+				t.Errorf("order_log operator must resolve from OperatorID, not hardcoded 'system'")
+			}
+			if l.Operator == "" {
+				t.Errorf("order_log operator must not be empty")
+			}
+		}
+		if l.Event == "in_lease" {
+			hasBareInLease = true
+		}
+	}
+	if !hasSigned {
+		t.Error("expected order_log 已签收，租赁开始 in timeline")
+	}
+	if hasBareInLease {
+		t.Error("bare history in_lease entry must be deduped when order_log exists (#1701)")
+	}
+}
