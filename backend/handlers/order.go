@@ -54,14 +54,25 @@ func GetOrders(c *gin.Context) {
 			}
 		}
 	} else {
-		// 顾客无租户：只看自己的订单
-		if userID != "" {
-			var localUser models.User
-			if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
-				query = query.Where("user_id = ?", localUser.ID)
-			} else {
-				query = query.Where("user_id = ?", userID)
-			}
+		// 顾客无租户：只看自己的订单。匿名（无 token / 游客）不得查看
+		// 任何订单——空 userID 不加过滤会泄漏全库订单（#1694 修复）。
+		if userID == "" {
+			c.JSON(http.StatusOK, gin.H{
+				"code": 20000,
+				"data": gin.H{
+					"list":  []interface{}{},
+					"total": 0,
+					"page":  page,
+					"page_size": pageSize,
+				},
+			})
+			return
+		}
+		var localUser models.User
+		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+			query = query.Where("user_id = ?", localUser.ID)
+		} else {
+			query = query.Where("user_id = ?", userID)
 		}
 	}
 
@@ -151,6 +162,11 @@ func GetOrder(c *gin.Context) {
 	userID := middleware.GetUserID(c.Request.Context())
 	role := middleware.GetRole(c.Request.Context())
 	log.Printf("[GetOrder] orderID=%s tenantID=%q userID=%q role=%q", orderID, tenantID, userID, role)
+	// 匿名（无 tenant 且无 userID）不得读取订单详情（#1694 泄漏修复）。
+	if tenantID == "" && userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
+		return
+	}
 	var order models.Order
 	query := db.Where("id = ?", orderID)
 	if tenantID != "" {
@@ -1126,6 +1142,11 @@ func GetOrderLogs(c *gin.Context) {
 
 	if tenantID != "" && order.TenantID != tenantID {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+	// 匿名（无 tenant 且无 userID）不得读取订单日志（#1694 泄漏修复）。
+	if tenantID == "" && userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})
 		return
 	}
 	if role == "USER" && userID != "" {
