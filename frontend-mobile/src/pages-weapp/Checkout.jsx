@@ -381,30 +381,30 @@ function SingleCheckout({ id, nav }) {
                     <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                       <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>姓名*</Text>
                       <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder="担保人姓名"
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                     <View style={{ flex: '1 1 0%' }}>
                       <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话*</Text>
                       <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                   </View>
                   <View style={{ display: 'flex', marginBottom: 8 }}>
                     <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                       <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>公司/单位</Text>
                       <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder="公司/单位"
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                     <View style={{ flex: '1 1 0%' }}>
                       <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>职务</Text>
                       <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder="职务"
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                   </View>
                   <View style={{ marginBottom: 10 }}>
                     <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址</Text>
                     <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
-                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%' }} />
+                      style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                   </View>
                   <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
                     style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>
@@ -922,30 +922,30 @@ function BatchCheckout({ nav }) {
                       <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>姓名*</Text>
                         <Input value={newGuarantor.name} onInput={e => setNewGuarantor(prev => ({ ...prev, name: e.detail.value }))} placeholder="担保人姓名"
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                       <View style={{ flex: '1 1 0%' }}>
                         <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>电话*</Text>
                         <Input value={newGuarantor.phone} onInput={e => setNewGuarantor(prev => ({ ...prev, phone: e.detail.value }))} placeholder="手机号"
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                     </View>
                     <View style={{ display: 'flex', marginBottom: 8 }}>
                       <View style={{ flex: '1 1 0%', marginRight: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>公司/单位</Text>
                         <Input value={newGuarantor.company} onInput={e => setNewGuarantor(prev => ({ ...prev, company: e.detail.value }))} placeholder="公司/单位"
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                       <View style={{ flex: '1 1 0%' }}>
                         <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>职务</Text>
                         <Input value={newGuarantor.title} onInput={e => setNewGuarantor(prev => ({ ...prev, title: e.detail.value }))} placeholder="职务"
-                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%', height: 40, boxSizing: 'border-box' }} />
+                          style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                       </View>
                     </View>
                     <View style={{ marginBottom: 10 }}>
                       <Text style={{ fontSize: 12, fontWeight: '500', color: '#374151', marginBottom: 4 }}>地址</Text>
                       <Input value={newGuarantor.address} onInput={e => setNewGuarantor(prev => ({ ...prev, address: e.detail.value }))} placeholder="联系地址"
-                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '6px 10px', fontSize: 13, width: '100%' }} />
+                        style={{ border: '1px solid #d4d4d8', borderRadius: 8, padding: '8px 12px', fontSize: 14, width: '100%', height: 44, boxSizing: 'border-box' }} />
                     </View>
                     <Button onClick={savingGuarantor ? undefined : handleSaveGuarantor}
                       style={{ width: '100%', backgroundColor: savingGuarantor ? 'rgba(145,95,56,0.5)' : '#915F38', color: '#fff', borderRadius: 8, fontWeight: '700', fontSize: 14, textAlign: 'center', padding: '10px 0', lineHeight: '20px', margin: 0 }}>
