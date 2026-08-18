@@ -22,6 +22,35 @@ This file contains instructions and guidelines for AI coding agents working in t
 - `docs/media_directory.md` - 媒体存储架构（instrument_media 表结构、batch_type 全集、目录体系）
 - `docs/wechat-pay-integration.md` - 微信支付集成架构（对接点、手动配置清单、.env 设计、测试模式、核查体系、失败处置）
 
+## 分支策略（main / develop，#1694）
+
+**自 2026-08-18 起采用双分支**：
+
+| 分支 | 用途 | 版本号 | 对应环境 |
+|------|------|--------|---------|
+| `develop` | 日常开发与集成（功能分支/并发 agent 均基于 develop 切出，杜绝与 main 长期分叉） | `1.0.x-dev`（或 `1.0.<git短码>` 自动） | 本地开发（dev） |
+| `main` | 仅发布：make release / 预生产部署 / 生产提升 全部从 main | `1.0.x`（发布时 bump，语义化，高于线上/审核中小程序版本） | 预生产 + 生产 |
+
+### 发布流程
+
+```
+develop（开发累积，随时可部署 dev 验证）
+  → 发布时：git checkout main && git merge develop
+  → make release（预生产部署）→ 预生产验证
+  → ssh cadenza release.sh 提升生产
+  → 版本号 bump（1.0.x）+ git tag v1.0.x（可选）
+  → 小程序发布版：make weapp-build-prod + weapp-upload-prod APP_VERSION=1.0.x（见 docs/weapp.md 发布清单）
+```
+
+### Hotfix
+
+线上紧急修复：从 `main` 切短分支（hotfix/xxx）→ 修复 → 合回 **main + develop**（防修复遗漏）。
+
+### 版本号规范
+
+- 语义化 `major.minor.patch`；`1.0.x` 为正式版本号（小程序审核版必须高于线上）
+- develop 不长期领先 main 的版本号（发布时才 bump）；开发版小程序版本号 `1.0.x-dev`
+
 ## Environment Guide
 
 See `prompts/instructions.md` for full port mapping. Key rule:
