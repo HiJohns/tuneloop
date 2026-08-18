@@ -149,8 +149,9 @@ export default function Profile() {
   const displayName = user?.nickname || user?.name || user?.username || '路人'
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
-  // isStaff 统一判定（#1639）：role === 'STAFF' 或 oid/tid 非空（员工有组织绑定）
-  const isStaff = claims.role === 'STAFF' || !!(claims.oid || claims.tid)
+  // isStaff 统一判定（#1639 / #1700）：对齐后端 GetBusinessRole——role == 'USER'
+  // （含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
+  const isStaff = !!claims.role && claims.role !== 'USER'
   const isGuest = claims.role === 'GUEST' || (!token && user === null)
   const hasGuestToken = claims.role === 'GUEST'
   // Two-phase registration (#1663): a pending registration session means the

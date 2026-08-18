@@ -19,8 +19,9 @@ export default function EditProfile() {
 
   const token = getToken()
   const claims = token ? parseJWT(token) : {}
-  // 员工判定统一口径（#1639）：role === 'STAFF' 或 oid/tid 非空
-  const isStaff = claims.role === 'STAFF' || !!(claims.oid || claims.tid)
+  // 员工判定统一口径（#1639 / #1700）：对齐后端 GetBusinessRole——
+  // role == 'USER'（含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
+  const isStaff = !!claims.role && claims.role !== 'USER'
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -105,25 +106,25 @@ export default function EditProfile() {
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>姓名</Text>
           <Input value={name} onInput={e => setName(getInputValue(e))}
             placeholder={name ? '' : '请输入真实姓名'}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14, boxSizing: 'border-box' }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>昵称</Text>
           <Input value={nickname} onInput={e => setNickname(getInputValue(e))}
             placeholder={nickname ? '' : '请输入昵称'}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14, boxSizing: 'border-box' }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>手机号</Text>
           <Input value={phone} onInput={e => setPhone(getInputValue(e))}
             placeholder={phone ? '' : '请输入手机号'}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14, boxSizing: 'border-box' }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>邮箱</Text>
           <Input value={email} onInput={e => setEmail(getInputValue(e))}
             placeholder={email ? '' : '请输入邮箱'}
-            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14 }} />
+            style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, paddingLeft: 12, paddingRight: 12, fontSize: 14, boxSizing: 'border-box' }} />
         </View>
         <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>身份证照片</Text>
@@ -140,13 +141,13 @@ export default function EditProfile() {
           <View style={{ marginBottom: 20 }}>
             <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 10 }}>微信账户</Text>
             <View onClick={handleBindWx}
-              style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              style={{ width: '100%', height: 44, border: '1px solid #d4d4d8', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
               <Text style={{ fontSize: 14, color: '#915F38', fontWeight: '600' }}>{bindingWx ? '绑定中...' : '绑定微信账户'}</Text>
             </View>
           </View>
         )}
         <Button onClick={handleSave}
-          style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 16, fontWeight: '700', lineHeight: '44px', border: 'none', marginTop: 8 }}>
+          style={{ width: '100%', height: 44, backgroundColor: '#915F38', color: '#fff', borderRadius: 22, fontSize: 16, fontWeight: '700', lineHeight: '44px', border: 'none', marginTop: 8, boxSizing: 'border-box' }}>
           {saving ? '保存中...' : '保存'}
         </Button>
       </View>
