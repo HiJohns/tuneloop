@@ -63,12 +63,37 @@ mp.weixin.qq.com → 版本管理 → 提交审核 (1-7 天)
 审核通过 → 发布上线
 ```
 
-### 版本管理规范
+### 版本管理规范（单 appid 策略，#1694）
 
-- 小程序版本号与 tuneloop 版本同步
-- 体验版：开发测试用，仅白名单用户可访问
-- 审核版：提交微信审核的版本
-- 线上版：审核通过后发布的版本
+**单一小程序（wxcb44a1be70e356ed）**：不再有独立的预生产小程序。服务器端生产/预生产保持完全分离（数据库/配置独立）；小程序前端通过**编译期注入的 apiBaseUrl** 区分：
+- **开发版**（测试）：`make weapp-build-pre` 构建（apiBaseUrl=prewx.cadenzayueqi.com）→ `make weapp-upload-dev VERSION=<归档> APP_VERSION=1.0.x-dev` 上传为开发版 → 微信后台设为**体验版**，二维码分发给测试人员（关联 prewx 后端，数据隔离）
+- **发布版**（正式）：`make weapp-build-prod` 构建（apiBaseUrl=wx.cadenzayueqi.com）→ `make weapp-upload-prod VERSION=<归档> APP_VERSION=1.0.x` 上传为正式版 → 提交审核 → 通过后发布（关联 wx 生产后端）
+
+**微信版本体系**：开发版（版本号自定义，如 1.0.x-dev）→ 体验版（从开发版选择）→ 审核版（提交审核的版本）→ 线上版（发布后全量可见）。审核版本号**必须高于线上版本**。
+
+### 发布版上传动作清单（每次发布必须依次执行）
+
+```bash
+# 1. 确认版本号：1.0.<x+1>（高于线上 + 审核中版本），语义化 major.minor.patch
+# 2. （可选）git tag v1.0.x
+# 3. 构建正式版（wx apiBaseUrl）
+make weapp-build-prod VERSION=<归档名>     # 归档名自动 = YYYYMMDD-HHMMSS_COMMITID
+# 4. 上传正式版（指定微信版本号 APP_VERSION=1.0.x）
+make weapp-upload-prod VERSION=<归档名> APP_VERSION=1.0.x DESC="release note"
+# 5. 微信公众平台 → 版本管理 → 提交审核（审核版本号 = 1.0.x）
+# 6. 审核通过 → 发布
+# 7. 发布后测试：切换回开发版（prewx）体验版继续日常测试
+```
+
+**开发版上传**：
+```bash
+make weapp-build-pre VERSION=<归档名>      # prewx apiBaseUrl
+make weapp-upload-dev VERSION=<归档名> APP_VERSION=1.0.x-dev DESC="dev build"
+# 微信公众平台 → 版本管理 → 设体验版 → 二维码分发
+```
+
+- 上传只消费归档（不重新编译）——保证发布内容 = 已验证内容
+- 回退 = 上传更早归档（体验版切换或重新提交审核）
 
 ## H5 部署
 

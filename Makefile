@@ -1,4 +1,4 @@
-.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload-prod weapp-upload-pre weapp-build weapp-build-pre weapp-build-prod weapp-cleanup weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
+.PHONY: web-dev mobile-dev mobile-weapp-dev weapp-upload-prod weapp-upload-pre weapp-upload-dev weapp-build weapp-build-pre weapp-build-prod weapp-cleanup weapp-check web mobile build-frontend build-pc build-mobile kill-port run-backend run run-prod stop install init
 
 NODE_MAJOR := $(shell node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
 NVM22 := . "$$HOME/.nvm/nvm.sh" && nvm use 22 >/dev/null 2>&1 &&
@@ -96,15 +96,20 @@ weapp-archive-prod:
 	@echo "Archived: $(WEAPP_RELEASE_DIR)/weapp-prod/$(or $(VERSION),$(WEAPP_AUTO_VERSION))/dist-weapp"
 
 # Upload ONLY an archived build — never recompile.
-weapp-upload-pre:
+# 单 appid（wxcb44a1be70e356ed）策略（#1694）：不再有独立的预生产小程序。
+# 开发版（测试）：weapp-build-pre 构建（prewx apiBaseUrl）+ weapp-upload-dev
+#   上传为开发版（微信版本号 APP_VERSION，默认 1.0.0-dev）→ 后台设体验版分发。
+# 发布版（正式）：weapp-build-prod 构建（wx apiBaseUrl）+ weapp-upload-prod
+#   上传为正式版（APP_VERSION 语义化 1.0.x，必须高于线上/审核中版本）→ 提交审核。
+weapp-upload-dev:
 	@test -d $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp || (echo "ERROR: archive '$(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)' not found — run 'make weapp-build-pre VERSION=$(VERSION)' first"; exit 1)
 	@cd frontend-mobile && \
 	node_modules/.bin/miniprogram-ci upload \
 		--pp ../$(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp \
-		--pkp private.wx9f96827856269a6c.key \
-		--appid wx9f96827856269a6c \
-		--uv $(or $(VERSION),1.0.0-pre) \
-		--ud "$(or $(DESC),pre auto deploy)"
+		--pkp private.wxcb44a1be70e356ed.key \
+		--appid wxcb44a1be70e356ed \
+		--uv $(or $(APP_VERSION),1.0.0-dev) \
+		--ud "$(or $(DESC),dev build)"
 
 weapp-upload-prod:
 	@test -d $(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp || (echo "ERROR: archive '$(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)' not found — run 'make weapp-build-prod VERSION=$(VERSION)' first"; exit 1)
@@ -113,8 +118,8 @@ weapp-upload-prod:
 		--pp ../$(WEAPP_RELEASE_DIR)/weapp-prod/$(VERSION)/dist-weapp \
 		--pkp private.wxcb44a1be70e356ed.key \
 		--appid wxcb44a1be70e356ed \
-		--uv $(or $(VERSION),1.0.0) \
-		--ud "$(or $(DESC),auto deploy)"
+		--uv $(or $(APP_VERSION),1.0.0) \
+		--ud "$(or $(DESC),release)"
 
 # Delete archives older than 180 days. DRY=1 prints what would be removed.
 weapp-cleanup:
