@@ -634,7 +634,28 @@ func ExecuteBatchImport(c *gin.Context) {
 						totalPrice = *instrument.TotalPrice
 					}
 					result := services.CalculatePricing(*instrument.BaseDailyRate, totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
-					pricingJSON, _ := json.Marshal(result)
+					// Merge the manual daily_rent + overdue fallback keys that the
+					// rent-setting page reads (GetRentSetting reads
+					// pricing.daily_rent; CalculatePricing only emits
+					// base_daily_rate) — #1696. CSV deposit/overdue_daily_fee
+					// (already in instrument.Pricing via pricingMap) are
+					// preserved by merging instrument.Pricing in first.
+					var merged map[string]interface{}
+					raw, _ := json.Marshal(result)
+					json.Unmarshal(raw, &merged)
+					// Re-apply CSV pricingMap keys (CalculatePricing drops them).
+					if instrument.Pricing != "" && instrument.Pricing != "{}" {
+						var csvPricing map[string]interface{}
+						json.Unmarshal([]byte(instrument.Pricing), &csvPricing)
+						for k, v := range csvPricing {
+							merged[k] = v
+						}
+					}
+					merged["daily_rent"] = *instrument.BaseDailyRate
+					if _, hasOverdue := merged["overdue_daily_fee"]; !hasOverdue {
+						merged["overdue_daily_fee"] = *instrument.BaseDailyRate // fallback = daily rent
+					}
+					pricingJSON, _ := json.Marshal(merged)
 					tx.Model(&instrument).Update("pricing", string(pricingJSON))
 				}
 			}

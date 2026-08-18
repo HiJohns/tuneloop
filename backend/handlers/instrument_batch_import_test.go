@@ -1,6 +1,11 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -233,4 +238,78 @@ func TestBuildPropertyResolutions_CategoryScoped_Independent(t *testing.T) {
 	assert.Equal(t, "钢琴", pianoRes.ScopeCategoryName)
 	assert.Equal(t, "小提琴", violinRes.ScopeCategoryName)
 	assert.NotEqual(t, pianoRes.ScopeCategoryID, violinRes.ScopeCategoryID, "Different category IDs")
+}
+
+// TestExecuteBatchImport_PricingDailyRent verifies #1696: after a batch
+// import, instrument.pricing carries daily_rent (= base_daily_rate) and an
+// overdue_daily_fee fallback — the rent-setting page reads pricing.daily_rent
+// (GetRentSetting), which CalculatePricing does not emit (only base_daily_rate).
+func TestExecuteBatchImport_PricingDailyRent(t *testing.T) {
+	db, tenantID := setupPropertyResolutionTest(t)
+	if db == nil {
+		return
+	}
+	defer db.Exec("DELETE FROM instruments WHERE tenant_id = ?", tenantID)
+	defer db.Exec("DELETE FROM categories WHERE tenant_id = ?", tenantID)
+
+	// ImportSession + merchant pricing config (CalculatePricing needs config).
+	sessionID := uuid.New().String()
+	importSessions[sessionID] = &ImportSession{
+		ID:       sessionID,
+		TenantID: tenantID,
+		CreatedAt: time.Now(),
+		Instruments: []map[string]interface{}{
+			{
+				"sn":               "BATCH-TEST-001",
+				"base_daily_rate":  "88.5",
+				"total_price":      "20000",
+				"deposit":          "5000",
+			},
+		},
+		Images: map[string][]string{},
+	}
+	defer delete(importSessions, sessionID)
+
+	require.NoError(t, db.Exec(`INSERT INTO merchant_pricing_configs (id, tenant_id, template_id, config)
+		VALUES (?, ?, ?, '{}')`, uuid.New().String(), tenantID, uuid.New().String()).Error)
+
+	req := httptest.NewRequest("POST", "/instruments/batch-import", nil)
+	req.Header.Set("Content-Type", "application/json")
+	reqBody, _ := json.Marshal(map[string]interface{}{"session_id": sessionID})
+	req.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+
+	w := httptest.NewRecorder()
+	router := setupTestRouter(t, tenantID, "")
+	router.POST("/instruments/batch-import", ExecuteBatchImport)
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code, "batch import: %s", w.Body.String())
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Results []struct {
+				ID string `json:"id"`
+			} `json:"results"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	var instrument models.Instrument
+	require.NoError(t, db.Where("tenant_id = ? AND sn = ?", tenantID, "BATCH-TEST-001").First(&instrument).Error)
+
+	var pricing map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(instrument.Pricing), &pricing))
+
+	dailyRent, ok := pricing["daily_rent"].(float64)
+	require.True(t, ok, "pricing.daily_rent must exist (#1696)")
+	require.Equal(t, 88.5, dailyRent)
+
+	overdue, ok := pricing["overdue_daily_fee"].(float64)
+	require.True(t, ok, "pricing.overdue_daily_fee must fall back to daily_rent (#1696)")
+	require.Equal(t, 88.5, overdue)
+
+	deposit, ok := pricing["deposit"].(float64)
+	require.True(t, ok, "pricing.deposit must be preserved from CSV")
+	require.Equal(t, 5000.0, deposit)
 }
