@@ -89,6 +89,9 @@ export default function Profile() {
   }
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  // #1694: login button debounce — rapid taps must not open multiple
+  // register/login flows (several stacked modal windows).
+  const [loginBusy, setLoginBusy] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [orderCounts, setOrderCounts] = useState({ reserved: 0, in_lease: 0, returning: 0, completed: 0 })
@@ -240,9 +243,15 @@ export default function Profile() {
 
   // 来源 A 分流（#1639）：未登录点击「我的」→ wx.login → wx-accounts → 0/1/N
   const handleGuestLogin = async () => {
-    const ok = await resolveLogin('profile')
-    if (ok) {
-      Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+    if (loginBusy) return
+    setLoginBusy(true)
+    try {
+      const ok = await resolveLogin('profile')
+      if (ok) {
+        Taro.reLaunch({ url: '/pages-weapp/profile/index' })
+      }
+    } finally {
+      setTimeout(() => setLoginBusy(false), 800)
     }
   }
 
