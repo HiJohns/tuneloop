@@ -63,7 +63,7 @@ export default function ContentEdit() {
   const load = async (key) => {
     setLoading(prev => ({ ...prev, [key]: true }))
     try {
-      const res = await api.get(`/settings/${key}`)
+      const res = await api.get(`/public/settings/${key}`)
       if (res.code === 20000) {
         setValues(prev => ({ ...prev, [key]: res.data?.value || '' }))
       }

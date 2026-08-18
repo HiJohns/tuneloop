@@ -10,6 +10,7 @@ import (
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 func GetSetting(c *gin.Context) {
@@ -83,27 +84,26 @@ func UpsertGlobalSetting(c *gin.Context) {
 
 	nilUUID := "00000000-0000-0000-0000-000000000000"
 	userID := middleware.GetUserID(c.Request.Context())
-	db := database.GetDB().WithContext(c.Request.Context())
+	// Global settings live under the nil UUID tenant. Clear the tenant from the
+	// context so registerTenantCallbacks' addTenantScope does not inject
+	// "tenant_id = <real tenant>" and turn the lookup into an always-false AND.
+	db := database.GetDB().WithContext(database.SetTenantID(c.Request.Context(), ""))
 
-	var setting models.SystemSetting
-	result := db.Where("tenant_id = ? AND setting_key = ?", nilUUID, key).First(&setting)
-	if result.Error != nil {
-		setting = models.SystemSetting{
-			TenantID:     nilUUID,
-			SettingKey:   key,
-			SettingValue: req.Value,
-			UpdatedBy:    userID,
-		}
-		if err := db.Create(&setting).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save setting"})
-			return
-		}
-	} else {
-		db.Model(&setting).Updates(map[string]interface{}{
-			"setting_value": req.Value,
-			"updated_by":    userID,
-			"updated_at":    time.Now(),
-		})
+	// Atomic upsert: ON CONFLICT (tenant_id, setting_key) DO UPDATE — eliminates
+	// the check-then-create race that previously hit SQLSTATE 23505 on repeat save.
+	setting := models.SystemSetting{
+		TenantID:     nilUUID,
+		SettingKey:   key,
+		SettingValue: req.Value,
+		UpdatedBy:    userID,
+		UpdatedAt:    time.Now(),
+	}
+	if err := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "tenant_id"}, {Name: "setting_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"setting_value", "updated_by", "updated_at"}),
+	}).Create(&setting).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to save setting"})
+		return
 	}
 
 	// Reconcile embedded /uploads/media/<key> references against media_assets
