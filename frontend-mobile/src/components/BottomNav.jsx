@@ -10,7 +10,7 @@ export default function BottomNav({ tabs = [], active = '', badges = {} }) {
         const badge = badges[tab.key]
         return (
           <View key={tab.key || i} className="flex flex-col items-center justify-center relative flex-1 py-1.5" onClick={tab.onClick}>
-            <View className="text-2xl mb-0.5 relative">
+            <View className="text-3xl mb-0.5 relative">
               {tab.icon}
               {badge > 0 && (
                 <View className="absolute -top-1 -right-2 bg-[#FF2A55] text-white text-[9px] font-black min-w-[16px] h-4 rounded-full flex items-center justify-center px-1"

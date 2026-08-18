@@ -7,7 +7,7 @@ import { dialog, env } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
-import { ArrowLeft, User, MapPin, Truck, Package, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar, Banknote } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Truck, Package, PackageCheck, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar, Banknote } from 'lucide-react'
 
 const STATUS_LABELS = {
   reserved: '未支付',
@@ -332,6 +332,9 @@ export default function OrderDetail() {
 
   const showStaffShip = isStaff && (status === 'paid' || status === 'pending_shipment')
   const showStaffTransit = isStaff && status === 'in_transit'
+  // 代收货 (#1693): shipped（最终发货完成）时员工按快递签收情况代用户确认
+  // 收货（填写实际到货时间，租期按此起算）。in_transit 为网点间流转，不代收货。
+  const showStaffDeliver = isStaff && status === 'shipped'
   const showStaffReceive = isStaff && status === 'returning'
   const showStaffRefund = isStaff && status === 'deposit_refunding'
   // Staff cancel only on cancellable states (paid/pending_shipment) —
@@ -820,6 +823,12 @@ export default function OrderDetail() {
                 <View onClick={() => navigate(`/staff/shipping?order_id=${id}`)}
                   className="w-full py-3 bg-cyan-500 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
                   <Truck size={20} /><Text>接收并转发</Text>
+                </View>
+              )}
+              {showStaffDeliver && (
+                <View onClick={() => navigate(`/staff/receive?order_id=${id}&instrument=${order.instrument_id}`)}
+                  className="w-full py-3 bg-green-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer active:opacity-80">
+                  <PackageCheck size={20} /><Text>代收货</Text>
                 </View>
               )}
               {showStaffReceive && (

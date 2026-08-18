@@ -8,7 +8,7 @@ export default function BottomNav({ tabs = [], active = '', badges = {} }) {
         const badge = badges[tab.key]
         return (
           <View key={tab.key || i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 1, paddingTop: 6, paddingBottom: 6 }} onClick={tab.onClick}>
-            <View style={{ fontSize: 24, marginBottom: 2, position: 'relative' }}>
+            <View style={{ fontSize: 28, marginBottom: 2, position: 'relative' }}>
               {tab.icon}
               {badge > 0 && (
                 <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FF2A55', color: '#fff', fontSize: 9, fontWeight: '900', minWidth: 16, height: 16, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2, paddingRight: 2, border: '1px solid #5A3B24' }}>

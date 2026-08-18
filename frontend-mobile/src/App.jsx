@@ -233,6 +233,7 @@ function App() {
 <Route path="/staff/instrument/:id" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
         <Route path="/staff/instrument" element={<ProtectedRoute><StaffInstrumentDetail /></ProtectedRoute>} />
         <Route path="/staff/receiving/:orderId" element={<ProtectedRoute><StaffReceiveConfirm /></ProtectedRoute>} />
+        <Route path="/staff/receive" element={<ProtectedRoute><StaffReceiveConfirm /></ProtectedRoute>} />
         <Route path="/staff/shipping" element={<ProtectedRoute><ShippingInterface /></ProtectedRoute>} />
         <Route path="/staff/receiving" element={<ProtectedRoute><ReceivingInterface /></ProtectedRoute>} />
         <Route path="/staff/orders" element={<ProtectedRoute><StaffOrders /></ProtectedRoute>} />

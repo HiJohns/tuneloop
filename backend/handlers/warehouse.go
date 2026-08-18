@@ -196,6 +196,11 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		log.Printf("[UpdateShipping] failed to write order log: %v", err)
 	}
 
+	// WeChat shipping compliance (#1693): physical goods (rent) must report
+	// shipping info so the platform unfreezes funds. Non-fatal — a report
+	// failure must not block the business shipment.
+	reportWechatShipping(db, order, openidOfUser(db, order.UserID), company, trackingNumber)
+
 	resp := gin.H{
 		"order_id": orderID,
 		"status":   models.OrderStatusShipped,
@@ -240,13 +245,26 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 		return
 	}
 
-	// 2. Verify the user owns this order
+	// 2. Verify the caller may confirm delivery: staff roles (代收货, #1693)
+	//    act on the courier's signed receipt — scope to their visible orgs;
+	//    customers must own the order.
 	userID := middleware.GetUserID(ctx)
 	var localUser models.User
 	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
-	if order.UserID != userID {
+	role := middleware.GetBusinessRole(ctx)
+	isStaff := role == middleware.BusinessRoleSiteAdmin ||
+		role == middleware.BusinessRoleSiteMember ||
+		role == middleware.BusinessRoleMerchantAdmin ||
+		role == middleware.BusinessRoleSystemAdmin
+	if isStaff {
+		scoped, err := middleware.ApplyOrgScope(db.Model(&models.Order{}).Where("id = ?", orderID), ctx)
+		if err != nil || scoped.First(&order).Error != nil {
+			c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "order not in your site scope"})
+			return
+		}
+	} else if order.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "not your order"})
 		return
 	}
@@ -282,13 +300,17 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	// 4. Record status history
+	notes := "物流到达，开始租赁"
+	if isStaff {
+		notes = "员工代收货，物流签收，开始租赁"
+	}
 	history := models.OrderStatusHistory{
 		ID:         uuid.New().String(),
 		TenantID:   order.TenantID,
 		OrderID:    orderID,
 		StatusFrom: models.OrderStatusShipped,
 		StatusTo:   models.OrderStatusInLease,
-		Notes:      "物流到达，开始租赁",
+		Notes:      notes,
 		ChangedBy:  stringPtr(userID),
 		ChangedAt:  time.Now(),
 	}
@@ -307,6 +329,10 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}).Error; err != nil {
 		log.Printf("[ConfirmDelivery] failed to write order log: %v", err)
 	}
+
+	// WeChat shipping compliance (#1693): notify confirm-receive for physical
+	// goods so the platform settles the frozen funds. Non-fatal.
+	reportWechatConfirmReceive(db, orderID, req.DeliveredAt)
 
 	// 5. Save delivery photos to instrument_media
 	if len(req.Photos) > 0 && order.InstrumentID != "" {
@@ -787,4 +813,64 @@ func loadOverdueDailyRate(db *gorm.DB, instrumentID string, order models.Order) 
 		baseRate = 1
 	}
 	return math.Round(baseRate*1.5*100) / 100
+}
+
+// openidOfUser returns the customer's WeChat openid from the local users cache
+// (empty string when not a mini-program customer).
+func openidOfUser(db *gorm.DB, userID string) string {
+	var u models.User
+	if err := db.Select("wx_openid").Where("id = ?", userID).First(&u).Error; err != nil {
+		return ""
+	}
+	return u.WxOpenid
+}
+
+// reportWechatShipping reports physical-goods shipment to WeChat (#1693):
+// upload_shipping_info at shipping, notify_confirm_receive at receipt. Only
+// rent/repair (physical) flows report; membership/renewal (virtual) are
+// exempt. Non-fatal — failures are logged and never block business flows.
+func reportWechatShipping(db *gorm.DB, order models.Order, openid, company, trackingNumber string) {
+	if order.ID == "" || trackingNumber == "" {
+		return
+	}
+	// Locate the payment record for this order (out_trade_no + transaction_id).
+	var record models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND status = ?", order.ID, "paid").
+		Order("created_at DESC").First(&record).Error; err != nil {
+		log.Printf("[WechatShipping] no paid payment record for order %s: %v", order.ID, err)
+		return
+	}
+	if record.OutTradeNo == nil || *record.OutTradeNo == "" {
+		log.Printf("[WechatShipping] order %s has no out_trade_no", order.ID)
+		return
+	}
+	transactionID := ""
+	if record.TransactionID != nil {
+		transactionID = *record.TransactionID
+	}
+	itemDesc := fmt.Sprintf("乐器租赁 %s", order.ID[:8])
+	go func() {
+		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, trackingNumber, company, itemDesc); err != nil {
+			log.Printf("[WechatShipping] upload_shipping_info failed for order %s: %v", order.ID, err)
+		}
+	}()
+}
+
+// reportWechatConfirmReceive notifies WeChat of the signed receipt (#1693).
+// Non-fatal; the lease already started regardless.
+func reportWechatConfirmReceive(db *gorm.DB, orderID string, receivedAt time.Time) {
+	var record models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND status = ?", orderID, "paid").
+		Order("created_at DESC").First(&record).Error; err != nil {
+		log.Printf("[WechatShipping] no paid payment record for order %s: %v", orderID, err)
+		return
+	}
+	if record.OutTradeNo == nil || *record.OutTradeNo == "" {
+		return
+	}
+	go func() {
+		if err := services.NotifyConfirmReceive(*record.OutTradeNo, receivedAt); err != nil {
+			log.Printf("[WechatShipping] notify_confirm_receive failed for order %s: %v", orderID, err)
+		}
+	}()
 }
