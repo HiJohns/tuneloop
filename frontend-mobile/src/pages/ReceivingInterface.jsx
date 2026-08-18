@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { apiFetch , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress } from '../utils/format'
 import { ArrowLeft, Camera, Scan, AlertTriangle, User, MapPin } from 'lucide-react'
-import { dialog, env, storage, session, uploadFile, navigation } from '../platform'
+import { dialog, env, storage, session, uploadFile, navigation, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import StaffIdPhotoViewer from '../components/StaffIdPhotoViewer'
@@ -164,7 +164,7 @@ export default function ReceivingInterface() {
         <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
           <Text className="text-base font-black text-black mb-3 flex items-center gap-2"><Scan size={18} />扫描乐器识别码</Text>
           <View className="flex gap-2">
-            <input type="text" value={snInput} onChange={e => setSnInput(e.target.value)} placeholder="输入乐器 SN"
+            <Input value={snInput} onInput={e => setSnInput(getInputValue(e))} placeholder="输入乐器 SN"
               className="flex-1 border rounded-lg px-3 py-2 text-sm" />
             <Button onClick={() => checkInstrument(snInput)} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-black">查询</Button>
           </View>
@@ -258,11 +258,11 @@ export default function ReceivingInterface() {
             <View className="space-y-3">
               <View>
                 <Text className="text-xs font-bold text-zinc-500 mb-1">损坏描述</Text>
-                <input type="text" value={damageDesc} onChange={e => setDamageDesc(e.target.value)} placeholder="描述损坏情况" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <Input value={damageDesc} onInput={e => setDamageDesc(getInputValue(e))} placeholder="描述损坏情况" className="w-full border rounded-lg px-3 py-2 text-sm" />
               </View>
               <View>
                 <Text className="text-xs font-bold text-zinc-500 mb-1">定损金额</Text>
-                <input type="number" value={damageAmount} onChange={e => setDamageAmount(e.target.value)} placeholder="请输入金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))} placeholder="请输入金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
                </View>
              </View>
            )}

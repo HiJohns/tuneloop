@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Taro from '@tarojs/taro'
-import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Image, Button, ScrollView, Input } from '@tarojs/components'
 import { ArrowLeft, CheckCircle, Camera, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from '../components/ImageUploader'
 import { apiFetch , resolveErrorMessage } from '../services/api'
-import { dialog, env, storage, session, uploadFile } from '../platform'
+import { dialog, env, storage, session, uploadFile, getInputValue } from '../platform'
 import { formatDisplayDate } from '../utils/format'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
@@ -186,12 +186,12 @@ export default function StaffReceiveConfirm() {
           <View className="space-y-3">
             <View>
               <Text className="text-xs font-bold text-zinc-500 mb-1">定损理由</Text>
-              <input type="text" value={damageReason} onChange={e => setDamageReason(e.target.value)}
+              <Input value={damageReason} onInput={e => setDamageReason(getInputValue(e))}
                 placeholder="请描述损坏情况" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </View>
             <View>
               <Text className="text-xs font-bold text-zinc-500 mb-1">定损金额</Text>
-              <input type="number" value={damageAmount} onChange={e => setDamageAmount(e.target.value)}
+              <Input type="number" value={damageAmount} onInput={e => setDamageAmount(getInputValue(e))}
                 placeholder="请输入定损金额" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </View>
           </View>
