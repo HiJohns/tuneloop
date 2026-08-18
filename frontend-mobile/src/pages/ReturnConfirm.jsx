@@ -94,7 +94,9 @@ export default function ReturnConfirm() {
         // 完整页面路径（Taro shim 会把 /return-settlement/:id 转成不存在的
         // /pages/return-settlement/xxx/index → 静默失败）。
         if (env.isMiniProgram) {
-          Taro.navigateTo({ url: `/pages-weapp/return-settlement/index?order_id=${orderId}` })
+          // #1702: redirectTo（替换归还物流页）而非 navigateTo（push）——
+          // 结算页返回时不再回归还物流页
+          Taro.redirectTo({ url: `/pages-weapp/return-settlement/index?order_id=${orderId}` })
         } else {
           navigate(`/return-settlement?order_id=${orderId}`, { replace: true })
         }

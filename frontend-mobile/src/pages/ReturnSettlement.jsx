@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 import { env, navigation, dialog } from '../platform'
 
 export default function ReturnSettlement() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [orderId, setOrderId] = useState('')
   const [loading, setLoading] = useState(true)
   const [settlement, setSettlement] = useState(null)
@@ -157,12 +158,20 @@ export default function ReturnSettlement() {
           <View
             className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
             onClick={() => {
-              // 返回订单详情页（结算页由 订单详情→归还确认→结算 进入，
-              // navigateBack 只会回归还确认页）
+              // 返回订单详情页（#1702）：归还物流页已在提交时 redirectTo 替换
+              // 掉，页面栈为 [order-detail, return-settlement]——navigateBack
+              // 直接回订单详情；深链/异常入口（倒数第 2 页非 return-confirm）
+              // 时 fallback redirectTo 订单详情。
               if (env.isMiniProgram) {
-                Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
+                const pages = Taro.getCurrentPages()
+                const prev = pages.length >= 2 ? pages[pages.length - 2] : null
+                if (prev && String(prev.route || '').includes('return-confirm')) {
+                  Taro.navigateBack()
+                } else {
+                  Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
+                }
               } else {
-                navigation.redirect(`/order/${orderId}`)
+                navigate(`/order/${orderId}`, { replace: true })
               }
             }}
           >
