@@ -101,6 +101,10 @@ weapp-archive-prod:
 #   上传为开发版（微信版本号 APP_VERSION，默认 1.0.0-dev）→ 后台设体验版分发。
 # 发布版（正式）：weapp-build-prod 构建（wx apiBaseUrl）+ weapp-upload-prod
 #   上传为正式版（APP_VERSION 语义化 1.0.x，必须高于线上/审核中版本）→ 提交审核。
+# weapp-upload-pre 为历史命令名别名（#1704）：.PHONY 残留导致 "Nothing to be
+# done"——语义=开发版上传（单 appid 策略），保留兼容旧脚本。
+weapp-upload-pre: weapp-upload-dev
+
 weapp-upload-dev:
 	@test -d $(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)/dist-weapp || (echo "ERROR: archive '$(WEAPP_RELEASE_DIR)/weapp-pre/$(VERSION)' not found — run 'make weapp-build-pre VERSION=$(VERSION)' first"; exit 1)
 	@cd frontend-mobile && \
