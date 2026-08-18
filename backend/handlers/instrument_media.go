@@ -412,7 +412,7 @@ func GetInstrumentMedia(c *gin.Context) {
 
 	var mediaList []models.InstrumentMedia
 	if err := db.Where("tenant_id = ? AND (instrument_id = ? OR (object_type = 'instrument' AND object_id = ?))", tenantID, instrumentID, instrumentID).
-		Order("sort_order asc, created_at desc").
+		Order("sort_order asc, created_at asc").
 		Find(&mediaList).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query media"})
 		return
@@ -683,11 +683,8 @@ func syncBackwardCompat(db *gorm.DB, tenantID, instrumentID string) {
 	}
 
 	var images []string
-	var video string
 	for _, m := range displayMedia {
-		if m.FileType == "video" {
-			video = "/uploads/media/" + m.StorageKey
-		} else {
+		if m.FileType != "video" {
 			images = append(images, "/uploads/media/"+m.StorageKey)
 		}
 	}
@@ -695,12 +692,13 @@ func syncBackwardCompat(db *gorm.DB, tenantID, instrumentID string) {
 	imagesJSONBytes, _ := json.Marshal(images)
 	imagesJSON := string(imagesJSONBytes)
 
+	// Only rebuild the images array — the video field must keep its current
+	// value (#1694): the frontend stores video via PUT /instruments/:id
+	// { video: url } directly into instruments.video (not instrument_media),
+	// so rebuilding it from display media would wipe the video on image delete.
 	db.Model(&models.Instrument{}).
 		Where("id = ? AND tenant_id = ?", instrumentID, tenantID).
-		Updates(map[string]interface{}{
-			"images": imagesJSON,
-			"video":  video,
-		})
+		Update("images", imagesJSON)
 }
 
 // UploadCoverImage uploads and sets the cover image for an instrument (v3).
@@ -743,7 +741,23 @@ func UploadCoverImage(c *gin.Context) {
 	}
 
 	storage := services.NewMediaStorage()
-	coverKey := "cover_" + instrumentID + ".webp"
+	// Timestamped key so replacing the cover changes the URL — browsers/WeChat
+	// cache by URL, a fixed key (cover_{id}.webp) kept showing the old image
+	// after "replace success" (#1694). The previous cover file is deleted; the
+	// media_assets row is marked unreferenced.
+	coverKey := fmt.Sprintf("cover_%s_%d.webp", instrumentID, time.Now().Unix())
+	var inst models.Instrument
+	if err := db.Select("cover_image").Where("id = ?", instrumentID).First(&inst).Error; err == nil && inst.CoverImage != "" {
+		oldKey := strings.TrimPrefix(inst.CoverImage, "/uploads/media/")
+		if oldKey != "" && oldKey != coverKey {
+			if err := storage.Delete(ctx, oldKey); err != nil {
+				log.Printf("[UploadCoverImage] delete old cover %s failed: %v", oldKey, err)
+			}
+			if err := services.NewMediaRegistry().MarkUnreferenced(ctx, oldKey); err != nil {
+				log.Printf("[MediaRegistry] mark old cover %s unreferenced failed: %v", oldKey, err)
+			}
+		}
+	}
 	if err := storage.Upload(ctx, coverKey, bytes.NewReader(coverData), "image/webp"); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to upload cover"})
 		return
