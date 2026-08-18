@@ -387,10 +387,12 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 
 	_ = client.CloseOrder(context.Background(), *rec.OutTradeNo)
 
-	db.Model(rec).Updates(map[string]interface{}{
+	if err := db.Model(rec).Updates(map[string]interface{}{
 		"status":     "closed",
 		"updated_at": time.Now(),
-	})
+	}).Error; err != nil {
+		log.Printf("[PaymentScheduler] failed to close timed-out payment %s: %v", *rec.OutTradeNo, err)
+	}
 
 	switch rec.OrderType {
 	case "rent":
