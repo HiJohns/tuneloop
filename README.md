@@ -129,6 +129,14 @@ frontend-mobile:
 
 ---
 
+## 🔖 版本管理
+
+- **服务器版本**：仓库根 `VERSION` 文件（语义化 `1.0.x`），`make release` 经 ldflags 注入 Go 二进制，`GET /api/config` 返回
+- **前端版本**：Makefile `FRONTEND_VERSION := 1.0.<git短码>` 自动生成，构建时注入小程序（`TARO_APP_VERSION`）与 H5（`VITE_APP_VERSION`），「我的」页底部显示
+- **小程序微信版本号**：上传时 `APP_VERSION` 指定（`1.0.x-dev` 开发版 / `1.0.x` 发布版，审核版必须高于线上）
+- **分支策略**：main（仅发布）+ develop（日常开发），发布流程与版本动作详见 `AGENTS.md` §分支策略/版本管理
+
+---
 ## 🚀 快速开始
 
 ### 环境要求

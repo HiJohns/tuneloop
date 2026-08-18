@@ -51,6 +51,36 @@ develop（开发累积，随时可部署 dev 验证）
 - 语义化 `major.minor.patch`；`1.0.x` 为正式版本号（小程序审核版必须高于线上）
 - develop 不长期领先 main 的版本号（发布时才 bump）；开发版小程序版本号 `1.0.x-dev`
 
+
+### 版本管理（#1694）
+
+**版本号定义位置**：
+
+| 版本 | 定义位置 | 说明 |
+|------|---------|------|
+| 服务器版本（major.minor.patch） | 仓库根 `VERSION` 文件（如 `1.0.0`） | 发布时手动 bump（必须高于线上） |
+| 前端版本（build） | Makefile `FRONTEND_VERSION := 1.0.<git短码>`（自动） | 每次构建自动取 commit 短码 |
+| 小程序微信版本号 | 上传参数 `APP_VERSION` | `1.0.x-dev`（开发版）/ `1.0.x`（发布版） |
+
+**各端注入与查看**：
+
+| 端 | 注入方式 | 查看位置 |
+|----|---------|---------|
+| 服务器（Go） | `make release` ldflags `-X main.Version=$(VERSION文件)` → `main.go var Version` | `GET /api/config` 的 `version` |
+| 小程序（weapp） | `TARO_APP_VERSION=$(FRONTEND_VERSION)` → defineConstants → `env.version` | 「我的」页底部 `v1.0.<短码>` |
+| H5 移动端 | `VITE_APP_VERSION=$(FRONTEND_VERSION)` → `env.version` | 「我的」页底部（同 Profile） |
+| PC 管理后台 | 无独立前端版本（与后端同包发布） | App.jsx 页脚 `v{/api/config.version}` |
+
+**发布时版本动作**：
+
+```
+1. echo "1.0.<x+1>" > VERSION          # bump 服务器版本（高于线上/审核中）
+2. make release                         # 后端注入 VERSION，前端注入 1.0.<git短码>
+3. 预生产验证 → release.sh 提升生产
+4. 小程序发布：make weapp-build-prod + weapp-upload-prod APP_VERSION=1.0.<x+1>
+5. 提交审核 → 发布
+```
+
 ## Environment Guide
 
 See `prompts/instructions.md` for full port mapping. Key rule:
