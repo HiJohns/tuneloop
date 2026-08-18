@@ -173,7 +173,7 @@ export default function ProfileComplete() {
         <View style={{ flex: 1, marginRight: 8 }}>
           <Picker mode="selector" range={provinceNames} value={province ? provinceNames.indexOf(province) : 0}
             onChange={e => { setProvince(provinceNames[e.detail.value]); setCity(''); setDistrict('') }}>
-            <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, padding: '11px 16px', fontSize: 14, color: province ? '#000' : '#9ca3af' }}>
+            <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: province ? '#000' : '#9ca3af' }}>
               {province || '省'}
             </View>
           </Picker>
@@ -181,7 +181,7 @@ export default function ProfileComplete() {
         <View style={{ flex: 1, marginRight: 8 }}>
           <Picker mode="selector" range={cityNames} value={city ? cityNames.indexOf(city) : 0}
             onChange={e => { setCity(cityNames[e.detail.value]); setDistrict('') }}>
-            <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, padding: '11px 16px', fontSize: 14, color: city ? '#000' : '#9ca3af' }}>
+            <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: city ? '#000' : '#9ca3af' }}>
               {city || '市'}
             </View>
           </Picker>
@@ -190,7 +190,7 @@ export default function ProfileComplete() {
         <View style={{ flex: 1 }}>
           <Picker mode="selector" range={districtNames} value={district ? districtNames.indexOf(district) : 0}
             onChange={e => setDistrict(districtNames[e.detail.value])}>
-            <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, padding: '11px 16px', fontSize: 14, color: district ? '#000' : '#9ca3af' }}>
+            <View style={{ border: '1px solid #d4d4d8', borderRadius: 12, height: 44, display: 'flex', alignItems: 'center', padding: '0 16px', boxSizing: 'border-box', fontSize: 14, color: district ? '#000' : '#9ca3af' }}>
               {district || '区'}
             </View>
           </Picker>
