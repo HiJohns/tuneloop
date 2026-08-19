@@ -307,8 +307,10 @@ func GetOrder(c *gin.Context) {
 			reportFound = true
 		}
 		var assessment models.DamageAssessment
+		assessmentFound := false
 		photos := []string{}
 		if err := db.Where("order_id = ?", order.ID).Order("created_at asc").First(&assessment).Error; err == nil {
+			assessmentFound = true
 			if assessment.Photos != "" {
 				json.Unmarshal([]byte(assessment.Photos), &photos)
 			}
@@ -361,8 +363,27 @@ func GetOrder(c *gin.Context) {
 			paidTotal += pr.Amount
 		}
 		damageAmount := 0.0
-		if reportFound && damageReport.DamageAmount != nil {
-			damageAmount = *damageReport.DamageAmount
+		description := ""
+		status := ""
+		reportID := ""
+		if reportFound {
+			reportID = damageReport.ID
+			status = damageReport.Status
+			description = damageReport.DamageDescription
+			if damageReport.DamageAmount != nil {
+				damageAmount = *damageReport.DamageAmount
+			}
+		} else if assessmentFound {
+			// Legacy orders (#1707): the damage_reports table was missing when
+			// InspectReturn wrote it, so the data lives in damage_assessments
+			// (estimated_cost / description / photos). Derive a pending report
+			// view from it so the accept/reject panel still works.
+			reportID = assessment.ID
+			status = "pending"
+			description = assessment.Description
+			if assessment.EstimatedCost != nil {
+				damageAmount = *assessment.EstimatedCost
+			}
 		}
 		refund := math.Round((paidTotal-damageAmount-actualRentAmount-order.ShippingFee)*100) / 100
 		if refund < 0 {
@@ -370,10 +391,10 @@ func GetOrder(c *gin.Context) {
 		}
 
 		damageData = map[string]interface{}{
-			"report_id":          damageReport.ID,
+			"report_id":          reportID,
 			"damage_amount":      damageAmount,
-			"description":        damageReport.DamageDescription,
-			"status":             damageReport.Status,
+			"description":        description,
+			"status":             status,
 			"photos":             photos,
 			"actual_rent_days":   actualRentDays,
 			"actual_rent_amount": actualRentAmount,

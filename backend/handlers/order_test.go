@@ -811,3 +811,65 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 	// refund = paid(1500) - damage(200) - rent(0, no settlement/breakdown) - shipping(50) = 1250
 	require.Equal(t, 1250.0, d.Refund, "refund = paid - damage - rent - shipping")
 }
+
+// TestGetOrder_DamagePanel_LegacyAssessmentFallback verifies #1707: when the
+// damage_reports table has no row (pre-#1706 orders wrote only to
+// damage_assessments), GetOrder derives the damage panel from the assessment
+// (estimated_cost / description / photos) with status=pending so accept/reject
+// still render.
+func TestGetOrder_DamagePanel_LegacyAssessmentFallback(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	tenantID := uuid.New().String()
+	_, instID, userID := setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	orderID := uuid.New().String()
+	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, shipping_fee, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 1000, 'pending_damage_response', 50, now(), now())`,
+		orderID, tenantID, tenantID, userID, instID).Error)
+
+	// NO damage_reports row — only the legacy assessment.
+	require.NoError(t, db.Exec(`INSERT INTO damage_assessments (id, tenant_id, org_id, order_id, instrument_id, user_id, condition, description, estimated_cost, photos, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '弦断了', 100, '["/uploads/media/a.jpg"]', 'damaged', now(), now())`,
+		uuid.New().String(), tenantID, tenantID, orderID, instID, userID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO order_payment_records (id, tenant_id, user_id, order_id, order_type, out_trade_no, amount, type, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, 'rent', ?, 1500, 'payment', 'paid', now(), now())`,
+		uuid.New().String(), tenantID, userID, orderID, "rent"+uuid.NewString()[:8]).Error)
+
+	router := setupTestRouter(t, tenantID, userID)
+	router.GET("/orders/:id", GetOrder)
+
+	req := httptest.NewRequest("GET", "/orders/"+orderID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Damage struct {
+				DamageAmount float64  `json:"damage_amount"`
+				Description  string   `json:"description"`
+				Status       string   `json:"status"`
+				Photos       []string `json:"photos"`
+				Refund       float64  `json:"refund"`
+			} `json:"damage"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+
+	d := resp.Data.Damage
+	require.Equal(t, 100.0, d.DamageAmount, "legacy fallback must use assessment.estimated_cost")
+	require.Equal(t, "弦断了", d.Description)
+	require.Equal(t, "pending", d.Status, "legacy fallback must present as pending so buttons render")
+	require.Len(t, d.Photos, 1)
+	require.Equal(t, 1350.0, d.Refund, "refund = 1500 - 100 - 0(rent) - 50")
+}
