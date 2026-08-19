@@ -492,7 +492,7 @@ export default function OrderDetail() {
 
       {/* Fee Info */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="text-base font-black text-black mb-3">费用信息</Text>
+        <Text className="text-base font-black text-black mb-4">费用信息</Text>
         <View className="space-y-2">
           {/* ① 实付金额 */}
           {order.payment_records?.length > 0 && (
@@ -592,12 +592,6 @@ export default function OrderDetail() {
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">实际租金</Text>
                   <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.actual_rent_amount).toFixed(2)}</Text>
-                </View>
-              )}
-              {Number(order.damage.shipping_fee) > 0 && (
-                <View className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">物流费</Text>
-                  <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.shipping_fee).toFixed(2)}</Text>
                 </View>
               )}
               <View className="flex justify-between text-sm">
@@ -914,11 +908,10 @@ export default function OrderDetail() {
             <Text className="text-zinc-500 font-medium">定损金额</Text>
             <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.damage_amount).toFixed(2)}</Text>
           </View>
-          {order.damage.description ? (
-            <Text className="text-sm text-zinc-600 mt-1 mb-2">定损说明：{order.damage.description}</Text>
-          ) : (
-            <Text className="text-xs text-zinc-400 mt-1 mb-2">暂无定损说明</Text>
-          )}
+          <View className="flex justify-between text-sm mb-1">
+            <Text className="text-zinc-500 font-medium">定损说明</Text>
+            <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto text-right max-w-[60%]">{order.damage.description || '暂无'}</Text>
+          </View>
           {(order.damage.photos || []).length > 0 && (
             <View className="flex flex-row flex-wrap gap-2 mb-3">
               {(order.damage.photos || []).map((p, i) => (
@@ -934,11 +927,11 @@ export default function OrderDetail() {
             </View>
           )}
           {order.damage.status === 'pending' && !isStaff && (
-            <View className="flex gap-2 mt-1">
+            <View className="flex gap-3 mt-2">
               <Button onClick={() => handleDamageAccept(order.damage)}
-                className="flex-1 !m-0 !bg-green-600 !text-white !rounded-xl !font-black">接受定损</Button>
+                className="flex-1 !m-0 !bg-sky-500 !text-white !rounded-xl !font-bold !text-sm" style={{ height: 36 }}>接受定损</Button>
               <Button onClick={() => handleDamageReject(order.damage)}
-                className="flex-1 !m-0 !bg-red-500 !text-white !rounded-xl !font-black">拒绝定损</Button>
+                className="flex-1 !m-0 !bg-zinc-100 !text-zinc-600 !rounded-xl !font-bold !text-sm !border !border-zinc-200" style={{ height: 36 }}>拒绝定损</Button>
             </View>
           )}
           {order.damage.status !== 'pending' && (

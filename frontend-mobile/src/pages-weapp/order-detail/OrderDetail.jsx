@@ -495,7 +495,7 @@ export default function OrderDetail() {
 
         {/* Fee Info (合并结算明细/收支明细) */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>费用明细</Text>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 16 }}>费用明细</Text>
 
           {/* ① 实付金额 */}
           {order.payment_records?.length > 0 && (
@@ -598,9 +598,6 @@ export default function OrderDetail() {
               )}
               {Number(order.damage.actual_rent_amount) > 0 && (
                 <Row label="实际租金" value={`¥${Number(order.damage.actual_rent_amount).toFixed(2)}`} />
-              )}
-              {Number(order.damage.shipping_fee) > 0 && (
-                <Row label="物流费" value={`¥${Number(order.damage.shipping_fee).toFixed(2)}`} />
               )}
               <Row label="赔偿金额" value={`¥${Number(order.damage.damage_amount).toFixed(2)}`} color="#ef4444" />
               <Row label="退款" value={`¥${Number(order.damage.refund).toFixed(2)}`} color="#16a34a" />
@@ -800,12 +797,12 @@ export default function OrderDetail() {
           <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>定损信息</Text>
           <Row label="定损金额" value={`¥${Number(order.damage.damage_amount).toFixed(2)}`} color="#ef4444" />
           {order.damage.description ? (
-            <Text style={{ fontSize: 13, color: '#52525b', marginTop: 6, marginBottom: 10 }}>定损说明：{order.damage.description}</Text>
+            <Row label="定损说明" value={order.damage.description} />
           ) : (
-            <Text style={{ fontSize: 13, color: '#a1a1aa', marginTop: 6, marginBottom: 10 }}>暂无定损说明</Text>
+            <Row label="定损说明" value="暂无" color="#a1a1aa" />
           )}
           {(order.damage.photos || []).length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, marginBottom: 4 }}>
               {(order.damage.photos || []).map((p, i) => (
                 <Image
                   key={i}
@@ -818,18 +815,18 @@ export default function OrderDetail() {
             </View>
           )}
           {order.damage.status === 'pending' && !isStaff && (
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
               <View
                 onClick={() => handleDamageAccept(order.damage)}
-                style={{ flex: 1, height: 44, backgroundColor: '#16a34a', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+                style={{ flex: 1, height: 36, backgroundColor: '#0ea5e9', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>接受定损</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>接受定损</Text>
               </View>
               <View
                 onClick={() => handleDamageReject(order.damage)}
-                style={{ flex: 1, height: 44, backgroundColor: '#ef4444', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+                style={{ flex: 1, height: 36, backgroundColor: '#f4f4f5', borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>拒绝定损</Text>
+                <Text style={{ color: '#52525b', fontWeight: '700', fontSize: 14 }}>拒绝定损</Text>
               </View>
             </View>
           )}

@@ -315,6 +315,23 @@ func GetOrder(c *gin.Context) {
 				json.Unmarshal([]byte(assessment.Photos), &photos)
 			}
 		}
+		// Staff photos live in instrument_media (batch_type=receiving,
+		// is_display=false) — the InspectReturn photo upload writes there even
+		// when assessment.photos is empty (legacy orders, #1707). Fall back to
+		// it so the damage panel always shows what the staff captured.
+		if len(photos) == 0 && order.InstrumentID != "" {
+			var receivingMedia []models.InstrumentMedia
+			db.Where("instrument_id = ? AND batch_type = ? AND file_type = ?",
+				order.InstrumentID, "receiving", "image").
+				Order("created_at asc").Find(&receivingMedia)
+			for _, m := range receivingMedia {
+				url := m.StorageKey
+				if !strings.HasPrefix(url, "/uploads/") && !strings.HasPrefix(url, "http") {
+					url = "/uploads/media/" + url
+				}
+				photos = append(photos, url)
+			}
+		}
 
 		// Actual rent days/amount: settlement if present, else derive from the
 		// pricing breakdown (actual tier fields) or delivered_at→returned_at.

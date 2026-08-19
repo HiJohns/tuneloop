@@ -837,8 +837,12 @@ func TestGetOrder_DamagePanel_LegacyAssessmentFallback(t *testing.T) {
 
 	// NO damage_reports row — only the legacy assessment.
 	require.NoError(t, db.Exec(`INSERT INTO damage_assessments (id, tenant_id, org_id, order_id, instrument_id, user_id, condition, description, estimated_cost, photos, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '弦断了', 100, '["/uploads/media/a.jpg"]', 'damaged', now(), now())`,
+		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '弦断了', 100, '[]', 'damaged', now(), now())`,
 		uuid.New().String(), tenantID, tenantID, orderID, instID, userID).Error)
+	// Staff photos live in instrument_media (receiving batch) — must fall back.
+	require.NoError(t, db.Exec(`INSERT INTO instrument_media (id, tenant_id, org_id, instrument_id, batch_id, batch_type, file_name, file_type, storage_key, is_display, sort_order, created_at)
+		VALUES (?, ?, ?, ?, ?, 'receiving', 'r1.jpg', 'image', '/uploads/media/staff_photo.webp', false, 0, now())`,
+		uuid.New().String(), tenantID, tenantID, instID, uuid.New().String()).Error)
 	require.NoError(t, db.Exec(`INSERT INTO order_payment_records (id, tenant_id, user_id, order_id, order_type, out_trade_no, amount, type, status, created_at, updated_at)
 		VALUES (?, ?, ?, ?, 'rent', ?, 1500, 'payment', 'paid', now(), now())`,
 		uuid.New().String(), tenantID, userID, orderID, "rent"+uuid.NewString()[:8]).Error)
@@ -871,5 +875,6 @@ func TestGetOrder_DamagePanel_LegacyAssessmentFallback(t *testing.T) {
 	require.Equal(t, "弦断了", d.Description)
 	require.Equal(t, "pending", d.Status, "legacy fallback must present as pending so buttons render")
 	require.Len(t, d.Photos, 1)
+	require.Equal(t, "/uploads/media/staff_photo.webp", d.Photos[0], "photos must fall back to instrument_media receiving batch")
 	require.Equal(t, 1350.0, d.Refund, "refund = 1500 - 100 - 0(rent) - 50")
 }

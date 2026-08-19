@@ -592,6 +592,8 @@ steps:
   - 费用明细含实际租期/实际租金/赔偿金额/退款（数据来自后端 `order.damage` 对象，前端不自行算退款）
   - 接受按钮调用 `POST /appeals/:damage_id/agree`；拒绝按钮提交 `POST /appeals`（body: damage_report_id + appeal_reason）
   - report 已处理（agreed/appealed）时按钮隐藏、显示状态文案
+  - **定损照片数据来源（审计盲区补漏）**：`order.damage.photos` 优先 `damage_assessments.photos`（JSONB），为空时回退 `instrument_media`（batch_type=receiving, file_type=image, is_display=false，storage_key 补 `/uploads/media/` 前缀）——员工验收照片实际存 instrument_media（InspectReturn 双写路径），assessment.photos 可能为空（存量订单）
+  - **静态检查必须验证数据源而非仅 JSX**：displays 的"定损照片"需交叉核对 GetOrder 的 photos 组装（两个来源），防止"前端有渲染、后端无数据"的脱节
 
 ## 验收
 - `go test` 覆盖：路径(2) 接受 → deposit_refunding → 员工 POST /orders/:id/refund → settlement 生成 + 通知；路径(3) 申诉 → resolve → 员工退款 → 收据含 SN 行
