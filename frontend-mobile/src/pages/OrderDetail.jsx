@@ -929,9 +929,9 @@ export default function OrderDetail() {
           {order.damage.status === 'pending' && !isStaff && (
             <View className="flex gap-3 mt-2">
               <Button onClick={() => handleDamageAccept(order.damage)}
-                className="flex-1 !m-0 !bg-sky-500 !text-white !rounded-xl !font-bold !text-sm" style={{ height: 36 }}>接受定损</Button>
+                className="flex-1 !m-0 !bg-sky-500 !text-white !rounded-xl !font-bold !text-sm" style={{ height: 36 }}>接受</Button>
               <Button onClick={() => handleDamageReject(order.damage)}
-                className="flex-1 !m-0 !bg-zinc-100 !text-zinc-600 !rounded-xl !font-bold !text-sm !border !border-zinc-200" style={{ height: 36 }}>拒绝定损</Button>
+                className="flex-1 !m-0 !bg-zinc-100 !text-zinc-600 !rounded-xl !font-bold !text-sm !border !border-zinc-200" style={{ height: 36 }}>拒绝</Button>
             </View>
           )}
           {order.damage.status !== 'pending' && (

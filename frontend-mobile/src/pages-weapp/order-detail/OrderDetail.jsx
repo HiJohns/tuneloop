@@ -815,18 +815,18 @@ export default function OrderDetail() {
             </View>
           )}
           {order.damage.status === 'pending' && !isStaff && (
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
               <View
                 onClick={() => handleDamageAccept(order.damage)}
-                style={{ flex: 1, height: 36, backgroundColor: '#0ea5e9', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+                style={{ flex: 1, padding: '9px 0', backgroundColor: '#0ea5e9', borderRadius: 10, textAlign: 'center', marginRight: 6 }}
               >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>接受定损</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>接受</Text>
               </View>
               <View
                 onClick={() => handleDamageReject(order.damage)}
-                style={{ flex: 1, height: 36, backgroundColor: '#f4f4f5', borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+                style={{ flex: 1, padding: '9px 0', backgroundColor: '#f4f4f5', borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 10, textAlign: 'center', marginLeft: 6 }}
               >
-                <Text style={{ color: '#52525b', fontWeight: '700', fontSize: 14 }}>拒绝定损</Text>
+                <Text style={{ color: '#52525b', fontWeight: '700', fontSize: 14 }}>拒绝</Text>
               </View>
             </View>
           )}
