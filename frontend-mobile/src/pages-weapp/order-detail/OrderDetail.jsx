@@ -500,7 +500,7 @@ export default function OrderDetail() {
           {/* ① 实付金额 */}
           {order.payment_records?.length > 0 && (
             <>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>实付金额</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付金额</Text>
               {order.payment_records.map(pr => (
                 <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${Number(pr.amount).toFixed(2)}`} />
               ))}

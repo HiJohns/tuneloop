@@ -497,7 +497,7 @@ export default function OrderDetail() {
           {/* ① 实付金额 */}
           {order.payment_records?.length > 0 && (
             <>
-              <Text className="text-xs font-bold text-zinc-400">实付金额</Text>
+              <Text className="text-xs font-bold text-zinc-400 mt-3">实付金额</Text>
               {order.payment_records.map(pr => (
                 <View key={pr.id} className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">{pr.method || '支付'}</Text>
