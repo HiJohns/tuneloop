@@ -80,6 +80,16 @@ const { Header, Content, Sider } = Layout
 const BRAND_COLOR = '#002140'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+// #1714: single builder for the IAM authorize URL (cold start, session
+// loss re-login and active logout all use it).
+function buildIAMLoginURL() {
+  const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
+  const clientId = window.APP_CONFIG?.pc?.iamClientId
+  if (!clientId) { alert('无法获取配置，请刷新页面重试'); return null }
+  const redirectUri = encodeURIComponent(window.location.origin + '/callback')
+  return iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
+}
+
 function handleLogout() {
   // Clear localStorage
   localStorage.removeItem('token')
@@ -95,13 +105,10 @@ function handleLogout() {
   // Clear cookies
   document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-  
-    // Redirect to IAM login for proper logout with redirect back
-    const iamUrl = window.APP_CONFIG?.pc?.iamExternalUrl || import.meta.env.VITE_BEACONIAM_EXTERNAL_URL || ''
-    const clientId = window.APP_CONFIG?.pc?.iamClientId
-    if (!clientId) { alert('无法获取配置，请刷新页面重试'); return }
-    const redirectUri = encodeURIComponent(window.location.origin + '/callback')
-    window.location.href = iamUrl + '/oauth/authorize?prompt=login&client_id=' + clientId + '&redirect_uri=' + redirectUri + '&response_type=code&noRegister=1'
+
+  // Redirect to IAM login for proper logout with redirect back
+  const url = buildIAMLoginURL()
+  if (url) window.location.href = url
 }
 
 function MainLayout() {
@@ -113,7 +120,12 @@ function MainLayout() {
   const [searchParams] = useSearchParams()
   const isFirstLogin = location.pathname === '/user/change-password' && searchParams.get('first_login') === '1'
 
-  const redirectToIAMLogin = () => {
+  const [sessionError, setSessionError] = useState(null)
+
+  // #1714: clear auth state, then either redirect straight to IAM (cold
+  // start, direct=true) or stay on the page with a session-expired overlay
+  // (session loss — keeps the frontend error scene alive for debugging).
+  const redirectToIAMLogin = (direct) => {
     localStorage.removeItem('token')
     localStorage.removeItem('token_expiry')
     localStorage.removeItem('refresh_token')
@@ -126,8 +138,20 @@ function MainLayout() {
       document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
       document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
     })
-    localStorage.setItem('logout_reason', 'session_expired')
-    window.location.href = '/logout'
+    if (direct) {
+      localStorage.setItem('last_logout_reason', 'no_token')
+      const url = buildIAMLoginURL()
+      if (url) window.location.href = url
+      return
+    }
+    // Session loss: stay on the page with an overlay so console errors stay
+    // visible (the 10s /logout detour cleared the scene instead of aiding).
+    localStorage.setItem('auth_debug', JSON.stringify({
+      reason: 'session_expired',
+      time: new Date().toISOString(),
+      url: window.location.href,
+    }))
+    setSessionError({ reason: 'session_expired' })
   }
 
   // Session expiry warning — check every 30s
@@ -520,7 +544,7 @@ function onMenuClick(e) {
 
   if (!getToken() && location.pathname !== '/callback' && location.pathname !== '/logout') {
     console.log('%c[APP DEBUG] redirecting to IAM (no token)', 'color: red;')
-    redirectToIAMLogin()
+    redirectToIAMLogin(true)
     return null
   }
 
@@ -534,6 +558,39 @@ function onMenuClick(e) {
       timestamp: new Date().toISOString()
     })
     return <Spin fullscreen tip="正在初始化..." />
+  }
+
+  // #1714: session-expired overlay — stays on the page (console scene kept
+  // alive for debugging) with immediate re-login / stay buttons and a 30s
+  // auto redirect fallback.
+  useEffect(() => {
+    if (!sessionError) return
+    const t = setTimeout(() => redirectToIAMLogin(true), 30000)
+    return () => clearTimeout(t)
+  }, [sessionError])
+
+  if (sessionError) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', background: '#FDFBF7',
+        fontFamily: 'sans-serif', gap: 16,
+      }}>
+        <h2 style={{ color: '#c0392b', fontSize: 22 }}>会话已过期</h2>
+        <p style={{ color: '#666' }}>登录状态已失效，请重新登录（页面已停留，便于检查控制台错误）。</p>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={() => redirectToIAMLogin(true)}
+            style={{ padding: '10px 28px', borderRadius: 8, border: 'none', background: '#2A6DF4', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+            立即重新登录
+          </button>
+          <button onClick={() => setSessionError(null)}
+            style={{ padding: '10px 28px', borderRadius: 8, border: '1px solid #d4d4d8', background: '#fff', color: '#666', fontSize: 15, cursor: 'pointer' }}>
+            停留调试
+          </button>
+        </div>
+        <p style={{ color: '#aaa', fontSize: 12 }}>30 秒后自动跳转登录页</p>
+      </div>
+    )
   }
 
   return (
@@ -722,15 +779,9 @@ function OAuthCallback() {
       setErrorMsg(`OAuth 错误: ${error}`)
       setLoading(false)
       setTimeout(() => {
-        const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
-        cookieDomains.forEach(domain => {
-          const path = domain ? `; domain=${domain}` : ''
-          document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
-          document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
-        })
-        localStorage.setItem('logout_reason', 'auth_failed')
-        window.location.href = '/logout'
-      }, 3000)
+        const url = buildIAMLoginURL()
+        if (url) window.location.href = url
+      }, 1000)
       return
     }
 
@@ -738,15 +789,9 @@ function OAuthCallback() {
       setErrorMsg('缺少授权码')
       setLoading(false)
       setTimeout(() => {
-        const cookieDomains = ['', '.cadenzayueqi.com', '.linxdeep.com']
-        cookieDomains.forEach(domain => {
-          const path = domain ? `; domain=${domain}` : ''
-          document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
-          document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
-        })
-        localStorage.setItem('logout_reason', 'auth_failed')
-        window.location.href = '/logout'
-      }, 3000)
+        const url = buildIAMLoginURL()
+        if (url) window.location.href = url
+      }, 1000)
       return
     }
 
@@ -797,8 +842,8 @@ function OAuthCallback() {
             document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
             document.cookie = `refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${path}`
           })
-          localStorage.setItem('logout_reason', 'auth_failed')
-          window.location.href = '/logout'
+          const url = buildIAMLoginURL()
+          if (url) window.location.href = url
           return
         }
         
