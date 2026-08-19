@@ -1639,7 +1639,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "transfer_eligible": false, // 是否满足转售条件
     "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）
       "report_id": "uuid",
-      "damage_amount": 100.00,    // 定损金额（legacy 订单回退 damage_assessments.estimated_cost）
+      "damage_amount": 100.00,    // 定损金额（迁移后统一来自 damage_reports，见 #1708/#1711）
       "description": "弦断了",
       "status": "pending",        // pending=待决策 / agreed / appealed / completed（good 验收）
       "photos": ["/uploads/media/x.webp"], // 仅来自 instrument_media（receiving 批次）
