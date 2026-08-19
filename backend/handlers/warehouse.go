@@ -403,71 +403,44 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 
-	// Create assessment record
+	// Create the unified damage report (#1708): every acceptance — including
+	// good (no damage) — writes one row; DamageAssessment is deprecated.
+	// The report also backs the damage notification's accept/reject buttons
+	// (#1607, L-04) and the order-detail damage panel (#1707).
 	userID := middleware.GetUserID(ctx)
-	assessmentStatus := "completed"
+	inspectOrgID := middleware.GetOrgID(ctx)
+	report := models.DamageReport{
+		ID:                uuid.New().String(),
+		TenantID:          tenantID,
+		OrgID:             inspectOrgID,
+		LeaseID:           orderID,
+		InstrumentID:      order.InstrumentID,
+		UserID:            order.UserID,
+		Condition:         req.Condition,
+		Notes:             req.Notes,
+		ScanTime:          &req.ScanTime,
+		AssessedBy:        stringPtr(userID),
+		AssessedAt:        &req.ScanTime,
+		Status:            "completed",
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+	}
 	if req.Condition == "damaged" {
-		assessmentStatus = "damaged"
-	}
-	assessment := models.DamageAssessment{
-		ID:           uuid.New().String(),
-		TenantID:     tenantID,
-		OrgID:        order.OrgID,
-		OrderID:      orderID,
-		InstrumentID: order.InstrumentID,
-		UserID:       order.UserID,
-		InspectorID:  stringPtr(userID),
-		Condition:    req.Condition,
-		Description:  req.Notes,
-		Notes:        req.Notes,
-		ScanTime:     &req.ScanTime,
-		Status:       assessmentStatus,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-	if req.Condition == "damaged" && req.DamageAmount > 0 {
-		assessment.EstimatedCost = &req.DamageAmount
-	}
-	if req.Photos != nil {
-		if b, err := json.Marshal(req.Photos); err == nil {
-			assessment.Photos = string(b)
+		report.Status = "pending" // 定损决策待顾客回应
+		if req.DamageAmount > 0 {
+			report.DamageAmount = &req.DamageAmount
 		}
-	} else {
-		assessment.Photos = "[]"
+		report.DamageDescription = req.Notes
 	}
-	if err := db.Create(&assessment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create assessment: " + err.Error()})
+	if err := db.Create(&report).Error; err != nil {
+		// Red line: never swallow — the damage report backs the
+		// accept/reject notification; a silent failure leaves the
+		// customer without the damage notice (#1706).
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "定损报告保存失败，请重试"})
 		return
 	}
+	damageReportID := report.ID
 
-	// Create the damage report immediately so the damage notification's
-	// refID points to a real damage_reports row (MessageDetail renders the
-	// accept/reject buttons by loading damage_reports[id]) (#1607, L-04).
-	var damageReportID string
-	if req.Condition == "damaged" {
-		inspectOrgID := middleware.GetOrgID(ctx)
-		report := models.DamageReport{
-			ID:                uuid.New().String(),
-			TenantID:          tenantID,
-			OrgID:             inspectOrgID,
-			LeaseID:           orderID,
-			InstrumentID:      order.InstrumentID,
-			UserID:            order.UserID,
-			DamageAmount:      &req.DamageAmount,
-			DamageDescription: req.Notes,
-			Status:            "pending",
-			CreatedAt:         time.Now(),
-			UpdatedAt:         time.Now(),
-		}
-		if err := db.Create(&report).Error; err != nil {
-			// Red line: never swallow — the damage report backs the
-			// accept/reject notification; a silent failure leaves the
-			// customer without the damage notice (#1706).
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "定损报告保存失败，请重试"})
-			return
-		}
-		damageReportID = report.ID
-	}
 
 	// Save return photos to instrument_media
 	if len(req.Photos) > 0 && order.InstrumentID != "" {
@@ -540,9 +513,9 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		}
 	}
 
-	// Persist overdue days/fee on the assessment for staged refund settlement.
+	// Persist overdue days/fee on the damage report for staged refund settlement.
 	if overdueDays > 0 || overdueFee > 0 {
-		db.Model(&models.DamageAssessment{}).Where("id = ?", assessment.ID).
+		db.Model(&models.DamageReport{}).Where("id = ?", report.ID).
 			Updates(map[string]interface{}{"overdue_days": overdueDays, "overdue_fee": overdueFee})
 	}
 
@@ -654,7 +627,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 			"order_id":           orderID,
 			"status":             newStatus,
 			"condition":          req.Condition,
-			"assessment_id":      assessment.ID,
+			"assessment_id":      report.ID,
 			"overdue_days":       overdueDays,
 			"overdue_daily_rate": overdueDailyRate,
 			"overdue_fee":        overdueFee,
@@ -745,13 +718,17 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 			UpdatedAt:         time.Now(),
 		}
 		if err := db.Create(&damageReport).Error; err != nil {
-			log.Printf("[AssessDamage] Failed to create damage report: %v", err)
+			// Red line: never swallow — the report backs the accept/reject
+			// notification (#1706).
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "定损报告保存失败，请重试"})
+			return
 		}
 	} else {
 		// Update the existing report with the finalized damage values
 		if err := db.Model(&damageReport).Updates(map[string]interface{}{
 			"damage_amount":      req.DamageAmount,
 			"damage_description": req.DamageDescription,
+			"condition":          "damaged",
 		}).Error; err != nil {
 			log.Printf("[AssessDamage] Failed to update damage report: %v", err)
 		}

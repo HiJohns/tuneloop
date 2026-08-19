@@ -545,13 +545,21 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	// Overdue fee for staged settlement: collected once at return inspection
-	// (#1493) and persisted on the DamageAssessment. Legacy per-day
-	// overdue_charges are ignored (daily deduction removed, #1492).
-	var assessment models.DamageAssessment
-	if err := db.Where("order_id = ?", order.ID).Order("created_at desc").First(&assessment).Error; err != nil {
-		assessment = models.DamageAssessment{}
+	// (#1493) and persisted on the DamageReport (#1708; legacy data on
+	// DamageAssessment until the DDL migration). Legacy per-day overdue_charges
+	// are ignored (daily deduction removed, #1492).
+	var reportOverdue models.DamageReport
+	if err := db.Where("lease_id = ?", order.ID).Order("created_at desc").First(&reportOverdue).Error; err != nil {
+		reportOverdue = models.DamageReport{}
 	}
-	overdueFee := assessment.OverdueFee
+	overdueFee := reportOverdue.OverdueFee
+	if overdueFee == 0 {
+		// Legacy orders: overdue persisted on DamageAssessment.
+		var assessment models.DamageAssessment
+		if err := db.Where("order_id = ?", order.ID).Order("created_at desc").First(&assessment).Error; err == nil {
+			overdueFee = assessment.OverdueFee
+		}
+	}
 	if overdueFee < 0 {
 		overdueFee = 0
 	}
@@ -708,7 +716,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"remaining_deposit":         remainingDeposit,
 		"damage_deducted":           damageDeducted,
 		"overdue_fee":               overdueFee,
-		"overdue_days":              assessment.OverdueDays,
+		"overdue_days":              reportOverdue.OverdueDays,
 		"early_return_rebate":       earlyReturnRebate,
 		"rent_payable":              rentPayable,
 		"actual_rent_amount":        rentPayable, // backward-compatible alias

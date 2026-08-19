@@ -763,8 +763,15 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 		VALUES (?, ?, ?, ?, ?, ?, ?, '乐器刮痕', 'pending', now(), now())`,
 		reportID, tenantID, tenantID, orderID, instID, userID, damageAmt).Error)
 	require.NoError(t, db.Exec(`INSERT INTO damage_assessments (id, tenant_id, org_id, order_id, instrument_id, user_id, condition, description, photos, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '乐器刮痕', '["/uploads/media/a.jpg","/uploads/media/b.jpg"]', 'completed', now(), now())`,
+		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '乐器刮痕', '[]', 'completed', now(), now())`,
 		uuid.New().String(), tenantID, tenantID, orderID, instID, userID).Error)
+	// Staff photos: instrument_media receiving batch (authoritative source, #1708).
+	require.NoError(t, db.Exec(`INSERT INTO instrument_media (id, tenant_id, org_id, instrument_id, batch_id, batch_type, file_name, file_type, storage_key, is_display, sort_order, created_at)
+		VALUES (?, ?, ?, ?, ?, 'receiving', 'a.jpg', 'image', '/uploads/media/a.jpg', false, 0, now())`,
+		uuid.New().String(), tenantID, tenantID, instID, uuid.New().String()).Error)
+	require.NoError(t, db.Exec(`INSERT INTO instrument_media (id, tenant_id, org_id, instrument_id, batch_id, batch_type, file_name, file_type, storage_key, is_display, sort_order, created_at)
+		VALUES (?, ?, ?, ?, ?, 'receiving', 'b.jpg', 'image', '/uploads/media/b.jpg', false, 1, now())`,
+		uuid.New().String(), tenantID, tenantID, instID, uuid.New().String()).Error)
 	require.NoError(t, db.Exec(`INSERT INTO order_payment_records (id, tenant_id, user_id, order_id, order_type, out_trade_no, amount, type, status, created_at, updated_at)
 		VALUES (?, ?, ?, ?, 'rent', ?, 1500, 'payment', 'paid', now(), now())`,
 		uuid.New().String(), tenantID, userID, orderID, "rent"+uuid.NewString()[:8]).Error)
@@ -804,7 +811,7 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 	require.Equal(t, 200.0, d.DamageAmount)
 	require.Equal(t, "乐器刮痕", d.Description)
 	require.Equal(t, "pending", d.Status)
-	require.Len(t, d.Photos, 2, "damage.photos must carry assessment photos")
+	require.Len(t, d.Photos, 2, "damage.photos must come from instrument_media receiving batch (#1708)")
 	require.Equal(t, 50.0, d.ShippingFee)
 	require.Equal(t, 1000.0, d.Deposit)
 	require.Equal(t, 1500.0, d.PaidTotal)

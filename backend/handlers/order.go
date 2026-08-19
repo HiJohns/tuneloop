@@ -308,18 +308,14 @@ func GetOrder(c *gin.Context) {
 		}
 		var assessment models.DamageAssessment
 		assessmentFound := false
-		photos := []string{}
 		if err := db.Where("order_id = ?", order.ID).Order("created_at asc").First(&assessment).Error; err == nil {
 			assessmentFound = true
-			if assessment.Photos != "" {
-				json.Unmarshal([]byte(assessment.Photos), &photos)
-			}
 		}
 		// Staff photos live in instrument_media (batch_type=receiving,
-		// is_display=false) — the InspectReturn photo upload writes there even
-		// when assessment.photos is empty (legacy orders, #1707). Fall back to
-		// it so the damage panel always shows what the staff captured.
-		if len(photos) == 0 && order.InstrumentID != "" {
+		// is_display=false) — the InspectReturn photo upload writes there.
+		// damage_assessments.photos JSONB is deprecated (#1708/#1710).
+		photos := []string{}
+		if order.InstrumentID != "" {
 			var receivingMedia []models.InstrumentMedia
 			db.Where("instrument_id = ? AND batch_type = ? AND file_type = ?",
 				order.InstrumentID, "receiving", "image").

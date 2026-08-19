@@ -767,8 +767,15 @@ type DamageReport struct {
 	AssessedAt        *time.Time `json:"assessed_at"`
 	DepositDeducted   float64    `gorm:"type:decimal(10,2);default:0" json:"deposit_deducted"`
 	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	// 验收字段（#1708 从 DamageAssessment 并入）：所有验收（含 good 无损坏）统一
+	// 写入 damage_reports，DamageAssessment 表废弃。
+	Condition   string     `gorm:"type:varchar(20)" json:"condition"`
+	Notes       string     `gorm:"type:text" json:"notes"`
+	ScanTime    *time.Time `json:"scan_time"`
+	OverdueDays int        `gorm:"default:0" json:"overdue_days"`
+	OverdueFee  float64    `gorm:"type:decimal(10,2);default:0" json:"overdue_fee"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // DamageAssessment 定损评估记录表
