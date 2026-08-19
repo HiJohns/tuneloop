@@ -1637,6 +1637,19 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "accumulated_months": 8,
     "transfer_progress": 66.7,
     "transfer_eligible": false, // 是否满足转售条件
+    "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）
+      "report_id": "uuid",
+      "damage_amount": 100.00,    // 定损金额（legacy 订单回退 damage_assessments.estimated_cost）
+      "description": "弦断了",
+      "status": "pending",        // pending=待决策 / agreed / appealed / completed（good 验收）
+      "photos": ["/uploads/media/x.webp"], // 仅来自 instrument_media（receiving 批次）
+      "actual_rent_days": 29,
+      "actual_rent_amount": 2900.00,
+      "shipping_fee": 50.00,
+      "deposit": 1000.00,
+      "paid_total": 4000.00,
+      "refund": 950.00            // = 实付合计 - 赔偿 - 实际租金 - 物流费（后端统一计算）
+    },
     "payment_history": [
       {
         "month": 1,

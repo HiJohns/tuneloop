@@ -306,11 +306,6 @@ func GetOrder(c *gin.Context) {
 		if err := db.Where("lease_id = ?", order.ID).Order("created_at asc").First(&damageReport).Error; err == nil {
 			reportFound = true
 		}
-		var assessment models.DamageAssessment
-		assessmentFound := false
-		if err := db.Where("order_id = ?", order.ID).Order("created_at asc").First(&assessment).Error; err == nil {
-			assessmentFound = true
-		}
 		// Staff photos live in instrument_media (batch_type=receiving,
 		// is_display=false) — the InspectReturn photo upload writes there.
 		// damage_assessments.photos JSONB is deprecated (#1708/#1710).
@@ -385,17 +380,6 @@ func GetOrder(c *gin.Context) {
 			description = damageReport.DamageDescription
 			if damageReport.DamageAmount != nil {
 				damageAmount = *damageReport.DamageAmount
-			}
-		} else if assessmentFound {
-			// Legacy orders (#1707): the damage_reports table was missing when
-			// InspectReturn wrote it, so the data lives in damage_assessments
-			// (estimated_cost / description / photos). Derive a pending report
-			// view from it so the accept/reject panel still works.
-			reportID = assessment.ID
-			status = "pending"
-			description = assessment.Description
-			if assessment.EstimatedCost != nil {
-				damageAmount = *assessment.EstimatedCost
 			}
 		}
 		refund := math.Round((paidTotal-damageAmount-actualRentAmount-order.ShippingFee)*100) / 100

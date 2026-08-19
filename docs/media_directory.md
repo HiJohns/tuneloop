@@ -149,7 +149,7 @@ See `AGENTS.md` → "Instrument Image Hierarchy" for per-field display rules.
 |-------|------------|----------|------------|
 | maintenance_tickets | `repair_photos`, `completion_photos` | ✅ | ✅ |
 | repair_records | `photos` | ✅ | ✅ |
-| damage_assessments | `photos` | ✅ | ❌ 已废弃（#1708/#1710）——读取/写入统一 instrument_media（receiving 批次），存量由 `--migrate-damage-photos` 回填，列待 DDL 删除（#1711） |
+| damage_assessments | `photos` | ✅ | ❌ 表已废弃（#1708/#1710/#1711）——验收统一写入 damage_reports，照片统一 instrument_media（receiving 批次）；迁移 `--migrate-damage-photos` 回填存量 |
 | repair_requests | `photos` | ✅ | ✅ |
 | repair_request_records | `photos` | ✅ (handler N/A) | — |
 | transit_orders | `unpack_photos` | ✅ | ✅ |

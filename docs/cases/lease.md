@@ -448,6 +448,10 @@ steps:
            - {type: api, method: PUT, path: /warehouse/orders/:id/return-inspect}
      api: {method: PUT, path: /warehouse/orders/:id/return-inspect, params: [instrument_sn, scan_time, condition, damage_amount, notes]}
      # 物流费在设计变更后于发货页填写（L-01 seq3），验收页不再录入（#1621 设计修正）
+     # #1708/#1709：验收统一写 damage_reports（good 与 damaged 都建；good → status=completed，
+     # damaged → status=pending 待顾客决策）；damage_assessments 表已废弃。
+     # 员工照片写入 instrument_media（batch_type=receiving, is_display=false），
+     # 不再写 assessment.photos JSONB（已废弃）。
      # 路径 1（good）：验收无损坏 → 立即自动结算退款 → 汇聚 seq 8 收据
      # 路径 2/3（damaged）：进入 seq 2 定损决策
   - seq: 2
@@ -592,7 +596,7 @@ steps:
   - 费用明细含实际租期/实际租金/赔偿金额/退款（数据来自后端 `order.damage` 对象，前端不自行算退款）
   - 接受按钮调用 `POST /appeals/:damage_id/agree`；拒绝按钮提交 `POST /appeals`（body: damage_report_id + appeal_reason）
   - report 已处理（agreed/appealed）时按钮隐藏、显示状态文案
-  - **定损照片数据来源（审计盲区补漏）**：`order.damage.photos` 优先 `damage_assessments.photos`（JSONB），为空时回退 `instrument_media`（batch_type=receiving, file_type=image, is_display=false，storage_key 补 `/uploads/media/` 前缀）——员工验收照片实际存 instrument_media（InspectReturn 双写路径），assessment.photos 可能为空（存量订单）
+  - **定损照片数据来源（#1708 更新）**：`order.damage.photos` **仅**来自 `instrument_media`（batch_type=receiving, file_type=image, is_display=false，storage_key 补 `/uploads/media/` 前缀）——damage_assessments.photos JSONB 已废弃（#1710/#1711），不再读取
   - **静态检查必须验证数据源而非仅 JSX**：displays 的"定损照片"需交叉核对 GetOrder 的 photos 组装（两个来源），防止"前端有渲染、后端无数据"的脱节
 
 ## 验收
