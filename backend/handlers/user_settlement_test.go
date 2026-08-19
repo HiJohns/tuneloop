@@ -17,7 +17,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageAssessment{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000e1"
 	orgID := "00000000-0000-0000-0000-0000000000e2"
@@ -72,7 +72,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageAssessment{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000f1"
 	orgID := "00000000-0000-0000-0000-0000000000f2"
@@ -138,7 +138,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 	cleanup := setupMockIAMAndDB(t)
 	defer cleanup()
 	db := database.GetDB()
-	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageAssessment{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
+	require.NoError(t, db.AutoMigrate(&models.Order{}, &models.Instrument{}, &models.DamageReport{}, &models.OverdueCharge{}, &models.Settlement{}))
 
 	tenantID := "00000000-0000-0000-0000-0000000000a1"
 	orgID := "00000000-0000-0000-0000-0000000000a2"
@@ -174,21 +174,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&order).Error)
 
-	// Assessment: overdue 2 days × 15 = 30
-	require.NoError(t, db.Create(&models.DamageAssessment{
-		ID:           newTestUUID(),
-		TenantID:     tenantID,
-		OrgID:        orgID,
-		OrderID:      order.ID,
-		InstrumentID: instrument.ID,
-		UserID:       userID,
-		Condition:    "damaged",
-		Photos:       "[]",
-		Status:       "damaged",
-		OverdueDays:  2,
-		OverdueFee:   30,
-	}).Error)
-	// Damage report: 100 deducted from deposit
+	// Report: overdue 2 days × 15 = 30 + damage 100 deducted from deposit (#1708 merge)
 	damageAmount := 100.0
 	require.NoError(t, db.Create(&models.DamageReport{
 		ID:              newTestUUID(),
@@ -200,6 +186,9 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		DamageAmount:    &damageAmount,
 		DepositDeducted: 100,
 		Status:          "accepted",
+		Condition:       "damaged",
+		OverdueDays:     2,
+		OverdueFee:      30,
 	}).Error)
 
 	result := computeSettlement(order, db)

@@ -23,7 +23,6 @@ var allTestModels = []interface{}{
 	&models.Banner{},
 	&models.ConfirmationSession{},
 	&models.Coupon{},
-	&models.DamageAssessment{},
 	&models.DamageReport{},
 	&models.ElectronicContract{},
 	&models.Instrument{},
