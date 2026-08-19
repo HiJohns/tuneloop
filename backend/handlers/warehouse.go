@@ -459,11 +459,14 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 			CreatedAt:         time.Now(),
 			UpdatedAt:         time.Now(),
 		}
-		if err := db.Create(&report).Error; err == nil {
-			damageReportID = report.ID
-		} else {
-			log.Printf("[InspectReturn] Failed to create damage report: %v", err)
+		if err := db.Create(&report).Error; err != nil {
+			// Red line: never swallow — the damage report backs the
+			// accept/reject notification; a silent failure leaves the
+			// customer without the damage notice (#1706).
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "定损报告保存失败，请重试"})
+			return
 		}
+		damageReportID = report.ID
 	}
 
 	// Save return photos to instrument_media
@@ -638,7 +641,10 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {
-		log.Printf("[InspectReturn] Failed to create notification: %v", err)
+		// Red line: never swallow — the customer must receive the damage /
+		// completion notice; a silent failure hides it (#1706).
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "通知创建失败，请重试"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
