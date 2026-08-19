@@ -411,6 +411,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.InstrumentPhotoSpec{},
 		&models.Merchant{},
 		&models.SiteMember{},
+		&models.MerchantMember{},
 		&models.Role{},
 		&models.InstrumentMedia{},
 		&models.SystemSetting{},
