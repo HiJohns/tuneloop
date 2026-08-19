@@ -251,6 +251,71 @@ export default function OrderDetail() {
     })
   }
 
+  // 定损接受/拒绝（#1707）：复用通知详情页的 appealsApi.agree + 申诉流程
+  const handleDamageAccept = async (damage) => {
+    const amt = Number(damage.damage_amount || 0)
+    const dep = Number(damage.deposit || 0)
+    const ok = await new Promise(resolve => {
+      Taro.showModal({
+        title: '确认接受定损',
+        content: amt < dep
+          ? `定损金额 ¥${amt.toFixed(2)}，押金 ¥${dep.toFixed(2)}，将退还差额 ¥${(dep - amt).toFixed(2)}`
+          : `定损金额 ¥${amt.toFixed(2)}，押金 ¥${dep.toFixed(2)}，需补缴 ¥${(amt - dep).toFixed(2)}`,
+        success: res => resolve(res.confirm),
+        fail: () => resolve(false),
+      })
+    })
+    if (!ok) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/appeals/${damage.report_id}/agree`, { method: 'POST' })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        Taro.showToast({ title: '已接受定损', icon: 'success' })
+        setTimeout(() => Taro.navigateBack(), 800)
+      } else {
+        Taro.showModal({ title: '操作失败', content: result.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '操作失败', content: err.message, showCancel: false })
+    }
+    setActionLoading(false)
+  }
+
+  const handleDamageReject = async (damage) => {
+    const reason = await new Promise(resolve => {
+      Taro.showModal({
+        title: '拒绝定损',
+        editable: true,
+        placeholderText: '请输入申诉原因',
+        success: res => resolve(res.confirm ? (res.content || '') : ''),
+        fail: () => resolve(''),
+      })
+    })
+    if (!reason) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/appeals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          damage_report_id: damage.report_id,
+          appeal_reason: reason,
+        }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        Taro.showToast({ title: '已提交申诉', icon: 'success' })
+        setTimeout(() => Taro.navigateBack(), 800)
+      } else {
+        Taro.showModal({ title: '申诉失败', content: result.message, showCancel: false })
+      }
+    } catch (err) {
+      Taro.showModal({ title: '申诉失败', content: err.message, showCancel: false })
+    }
+    setActionLoading(false)
+  }
+
   if (loading) {
     return (
       <View style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa' }}>
@@ -524,6 +589,24 @@ export default function OrderDetail() {
             </View>
           )}
 
+          {/* 定损费用预览（#1707）：待回应定损态由后端 damage 对象返回 */}
+          {order.damage && (
+            <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>定损费用预览</Text>
+              {order.damage.actual_rent_days > 0 && (
+                <Row label="实际租期" value={`${order.damage.actual_rent_days} 天`} />
+              )}
+              {Number(order.damage.actual_rent_amount) > 0 && (
+                <Row label="实际租金" value={`¥${Number(order.damage.actual_rent_amount).toFixed(2)}`} />
+              )}
+              {Number(order.damage.shipping_fee) > 0 && (
+                <Row label="物流费" value={`¥${Number(order.damage.shipping_fee).toFixed(2)}`} />
+              )}
+              <Row label="赔偿金额" value={`¥${Number(order.damage.damage_amount).toFixed(2)}`} color="#ef4444" />
+              <Row label="退款" value={`¥${Number(order.damage.refund).toFixed(2)}`} color="#16a34a" />
+            </View>
+          )}
+
           {/* 合同快照 (collapsed) */}
           {pb && typeof pb === 'object' && (
             <View style={{ marginTop: 12, borderTop: '1px dashed #e4e4e7', paddingTop: 10 }}>
@@ -710,6 +793,53 @@ export default function OrderDetail() {
           )}
         </>)}
       </ScrollView>
+
+      {/* 定损信息面板（#1707）：待回应定损/定损申诉态展示 + 接受/拒绝入口 */}
+      {order.damage && (
+        <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>定损信息</Text>
+          <Row label="定损金额" value={`¥${Number(order.damage.damage_amount).toFixed(2)}`} color="#ef4444" />
+          {order.damage.description ? (
+            <Text style={{ fontSize: 13, color: '#52525b', marginTop: 6, marginBottom: 10 }}>定损说明：{order.damage.description}</Text>
+          ) : (
+            <Text style={{ fontSize: 13, color: '#a1a1aa', marginTop: 6, marginBottom: 10 }}>暂无定损说明</Text>
+          )}
+          {(order.damage.photos || []).length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+              {(order.damage.photos || []).map((p, i) => (
+                <Image
+                  key={i}
+                  src={fixImg(p)}
+                  mode="aspectFill"
+                  style={{ width: 72, height: 72, borderRadius: 8, marginRight: 8, marginBottom: 8, backgroundColor: '#f4f4f5' }}
+                  onClick={() => Taro.previewImage({ urls: (order.damage.photos || []).map(fixImg), current: fixImg(p) })}
+                />
+              ))}
+            </View>
+          )}
+          {order.damage.status === 'pending' && !isStaff && (
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+              <View
+                onClick={() => handleDamageAccept(order.damage)}
+                style={{ flex: 1, height: 44, backgroundColor: '#16a34a', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>接受定损</Text>
+              </View>
+              <View
+                onClick={() => handleDamageReject(order.damage)}
+                style={{ flex: 1, height: 44, backgroundColor: '#ef4444', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>拒绝定损</Text>
+              </View>
+            </View>
+          )}
+          {order.damage.status !== 'pending' && (
+            <Text style={{ fontSize: 13, color: '#71717a', marginTop: 4 }}>
+              {order.damage.status === 'agreed' ? '已接受定损' : order.damage.status === 'appealed' ? '已提交申诉' : `定损状态：${order.damage.status}`}
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* Action Buttons */}
       <View style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTop: '1px solid #f4f4f5', padding: 16 }}>

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -294,6 +295,95 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
+	// Damage context (#1707): pending_damage_response / damage_appealing orders
+	// need the damage panel data (amount, description, photos) plus a settlement
+	// preview (actual rent days/tier rent/refund) so the order detail page can
+	// render accept/reject — the notification may have been lost (deadlock).
+	var damageData map[string]interface{}
+	if order.Status == models.OrderStatusPendingDamageResponse || order.Status == models.OrderStatusDamageAppealing {
+		var damageReport models.DamageReport
+		reportFound := false
+		if err := db.Where("lease_id = ?", order.ID).Order("created_at asc").First(&damageReport).Error; err == nil {
+			reportFound = true
+		}
+		var assessment models.DamageAssessment
+		photos := []string{}
+		if err := db.Where("order_id = ?", order.ID).Order("created_at asc").First(&assessment).Error; err == nil {
+			if assessment.Photos != "" {
+				json.Unmarshal([]byte(assessment.Photos), &photos)
+			}
+		}
+
+		// Actual rent days/amount: settlement if present, else derive from the
+		// pricing breakdown (actual tier fields) or delivered_at→returned_at.
+		actualRentDays := 0
+		actualRentAmount := 0.0
+		if settlementData != nil {
+			if v, ok := settlementData["actual_rent_days"].(int); ok {
+				actualRentDays = v
+			}
+			if v, ok := settlementData["actual_rent_amount"].(float64); ok {
+				actualRentAmount = v
+			}
+		}
+		if actualRentDays == 0 && actualRentAmount == 0 {
+			if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
+				if v, ok := pb["actual_rent_days"].(float64); ok {
+					actualRentDays = int(v)
+				}
+				if v, ok := pb["actual_rent_amount"].(float64); ok {
+					actualRentAmount = v
+				}
+			}
+		}
+		if actualRentDays == 0 && actualRentAmount == 0 {
+			if order.DeliveredAt != nil && order.ReturnedAt != nil {
+				days := services.CalculateDays(*order.DeliveredAt, *order.ReturnedAt)
+				if days < 1 {
+					days = 1
+				}
+				actualRentDays = days
+				// Daily rate from the pricing breakdown when available.
+				if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
+					if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
+						actualRentAmount = math.Round(v*float64(days)*100) / 100
+					}
+				}
+			}
+		}
+
+		// Refund = paid total - damage - actual rent - shipping fee (#1707).
+		paidTotal := 0.0
+		var paidRecords []models.OrderPaymentRecord
+		db.Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
+			Find(&paidRecords)
+		for _, pr := range paidRecords {
+			paidTotal += pr.Amount
+		}
+		damageAmount := 0.0
+		if reportFound && damageReport.DamageAmount != nil {
+			damageAmount = *damageReport.DamageAmount
+		}
+		refund := math.Round((paidTotal-damageAmount-actualRentAmount-order.ShippingFee)*100) / 100
+		if refund < 0 {
+			refund = 0
+		}
+
+		damageData = map[string]interface{}{
+			"report_id":          damageReport.ID,
+			"damage_amount":      damageAmount,
+			"description":        damageReport.DamageDescription,
+			"status":             damageReport.Status,
+			"photos":             photos,
+			"actual_rent_days":   actualRentDays,
+			"actual_rent_amount": actualRentAmount,
+			"shipping_fee":       order.ShippingFee,
+			"deposit":            order.Deposit,
+			"paid_total":         paidTotal,
+			"refund":             refund,
+		}
+	}
+
 	// Fetch payment time
 	paidAt := ""
 	var paymentRecord models.OrderPaymentRecord
@@ -410,6 +500,7 @@ func GetOrder(c *gin.Context) {
 		"order_logs":          orderLogs,
 		"payment_records":     paymentEntries,
 		"refund_records":      refundEntries,
+		"damage":              damageData,
 	}
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)

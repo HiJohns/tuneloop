@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
+import Taro from '@tarojs/taro'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
 import { formatDeliveryAddress, formatDisplayDate, formatLogTime } from '../utils/format'
-import { dialog, env } from '../platform'
+import { dialog, env, previewImage } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
 import LeaseInfo from '../components/LeaseInfo'
 import { ArrowLeft, User, MapPin, Truck, Package, PackageCheck, RotateCcw, CreditCard, XCircle, AlertTriangle, CheckCircle, Clock, Calendar, Banknote } from 'lucide-react'
+
+const fixImg = (url) => url && !url.startsWith('http') && !url.startsWith('data:') ? `${env.apiBaseUrl.replace(/\/api$/, '')}${url}` : url
 
 const STATUS_LABELS = {
   reserved: '未支付',
@@ -234,6 +237,72 @@ export default function OrderDetail() {
       }
     } catch (err) {
       dialog.alert('取消失败: ' + err.message)
+    }
+    setActionLoading(false)
+  }
+
+  // 定损接受/拒绝（#1707）：复用通知详情页的 appealsApi.agree + 申诉流程
+  const previewImages = (urls, current) => {
+    if (env.isMiniProgram) {
+      // weapp 走 Taro.previewImage（weapp 页已有）；H5 用 platform 的 previewImage
+      previewImage({ urls, current })
+    } else {
+      previewImage({ urls, current })
+    }
+  }
+  const handleDamageAccept = async (damage) => {
+    const amt = Number(damage.damage_amount || 0)
+    const dep = Number(damage.deposit || 0)
+    const ok = await dialog.confirm(
+      amt < dep
+        ? `定损金额 ¥${amt.toFixed(2)}，押金 ¥${dep.toFixed(2)}，将退还差额 ¥${(dep - amt).toFixed(2)}`
+        : `定损金额 ¥${amt.toFixed(2)}，押金 ¥${dep.toFixed(2)}，需补缴 ¥${(amt - dep).toFixed(2)}`
+    )
+    if (!ok) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/appeals/${damage.report_id}/agree`, { method: 'POST' })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.toast('已接受定损')
+        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+        const reloadData = await reload.json()
+        if (reloadData.code === 20000) setOrder(reloadData.data)
+      } else {
+        dialog.alert('操作失败: ' + (resolveErrorMessage(result, '请重试')))
+      }
+    } catch (err) {
+      dialog.alert('操作失败: ' + err.message)
+    }
+    setActionLoading(false)
+  }
+  const handleDamageReject = async (damage) => {
+    let reason = ''
+    if (env.isMiniProgram) {
+      const res = await Taro.showModal({ title: '拒绝定损', editable: true, placeholderText: '请输入申诉原因' })
+      reason = res.confirm ? (res.content || '') : ''
+    } else {
+      reason = window.prompt('请输入申诉原因') || ''
+    }
+    if (!reason) return
+    setActionLoading(true)
+    try {
+      const resp = await apiFetch(`${baseUrl}/appeals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ damage_report_id: damage.report_id, appeal_reason: reason }),
+      })
+      const result = await resp.json()
+      if (result.code === 20000) {
+        dialog.toast('已提交申诉')
+        const reload = await apiFetch(`${baseUrl}/orders/${id}`)
+        const reloadData = await reload.json()
+        if (reloadData.code === 20000) setOrder(reloadData.data)
+      } else {
+        dialog.alert('申诉失败: ' + (resolveErrorMessage(result, '请重试')))
+      }
+    } catch (err) {
+      dialog.alert('申诉失败: ' + err.message)
     }
     setActionLoading(false)
   }
@@ -507,6 +576,39 @@ export default function OrderDetail() {
                 <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(settlement.cash_refundable) + Number(settlement.prepaid_refunded) + Number(settlement.gift_points_refunded)).toFixed(2)}</Text>
               </View>
             </>
+          )}
+
+          {/* 定损费用预览（#1707）：待回应定损态由后端 damage 对象返回 */}
+          {order.damage && (
+            <View className="mt-2 border-t border-dashed border-zinc-200 pt-2">
+              <Text className="text-xs font-bold text-zinc-400 mb-1">定损费用预览</Text>
+              {order.damage.actual_rent_days > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">实际租期</Text>
+                  <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">{order.damage.actual_rent_days} 天</Text>
+                </View>
+              )}
+              {Number(order.damage.actual_rent_amount) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">实际租金</Text>
+                  <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.actual_rent_amount).toFixed(2)}</Text>
+                </View>
+              )}
+              {Number(order.damage.shipping_fee) > 0 && (
+                <View className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">物流费</Text>
+                  <Text className="text-zinc-900 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.shipping_fee).toFixed(2)}</Text>
+                </View>
+              )}
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">赔偿金额</Text>
+                <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.damage_amount).toFixed(2)}</Text>
+              </View>
+              <View className="flex justify-between text-sm">
+                <Text className="text-zinc-500 font-medium">退款</Text>
+                <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.refund).toFixed(2)}</Text>
+              </View>
+            </View>
           )}
 
           {/* 合同快照 (collapsed) */}
@@ -803,6 +905,49 @@ export default function OrderDetail() {
         </View>
       )}
       </ScrollView>
+
+      {/* 定损信息面板（#1707）：待回应定损/定损申诉态展示 + 接受/拒绝入口 */}
+      {order.damage && (
+        <View className="bg-white mx-4 mt-4 rounded-2xl p-4" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <Text className="text-base font-black text-black mb-3">定损信息</Text>
+          <View className="flex justify-between text-sm mb-1">
+            <Text className="text-zinc-500 font-medium">定损金额</Text>
+            <Text className="text-red-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{Number(order.damage.damage_amount).toFixed(2)}</Text>
+          </View>
+          {order.damage.description ? (
+            <Text className="text-sm text-zinc-600 mt-1 mb-2">定损说明：{order.damage.description}</Text>
+          ) : (
+            <Text className="text-xs text-zinc-400 mt-1 mb-2">暂无定损说明</Text>
+          )}
+          {(order.damage.photos || []).length > 0 && (
+            <View className="flex flex-row flex-wrap gap-2 mb-3">
+              {(order.damage.photos || []).map((p, i) => (
+                <img
+                  key={i}
+                  src={fixImg(p)}
+                  alt="定损照片"
+                  className="w-18 h-18 rounded-lg object-cover cursor-pointer"
+                  style={{ width: 72, height: 72 }}
+                  onClick={() => previewImages((order.damage.photos || []).map(fixImg), fixImg(p))}
+                />
+              ))}
+            </View>
+          )}
+          {order.damage.status === 'pending' && !isStaff && (
+            <View className="flex gap-2 mt-1">
+              <Button onClick={() => handleDamageAccept(order.damage)}
+                className="flex-1 !m-0 !bg-green-600 !text-white !rounded-xl !font-black">接受定损</Button>
+              <Button onClick={() => handleDamageReject(order.damage)}
+                className="flex-1 !m-0 !bg-red-500 !text-white !rounded-xl !font-black">拒绝定损</Button>
+            </View>
+          )}
+          {order.damage.status !== 'pending' && (
+            <Text className="text-sm text-zinc-500 mt-1">
+              {order.damage.status === 'agreed' ? '已接受定损' : order.damage.status === 'appealed' ? '已提交申诉' : `定损状态：${order.damage.status}`}
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* Action Buttons */}
       <View className="bg-white border-t-2 border-zinc-200 p-4 safe-area-pb" style={{boxShadow:'0 -4px 12px rgba(0,0,0,0.08)'}}>

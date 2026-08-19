@@ -735,3 +735,79 @@ func TestGetOrderLogs_DedupAndOperator(t *testing.T) {
 		t.Error("bare history in_lease entry must be deduped when order_log exists (#1701)")
 	}
 }
+
+// TestGetOrder_DamagePanel verifies #1707: a pending_damage_response order
+// detail returns the damage object (amount, description, photos, fee preview
+// with refund = paid - damage - rent - shipping).
+func TestGetOrder_DamagePanel(t *testing.T) {
+	cfg := database.LoadConfig()
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Skip("test database not available")
+		return
+	}
+	database.SetDB(db)
+
+	tenantID := uuid.New().String()
+	_, instID, userID := setupTestData(t, db, tenantID)
+	defer cleanupTestData(db, tenantID)
+
+	orderID := uuid.New().String()
+	require.NoError(t, db.Exec(`INSERT INTO orders (id, tenant_id, org_id, user_id, instrument_id, level, lease_term, monthly_rent, deposit, status, shipping_fee, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, 'standard', 1, 0, 1000, 'pending_damage_response', 50, now(), now())`,
+		orderID, tenantID, tenantID, userID, instID).Error)
+
+	damageAmt := 200.0
+	reportID := uuid.New().String()
+	require.NoError(t, db.Exec(`INSERT INTO damage_reports (id, tenant_id, org_id, lease_id, instrument_id, user_id, damage_amount, damage_description, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, '乐器刮痕', 'pending', now(), now())`,
+		reportID, tenantID, tenantID, orderID, instID, userID, damageAmt).Error)
+	require.NoError(t, db.Exec(`INSERT INTO damage_assessments (id, tenant_id, org_id, order_id, instrument_id, user_id, condition, description, photos, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, 'damaged', '乐器刮痕', '["/uploads/media/a.jpg","/uploads/media/b.jpg"]', 'completed', now(), now())`,
+		uuid.New().String(), tenantID, tenantID, orderID, instID, userID).Error)
+	require.NoError(t, db.Exec(`INSERT INTO order_payment_records (id, tenant_id, user_id, order_id, order_type, out_trade_no, amount, type, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, 'rent', ?, 1500, 'payment', 'paid', now(), now())`,
+		uuid.New().String(), tenantID, userID, orderID, "rent"+uuid.NewString()[:8]).Error)
+
+	router := setupTestRouter(t, tenantID, userID)
+	router.GET("/orders/:id", GetOrder)
+
+	req := httptest.NewRequest("GET", "/orders/"+orderID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Status string `json:"status"`
+			Damage struct {
+				ReportID         string   `json:"report_id"`
+				DamageAmount     float64  `json:"damage_amount"`
+				Description      string   `json:"description"`
+				Status           string   `json:"status"`
+				Photos           []string `json:"photos"`
+				ActualRentDays   int      `json:"actual_rent_days"`
+				ShippingFee      float64  `json:"shipping_fee"`
+				Deposit          float64  `json:"deposit"`
+				PaidTotal        float64  `json:"paid_total"`
+				Refund           float64  `json:"refund"`
+			} `json:"damage"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Equal(t, "pending_damage_response", resp.Data.Status)
+
+	d := resp.Data.Damage
+	require.Equal(t, reportID, d.ReportID, "damage.report_id must reference the damage report")
+	require.Equal(t, 200.0, d.DamageAmount)
+	require.Equal(t, "乐器刮痕", d.Description)
+	require.Equal(t, "pending", d.Status)
+	require.Len(t, d.Photos, 2, "damage.photos must carry assessment photos")
+	require.Equal(t, 50.0, d.ShippingFee)
+	require.Equal(t, 1000.0, d.Deposit)
+	require.Equal(t, 1500.0, d.PaidTotal)
+	// refund = paid(1500) - damage(200) - rent(0, no settlement/breakdown) - shipping(50) = 1250
+	require.Equal(t, 1250.0, d.Refund, "refund = paid - damage - rent - shipping")
+}

@@ -463,6 +463,18 @@ steps:
         ops:
           - {type: api, method: POST, path: /appeals/:id/agree}
           - {type: api, method: POST, path: /appeals}
+      # #1707：订单详情页为死锁自救入口（定损通知可能丢失）——待回应定损态
+      # 订单详情展示定损面板（金额/描述/照片）+ 接受/拒绝按钮，与通知按钮一致。
+      - platform: [weapp, h5]
+        page: /order/:id
+        role: [customer]
+        gate: "订单状态 = pending_damage_response 或 damage_appealing"
+        reach: "订单详情（用户必然可达，无需通知）"
+        controls: [接受定损按钮, 拒绝定损按钮(发起申诉), 定损照片缩略图(点击放大/轮换)]
+        displays: [定损金额, 定损说明, 定损照片, 费用明细(实际租期/实际租金/赔偿金额/退款)]
+        ops:
+          - {type: api, method: POST, path: /appeals/:damage_id/agree}
+          - {type: api, method: POST, path: /appeals}
     api: {method: POST, path: /appeals/:id/agree, params: []}
   - seq: 3
     action: 用户接受 → 系统通知员工（路径 2）
@@ -575,10 +587,16 @@ steps:
 - 支付页收据必须含「乐器 SN（分类）」行与赠点/现金分账明细（L-06）
 - 退款执行后订单关单 `completed`（已完成/done），累计花销按 C1 累计（L-06）
 - AcceptDamage/RejectDamage 旧端点废弃：前端统一走 `POST /appeals/:id/agree` 与 `POST /appeals`
+- #1707 静态检查点：
+  - 待回应定损/定损申诉态订单详情（weapp+h5）渲染定损面板：定损金额、说明、照片缩略图（点击 `previewImage` 放大/多幅轮换）、接受/拒绝按钮
+  - 费用明细含实际租期/实际租金/赔偿金额/退款（数据来自后端 `order.damage` 对象，前端不自行算退款）
+  - 接受按钮调用 `POST /appeals/:damage_id/agree`；拒绝按钮提交 `POST /appeals`（body: damage_report_id + appeal_reason）
+  - report 已处理（agreed/appealed）时按钮隐藏、显示状态文案
 
 ## 验收
 - `go test` 覆盖：路径(2) 接受 → deposit_refunding → 员工 POST /orders/:id/refund → settlement 生成 + 通知；路径(3) 申诉 → resolve → 员工退款 → 收据含 SN 行
-- checklist-verify.py：L-04 seq 3/4/7/8 的 displays 与 MessageDetail/OrderDetail/Payment JSX 交叉验证
+- `go test` 覆盖：GetOrder 待回应定损态返回 `damage` 对象（TestGetOrder_DamagePanel：金额/描述/照片/退款公式）
+- checklist-verify.py：L-04 seq 2（订单详情入口）+ seq 3/4/7/8 的 displays 与 MessageDetail/OrderDetail/Payment JSX 交叉验证
 
 ---
 id: L-05
