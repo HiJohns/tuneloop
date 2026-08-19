@@ -542,6 +542,15 @@ function onMenuClick(e) {
     timestamp: new Date().toISOString()
   })
 
+  // #1714: session-expired overlay auto-redirect (30s). Declared BEFORE any
+  // conditional return — moving it below the early returns would change the
+  // hooks count across renders (React #310 white screen).
+  useEffect(() => {
+    if (!sessionError) return
+    const t = setTimeout(() => redirectToIAMLogin(true), 30000)
+    return () => clearTimeout(t)
+  }, [sessionError])
+
   if (!getToken() && location.pathname !== '/callback' && location.pathname !== '/logout') {
     console.log('%c[APP DEBUG] redirecting to IAM (no token)', 'color: red;')
     redirectToIAMLogin(true)
@@ -559,15 +568,6 @@ function onMenuClick(e) {
     })
     return <Spin fullscreen tip="正在初始化..." />
   }
-
-  // #1714: session-expired overlay — stays on the page (console scene kept
-  // alive for debugging) with immediate re-login / stay buttons and a 30s
-  // auto redirect fallback.
-  useEffect(() => {
-    if (!sessionError) return
-    const t = setTimeout(() => redirectToIAMLogin(true), 30000)
-    return () => clearTimeout(t)
-  }, [sessionError])
 
   if (sessionError) {
     return (
