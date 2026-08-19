@@ -553,13 +553,6 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		reportOverdue = models.DamageReport{}
 	}
 	overdueFee := reportOverdue.OverdueFee
-	if overdueFee == 0 {
-		// Legacy orders: overdue persisted on DamageAssessment.
-		var assessment models.DamageAssessment
-		if err := db.Where("order_id = ?", order.ID).Order("created_at desc").First(&assessment).Error; err == nil {
-			overdueFee = assessment.OverdueFee
-		}
-	}
 	if overdueFee < 0 {
 		overdueFee = 0
 	}

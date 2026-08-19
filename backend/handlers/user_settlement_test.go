@@ -109,16 +109,15 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 	require.NoError(t, db.Create(&order).Error)
 
 	// Overdue fee computed at return inspection (5 days × 15 = 75), persisted
-	// on the assessment.
-	require.NoError(t, db.Create(&models.DamageAssessment{
+	// on the damage report (post-#1708 migration).
+	require.NoError(t, db.Create(&models.DamageReport{
 		ID:           newTestUUID(),
 		TenantID:     tenantID,
 		OrgID:        orgID,
-		OrderID:      order.ID,
+		LeaseID:      order.ID,
 		InstrumentID: instrument.ID,
 		UserID:       userID,
 		Condition:    "good",
-		Photos:       "[]",
 		Status:       "completed",
 		OverdueDays:  5,
 		OverdueFee:   75,
