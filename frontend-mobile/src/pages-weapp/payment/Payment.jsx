@@ -222,6 +222,30 @@ export default function Payment() {
     return resp.json()
   }
 
+  // doRealPay: 拉起微信支付。prepay 成功后 handlePay 会立即自动调用（一次点击
+  // 直达支付，避免两段式「发起支付→微信支付」两次点击）；按钮点击时作为兜底。
+  const doRealPay = async (payData = prepayData) => {
+    if (!payData?.data) return
+    Taro.requestPayment({
+      appId: payData.data.app_id || 'wxcb44a1be70e356ed',
+      timeStamp: payData.data.time_stamp,
+      nonceStr: payData.data.nonce_str,
+      package: payData.data.package,
+      signType: payData.data.sign_type,
+      paySign: payData.data.pay_sign,
+      success: () => {
+        if (pType === 'membership' && pSessionId) {
+          Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
+          setTimeout(finishMembershipFlow, 1500)
+        } else {
+          Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
+          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+        }
+      },
+      fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
+    })
+  }
+
   const handlePay = async (cashAmount) => {
     const params = Taro.getCurrentInstance().router?.params || {}
     const pType = params.type || ''
@@ -265,6 +289,9 @@ export default function Payment() {
         const d = result.data
         if (d.data?.prepay_id) {
           setPrepayData(d)
+          // 一次点击直达：prepay 成功后立即拉起微信支付（不等待用户再点
+          // 「微信支付」按钮）。按钮保留作兜底（自动拉起失败时重试）。
+          doRealPay(d)
         } else if (d.success) {
           // Waive 记账成功（优惠码 OREZ → 后端 amount=0 直接记账，无 prepay_id）。
           if (pType === 'membership' && pSessionId) {
@@ -285,28 +312,6 @@ export default function Payment() {
     } finally {
       setIsPaying(false)
     }
-  }
-
-  const doRealPay = async () => {
-    if (!prepayData?.data) return
-    Taro.requestPayment({
-      appId: prepayData.data.app_id || 'wxcb44a1be70e356ed',
-      timeStamp: prepayData.data.time_stamp,
-      nonceStr: prepayData.data.nonce_str,
-      package: prepayData.data.package,
-      signType: prepayData.data.sign_type,
-      paySign: prepayData.data.pay_sign,
-      success: () => {
-        if (pType === 'membership' && pSessionId) {
-          Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
-          setTimeout(finishMembershipFlow, 1500)
-        } else {
-          Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
-          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
-        }
-      },
-      fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
-    })
   }
 
   const handleRefund = async () => {

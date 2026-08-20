@@ -244,7 +244,7 @@ export default function MyLeases() {
                   )}
                   <View className="flex items-center gap-2">
                     <Text className="text-zinc-400 font-medium">总金额:</Text>
-                    <Text className="text-black font-black">¥{(getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)}</Text>
+                    <Text className="text-black font-black">¥{((getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)).toFixed(2)}</Text>
                   </View>
                 </View>
                   </View>
