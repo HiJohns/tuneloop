@@ -158,7 +158,49 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 
 	tx.Commit()
 	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%d type=%s", result.OutTradeNo, result.TransactionID, int64(record.Amount), record.OrderType)
+
+	// #1730: virtual/service goods (no physical delivery) must report
+	// shipping info (logistics_type=3) so WeChat settles the frozen funds.
+	switch record.OrderType {
+	case "membership", "renewal", "damage", "repair":
+		reportVirtualGoodsShipping(db, &record)
+	}
+
 	return true
+}
+
+// reportVirtualGoodsShipping reports a logistics_type=3 (virtual goods)
+// shipment to WeChat right after payment (#1730): membership/renewal/damage/
+// repair fees have no physical delivery, and without upload_shipping_info the
+// platform keeps funds frozen forever. Non-fatal — failures are logged.
+func reportVirtualGoodsShipping(db *gorm.DB, record *models.OrderPaymentRecord) {
+	if record.OutTradeNo == nil || *record.OutTradeNo == "" {
+		return
+	}
+	transactionID := ""
+	if record.TransactionID != nil {
+		transactionID = *record.TransactionID
+	}
+	itemDesc := "会员/服务费"
+	switch record.OrderType {
+	case "membership":
+		itemDesc = "会员费"
+	case "renewal":
+		itemDesc = "租赁续费"
+	case "damage":
+		itemDesc = "定损赔付"
+	case "repair":
+		itemDesc = "维修服务费"
+	}
+	openid := openidOfUser(db, record.UserID)
+	if openid == "" {
+		log.Printf("[WechatShipping] virtual goods %s: no openid for user %s", record.OrderType, record.UserID)
+	}
+	go func() {
+		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, "", "", itemDesc, 3); err != nil {
+			log.Printf("[WechatShipping] virtual-goods upload_shipping_info failed for %s (out_trade_no=%s): %v", record.OrderType, *record.OutTradeNo, err)
+		}
+	}()
 }
 
 // applySideEffects updates order/repair/points state after payment is confirmed.

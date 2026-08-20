@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"tuneloop-backend/services/wechatpay"
 )
 
-// WeChat mini-program shipping compliance (#1693): physical-goods transactions
-// must report shipping info (upload_shipping_info) at shipment and remind
-// confirm-receive (notify_confirm_receive) at receipt, otherwise the platform
-// keeps the funds frozen. Virtual/service transactions (membership, renewal)
-// are exempt — callers only invoke these for physical flows (rent/repair).
+// WeChat mini-program shipping compliance (#1693/#1730): transactions must
+// report shipping info (upload_shipping_info) before the platform settles the
+// frozen funds. Physical goods (rent/repair) report at shipment with
+// logistics_type=1 and remind confirm-receive at receipt; virtual/service
+// goods (membership/renewal/damage/repair fees) report right after payment
+// with logistics_type=3 (no logistics fields, no confirm-receive).
 
 // expressCompanyCodes maps common Chinese courier names to WeChat's
 // express_company codes (物流公司ID from the WeChat express integration doc).
@@ -79,20 +82,27 @@ type uploadShippingRequest struct {
 }
 
 // UploadShippingInfo reports shipment to WeChat (upload_shipping_info) so the
-// platform unfreezes funds for physical goods. Non-fatal by design — a report
-// failure must not block the business shipment.
-func UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCompany, itemDesc string) error {
+// platform unfreezes funds. logisticsType: 1=实体物流配送 (tracking required),
+// 3=虚拟商品 (no logistics fields). order_number_type=1 (merchant-side
+// out_trade_no form) requires mchid — filled from wechatpay config (#1730).
+// Non-fatal by design — a report failure must not block the business flow.
+func UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCompany, itemDesc string, logisticsType int) error {
 	token, err := GetWxAccessToken()
 	if err != nil {
 		return fmt.Errorf("get access token: %w", err)
 	}
 
+	orderKey := shippingOrderKey{
+		OrderNumberType: 1, // merchant-side out_trade_no form
+		OutTradeNo:      outTradeNo,
+	}
+	if cfg := wechatpay.GetConfig(); cfg != nil {
+		orderKey.Mchid = cfg.MchID
+	}
+
 	reqBody := uploadShippingRequest{
-		OrderKey: shippingOrderKey{
-			OrderNumberType: 1, // merchant-side out_trade_no form
-			OutTradeNo:      outTradeNo,
-		},
-		LogisticsType: 1, // 实体物流配送
+		OrderKey:      orderKey,
+		LogisticsType: logisticsType,
 		DeliveryMode:  1, // 统一发货
 		ShippingList: []shippingItem{{
 			TrackingNo:     trackingNo,

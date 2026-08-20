@@ -815,9 +815,10 @@ func openidOfUser(db *gorm.DB, userID string) string {
 }
 
 // reportWechatShipping reports physical-goods shipment to WeChat (#1693):
-// upload_shipping_info at shipping, notify_confirm_receive at receipt. Only
-// rent/repair (physical) flows report; membership/renewal (virtual) are
-// exempt. Non-fatal — failures are logged and never block business flows.
+// upload_shipping_info at shipping (logistics_type=1), notify_confirm_receive
+// at receipt. Only rent/repair (physical) flows report here; virtual goods
+// (membership/renewal/damage/repair fee) are reported at payment time with
+// logistics_type=3 (#1730). Non-fatal — failures never block business flows.
 func reportWechatShipping(db *gorm.DB, order models.Order, openid, company, trackingNumber string) {
 	if order.ID == "" || trackingNumber == "" {
 		return
@@ -839,7 +840,7 @@ func reportWechatShipping(db *gorm.DB, order models.Order, openid, company, trac
 	}
 	itemDesc := fmt.Sprintf("乐器租赁 %s", order.ID[:8])
 	go func() {
-		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, trackingNumber, company, itemDesc); err != nil {
+		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, trackingNumber, company, itemDesc, 1); err != nil {
 			log.Printf("[WechatShipping] upload_shipping_info failed for order %s: %v", order.ID, err)
 		}
 	}()
