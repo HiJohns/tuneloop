@@ -100,6 +100,21 @@ func TestCentsMigration_20260820001(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, count, "idempotent — rerun converts nothing")
 
+	// 回滚验证：分 → 元 + 移除标记
+	count, err = MigrateJSONBCentsWithMode(true, true)
+	require.NoError(t, err)
+	require.Equal(t, 3, count, "reverse dry-run counts 3")
+	count, err = MigrateJSONBCentsWithMode(false, true)
+	require.NoError(t, err)
+	require.Equal(t, 3, count, "reverse executed 3")
+	count, err = MigrateJSONBCentsWithMode(false, true)
+	require.NoError(t, err)
+	require.Equal(t, 0, count, "reverse idempotent")
+	// 正向可再次执行（回滚后未标记 → 重新转换）
+	count, err = MigrateJSONBCents(false)
+	require.NoError(t, err)
+	require.Equal(t, 3, count, "re-migrate after reverse")
+
 	// --- 5. 校验 JSONB 值已为分 + 标记 ---
 	var pbJSON string
 	require.NoError(t, db.Raw(`SELECT pricing_breakdown FROM orders WHERE id='11111111-1111-4111-8111-111111111111'`).Scan(&pbJSON).Error)

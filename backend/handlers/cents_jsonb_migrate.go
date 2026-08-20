@@ -22,6 +22,13 @@ import (
 // fail-fast：任何记录 JSON 解析失败或转换后数值异常 → 返回 error，调用方 FATAL
 // 退出，严禁带伤运行。
 func MigrateJSONBCents(dryRun bool) (int, error) {
+	return MigrateJSONBCentsWithMode(dryRun, false)
+}
+
+// MigrateJSONBCentsWithMode 转换 JSONB 金额。
+// reverse=true 时把已迁移（_cents_migrated）的记录反向 ÷100 恢复元并移除标记
+// （P2 回滚用——JSONB 元→分必须与前端改分同步发布，见 #1727 质疑）。
+func MigrateJSONBCentsWithMode(dryRun, reverse bool) (int, error) {
 	db := getDB()
 	type tableField struct {
 		table  string
@@ -74,17 +81,28 @@ func MigrateJSONBCents(dryRun bool) (int, error) {
 			if obj == nil {
 				continue
 			}
-			if migrated, _ := obj["_cents_migrated"].(bool); migrated {
-				continue
+			migrated, _ := obj["_cents_migrated"].(bool)
+			if reverse {
+				if !migrated {
+					continue
+				}
+				if err := reverseMoneyKeys(obj); err != nil {
+					return total, fmt.Errorf("reverse jsonb cents: %s.%s id=%s: %w", tf.table, tf.column, r.ID, err)
+				}
+				delete(obj, "_cents_migrated")
+			} else {
+				if migrated {
+					continue
+				}
+				converted, err := convertMoneyKeys(obj)
+				if err != nil {
+					return total, fmt.Errorf("migrate jsonb cents: %s.%s id=%s: %w", tf.table, tf.column, r.ID, err)
+				}
+				if !converted {
+					continue // 无金额键，无需转换
+				}
+				obj["_cents_migrated"] = true
 			}
-			converted, err := convertMoneyKeys(obj)
-			if err != nil {
-				return total, fmt.Errorf("migrate jsonb cents: %s.%s id=%s: %w", tf.table, tf.column, r.ID, err)
-			}
-			if !converted {
-				continue // 无金额键，无需转换
-			}
-			obj["_cents_migrated"] = true
 			if dryRun {
 				total++
 				continue
@@ -110,7 +128,7 @@ var moneyKeys = map[string]bool{
 	"deposit": true, "shipping_fee": true, "total_price": true,
 	"total_amount": true, "rent_amount": true, "subtotal": true, "total": true,
 	"overdue_daily_fee": true, "overdue_fee": true,
-	"gift_used": true, "original_amount": true, "amount": true,
+	"gift_used": true, "prepaid_used": true, "original_amount": true, "amount": true,
 	"final_amount": true, "damage_amount": true, "total_deduction": true,
 	"pay_amount": true, "paid_amount": true,
 	"cash_refundable": true, "prepaid_refunded": true, "gift_refunded": true,
@@ -155,6 +173,31 @@ func convertMoneyKeys(v interface{}) (bool, error) {
 		}
 	}
 	return converted, nil
+}
+
+// reverseMoneyKeys 递归把已迁移为分的金额键 ÷100 恢复元（回滚）。
+func reverseMoneyKeys(v interface{}) error {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		for k, sub := range val {
+			if moneyKeys[k] {
+				if f, ok := sub.(float64); ok {
+					val[k] = f / 100
+				}
+			} else if k != "_cents_migrated" {
+				if err := reverseMoneyKeys(sub); err != nil {
+					return err
+				}
+			}
+		}
+	case []interface{}:
+		for _, item := range val {
+			if err := reverseMoneyKeys(item); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // getDB returns the global database handle.
