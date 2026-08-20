@@ -183,7 +183,7 @@ func TestCreateRepairRequest(t *testing.T) {
 			UserID:           userSub,
 			UserInstrumentID: validUIID,
 			Status:           models.RepairReqStatusPendingPay,
-			QuoteAmount:      &quoteAmount,
+			QuoteAmount:      models.ToCentsPtr(&quoteAmount),
 		}
 		err := db.Create(&repairReq).Error
 		require.NoError(t, err)

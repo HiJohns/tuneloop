@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -114,13 +115,13 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		ID:                  uuid.New().String(),
 		OrderID:             orderID,
 		ActualRentDays:      result.ActualDays,
-		ActualRentAmount:    result.RentPayable,
-		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
-		GiftPointsRefunded:  result.GiftPointsRefunded,
-		CashRefundable:      result.CashRefundable,
+		ActualRentAmount:    models.FromYuan(result.RentPayable),
+		OriginalRentAmount:  models.FromYuan(result.TotalRentPaid + order.GiftPointsUsed.ToYuan()),
+		GiftPointsRefunded:  models.FromYuan(result.GiftPointsRefunded),
+		CashRefundable:      models.FromYuan(result.CashRefundable),
 		RefundMethod:        req.RefundMethod,
 		RefundStatus:        "pending",
-		OverdueChargesTotal: result.OverdueChargesTotal,
+		OverdueChargesTotal: models.FromYuan(result.OverdueChargesTotal),
 		Breakdown:           string(breakdownJSON),
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
@@ -164,7 +165,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		refundRecord := models.OrderRefundRecord{
 			ID:        uuid.New().String(),
 			TenantID:  order.TenantID,
-			Amount:    result.CashRefundable,
+			Amount:    models.FromYuan(result.CashRefundable),
 			Reason:    strPtr("租赁结算退款"),
 			Status:    "pending",
 			CreatedAt: time.Now(),
@@ -180,8 +181,8 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 			refundResp, err := client.Refund(c.Request.Context(), wechatpay.RefundParams{
 				OutTradeNo:   outTradeNo,
 				OutRefundNo:  outRefundNo,
-				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-				RefundAmount: cfg.AmountToCents(result.CashRefundable),
+				TotalAmount:  int64(paymentRecord.Amount),
+				RefundAmount: int64(models.FromYuan(result.CashRefundable)),
 				Reason:       "租赁结算退款",
 				NotifyURL:    cfg.RefundNotifyURL,
 			})
@@ -261,50 +262,66 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 // the existing result without refunding twice.
 func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 	var existing models.Settlement
-	if err := tx.Where("order_id = ?", order.ID).First(&existing).Error; err == nil {
+	existingFound := tx.Where("order_id = ?", order.ID).First(&existing).Error == nil
+	if existingFound && existing.RefundStatus != "failed" {
 		var result settlementResult
 		json.Unmarshal([]byte(existing.Breakdown), &result.Breakdown)
-		result.RentPayable = existing.ActualRentAmount
-		result.TotalRentPaid = existing.OriginalRentAmount
-		result.GiftPointsRefunded = existing.GiftPointsRefunded
-		result.CashRefundable = existing.CashRefundable
-		result.OverdueChargesTotal = existing.OverdueChargesTotal
+		result.RentPayable = existing.ActualRentAmount.ToYuan()
+		result.TotalRentPaid = existing.OriginalRentAmount.ToYuan()
+		result.GiftPointsRefunded = existing.GiftPointsRefunded.ToYuan()
+		result.CashRefundable = existing.CashRefundable.ToYuan()
+		result.OverdueChargesTotal = existing.OverdueChargesTotal.ToYuan()
 		result.ActualDays = existing.ActualRentDays
 		return &result, nil
 	}
 
-	result := computeSettlement(order, tx)
+	// A previous attempt left a failed settlement — reuse its numbers and
+	// retry only the cash refund (do not double-credit gift points).
+	// Otherwise compute a fresh settlement.
+	var result settlementResult
+	var settlement *models.Settlement
+	if existingFound {
+		json.Unmarshal([]byte(existing.Breakdown), &result.Breakdown)
+		result.RentPayable = existing.ActualRentAmount.ToYuan()
+		result.TotalRentPaid = existing.OriginalRentAmount.ToYuan()
+		result.GiftPointsRefunded = existing.GiftPointsRefunded.ToYuan()
+		result.CashRefundable = existing.CashRefundable.ToYuan()
+		result.OverdueChargesTotal = existing.OverdueChargesTotal.ToYuan()
+		result.ActualDays = existing.ActualRentDays
+	} else {
+		result = computeSettlement(order, tx)
 
-	breakdownJSON, _ := json.Marshal(result.Breakdown)
+		breakdownJSON, _ := json.Marshal(result.Breakdown)
 
-	settlement := models.Settlement{
-		ID:                  uuid.New().String(),
-		OrderID:             order.ID,
-		ActualRentDays:      result.ActualDays,
-		ActualRentAmount:    result.RentPayable,
-		OriginalRentAmount:  result.TotalRentPaid + order.GiftPointsUsed,
-		GiftPointsRefunded:  result.GiftPointsRefunded,
-		CashRefundable:      result.CashRefundable,
-		PrepaidRefunded:     0, // no prepaid-points deduction logic yet (#1636)
-		RefundMethod:        "wechat_pay",
-		RefundStatus:        "pending",
-		OverdueChargesTotal: result.OverdueChargesTotal,
-		Breakdown:           string(breakdownJSON),
-		CreatedAt:           time.Now(),
-		UpdatedAt:           time.Now(),
-	}
+		settlement := models.Settlement{
+			ID:                  uuid.New().String(),
+			OrderID:             order.ID,
+			ActualRentDays:      result.ActualDays,
+			ActualRentAmount:    models.FromYuan(result.RentPayable),
+			OriginalRentAmount:  models.FromYuan(result.TotalRentPaid + order.GiftPointsUsed.ToYuan()),
+			GiftPointsRefunded:  models.FromYuan(result.GiftPointsRefunded),
+			CashRefundable:      models.FromYuan(result.CashRefundable),
+			PrepaidRefunded:     0, // no prepaid-points deduction logic yet (#1636)
+			RefundMethod:        "wechat_pay",
+			RefundStatus:        "pending",
+			OverdueChargesTotal: models.FromYuan(result.OverdueChargesTotal),
+			Breakdown:           string(breakdownJSON),
+			CreatedAt:           time.Now(),
+			UpdatedAt:           time.Now(),
+		}
 
-	if err := tx.Create(&settlement).Error; err != nil {
-		return nil, fmt.Errorf("failed to create settlement: %w", err)
-	}
+		if err := tx.Create(&settlement).Error; err != nil {
+			return nil, fmt.Errorf("failed to create settlement: %w", err)
+		}
 
-	// Refund gift points (over cap portion) to promo_points
-	if result.GiftPointsRefunded > 0 {
-		if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-			"promo_points": gorm.Expr("promo_points + ?", result.GiftPointsRefunded),
-			"updated_at":   time.Now(),
-		}).Error; err != nil {
-			return nil, fmt.Errorf("failed to refund gift points: %w", err)
+		// Refund gift points (over cap portion) to promo_points
+		if result.GiftPointsRefunded > 0 {
+			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
+				"promo_points": gorm.Expr("promo_points + ?", result.GiftPointsRefunded),
+				"updated_at":   time.Now(),
+			}).Error; err != nil {
+				return nil, fmt.Errorf("failed to refund gift points: %w", err)
+			}
 		}
 	}
 
@@ -317,7 +334,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		refundRecord := models.OrderRefundRecord{
 			ID:        uuid.New().String(),
 			TenantID:  order.TenantID,
-			Amount:    result.CashRefundable,
+			Amount:    models.FromYuan(result.CashRefundable),
 			Reason:    strPtr("租赁结算退款"),
 			Status:    "pending",
 			CreatedAt: time.Now(),
@@ -334,17 +351,19 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			}
 		}
 
-		if !paymentFound || cfg == nil {
+		if !paymentFound || cfg == nil || paymentRecord.Amount <= 0 {
 			refundRecord.Status = "refunded"
-			settlement.RefundStatus = "completed"
+			if settlement != nil {
+				settlement.RefundStatus = "completed"
+			}
 		} else {
 			refundRecord.PaymentRecordID = &paymentRecord.ID
 			client := wechatpay.GetClient()
-			refundResp, err := client.Refund(nil, wechatpay.RefundParams{
+			refundResp, err := client.Refund(context.Background(), wechatpay.RefundParams{
 				OutTradeNo:   outTradeNo,
 				OutRefundNo:  outRefundNo,
-				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-				RefundAmount: cfg.AmountToCents(result.CashRefundable),
+				TotalAmount:  int64(paymentRecord.Amount),
+				RefundAmount: int64(models.FromYuan(result.CashRefundable)),
 				Reason:       "租赁结算退款",
 				NotifyURL:    cfg.RefundNotifyURL,
 			})
@@ -353,10 +372,14 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 				fr := err.Error()
 				refundRecord.FailReason = &fr
 				log.Printf("[executeRefund] refund failed for order %s: %v", order.ID, err)
-				settlement.RefundStatus = "failed"
+				if settlement != nil {
+					settlement.RefundStatus = "failed"
+				}
 			} else {
 				refundRecord.RefundID = &refundResp.RefundID
-				settlement.RefundStatus = "refunding"
+				if settlement != nil {
+					settlement.RefundStatus = "refunding"
+				}
 			}
 		}
 		refundRecord.OutRefundNo = &outRefundNo
@@ -366,8 +389,10 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		}
 	}
 
-	if err := tx.Model(&settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
-		return nil, fmt.Errorf("failed to update settlement status: %w", err)
+	if settlement != nil {
+		if err := tx.Model(settlement).Update("refund_status", settlement.RefundStatus).Error; err != nil {
+			return nil, fmt.Errorf("failed to update settlement status: %w", err)
+		}
 	}
 
 	// Mark deposit as refunded only after actual refund executes
@@ -424,7 +449,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 					UserID:      order.UserID,
 					TenantID:    order.TenantID,
 					Type:        "refund_rebate",
-					Amount:      rebatePoints,
+					Amount:      models.FromYuan(rebatePoints),
 					OrderID:     &order.ID,
 					Description: rebateDesc,
 					CreatedAt:   time.Now(),
@@ -455,7 +480,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 							UserID:      referrer.ID,
 							TenantID:    order.TenantID,
 							Type:        "referral",
-							Amount:      refPoints,
+							Amount:      models.FromYuan(refPoints),
 							OrderID:     &order.ID,
 							Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
 							CreatedAt:   time.Now(),
@@ -551,7 +576,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	if err := db.Where("lease_id = ?", order.ID).Order("created_at desc").First(&reportOverdue).Error; err != nil {
 		reportOverdue = models.DamageReport{}
 	}
-	overdueFee := reportOverdue.OverdueFee
+	overdueFee := reportOverdue.OverdueFee.ToYuan()
 	if overdueFee < 0 {
 		overdueFee = 0
 	}
@@ -605,7 +630,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	rentPayable = math.Round(rentPayable*100) / 100
 
-	totalRentPaid := order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed - order.Deposit - order.ShippingFee
+	totalRentPaid := (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed - order.Deposit - order.ShippingFee).ToYuan()
 	if totalRentPaid == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
@@ -618,19 +643,19 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	var damageDeducted float64
 	var report models.DamageReport
 	if err := db.Where("lease_id = ?", order.ID).First(&report).Error; err == nil {
-		damageDeducted = report.DepositDeducted
+		damageDeducted = report.DepositDeducted.ToYuan()
 	}
 
 	// Deposit deduction: overdue fee (charged once at return, #1493) +
 	// damage deduction + logistics fee (filled by staff at SHIPPING page,
 	// #1541/#1621 — design moved fee entry to dispatch, not inspection).
 	// All come off the deposit; remainder participates in the refund.
-	shippingFee := order.ShippingFee
+	shippingFee := order.ShippingFee.ToYuan()
 	if shippingFee < 0 {
 		shippingFee = 0
 	}
 	totalDepositDeducted := overdueFee + damageDeducted + shippingFee
-	remainingDeposit := order.Deposit - totalDepositDeducted
+	remainingDeposit := order.Deposit.ToYuan() - totalDepositDeducted
 	if remainingDeposit < 0 {
 		remainingDeposit = 0
 	}
@@ -679,14 +704,14 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	a0 := order.GiftPointsUsed
-	a1 := math.Floor(rentPayable * payRatio)
+	a1 := models.FromYuan(math.Floor(rentPayable * payRatio))
 	if a1 < 0 {
 		a1 = 0
 	}
 
 	var giftPointsRefunded, cashRefundable float64
 	if a1 < a0 {
-		giftPointsRefunded = a0 - a1
+		giftPointsRefunded = (a0 - a1).ToYuan()
 		// C1 = R1 − A1; cash refund = C0 − C1 = (R0 − A0) − (R1 − A1)
 		cashRefundable = totalRefund - giftPointsRefunded
 	} else {
@@ -731,7 +756,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	if a0 < a1 {
 		effectiveGift = a0
 	}
-	cashBasis := rentPayable - effectiveGift
+	cashBasis := rentPayable - effectiveGift.ToYuan()
 	if cashBasis < 0 {
 		cashBasis = 0
 	}
@@ -793,7 +818,7 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	sb.WriteString("——\n")
 	sb.WriteString(fmt.Sprintf("租金：¥%.2f\n", s.RentPayable))
 	if order.ShippingFee > 0 {
-		sb.WriteString(fmt.Sprintf("物流费：¥%.2f\n", order.ShippingFee))
+		sb.WriteString(fmt.Sprintf("物流费：¥%.2f\n", order.ShippingFee.ToYuan()))
 	}
 	if s.OverdueChargesTotal > 0 {
 		sb.WriteString(fmt.Sprintf("逾期费：¥%.2f\n", s.OverdueChargesTotal))
@@ -806,9 +831,9 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	}
 	sb.WriteString("——\n")
 	sb.WriteString(fmt.Sprintf("应付合计：¥%.2f\n", s.TotalRefund+s.RentPayable+s.DamageDeducted+s.OverdueChargesTotal))
-	sb.WriteString(fmt.Sprintf("其中赠点抵扣：%.0f 点\n", order.GiftPointsUsed))
+	sb.WriteString(fmt.Sprintf("其中赠点抵扣：%.0f 点\n", order.GiftPointsUsed.ToYuan()))
 	sb.WriteString(fmt.Sprintf("现金应付：¥%.2f\n", s.CashBasis))
-	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", order.CashPaid+order.PrepaidPointsUsed+order.GiftPointsUsed+order.Deposit))
+	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", (order.CashPaid+order.PrepaidPointsUsed+order.GiftPointsUsed+order.Deposit).ToYuan()))
 	sb.WriteString(fmt.Sprintf("押金退还：¥%.2f\n", s.RemainingDeposit))
 	sb.WriteString("——\n")
 	if s.GiftPointsRefunded > 0 {

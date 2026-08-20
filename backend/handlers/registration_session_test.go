@@ -32,7 +32,7 @@ func seedSession(t *testing.T, db *gorm.DB, openid, exchangeToken string, amount
 		IAMUserID:     strPtr("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
 		LocalUserID:   strPtr("11111111-2222-3333-4444-555555555555"),
 		FormData:      marshalForm(form),
-		Amount:        amount,
+		Amount:        models.FromYuan(amount),
 		Status:        "pending",
 	}
 	require.NoError(t, db.Create(&s).Error)
@@ -554,7 +554,7 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 		UserID:      "00000000-0000-0000-0000-000000000000", // no-orphan zero uuid
 		OrderType:   "membership",
 		OutTradeNo:  strPtr("msess-cb-real-001"),
-		Amount:      0.99,
+		Amount:      models.FromYuan(0.99),
 		Type:        "payment",
 		Status:      "pending",
 		SessionID:   &s.ID,

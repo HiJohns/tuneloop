@@ -754,8 +754,8 @@ func (h *RepairRequestHandler) TransitProcess(c *gin.Context) {
 		TransitSiteID:       *req.TransitSiteID,
 		Direction:           models.RepairTransitDirIn,
 		Status:              models.RepairTransitPendingActivation,
-		TransitServiceFee:   &body.TransitServiceFee,
-		TransitLogisticsFee: &body.TransitLogisticsFee,
+		TransitServiceFee:   models.ToCentsPtr(&body.TransitServiceFee),
+		TransitLogisticsFee: models.ToCentsPtr(&body.TransitLogisticsFee),
 		CreatedAt:           time.Now(),
 	}
 	if err := db.Create(&transitOrder).Error; err != nil {
@@ -1038,7 +1038,7 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		return
 	}
 
-	var amount float64
+	var amount models.Cents
 
 	if quote.IsRenegotiation {
 		// Requote supplement: pay the difference
@@ -1103,7 +1103,7 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		"code": 20000,
 		"data": gin.H{
 			"payment_required": true,
-			"amount":           amount,
+			"amount":           amount.ToYuan(),
 			"out_trade_no":     outTradeNo,
 		},
 	})
@@ -1175,9 +1175,9 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 		SiteID:          siteID,
 		WorkerID:        userID,
 		QuoteNo:         quoteNo,
-		MaterialFee:     body.MaterialFee,
-		ServiceFee:      body.ServiceFee,
-		LogisticsFee:    body.LogisticsFee,
+		MaterialFee:     models.FromYuan(body.MaterialFee),
+		ServiceFee:      models.FromYuan(body.ServiceFee),
+		LogisticsFee:    models.FromYuan(body.LogisticsFee),
 		Duration:        body.Duration,
 		Comment:         body.Comment,
 		IsRenegotiation: true,
@@ -1229,7 +1229,7 @@ func (h *RepairRequestHandler) RejectRequote(c *gin.Context) {
 		return
 	}
 
-	checkFee := float64(0)
+	checkFee := models.Cents(0)
 	if req.CheckFeeSnapshot != nil {
 		checkFee = *req.CheckFeeSnapshot
 	}

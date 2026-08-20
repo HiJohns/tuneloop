@@ -129,8 +129,8 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 		return true
 	}
 
-	if record.Amount != wechatpay.GetConfig().CentsToYuan(result.Amount) {
-		log.Printf("[processPaymentCallback] amount mismatch: record=%.2f callback=%d", record.Amount, result.Amount)
+	if int64(record.Amount) != result.Amount {
+		log.Printf("[processPaymentCallback] amount mismatch: record=%d callback=%d", int64(record.Amount), result.Amount)
 		return false
 	}
 
@@ -157,7 +157,7 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 	}
 
 	tx.Commit()
-	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%.2f type=%s", result.OutTradeNo, result.TransactionID, record.Amount, record.OrderType)
+	log.Printf("[processPaymentCallback] payment processed: out_trade_no=%s transaction_id=%s amount=%d type=%s", result.OutTradeNo, result.TransactionID, int64(record.Amount), record.OrderType)
 	return true
 }
 
@@ -294,7 +294,7 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		UserID:      localUserID,
 		TenantID:    record.TenantID,
 		Type:        "gift_used",
-		Amount:      points.GiftUsed,
+		Amount:      models.FromYuan(points.GiftUsed),
 		OrderID:     record.OrderID,
 		Description: fmt.Sprintf("订单支付使用赠送点数: gift=%.2f", points.GiftUsed),
 		CreatedAt:   now,

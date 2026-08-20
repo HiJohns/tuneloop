@@ -34,7 +34,7 @@ func CreateDiscountPolicy(c *gin.Context) {
 		RentDiscount:     req.RentDiscount,
 		DepositDiscount:  req.DepositDiscount,
 		ShippingDiscount: req.ShippingDiscount,
-		MaxAmount:        req.MaxAmount,
+		MaxAmount:        models.FromYuan(req.MaxAmount),
 		ValidFrom:        req.ValidFrom,
 		ValidTo:          req.ValidTo,
 		IsActive:         true,

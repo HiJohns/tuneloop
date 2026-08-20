@@ -111,7 +111,7 @@ func PrepayOrder(c *gin.Context) {
 		UserID:     userID,
 		OrderType:  req.OrderType,
 		OutTradeNo: &outTradeNo,
-		Amount:     req.Amount,
+		Amount:     models.FromYuan(req.Amount),
 		Type:       "payment",
 		Status:     "pending",
 		CreatedAt:  time.Now(),
@@ -163,7 +163,7 @@ func PrepayOrder(c *gin.Context) {
 	// 服务端定价（#1719 优惠码通用化）：金额基础值 = session 价（membership
 	// 两阶段）或客户端金额（其余 order type）。优惠码对所有支付类型通用：
 	// waive（OREZ）→ 0；percent（ENO）→ 按 value 比例。客户端金额不可信。
-	baseAmount := req.Amount
+	baseAmount := models.FromYuan(req.Amount)
 	if sessionFlow {
 		baseAmount = session.Amount
 	}
@@ -178,7 +178,7 @@ func PrepayOrder(c *gin.Context) {
 		case "waive":
 			baseAmount = 0
 		case "percent":
-			baseAmount = math.Round(baseAmount*coupon.Value/100*100) / 100
+			baseAmount = models.FromYuan(math.Round(baseAmount.ToYuan()*coupon.Value/100*100) / 100)
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
 			return
@@ -188,7 +188,7 @@ func PrepayOrder(c *gin.Context) {
 	record.Amount = baseAmount // server-priced; never trust the client amount
 
 	if sessionFlow {
-		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": session.Amount}
+		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": session.Amount.ToYuan()}
 		if couponApplied != "" {
 			sessionRaw["coupon_code"] = couponApplied
 		}
@@ -277,7 +277,7 @@ func PrepayOrder(c *gin.Context) {
 			// Native payment (QR code) for PC
 			result, err := client.CreateNativeOrder(ctx, wechatpay.NativeParams{
 				OutTradeNo:  outTradeNo,
-				TotalAmount: cfg.AmountToCents(record.Amount),
+				TotalAmount: int64(record.Amount),
 				Description: fmt.Sprintf("乐器租赁订单"),
 				NotifyURL:   cfg.NotifyURL,
 			})
@@ -317,7 +317,7 @@ func PrepayOrder(c *gin.Context) {
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
-			TotalAmount: cfg.AmountToCents(record.Amount),
+			TotalAmount: int64(record.Amount),
 			Description: fmt.Sprintf("乐器租赁订单"),
 			NotifyURL:   cfg.NotifyURL,
 		})
@@ -376,7 +376,7 @@ func PrepayOrder(c *gin.Context) {
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
-			TotalAmount: cfg.AmountToCents(record.Amount),
+			TotalAmount: int64(record.Amount),
 			Description: "租赁续期支付",
 			NotifyURL:   cfg.NotifyURL,
 		})
@@ -437,7 +437,7 @@ func PrepayOrder(c *gin.Context) {
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      openid,
-			TotalAmount: cfg.AmountToCents(amount),
+			TotalAmount: int64(amount),
 			Description: "会员入会费",
 			NotifyURL:   cfg.NotifyURL,
 		})

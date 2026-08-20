@@ -120,7 +120,7 @@ func ExportPayments(c *gin.Context) {
 		if rec.OrderID != nil {
 			oid = *rec.OrderID
 		}
-		sb.WriteString(fmt.Sprintf("%s,%s,%s,%s,%.2f,%s,%s,%s\n", ts, tradeNo, txID, rec.OrderType, rec.Amount, safeStr(rec.Method), rec.Status, oid))
+		sb.WriteString(fmt.Sprintf("%s,%s,%s,%s,%.2f,%s,%s,%s\n", ts, tradeNo, txID, rec.OrderType, rec.Amount.ToYuan(), safeStr(rec.Method), rec.Status, oid))
 	}
 
 	c.Header("Content-Type", "text/csv; charset=utf-8")

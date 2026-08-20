@@ -432,7 +432,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 						UserID:      newUser.ID,
 						TenantID:    newUser.TenantID,
 						Type:        "registration",
-						Amount:      giftPoints,
+						Amount:      models.FromYuan(giftPoints),
 						Description: "会员注册赠点",
 						CreatedAt:   time.Now(),
 					})
@@ -459,7 +459,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 									UserID:      referrer.ID,
 									TenantID:    referrer.TenantID,
 									Type:        "referral_reg",
-									Amount:      ratios.ReferralRegPoints,
+									Amount:      models.FromYuan(ratios.ReferralRegPoints),
 									Description: fmt.Sprintf("介绍新用户注册奖励 %s", newUser.Username),
 									CreatedAt:   time.Now(),
 								})

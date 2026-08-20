@@ -29,7 +29,7 @@ func TestOverdueScheduler_TransitionToExpiredOnly(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "OD-" + time.Now().Format("150405"),
-		BaseDailyRate: float64Ptr(10),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(10)),
 		StockStatus:   "rented",
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -81,7 +81,7 @@ func TestOverdueScheduler_NoTransitionWhenNotDue(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "OD2-" + time.Now().Format("150405"),
-		BaseDailyRate: float64Ptr(10),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(10)),
 		StockStatus:   "rented",
 	}
 	require.NoError(t, db.Create(&instrument).Error)

@@ -246,7 +246,7 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "CNL-" + time.Now().Format("150405"),
-		BaseDailyRate: float64Ptr(100),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   "available",
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -263,7 +263,7 @@ func TestCancelOrderByCustomer_StatusGuard(t *testing.T) {
 			Level:        "standard",
 			LeaseTerm:    1,
 			Status:       status,
-			Deposit:      0,
+			Deposit:      models.FromYuan(0),
 			CashPaid:     100,
 		}
 		require.NoError(t, db.Create(&order).Error)

@@ -327,11 +327,11 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 
 	baseRate := 0.0
 	if instrument.BaseDailyRate != nil {
-		baseRate = *instrument.BaseDailyRate
+		baseRate = (*instrument.BaseDailyRate).ToYuan()
 	}
 	totalPrice := 0.0
 	if instrument.TotalPrice != nil {
-		totalPrice = *instrument.TotalPrice
+		totalPrice = (*instrument.TotalPrice).ToYuan()
 	}
 	pricingResult := services.CalculatePricing(baseRate, totalPrice, merchantConfigJSON, instrument.PricingOverrides, instrument.Pricing)
 
@@ -465,14 +465,14 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		Level:             instrument.Level,
 		LeaseTerm:         months,
 		MonthlyRent:       0,
-		Deposit:           deposit,
+		Deposit:           models.FromYuan(deposit),
 		DepositWaived:     req.DepositWaived,
-		ShippingFee:       shippingFee,
+		ShippingFee:       models.FromYuan(shippingFee),
 		Status:            models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
 		StartDate:         &startDateStr,
 		EndDate:           &endDateStr,
-		CashPaid:          cashPaid,
-		GiftPointsUsed:    req.GiftPointsUsed,
+		CashPaid:          models.FromYuan(cashPaid),
+		GiftPointsUsed:    models.FromYuan(req.GiftPointsUsed),
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
 		PaymentDeadline:   computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
@@ -556,9 +556,9 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	// Record discount code usage and increment usage count (#1539)
 	if req.DiscountCode != "" {
 		if dc, policy := services.ResolveDiscountCode(tx, req.DiscountCode); dc != nil && policy != nil {
-			discountAmount := order.CashPaid * (1 - policy.RentDiscount)
-			if policy.MaxAmount > 0 && discountAmount > policy.MaxAmount {
-				discountAmount = policy.MaxAmount
+			discountAmount := order.CashPaid.ToYuan() * (1 - policy.RentDiscount)
+			if policy.MaxAmount > 0 && discountAmount > policy.MaxAmount.ToYuan() {
+				discountAmount = policy.MaxAmount.ToYuan()
 			}
 			tx.Create(&models.DiscountCodeUsage{
 				ID:             uuid.New().String(),
@@ -593,7 +593,7 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 			UserID:            userID,
 			TenantID:          effectiveTenantID,
 			Type:              "order_deduct",
-			Amount:            -req.GiftPointsUsed,
+			Amount:            models.FromYuan(-req.GiftPointsUsed),
 			BalanceAfterPromo: newPromo,
 			OrderID:           &order.ID,
 			Description:       "订单赠送点数抵扣",
@@ -878,11 +878,11 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 
 		baseRate := 0.0
 		if lockedInstrument.BaseDailyRate != nil {
-			baseRate = *lockedInstrument.BaseDailyRate
+			baseRate = (*lockedInstrument.BaseDailyRate).ToYuan()
 		}
 		totalPrice := 0.0
 		if lockedInstrument.TotalPrice != nil {
-			totalPrice = *lockedInstrument.TotalPrice
+			totalPrice = (*lockedInstrument.TotalPrice).ToYuan()
 		}
 		pricingResult := services.CalculatePricing(baseRate, totalPrice, merchantConfigJSON, lockedInstrument.PricingOverrides, lockedInstrument.Pricing)
 		dailyRent := 0.0
@@ -939,10 +939,10 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			Level:            lockedInstrument.Level,
 			LeaseTerm:        months,
 			MonthlyRent:      0,
-			Deposit:          deposit,
+			Deposit:          models.FromYuan(deposit),
 			DepositWaived:    req.DepositWaived,
-			ShippingFee:      shippingFee,
-			CashPaid:         orderAmount,
+			ShippingFee:      models.FromYuan(shippingFee),
+			CashPaid:         models.FromYuan(orderAmount),
 			Status:           models.OrderStatusReserved,
 			StartDate:        &startDateStr,
 			EndDate:          &endDateStr,
@@ -1367,7 +1367,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 
 	baseRate := float64(0)
 	if instrument.BaseDailyRate != nil {
-		baseRate = *instrument.BaseDailyRate
+		baseRate = (*instrument.BaseDailyRate).ToYuan()
 	}
 
 	// Resolve tier config and calculate
@@ -1377,9 +1377,9 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	// Deposit from instrument or pricing config
 	deposit := float64(0)
 	if instrument.Deposit != nil {
-		deposit = *instrument.Deposit
+		deposit = (*instrument.Deposit).ToYuan()
 	} else if instrument.BaseDailyRate != nil {
-		deposit = *instrument.BaseDailyRate * 2.0 // default fallback
+		deposit = (*instrument.BaseDailyRate).ToYuan() * 2.0 // default fallback
 	}
 
 	// Shipping fee
@@ -1405,7 +1405,7 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	prepaidPointsBalance := float64(0)
 	if localUser.ID != "" {
 		giftPointsBalance = localUser.PromoPoints
-		prepaidPointsBalance = localUser.PrepaidPoints
+		prepaidPointsBalance = localUser.PrepaidPoints.ToYuan()
 	}
 
 	// Gift points max = min(balance, total × max_pay_ratio)

@@ -270,15 +270,15 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			return
 		}
 		finalAmount = req.AdjustAmount
-		damageReport.DepositDeducted = req.AdjustAmount
+		damageReport.DepositDeducted = models.FromYuan(req.AdjustAmount)
 
-		if req.AdjustAmount < order.Deposit {
+		if models.FromYuan(req.AdjustAmount) < order.Deposit {
 			nextOrderStatus = models.OrderStatusDepositRefunding
 			notifType = "refund"
 			notifActionType = "info"
 			notifTitle = "申诉结果：金额调整"
-			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", req.AdjustAmount, order.Deposit, order.Deposit-req.AdjustAmount)
-		} else if req.AdjustAmount == order.Deposit {
+			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", req.AdjustAmount, order.Deposit.ToYuan(), order.Deposit.ToYuan()-req.AdjustAmount)
+		} else if models.FromYuan(req.AdjustAmount) == order.Deposit {
 			nextOrderStatus = models.OrderStatusDepositRefunding
 			notifType = "appeal"
 			notifActionType = "info"
@@ -290,12 +290,12 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			notifType = "payment"
 			notifActionType = "payment"
 			notifTitle = "申诉结果：需支付"
-			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", req.AdjustAmount, order.Deposit, req.AdjustAmount-order.Deposit)
+			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", req.AdjustAmount, order.Deposit.ToYuan(), req.AdjustAmount-order.Deposit.ToYuan())
 
-			payDiff := req.AdjustAmount - order.Deposit
+			payDiff := models.FromYuan(req.AdjustAmount) - order.Deposit
 			outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
-			notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%.2f,"out_trade_no":"%s"}`, payDiff, outTradeNo)
+			notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%.2f,"out_trade_no":"%s"}`, payDiff.ToYuan(), outTradeNo)
 		}
 		damageReport.Status = "resolved"
 
@@ -304,16 +304,16 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "damage report has no amount"})
 			return
 		}
-		finalAmount = *damageReport.DamageAmount
-		damageReport.DepositDeducted = finalAmount
+		finalAmount = (*damageReport.DamageAmount).ToYuan()
+		damageReport.DepositDeducted = models.FromYuan(finalAmount)
 
-		if finalAmount < order.Deposit {
+		if models.FromYuan(finalAmount) < order.Deposit {
 			nextOrderStatus = models.OrderStatusDepositRefunding
 			notifType = "refund"
 			notifActionType = "info"
 			notifTitle = "申诉结果：金额确认"
-			notifContent = fmt.Sprintf("确认定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", finalAmount, order.Deposit, order.Deposit-finalAmount)
-		} else if finalAmount == order.Deposit {
+			notifContent = fmt.Sprintf("确认定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", finalAmount, order.Deposit.ToYuan(), order.Deposit.ToYuan()-finalAmount)
+		} else if models.FromYuan(finalAmount) == order.Deposit {
 			nextOrderStatus = models.OrderStatusDepositRefunding
 			notifType = "appeal"
 			notifActionType = "info"
@@ -324,7 +324,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			notifType = "payment"
 			notifActionType = "payment"
 			notifTitle = "申诉结果：需支付"
-			notifContent = fmt.Sprintf("确认金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", finalAmount, order.Deposit, finalAmount-order.Deposit)
+			notifContent = fmt.Sprintf("确认金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", finalAmount, order.Deposit.ToYuan(), finalAmount-order.Deposit.ToYuan())
 		}
 		damageReport.Status = "resolved"
 	}
@@ -332,7 +332,8 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	// Update appeal
 	appeal.Status = "resolved"
 	appeal.Resolution = req.Decision
-	appeal.FinalAmount = &finalAmount
+	finalCents := models.FromYuan(finalAmount)
+	appeal.FinalAmount = &finalCents
 	appeal.ManagerComment = req.Comment
 	appeal.ResolvedAt = &now
 
@@ -389,7 +390,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	}
 
 	// Create notification
-	notifActionData = fmt.Sprintf(`{"final_amount":%.2f,"deposit":%.2f,"order_id":"%s","membership":true}`, finalAmount, order.Deposit, order.ID)
+	notifActionData = fmt.Sprintf(`{"final_amount":%.2f,"deposit":%.2f,"order_id":"%s","membership":true}`, finalAmount, order.Deposit.ToYuan(), order.ID)
 
 	// If the order completed (refund triggered), enhance the customer
 	// notification with the standard receipt breakdown (#1603) + thank-you
@@ -546,7 +547,7 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 	if instrument.ID != "" && instrument.SiteID != nil {
 		damageAmt := 0.0
 		if damageReport.DamageAmount != nil {
-			damageAmt = *damageReport.DamageAmount
+			damageAmt = (*damageReport.DamageAmount).ToYuan()
 		}
 		staffContent := fmt.Sprintf("顾客对定损 ¥%.2f 提出申诉，请处理。申诉原因：%s", damageAmt, req.AppealReason)
 		staffActionData := fmt.Sprintf(`{"appeal_id":"%s"}`, appeal.ID)
@@ -584,7 +585,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 
 	// Compare damage amount vs deposit
-	damageAmount := float64(0)
+	damageAmount := models.Cents(0)
 	if damageReport.DamageAmount != nil {
 		damageAmount = *damageReport.DamageAmount
 	}
@@ -602,7 +603,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		notifType = "refund"
 		notifActionType = "info"
 		notifTitle = "押金退还通知"
-		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", damageAmount, order.Deposit, order.Deposit-damageAmount)
+		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", damageAmount.ToYuan(), order.Deposit.ToYuan(), order.Deposit.ToYuan()-damageAmount.ToYuan())
 	} else {
 		// Payment needed: damage >= deposit
 		nextOrderStatus = order.Status // keep current status, wait for payment
@@ -610,7 +611,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		notifType = "payment"
 		notifActionType = "payment"
 		notifTitle = "定损付款通知"
-		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", damageAmount, order.Deposit, damageAmount-order.Deposit)
+		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", damageAmount.ToYuan(), order.Deposit.ToYuan(), damageAmount.ToYuan()-order.Deposit.ToYuan())
 	}
 
 	// Update damage report
@@ -650,7 +651,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 			"message": "请完成支付",
 			"data": gin.H{
 				"payment_required": true,
-				"amount":           payDiff,
+				"amount":           payDiff.ToYuan(),
 				"out_trade_no":     outTradeNo,
 				"damage_report_id": damageID,
 			},
@@ -694,7 +695,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 
 	// Create notification
-	ad := fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, damageAmount, order.Deposit, order.ID)
+	ad := fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, damageAmount.ToYuan(), order.Deposit.ToYuan(), order.ID)
 	notification := models.Notification{
 		TenantID:   tenantID,
 		OrgID:      middleware.GetOrgID(ctx),
@@ -717,7 +718,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	if nextOrderStatus == models.OrderStatusDepositRefunding {
 		var instrument models.Instrument
 		if err := db.Where("id = ?", order.InstrumentID).First(&instrument).Error; err == nil && instrument.SiteID != nil {
-			staffContent := fmt.Sprintf("顾客已接受定损 ¥%.2f，订单进入退款中。请打开订单详情点击退款。", damageAmount)
+			staffContent := fmt.Sprintf("顾客已接受定损 ¥%.2f，订单进入退款中。请打开订单详情点击退款。", damageAmount.ToYuan())
 			staffActionData := fmt.Sprintf(`{"order_id":"%s"}`, order.ID)
 			services.NotifyUsersBySiteWithAction(db, tenantID, instrument.SiteID.String(), "refund", "定损已接受：待退款", staffContent, order.ID, "order", []string{"site_admin", "site_member"}, "order", &staffActionData)
 		}

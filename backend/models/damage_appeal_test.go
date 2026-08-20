@@ -18,14 +18,14 @@ func TestDamageReport(t *testing.T) {
 		LeaseID:           uuid.New().String(),
 		InstrumentID:      uuid.New().String(),
 		UserID:            uuid.New().String(),
-		DamageAmount:      &amount,
+		DamageAmount:      ToCentsPtr(&amount),
 		DamageDescription: "琴弦断裂",
 		DepositDeducted:   0,
 		Status:            "pending",
 	}
 
 	assert.NotEmpty(t, report.ID)
-	assert.Equal(t, &amount, report.DamageAmount)
+	assert.Equal(t, ToCentsPtr(&amount), report.DamageAmount)
 	assert.Equal(t, "琴弦断裂", report.DamageDescription)
 	assert.Equal(t, "pending", report.Status)
 
@@ -63,11 +63,8 @@ func TestDamageAssessment(t *testing.T) {
 	assert.Equal(t, "外观完好，功能正常", assessment.Notes)
 
 	// Test nullable fields
-	assessedBy := uuid.New().String()
 	scanTime := time.Now()
-	assessment.AssessedBy = &assessedBy
 	assessment.ScanTime = &scanTime
-	assert.Equal(t, assessedBy, *assessment.AssessedBy)
 	assert.Equal(t, scanTime, *assessment.ScanTime)
 }
 
@@ -100,8 +97,8 @@ func TestAppeal(t *testing.T) {
 
 	// Test nullable fields
 	amount := 300.00
-	appeal.FinalAmount = &amount
-	assert.Equal(t, &amount, appeal.FinalAmount)
+	appeal.FinalAmount = ToCentsPtr(&amount)
+	assert.Equal(t, ToCentsPtr(&amount), appeal.FinalAmount)
 }
 
 func TestOrderStatusHistory(t *testing.T) {

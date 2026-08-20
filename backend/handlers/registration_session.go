@@ -79,7 +79,7 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		ID:            uuid.New().String(),
 		ExchangeToken: req.ExchangeToken,
 		FormData:      marshalForm(form),
-		Amount:        getMembershipFee(h.db),
+		Amount:        models.FromYuan(getMembershipFee(h.db)),
 		Status:        "pending",
 	}
 

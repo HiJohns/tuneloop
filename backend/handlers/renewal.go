@@ -91,7 +91,7 @@ func loadRenewalPricing(order *models.Order) (baseRate float64, pricingTiers []s
 	}
 	baseRate = pb.BaseDailyRent
 	if baseRate <= 0 && order.MonthlyRent > 0 {
-		baseRate = order.MonthlyRent / 30
+		baseRate = order.MonthlyRent.ToYuan() / 30
 	}
 	if baseRate <= 0 {
 		baseRate = 50
@@ -268,7 +268,7 @@ func ConfirmRenewal(c *gin.Context) {
 		OrderID:     &orderID,
 		OrderType:   "renewal",
 		OutTradeNo:  &outTradeNo,
-		Amount:      totalAmount,
+		Amount:      models.FromYuan(totalAmount),
 		Type:        "payment",
 		Status:      "pending",
 		RawResponse: &metaStr,

@@ -133,7 +133,7 @@ func GetOrders(c *gin.Context) {
 		}
 		var settlement models.Settlement
 		if err := db.Where("order_id = ?", o.ID).Order("created_at DESC").First(&settlement).Error; err == nil {
-			item.ActualRentAmount = &settlement.ActualRentAmount
+			item.ActualRentAmount = models.ToYuanPtr(&settlement.ActualRentAmount)
 		}
 		list = append(list, item)
 	}
@@ -368,7 +368,7 @@ func GetOrder(c *gin.Context) {
 		db.Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
 			Find(&paidRecords)
 		for _, pr := range paidRecords {
-			paidTotal += pr.Amount
+			paidTotal += pr.Amount.ToYuan()
 		}
 		damageAmount := 0.0
 		description := ""
@@ -379,10 +379,10 @@ func GetOrder(c *gin.Context) {
 			status = damageReport.Status
 			description = damageReport.DamageDescription
 			if damageReport.DamageAmount != nil {
-				damageAmount = *damageReport.DamageAmount
+				damageAmount = (*damageReport.DamageAmount).ToYuan()
 			}
 		}
-		refund := math.Round((paidTotal-damageAmount-actualRentAmount-order.ShippingFee)*100) / 100
+		refund := math.Round((paidTotal-damageAmount-actualRentAmount-order.ShippingFee.ToYuan())*100) / 100
 		if refund < 0 {
 			refund = 0
 		}
@@ -429,7 +429,7 @@ func GetOrder(c *gin.Context) {
 		}
 		paymentEntries = append(paymentEntries, paymentEntry{
 			ID:        pr.ID,
-			Amount:    pr.Amount,
+			Amount:    pr.Amount.ToYuan(),
 			Method:    method,
 			Status:    pr.Status,
 			CreatedAt: pr.CreatedAt,
@@ -451,11 +451,11 @@ func GetOrder(c *gin.Context) {
 	for _, s := range settlements {
 		refundEntries = append(refundEntries, refundEntry{
 			ID:     s.ID,
-			Amount: s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded,
+			Amount: (s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded).ToYuan(),
 			Breakdown: map[string]float64{
-				"cash":    s.CashRefundable,
-				"prepaid": s.PrepaidRefunded,
-				"gift":    s.GiftPointsRefunded,
+				"cash":    s.CashRefundable.ToYuan(),
+				"prepaid": s.PrepaidRefunded.ToYuan(),
+				"gift":    s.GiftPointsRefunded.ToYuan(),
 			},
 			Method:    s.RefundMethod,
 			Status:    s.RefundStatus,
@@ -990,14 +990,14 @@ func CancelOrderByCustomer(c *gin.Context) {
 			// Initiate the original-path refund with WeChat Pay
 			var paymentRecord models.OrderPaymentRecord
 			if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
-				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
+				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil && paymentRecord.Amount > 0 {
 				cfg := wechatpay.GetConfig()
 				client := wechatpay.GetClient()
 				_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
 					OutTradeNo:   *paymentRecord.OutTradeNo,
 					OutRefundNo:  outRefundNo,
-					TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-					RefundAmount: cfg.AmountToCents(refundAmount),
+					TotalAmount:  int64(paymentRecord.Amount),
+					RefundAmount: int64(refundAmount),
 					Reason:       "顾客取消订单",
 					NotifyURL:    cfg.RefundNotifyURL,
 				})
@@ -1138,14 +1138,14 @@ func StaffCancelOrder(c *gin.Context) {
 		}
 		var paymentRecord models.OrderPaymentRecord
 		if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
-			First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
+			First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil && paymentRecord.Amount > 0 {
 			cfg := wechatpay.GetConfig()
 			client := wechatpay.GetClient()
 			_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
 				OutTradeNo:   *paymentRecord.OutTradeNo,
 				OutRefundNo:  outRefundNo,
-				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-				RefundAmount: cfg.AmountToCents(refundAmount),
+				TotalAmount:  int64(paymentRecord.Amount),
+				RefundAmount: int64(refundAmount),
 				Reason:       "员工取消订单",
 				NotifyURL:    cfg.RefundNotifyURL,
 			})

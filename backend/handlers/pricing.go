@@ -294,9 +294,9 @@ func GetInstrumentPricingV2(c *gin.Context) {
 
 	totalPrice := 0.0
 	if instrument.TotalPrice != nil {
-		totalPrice = *instrument.TotalPrice
+		totalPrice = (*instrument.TotalPrice).ToYuan()
 	}
-	result := services.CalculatePricing(*instrument.BaseDailyRate, totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
+	result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": services.FormatPricingResult(result),

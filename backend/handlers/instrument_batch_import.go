@@ -585,7 +585,7 @@ func ExecuteBatchImport(c *gin.Context) {
 			// Handle optional pricing fields
 			if rateStr, ok := instData["base_daily_rate"].(string); ok && rateStr != "" {
 				if rate, err := strconv.ParseFloat(rateStr, 64); err == nil {
-					instrument.BaseDailyRate = &rate
+					instrument.BaseDailyRate = models.ToCentsPtr(&rate)
 				}
 			}
 			if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {
@@ -593,7 +593,7 @@ func ExecuteBatchImport(c *gin.Context) {
 			}
 			if priceStr, ok := instData["total_price"].(string); ok && priceStr != "" {
 				if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
-					instrument.TotalPrice = &price
+					instrument.TotalPrice = models.ToCentsPtr(&price)
 				}
 			}
 			pricingMap := map[string]float64{}
@@ -631,9 +631,9 @@ func ExecuteBatchImport(c *gin.Context) {
 				if tx.Where("tenant_id = ?", session.TenantID).First(&config).Error == nil {
 					totalPrice := 0.0
 					if instrument.TotalPrice != nil {
-						totalPrice = *instrument.TotalPrice
+						totalPrice = (*instrument.TotalPrice).ToYuan()
 					}
-					result := services.CalculatePricing(*instrument.BaseDailyRate, totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
+					result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
 					// Merge the manual daily_rent + overdue fallback keys that the
 					// rent-setting page reads (GetRentSetting reads
 					// pricing.daily_rent; CalculatePricing only emits
@@ -1004,7 +1004,7 @@ func BatchImportInstruments(c *gin.Context) {
 			// Handle optional pricing fields (legacy path)
 			if rateStr, ok := instData["base_daily_rate"].(string); ok && rateStr != "" {
 				if rate, err := strconv.ParseFloat(rateStr, 64); err == nil {
-					instrument.BaseDailyRate = &rate
+					instrument.BaseDailyRate = models.ToCentsPtr(&rate)
 				}
 			}
 			if instrument.BaseDailyRate == nil || *instrument.BaseDailyRate <= 0 {

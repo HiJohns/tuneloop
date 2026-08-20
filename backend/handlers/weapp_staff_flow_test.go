@@ -77,7 +77,7 @@ func TestShippingFlow_StaffToken(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "SN-SHIP-" + now.Format("150405"),
-		BaseDailyRate: float64Ptr(100),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   models.StockStatusAvailable,
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -89,7 +89,7 @@ func TestShippingFlow_StaffToken(t *testing.T) {
 		UserID:       uuid.New().String(),
 		InstrumentID: instrument.ID,
 		Status:       models.OrderStatusPaid,
-		Deposit:      500,
+		Deposit:      models.FromYuan(500),
 		CashPaid:     3000,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -149,7 +149,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 			TenantID:      tenantID,
 			OrgID:         &orgID,
 			SN:            "SN-RECV-" + uuid.New().String()[:8],
-			BaseDailyRate: float64Ptr(100),
+			BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 			StockStatus:   models.StockStatusRented,
 		}
 		require.NoError(t, db.Create(&inst).Error)
@@ -165,7 +165,7 @@ func TestReceiveFlow_StaffToken(t *testing.T) {
 			StartDate:    &start,
 			EndDate:      &end,
 			LeaseTerm:    30,
-			Deposit:      500,
+			Deposit:      models.FromYuan(500),
 			CashPaid:     3000,
 		}
 		require.NoError(t, db.Create(&o).Error)
@@ -228,7 +228,7 @@ func TestStaffFlow_UnauthenticatedDenied(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "SN-NOAUTH-" + now.Format("150405"),
-		BaseDailyRate: float64Ptr(100),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   models.StockStatusAvailable,
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -239,7 +239,7 @@ func TestStaffFlow_UnauthenticatedDenied(t *testing.T) {
 		UserID:       uuid.New().String(),
 		InstrumentID: instrument.ID,
 		Status:       models.OrderStatusPaid,
-		Deposit:      500,
+		Deposit:      models.FromYuan(500),
 		CashPaid:     3000,
 	}
 	require.NoError(t, db.Create(&order).Error)

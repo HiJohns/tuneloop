@@ -414,15 +414,15 @@ func CreateInstrument(c *gin.Context) {
 	}
 
 	if req.BaseDailyRate != nil && *req.BaseDailyRate > 0 {
-		instrument.BaseDailyRate = req.BaseDailyRate
+		instrument.BaseDailyRate = models.ToCentsPtr(req.BaseDailyRate)
 	}
 	if req.TotalPrice != nil && *req.TotalPrice > 0 {
-		instrument.TotalPrice = req.TotalPrice
+		instrument.TotalPrice = models.ToCentsPtr(req.TotalPrice)
 	}
 
 	// Handle Video field
 	if req.Deposit != nil && *req.Deposit > 0 {
-		instrument.Deposit = req.Deposit
+		instrument.Deposit = models.ToCentsPtr(req.Deposit)
 	}
 
 	instrument.Video = req.Video
@@ -508,7 +508,7 @@ func UpdateInstrument(c *gin.Context) {
 		instrument.Poster = *req.Poster
 	}
 	if req.Deposit != nil && *req.Deposit > 0 {
-		instrument.Deposit = req.Deposit
+		instrument.Deposit = models.ToCentsPtr(req.Deposit)
 	}
 	log.Printf("[DEBUG] req.CategoryID = '%v', req.Level = '%v'", req.CategoryID, req.Level)
 

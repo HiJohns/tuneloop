@@ -150,7 +150,7 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 			UserID:      user.ID,
 			TenantID:    user.TenantID,
 			Type:        "registration",
-			Amount:      giftPoints,
+			Amount:      models.FromYuan(giftPoints),
 			Description: "会员注册赠点",
 			CreatedAt:   time.Now(),
 		})
@@ -177,7 +177,7 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 						UserID:      referrer.ID,
 						TenantID:    referrer.TenantID,
 						Type:        "referral_reg",
-						Amount:      ratios.ReferralRegPoints,
+						Amount:      models.FromYuan(ratios.ReferralRegPoints),
 						Description: fmt.Sprintf("介绍新用户注册奖励 %s", user.Username),
 						CreatedAt:   time.Now(),
 					})
@@ -283,7 +283,7 @@ func completeRegistrationFromSession(tx *gorm.DB, record *models.OrderPaymentRec
 		localUser = syncLocalUserAndRewards(tx, userID, "", "", openid, &form)
 	}
 	if localUser != nil {
-		activateMembershipLevelForAmount(tx, localUser.ID, record.Amount)
+		activateMembershipLevelForAmount(tx, localUser.ID, record.Amount.ToYuan())
 	}
 
 	return tx.Model(&session).Updates(map[string]interface{}{
@@ -353,7 +353,7 @@ func activateMembershipLevelForAmount(db *gorm.DB, localUserID string, amount fl
 	db.Order("min_amount ASC").Find(&levels)
 	newLevelID := 0
 	for _, l := range levels {
-		if amount >= l.MinAmount {
+		if models.FromYuan(amount) >= l.MinAmount {
 			newLevelID = l.ID
 		}
 	}

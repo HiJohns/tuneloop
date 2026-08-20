@@ -32,7 +32,7 @@ func CreateMembershipLevel(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
-	level := models.MembershipLevel{ID: req.ID, Name: req.Name, MinAmount: req.MinAmount}
+	level := models.MembershipLevel{ID: req.ID, Name: req.Name, MinAmount: models.FromYuan(req.MinAmount)}
 	if err := db.Create(&level).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": err.Error()})
 		return

@@ -27,7 +27,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "STL-" + time.Now().Format("150405"),
-		BaseDailyRate: float64Ptr(100),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   "rented",
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -48,7 +48,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 		LeaseTerm:        30,
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
-		Deposit:          500,
+		Deposit:      models.FromYuan(500),
 		CashPaid:         3500, // rent 3000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
@@ -82,7 +82,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "STL2-" + time.Now().Format("150405"),
-		BaseDailyRate: float64Ptr(100),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   "rented",
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -102,7 +102,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		LeaseTerm:        10,
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
-		Deposit:          500,
+		Deposit:      models.FromYuan(500),
 		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
@@ -148,7 +148,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "STL3-" + time.Now().Format("150405"),
-		BaseDailyRate: float64Ptr(100),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus:   "rented",
 	}
 	require.NoError(t, db.Create(&instrument).Error)
@@ -168,7 +168,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		LeaseTerm:        10,
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
-		Deposit:          500,
+		Deposit:      models.FromYuan(500),
 		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
@@ -183,7 +183,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		LeaseID:         order.ID,
 		InstrumentID:    instrument.ID,
 		UserID:          userID,
-		DamageAmount:    &damageAmount,
+		DamageAmount:    models.ToCentsPtr(&damageAmount),
 		DepositDeducted: 100,
 		Status:          "accepted",
 		Condition:       "damaged",

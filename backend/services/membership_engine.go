@@ -24,7 +24,7 @@ func CheckAndUpgradeLevel(userID string, db *gorm.DB) error {
 	totalSpending := aggregateUserSpending(user.ID, db)
 	newLevelID := 1
 	for _, l := range levels {
-		if totalSpending >= l.MinAmount {
+		if models.FromYuan(totalSpending) >= l.MinAmount {
 			newLevelID = l.ID
 		}
 	}

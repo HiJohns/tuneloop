@@ -43,7 +43,7 @@ func staffOrdersSeed(t *testing.T, tenantID, orgID, userID string) (string, stri
 	}).Error)
 	inst := models.Instrument{
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID,
-		SN: "SO-" + time.Now().Format("150405"), BaseDailyRate: float64Ptr(100),
+		SN: "SO-" + time.Now().Format("150405"), BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
 		StockStatus: "available",
 	}
 	require.NoError(t, db.Create(&inst).Error)
@@ -51,7 +51,7 @@ func staffOrdersSeed(t *testing.T, tenantID, orgID, userID string) (string, stri
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
 		UserID: userID, InstrumentID: inst.ID,
 		Status:  models.OrderStatusPaid,
-		Deposit: 500, CashPaid: 3000,
+		Deposit:      models.FromYuan(500), CashPaid: 3000,
 	}
 	require.NoError(t, db.Create(&order).Error)
 	return order.ID, inst.ID

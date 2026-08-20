@@ -106,11 +106,11 @@ func GetInstrumentByID(c *gin.Context) {
 		}
 		baseRate := 0.0
 		if instrument.BaseDailyRate != nil {
-			baseRate = *instrument.BaseDailyRate
+			baseRate = (*instrument.BaseDailyRate).ToYuan()
 		}
 		totalPrice := 0.0
 		if instrument.TotalPrice != nil {
-			totalPrice = *instrument.TotalPrice
+			totalPrice = (*instrument.TotalPrice).ToYuan()
 		}
 		computed := services.CalculatePricing(baseRate, totalPrice, configJSON, instrument.PricingOverrides, instrument.Pricing)
 		// Object-format pricing (single source of truth, #1487): base_daily_rate

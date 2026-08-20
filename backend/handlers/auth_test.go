@@ -470,7 +470,7 @@ func TestPostRegister_NoPassword_WxBind_FullFlow(t *testing.T) {
 	require.Equal(t, 99.0, local.PromoPoints, "registration gift points")
 	var pt models.PointsTransaction
 	require.NoError(t, db.Where("user_id = ? AND type = ?", local.ID, "registration").First(&pt).Error)
-	require.Equal(t, 99.0, pt.Amount)
+	require.Equal(t, models.FromYuan(99.0), pt.Amount)
 }
 
 // newWxAccountsMockServer serves GET /api/v1/auth/wx-accounts with the given

@@ -357,7 +357,7 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 			Deposit:         deposit,
 			ShippingFee:     shippingFee,
 			OverdueDailyFee: overdueDailyFee,
-			TotalPrice:      inst.TotalPrice,
+			TotalPrice:      models.ToYuanPtr(inst.TotalPrice),
 		})
 	}
 
@@ -440,7 +440,7 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 					}
 				}
 			}
-			pricing["deposit"] = *instrument.TotalPrice * depositRatio
+			pricing["deposit"] = (*instrument.TotalPrice).ToYuan() * depositRatio
 		} else {
 			pricing["deposit"] = float64(0)
 		}

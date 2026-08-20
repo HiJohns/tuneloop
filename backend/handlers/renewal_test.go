@@ -27,7 +27,7 @@ func setupRenewalOrder(t *testing.T, tenantID, userID, orgID string, endDateOffs
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		SN:            "RN-" + fmt.Sprint(time.Now().UnixNano()),
-		BaseDailyRate: float64Ptr(10),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(10)),
 		Pricing:       `{"daily_rent":10,"overdue_daily_fee":15,"tiers":[{"days_max":30,"daily_rate":10},{"days_max":-1,"daily_rate":9}]}`,
 		StockStatus:   "rented",
 	}

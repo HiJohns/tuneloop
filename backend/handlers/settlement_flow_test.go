@@ -42,7 +42,7 @@ func TestSettlementFlow(t *testing.T) {
 		TenantID:      tenantID,
 		OrgID:         &orgID,
 		StockStatus:   models.StockStatusAvailable,
-		BaseDailyRate: &baseRate,
+		BaseDailyRate: models.ToCentsPtr(&baseRate),
 		Pricing:       `{"daily_rent":100.0,"monthly_rent":3000.0,"deposit":500.0,"overdue_daily_fee":0}`,
 	}).Error)
 
