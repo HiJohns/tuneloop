@@ -294,8 +294,16 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		iamRole := toIAMRole(normalizedRole)
 		templateCode := normalizedRole
 
-		if err := iamClient.BindUserToOrganizationWithToken(userToken, userID, tenantID, iamRole, operatorID); err != nil {
-			log.Printf("[MerchantAddMember] IAM BindUser failed for user %s to org %s: %v", userID, tenantID, err)
+		// Bind to the merchant's own org (merchant.OrgID) — NOT the namespace
+		// tenant id. site_member.go binds site members to site.OrgID; the
+		// equivalent here is merchant.OrgID, so IAM org bindings stay
+		// consistent with existing members (#1718/#1715 backfill).
+		bindOrg := merchant.OrgID
+		if bindOrg == "" {
+			bindOrg = tenantID
+		}
+		if err := iamClient.BindUserToOrganizationWithToken(userToken, userID, bindOrg, iamRole, operatorID); err != nil {
+			log.Printf("[MerchantAddMember] IAM BindUser failed for user %s to org %s: %v", userID, bindOrg, err)
 			bindErrors = append(bindErrors, gin.H{
 				"user_id": userID,
 				"error":   err.Error(),
@@ -306,7 +314,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
 				if t.Code == templateCode {
-					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, tenantID, t.Code); err != nil {
+					if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, userID, bindOrg, t.Code); err != nil {
 						log.Printf("[MerchantAddMember] AssignRoleTemplate failed for user %s code %s: %v", userID, templateCode, err)
 						roleErrors = append(roleErrors, gin.H{
 							"user_id":       userID,

@@ -191,6 +191,14 @@ steps:
         displays: [姓名/用户名/邮箱/电话表单, 跳过邮箱验证]
         ops:
           - {type: api, method: POST, path: /admin/merchants/:id/members}
+    # 服务器端动作（#1718 核对）：POST 添加管理员 →
+    #   1. IAM CreateUser/CreateOrGetUser（新用户建号，skip_activation 时发初始密码）
+    #   2. IAM BindUserToOrganization 绑定到 **商户组织 merchant.org_id**（非 namespace tenant_id），
+    #      role = OWNER（merchant_admin → OWNER，经 toIAMRole）
+    #   3. IAM AssignRoleTemplate（template_code = merchant_admin）
+    #   4. 本地 users 缓存同步（iam_sub = IAM user id）
+    #   5. merchant_members 落库（role = merchant_admin）
+    #   绑定 org 若错绑 namespace（tenant_id）→ IAM 侧成员归属与既有成员不一致（#1718 修复）
   - seq: 3
     action: 移除负责人
     frontend:
