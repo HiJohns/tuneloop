@@ -161,7 +161,7 @@ func TestSettlementFlow(t *testing.T) {
 		Amount:     3500,
 		Type:       "payment",
 		Status:     "paid",
-		Method:     strPtr("mock"),
+		Method:     strPtr("jsapi"),
 		OutTradeNo: &outTradeNo,
 	}).Error)
 
@@ -243,13 +243,15 @@ func TestSettlementFlow(t *testing.T) {
 	// Cash refund = totalRentPaid (3000) + remainingDeposit (500) - rentPayable (3000) = 500.
 	require.Equal(t, 500.0, settlement.CashRefundable, "deposit refund only for full-term on-time return")
 
-	// Refund record created in mock mode and booked directly as refunded.
-	// In mock mode payment_record_id stays nil (no real payment), so query
-	// by tenant + amount + status.
+	// Refund record created in the real flow and submitted to WeChat Pay:
+	// the refund record stays "pending" until the REFUND.SUCCESS callback
+	// confirms; the settlement refund_status is "refunding" (async).
 	var refundRecord models.OrderRefundRecord
 	require.NoError(t, db.Where("tenant_id = ?", tenantID).Order("created_at desc").First(&refundRecord).Error)
-	assert.Equal(t, "refunded", refundRecord.Status)
+	assert.Equal(t, "pending", refundRecord.Status)
 	assert.Equal(t, 500.0, refundRecord.Amount)
+	require.NotEmpty(t, refundRecord.RefundID, "refund submitted to WeChat Pay (stub)")
+	require.Equal(t, "refunding", settlement.RefundStatus)
 
 	// Order marked deposit refunded.
 	require.NoError(t, db.Where("id = ?", orderID).First(&order).Error)

@@ -195,12 +195,12 @@ steps:
         role: [customer]
         gate: "订单状态 = reserved"
         reach: "Checkout 提交 → Payment"
-        controls: [点数抵扣滑块, 确认支付按钮]
-        displays: [租金, 押金, 应付总额, 赠点可用上限, 现金应付额]
+        controls: [点数抵扣滑块, 优惠码输入, 确认支付按钮]
+        displays: [租金, 押金, 应付总额, 赠点可用上限, 现金应付额, 优惠后金额]
         ops:
           - {type: api, method: POST, path: /pay/prepay}
           - {type: navigate, target: /success}
-    api: {method: POST, path: /pay/prepay, params: [order_id, order_type, amount, gift_points_used]}
+    api: {method: POST, path: /pay/prepay, params: [order_id, order_type, amount, gift_points_used, coupon_code]}
   - seq: 3
     action: 发货（员工）
     frontend:
@@ -604,7 +604,24 @@ steps:
 - `go test` 覆盖：GetOrder 待回应定损态返回 `damage` 对象（TestGetOrder_DamagePanel：金额/描述/照片/退款公式）
 - checklist-verify.py：L-04 seq 2（订单详情入口）+ seq 3/4/7/8 的 displays 与 MessageDetail/OrderDetail/Payment JSX 交叉验证
 
+### L-04B 定损补差支付（damage，#1719 补充）
+
+**前置条件**：员工同意定损且定损金额 > 押金（`POST /appeals/:damage_id/agree` 返回 `payment_required:true` + amount + out_trade_no）
+
+**流程**：
+1. 员工同意定损（押金不足）→ 系统发消息通知顾客（action=payment，action_data 含 payment_required/amount/out_trade_no）
+2. 消息详情 → 「去支付」→ 跳转 `/payment?type=damage&id=:order_id`（MessageDetail.jsx:83,127）
+3. 支付页（type=damage）→ 可填写优惠码（OREZ 全免 / ENO 1%，服务端重算）→ 微信支付
+
+**关键规则**：
+- prepay order_type=damage 金额 = 补差金额（优惠码重算后），openid 由后端按 iam_sub 回填
+- OREZ → amount=0 走 waive 记账（applySideEffects damage case → 订单 completed + 结算退款）
+- 支付完成回调 → 订单 completed → instrument 恢复 available
+
+**验收**：prepay damage 无 open_id 可支付；OREZ/ENO 优惠码生效；回调后订单完成。
+
 ---
+
 id: L-05
 domain: lease
 flow: 赠点策略配置
@@ -843,6 +860,27 @@ steps:
         ops:
           - {type: api, method: POST, path: /warehouse/orders/:id/staff-cancel}
     api: {method: POST, path: /warehouse/orders/:id/staff-cancel, params: [reason]}
+---
+
+# L-07B 续期支付（renewal，#1719 补充）
+
+## 前置条件
+- 订单状态 in_lease / expired（顾客可续期）
+- 续期金额由 Renewal 页计算（GET /orders/:id/renewal/calculate → total_amount）
+
+## 流程
+1. 订单详情（in_lease/expired）→ 点「续期」→ 跳转 Renewal 页（`/renewal?order=:id`，H5）/ `pages-weapp/renewal/index?order=:id`（weapp）
+2. Renewal 页计算续期费 → 跳转支付页 `/payment?type=renewal&id=:orderId&amount=:total_amount`（Renewal.jsx:84 / pages-weapp/renewal/Renewal.jsx:80）
+3. 支付页（type=renewal）→ 可填写优惠码（OREZ 全免 / ENO 1%，服务端重算）→ 微信支付（openid 由后端从本地 users 缓存回填，前端不传 open_id）
+
+## 关键规则
+- 优惠码对所有支付类型通用（#1719）：amount 传原金额 + coupon_code，后端 coupons 表重算（waive→0 走记账分支；percent→按比例）
+- 无优惠码时 amount = 续期计算总额
+
+## 验收
+- prepay order_type=renewal：无 open_id 时后端按 iam_sub 回填 wx_openid（不再 400）
+- OREZ → amount=0 走 waive 记账（applyRenewalSideEffects）；ENO → 1% 走真实 JSAPI
+
 ---
 
 # L-07 订单详情页行为（跨端一致性标准）

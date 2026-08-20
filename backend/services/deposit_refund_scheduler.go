@@ -100,41 +100,33 @@ func (s *DepositRefundScheduler) closeOrder(order models.Order) error {
 		UpdatedAt:       time.Now(),
 	}
 
-	if cfg.MockMode {
-		refundRecord.Status = "refunded"
-		if err := tx.Create(&refundRecord).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-	} else {
-		client := wechatpay.GetClient()
-		if paymentRecord.OutTradeNo != nil {
-			result, err := client.Refund(nil, wechatpay.RefundParams{
-				OutTradeNo:   *paymentRecord.OutTradeNo,
-				OutRefundNo:  outRefundNo,
-				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-				RefundAmount: cfg.AmountToCents(depositToRefund),
-				Reason:       "押金原路退还",
-				NotifyURL:    cfg.RefundNotifyURL,
-			})
-			if err != nil {
-				refundRecord.Status = "failed"
-				fr := err.Error()
-				refundRecord.FailReason = &fr
-				if err := tx.Create(&refundRecord).Error; err != nil {
-					tx.Rollback()
-					return err
-				}
-				log.Printf("[DepositRefundScheduler] refund API failed for order %s: %v", order.ID, err)
-				tx.Commit()
-				return nil
+	client := wechatpay.GetClient()
+	if paymentRecord.OutTradeNo != nil {
+		result, err := client.Refund(nil, wechatpay.RefundParams{
+			OutTradeNo:   *paymentRecord.OutTradeNo,
+			OutRefundNo:  outRefundNo,
+			TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
+			RefundAmount: cfg.AmountToCents(depositToRefund),
+			Reason:       "押金原路退还",
+			NotifyURL:    cfg.RefundNotifyURL,
+		})
+		if err != nil {
+			refundRecord.Status = "failed"
+			fr := err.Error()
+			refundRecord.FailReason = &fr
+			if err := tx.Create(&refundRecord).Error; err != nil {
+				tx.Rollback()
+				return err
 			}
-			refundRecord.RefundID = &result.RefundID
+			log.Printf("[DepositRefundScheduler] refund API failed for order %s: %v", order.ID, err)
+			tx.Commit()
+			return nil
 		}
-		if err := tx.Create(&refundRecord).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
+		refundRecord.RefundID = &result.RefundID
+	}
+	if err := tx.Create(&refundRecord).Error; err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Updates(map[string]interface{}{

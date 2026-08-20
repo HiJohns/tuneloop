@@ -6,14 +6,12 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
-	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1041,8 +1039,6 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 	}
 
 	var amount float64
-	var newStatus string
-	checkFeeSnapshot := float64(0)
 
 	if quote.IsRenegotiation {
 		// Requote supplement: pay the difference
@@ -1055,7 +1051,6 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		} else {
 			amount = newTotal
 		}
-		newStatus = models.RepairReqStatusRepairing
 	} else {
 		// First payment: material + service + logistics
 		amount = quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee
@@ -1073,17 +1068,6 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 				}
 			}
 		}
-
-		// Snapshot the system check_fee (unscoped to bypass tenant auto-scoping)
-		var checkFeeSetting models.SystemSetting
-		database.GetDB().Where("tenant_id = ? AND setting_key = ?", systemTenantID, keyRepairCheckFee).First(&checkFeeSetting)
-		if checkFeeSetting.SettingValue != "" {
-			if v, err := strconv.ParseFloat(checkFeeSetting.SettingValue, 64); err == nil {
-				checkFeeSnapshot = v
-			}
-		}
-
-		newStatus = models.RepairReqStatusPendingShip
 	}
 
 	if amount <= 0 {
@@ -1091,7 +1075,6 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		return
 	}
 
-	cfg := wechatpay.GetConfig()
 	tenantID := middleware.GetTenantID(ctx)
 	outTradeNo := fmt.Sprintf("rpr_%s_%d", id[:8], time.Now().Unix())
 
@@ -1108,41 +1091,6 @@ func (h *RepairRequestHandler) PayRepairRequest(c *gin.Context) {
 		Method:     strPtr("jsapi"),
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
-	}
-
-	if cfg.MockMode {
-		record.Status = "paid"
-		if err := db.Create(&record).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
-			return
-		}
-
-		// Update user total_spending (cached display value)
-		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-			return
-		}
-		db.Model(&localUser).Update("total_spending", gorm.Expr("total_spending + ?", amount))
-		// Re-evaluate membership level (aggregated spending)
-		if err := services.CheckAndUpgradeLevel(localUser.ID, nil); err != nil {
-			log.Printf("[PayRepairRequest] membership level check failed: %v", err)
-		}
-
-		// Update repair request
-		updates := map[string]interface{}{
-			"paid_amount": gorm.Expr("COALESCE(paid_amount, 0) + ?", amount),
-			"status":      newStatus,
-			"updated_at":  time.Now(),
-		}
-		if newStatus == models.RepairReqStatusPendingShip {
-			updates["check_fee_snapshot"] = checkFeeSnapshot
-		}
-		db.Model(&req).Updates(updates)
-
-		createRepairRecord(db, id, middleware.GetUserID(ctx), "paid", "支付完成", nil)
-		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"amount_paid": amount, "status": newStatus}})
-		return
 	}
 
 	if err := db.Create(&record).Error; err != nil {

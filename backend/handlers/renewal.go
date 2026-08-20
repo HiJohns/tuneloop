@@ -276,30 +276,6 @@ func ConfirmRenewal(c *gin.Context) {
 		UpdatedAt:   time.Now(),
 	}
 
-	if cfg.MockMode {
-		record.Status = "paid"
-		record.Method = strPtr("mock")
-		now := time.Now()
-		record.UpdatedAt = now
-		tx := db.Begin()
-		if err := tx.Create(&record).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
-			return
-		}
-		if err := applyRenewalSideEffects(tx, &record, now); err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "renewal side effects failed"})
-			return
-		}
-		tx.Commit()
-		c.JSON(http.StatusOK, gin.H{
-			"code": 20000,
-			"data": RenewalConfirmResponse{Success: true, Data: &PrepayData{OutTradeNo: outTradeNo}},
-		})
-		return
-	}
-
 	if err := db.Create(&record).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
 		return

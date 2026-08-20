@@ -21,12 +21,6 @@ import (
 
 // WechatPayCallback handles POST /api/wechatpay/notify
 func WechatPayCallback(c *gin.Context) {
-	cfg := wechatpay.GetConfig()
-	if cfg.MockMode {
-		c.JSON(http.StatusOK, gin.H{"code": "SUCCESS", "message": "mock mode, no callbacks expected"})
-		return
-	}
-
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Printf("[WechatPayCallback] failed to read body: %v", err)
@@ -350,14 +344,7 @@ func scanPendingPayments(db *gorm.DB) {
 }
 
 func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
-	cfg := wechatpay.GetConfig()
 	client := wechatpay.GetClient()
-
-	if cfg.MockMode {
-		db.Model(rec).Update("status", "closed")
-		log.Printf("[PaymentScheduler] closed pending payment (mock): %s", *rec.OutTradeNo)
-		return
-	}
 
 	result, err := client.QueryOrder(context.Background(), *rec.OutTradeNo)
 	if err != nil {
@@ -418,49 +405,4 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 	}
 
 	log.Printf("[PaymentScheduler] closed timed-out payment: %s", *rec.OutTradeNo)
-}
-
-func TestSimulatePaymentCallback(c *gin.Context) {
-	if !wechatpay.GetConfig().MockMode {
-		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "mock payment disabled"})
-		return
-	}
-	var req struct {
-		OutTradeNo string `json:"out_trade_no" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters"})
-		return
-	}
-	db := database.GetDB().WithContext(c.Request.Context())
-	var record models.OrderPaymentRecord
-	if err := db.Where("out_trade_no = ?", req.OutTradeNo).First(&record).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "payment record not found"})
-		return
-	}
-	log.Printf("[TestCallback] simulating payment callback: out_trade_no=%s type=%s amount=%.2f",
-		req.OutTradeNo, record.OrderType, record.Amount)
-	go func() {
-		time.Sleep(1 * time.Second)
-		db2 := database.GetDB()
-		tx := db2.Begin()
-		now := time.Now()
-		tid := "test_" + uuid.New().String()[:12]
-		if err := tx.Model(&record).Updates(map[string]interface{}{
-			"status": "paid", "transaction_id": tid, "updated_at": now,
-		}).Error; err != nil {
-			tx.Rollback()
-			return
-		}
-		record.Status = "paid"
-		record.TransactionID = &tid
-		if err := applySideEffects(tx, &record, now); err != nil {
-			tx.Rollback()
-			log.Printf("[TestCallback] side effects failed: %v", err)
-			return
-		}
-		tx.Commit()
-		log.Printf("[TestCallback] completed: out_trade_no=%s", req.OutTradeNo)
-	}()
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "test callback queued"})
 }

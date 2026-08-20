@@ -218,11 +218,11 @@ steps:
 4. **支付回调建户**（服务端权威）：微信支付成功回调 → 查会话 → 标记 paid → **服务端完成注册**（CreateUser + WxBind/绑定 openid + 本地同步 + 赠点）→ 标记 completed
 5. **自动登录**：前端轮询 `GET /auth/registration-sessions/:id/status` → completed → 清除本地 session → 触发 wx-accounts 分流 → 1 账户 → wx-login-select 登录 → 会员中心
 
-### 优惠码
-- 会员费支付页输入优惠码（membership 场景）
+### 优惠码（#1719 通用化）
+- **所有支付页**（membership/rent/repair/renewal/damage）均可输入优惠码（非仅会员费支付页）
 - 金额**后端计算**（前端只传 code，不可信）
-- 默认优惠码（生产库）：`OREZ`（waive 全额免除 → ¥0，直接完成注册，仍写 payment record 留痕）、`ENO`（percent 1% → ¥0.99）
-- 测试完成后从库中删除（优惠码有 active 状态可停用）
+- 默认优惠码（生产库）：`OREZ`（waive 全额免除 → ¥0，走 waive 记账留痕，直接完成）、`ENO`（percent 1%）
+- 优惠码为长期功能（非测试临时码），可用 `active` 状态停用
 
 ### 会话恢复（继续完成注册）
 - 支付未完成（pending），再次打开会员中心（未登录）：

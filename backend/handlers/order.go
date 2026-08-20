@@ -987,29 +987,25 @@ func CancelOrderByCustomer(c *gin.Context) {
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
 			}
-			if wechatpay.GetConfig().MockMode {
-				refundRecord.Status = "refunded"
-			} else {
-				// Initiate the original-path refund with WeChat Pay
-				var paymentRecord models.OrderPaymentRecord
-				if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
-					First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
-					cfg := wechatpay.GetConfig()
-					client := wechatpay.GetClient()
-					_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
-						OutTradeNo:   *paymentRecord.OutTradeNo,
-						OutRefundNo:  outRefundNo,
-						TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-						RefundAmount: cfg.AmountToCents(refundAmount),
-						Reason:       "顾客取消订单",
-						NotifyURL:    cfg.RefundNotifyURL,
-					})
-					if refundErr != nil {
-						refundRecord.Status = "failed"
-						fr := refundErr.Error()
-						refundRecord.FailReason = &fr
-						log.Printf("[CancelOrderByCustomer] refund failed for order %s: %v", orderID, refundErr)
-					}
+			// Initiate the original-path refund with WeChat Pay
+			var paymentRecord models.OrderPaymentRecord
+			if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
+				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
+				cfg := wechatpay.GetConfig()
+				client := wechatpay.GetClient()
+				_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
+					OutTradeNo:   *paymentRecord.OutTradeNo,
+					OutRefundNo:  outRefundNo,
+					TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
+					RefundAmount: cfg.AmountToCents(refundAmount),
+					Reason:       "顾客取消订单",
+					NotifyURL:    cfg.RefundNotifyURL,
+				})
+				if refundErr != nil {
+					refundRecord.Status = "failed"
+					fr := refundErr.Error()
+					refundRecord.FailReason = &fr
+					log.Printf("[CancelOrderByCustomer] refund failed for order %s: %v", orderID, refundErr)
 				}
 			}
 			db.Create(&refundRecord)
@@ -1140,28 +1136,24 @@ func StaffCancelOrder(c *gin.Context) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		if wechatpay.GetConfig().MockMode {
-			refundRecord.Status = "refunded"
-		} else {
-			var paymentRecord models.OrderPaymentRecord
-			if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
-				First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
-				cfg := wechatpay.GetConfig()
-				client := wechatpay.GetClient()
-				_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
-					OutTradeNo:   *paymentRecord.OutTradeNo,
-					OutRefundNo:  outRefundNo,
-					TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
-					RefundAmount: cfg.AmountToCents(refundAmount),
-					Reason:       "员工取消订单",
-					NotifyURL:    cfg.RefundNotifyURL,
-				})
-				if refundErr != nil {
-					refundRecord.Status = "failed"
-					fr := refundErr.Error()
-					refundRecord.FailReason = &fr
-					log.Printf("[StaffCancelOrder] refund failed for order %s: %v", orderID, refundErr)
-				}
+		var paymentRecord models.OrderPaymentRecord
+		if err := db.Where("order_id = ? AND order_type = ? AND status = ?", orderID, "rent", "paid").
+			First(&paymentRecord).Error; err == nil && paymentRecord.OutTradeNo != nil {
+			cfg := wechatpay.GetConfig()
+			client := wechatpay.GetClient()
+			_, refundErr := client.Refund(context.Background(), wechatpay.RefundParams{
+				OutTradeNo:   *paymentRecord.OutTradeNo,
+				OutRefundNo:  outRefundNo,
+				TotalAmount:  cfg.AmountToCents(paymentRecord.Amount),
+				RefundAmount: cfg.AmountToCents(refundAmount),
+				Reason:       "员工取消订单",
+				NotifyURL:    cfg.RefundNotifyURL,
+			})
+			if refundErr != nil {
+				refundRecord.Status = "failed"
+				fr := refundErr.Error()
+				refundRecord.FailReason = &fr
+				log.Printf("[StaffCancelOrder] refund failed for order %s: %v", orderID, refundErr)
 			}
 		}
 		db.Create(&refundRecord)

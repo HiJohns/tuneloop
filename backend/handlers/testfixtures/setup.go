@@ -16,8 +16,10 @@ func SetupIAMEnv(t *testing.T) {
 	t.Setenv("IAM_NAMESPACE", "test-ns")
 }
 
-// SetupWechatPayMock initializes the wechatpay global with the test
-// config so WECHAT_PAY_MOCK_MODE=true books payments/refunds directly.
+// SetupWechatPayMock initializes the wechatpay global with the loaded
+// config. Since #1719 the runtime is always real-payment (WECHAT_PAY_MOCK_MODE
+// is no longer read); tests that need a stubbed client call
+// wechatpay.SetClientForTesting directly.
 func SetupWechatPayMock(t *testing.T) {
 	t.Helper()
 	wechatpay.InitGlobal(wechatpay.LoadConfig())

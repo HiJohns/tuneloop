@@ -216,7 +216,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		publicGroup.GET("/public/instruments/:id/media", handlers.GetPublicInstrumentMedia)
 		publicGroup.GET("/public/instruments/:id/display-media", handlers.GetPublicInstrumentDisplayMedia)
 		publicGroup.GET("/public/categories", handlers.GetPublicCategories)
-		publicGroup.GET("/public/config", handlers.GetPayConfig)
 		publicGroup.GET("/public/sites", handlers.GetPublicSites)
 		publicGroup.GET("/public/instruments/lookup", handlers.LookupInstrumentBySN)
 		publicGroup.GET("/public/banners", bannerHandler.GetPublicBanners)
@@ -654,8 +653,6 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 				userOptionalAuth.POST("/pay/prepay", handlers.PrepayOrder)
 				userOptionalAuth.POST("/pay/calculate", handlers.CalculatePayment)
 				userOptionalAuth.POST("/pay/query", handlers.QueryPayment)
-				userOptionalAuth.POST("/pay/test-callback", handlers.TestSimulatePaymentCallback)
-				userOptionalAuth.GET("/pay/config", handlers.GetPayConfig)
 				userOptionalAuth.GET("/users/me", staffHandler.GetCurrentUser)
 				userOptionalAuth.PUT("/users/me", staffHandler.UpdateCurrentUser)
 				userOptionalAuth.POST("/users/me/avatar", handlers.UploadUserAvatar)
@@ -813,9 +810,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize WeChat Pay client (mock mode if no MCH_ID configured)
+	// Initialize WeChat Pay client
 	wechatpay.InitGlobal(wechatpay.LoadConfig())
-	log.Printf("[INFO] WeChat Pay mode: mock=%v", wechatpay.GetConfig().MockMode)
 
 	// Download WeChat platform certificate and exit
 	if *downloadPlatformCert {

@@ -25,11 +25,10 @@ type PrepayRequest struct {
 	OpenID     string  `json:"open_id,omitempty"`
 	GiftUsed   float64 `json:"gift_used"`
 	SessionID  string  `json:"session_id,omitempty"`  // membership: two-phase registration session (#1663)
-	CouponCode string  `json:"coupon_code,omitempty"` // membership: discount code (OREZ/ENO)
+	CouponCode string  `json:"coupon_code,omitempty"` // 通用优惠码（OREZ waive 全免 / ENO percent 1%，#1719）
 }
 
 type PrepayResponse struct {
-	Mock    bool        `json:"mock,omitempty"`
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    *PrepayData `json:"data,omitempty"`
@@ -132,7 +131,6 @@ func PrepayOrder(c *gin.Context) {
 	// priced server-side from the session + optional coupon — the client's
 	// amount is ignored (计费以后端为准).
 	sessionFlow := req.OrderType == "membership" && req.SessionID != ""
-	sessionAmount := req.Amount
 
 	// Anonymous guard (#1682 regression): every flow except the two-phase
 	// membership session requires a logged-in user. An empty user_id would
@@ -156,34 +154,43 @@ func PrepayOrder(c *gin.Context) {
 		if session.LocalUserID != nil {
 			record.UserID = *session.LocalUserID
 		}
-		amount := session.Amount
-		couponCode := ""
-		if req.CouponCode != "" {
-			var coupon models.Coupon
-			if err := db.Where("code = ? AND active = ?", strings.ToUpper(req.CouponCode), true).First(&coupon).Error; err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid coupon code"})
-				return
-			}
-			switch coupon.Type {
-			case "waive":
-				amount = 0
-			case "percent":
-				amount = math.Round(amount*coupon.Value/100*100) / 100
-			default:
-				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
-				return
-			}
-			couponCode = coupon.Code
-		}
-		sessionAmount = amount
-		record.Amount = amount // server-priced; never trust the client amount
 		// Dedicated column: the session link must survive the payment
 		// callback, which overwrites RawResponse with the callback result
 		// (#1664 audit: real-callback session_id was lost in RawResponse).
 		record.SessionID = &req.SessionID
+	}
+
+	// 服务端定价（#1719 优惠码通用化）：金额基础值 = session 价（membership
+	// 两阶段）或客户端金额（其余 order type）。优惠码对所有支付类型通用：
+	// waive（OREZ）→ 0；percent（ENO）→ 按 value 比例。客户端金额不可信。
+	baseAmount := req.Amount
+	if sessionFlow {
+		baseAmount = session.Amount
+	}
+	couponApplied := ""
+	if req.CouponCode != "" {
+		var coupon models.Coupon
+		if err := db.Where("code = ? AND active = ?", strings.ToUpper(req.CouponCode), true).First(&coupon).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid coupon code"})
+			return
+		}
+		switch coupon.Type {
+		case "waive":
+			baseAmount = 0
+		case "percent":
+			baseAmount = math.Round(baseAmount*coupon.Value/100*100) / 100
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
+			return
+		}
+		couponApplied = coupon.Code
+	}
+	record.Amount = baseAmount // server-priced; never trust the client amount
+
+	if sessionFlow {
 		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": session.Amount}
-		if couponCode != "" {
-			sessionRaw["coupon_code"] = couponCode
+		if couponApplied != "" {
+			sessionRaw["coupon_code"] = couponApplied
 		}
 		if rawJSON, err := json.Marshal(sessionRaw); err == nil {
 			if record.RawResponse != nil {
@@ -204,53 +211,18 @@ func PrepayOrder(c *gin.Context) {
 		}
 	}
 
-	// Zero-amount guard (#1682): the membership session flow re-prices
-	// server-side (coupon OREZ → 0 waive handled below); every other flow
-	// must carry a positive amount — a 0-amount real WeChat order is invalid.
-	if !sessionFlow && req.Amount <= 0 {
+	// 零金额校验（#1682 调整）：无优惠码时金额必须为正；waive 优惠码后为 0
+	// 合法（走下方 waive 记账分支）。percent 优惠码后为 0 的极端场景同样允许。
+	if baseAmount < 0 || (baseAmount == 0 && couponApplied == "") {
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "amount must be positive"})
 		return
 	}
 
-	if cfg.MockMode {
-		record.Status = "paid"
-		record.Method = strPtr("mock")
-		now := time.Now()
-		record.UpdatedAt = now
-
-		tx := db.Begin()
-		if err := tx.Create(&record).Error; err != nil {
-			tx.Rollback()
-			log.Printf("[PrepayOrder] failed to save payment record: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create payment record"})
-			return
-		}
-
-		if err := applySideEffects(tx, &record, now); err != nil {
-			tx.Rollback()
-			log.Printf("[PrepayOrder] side effects failed: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "payment side effects failed"})
-			return
-		}
-		tx.Commit()
-
-		c.JSON(http.StatusOK, gin.H{
-			"code": 20000,
-			"data": PrepayResponse{
-				Mock:    true,
-				Success: true,
-				Data: &PrepayData{
-					OutTradeNo: outTradeNo,
-				},
-			},
-		})
-		return
-	}
-
-	// OREZ full waiver (amount = 0): no WeChat payment is created; the
-	// record is booked as paid and the callback-equivalent side effects run
-	// (server-side account creation) — same path as the mock mode above.
-	if sessionFlow && sessionAmount == 0 {
+	// Full waiver (amount = 0): no WeChat payment is created; the record is
+	// booked as paid and the callback-equivalent side effects run
+	// (server-side account creation) — #1719 通用化：任意 order type 优惠后
+	// 为 0 均走此路径（原仅 sessionFlow）。
+	if baseAmount == 0 {
 		record.Status = "paid"
 		record.Method = strPtr("waived")
 		now := time.Now()
@@ -305,7 +277,7 @@ func PrepayOrder(c *gin.Context) {
 			// Native payment (QR code) for PC
 			result, err := client.CreateNativeOrder(ctx, wechatpay.NativeParams{
 				OutTradeNo:  outTradeNo,
-				TotalAmount: cfg.AmountToCents(req.Amount),
+				TotalAmount: cfg.AmountToCents(record.Amount),
 				Description: fmt.Sprintf("乐器租赁订单"),
 				NotifyURL:   cfg.NotifyURL,
 			})
@@ -345,7 +317,7 @@ func PrepayOrder(c *gin.Context) {
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
-			TotalAmount: cfg.AmountToCents(req.Amount),
+			TotalAmount: cfg.AmountToCents(record.Amount),
 			Description: fmt.Sprintf("乐器租赁订单"),
 			NotifyURL:   cfg.NotifyURL,
 		})
@@ -386,6 +358,17 @@ func PrepayOrder(c *gin.Context) {
 		})
 
 	case "renewal":
+		// #1719: backfill openid from the local users cache — same as the
+		// rent/repair/damage branch (the weapp Payment.jsx no longer sends
+		// open_id per #1678), otherwise renewal payment fails with 400.
+		if req.OpenID == "" {
+			if userID != "" {
+				var localUser models.User
+				if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil && localUser.WxOpenid != "" {
+					req.OpenID = localUser.WxOpenid
+				}
+			}
+		}
 		if req.OpenID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "renewal payment requires open_id"})
 			return
@@ -393,7 +376,7 @@ func PrepayOrder(c *gin.Context) {
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      req.OpenID,
-			TotalAmount: cfg.AmountToCents(req.Amount),
+			TotalAmount: cfg.AmountToCents(record.Amount),
 			Description: "租赁续期支付",
 			NotifyURL:   cfg.NotifyURL,
 		})
@@ -448,10 +431,9 @@ func PrepayOrder(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "membership payment requires open_id"})
 			return
 		}
-		amount := req.Amount
-		if sessionFlow {
-			amount = sessionAmount // server-priced (session + coupon)
-		}
+		// 金额已由通用优惠码逻辑服务端重算（record.Amount，#1719）：sessionFlow
+		// 用 session 价 + 优惠码，非 session 用客户端金额 + 优惠码。
+		amount := record.Amount
 		result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 			OutTradeNo:  outTradeNo,
 			OpenID:      openid,
@@ -498,21 +480,6 @@ func PrepayOrder(c *gin.Context) {
 }
 
 func strPtr(s string) *string { return &s }
-
-// GetPayConfig returns the WeChat Pay mock mode flag so clients can decide
-// whether to show the simulate pay/refund buttons (#1498).
-func GetPayConfig(c *gin.Context) {
-	mockMode := false
-	if cfg := wechatpay.GetConfig(); cfg != nil {
-		mockMode = cfg.MockMode
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"code": 20000,
-		"data": gin.H{
-			"mock_payment": mockMode,
-		},
-	})
-}
 
 // QueryPayment handles POST /api/pay/query
 func QueryPayment(c *gin.Context) {

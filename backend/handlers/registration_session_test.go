@@ -400,7 +400,6 @@ func TestPrepayMembershipWithCoupon_ENO(t *testing.T) {
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
-		MockMode:        false,
 		AppID:           "wxcb44a1be70e356ed",
 		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
 		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
@@ -536,7 +535,6 @@ func TestPaymentCallback_SessionFlow_RealCallback(t *testing.T) {
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
-		MockMode:        false,
 		AppID:           "wxcb44a1be70e356ed",
 		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
 		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",

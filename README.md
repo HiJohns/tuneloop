@@ -147,9 +147,9 @@ frontend-mobile:
 
 ### WeChat Pay 配置
 
-**当前生产与预生产均使用 mock 模式**（`WECHAT_PAY_MOCK_MODE=true`），无需真实商户配置即可测试完整支付/退款流程。付款页在 mock 模式下自动显示「模拟支付」「模拟退款」按钮。
+**运行时一律为真实微信支付**（#1719 起模拟支付已移除，`WECHAT_PAY_MOCK_MODE` 不再生效）。支付页支持优惠码（OREZ 全免 / ENO 1%），金额由后端服务端重算。
 
-上线前需完成以下操作，详见 `docs/wechat-pay-integration.md §一`：
+配置详见 `docs/wechat-pay-integration.md §一`：
 
 #### .env 配置（tuneloop 侧）
 
@@ -159,7 +159,6 @@ frontend-mobile:
 | `WECHAT_PAY_API_V3_KEY` | APIv3 密钥 | 商户平台 → API 安全 → APIv3 密钥（自己设置 32 位随机串） |
 | `WECHAT_PAY_CERT_SERIAL_NO` | 证书序列号 | 商户平台 → API 安全 → API 证书（下载后提取） |
 | `WECHAT_PAY_PRIVATE_KEY_PATH` | 私钥路径 | 同上，`apiclient_key.pem` 文件路径 |
-| `WECHAT_PAY_MOCK_MODE=true` | 开启模拟模式 | 当前**生产+预生产**均设为 `true`，关闭需同步关闭前端模拟按钮 |
 
 #### 微信平台操作（不需修改 tuneloop 代码）
 
@@ -532,12 +531,11 @@ IAM_CLIENT_SECRET=your_secret_key
 TUNELOOP_WWW_URL=http://localhost:5554  # PC Web service URL (default)
 EXTERNAL_MOBILE_URL=http://localhost:5553   # WeChat mobile service URL (default)
 
-# WeChat Pay (optional, leave empty for mock/test mode)
-WECHAT_PAY_MCH_ID=                     # Merchant ID (empty = mock mode)
+# WeChat Pay (required for real payments; no mock fallback since #1719)
+WECHAT_PAY_MCH_ID=                     # Merchant ID (required; no mock fallback since #1719)
 WECHAT_PAY_API_V3_KEY=                 # API v3 key (32 chars)
 WECHAT_PAY_CERT_SERIAL_NO=             # Certificate serial number
 WECHAT_PAY_PRIVATE_KEY_PATH=           # Path to apiclient_key.pem
-WECHAT_PAY_MOCK_MODE=true              # Set false for real payments
 
 # 回调 URL 由 tuneloop 代码固定，不需在 .env 中配置
 # 需将以下 URL 填入微信商户平台（见下方 §WeChat Pay 回调 URL）

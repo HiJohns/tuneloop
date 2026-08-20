@@ -38,11 +38,11 @@ steps:
         role: [customer]
         gate: "状态 = pending_payment"
         reach: "接受报价 → 支付"
-        controls: [点数抵扣, 确认支付按钮]
-        displays: [材料费, 服务费, 物流费, 合计]
+        controls: [点数抵扣, 优惠码输入, 确认支付按钮]
+        displays: [材料费, 服务费, 物流费, 合计, 优惠后金额]
         ops:
           - {type: api, method: POST, path: /pay/prepay}
-    api: {method: POST, path: /pay/prepay, params: [order_type=repair, order_id, amount]}
+    api: {method: POST, path: /pay/prepay, params: [order_type=repair, order_id, amount, coupon_code]}
   - seq: 4
     action: 填写寄送物流
     frontend:

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input } from '@tarojs/components'
-import { apiFetch, resolveLogin , resolveErrorMessage } from '../../services/api'
+import { apiFetch, resolveLogin } from '../../services/api'
 import { env, session } from '../../platform'
 import { formatDisplayDate } from '../../utils/format'
 
@@ -25,11 +25,8 @@ export default function Payment() {
   const [giftUsed, setGiftUsed] = useState(0)
   const [prepayData, setPrepayData] = useState(null)
   const [isPaying, setIsPaying] = useState(false)
-  const [mockPaying, setMockPaying] = useState(false)
-  const [mockEnabled, setMockEnabled] = useState(false)
   const [maxPayRatio, setMaxPayRatio] = useState(0.3)
-  // Two-phase registration (#1663): membership coupon preview. The final
-  // price is always computed server-side at prepay.
+  // 优惠码预览（#1719 通用化）：所有支付页可用，最终金额服务端重算。
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponAmount, setCouponAmount] = useState(pAmount)
@@ -38,16 +35,6 @@ export default function Payment() {
   // latest input value at click time.
   const couponInputRef = useRef('')
 
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const resp = await apiFetch(`${baseUrl}/public/config`)
-        const r = await resp.json()
-        if (r.code === 20000) setMockEnabled(!!r.data?.mock_payment)
-      } catch { /* non-fatal */ }
-    }
-    fetchConfig()
-  }, [])
 
   useEffect(() => {
     if (!pType) return
@@ -194,22 +181,26 @@ export default function Payment() {
   const doPrepay = async (amountOverride) => {
     // openid 由后端解析（#1678）：membership 两阶段流程创建 session 时已
     // 解析并存储微信身份，prepay 无需前端传递 open_id。
-    // #1682: membership 始终提交原金额（base fee）——优惠码由后端服务端
-    // 重算（OREZ → 0 走 waive 分支直接记账建号，ENO → 1%）。传 0 会触发
-    // amount 校验失败，根本到不了 waive 分支。
-    const payAmount = pType === 'membership'
+    // 优惠码（#1719 通用化，所有支付类型）：有优惠码时提交原金额 + coupon_code，
+    // 最终金额由后端服务端重算（OREZ → 0 走 waive 记账，ENO → 1%）；优惠码
+    // 场景不叠加赠点抵扣（gift_used=0）。
+    const payAmount = appliedCoupon
       ? (data?.amount || 0)
-      : (amountOverride !== undefined ? amountOverride : cashAmount)
+      : (pType === 'membership'
+        ? (data?.amount || 0)
+        : (amountOverride !== undefined ? amountOverride : cashAmount))
     const body = {
       order_id: pId,
       order_type: pType,
       amount: payAmount,
       open_id: '',
-      gift_used: pType === 'membership' ? 0 : giftUsed,
+      gift_used: appliedCoupon ? 0 : (pType === 'membership' ? 0 : giftUsed),
     }
     if (pType === 'membership' && pSessionId) {
       body.session_id = pSessionId
-      if (appliedCoupon) body.coupon_code = appliedCoupon.code
+    }
+    if (appliedCoupon) {
+      body.coupon_code = appliedCoupon.code
     }
     // #1682 debug: what exactly reaches the server on prepay
     console.warn('[payment/prepay] body', {
@@ -217,7 +208,7 @@ export default function Payment() {
       appliedCoupon,
       couponCode,
       couponAmount,
-      displayAmount: pType === 'membership' && appliedCoupon ? couponAmount : data?.amount,
+      displayAmount: appliedCoupon ? couponAmount : data?.amount,
       ts: Date.now(),
     })
     const resp = await apiFetch(`${baseUrl}/pay/prepay`, {
@@ -234,15 +225,21 @@ export default function Payment() {
     const pId = params.id || ''
 
     if (cashAmount <= 0) {
-      if (pType === 'membership' && pSessionId) {
-        // OREZ full waiver: still run prepay so the server books the paid
-        // record and completes the session (same path as the wechat callback).
+      if (appliedCoupon || (pType === 'membership' && pSessionId)) {
+        // OREZ full waiver (or membership session waiver): run prepay so
+        // the server books the paid record and applies side effects
+        // (#1719 通用化：任意支付类型的 waive 优惠码都走此路径).
         setIsPaying(true)
         try {
           const result = await doPrepay()
           if (result.code === 20000) {
-            Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
-            setTimeout(finishMembershipFlow, 2000)
+            if (pType === 'membership' && pSessionId) {
+              Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
+              setTimeout(finishMembershipFlow, 2000)
+            } else {
+              Taro.showToast({ title: '支付成功', icon: 'success' })
+              setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+            }
           } else {
             Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
           }
@@ -263,21 +260,7 @@ export default function Payment() {
       const result = await doPrepay()
       if (result.code === 20000) {
         const d = result.data
-        if (d.mock) {
-          if (pType === 'membership' && pSessionId) {
-            Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
-            setTimeout(finishMembershipFlow, 2000)
-          } else {
-            Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功（测试）', icon: 'success' })
-            setTimeout(() => {
-              if (pType === 'membership') {
-                Taro.switchTab({ url: '/pages-weapp/profile/index' })
-              } else {
-                Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` })
-              }
-            }, 2000)
-          }
-        } else if (d.data?.prepay_id) {
+        if (d.data?.prepay_id) {
           setPrepayData(d)
         } else {
           Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
@@ -314,82 +297,9 @@ export default function Payment() {
     })
   }
 
-  const doMockPay = async () => {
-    // Simulated payment: run prepay (mock mode returns mock success directly);
-    // if a real prepay session was created, trigger the test callback.
-    setMockPaying(true)
-    try {
-      await handlePay(cashAmount)
-      if (prepayData?.data?.out_trade_no) {
-        const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
-          method: 'POST',
-          body: JSON.stringify({ out_trade_no: prepayData.data.out_trade_no }),
-        })
-        const r = await resp.json()
-        if (r.code === 20000) {
-          if (pType === 'membership' && pSessionId) {
-            Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
-            setTimeout(finishMembershipFlow, 1500)
-          } else {
-            Taro.showToast({ title: '测试支付已提交', icon: 'success' })
-            setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
-          }
-        } else {
-          Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
-        }
-      }
-    } catch (err) {
-      Taro.showModal({ title: '测试支付失败', content: err.message, showCancel: false })
-    } finally {
-      setMockPaying(false)
-    }
-  }
-
-  const doSimulatePay = async () => {
-    if (!prepayData?.data) return
-    try {
-      const resp = await apiFetch(`${baseUrl}/pay/test-callback`, {
-        method: 'POST',
-        body: JSON.stringify({ out_trade_no: prepayData.data.out_trade_no }),
-      })
-      const r = await resp.json()
-      if (r.code === 20000) {
-        if (pType === 'membership' && pSessionId) {
-          Taro.showToast({ title: '支付成功，注册处理中', icon: 'none', duration: 1500 })
-          setTimeout(finishMembershipFlow, 1500)
-        } else {
-          Taro.showToast({ title: '测试支付已提交', icon: 'success' })
-          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
-        }
-      } else {
-        Taro.showModal({ title: '测试支付失败', content: r.message, showCancel: false })
-      }
-    } catch (err) {
-      Taro.showModal({ title: '测试支付失败', content: err.message, showCancel: false })
-    }
-  }
-
   const handleRefund = async () => {
     Taro.showToast({ title: '退款申请已提交', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 2000)
-  }
-
-  const doSimulateRefund = async () => {
-    try {
-      const resp = await apiFetch(`${baseUrl}/user/settlements/${pId}`, {
-        method: 'POST',
-        body: JSON.stringify({ refund_method: 'prepaid' }),
-      })
-      const r = await resp.json()
-      if (r.code === 20000) {
-        Taro.showToast({ title: '模拟退款完成', icon: 'success' })
-        setTimeout(() => Taro.navigateBack(), 2000)
-      } else {
-        Taro.showModal({ title: '模拟退款失败', content: resolveErrorMessage(r, '未知错误'), showCancel: false })
-      }
-    } catch (err) {
-      Taro.showModal({ title: '模拟退款失败', content: err.message || '网络错误', showCancel: false })
-    }
   }
 
   return (
@@ -503,15 +413,15 @@ export default function Payment() {
           </View>
         )}
 
-        {/* Two-phase registration (#1663): membership coupon (weapp only) */}
-        {pType === 'membership' && pSessionId && !prepayData?.data && (
+        {/* 优惠码（#1719 通用化）：所有付款类支付页显示；退款/申诉结果页除外 */}
+        {!isRefund && pType !== 'appeal' && !prepayData?.data && (
           <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#000', marginBottom: 8 }}>优惠码</Text>
             <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Input
                 defaultValue={couponCode}
                 onInput={e => { couponInputRef.current = e.detail.value; setCouponCode(e.detail.value) }}
-                placeholder="输入优惠码（测试：OREZ / ENO）"
+                placeholder="输入优惠码（选填）"
                 placeholderStyle="color:#a1a1aa;font-size:12px"
                 style={{ flex: 1, border: '1px solid #e4e4e7', borderRadius: 10, padding: '8px 12px', fontSize: 13 }}
               />
@@ -544,13 +454,6 @@ export default function Payment() {
             <View style={{ flex: 1 }}>
               <Button style={btnStyle('#B98E5F')} onClick={handleRefund}>确认退款 ¥{Number(cashAmount).toFixed(2)}</Button>
             </View>
-            {mockEnabled && (
-              <View style={{ flex: 1 }}>
-                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doSimulateRefund}>
-                  模拟退款
-                </Button>
-              </View>
-            )}
           </View>
         ) : pType === 'appeal' ? (
           <Button style={btnStyle('#16a34a')} onClick={() => Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${pId}` })}>
@@ -563,13 +466,6 @@ export default function Payment() {
                 微信支付 ¥{Number(cashAmount).toFixed(2)}
               </Button>
             </View>
-            {mockEnabled && (
-              <View style={{ flex: 1 }}>
-                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doSimulatePay}>
-                  模拟支付 ¥{Number(cashAmount).toFixed(2)}
-                </Button>
-              </View>
-            )}
           </View>
         ) : (
           <View style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
@@ -578,13 +474,6 @@ export default function Payment() {
                 {isPaying ? '处理中...' : `发起支付 ¥${Number(cashAmount).toFixed(2)}`}
               </Button>
             </View>
-            {mockEnabled && (
-              <View style={{ flex: 1 }}>
-                <Button style={{ ...btnStyle('#fef3c7'), color: '#92400e' }} onClick={doMockPay} disabled={mockPaying}>
-                  {mockPaying ? '处理中...' : `模拟支付 ¥${Number(cashAmount).toFixed(2)}`}
-                </Button>
-              </View>
-            )}
           </View>
         )}
       </View>

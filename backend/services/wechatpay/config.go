@@ -21,14 +21,9 @@ func LoadConfig() *Config {
 		appID = "wxcb44a1be70e356ed"
 	}
 
-	mockMode := false
-	if v := os.Getenv("WECHAT_PAY_MOCK_MODE"); v == "true" || v == "1" {
-		mockMode = true
-	}
+	// 模拟支付已废弃（2026-08）：运行时一律真实微信支付。MockMode 仅保留给
+	// 单元测试通过构造 Config 直接使用，环境变量无法再开启。
 	mchID := os.Getenv("WECHAT_PAY_MCH_ID")
-	if mchID == "" {
-		mockMode = true
-	}
 
 	// Callback URLs are fixed paths, domain derived from EXTERNAL_MOBILE_URL
 	baseURL := os.Getenv("EXTERNAL_MOBILE_URL")
@@ -44,7 +39,7 @@ func LoadConfig() *Config {
 		PrivateKeyPath:  os.Getenv("WECHAT_PAY_PRIVATE_KEY_PATH"),
 		NotifyURL:       baseURL + "/api/wechatpay/notify",
 		RefundNotifyURL: baseURL + "/api/wechatpay/notify", // same URL, WeChat distinguishes by event_type
-		MockMode:        mockMode,
+		MockMode:        false,
 	}
 }
 

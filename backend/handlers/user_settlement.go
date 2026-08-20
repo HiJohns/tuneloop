@@ -171,7 +171,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 			UpdatedAt: time.Now(),
 		}
 
-		if cfg.MockMode || !paymentFound {
+		if !paymentFound {
 			refundRecord.Status = "refunded"
 			settlement.RefundStatus = "completed"
 		} else {
@@ -308,10 +308,9 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		}
 	}
 
-	// Cash refund via WeChat Pay (mock mode books directly)
+	// Cash refund via WeChat Pay
 	if result.CashRefundable > 0 {
 		cfg := wechatpay.GetConfig()
-		mockMode := cfg != nil && cfg.MockMode
 
 		outRefundNo := fmt.Sprintf("sttl_%s_%d", order.ID[:8], time.Now().Unix())
 
@@ -335,7 +334,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			}
 		}
 
-		if mockMode || !paymentFound || cfg == nil {
+		if !paymentFound || cfg == nil {
 			refundRecord.Status = "refunded"
 			settlement.RefundStatus = "completed"
 		} else {

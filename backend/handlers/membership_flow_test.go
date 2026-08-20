@@ -79,8 +79,18 @@ func TestMembershipFlow(t *testing.T) {
 	require.NoError(t, db.Where("iam_sub = ?", newUserID).First(&localUser).Error)
 
 	// ------------------------------------------------------------------
-	// Step 2: Prepay membership (mock mode → paid immediately).
+	// Step 2: Prepay membership (real JSAPI path with stubbed client).
 	// ------------------------------------------------------------------
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
 	customer := testutil.MakeCustomer("", localUser.ID)
 	prepayRouter := gin.New()
 	prepayRouter.Use(func(c *gin.Context) {
@@ -93,6 +103,7 @@ func TestMembershipFlow(t *testing.T) {
 	prepayBody, _ := json.Marshal(map[string]interface{}{
 		"order_type": "membership",
 		"amount":     99.0,
+		"open_id":    "mem-openid",
 	})
 	req = httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(prepayBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -103,27 +114,28 @@ func TestMembershipFlow(t *testing.T) {
 	var prepayResp struct {
 		Code int `json:"code"`
 		Data struct {
-			Mock    bool `json:"mock"`
 			Success bool `json:"success"`
 			Data    struct {
 				OutTradeNo string `json:"out_trade_no"`
+				PrepayID   string `json:"prepay_id"`
 			} `json:"data"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &prepayResp))
 	require.Equal(t, 20000, prepayResp.Code)
-	assert.True(t, prepayResp.Data.Mock, "mock mode active in test env")
+	assert.True(t, prepayResp.Data.Success, "prepay success flag")
+	require.NotEmpty(t, prepayResp.Data.Data.PrepayID, "real JSAPI prepay returns prepay_id")
 
 	// ------------------------------------------------------------------
-	// Step 3: Payment record booked as paid (mock), amount 99.
+	// Step 3: Payment record booked as pending (real flow), amount 99.
 	// ------------------------------------------------------------------
 	var record models.OrderPaymentRecord
 	require.NoError(t, db.Where("order_type = ? AND amount = ?", "membership", 99.0).
 		Order("created_at desc").First(&record).Error)
-	require.Equal(t, "paid", record.Status, "mock mode books payment as paid")
+	require.Equal(t, "pending", record.Status, "real flow books payment as pending")
 	assert.Equal(t, "membership", record.OrderType)
 	assert.Equal(t, 99.0, record.Amount)
-	assert.Equal(t, "mock", *record.Method)
+	assert.Equal(t, "jsapi", *record.Method)
 	assert.Equal(t, prepayResp.Data.Data.OutTradeNo, *record.OutTradeNo)
 
 	// ------------------------------------------------------------------
@@ -154,7 +166,7 @@ func TestMembershipFlow(t *testing.T) {
 	// Payment record unchanged after side effects (no status flip).
 	var after models.OrderPaymentRecord
 	require.NoError(t, db.Where("id = ?", record.ID).First(&after).Error)
-	assert.Equal(t, "paid", after.Status)
+	assert.Equal(t, "pending", after.Status)
 }
 
 // Ensure unused imports compile even when the test DB is skipped.
@@ -205,7 +217,6 @@ func TestPrepayMembership_NonMock(t *testing.T) {
 
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
-		MockMode:        false,
 		AppID:           "wxcb44a1be70e356ed",
 		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
 		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
@@ -313,7 +324,6 @@ func TestPrepayRent_OpenIDBackfillFromLocalUser(t *testing.T) {
 	rec := &recordingJSAPIClient{}
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(rec, &wechatpay.Config{
-		MockMode:        false,
 		AppID:           "wxcb44a1be70e356ed",
 		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
 		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
@@ -374,7 +384,6 @@ func TestPrepayMembership_SessionOpenIDBackfill(t *testing.T) {
 	rec := &recordingJSAPIClient{}
 	wechatpay.ResetGlobalForTesting()
 	wechatpay.SetClientForTesting(rec, &wechatpay.Config{
-		MockMode:        false,
 		AppID:           "wxcb44a1be70e356ed",
 		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
 		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
@@ -410,4 +419,184 @@ func TestPrepayMembership_SessionOpenIDBackfill(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
 	assert.Equal(t, "session_openid_backfill_001", rec.lastParams.OpenID,
 		"openid must be backfilled from the registration session")
+}
+
+// TestPrepayRentWithCoupon_OREZ verifies #1719: the waive coupon (OREZ) is
+// generalised to all payment types — a rent prepay with OREZ re-prices to 0
+// and books the record paid (method=waived) with side effects, without
+// calling WeChat Pay.
+func TestPrepayRentWithCoupon_OREZ(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	db.Exec("DELETE FROM coupons") // fixed code, isolated per test
+	require.NoError(t, db.Create(&models.Coupon{
+		ID:     uuid.New().String(),
+		Code:   "OREZ",
+		Type:   "waive",
+		Value:  0,
+		Active: true,
+	}).Error)
+
+	user := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   "6d1e2c3a-0000-4000-8000-0000000000e9",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "RentOREZ",
+		Phone:    "13800138009",
+		Role:     "USER",
+		Status:   "active",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	order := models.Order{
+		ID:           uuid.New().String(),
+		TenantID:     "00000000-0000-0000-0000-000000000000",
+		OrgID:        user.OrgID,
+		UserID:       user.ID,
+		InstrumentID: uuid.New().String(),
+		Status:       models.OrderStatusReserved,
+		CashPaid:     100.0,
+	}
+	require.NoError(t, db.Create(&order).Error)
+
+	customer := testutil.MakeCustomer("", user.IAMSub)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"order_id":    order.ID,
+		"order_type":  "rent",
+		"amount":      100.0,
+		"coupon_code": "OREZ",
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Success bool `json:"success"`
+			Data    struct {
+				OutTradeNo string `json:"out_trade_no"`
+			} `json:"data"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	assert.True(t, resp.Data.Success)
+
+	// Payment record re-priced to 0 and booked paid (waived).
+	var record models.OrderPaymentRecord
+	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
+	assert.Equal(t, 0.0, record.Amount, "OREZ re-priced rent to 0")
+	assert.Equal(t, "paid", record.Status)
+	assert.Equal(t, "waived", *record.Method)
+
+	// Side effects applied: order → paid.
+	var orderAfter models.Order
+	require.NoError(t, db.Where("id = ?", order.ID).First(&orderAfter).Error)
+	assert.Equal(t, models.OrderStatusPaid, orderAfter.Status, "rent waive side effects mark order paid")
+}
+
+// TestPrepayRentWithCoupon_ENO verifies #1719: the percent coupon (ENO) is
+// generalised to all payment types — a rent prepay with ENO re-prices the
+// amount to 1% and reaches the real JSAPI branch (prepay_id).
+func TestPrepayRentWithCoupon_ENO(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	wechatpay.ResetGlobalForTesting()
+	wechatpay.SetClientForTesting(stubJSAPIClient{}, &wechatpay.Config{
+		AppID:           "wxcb44a1be70e356ed",
+		NotifyURL:       "http://localhost:5553/api/wechatpay/notify",
+		RefundNotifyURL: "http://localhost:5553/api/wechatpay/notify",
+	})
+	t.Cleanup(func() {
+		wechatpay.ResetGlobalForTesting()
+		testfixtures.SetupWechatPayMock(t)
+	})
+
+	db.Exec("DELETE FROM coupons")
+	require.NoError(t, db.Create(&models.Coupon{
+		ID:     uuid.New().String(),
+		Code:   "ENO",
+		Type:   "percent",
+		Value:  1,
+		Active: true,
+	}).Error)
+
+	user := models.User{
+		ID:       uuid.New().String(),
+		IAMSub:   "6d1e2c3a-0000-4000-8000-0000000000ea",
+		TenantID: "00000000-0000-0000-0000-000000000000",
+		OrgID:    "00000000-0000-0000-0000-000000000000",
+		Name:     "RentENO",
+		Phone:    "13800138010",
+		Role:     "USER",
+		Status:   "active",
+		WxOpenid: "rent_eno_openid_001",
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	customer := testutil.MakeCustomer("", user.IAMSub)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/prepay", PrepayOrder)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"order_id":    uuid.New().String(),
+		"order_type":  "rent",
+		"amount":      100.0,
+		"coupon_code": "ENO",
+	})
+	req := httptest.NewRequest("POST", "/api/pay/prepay", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "prepay: %s", w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Data struct {
+				OutTradeNo string `json:"out_trade_no"`
+				PrepayID   string `json:"prepay_id"`
+			} `json:"data"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.NotEmpty(t, resp.Data.Data.PrepayID, "ENO rent prepay reaches real JSAPI branch")
+
+	// Payment record re-priced to 1% of 100 = 1.0, pending real payment.
+	var record models.OrderPaymentRecord
+	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
+	assert.InDelta(t, 1.0, record.Amount, 0.001, "ENO re-priced rent to 1%")
+	assert.Equal(t, "pending", record.Status)
+	assert.Equal(t, "jsapi", *record.Method)
 }

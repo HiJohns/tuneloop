@@ -281,33 +281,21 @@ CREATE TABLE order_refund_records (
 
 ```bash
 # ─── WeChat Pay API v3 ───
-WECHAT_PAY_MCH_ID=                # 商户号，测试环境留空则走模拟模式
+WECHAT_PAY_MCH_ID=                # 商户号（必填，无 mock 回退）
 WECHAT_PAY_API_V3_KEY=            # APIv3 密钥，32 位随机字符串
 WECHAT_PAY_CERT_SERIAL_NO=        # 商户证书序列号
 WECHAT_PAY_PRIVATE_KEY_PATH=      # 商户私钥文件路径（apiclient_key.pem）
 # AppID 复用现有 WX_APPID，不新增变量
-
-# ─── 测试模式 ───
-WECHAT_PAY_MOCK_MODE=true         # 测试环境下设为 true，走模拟支付流程
 ```
 
 > **回调 URL 不是微信平台配置项**：完整 URL（如 `https://wx.cadenzayueqi.com/api/wechatpay/notify`）由 tuneloop 代码在调用微信统一下单和退款 API 时通过 `notify_url` 参数动态传递。微信商户平台只需要配置 **域名白名单**（仅 `wx.cadenzayueqi.com`，不加路径），见 §一。
-```
 
-### 6.2 测试模式设计
+### 6.2 测试模式（已移除，#1719）
 
-当 `WECHAT_PAY_MOCK_MODE=true` 或 `WECHAT_PAY_MCH_ID` 为空时：
+模拟支付已移除：`WECHAT_PAY_MOCK_MODE` 不再被读取，运行时一律真实微信支付。测试环境的支付验证方式：
 
-- `POST /api/pay/prepay` → 直接返回 `{ mock: true, order_status: "paid" }`
-- 前端收到 `mock: true` → 跳过 `wx.requestPayment`，直接跳转支付成功页
-- 后端直接更新订单状态为 `paid`，写入 `order_payment_records`（标记 `method='mock'`）
-- 回调端点 `/api/wechatpay/notify` 不启动
-
-切换方式：
-```
-开发/测试环境: WECHAT_PAY_MOCK_MODE=true  （不设 MCH_ID 也行）
-预生产/生产:   WECHAT_PAY_MOCK_MODE=false + 完整商户配置
-```
+- 真实小额支付（微信 JSAPI 拉起付款，回调完成订单）
+- 支付页优惠码（所有支付类型通用）：`OREZ` 全免（走 waive 记账，不调微信）、`ENO` 折至 1%（走真实 JSAPI）——金额由后端 coupons 表服务端重算
 
 ---
 

@@ -10,7 +10,6 @@ import (
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
-	"tuneloop-backend/services/wechatpay"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -294,31 +293,9 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			notifContent = fmt.Sprintf("调整后金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", req.AdjustAmount, order.Deposit, req.AdjustAmount-order.Deposit)
 
 			payDiff := req.AdjustAmount - order.Deposit
-			cfg := wechatpay.GetConfig()
 			outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
-			record := models.OrderPaymentRecord{
-				ID:         uuid.New().String(),
-				TenantID:   tenantID,
-				UserID:     userID,
-				OrderID:    &order.ID,
-				OrderType:  "damage",
-				OutTradeNo: &outTradeNo,
-				Amount:     payDiff,
-				Type:       "payment",
-				Status:     "pending",
-				Method:     strPtr("jsapi"),
-				CreatedAt:  time.Now(),
-				UpdatedAt:  time.Now(),
-			}
-
-			if cfg.MockMode {
-				record.Status = "paid"
-				db.Create(&record)
-				nextOrderStatus = models.OrderStatusCompleted
-			} else {
-				notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%.2f,"out_trade_no":"%s"}`, payDiff, outTradeNo)
-			}
+			notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%.2f,"out_trade_no":"%s"}`, payDiff, outTradeNo)
 		}
 		damageReport.Status = "resolved"
 
@@ -650,11 +627,6 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	// For payment-needed damage, create payment record
 	if damageAmount >= order.Deposit && damageAmount > 0 {
 		payDiff := damageAmount - order.Deposit
-		cfg := wechatpay.GetConfig()
-		if cfg == nil {
-			log.Printf("[AgreeDamage] wechatpay config missing; treating as mock completion")
-			cfg = &wechatpay.Config{MockMode: true}
-		}
 		outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
 		record := models.OrderPaymentRecord{
@@ -672,39 +644,30 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 			UpdatedAt:  time.Now(),
 		}
 
-		if cfg.MockMode {
-			record.Status = "paid"
-			db.Create(&record)
-			db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", order.ID, tenantID).
-				Update("status", models.OrderStatusCompleted)
-		} else {
-			db.Create(&record)
-			c.JSON(http.StatusOK, gin.H{
-				"code":    20000,
-				"message": "请完成支付",
-				"data": gin.H{
-					"payment_required": true,
-					"amount":           payDiff,
-					"out_trade_no":     outTradeNo,
-					"damage_report_id": damageID,
-				},
-			})
-			return
-		}
+		db.Create(&record)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"message": "请完成支付",
+			"data": gin.H{
+				"payment_required": true,
+				"amount":           payDiff,
+				"out_trade_no":     outTradeNo,
+				"damage_report_id": damageID,
+			},
+		})
+		return
 	}
 
-	// Update instrument if order completed (only reached in mock mode or when no payment needed)
+	// Update instrument if order completed (reached when no payment needed)
 	if nextOrderStatus == models.OrderStatusCompleted || nextOrderStatus == models.OrderStatusDepositRefunding {
 		if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).Update("stock_status", models.StockStatusAvailable).Error; err != nil {
 			log.Printf("[AgreeDamage] Failed to update instrument status: %v", err)
 		}
 	}
 
-	// Execute final settlement + refund (#1530): damage >= deposit paid in
-	// mock mode completes the order directly.
-	payCfg := wechatpay.GetConfig()
-	mockMode := payCfg != nil && payCfg.MockMode
-	if damageAmount >= order.Deposit && mockMode {
+	// Execute final settlement + refund (#1530): damage >= deposit completes
+	// the order when no additional payment is needed.
+	if damageAmount >= order.Deposit {
 		var completedOrder models.Order
 		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err != nil {
 			log.Printf("[AgreeDamage] Failed to reload order for settlement: %v", err)
