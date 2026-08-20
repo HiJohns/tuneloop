@@ -72,3 +72,52 @@ steps:
 ---
 
 *Model: deepseek/deepseek-v4-flash*
+
+---
+id: B-02
+domain: bootstrapping
+flow: 商户编辑交互（#1717）
+steps:
+  - seq: 1
+    action: 进入商户详情
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        reach: "商户管理 → 点击商户 → 详情"
+        controls: [商户标题栏（名称/类型/状态标签）, 信息 Tab, 分账配置 Tab, 成员管理 Tab]
+        displays: [商户基本信息（ID/名称/电话/地址/类型/返点）]
+  - seq: 2
+    action: 编辑商户基本信息
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        gate: "详情态"
+        reach: "信息 Tab → 编辑基本信息按钮（唯一编辑入口）"
+        controls: [编辑基本信息按钮, 表单字段（商户名/电话/地址/类型/中转信息/返点）]
+        displays: [编辑表单, 商户标题栏（名称/类型/状态标签保留可见）]
+        ops:
+          - {type: api, method: PUT, path: /merchants/:id}
+  - seq: 3
+    action: 取消编辑
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        gate: "编辑表单态"
+        controls: [取消按钮（唯一，无回退按钮）]
+        ops:
+          - {type: navigate, target: /merchants/:id}
+    # 取消后回到商户详情（基本信息 Tab），面板不消失（#1717）
+---
+
+# B-02 商户编辑交互（#1717）
+
+## 前置条件
+- 租户管理员，已进入商户详情
+
+## 关键规则
+- 编辑入口唯一：信息 Tab「编辑基本信息」（标题栏无重复编辑按钮）
+- 编辑态保留商户标题栏（名称/类型/状态标签可见）
+- 取消按钮唯一（无回退按钮）；取消后回到商户详情（基本信息 Tab），面板不消失

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Card, Table, Button, Form, Input, Select, Switch, message, Space, Popconfirm, Tag, InputNumber, Tabs, Descriptions, Empty } from 'antd';
-import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import MerchantMemberManagement from '../components/MerchantMemberManagement';
 
@@ -218,7 +218,6 @@ const MerchantManagement = () => {
               </Space>
             </div>
             <Space wrap>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => handleEdit(m)}>编辑</Button>
               <Popconfirm
                 title="确定要删除此商户吗？"
                 onConfirm={() => handleDelete(m.id)}
@@ -286,8 +285,17 @@ const MerchantManagement = () => {
     <Card
       title={
         <Space>
-          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => { setViewMode('detail'); navigate('/merchants'); }} />
-          {formMode === 'create' ? '创建商户' : '编辑商户'}
+          {formMode === 'create' ? '创建商户' : `编辑商户：${editingMerchant?.name || ''}`}
+          {formMode === 'edit' && editingMerchant && (
+            <>
+              <Tag color={editingMerchant.merchant_type === 'controlled' ? 'orange' : 'blue'}>
+                {editingMerchant.merchant_type === 'controlled' ? '受控商户' : '全权商户'}
+              </Tag>
+              <Tag color={editingMerchant.status === 'active' ? 'green' : 'red'}>
+                {editingMerchant.status === 'active' ? '启用' : '停用'}
+              </Tag>
+            </>
+          )}
         </Space>
       }
     >
@@ -354,7 +362,7 @@ const MerchantManagement = () => {
           <Button type="primary" htmlType="submit" loading={saving}>
             {formMode === 'create' ? '创建商户' : '保存修改'}
           </Button>
-          <Button onClick={() => { setViewMode('detail'); navigate('/merchants'); }}>取消</Button>
+          <Button onClick={() => { setViewMode('detail'); if (editingMerchant) navigate('/merchants/' + editingMerchant.id); else navigate('/merchants'); }}>取消</Button>
         </Space>
       </Form>
     </Card>
