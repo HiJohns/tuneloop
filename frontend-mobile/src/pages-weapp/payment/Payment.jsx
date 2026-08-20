@@ -125,8 +125,11 @@ export default function Payment() {
         setAppliedCoupon({ code, hint: '已应用，全额免除' })
         setCouponAmount(0)
       } else if (code === 'ENO') {
-        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + Number(pAmount * 0.01).toFixed(2) })
-        setCouponAmount(Math.round(pAmount * 0.01 * 100) / 100)
+        // #1719 修复：租期/维修等支付页跳转不带 amount URL 参数（pAmount=0），
+        // 必须用 data.amount（/pay/calculate 返回的真实金额）计算 1%。
+        const base = data?.amount || pAmount || 0
+        setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + Number(base * 0.01).toFixed(2) })
+        setCouponAmount(Math.round(base * 0.01 * 100) / 100)
       } else {
         Taro.showToast({ title: '优惠码无效（仅支持 OREZ / ENO）', icon: 'none' })
       }
