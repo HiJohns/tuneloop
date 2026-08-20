@@ -116,6 +116,30 @@ WECHAT_PAY_PRIVATE_KEY_PATH=  # 商户私钥路径 (apiclient_key.pem)
 [后端] → 验签 → 更新退款状态
 ```
 
+### 3.3.1 退款调用点全景（#1729 沉淀）
+
+**微信"先结算后发货"机制**：用户支付金额不直接转商户，**发货后才结算**。因此：
+
+| 场景 | 是否调退款接口 | 说明 |
+|------|:---:|------|
+| 未发货取消订单 | ❌ 不调 | 资金自动原路退回（微信机制），`order.go` CancelOrderByCustomer/StaffCancelOrder 仍会调（无碍，但微信侧直接退回） |
+| 发货后退押金 / 提前归还退租金 | ✅ 必须主动调 | 资金已结算给商户 → `POST /v3/refund/domestic/refunds` |
+
+**主动退款调用点**（发货后路径）：
+
+| 调用点 | 文件 | 说明 |
+|--------|------|------|
+| `executeRefund`（订单 completed 自动结算退款） | backend/handlers/user_settlement.go | #1530 引入，幂等：settlement 存在且非 failed 即短路 |
+| 押金退款调度器 `closeOrder` | backend/services/deposit_refund_scheduler.go | 每 5 分钟扫描 deposit_refunding 超时订单 |
+| 顾客/员工取消订单 | backend/handlers/order.go:996/1144 | 未发货场景，微信自动退回为主 |
+
+### 3.3.2 退款红线（#1729 教训）
+
+1. **严禁 `Refund(nil, ...)`**：`client.Refund` 第一个参数必须传 `context.Background()`（或 `c.Request.Context()`）。传 nil → `net/http: nil Context` 必现失败。曾致发货后退款全军覆没（user_settlement.go:343、deposit_refund_scheduler.go:105 两处）。
+2. **金额防护**：调接口前必须校验 `paymentRecord.Amount > 0`（历史/测试数据存在 amount=0 的 paid 记录 → 微信 400 PARAM_ERROR "原订单金额低于最小值 1"）；`Amount <= 0` 时标记 refundRecord=refunded 跳过，不调微信。
+3. **失败可重试**：executeRefund 的 existing 短路必须排除 `RefundStatus == "failed"`（failed 时复用结算数据仅重试现金退款，不重复退 gift points）。
+4. **幂等性**：`out_refund_no` 唯一（前缀 sttl_/can_/refund_ + 订单短码 + 时间戳），微信侧重复调用同 out_refund_no 返回原退款结果。
+
 ### 3.4 逾期自动扣款流程（委托代扣 — 远期）
 
 ```
@@ -453,6 +477,14 @@ wx.requestPayment 失败回调:
 # 验证
 curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_token=$(your_token)"
 ```
+
+### Phase 6 补充：发货信息上报红线（2026-08-20 预生产日志沉淀）
+
+微信订单系统的**发货上报**（`POST /wxa/sec/order/upload_shipping_info`，backend/services/wechat_shipping.go）与**确认收货**（`notify_confirm_receive`）在发货/收货时自动调用：
+
+1. **`order_key.order_number_type=1`（商户侧单号形式）必须带 `mchid` 字段**——代码 `shippingOrderKey` 虽有 `Mchid` 字段但 **UploadShippingInfo 从未赋值**（omitempty 导致省略）→ 微信报 `268485196: 商户侧单号形式下 mchid 字段必须设置`。生产 7 天零触发（无发货操作），**首次生产发货必中招**，需在 `UploadShippingInfo` 填充商户号。
+2. `notify_confirm_receive` 同链路（`10060014 参数错误` 同上根因）。
+3. 上报失败按设计不阻塞业务（非致命），但资金解冻/结算会受影响，日志需监控 `[WechatShipping]` 前缀。
 
 ---
 
