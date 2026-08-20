@@ -44,7 +44,7 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 	db.Table("merchant_members").
 		Select("merchant_members.user_id, users.name as user_name, users.email as user_email, merchant_members.role, merchant_members.created_at").
 		Joins("JOIN users ON users.id = merchant_members.user_id").
-		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ?", merchantID, tenantID).
+		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, tenantID, "merchant_admin").
 		Scan(&members)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -468,6 +468,27 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 
 	if !hasMerchantAccess(db, tenantID, merchantID, c) {
 		return
+	}
+
+	// Last-admin protection (#1718): a merchant must keep at least one
+	// responsible person (merchant_admin). Refuse removal when the target is a
+	// merchant_admin and it is the last one — server-side authority, the
+	// frontend disable is only UX.
+	var target models.MerchantMember
+	if err := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", tenantID, merchantID, userID).
+		First(&target).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Member not found"})
+		return
+	}
+	if target.Role == "merchant_admin" {
+		var adminCount int64
+		db.Model(&models.MerchantMember{}).
+			Where("tenant_id = ? AND merchant_id = ? AND role = ?", tenantID, merchantID, "merchant_admin").
+			Count(&adminCount)
+		if adminCount <= 1 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40009, "message": "不能删除最后一个负责人"})
+			return
+		}
 	}
 
 	iamClient := services.NewIAMClient()

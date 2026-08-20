@@ -195,11 +195,11 @@ func TestListMerchantMembers(t *testing.T) {
 
 	user := models.User{
 		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: tenantID,
-		OrgID: tenantID, Name: "李四", Email: "lisi@test.com", Role: "site_member", Status: "active",
+		OrgID: tenantID, Name: "李四", Email: "lisi@test.com", Role: "merchant_admin", Status: "active",
 	}
 	require.NoError(t, db.Create(&user).Error)
 	require.NoError(t, db.Create(&models.MerchantMember{
-		TenantID: tenantID, MerchantID: merchant.ID, UserID: user.ID, Role: "site_member",
+		TenantID: tenantID, MerchantID: merchant.ID, UserID: user.ID, Role: "merchant_admin",
 	}).Error)
 
 	req := httptest.NewRequest("GET", "/admin/merchants/"+merchant.ID+"/members", nil)
@@ -221,7 +221,7 @@ func TestListMerchantMembers(t *testing.T) {
 	require.Equal(t, 20000, resp.Code)
 	require.Len(t, resp.Data.List, 1)
 	require.Equal(t, "李四", resp.Data.List[0].UserName)
-	require.Equal(t, "site_member", resp.Data.List[0].Role)
+	require.Equal(t, "merchant_admin", resp.Data.List[0].Role)
 }
 
 func TestUpdateMerchantMemberRole(t *testing.T) {
@@ -322,4 +322,56 @@ func TestCreateMerchant_WithoutAdmin(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, 20100, resp.Code)
+}
+
+// TestRemoveLastMerchantAdmin verifies #1718: removing the last merchant_admin
+// (负责人) is rejected server-side; removing a non-last admin succeeds.
+func TestRemoveLastMerchantAdmin(t *testing.T) {
+	tenantID := uuid.New().String()
+	router, mockIAM := setupMerchantMemberRouter(t, tenantID)
+	defer mockIAM.Close()
+	db := database.GetDB()
+
+	merchant := models.Merchant{ID: uuid.New().String(), Name: "商户D", TenantID: tenantID, OrgID: tenantID, AdminUID: uuid.New().String(), Status: "active"}
+	require.NoError(t, db.Create(&merchant).Error)
+
+	admin := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: tenantID,
+		OrgID: tenantID, Name: "唯一负责人", Role: "merchant_admin", Status: "active",
+	}
+	require.NoError(t, db.Create(&admin).Error)
+	require.NoError(t, db.Create(&models.MerchantMember{
+		TenantID: tenantID, MerchantID: merchant.ID, UserID: admin.ID, Role: "merchant_admin",
+	}).Error)
+
+	// Removing the last admin must be rejected.
+	req := httptest.NewRequest("DELETE", "/admin/merchants/"+merchant.ID+"/members/"+admin.ID, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, "不能删除最后一个负责人", resp.Message)
+
+	var count int64
+	db.Model(&models.MerchantMember{}).Where("merchant_id = ? AND user_id = ?", merchant.ID, admin.ID).Count(&count)
+	require.Equal(t, int64(1), count, "last admin must not be removed")
+
+	// Adding a second admin allows removing the first.
+	admin2 := models.User{
+		ID: uuid.New().String(), IAMSub: uuid.New().String(), TenantID: tenantID,
+		OrgID: tenantID, Name: "第二负责人", Role: "merchant_admin", Status: "active",
+	}
+	require.NoError(t, db.Create(&admin2).Error)
+	require.NoError(t, db.Create(&models.MerchantMember{
+		TenantID: tenantID, MerchantID: merchant.ID, UserID: admin2.ID, Role: "merchant_admin",
+	}).Error)
+
+	req2 := httptest.NewRequest("DELETE", "/admin/merchants/"+merchant.ID+"/members/"+admin.ID, nil)
+	w2 := httptest.NewRecorder()
+	router.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusOK, w2.Code, "non-last admin may be removed")
 }

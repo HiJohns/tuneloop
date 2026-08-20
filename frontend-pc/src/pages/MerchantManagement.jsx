@@ -271,7 +271,7 @@ const MerchantManagement = () => {
               </Form>
             </Tabs.TabPane>
 
-            <Tabs.TabPane tab="成员管理" key="members">
+            <Tabs.TabPane tab="负责人管理" key="members">
               <MerchantMemberManagement merchantId={m.id} onRefresh={() => {}} />
             </Tabs.TabPane>
           </Tabs>

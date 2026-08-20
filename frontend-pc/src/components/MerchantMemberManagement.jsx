@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Checkbox, Typography, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
-import { adminApi } from '../services/api';
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -17,13 +16,7 @@ const ROLE_NAMES = {
   repair_technician: '维修师傅',
 };
 
-const MERCHANT_ROLES = ['merchant_admin', 'site_member', 'repair_technician'];
 
-const roleToCode = (role) => {
-  if (!role) return 'site_member'
-  const map = { Staff: 'site_member', Manager: 'site_admin' }
-  return map[role] || role
-}
 
 const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [members, setMembers] = useState([]);
@@ -31,8 +24,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState([]);
-  const [selectedRole, setSelectedRole] = useState('site_member');
+  const [selectedRole] = useState('merchant_admin'); // 负责人管理：只能创建商户管理员 (#1718)
   const [skipActivation, setSkipActivation] = useState(false);
 
   const [formMode, setFormMode] = useState('new');
@@ -47,16 +39,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   useEffect(() => {
     if (merchantId) {
       fetchMembers();
-      fetchRoles();
     }
   }, [merchantId]);
-
-  const fetchRoles = async () => {
-    try {
-      const resp = await adminApi.listRoles();
-      if (resp.code === 20000) setAvailableRoles((resp.data || []).filter(r => MERCHANT_ROLES.includes(r.code)));
-    } catch { /* non-critical */ }
-  };
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -66,33 +50,23 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         setMembers(response.data?.list || []);
       }
     } catch (error) {
-      message.error('获取成员列表失败');
+      message.error('获取负责人列表失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateRole = async (userId, newRole) => {
-    try {
-      const resp = await api.put(`/admin/merchants/${merchantId}/members/${userId}`, { role: newRole });
-      if (resp.code === 20000) {
-        message.success('角色已更新');
-        fetchMembers();
-        onRefresh && onRefresh();
-      }
-    } catch { message.error('更新角色失败') }
-  };
 
   const handleRemoveMember = async (userId) => {
     try {
       const response = await api.delete(`/admin/merchants/${merchantId}/members/${userId}`);
       if (response.code === 20000) {
-        message.success('成员移除成功');
+        message.success('负责人移除成功');
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
-      message.error('移除成员失败');
+      message.error('移除负责人失败');
     }
   };
 
@@ -131,7 +105,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
     setPhone('');
     setExistingUser(null);
     setDuplicates({});
-    setSelectedRole('site_member');
+
     setSkipActivation(false);
   };
 
@@ -148,7 +122,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           user_ids: [{ user_id: existingUser.id, role: selectedRole }],
         });
         if (response.code === 20000 || response.code === 20100) {
-          message.success('成员已绑定');
+          message.success('管理员已添加');
           setModalVisible(false);
           resetForm();
           fetchMembers();
@@ -168,7 +142,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           const data = response.data;
           const directCount = data.directly_added?.length || 0;
           if (data.bind_errors?.length > 0) {
-            message.error(`添加成员失败：${data.bind_errors.map(e => e.error || '未知错误').join('；')}`);
+            message.error(`添加管理员失败：${data.bind_errors.map(e => e.error || '未知错误').join('；')}`);
             setModalVisible(false);
             resetForm();
             fetchMembers();
@@ -191,7 +165,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
               </div>
             ));
             Modal.success({
-              title: '成员已创建',
+              title: '管理员已创建',
               content: (
                 <div>
                   <p>初始密码（请立即复制保存）：</p>
@@ -240,7 +214,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         user_ids: [{ user_id: userId, role: selectedRole }],
       });
       if (response.code === 20000 || response.code === 20100) {
-        message.success('成员已绑定');
+        message.success('管理员已添加');
         setModalVisible(false);
         resetForm();
         fetchMembers();
@@ -277,18 +251,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       title: '角色',
       key: 'role',
       render: (_, record) => (
-        <Select
-          value={roleToCode(record.role)}
-          onChange={(val) => handleUpdateRole(record.user_id, val)}
-          size="small"
-          style={{ width: 140 }}
-        >
-          {availableRoles.map(r => (
-            <Select.Option key={r.code} value={r.code}>
-              {r.name}
-            </Select.Option>
-          ))}
-        </Select>
+        // 负责人管理（#1718）：所有成员均为商户管理员，无角色切换
+        <Tag color="red">{ROLE_NAMES[record.role] || '商户管理员'}</Tag>
       ),
     },
     {
@@ -300,16 +264,21 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
     {
       title: '操作',
       key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Popconfirm
-            title="确认移除此成员？"
-            onConfirm={() => handleRemoveMember(record.user_id)}
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>移除</Button>
-          </Popconfirm>
-        </Space>
-      ),
+      render: (_, record) => {
+        // 最后负责人保护（#1718）：仅剩 1 个负责人时禁用移除（后端同样拒绝）
+        const isLastAdmin = members.length <= 1
+        return (
+          <Space>
+            <Popconfirm
+              title="确认移除此负责人？"
+              onConfirm={() => handleRemoveMember(record.user_id)}
+              disabled={isLastAdmin}
+            >
+              <Button type="link" danger icon={<DeleteOutlined />} disabled={isLastAdmin}>移除</Button>
+            </Popconfirm>
+          </Space>
+        )
+      },
     },
   ];
 
@@ -328,12 +297,12 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           resetForm();
           setModalVisible(true);
         }}>
-          添加成员
+          添加管理员
         </Button>
       </div>
 
       <Modal
-        title="添加成员"
+        title="添加管理员"
         open={modalVisible}
         onCancel={() => { setModalVisible(false); resetForm(); }}
         footer={null}
@@ -405,12 +374,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         )}
 
         <div style={formMode === 'existing' ? { borderTop: '1px solid #f0f0f0', paddingTop: 16 } : {}}>
-          <label style={{ display: 'block', marginBottom: 8, color: '#666' }}>角色</label>
-          <Select value={selectedRole} onChange={setSelectedRole} style={{ width: '100%' }}>
-            {availableRoles.map(r => (
-              <Select.Option key={r.code} value={r.code}>{r.name}</Select.Option>
-            ))}
-          </Select>
+          {/* 负责人管理（#1718）：只能创建商户管理员，无需角色选择 */}
+          <input type="hidden" value={selectedRole} />
           {formMode !== 'existing' && (
             <div style={{ marginTop: 12 }}>
               <Checkbox checked={skipActivation} onChange={e => setSkipActivation(e.target.checked)}>

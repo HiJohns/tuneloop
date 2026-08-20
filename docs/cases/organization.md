@@ -162,3 +162,57 @@ steps:
 ---
 
 *Model: deepseek/deepseek-v4-flash*
+
+---
+id: O-03
+domain: organization
+flow: 商户负责人管理（#1718）
+steps:
+  - seq: 1
+    action: 查看商户负责人
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        reach: "商户管理 → 商户详情 → 负责人管理 Tab"
+        controls: [负责人列表（仅 merchant_admin）, 添加管理员按钮]
+        displays: [负责人姓名/邮箱/角色（固定商户管理员）/加入时间]
+        ops:
+          - {type: api, method: GET, path: /admin/merchants/:id/members}
+  - seq: 2
+    action: 添加管理员
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        reach: "负责人管理 Tab → 添加管理员"
+        controls: [添加管理员按钮, 新建用户/绑定现有用户表单]
+        # 无角色选择——只能创建商户管理员（#1718）
+        displays: [姓名/用户名/邮箱/电话表单, 跳过邮箱验证]
+        ops:
+          - {type: api, method: POST, path: /admin/merchants/:id/members}
+  - seq: 3
+    action: 移除负责人
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        gate: "负责人数量 > 1"
+        controls: [移除按钮（唯一负责人时禁用）]
+        ops:
+          - {type: api, method: DELETE, path: /admin/merchants/:id/members/:uid}
+    # 最后负责人保护（#1718）：后端删除时校验 merchant_admin 数量 ≤1 → 拒绝
+    # "不能删除最后一个负责人"；前端列表仅 1 个时禁用移除按钮（UX 兜底）
+---
+
+# O-03 商户负责人管理（#1718）
+
+## 前置条件
+- 租户管理员，已进入商户详情
+
+## 关键规则
+- 负责人 = 商户管理员（merchant_admin），可多个
+- 列表仅列负责人；无角色切换（角色固定商户管理员）
+- 添加入口 =「添加管理员」（无角色选择）
+- **不得删除最后一个负责人**：后端服务器端校验（40009），前端禁用移除按钮
+- 与网点成员「最后一名管理员保护」（O-01）语义对齐
