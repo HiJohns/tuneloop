@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -178,7 +177,9 @@ func PrepayOrder(c *gin.Context) {
 		case "waive":
 			baseAmount = 0
 		case "percent":
-			baseAmount = models.FromYuan(math.Round(baseAmount.ToYuan()*coupon.Value/1000*100) / 100)
+			// Integer math (audit #1726 R7): coupon.Value is permille (‰),
+			// amount in cents — 分 × ‰ / 1000, no float round-trip.
+			baseAmount = baseAmount * models.Cents(coupon.Value) / 1000
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
 			return

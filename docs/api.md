@@ -2593,13 +2593,14 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **接口**: `POST /api/pay/prepay`
 
 **说明**: 创建预付支付记录。支持赠点抵扣，抵扣后仅支付现金差额。
+**金额单位**: 分（int64，1 元 = 100 分，#1728 P3 起 API 一律输出分；前端显示自行 /100）。
 
 **请求 Body**:
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | order_id | uuid | 订单 ID |
 | order_type | string | rent / repair / damage / renewal / membership |
-| amount | decimal | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
+| amount | int64(分) | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
 | gift_used | decimal | 赠点抵扣金额（默认 0；优惠码场景前端传 0） |
 | open_id | string | 微信 openid（仅 JSAPI 支付，可选；后端可按 iam_sub 回填） |
 | coupon_code | string | 优惠码（可选，#1719 所有支付类型通用：OREZ waive 全免 / ENO percent 1%） |
@@ -2617,7 +2618,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **优惠码行为**（#1719 通用化，服务端权威）:
 - `waive`（OREZ）：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
-- `percent`（ENO）：金额 = round(原金额 × value / 100 × 100) / 100 → 走正常微信 JSAPI/Native
+- `percent`（ENO）：比例 = value / 1000（千分比，10‰ = 1%，#1728）→ 金额 = round(原金额 × 比例) → 走正常微信 JSAPI/Native
 - 模拟支付已移除（#1719）：运行时一律真实微信支付
 
 **响应**:

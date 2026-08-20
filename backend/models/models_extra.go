@@ -17,9 +17,9 @@ type RepairQuote struct {
 	SiteID          string    `gorm:"type:uuid;index" json:"site_id"`
 	WorkerID        string    `gorm:"type:varchar(255);not null" json:"worker_id"`
 	QuoteNo         string    `gorm:"type:varchar(30);uniqueIndex" json:"quote_no"`
-	MaterialFee     Cents   `gorm:"type:bigint;not null" json:"material_fee"`
-	ServiceFee      Cents   `gorm:"type:bigint;not null" json:"service_fee"`
-	LogisticsFee    Cents   `gorm:"type:bigint" json:"logistics_fee"`
+	MaterialFee     Cents     `gorm:"type:bigint;not null" json:"material_fee"`
+	ServiceFee      Cents     `gorm:"type:bigint;not null" json:"service_fee"`
+	LogisticsFee    Cents     `gorm:"type:bigint" json:"logistics_fee"`
 	Duration        string    `gorm:"type:varchar(100)" json:"duration"`
 	Comment         string    `gorm:"type:text" json:"comment"`
 	IsRenegotiation bool      `gorm:"default:false" json:"is_renegotiation"`

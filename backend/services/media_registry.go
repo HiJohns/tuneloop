@@ -16,10 +16,10 @@ import (
 
 // Media source types for the media_assets registry.
 const (
-	SourceTypeContentImage     = "content_image"
-	SourceTypeAvatar           = "avatar"
-	SourceTypeIDPhoto          = "id_photo"
-	SourceTypeInstrumentMedia  = "instrument_media"
+	SourceTypeContentImage    = "content_image"
+	SourceTypeAvatar          = "avatar"
+	SourceTypeIDPhoto         = "id_photo"
+	SourceTypeInstrumentMedia = "instrument_media"
 )
 
 // mediaKeyPattern matches physical files under /uploads/media/ embedded in rich

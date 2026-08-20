@@ -164,7 +164,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		StartDate:        &start,
 		EndDate:          &end,
 		LeaseTerm:        30,
-		Deposit:      models.FromYuan(500),
+		Deposit:          models.FromYuan(500),
 		CashPaid:         3500,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
@@ -233,7 +233,7 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 		OrgID:          uuid.New().String(),
 		UserID:         userID,
 		InstrumentID:   uuid.New().String(),
-		Deposit:      models.FromYuan(500),
+		Deposit:        models.FromYuan(500),
 		CashPaid:       3500,
 		ShippingFee:    50,
 		GiftPointsUsed: 100,
@@ -254,7 +254,7 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	s := &settlementResult{
 		RentPayable:         3000,
 		TotalRentPaid:       3000,
-		RemainingDeposit:             500,
+		RemainingDeposit:    500,
 		DamageDeducted:      100,
 		OverdueChargesTotal: 30,
 		TotalRefund:         400,
@@ -414,7 +414,7 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 		StartDate:        &start,
 		EndDate:          &end,
 		LeaseTerm:        30,
-		Deposit:      models.FromYuan(500),
+		Deposit:          models.FromYuan(500),
 		CashPaid:         3500,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}

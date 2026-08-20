@@ -410,20 +410,20 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	inspectOrgID := middleware.GetOrgID(ctx)
 	report := models.DamageReport{
-		ID:                uuid.New().String(),
-		TenantID:          tenantID,
-		OrgID:             inspectOrgID,
-		LeaseID:           orderID,
-		InstrumentID:      order.InstrumentID,
-		UserID:            order.UserID,
-		Condition:         req.Condition,
-		Notes:             req.Notes,
-		ScanTime:          &req.ScanTime,
-		AssessedBy:        stringPtr(userID),
-		AssessedAt:        &req.ScanTime,
-		Status:            "completed",
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Now(),
+		ID:           uuid.New().String(),
+		TenantID:     tenantID,
+		OrgID:        inspectOrgID,
+		LeaseID:      orderID,
+		InstrumentID: order.InstrumentID,
+		UserID:       order.UserID,
+		Condition:    req.Condition,
+		Notes:        req.Notes,
+		ScanTime:     &req.ScanTime,
+		AssessedBy:   stringPtr(userID),
+		AssessedAt:   &req.ScanTime,
+		Status:       "completed",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 	if req.Condition == "damaged" {
 		report.Status = "pending" // 定损决策待顾客回应
@@ -440,7 +440,6 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		return
 	}
 	damageReportID := report.ID
-
 
 	// Save return photos to instrument_media
 	if len(req.Photos) > 0 && order.InstrumentID != "" {

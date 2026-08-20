@@ -211,7 +211,7 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		}
 	}
 
-	payAmount := math.Max(0, (damageAmount-order.Deposit).ToYuan())
+	payAmount := math.Max(0, (damageAmount - order.Deposit).ToYuan())
 	resp.Title = "定损赔偿"
 	resp.Amount = payAmount
 	resp.Details = map[string]interface{}{

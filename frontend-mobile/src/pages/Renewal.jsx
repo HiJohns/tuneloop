@@ -164,17 +164,17 @@ export default function Renewal() {
               const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
               return (
               <View key={i} className="flex justify-between py-1 text-sm">
-                <Text className="text-gray-500">第{t.tier}阶 {t.days}天 · ¥{(tierRate || 0).toFixed(2)}/天</Text>
-                <Text className="font-medium">¥{t.subtotal?.toFixed(2)}</Text>
+                <Text className="text-gray-500">第{t.tier}阶 {t.days}天 · ¥{((tierRate || 0) / 100).toFixed(2)}/天</Text>
+                <Text className="font-medium">¥{(Number(t.subtotal || 0) / 100).toFixed(2)}</Text>
               </View>
             )})}
             <View className="flex justify-between py-1 text-sm border-t border-gray-100 mt-1">
               <Text className="text-gray-500">续期费</Text>
-              <Text className="font-medium">¥{calcResult.renewal_cost?.toFixed(2)}</Text>
+              <Text className="font-medium">¥{(Number(calcResult.renewal_cost || 0) / 100).toFixed(2)}</Text>
             </View>
             <View className="flex justify-between py-2 text-base font-bold border-t border-gray-200 mt-1">
               <Text>合计</Text>
-              <Text>¥{calcResult.total_amount?.toFixed(2)}</Text>
+              <Text>¥{(Number(calcResult.total_amount || 0) / 100).toFixed(2)}</Text>
             </View>
             <View className="mt-2 text-sm text-gray-400">
               <Text>新到期日: {formatDate(calcResult.new_end_date)}</Text>
@@ -185,7 +185,7 @@ export default function Renewal() {
         <View
           onClick={submitting ? undefined : handleSubmit}
           className={`w-full py-3 rounded-2xl font-black text-center text-white ${submitting ? 'bg-gray-400' : 'bg-black'}`}>
-          <Text>{submitting ? '处理中...' : `确认续期 ¥${calcResult?.total_amount?.toFixed(2) || '0.00'}`}</Text>
+          <Text>{submitting ? '处理中...' : `确认续期 ¥${((calcResult?.total_amount || 0) / 100).toFixed(2)}`}</Text>
         </View>
       </ScrollView>
     </View>

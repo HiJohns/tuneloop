@@ -29,8 +29,8 @@ type User struct {
 	AvatarURL           string     `gorm:"type:varchar(500)" json:"avatar"`
 	IsProfileCompleted  bool       `gorm:"default:false" json:"is_profile_completed"`
 	MembershipLevelID   *int       `gorm:"type:int" json:"membership_level_id"`
-	TotalSpending       Cents    `gorm:"type:bigint;default:0" json:"total_spending"`
-	PrepaidPoints       Cents    `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
+	TotalSpending       Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
+	PrepaidPoints       Cents      `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
 	PromoPoints         float64    `gorm:"type:decimal;default:0" json:"promo_points"`
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
@@ -74,11 +74,11 @@ type Instrument struct {
 	Video              string     `gorm:"type:varchar(500)" json:"video"`
 	Poster             string     `gorm:"type:text" json:"poster"`
 	CoverImage         string     `gorm:"type:text" json:"cover_image"`
-	Deposit            *Cents   `gorm:"type:bigint;default:0" json:"deposit"`
+	Deposit            *Cents     `gorm:"type:bigint;default:0" json:"deposit"`
 	Specifications     string     `gorm:"type:jsonb;default:'{}'" json:"specifications"`
 	Pricing            string     `gorm:"type:jsonb;default:'{}'" json:"pricing"`
-	TotalPrice         *Cents   `gorm:"type:bigint" json:"total_price"`
-	BaseDailyRate      *Cents   `gorm:"type:bigint" json:"base_daily_rate"`
+	TotalPrice         *Cents     `gorm:"type:bigint" json:"total_price"`
+	BaseDailyRate      *Cents     `gorm:"type:bigint" json:"base_daily_rate"`
 	PricingOverrides   string     `gorm:"type:jsonb;default:'{}'" json:"pricing_overrides"`
 	StockStatus        string     `gorm:"type:varchar(20);default:'available'" json:"stock_status"`
 	RepairStatus       string     `gorm:"type:varchar(20)" json:"repair_status"`
@@ -192,10 +192,10 @@ type Order struct {
 	Level                   string     `gorm:"type:varchar(20);not null" json:"level"`
 	LeaseTerm               int        `gorm:"not null" json:"lease_term"`
 	DepositMode             string     `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"`
-	MonthlyRent             Cents    `gorm:"type:bigint;not null" json:"monthly_rent"`
-	Deposit                 Cents    `gorm:"type:bigint;default:0" json:"deposit"`
+	MonthlyRent             Cents      `gorm:"type:bigint;not null" json:"monthly_rent"`
+	Deposit                 Cents      `gorm:"type:bigint;default:0" json:"deposit"`
 	DepositWaived           bool       `gorm:"column:deposit_waived;not null;default:false" json:"deposit_waived"`
-	ShippingFee             Cents    `gorm:"type:bigint;default:0" json:"shipping_fee"`
+	ShippingFee             Cents      `gorm:"type:bigint;default:0" json:"shipping_fee"`
 	AccumulatedMonths       int        `gorm:"default:0" json:"accumulated_months"`
 	Status                  string     `gorm:"type:varchar(40);default:'reserved';index" json:"status"`
 	StartDate               *string    `gorm:"type:date" json:"start_date"`
@@ -207,9 +207,9 @@ type Order struct {
 	ReturnedAt              *time.Time `gorm:"type:timestamp" json:"returned_at"`
 	DepositRefunded         bool       `gorm:"column:deposit_refunded;default:false" json:"deposit_refunded"`
 	PricingBreakdown        *string    `gorm:"type:jsonb" json:"pricing_breakdown"`
-	CashPaid                Cents    `gorm:"type:bigint;not null;default:0" json:"cash_paid"`
-	PrepaidPointsUsed       Cents    `gorm:"type:bigint;not null;default:0" json:"prepaid_points_used"`
-	GiftPointsUsed          Cents    `gorm:"type:bigint;not null;default:0" json:"gift_points_used"`
+	CashPaid                Cents      `gorm:"type:bigint;not null;default:0" json:"cash_paid"`
+	PrepaidPointsUsed       Cents      `gorm:"type:bigint;not null;default:0" json:"prepaid_points_used"`
+	GiftPointsUsed          Cents      `gorm:"type:bigint;not null;default:0" json:"gift_points_used"`
 	PointsPolicySnapshot    *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
 	RequestSnapshot         *string    `gorm:"type:jsonb" json:"request_snapshot"`
 	PricingConfigSnapshot   *string    `gorm:"type:jsonb" json:"pricing_config_snapshot"`
@@ -235,14 +235,14 @@ type Settlement struct {
 	ID                  string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	OrderID             string    `gorm:"type:uuid;not null;index" json:"order_id"`
 	ActualRentDays      int       `gorm:"not null;default:0" json:"actual_rent_days"`
-	ActualRentAmount    Cents   `gorm:"type:bigint;not null;default:0" json:"actual_rent_amount"`
-	OriginalRentAmount  Cents   `gorm:"type:bigint;not null;default:0" json:"original_rent_amount"`
-	GiftPointsRefunded  Cents   `gorm:"type:bigint;not null;default:0" json:"gift_points_refunded"`
-	CashRefundable      Cents   `gorm:"type:bigint;not null;default:0" json:"cash_refundable"`
-	PrepaidRefunded     Cents   `gorm:"type:bigint;not null;default:0" json:"prepaid_refunded"`
+	ActualRentAmount    Cents     `gorm:"type:bigint;not null;default:0" json:"actual_rent_amount"`
+	OriginalRentAmount  Cents     `gorm:"type:bigint;not null;default:0" json:"original_rent_amount"`
+	GiftPointsRefunded  Cents     `gorm:"type:bigint;not null;default:0" json:"gift_points_refunded"`
+	CashRefundable      Cents     `gorm:"type:bigint;not null;default:0" json:"cash_refundable"`
+	PrepaidRefunded     Cents     `gorm:"type:bigint;not null;default:0" json:"prepaid_refunded"`
 	RefundMethod        string    `gorm:"type:varchar(20);not null;default:'prepaid'" json:"refund_method"`
 	RefundStatus        string    `gorm:"type:varchar(20);not null;default:'pending'" json:"refund_status"`
-	OverdueChargesTotal Cents   `gorm:"type:bigint;not null;default:0" json:"overdue_charges_total"`
+	OverdueChargesTotal Cents     `gorm:"type:bigint;not null;default:0" json:"overdue_charges_total"`
 	Breakdown           string    `gorm:"type:jsonb;not null;default:'{}'" json:"breakdown"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
@@ -252,9 +252,9 @@ type OverdueCharge struct {
 	ID                  string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	OrderID             string    `gorm:"type:uuid;not null;index" json:"order_id"`
 	ChargeDate          string    `gorm:"type:date;not null;index" json:"charge_date"`
-	Amount              Cents   `gorm:"type:bigint;not null" json:"amount"`
-	DeductedFromDeposit Cents   `gorm:"type:bigint;not null;default:0" json:"deducted_from_deposit"`
-	DeductedFromPrepaid Cents   `gorm:"type:bigint;not null;default:0" json:"deducted_from_prepaid"`
+	Amount              Cents     `gorm:"type:bigint;not null" json:"amount"`
+	DeductedFromDeposit Cents     `gorm:"type:bigint;not null;default:0" json:"deducted_from_deposit"`
+	DeductedFromPrepaid Cents     `gorm:"type:bigint;not null;default:0" json:"deducted_from_prepaid"`
 	RemainingBalance    float64   `gorm:"type:decimal(10,2);not null;default:0" json:"remaining_balance"`
 	Status              string    `gorm:"type:varchar(20);not null;default:'success';index" json:"status"`
 	FailureReason       *string   `gorm:"type:varchar(500)" json:"failure_reason"`
@@ -277,7 +277,7 @@ type PaymentSession struct {
 	UserID         string    `gorm:"type:uuid;index:idx_payment_sessions_user;not null" json:"user_id"`
 	Type           string    `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
 	Status         string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
-	Amount         Cents   `gorm:"type:bigint;not null" json:"amount"`
+	Amount         Cents     `gorm:"type:bigint;not null" json:"amount"`
 	Breakdown      *string   `gorm:"type:jsonb" json:"breakdown,omitempty"`
 	WalletSnapshot *string   `gorm:"type:jsonb" json:"wallet_snapshot,omitempty"`
 	OutTradeNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
@@ -307,7 +307,7 @@ type OrderPaymentRecord struct {
 	OrderType     string    `gorm:"type:varchar(20);not null" json:"order_type"`
 	OutTradeNo    *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
 	TransactionID *string   `gorm:"type:varchar(64)" json:"transaction_id"`
-	Amount        Cents   `gorm:"type:bigint;not null" json:"amount"`
+	Amount        Cents     `gorm:"type:bigint;not null" json:"amount"`
 	Type          string    `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
 	Status        string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
 	Method        *string   `gorm:"type:varchar(20)" json:"method"`
@@ -326,7 +326,7 @@ type OrderRefundRecord struct {
 	PaymentRecordID *string   `gorm:"type:uuid;index" json:"payment_record_id,omitempty"`
 	OutRefundNo     *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_refund_no"`
 	RefundID        *string   `gorm:"type:varchar(64)" json:"refund_id"`
-	Amount          Cents   `gorm:"type:bigint;not null" json:"amount"`
+	Amount          Cents     `gorm:"type:bigint;not null" json:"amount"`
 	Reason          *string   `gorm:"type:varchar(200)" json:"reason"`
 	Status          string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
 	FailReason      *string   `gorm:"type:text" json:"fail_reason"`
@@ -379,7 +379,7 @@ type MaintenanceTicket struct {
 	ProgressNotes      string     `gorm:"type:text" json:"progress_notes"`
 	RepairReport       string     `gorm:"type:text" json:"repair_report"`
 	RepairPhotos       string     `gorm:"type:jsonb;default:'[]'" json:"repair_photos"`
-	EstimatedCost      Cents    `gorm:"type:bigint;default:0" json:"estimated_cost"`
+	EstimatedCost      Cents      `gorm:"type:bigint;default:0" json:"estimated_cost"`
 	AcceptedAt         *time.Time `json:"accepted_at"`
 	CompletionNotes    string     `gorm:"type:text" json:"completion_notes"`
 	CompletionPhotos   string     `gorm:"type:jsonb;default:'[]'" json:"completion_photos"`
@@ -462,8 +462,8 @@ type Lease struct {
 	InstrumentID  string    `gorm:"type:uuid;index;not null" json:"instrument_id"`
 	StartDate     string    `gorm:"type:date;not null" json:"start_date"`
 	EndDate       string    `gorm:"type:date;not null" json:"end_date"`
-	MonthlyRent   Cents   `gorm:"type:bigint;not null" json:"monthly_rent"`
-	DepositAmount Cents   `gorm:"type:bigint;not null" json:"deposit_amount"`
+	MonthlyRent   Cents     `gorm:"type:bigint;not null" json:"monthly_rent"`
+	DepositAmount Cents     `gorm:"type:bigint;not null" json:"deposit_amount"`
 	Status        string    `gorm:"type:varchar(20);default:'active';index" json:"status"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -474,7 +474,7 @@ type Deposit struct {
 	TenantID        string    `gorm:"type:uuid;index;not null" json:"tenant_id"`
 	LeaseID         string    `gorm:"type:uuid;index;not null" json:"lease_id"`
 	UserID          string    `gorm:"type:uuid;index;not null" json:"user_id"`
-	Amount          Cents   `gorm:"type:bigint;not null" json:"amount"`
+	Amount          Cents     `gorm:"type:bigint;not null" json:"amount"`
 	Type            string    `gorm:"type:varchar(20);not null" json:"type"`
 	Status          string    `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	TransactionDate string    `gorm:"type:date;not null" json:"transaction_date"`
@@ -529,16 +529,16 @@ type RepairRequest struct {
 	TransitSiteID        *string    `gorm:"type:uuid;index" json:"transit_site_id"`               // v3: selected transit site (controlled path)
 	ControlledSiteID     *string    `gorm:"type:uuid;index" json:"controlled_site_id"`            // v3: accepted quote's controlled site
 	AcceptedQuoteID      *string    `gorm:"type:uuid;index" json:"accepted_quote_id"`             // v3
-	CheckFeeSnapshot     *Cents   `json:"check_fee_snapshot"`                                   // v3: system check_fee at payment time
-	PaidAmount           *Cents   `gorm:"type:bigint" json:"paid_amount"`                // v3: total amount paid
+	CheckFeeSnapshot     *Cents     `json:"check_fee_snapshot"`                                   // v3: system check_fee at payment time
+	PaidAmount           *Cents     `gorm:"type:bigint" json:"paid_amount"`                       // v3: total amount paid
 	ExpireAt             *time.Time `json:"expire_at"`                                            // v3: pending_assessment expiry
 	ReminderSent         bool       `gorm:"default:false" json:"reminder_sent"`                   // v3: 24h reminder sent flag
 	Description          string     `gorm:"type:text" json:"description"`
 	Photos               string     `gorm:"type:jsonb;default:'[]'" json:"photos"`
 	VideoURL             string     `gorm:"type:varchar(500)" json:"video_url"`
-	QuoteAmount          *Cents   `json:"quote_amount"`   // Deprecated: v3, use repair_quotes
-	InspectionFee        *Cents   `json:"inspection_fee"` // Deprecated: v3, use check_fee_snapshot
-	ShippingFee          *Cents   `json:"shipping_fee"`
+	QuoteAmount          *Cents     `json:"quote_amount"`   // Deprecated: v3, use repair_quotes
+	InspectionFee        *Cents     `json:"inspection_fee"` // Deprecated: v3, use check_fee_snapshot
+	ShippingFee          *Cents     `json:"shipping_fee"`
 	TrackingCompany      string     `gorm:"type:varchar(100)" json:"tracking_company"`
 	TrackingNumber       string     `gorm:"type:varchar(100)" json:"tracking_number"`
 	ReturnCompany        string     `gorm:"type:varchar(100)" json:"return_company"`
@@ -565,8 +565,8 @@ type PointsTransaction struct {
 	UserID              string    `gorm:"type:uuid;not null;index" json:"user_id"`
 	TenantID            string    `gorm:"type:uuid;not null;index" json:"tenant_id"`
 	Type                string    `gorm:"type:varchar(20);not null;index" json:"type"`
-	Amount              Cents   `gorm:"type:bigint;not null" json:"amount"`
-	BalanceAfterPrepaid Cents   `gorm:"type:bigint;not null;default:0" json:"balance_after_prepaid"`
+	Amount              Cents     `gorm:"type:bigint;not null" json:"amount"`
+	BalanceAfterPrepaid Cents     `gorm:"type:bigint;not null;default:0" json:"balance_after_prepaid"`
 	BalanceAfterPromo   float64   `gorm:"type:decimal(10,2);not null;default:0" json:"balance_after_promo"`
 	OrderID             *string   `gorm:"type:uuid;index" json:"order_id"`
 	Description         string    `gorm:"type:varchar(500)" json:"description"`
@@ -761,11 +761,11 @@ type DamageReport struct {
 	LeaseID           string     `gorm:"type:uuid;not null;index" json:"lease_id"`
 	InstrumentID      string     `gorm:"type:uuid;not null" json:"instrument_id"`
 	UserID            string     `gorm:"type:uuid;not null;index" json:"user_id"`
-	DamageAmount      *Cents   `gorm:"type:bigint" json:"damage_amount,omitempty"`
+	DamageAmount      *Cents     `gorm:"type:bigint" json:"damage_amount,omitempty"`
 	DamageDescription string     `gorm:"type:text" json:"damage_description"`
 	AssessedBy        *string    `gorm:"type:uuid;index" json:"assessed_by"`
 	AssessedAt        *time.Time `json:"assessed_at"`
-	DepositDeducted   Cents    `gorm:"type:bigint;default:0" json:"deposit_deducted"`
+	DepositDeducted   Cents      `gorm:"type:bigint;default:0" json:"deposit_deducted"`
 	Status            string     `gorm:"type:varchar(20);default:'pending';index" json:"status"`
 	// 验收字段（#1708 从 DamageAssessment 并入）：所有验收（含 good 无损坏）统一
 	// 写入 damage_reports，DamageAssessment 表废弃。
@@ -773,7 +773,7 @@ type DamageReport struct {
 	Notes       string     `gorm:"type:text" json:"notes"`
 	ScanTime    *time.Time `json:"scan_time"`
 	OverdueDays int        `gorm:"default:0" json:"overdue_days"`
-	OverdueFee  Cents    `gorm:"type:bigint;default:0" json:"overdue_fee"`
+	OverdueFee  Cents      `gorm:"type:bigint;default:0" json:"overdue_fee"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
@@ -791,9 +791,9 @@ type DamageAssessment struct {
 	Description   string     `gorm:"type:text" json:"description"`
 	Photos        string     `gorm:"type:jsonb" json:"photos"`
 	Notes         string     `gorm:"type:text" json:"notes"`
-	EstimatedCost *Cents   `gorm:"type:bigint" json:"estimated_cost"`
+	EstimatedCost *Cents     `gorm:"type:bigint" json:"estimated_cost"`
 	OverdueDays   int        `gorm:"default:0" json:"overdue_days"`
-	OverdueFee    Cents    `gorm:"type:bigint;default:0" json:"overdue_fee"`
+	OverdueFee    Cents      `gorm:"type:bigint;default:0" json:"overdue_fee"`
 	ScanTime      *time.Time `json:"scan_time"`
 	Status        string     `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	CreatedAt     time.Time  `json:"created_at"`
@@ -830,7 +830,7 @@ type Appeal struct {
 	SubmittedAt      time.Time  `json:"submitted_at"`
 	ResolvedAt       *time.Time `json:"resolved_at,omitempty"`
 	Resolution       string     `gorm:"type:varchar(20)" json:"resolution"`
-	FinalAmount      *Cents   `gorm:"type:bigint" json:"final_amount,omitempty"`
+	FinalAmount      *Cents     `gorm:"type:bigint" json:"final_amount,omitempty"`
 	ManagerComment   string     `gorm:"type:text" json:"manager_comment"`
 	ResolvedBy       *string    `gorm:"type:uuid" json:"resolved_by"`
 	CreatedAt        time.Time  `json:"created_at"`
@@ -1094,9 +1094,9 @@ type RepairTransitOrder struct {
 	ControlledSiteID     string    `gorm:"type:uuid;index" json:"controlled_site_id"`
 	Direction            string    `gorm:"type:varchar(10)" json:"direction"` // v3: in/out
 	Status               string    `gorm:"type:varchar(20);default:'pending_activation'" json:"status"`
-	TransitServiceFee    *Cents  `gorm:"type:bigint" json:"transit_service_fee"`   // v3
-	TransitLogisticsFee  *Cents  `gorm:"type:bigint" json:"transit_logistics_fee"` // v3
-	Note                 string    `gorm:"type:text" json:"note"`                           // v3
+	TransitServiceFee    *Cents    `gorm:"type:bigint" json:"transit_service_fee"`   // v3
+	TransitLogisticsFee  *Cents    `gorm:"type:bigint" json:"transit_logistics_fee"` // v3
+	Note                 string    `gorm:"type:text" json:"note"`                    // v3
 	UnpackPhotos         string    `gorm:"type:jsonb;default:'[]'" json:"unpack_photos"`
 	RepackCompany        string    `gorm:"type:varchar(100)" json:"repack_company"`
 	RepackTrackingNumber string    `gorm:"type:varchar(100)" json:"repack_tracking_number"`

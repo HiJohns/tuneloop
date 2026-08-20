@@ -259,8 +259,8 @@ export default function OrderDetail() {
       Taro.showModal({
         title: '确认接受定损',
         content: amt < dep
-          ? `定损金额 ¥${amt.toFixed(2)}，押金 ¥${dep.toFixed(2)}，将退还差额 ¥${(dep - amt).toFixed(2)}`
-          : `定损金额 ¥${amt.toFixed(2)}，押金 ¥${dep.toFixed(2)}，需补缴 ¥${(amt - dep).toFixed(2)}`,
+          ? `定损金额 ¥${(amt / 100).toFixed(2)}，押金 ¥${(dep / 100).toFixed(2)}，将退还差额 ¥${((dep - amt) / 100).toFixed(2)}`
+          : `定损金额 ¥${(amt / 100).toFixed(2)}，押金 ¥${(dep / 100).toFixed(2)}，需补缴 ¥${((amt - dep) / 100).toFixed(2)}`,
         success: res => resolve(res.confirm),
         fail: () => resolve(false),
       })
@@ -422,9 +422,9 @@ export default function OrderDetail() {
               <View>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: '#b91c1c' }}>租约已超期</Text>
                 <Text style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>
-                  超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{(overdueFee || 0).toFixed(2)}
+                  超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{((overdueFee || 0) / 100).toFixed(2)}
                 </Text>
-                <Text style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>（¥{(dailyRate || 0).toFixed(2)}/天）</Text>
+                <Text style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>（¥{((dailyRate || 0) / 100).toFixed(2)}/天）</Text>
               </View>
             </View>
           </View>
@@ -502,9 +502,9 @@ export default function OrderDetail() {
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付金额</Text>
               {order.payment_records.map(pr => (
-                <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${Number(pr.amount).toFixed(2)}`} />
+                <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
               ))}
-              <Row label="实付合计" value={`¥${order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2)}`} />
+              <Row label="实付合计" value={`¥${(order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}`} />
             </>
           )}
 
@@ -515,11 +515,11 @@ export default function OrderDetail() {
               {order.settlement.actual_rent_days !== undefined && (
                 <Row label="实际租期" value={`${order.settlement.actual_rent_days} 天`} />
               )}
-              <Row label="实际租金" value={`¥${(order.settlement.actual_rent_amount || 0).toFixed(2)}`} color="#16a34a" />
+              <Row label="实际租金" value={`¥${((order.settlement.actual_rent_amount || 0) / 100).toFixed(2)}`} color="#16a34a" />
               {overdueFee > 0 && (
                 <>
-                  <Row label="逾期费用" value={`¥${(overdueFee || 0).toFixed(2)}`} color="#ef4444" />
-                  <Row label="  逾期日费" value={`¥${(dailyRate || 0).toFixed(2)}/天`} color="#a1a1aa" />
+                  <Row label="逾期费用" value={`¥${((overdueFee || 0) / 100).toFixed(2)}`} color="#ef4444" />
+                  <Row label="  逾期日费" value={`¥${((dailyRate || 0) / 100).toFixed(2)}/天`} color="#a1a1aa" />
                 </>
               )}
             </>
@@ -530,15 +530,15 @@ export default function OrderDetail() {
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>退款</Text>
               {order.settlement.cash_refundable > 0 && (
-                <Row label="现金退款" value={`¥${(order.settlement.cash_refundable || 0).toFixed(2)}`} color="#3b82f6" />
+                <Row label="现金退款" value={`¥${((order.settlement.cash_refundable || 0) / 100).toFixed(2)}`} color="#3b82f6" />
               )}
               {order.settlement.prepaid_refunded > 0 && (
-                <Row label="退回预付点" value={`¥${(order.settlement.prepaid_refunded || 0).toFixed(2)}`} color="#3b82f6" />
+                <Row label="退回预付点" value={`¥${((order.settlement.prepaid_refunded || 0) / 100).toFixed(2)}`} color="#3b82f6" />
               )}
               {order.settlement.gift_points_refunded > 0 && (
-                <Row label="赠送积分退还" value={`¥${(order.settlement.gift_points_refunded || 0).toFixed(2)}`} color="#3b82f6" />
+                <Row label="赠送积分退还" value={`¥${((order.settlement.gift_points_refunded || 0) / 100).toFixed(2)}`} color="#3b82f6" />
               )}
-              <Row label="退款合计" value={`¥${(Number(order.settlement.cash_refundable) + Number(order.settlement.prepaid_refunded) + Number(order.settlement.gift_points_refunded)).toFixed(2)}`} color="#16a34a" />
+              <Row label="退款合计" value={`¥${((Number(order.settlement.cash_refundable) + Number(order.settlement.prepaid_refunded) + Number(order.settlement.gift_points_refunded)) / 100).toFixed(2)}`} color="#16a34a" />
             </>
           )}
 
@@ -547,16 +547,16 @@ export default function OrderDetail() {
             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>结算</Text>
               {order.settlement.original_rent_amount !== undefined && (
-                <Row label="原始租金" value={`¥${(order.settlement.original_rent_amount || 0).toFixed(2)}`} />
+                <Row label="原始租金" value={`¥${((order.settlement.original_rent_amount || 0) / 100).toFixed(2)}`} />
               )}
               {order.settlement.actual_rent_days !== undefined && (
                 <Row label="实际天数" value={`${order.settlement.actual_rent_days} 天`} />
               )}
               {order.settlement.overdue_charges_total !== undefined && Number(order.settlement.overdue_charges_total) > 0 && (
-                <Row label="逾期费用" value={`¥${(order.settlement.overdue_charges_total || 0).toFixed(2)}`} color="#ef4444" />
+                <Row label="逾期费用" value={`¥${((order.settlement.overdue_charges_total || 0) / 100).toFixed(2)}`} color="#ef4444" />
               )}
               {order.settlement.cash_refundable !== undefined && (
-                <Row label="可退现金" value={`¥${(order.settlement.cash_refundable || 0).toFixed(2)}`} />
+                <Row label="可退现金" value={`¥${((order.settlement.cash_refundable || 0) / 100).toFixed(2)}`} />
               )}
               {order.settlement.refund_method && (
                 <Row label="退款方式" value={order.settlement.refund_method} />
@@ -576,15 +576,15 @@ export default function OrderDetail() {
             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>收支记录</Text>
               {(order.payment_records || []).map(pr => (
-                <Row key={pr.id} label={`支付 · ${pr.method || ''}`.trim()} value={`¥${Number(pr.amount).toFixed(2)}`} />
+                <Row key={pr.id} label={`支付 · ${pr.method || ''}`.trim()} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
               ))}
               {(order.refund_records || []).map(rf => (
-                <Row key={rf.id} label={`退款 · ${rf.method === 'prepaid' ? '预付点' : rf.method === 'cash_withdrawal' ? '现金' : '微信'}`} value={`-¥${Number(rf.amount).toFixed(2)}`} color="#16a34a" />
+                <Row key={rf.id} label={`退款 · ${rf.method === 'prepaid' ? '预付点' : rf.method === 'cash_withdrawal' ? '现金' : '微信'}`} value={`-¥${(Number(rf.amount) / 100).toFixed(2)}`} color="#16a34a" />
               ))}
               {(() => {
                 const paid = (order.payment_records || []).reduce((s, p) => s + Number(p.amount || 0), 0)
                 const refunded = (order.refund_records || []).reduce((s, r) => s + Number(r.amount || 0), 0)
-                return <Row label="净支出" value={`¥${Math.max(0, paid - refunded).toFixed(2)}`} />
+                return <Row label="净支出" value={`¥${(Math.max(0, paid - refunded) / 100).toFixed(2)}`} />
               })()}
             </View>
           )}
@@ -597,10 +597,10 @@ export default function OrderDetail() {
                 <Row label="实际租期" value={`${order.damage.actual_rent_days} 天`} />
               )}
               {Number(order.damage.actual_rent_amount) > 0 && (
-                <Row label="实际租金" value={`¥${Number(order.damage.actual_rent_amount).toFixed(2)}`} />
+                <Row label="实际租金" value={`¥${(Number(order.damage.actual_rent_amount) / 100).toFixed(2)}`} />
               )}
-              <Row label="赔偿金额" value={`¥${Number(order.damage.damage_amount).toFixed(2)}`} color="#ef4444" />
-              <Row label="退款" value={`¥${Number(order.damage.refund).toFixed(2)}`} color="#16a34a" />
+              <Row label="赔偿金额" value={`¥${(Number(order.damage.damage_amount) / 100).toFixed(2)}`} color="#ef4444" />
+              <Row label="退款" value={`¥${(Number(order.damage.refund) / 100).toFixed(2)}`} color="#16a34a" />
             </View>
           )}
 
@@ -636,11 +636,11 @@ export default function OrderDetail() {
                               return (
                                 <View key={i} style={{ paddingVertical: 3, paddingLeft: 8 }}>
                                   <Text style={{ fontSize: 12, color: '#71717a' }}>
-                                    第{seg.tier}阶{seg.days}天: ¥{Number(seg.rate).toFixed(2)}/天 × {seg.days}天
+                                    第{seg.tier}阶{seg.days}天: ¥{(Number(seg.rate) / 100).toFixed(2)}/天 × {seg.days}天
                                     {seg.discount < 1 ? ` (${discountLabel})` : ''}
                                     {' = '}
                                     <Text style={{ fontWeight: '700', color: '#000' }}>
-                                      ¥{Number(seg.subtotal).toFixed(2)}
+                                      ¥{(Number(seg.subtotal) / 100).toFixed(2)}
                                     </Text>
                                   </Text>
                                 </View>
@@ -648,7 +648,7 @@ export default function OrderDetail() {
                             })}
                             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 4, paddingTop: 4, paddingLeft: 8 }}>
                               <Text style={{ fontSize: 13, fontWeight: '700', color: '#000' }}>
-                                租金小计 ¥{Number(pb.total_amount || 0).toFixed(2)}
+                                租金小计 ¥{(Number(pb.total_amount || 0) / 100).toFixed(2)}
                               </Text>
                             </View>
                             {policiesAfterTier.length > 0 && (
@@ -663,12 +663,12 @@ export default function OrderDetail() {
                           </View>
                         ) : (
                           <View>
-                            <Row label="日租金" value={`¥${Number(pb.final_daily_rent || pb.base_daily_rent || 0).toFixed(2)}`} />
+                            <Row label="日租金" value={`¥${(Number(pb.final_daily_rent || pb.base_daily_rent || 0) / 100).toFixed(2)}`} />
                             {pb.base_daily_rent && pb.final_daily_rent < pb.base_daily_rent && (
-                              <Row label="原价" value={`¥${(pb.base_daily_rent || 0).toFixed(2)}/天`} color="#a1a1aa" />
+                              <Row label="原价" value={`¥${((pb.base_daily_rent || 0) / 100).toFixed(2)}/天`} color="#a1a1aa" />
                             )}
                             {pb.rent_days > 0 && <Row label="合同租期（天）" value={pb.rent_days} />}
-                            <Row label="租金" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} />
+                            <Row label="租金" value={`¥${(Number(pb.total_amount || 0) / 100).toFixed(2)}`} />
                           </View>
                         )}
                       </View>
@@ -676,11 +676,11 @@ export default function OrderDetail() {
                   })()}
                   {deposit > 0 && !order.deposit_waived && (
                     <View>
-                      <Row label="押金" value={`¥${Number(deposit).toFixed(2)}`} />
+                      <Row label="押金" value={`¥${(Number(deposit) / 100).toFixed(2)}`} />
                       {pb?.deposit_method && (
                         <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginTop: -2 }}>
                           {pb.deposit_method === 'total_price'
-                            ? `乐器总价值 ¥${(pb.total_price || 0 || 0).toFixed(2)}`
+                            ? `乐器总价值 ¥${((pb.total_price || 0 || 0) / 100).toFixed(2)}`
                             : (pb.deposit_multiplier > 0
                                 ? `日租金 × ${pb.deposit_multiplier}倍`
                                 : '')}
@@ -691,7 +691,7 @@ export default function OrderDetail() {
                   {order.deposit_waived && (
                     <Row label="押金" value="免押金" color="#16a34a" />
                   )}
-                  {showShippingFee && <Row label="物流费" value={`¥${shippingFee.toFixed(2)}`} />}
+                  {showShippingFee && <Row label="物流费" value={`¥${(shippingFee / 100).toFixed(2)}`} />}
                 </View>
               )}
             </View>
@@ -795,7 +795,7 @@ export default function OrderDetail() {
       {order.damage && (
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>定损信息</Text>
-          <Row label="定损金额" value={`¥${Number(order.damage.damage_amount).toFixed(2)}`} color="#ef4444" />
+          <Row label="定损金额" value={`¥${(Number(order.damage.damage_amount) / 100).toFixed(2)}`} color="#ef4444" />
           {order.damage.description ? (
             <Row label="定损说明" value={order.damage.description} />
           ) : (

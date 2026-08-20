@@ -62,9 +62,9 @@ func GetOrders(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"code": 20000,
 				"data": gin.H{
-					"list":  []interface{}{},
-					"total": 0,
-					"page":  page,
+					"list":      []interface{}{},
+					"total":     0,
+					"page":      page,
 					"page_size": pageSize,
 				},
 			})
@@ -1347,13 +1347,13 @@ func GetOrderLogs(c *gin.Context) {
 	// describes the same transition (order_logs carries richer copy like
 	// "已发货（顺丰，单号 xx）"). Keep order_logs; drop the bare history row.
 	statusKeyword := map[string][]string{
-		"shipped":     {"已发货"},
-		"in_lease":    {"已签收", "租赁开始"},
-		"returning":   {"归还"},
-		"returned":    {"已归还"},
-		"completed":   {"完成"},
-		"cancelled":   {"取消"},
-		"expired":     {"超期", "逾期"},
+		"shipped":          {"已发货"},
+		"in_lease":         {"已签收", "租赁开始"},
+		"returning":        {"归还"},
+		"returned":         {"已归还"},
+		"completed":        {"完成"},
+		"cancelled":        {"取消"},
+		"expired":          {"超期", "逾期"},
 		"pending_shipment": {"发货"},
 	}
 	var history []models.OrderStatusHistory

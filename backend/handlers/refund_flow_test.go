@@ -58,7 +58,7 @@ func refundFlowSeed(t *testing.T, tenantID, orgID, userID string) (string, strin
 		UserID: userID, InstrumentID: inst.ID,
 		StartDate: strPtr("2026-07-01"), EndDate: strPtr("2026-07-30"),
 		LeaseTerm: 30, Status: models.OrderStatusReturning,
-		Deposit:      models.FromYuan(500), CashPaid: 3000,
+		Deposit: models.FromYuan(500), CashPaid: 3000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)

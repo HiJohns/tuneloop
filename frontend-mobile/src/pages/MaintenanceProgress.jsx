@@ -94,7 +94,7 @@ export default function MaintenanceProgress() {
       {ticket.estimated_cost > 0 && (
         <Card className="mt-4">
           <Text className="font-medium mb-2">维修报价</Text>
-          <Text className="text-2xl font-bold text-orange-500">¥{(ticket.estimated_cost || 0).toFixed(2)}</Text>
+          <Text className="text-2xl font-bold text-orange-500">¥{((ticket.estimated_cost || 0) / 100).toFixed(2)}</Text>
         </Card>
       )}
     </View>

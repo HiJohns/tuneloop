@@ -229,7 +229,7 @@ export default function MyLeases() {
                   )}
                   <View style={{ display: 'flex', alignItems: 'center' }}>
                     <Text style={{ color: '#a1a1aa', fontWeight: '500', marginRight: 8 }}>总金额:</Text>
-                    <Text style={{ color: '#000', fontWeight: '900' }}>¥{((getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0) || 0).toFixed(2)}</Text>
+                    <Text style={{ color: '#000', fontWeight: '900' }}>¥{(((getActualRent(order) || 0) + (order.deposit || 0) + (order.shipping_fee || 0)) / 100).toFixed(2)}</Text>
                   </View>
                 </View>
                   </View>

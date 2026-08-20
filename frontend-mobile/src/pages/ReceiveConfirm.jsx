@@ -166,22 +166,22 @@ export default function ReceiveConfirm() {
             <View className="space-y-2">
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">租金小计</Text>
-                <Text className="text-black font-black">¥{subtotal.toFixed(2)}</Text>
+                <Text className="text-black font-black">¥{(subtotal / 100).toFixed(2)}</Text>
               </View>
               <View className="flex justify-between text-sm">
                 <Text className="text-zinc-500 font-medium">押金</Text>
-                <Text className="text-black font-black">¥{deposit.toFixed(2)}</Text>
+                <Text className="text-black font-black">¥{(deposit / 100).toFixed(2)}</Text>
               </View>
               {shipping > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">物流费</Text>
-                  <Text className="text-black font-black">¥{shipping.toFixed(2)}</Text>
+                  <Text className="text-black font-black">¥{(shipping / 100).toFixed(2)}</Text>
                 </View>
               )}
               <View className="border-t border-zinc-100 pt-2 mt-1">
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-700 font-bold">合计</Text>
-                  <Text className="text-green-600 font-black text-base">¥{total.toFixed(2)}</Text>
+                  <Text className="text-green-600 font-black text-base">¥{(total / 100).toFixed(2)}</Text>
                 </View>
               </View>
             </View>

@@ -847,7 +847,7 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	sb.WriteString(fmt.Sprintf("应付合计：¥%.2f\n", s.TotalRefund+s.RentPayable+s.DamageDeducted+s.OverdueChargesTotal))
 	sb.WriteString(fmt.Sprintf("其中赠点抵扣：%.0f 点\n", order.GiftPointsUsed.ToYuan()))
 	sb.WriteString(fmt.Sprintf("现金应付：¥%.2f\n", s.CashBasis))
-	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", (order.CashPaid+order.PrepaidPointsUsed+order.GiftPointsUsed+order.Deposit).ToYuan()))
+	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed + order.Deposit).ToYuan()))
 	sb.WriteString(fmt.Sprintf("押金退还：¥%.2f\n", s.RemainingDeposit))
 	sb.WriteString("——\n")
 	if s.GiftPointsRefunded > 0 {

@@ -48,7 +48,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 		LeaseTerm:        30,
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
-		Deposit:      models.FromYuan(500),
+		Deposit:          models.FromYuan(500),
 		CashPaid:         3500, // rent 3000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
@@ -102,7 +102,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		LeaseTerm:        10,
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
-		Deposit:      models.FromYuan(500),
+		Deposit:          models.FromYuan(500),
 		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
@@ -168,7 +168,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		LeaseTerm:        10,
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
-		Deposit:      models.FromYuan(500),
+		Deposit:          models.FromYuan(500),
 		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}

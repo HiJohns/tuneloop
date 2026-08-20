@@ -197,7 +197,7 @@ export default function MembershipCenter() {
           <View className="flex justify-between items-center py-3 border-b border-zinc-50">
             <Text className="text-sm text-zinc-500">消费总额</Text>
             <Text className="text-base font-bold text-zinc-800">
-              ¥{user?.total_spending ? Number(user.total_spending).toLocaleString() : '0'}
+              ¥{user?.total_spending ? (Number(user.total_spending) / 100).toLocaleString() : '0'}
             </Text>
           </View>
           <View className="flex justify-between items-center py-3 border-b border-zinc-50">

@@ -200,10 +200,10 @@ func activateReservedLocalUser(db *gorm.DB, session *models.RegistrationSession,
 		return nil
 	}
 	db.Model(&user).Updates(map[string]interface{}{
-		"status":              "active",
-		"wx_openid":           openid,
+		"status":               "active",
+		"wx_openid":            openid,
 		"onboarding_completed": true,
-		"updated_at":          time.Now(),
+		"updated_at":           time.Now(),
 	})
 	grantRegistrationRewards(db, &user, form)
 	return &user

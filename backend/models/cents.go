@@ -23,8 +23,11 @@ func (c Cents) ToYuan() float64 {
 }
 
 // FromYuan 把元（float64）转换为分（四舍五入到分）。
+// 注意：不能写成 Round(yuan*100+0.5)-0.5 —— 0.29*100=28.9999... 时
+// +0.5 再 -0.5 会下溢成 28 分（丢 1 分）；直接 Round(yuan*100) 才是
+// 正确四舍五入（audit #1726 R2）。
 func FromYuan(yuan float64) Cents {
-	return Cents(math.Round(yuan*100 + 0.5) - 0.5)
+	return Cents(math.Round(yuan * 100))
 }
 
 // MarshalJSON：P3（#1728）起输出分（int64）——API 契约改分，前端自行 /100 显示。
@@ -48,7 +51,7 @@ func (c *Cents) UnmarshalJSON(b []byte) error {
 }
 
 // Scan：DB → Cents。P2（#1727）起 DB 为 BIGINT（分）直读；兼容旧 DECIMAL
-//（元）float64 输入 ×100（迁移过渡期回退场景）。
+// （元）float64 输入 ×100（迁移过渡期回退场景）。
 func (c *Cents) Scan(v interface{}) error {
 	if v == nil {
 		*c = 0

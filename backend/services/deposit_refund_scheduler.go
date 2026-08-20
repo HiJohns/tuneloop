@@ -106,8 +106,8 @@ func (s *DepositRefundScheduler) closeOrder(order models.Order) error {
 		result, err := client.Refund(context.Background(), wechatpay.RefundParams{
 			OutTradeNo:   *paymentRecord.OutTradeNo,
 			OutRefundNo:  outRefundNo,
-		TotalAmount:  int64(paymentRecord.Amount),
-		RefundAmount: int64(depositToRefund),
+			TotalAmount:  int64(paymentRecord.Amount),
+			RefundAmount: int64(depositToRefund),
 			Reason:       "押金原路退还",
 			NotifyURL:    cfg.RefundNotifyURL,
 		})

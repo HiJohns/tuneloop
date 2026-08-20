@@ -255,15 +255,15 @@ func TestExecuteBatchImport_PricingDailyRent(t *testing.T) {
 	// ImportSession + merchant pricing config (CalculatePricing needs config).
 	sessionID := uuid.New().String()
 	importSessions[sessionID] = &ImportSession{
-		ID:       sessionID,
-		TenantID: tenantID,
+		ID:        sessionID,
+		TenantID:  tenantID,
 		CreatedAt: time.Now(),
 		Instruments: []map[string]interface{}{
 			{
-				"sn":               "BATCH-TEST-001",
-				"base_daily_rate":  "88.5",
-				"total_price":      "20000",
-				"deposit":          "5000",
+				"sn":              "BATCH-TEST-001",
+				"base_daily_rate": "88.5",
+				"total_price":     "20000",
+				"deposit":         "5000",
 			},
 		},
 		Images: map[string][]string{},

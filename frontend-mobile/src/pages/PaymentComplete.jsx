@@ -34,15 +34,15 @@ export default function PaymentComplete() {
         <View className="space-y-3 text-sm">
           <View className="flex justify-between">
             <Text className="text-gray-500">支付金额</Text>
-            <Text className="font-medium text-red-500">¥{state.paymentAmount.toFixed(2)}</Text>
+            <Text className="font-medium text-red-500">¥{(Number(state.paymentAmount || 0) / 100).toFixed(2)}</Text>
           </View>
           <View className="flex justify-between">
             <Text className="text-gray-500">定损金额</Text>
-            <Text>¥{state.damageAmount?.toFixed(2)}</Text>
+            <Text>¥{(Number(state.damageAmount || 0) / 100).toFixed(2)}</Text>
           </View>
           <View className="flex justify-between">
             <Text className="text-gray-500">押金抵扣</Text>
-            <Text>¥{state.deposit?.toFixed(2)}</Text>
+            <Text>¥{(Number(state.deposit || 0) / 100).toFixed(2)}</Text>
           </View>
           <View className="border-t" />
           <View className="flex justify-between">

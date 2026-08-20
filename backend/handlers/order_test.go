@@ -786,16 +786,16 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 		Data struct {
 			Status string `json:"status"`
 			Damage struct {
-				ReportID         string   `json:"report_id"`
-				DamageAmount     float64  `json:"damage_amount"`
-				Description      string   `json:"description"`
-				Status           string   `json:"status"`
-				Photos           []string `json:"photos"`
-				ActualRentDays   int      `json:"actual_rent_days"`
-				ShippingFee      float64  `json:"shipping_fee"`
-				Deposit          float64  `json:"deposit"`
-				PaidTotal        float64  `json:"paid_total"`
-				Refund           float64  `json:"refund"`
+				ReportID       string   `json:"report_id"`
+				DamageAmount   float64  `json:"damage_amount"`
+				Description    string   `json:"description"`
+				Status         string   `json:"status"`
+				Photos         []string `json:"photos"`
+				ActualRentDays int      `json:"actual_rent_days"`
+				ShippingFee    float64  `json:"shipping_fee"`
+				Deposit        float64  `json:"deposit"`
+				PaidTotal      float64  `json:"paid_total"`
+				Refund         float64  `json:"refund"`
 			} `json:"damage"`
 		} `json:"data"`
 	}
@@ -815,7 +815,6 @@ func TestGetOrder_DamagePanel(t *testing.T) {
 	// refund = paid(1500) - damage(200) - rent(0, no settlement/breakdown) - shipping(50) = 1250
 	require.Equal(t, 1250.0, d.Refund, "refund = paid - damage - rent - shipping")
 }
-
 
 func TestGetOrder_DamagePanel_FromDamageReport(t *testing.T) {
 	cfg := database.LoadConfig()

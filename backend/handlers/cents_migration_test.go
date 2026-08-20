@@ -133,4 +133,3 @@ func TestCentsMigration_20260820001(t *testing.T) {
 	// --- 6. 启动校验（金额列 bigint + JSONB 已迁移）---
 	require.NoError(t, database.ValidateMoneyColumnsForTest(db), "money columns must be bigint after migration")
 }
-

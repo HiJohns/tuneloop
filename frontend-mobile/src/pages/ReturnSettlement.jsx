@@ -75,7 +75,7 @@ export default function ReturnSettlement() {
     else setLoading(false)
   }, [])
 
-  const num = (v) => (v != null ? Number(v).toFixed(2) : '0.00')
+  const num = (v) => (v != null ? (Number(v) / 100).toFixed(2) : '0.00')
   const s = settlement || {}
 
   if (loading) {

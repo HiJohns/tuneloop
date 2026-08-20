@@ -158,6 +158,8 @@ steps:
 微信支付回调 → 查会话 → 标记 paid → 服务端完成注册（CreateUser + 绑定 openid + 本地同步 + 赠点 + 推荐奖励）→ 标记 completed。幂等：completed 只执行一次建户。
 
 ### 优惠码（#1719 通用化）
+
+> **金额表示法（#1728）**：API/存储一律分（int64，1 元 = 100 分）；前端显示 ÷100。
 - `OREZ`：waive 全额免除（¥0，直接完成注册，仍写 payment record 留痕）
 - `ENO`：percent 1%
 - 优惠码**所有支付类型通用**（membership/rent/repair/renewal/damage），金额后端计算，前端只传 code；为长期功能（非测试临时码）

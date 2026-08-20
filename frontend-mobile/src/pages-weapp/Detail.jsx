@@ -266,7 +266,7 @@ export default function Detail() {
               </View>
               <View style={{ flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right' }}>
                 <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
-                  押金 ¥{(deposit || 0).toFixed(2)} <Text style={{ color: '#a1a1aa', fontWeight: '400' }}>❯</Text>
+                  押金 ¥{((deposit || 0) / 100).toFixed(2)} <Text style={{ color: '#a1a1aa', fontWeight: '400' }}>❯</Text>
                 </Text>
               </View>
             </View>
@@ -277,7 +277,7 @@ export default function Detail() {
                 </View>
               )}
               <Text style={{ color: '#C21838', fontSize: 16, letterSpacing: '-0.025em' }}>
-                日租 ¥{Number(dailyRent || 0).toFixed(2)}/日
+                日租 ¥{(Number(dailyRent || 0) / 100).toFixed(2)}/日
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 12, marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#71717a', fontWeight: '700' }}>
@@ -337,7 +337,7 @@ export default function Detail() {
                 return (
                   <View key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={{ color: '#71717a', fontSize: 14 }}>{range}</Text>
-                    <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{(Math.round(t.daily_rate) || 0).toFixed(2)}/天</Text>
+                    <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{((Math.round(t.daily_rate) || 0) / 100).toFixed(2)}/天</Text>
                   </View>
                 )
               })}
@@ -346,13 +346,13 @@ export default function Detail() {
                   {pricingV2.deposit > 0 && (
                     <View style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#71717a', fontSize: 14 }}>押金</Text>
-                      <Text style={{ color: '#000', fontSize: 14 }}>¥{(pricingV2.deposit || 0).toFixed(2)}</Text>
+                      <Text style={{ color: '#000', fontSize: 14 }}>¥{((pricingV2.deposit || 0) / 100).toFixed(2)}</Text>
                     </View>
                   )}
                   {pricingV2.shipping_fee > 0 && (
                     <View style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#71717a', fontSize: 14 }}>物流费</Text>
-                      <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{(pricingV2.shipping_fee || 0).toFixed(2)}</Text>
+                      <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>¥{((pricingV2.shipping_fee || 0) / 100).toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
@@ -365,7 +365,7 @@ export default function Detail() {
               </View>
               <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
                 <Text style={{ fontSize: 12, color: '#ea580c', fontWeight: '500' }}>
-                  ⚠️ 逾期后每日自动扣款 ¥{(overdueDailyFee || 0).toFixed(2)}/日；押金归还质检通过后退还
+                  ⚠️ 逾期后每日自动扣款 ¥{((overdueDailyFee || 0) / 100).toFixed(2)}/日；押金归还质检通过后退还
                 </Text>
               </View>
             </View>

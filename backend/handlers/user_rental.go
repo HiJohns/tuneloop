@@ -457,25 +457,25 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 	startDateStr := req.StartDate
 	endDateStr := req.EndDate
 	order := models.Order{
-		ID:                uuid.New().String(),
-		TenantID:          effectiveTenantID,
-		OrgID:             effectiveOrgID,
-		UserID:            userID,
-		InstrumentID:      req.InstrumentID,
-		Level:             instrument.Level,
-		LeaseTerm:         months,
-		MonthlyRent:       0,
-		Deposit:           models.FromYuan(deposit),
-		DepositWaived:     req.DepositWaived,
-		ShippingFee:       models.FromYuan(shippingFee),
-		Status:            models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
-		StartDate:         &startDateStr,
-		EndDate:           &endDateStr,
-		CashPaid:          models.FromYuan(cashPaid),
-		GiftPointsUsed:    models.FromYuan(req.GiftPointsUsed),
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Now(),
-		PaymentDeadline:   computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
+		ID:              uuid.New().String(),
+		TenantID:        effectiveTenantID,
+		OrgID:           effectiveOrgID,
+		UserID:          userID,
+		InstrumentID:    req.InstrumentID,
+		Level:           instrument.Level,
+		LeaseTerm:       months,
+		MonthlyRent:     0,
+		Deposit:         models.FromYuan(deposit),
+		DepositWaived:   req.DepositWaived,
+		ShippingFee:     models.FromYuan(shippingFee),
+		Status:          models.OrderStatusReserved, // Must pay via WeChat Pay before status becomes paid
+		StartDate:       &startDateStr,
+		EndDate:         &endDateStr,
+		CashPaid:        models.FromYuan(cashPaid),
+		GiftPointsUsed:  models.FromYuan(req.GiftPointsUsed),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		PaymentDeadline: computePaymentDeadline(db, effectiveTenantID, effectiveOrgID),
 	}
 	if pricingBreakdownJSON != "" {
 		order.PricingBreakdown = &pricingBreakdownJSON

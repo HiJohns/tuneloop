@@ -51,7 +51,7 @@ func staffOrdersSeed(t *testing.T, tenantID, orgID, userID string) (string, stri
 		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID,
 		UserID: userID, InstrumentID: inst.ID,
 		Status:  models.OrderStatusPaid,
-		Deposit:      models.FromYuan(500), CashPaid: 3000,
+		Deposit: models.FromYuan(500), CashPaid: 3000,
 	}
 	require.NoError(t, db.Create(&order).Error)
 	return order.ID, inst.ID

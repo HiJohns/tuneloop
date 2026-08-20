@@ -3,9 +3,9 @@ package models
 import "time"
 
 type MembershipLevel struct {
-	ID        int     `gorm:"primaryKey" json:"id"`
-	Name      string  `gorm:"type:varchar(50);not null" json:"name"`
-	MinAmount Cents `gorm:"type:bigint;not null" json:"min_amount"`
+	ID        int    `gorm:"primaryKey" json:"id"`
+	Name      string `gorm:"type:varchar(50);not null" json:"name"`
+	MinAmount Cents  `gorm:"type:bigint;not null" json:"min_amount"`
 }
 
 // GiftPolicy defines per-membership-level gift point rules (#1605, L-05).

@@ -69,8 +69,8 @@ export default function MessageDetail() {
   const handleAccept = async () => {
     const ok = await dialog.confirm(
       damageAmount < deposit
-        ? `定损金额 ¥${damageAmount.toFixed(2)}，押金 ¥${deposit.toFixed(2)}，将退还差额 ¥${(deposit - damageAmount).toFixed(2)}`
-        : `定损金额 ¥${damageAmount.toFixed(2)}，押金 ¥${deposit.toFixed(2)}，需补缴 ¥${(damageAmount - deposit).toFixed(2)}`
+        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，押金 ¥${(deposit / 100).toFixed(2)}，将退还差额 ¥${((deposit - damageAmount) / 100).toFixed(2)}`
+        : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，押金 ¥${(deposit / 100).toFixed(2)}，需补缴 ¥${((damageAmount - deposit) / 100).toFixed(2)}`
     )
     if (!ok) return
     try {
@@ -199,7 +199,7 @@ export default function MessageDetail() {
                 <View className="flex justify-between">
                   <Text className="text-gray-500">定损金额</Text>
                   <Text className="font-medium">
-                    ¥{damageReport.damage_amount?.toFixed(2) || '0.00'}
+                    ¥{((damageReport.damage_amount || 0) / 100).toFixed(2)}
                   </Text>
                 </View>
                 {damageReport.damage_description && (
@@ -222,11 +222,11 @@ export default function MessageDetail() {
               <View className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
                 <View className="flex justify-between">
                   <Text className="text-gray-500">押金</Text>
-                  <Text className="font-medium">¥{order.deposit?.toFixed(2) || '0.00'}</Text>
+                  <Text className="font-medium">¥{((order.deposit || 0) / 100).toFixed(2)}</Text>
                 </View>
                 <View className="flex justify-between">
                   <Text className="text-gray-500">月租</Text>
-                  <Text>¥{order.monthly_rent?.toFixed(2) || '0.00'}</Text>
+                  <Text>¥{((order.monthly_rent || 0) / 100).toFixed(2)}</Text>
                 </View>
               </View>
             </View>
@@ -255,7 +255,7 @@ export default function MessageDetail() {
               onClick={handlePayment}
               className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
             >
-              支付 ¥{Math.max(0, damageAmount - deposit).toFixed(2)}
+              支付 ¥{(Math.max(0, damageAmount - deposit) / 100).toFixed(2)}
             </Button>
           )}
 

@@ -219,6 +219,8 @@ steps:
 5. **自动登录**：前端轮询 `GET /auth/registration-sessions/:id/status` → completed → 清除本地 session → 触发 wx-accounts 分流 → 1 账户 → wx-login-select 登录 → 会员中心
 
 ### 优惠码（#1719 通用化）
+
+> **金额表示法（#1728）**：API/存储一律分（int64，1 元 = 100 分）；前端显示 ÷100。
 - **所有支付页**（membership/rent/repair/renewal/damage）均可输入优惠码（非仅会员费支付页）
 - 金额**后端计算**（前端只传 code，不可信）
 - 默认优惠码（生产库）：`OREZ`（waive 全额免除 → ¥0，走 waive 记账留痕，直接完成）、`ENO`（percent 1%）
