@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 )
 
 func TestGetInstruments_Thumbnail(t *testing.T) {
@@ -186,13 +187,9 @@ func TestDeleteSingleMedia_StructuredKey(t *testing.T) {
 // home_menu_config (visible_ids without sub-categories) must not override
 // hide/sort or filter out sub-categories.
 func TestGetPublicCategories_IgnoresHomeMenuConfig(t *testing.T) {
-	cfg := database.LoadConfig()
-	db, err := database.InitDB(cfg)
-	if err != nil {
-		t.Skip("test database not available")
-		return
-	}
-	database.SetDB(db)
+	// #1727: build a clean schema — this test previously relied on tables
+	// left behind by other tests (broke on a fresh test DB).
+	db := testfixtures.SetupTestDB(t)
 
 	tenantID := uuid.New().String()
 	_, _, _ = setupTestData(t, db, tenantID)

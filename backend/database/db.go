@@ -469,7 +469,99 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		}
 	}
 
+	// #1727: 金额列必须是 BIGINT（分）。DECIMAL/numeric 残留 = 迁移未执行 → FATAL。
+	if err := validateMoneyColumnsBigInt(db); err != nil {
+		return err
+	}
+
 	fmt.Println("✓ Database schema validation passed")
+	return nil
+}
+
+// ValidateMoneyColumnsForTest 导出金额列 bigint 校验（测试用）。
+func ValidateMoneyColumnsForTest(db *gorm.DB) error {
+	return validateMoneyColumnsBigInt(db)
+}
+
+// moneyColumns 是 #1727 迁移的金额列清单（表名, 列名）。
+// 校验通过 = 全部为 bigint；存在 numeric/decimal 类型 = 迁移缺失 → 拒绝启动。
+var moneyColumns = [][2]string{
+	{"appeals", "final_amount"},
+	{"damage_reports", "damage_amount"},
+	{"damage_reports", "deposit_deducted"},
+	{"damage_reports", "overdue_fee"},
+	{"deposits", "amount"},
+	{"discount_policies", "max_amount"},
+	{"instruments", "base_daily_rate"},
+	{"instruments", "deposit"},
+	{"instruments", "total_price"},
+	{"leases", "deposit_amount"},
+	{"leases", "monthly_rent"},
+	{"maintenance_tickets", "estimated_cost"},
+	{"membership_levels", "min_amount"},
+	{"order_payment_records", "amount"},
+	{"order_refund_records", "amount"},
+	{"orders", "cash_paid"},
+	{"orders", "deposit"},
+	{"orders", "gift_points_used"},
+	{"orders", "monthly_rent"},
+	{"orders", "prepaid_points_used"},
+	{"orders", "shipping_fee"},
+	{"overdue_charges", "amount"},
+	{"payment_sessions", "amount"},
+	{"points_transactions", "amount"},
+	{"points_transactions", "balance_after_prepaid"},
+	{"registration_sessions", "amount"},
+	{"repair_quotes", "logistics_fee"},
+	{"repair_quotes", "material_fee"},
+	{"repair_quotes", "service_fee"},
+	{"repair_requests", "check_fee_snapshot"},
+	{"repair_requests", "inspection_fee"},
+	{"repair_requests", "paid_amount"},
+	{"repair_requests", "quote_amount"},
+	{"repair_requests", "shipping_fee"},
+	{"repair_transit_orders", "transit_logistics_fee"},
+	{"repair_transit_orders", "transit_service_fee"},
+	{"settlements", "actual_rent_amount"},
+	{"settlements", "cash_refundable"},
+	{"settlements", "gift_points_refunded"},
+	{"settlements", "original_rent_amount"},
+	{"settlements", "overdue_charges_total"},
+	{"settlements", "prepaid_refunded"},
+	{"users", "prepaid_points"},
+	{"users", "total_spending"},
+}
+
+// validateMoneyColumnsBigInt 校验金额列类型为 bigint（#1727 fail-fast）。
+// 列缺失（表未建/迁移未跑）与列类型非 bigint 都视为失败。
+func validateMoneyColumnsBigInt(db *gorm.DB) error {
+	for _, mc := range moneyColumns {
+		table, column := mc[0], mc[1]
+		var cnt int64
+		if err := db.Raw(`SELECT COUNT(*) FROM information_schema.columns
+			WHERE table_name = ? AND column_name = ?`, table, column).Scan(&cnt).Error; err != nil {
+			return fmt.Errorf("money column check %s.%s: %w", table, column, err)
+		}
+		if cnt == 0 {
+			// 表不存在（旧库无此表）也属异常——迁移应已建表
+			var tableCnt int64
+			if err := db.Raw(`SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?`, table).Scan(&tableCnt).Error; err != nil {
+				return fmt.Errorf("money column check table %s: %w", table, err)
+			}
+			if tableCnt > 0 {
+				return fmt.Errorf("money column %s.%s missing — cents migration (20260820001) not applied", table, column)
+			}
+			continue // 表不存在则跳过（豁免废弃表）
+		}
+		var dataType string
+		if err := db.Raw(`SELECT data_type FROM information_schema.columns
+			WHERE table_name = ? AND column_name = ?`, table, column).Scan(&dataType).Error; err != nil {
+			return fmt.Errorf("money column type check %s.%s: %w", table, column, err)
+		}
+		if dataType != "bigint" {
+			return fmt.Errorf("money column %s.%s is %s, expected bigint (cents) — run migration 20260820001_cents_money_columns", table, column, dataType)
+		}
+	}
 	return nil
 }
 

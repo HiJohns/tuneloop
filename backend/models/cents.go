@@ -56,8 +56,8 @@ func (c *Cents) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Scan：DB → Cents。P1 期间 DB 为 DECIMAL(10,2)（元），×100 转分。
-// 兼容 P2 后 BIGINT（分）直读。
+// Scan：DB → Cents。P2（#1727）起 DB 为 BIGINT（分）直读；兼容旧 DECIMAL
+//（元）float64 输入 ×100（迁移过渡期回退场景）。
 func (c *Cents) Scan(v interface{}) error {
 	if v == nil {
 		*c = 0
@@ -88,9 +88,9 @@ func (c *Cents) Scan(v interface{}) error {
 	}
 }
 
-// Value：Cents → DB。P1 期间 DB 为 DECIMAL(10,2)，写元（float64）。
+// Value：Cents → DB。P2（#1727）起 DB 为 BIGINT（分）直写。
 func (c Cents) Value() (driver.Value, error) {
-	return c.ToYuan(), nil
+	return int64(c), nil
 }
 
 // ToCentsPtr 把 *float64（元）转为 *Cents（分），nil 透传。

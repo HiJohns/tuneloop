@@ -776,6 +776,7 @@ func main() {
 	migrateBannerWebP := flag.Bool("migrate-banner-webp", false, "Convert legacy banner images to WebP, then exit")
 	migrateBannerBlur := flag.Bool("migrate-banner-blur", false, "Generate blurred _blur.webp for banner images, then exit")
 	migrateDamagePhotos := flag.Bool("migrate-damage-photos", false, "Backfill damage_assessments.photos JSONB into instrument_media (receiving batch), then exit")
+	migrateJSONBCents := flag.Bool("migrate-jsonb-cents", false, "Convert yuan amounts inside JSONB columns to cents (#1727), then exit")
 	gcMedia := flag.Bool("gc-media", false, "Garbage-collect orphan media files (unreferenced assets + batch-import dirs), then exit")
 	previewWebP := flag.Bool("preview-display-webp", false, "Preview how many display images would be converted, then exit")
 	dryRunFlag := flag.Bool("dry-run", false, "Dry-run mode")
@@ -906,6 +907,21 @@ func main() {
 			fmt.Printf("DRY RUN: %d photos would be backfilled into instrument_media\n", count)
 		} else {
 			fmt.Printf("Damage photos migration complete: %d photos backfilled\n", count)
+		}
+		os.Exit(0)
+	}
+
+	// One-off migration: JSONB 复合字段金额 元→分（#1727，fail-fast）。
+	if *migrateJSONBCents {
+		count, err := handlers.MigrateJSONBCents(*dryRunFlag)
+		if err != nil {
+			fmt.Printf("FATAL: JSONB cents migration failed: %v\n", err)
+			os.Exit(1)
+		}
+		if *dryRunFlag {
+			fmt.Printf("DRY RUN: %d JSONB records would be converted to cents\n", count)
+		} else {
+			fmt.Printf("JSONB cents migration complete: %d records converted\n", count)
 		}
 		os.Exit(0)
 	}

@@ -13,7 +13,7 @@ type RegistrationSession struct {
 	LocalUserID   *string    `gorm:"type:uuid" json:"-"` // reserved local users cache id (#1688)
 	FormData      string     `gorm:"type:jsonb" json:"form_data"`
 	CouponCode    string     `gorm:"type:varchar(32)" json:"coupon_code"`
-	Amount        Cents    `gorm:"type:numeric(10,2)" json:"amount"`
+	Amount        Cents    `gorm:"type:bigint" json:"amount"`
 	Status        string     `gorm:"size:16;default:'pending'" json:"status"` // pending/paid/completed/failed
 	Error         string     `gorm:"type:text" json:"error"`
 	CreatedAt     time.Time  `json:"created_at"`

@@ -10,7 +10,7 @@ type DiscountPolicy struct {
 	RentDiscount     float64    `gorm:"type:decimal(5,4);default:1" json:"rent_discount"`     // 0.9 = 9折
 	DepositDiscount  float64    `gorm:"type:decimal(5,4);default:1" json:"deposit_discount"`  // 0.9 = 9折
 	ShippingDiscount float64    `gorm:"type:decimal(5,4);default:1" json:"shipping_discount"` // 0.9 = 9折
-	MaxAmount        Cents    `gorm:"type:decimal(10,2);default:0" json:"max_amount"`       // 0 = no cap
+	MaxAmount        Cents    `gorm:"type:bigint;default:0" json:"max_amount"`       // 0 = no cap
 	ValidFrom        *time.Time `json:"valid_from"`
 	ValidTo          *time.Time `json:"valid_to"`
 	IsActive         bool       `gorm:"not null;default:true" json:"is_active"`
