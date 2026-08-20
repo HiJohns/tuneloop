@@ -49,7 +49,7 @@ func TestCentsMigration_20260820001(t *testing.T) {
 		'rent', 'test-out-001', 3512.50, 'payment', 'pending',
 		'{"gift_used":0.50}', NOW(), NOW())`).Error)
 
-	db.Exec(`DELETE FROM notifications WHERE user_id='00000000-0000-0000-0000-000000000001'`)
+	db.Exec(`DELETE FROM notifications`)
 	require.NoError(t, db.Exec(`INSERT INTO notifications (id, tenant_id, org_id, user_id, type, title, content, action_data, status, created_at, updated_at) VALUES (
 		'33333333-3333-4333-8333-333333333334',
 		'00000000-0000-0000-0000-000000000000',
