@@ -112,7 +112,7 @@ export default function Booking() {
                   <View className="flex-1">
                     <View className="flex justify-between items-center">
                       <Text className="font-medium">{pkg.name}</Text>
-                      <Text className="text-orange-500 font-bold">¥{pkg.price}</Text>
+                      <Text className="text-orange-500 font-bold">¥{(pkg.price || 0).toFixed(2)}</Text>
                     </View>
                     <Text className="text-gray-500 text-sm mt-1">{pkg.description}</Text>
                     <View className="flex items-center gap-1 text-gray-400 text-xs mt-2">

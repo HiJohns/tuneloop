@@ -84,32 +84,32 @@ export default function RepairQuote() {
             <View className="space-y-2">
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">材料费</Text>
-                <Text className="text-xs text-zinc-700">¥{materialFee}</Text>
+                <Text className="text-xs text-zinc-700">¥{(materialFee || 0).toFixed(2)}</Text>
               </View>
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">服务费</Text>
-                <Text className="text-xs text-zinc-700">¥{serviceFee}</Text>
+                <Text className="text-xs text-zinc-700">¥{(serviceFee || 0).toFixed(2)}</Text>
               </View>
               <View className="flex justify-between">
                 <Text className="text-xs text-zinc-500">物流费 (C段)</Text>
-                <Text className="text-xs text-zinc-700">¥{logisticsFee}</Text>
+                <Text className="text-xs text-zinc-700">¥{(logisticsFee || 0).toFixed(2)}</Text>
               </View>
               {isControlled && (
                 <>
                   <View className="flex justify-between">
                     <Text className="text-xs text-zinc-500">中转服务费</Text>
-                    <Text className="text-xs text-zinc-700">¥{transitServiceFee}</Text>
+                    <Text className="text-xs text-zinc-700">¥{(transitServiceFee || 0).toFixed(2)}</Text>
                   </View>
                   <View className="flex justify-between">
                     <Text className="text-xs text-zinc-500">中转物流费 (B+D段)</Text>
-                    <Text className="text-xs text-zinc-700">¥{transitLogisticsFee}</Text>
+                    <Text className="text-xs text-zinc-700">¥{(transitLogisticsFee || 0).toFixed(2)}</Text>
                   </View>
                 </>
               )}
               <View className="border-t border-zinc-200 pt-2 mt-2">
                 <View className="flex justify-between">
                   <Text className="text-sm font-bold text-black">合计</Text>
-                  <Text className="text-sm font-bold text-red-600">¥{total}</Text>
+                  <Text className="text-sm font-bold text-red-600">¥{(total || 0).toFixed(2)}</Text>
                 </View>
               </View>
               {acceptedQuote.duration && (

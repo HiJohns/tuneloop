@@ -412,15 +412,15 @@ export default function RepairRequestDetail() {
                     </View>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">材料费</Text>
-                      <Text className="text-xs text-zinc-700">¥{q.material_fee}</Text>
+                      <Text className="text-xs text-zinc-700">¥{(q.material_fee || 0).toFixed(2)}</Text>
                     </View>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">服务费</Text>
-                      <Text className="text-xs text-zinc-700">¥{q.service_fee}</Text>
+                      <Text className="text-xs text-zinc-700">¥{(q.service_fee || 0).toFixed(2)}</Text>
                     </View>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">物流费</Text>
-                      <Text className="text-xs text-zinc-700">¥{q.logistics_fee}</Text>
+                      <Text className="text-xs text-zinc-700">¥{(q.logistics_fee || 0).toFixed(2)}</Text>
                     </View>
                     {q.duration && (
                     <View className="flex justify-between">
@@ -526,15 +526,15 @@ export default function RepairRequestDetail() {
                     </View>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">材料费</Text>
-                      <Text className="text-xs text-zinc-700">¥{q.material_fee}</Text>
+                      <Text className="text-xs text-zinc-700">¥{(q.material_fee || 0).toFixed(2)}</Text>
                     </View>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">服务费</Text>
-                      <Text className="text-xs text-zinc-700">¥{q.service_fee}</Text>
+                      <Text className="text-xs text-zinc-700">¥{(q.service_fee || 0).toFixed(2)}</Text>
                     </View>
                     <View className="flex justify-between">
                       <Text className="text-xs text-zinc-500">物流费</Text>
-                      <Text className="text-xs text-zinc-700">¥{q.logistics_fee}</Text>
+                      <Text className="text-xs text-zinc-700">¥{(q.logistics_fee || 0).toFixed(2)}</Text>
                     </View>
                     {q.duration && (
                     <View className="flex justify-between">

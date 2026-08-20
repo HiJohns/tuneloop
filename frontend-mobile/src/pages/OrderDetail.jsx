@@ -442,7 +442,7 @@ export default function OrderDetail() {
             <View>
               <Text className="text-sm font-black text-red-700">租约已超期</Text>
               <Text className="text-xs text-red-600 mt-1">
-                超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{overdueFee}
+                超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{(overdueFee || 0).toFixed(2)}
                 <Text className="block mt-0.5">（¥{dailyRate.toFixed(2)}/天）</Text>
               </Text>
             </View>
@@ -538,7 +538,7 @@ export default function OrderDetail() {
                 <>
                   <View className="flex justify-between text-sm">
                     <Text className="text-zinc-500 font-medium">逾期费用</Text>
-                    <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{overdueFee}</Text>
+                    <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(overdueFee || 0).toFixed(2)}</Text>
                   </View>
                   <View className="flex justify-between text-sm">
                     <Text className="text-zinc-400">  逾期日费</Text>
@@ -556,19 +556,19 @@ export default function OrderDetail() {
               {settlement.cash_refundable > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">现金退款</Text>
-                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.cash_refundable}</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.cash_refundable || 0).toFixed(2)}</Text>
                 </View>
               )}
               {settlement.prepaid_refunded > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">退回预付点</Text>
-                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.prepaid_refunded}</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.prepaid_refunded || 0).toFixed(2)}</Text>
                 </View>
               )}
               {settlement.gift_points_refunded > 0 && (
                 <View className="flex justify-between text-sm">
                   <Text className="text-zinc-500 font-medium">赠送积分退还</Text>
-                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.gift_points_refunded}</Text>
+                  <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.gift_points_refunded || 0).toFixed(2)}</Text>
                 </View>
               )}
               <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
@@ -658,21 +658,21 @@ export default function OrderDetail() {
                   {order.pricing_breakdown.total_amount && (
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">合同总额</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{order.pricing_breakdown.total_amount}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(order.pricing_breakdown.total_amount || 0).toFixed(2)}</Text>
                     </View>
                   )}
                   {deposit > 0 && !order.deposit_waived && (
                     <>
                     <View className="flex justify-between text-sm">
                       <Text className="text-zinc-500 font-medium">押金</Text>
-                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}</Text>
+                      <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(deposit || 0).toFixed(2)}</Text>
                     </View>
                     {order.pricing_breakdown.deposit_method && (
                       <Text className="text-[10px] text-zinc-400 text-right -mt-1">
                         {order.pricing_breakdown.deposit_method === 'total_price'
-                          ? `原价 ¥${order.pricing_breakdown.total_price || 0} × ${order.pricing_breakdown.deposit_ratio || 0}`
+                          ? `原价 ¥${(order.pricing_breakdown.total_price || 0 || 0).toFixed(2)} × ${order.pricing_breakdown.deposit_ratio || 0}`
                           : (order.pricing_breakdown.deposit_multiplier > 0
-                              ? `日租金 ¥${order.pricing_breakdown.base_daily_rent || 0} × ${order.pricing_breakdown.deposit_multiplier}`
+                              ? `日租金 ¥${(order.pricing_breakdown.base_daily_rent || 0 || 0).toFixed(2)} × ${order.pricing_breakdown.deposit_multiplier}`
                               : '')}
                       </Text>
                     )}
@@ -721,13 +721,13 @@ export default function OrderDetail() {
           {settlement.original_rent_amount !== undefined && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">原始租金</Text>
-            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.original_rent_amount}</Text>
+            <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.original_rent_amount || 0).toFixed(2)}</Text>
           </View>
           )}
           {settlement.actual_rent_amount !== undefined && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">实收租金</Text>
-            <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.actual_rent_amount}</Text>
+            <Text className="text-green-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.actual_rent_amount || 0).toFixed(2)}</Text>
           </View>
           )}
           {settlement.actual_rent_days !== undefined && (
@@ -739,25 +739,25 @@ export default function OrderDetail() {
           {settlement.overdue_charges_total !== undefined && Number(settlement.overdue_charges_total) > 0 && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">逾期费用</Text>
-            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.overdue_charges_total}</Text>
+            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.overdue_charges_total || 0).toFixed(2)}</Text>
           </View>
           )}
           {settlement.cash_refundable !== undefined && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">可退现金</Text>
-            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.cash_refundable}</Text>
+            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.cash_refundable || 0).toFixed(2)}</Text>
           </View>
           )}
           {settlement.prepaid_refunded !== undefined && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">预付款退还</Text>
-            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.prepaid_refunded}</Text>
+            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.prepaid_refunded || 0).toFixed(2)}</Text>
           </View>
           )}
           {settlement.gift_points_refunded !== undefined && (
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">赠送积分退还</Text>
-            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{settlement.gift_points_refunded}</Text>
+            <Text className="text-blue-600 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(settlement.gift_points_refunded || 0).toFixed(2)}</Text>
           </View>
           )}
           {settlement.refund_method && (

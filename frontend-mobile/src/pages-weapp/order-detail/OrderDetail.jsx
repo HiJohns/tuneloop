@@ -422,9 +422,9 @@ export default function OrderDetail() {
               <View>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: '#b91c1c' }}>租约已超期</Text>
                 <Text style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>
-                  超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{overdueFee}
+                  超期 {overdueDaysCalc} 天 · 累计逾期费 ¥{(overdueFee || 0).toFixed(2)}
                 </Text>
-                <Text style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>（¥{dailyRate}/天）</Text>
+                <Text style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>（¥{(dailyRate || 0).toFixed(2)}/天）</Text>
               </View>
             </View>
           </View>
@@ -515,11 +515,11 @@ export default function OrderDetail() {
               {order.settlement.actual_rent_days !== undefined && (
                 <Row label="实际租期" value={`${order.settlement.actual_rent_days} 天`} />
               )}
-              <Row label="实际租金" value={`¥${order.settlement.actual_rent_amount}`} color="#16a34a" />
+              <Row label="实际租金" value={`¥${(order.settlement.actual_rent_amount || 0).toFixed(2)}`} color="#16a34a" />
               {overdueFee > 0 && (
                 <>
-                  <Row label="逾期费用" value={`¥${overdueFee}`} color="#ef4444" />
-                  <Row label="  逾期日费" value={`¥${dailyRate}/天`} color="#a1a1aa" />
+                  <Row label="逾期费用" value={`¥${(overdueFee || 0).toFixed(2)}`} color="#ef4444" />
+                  <Row label="  逾期日费" value={`¥${(dailyRate || 0).toFixed(2)}/天`} color="#a1a1aa" />
                 </>
               )}
             </>
@@ -530,13 +530,13 @@ export default function OrderDetail() {
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>退款</Text>
               {order.settlement.cash_refundable > 0 && (
-                <Row label="现金退款" value={`¥${order.settlement.cash_refundable}`} color="#3b82f6" />
+                <Row label="现金退款" value={`¥${(order.settlement.cash_refundable || 0).toFixed(2)}`} color="#3b82f6" />
               )}
               {order.settlement.prepaid_refunded > 0 && (
-                <Row label="退回预付点" value={`¥${order.settlement.prepaid_refunded}`} color="#3b82f6" />
+                <Row label="退回预付点" value={`¥${(order.settlement.prepaid_refunded || 0).toFixed(2)}`} color="#3b82f6" />
               )}
               {order.settlement.gift_points_refunded > 0 && (
-                <Row label="赠送积分退还" value={`¥${order.settlement.gift_points_refunded}`} color="#3b82f6" />
+                <Row label="赠送积分退还" value={`¥${(order.settlement.gift_points_refunded || 0).toFixed(2)}`} color="#3b82f6" />
               )}
               <Row label="退款合计" value={`¥${(Number(order.settlement.cash_refundable) + Number(order.settlement.prepaid_refunded) + Number(order.settlement.gift_points_refunded)).toFixed(2)}`} color="#16a34a" />
             </>
@@ -547,16 +547,16 @@ export default function OrderDetail() {
             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>结算</Text>
               {order.settlement.original_rent_amount !== undefined && (
-                <Row label="原始租金" value={`¥${order.settlement.original_rent_amount}`} />
+                <Row label="原始租金" value={`¥${(order.settlement.original_rent_amount || 0).toFixed(2)}`} />
               )}
               {order.settlement.actual_rent_days !== undefined && (
                 <Row label="实际天数" value={`${order.settlement.actual_rent_days} 天`} />
               )}
               {order.settlement.overdue_charges_total !== undefined && Number(order.settlement.overdue_charges_total) > 0 && (
-                <Row label="逾期费用" value={`¥${order.settlement.overdue_charges_total}`} color="#ef4444" />
+                <Row label="逾期费用" value={`¥${(order.settlement.overdue_charges_total || 0).toFixed(2)}`} color="#ef4444" />
               )}
               {order.settlement.cash_refundable !== undefined && (
-                <Row label="可退现金" value={`¥${order.settlement.cash_refundable}`} />
+                <Row label="可退现金" value={`¥${(order.settlement.cash_refundable || 0).toFixed(2)}`} />
               )}
               {order.settlement.refund_method && (
                 <Row label="退款方式" value={order.settlement.refund_method} />
@@ -665,7 +665,7 @@ export default function OrderDetail() {
                           <View>
                             <Row label="日租金" value={`¥${Number(pb.final_daily_rent || pb.base_daily_rent || 0).toFixed(2)}`} />
                             {pb.base_daily_rent && pb.final_daily_rent < pb.base_daily_rent && (
-                              <Row label="原价" value={`¥${pb.base_daily_rent}/天`} color="#a1a1aa" />
+                              <Row label="原价" value={`¥${(pb.base_daily_rent || 0).toFixed(2)}/天`} color="#a1a1aa" />
                             )}
                             {pb.rent_days > 0 && <Row label="合同租期（天）" value={pb.rent_days} />}
                             <Row label="租金" value={`¥${Number(pb.total_amount || 0).toFixed(2)}`} />
@@ -680,7 +680,7 @@ export default function OrderDetail() {
                       {pb?.deposit_method && (
                         <Text style={{ fontSize: 11, color: '#a1a1aa', textAlign: 'right', marginTop: -2 }}>
                           {pb.deposit_method === 'total_price'
-                            ? `乐器总价值 ¥${pb.total_price || 0}`
+                            ? `乐器总价值 ¥${(pb.total_price || 0 || 0).toFixed(2)}`
                             : (pb.deposit_multiplier > 0
                                 ? `日租金 × ${pb.deposit_multiplier}倍`
                                 : '')}

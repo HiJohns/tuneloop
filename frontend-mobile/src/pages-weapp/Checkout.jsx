@@ -444,14 +444,14 @@ function SingleCheckout({ id, nav }) {
               <Text style={{ color: '#a1a1aa' }}>押金</Text>
               <Text style={{ fontWeight: '500', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
                 {depositWaived ? <Text>¥0<Text style={{ fontSize: 10, color: '#16a34a', marginLeft: 4 }}>(免押金)</Text></Text>
-                  : <>¥{deposit}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
+                  : <>¥{(deposit || 0).toFixed(2)}{deposit === 0 ? <Text style={{ fontSize: 10, color: '#a1a1aa', marginLeft: 4 }}>(日租金×倍率)</Text> : null}</>}
               </Text>
             </View>
             <View style={{ borderTop: '1px solid #d4d4d8', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
               <Text style={{ color: '#18181b' }}>合计</Text>
               <Text style={{ color: '#915F38', flexShrink: 0, marginLeft: 'auto', whiteSpace: 'nowrap' }}>¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(2)} + 押金 ¥{effectiveDeposit}</Text>
+            <Text style={{ fontSize: 10, color: '#a1a1aa', textAlign: 'right' }}>租金 ¥{totalRent.toFixed(2)} + 押金 ¥{(effectiveDeposit || 0).toFixed(2)}</Text>
           </View>
         </View>
 
@@ -861,16 +861,16 @@ function BatchCheckout({ nav }) {
                           <Text style={{ fontSize: 10, color: '#a1a1aa' }}>{item.category_name || ''}</Text>
                         </View>
                         <Text style={{ fontSize: 10, color: '#6b7280', flexShrink: 0, marginLeft: 8 }}>
-                          {item.rent_qty || 1}天 · ¥{p.rent}
+                          {item.rent_qty || 1}天 · ¥{(p.rent || 0).toFixed(2)}
                         </Text>
                       </View>
                     )
                   })}
                   <View style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(228,228,231,0.6)' }}>
                     <Text style={{ fontSize: 10, color: '#a1a1aa' }}>
-                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`}
+                      {depositWaived ? '免押金' : `押金 ¥${(groupDeposit || 0).toFixed(2)}`}
                     </Text>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{groupSubtotal}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#27272a' }}>小计 ¥{(groupSubtotal || 0).toFixed(2)}</Text>
                   </View>
                 </View>
               )

@@ -176,7 +176,7 @@ export default function Renewal() {
               const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
               return (
               <View key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingVertical: 4 }}>
-                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天 · ¥{tierRate}/天</Text>
+                <Text style={{ fontSize: 12, color: '#71717a' }}>第{t.tier}阶 {t.days}天 · ¥{(tierRate || 0).toFixed(2)}/天</Text>
                 <Text style={{ fontSize: 12, fontWeight: '500' }}>¥{t.subtotal?.toFixed(2)}</Text>
               </View>
             )})}

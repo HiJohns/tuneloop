@@ -164,7 +164,7 @@ export default function Renewal() {
               const tierRate = (t.rate * (t.discount || 1)).toFixed(2)
               return (
               <View key={i} className="flex justify-between py-1 text-sm">
-                <Text className="text-gray-500">第{t.tier}阶 {t.days}天 · ¥{tierRate}/天</Text>
+                <Text className="text-gray-500">第{t.tier}阶 {t.days}天 · ¥{(tierRate || 0).toFixed(2)}/天</Text>
                 <Text className="font-medium">¥{t.subtotal?.toFixed(2)}</Text>
               </View>
             )})}

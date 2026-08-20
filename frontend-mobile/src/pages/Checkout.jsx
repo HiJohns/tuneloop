@@ -368,7 +368,7 @@ function SingleCheckout({ id, navigate }) {
                 {depositWaived ? (
                   <Text className="text-green-600 font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥0（免押金）</Text>
                 ) : (
-                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{deposit}{deposit === 0 ? <Text className="text-[10px] text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
+                  <Text className="font-medium flex-shrink-0 ml-auto whitespace-nowrap">¥{(deposit || 0).toFixed(2)}{deposit === 0 ? <Text className="text-[10px] text-zinc-400 ml-1">(日租金×倍率)</Text> : null}</Text>
                 )}
               </View>
             </View>
@@ -424,7 +424,7 @@ function SingleCheckout({ id, navigate }) {
               <Text className="font-black text-zinc-900 text-base">合计</Text>
               <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{totalAmount.toFixed(2)}</Text>
             </View>
-            <Text className="text-[10px] text-zinc-400 text-right mt-1">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{deposit}</Text>
+            <Text className="text-[10px] text-zinc-400 text-right mt-1">租金 ¥{totalRent.toFixed(2)} + 押金 ¥{(deposit || 0).toFixed(2)}</Text>
             {depositWaived ? (
               <Text className="block text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，寄出时将选用顺丰到付，请注意查收哦谢谢。</Text>
             ) : (
@@ -927,16 +927,16 @@ function BatchCheckout({ navigate }) {
                           <Text className="text-[10px] text-zinc-400">{item.category_name || ''}</Text>
                         </View>
                         <Text className="text-[10px] text-zinc-500 flex-shrink-0 ml-2">
-                          {item.rent_qty || 30}天 · ¥{p.rent}
+                          {item.rent_qty || 30}天 · ¥{(p.rent || 0).toFixed(2)}
                         </Text>
                       </View>
                     )
                   })}
                   <View className="flex justify-between items-center mt-1 pt-1 border-t border-zinc-200/60">
                     <Text className="text-[10px] text-zinc-400">
-                      {depositWaived ? '免押金' : `押金 ¥${groupDeposit}`}
+                      {depositWaived ? '免押金' : `押金 ¥${(groupDeposit || 0).toFixed(2)}`}
                     </Text>
-                    <Text className="text-sm font-bold text-zinc-800">小计 ¥{groupSubtotal}</Text>
+                    <Text className="text-sm font-bold text-zinc-800">小计 ¥{(groupSubtotal || 0).toFixed(2)}</Text>
                   </View>
                 </View>
               )

@@ -426,7 +426,7 @@ export default function Cart() {
                             <View className="text-[11px] text-right space-y-0.5 mt-2">
                               {pricing.tiers.map((t, i) => (
                                 <Text key={i} className="block text-zinc-500">
-                                  {t.days}天 × ¥{t.rate}/天 = ¥{t.fee}
+                                  {t.days}天 × ¥{(t.rate || 0).toFixed(2)}/天 = ¥{(t.fee || 0).toFixed(2)}
                                 </Text>
                               ))}
                               <Text className="block text-zinc-500">租金合计 ¥{pricing.rent.toFixed(0)}</Text>

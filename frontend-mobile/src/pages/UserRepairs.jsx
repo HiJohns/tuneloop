@@ -48,7 +48,7 @@ export default function UserRepairs() {
                 </Text>
               </View>
               <Text className="text-xs text-zinc-400">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</Text>
-              {r.quote_amount && <Text className="text-xs text-zinc-500 mt-1">报价: ¥{r.quote_amount}</Text>}
+              {r.quote_amount && <Text className="text-xs text-zinc-500 mt-1">报价: ¥{(r.quote_amount || 0).toFixed(2)}</Text>}
             </View>
           ))}
         </View>

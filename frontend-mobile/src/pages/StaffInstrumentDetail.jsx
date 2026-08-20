@@ -293,19 +293,19 @@ export default function StaffInstrumentDetail() {
           <View className="space-y-2 text-sm">
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">日租金</Text>
-              <Text className="font-black">¥{pricingInfo.daily_rent || instrument.base_daily_rate || 0}</Text>
+              <Text className="font-black">¥{(pricingInfo.daily_rent || instrument.base_daily_rate || 0 || 0).toFixed(2)}</Text>
             </View>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">押金</Text>
-              <Text className="font-black">¥{pricingInfo.deposit || 0}</Text>
+              <Text className="font-black">¥{(pricingInfo.deposit || 0 || 0).toFixed(2)}</Text>
             </View>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">物流费</Text>
-              <Text className="font-black">¥{pricingInfo.shipping_fee || 0}</Text>
+              <Text className="font-black">¥{(pricingInfo.shipping_fee || 0 || 0).toFixed(2)}</Text>
             </View>
             <View className="flex justify-between">
               <Text className="text-zinc-500 font-medium">逾期日费</Text>
-              <Text className="font-black">¥{pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0}</Text>
+              <Text className="font-black">¥{(pricingInfo.overdue_daily_fee || pricingInfo.daily_rent || 0 || 0).toFixed(2)}</Text>
             </View>
           </View>
         </View>

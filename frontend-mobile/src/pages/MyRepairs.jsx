@@ -188,7 +188,7 @@ export default function MyRepairs() {
                     {r.quote_amount != null && (
                     <View className="flex justify-between items-center">
                       <Text className="text-xs text-zinc-400">报价</Text>
-                      <Text className="text-xs text-zinc-600">¥{r.quote_amount}</Text>
+                      <Text className="text-xs text-zinc-600">¥{(r.quote_amount || 0).toFixed(2)}</Text>
                     </View>
                     )}
                   </View>
