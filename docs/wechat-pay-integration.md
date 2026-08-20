@@ -478,6 +478,16 @@ wx.requestPayment 失败回调:
 curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_token=$(your_token)"
 ```
 
+### Phase 6 补充：无物流订单必须上报虚拟商品发货（#1730）
+
+**机制**：微信「用户交易后，默认资金进入冻结状态」，需完成发货信息录入（upload_shipping_info）后方可结算。租赁（实物）走发货+确认收货；**会员费/续费/定损赔付等无实物交付订单必须用 `logistics_type=3`（虚拟商品）上报发货**，否则资金永久冻结无法收款（QA 实测会员费收款失败）。
+
+**规则**：
+- 虚拟商品（logistics_type=3）：无 tracking_no/express_company，**不调用 notify_confirm_receive**
+- 线上服务类若不发货，微信 2 天自动结算（不可依赖，必须主动上报）
+- 上报位置：支付回调 `applySideEffects`（wechatpay_callback.go:192）各 case 成功后
+- repair（报修）需业务确认归类（维修费支付无商家发货动作，倾向虚拟商品）
+
 ### Phase 6 补充：发货信息上报红线（2026-08-20 预生产日志沉淀）
 
 微信订单系统的**发货上报**（`POST /wxa/sec/order/upload_shipping_info`，backend/services/wechat_shipping.go）与**确认收货**（`notify_confirm_receive`）在发货/收货时自动调用：
