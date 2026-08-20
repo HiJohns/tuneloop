@@ -324,7 +324,15 @@ func validateModelColumns(db *gorm.DB, instance interface{}) error {
 		return fmt.Errorf("failed to check table %s: %w", tableName, err)
 	}
 	if tableExists == 0 {
-		return nil
+		// #1716: a missing table for a persistence model is a hard failure —
+		// the migration is missing (models without a table previously slipped
+		// through silently; see merchant_members/damage_reports incidents).
+		// Exempt known non-persisted/deprecated models so startup still works.
+		switch tableName {
+		case "confirmation_sessions", "labels", "damage_assessments":
+			return nil // intentionally non-persisted or dropped (#1711)
+		}
+		return fmt.Errorf("table %q for model %s is missing — a migration is required (models must have matching up/down SQL)", tableName, typ.Name())
 	}
 
 	var expectedCols []string
@@ -383,42 +391,76 @@ func validateModelColumns(db *gorm.DB, instance interface{}) error {
 func validateDatabaseSchema(db *gorm.DB) error {
 	fmt.Println("Validating database schema...")
 
+	// Full persistence-model list (#1716): every model with a table must be
+	// validated. Table-missing models below are NOT failures — they are either
+	// intentionally exempt (non-persisted / composite) or deprecated:
+	//   ConfirmationSession, Label — no table ever created (non-persisted)
+	//   DamageAssessment — dropped by migration 20260818004 (merged into DamageReport)
 	modelsToValidate := []interface{}{
 		&models.User{},
 		&models.Category{},
 		&models.Instrument{},
+		&models.Referral{},
+		&models.Notification{},
+		&models.InstrumentPhotoSpec{},
 		&models.Order{},
+		&models.MerchantSettlementConfig{},
+		&models.Settlement{},
+		&models.OverdueCharge{},
+		&models.OrderLog{},
+		&models.PaymentSession{},
+		&models.SessionOrderLink{},
+		&models.OrderPaymentRecord{},
+		&models.OrderRefundRecord{},
 		&models.Site{},
 		&models.MaintenanceTicket{},
 		&models.BrandConfig{},
 		&models.OwnershipCertificate{},
+		&models.Technician{},
+		&models.SiteImage{},
+		&models.InventoryTransfer{},
 		&models.Client{},
+		&models.Lease{},
+		&models.Deposit{},
+		&models.UserInstrument{},
+		&models.RepairRequest{},
+		&models.RepairRequestRecord{},
+		&models.PointsTransaction{},
 		&models.Tenant{},
+		&models.InstrumentLevel{},
 		&models.Property{},
 		&models.PropertyOption{},
 		&models.InstrumentProperty{},
 		&models.MaintenanceWorker{},
 		&models.MaintenanceSession{},
 		&models.MaintenanceSessionRecord{},
+		&models.RepairRecord{},
 		&models.LeaseSession{},
+		&models.ForwardingSession{},
 		&models.ElectronicContract{},
 		&models.DamageReport{},
-		&models.DamageAssessment{},
 		&models.Appeal{},
 		&models.OrderStatusHistory{},
 		&models.AuditLog{},
 		&models.InstrumentPhotoBatch{},
-		&models.InstrumentPhotoSpec{},
 		&models.Merchant{},
 		&models.SiteMember{},
 		&models.MerchantMember{},
 		&models.Role{},
 		&models.InstrumentMedia{},
 		&models.SystemSetting{},
+		&models.MediaAsset{},
 		&models.PricingTemplate{},
 		&models.MerchantPricingConfig{},
 		&models.UserAddress{},
+		&models.TransitRoute{},
+		&models.TransitOrder{},
+		&models.RepairTransitOrder{},
+		&models.Warning{},
 		&models.Banner{},
+		&models.ConfirmationSession{},
+		&models.Label{},
+		&models.DamageAssessment{},
 	}
 
 	for _, m := range modelsToValidate {

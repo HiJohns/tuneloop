@@ -739,6 +739,7 @@ ssh cadenza
 - `/opt/tuneloop/apps/tuneloop/` 内的 `service`/`www`/`mobile`/`database` 为指向版本快照的软链接
 - **严禁**直接在生产服修改代码或运行 `go build`。所有变更必须先通过 Git → 构建打包 → 生产部署流程。
 - **⚠️ 结构变化必须伴随迁移逻辑**（教训：#483 wx_user_bindings 新增表未迁移旧 `users.wx_openid` → 生产所有旧绑定用户微信登录 `wx_user_not_found`）。判断标准：合并前 `git diff` 涉及任何表/字段（含 AutoMigrate 模型、SQL 迁移、结构相关 DDL）时，必须同时提供迁移/回填方案，并在预生产执行 + 幂等重启验证。完整发布检查见 `docs/release-checklist.md`。
+- **⚠️ 模型变更必须配 migration + 启动校验兜底**（#1716/#1715 教训）：新增/修改 `backend/models/*.go` 的持久化模型时，必须同步提供对应 migration SQL（up/down）；启动时 `validateDatabaseSchema` 会校验**全部持久化模型表存在**（缺失即 FATAL 拒绝启动），模型表必须加入 `modelsToValidate` 清单（非豁免模型）。豁免模型（无表/废弃）仅限 `confirmation_sessions` / `labels` / `damage_assessments`。对齐 opencode `/review` 的 `db-migration-check`（M1 迁移存在 / M2 启动执行 fail-fast / M3 校验覆盖 / M4 预生产验证）。
 - **beaconiam 结构迁移**：beaconiam 用启动时幂等迁移（`cmd/api/main.go` 的 `runXxxMigration` + `schema_migrations` 标记），不依赖 AutoMigrate 自动建列。读写路径如有旧机制遗留数据（如 `users.wx_openid`），同时提供运行时 fallback 双保险，避免迁移未跑时功能全断。
 
 ### beaconiam 部署方式（2026-08-14 起与 tuneloop 统一）
