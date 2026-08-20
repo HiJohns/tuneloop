@@ -392,7 +392,7 @@ func TestPrepayMembershipWithCoupon_ENO(t *testing.T) {
 		ID:     uuid.New().String(),
 		Code:   "ENO",
 		Type:   "percent",
-		Value:  1,
+		Value:  10,
 		Active: true,
 	}).Error)
 
@@ -448,7 +448,7 @@ func TestPrepayMembershipWithCoupon_ENO(t *testing.T) {
 
 	var record models.OrderPaymentRecord
 	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
-	assert.InDelta(t, 0.99, record.Amount, 0.001, "ENO → 1% of 99")
+	assert.Equal(t, models.Cents(99), record.Amount, "ENO → 1% of 99 yuan = 99 cents")
 	assert.Contains(t, *record.RawResponse, "ENO", "coupon stored on record")
 	assert.Equal(t, "pending", record.Status, "real payment pending until callback")
 	assert.NotNil(t, record.SessionID, "session_id stored in dedicated column")

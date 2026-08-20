@@ -130,11 +130,11 @@ func TestMembershipFlow(t *testing.T) {
 	// Step 3: Payment record booked as pending (real flow), amount 99.
 	// ------------------------------------------------------------------
 	var record models.OrderPaymentRecord
-	require.NoError(t, db.Where("order_type = ? AND amount = ?", "membership", 99.0).
+	require.NoError(t, db.Where("order_type = ? AND amount = ?", "membership", 9900).
 		Order("created_at desc").First(&record).Error)
 	require.Equal(t, "pending", record.Status, "real flow books payment as pending")
 	assert.Equal(t, "membership", record.OrderType)
-	assert.Equal(t, 99.0, record.Amount)
+	assert.Equal(t, models.Cents(9900), record.Amount)
 	assert.Equal(t, "jsapi", *record.Method)
 	assert.Equal(t, prepayResp.Data.Data.OutTradeNo, *record.OutTradeNo)
 
@@ -146,12 +146,12 @@ func TestMembershipFlow(t *testing.T) {
 	require.NoError(t, db.Create(&models.MembershipLevel{
 		ID:        1,
 		Name:      "初级会员",
-		MinAmount: 99,
+		MinAmount: 9900,
 	}).Error)
 	require.NoError(t, db.Create(&models.MembershipLevel{
 		ID:        2,
 		Name:      "高级会员",
-		MinAmount: 199,
+		MinAmount: 19900,
 	}).Error)
 
 	err := applySideEffects(db, &record, time.Now())
@@ -161,7 +161,7 @@ func TestMembershipFlow(t *testing.T) {
 	var userAfter models.User
 	require.NoError(t, db.Where("id = ?", localUser.ID).First(&userAfter).Error)
 	require.NotNil(t, userAfter.MembershipLevelID, "membership level set after payment")
-	require.Equal(t, 1, *userAfter.MembershipLevelID, "highest level with MinAmount <= 99 activated")
+	require.Equal(t, 1, *userAfter.MembershipLevelID, "highest level with MinAmount <= 9900 cents activated")
 
 	// Payment record unchanged after side effects (no status flip).
 	var after models.OrderPaymentRecord
@@ -509,7 +509,7 @@ func TestPrepayRentWithCoupon_OREZ(t *testing.T) {
 	// Payment record re-priced to 0 and booked paid (waived).
 	var record models.OrderPaymentRecord
 	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
-	assert.Equal(t, 0.0, record.Amount, "OREZ re-priced rent to 0")
+	assert.Equal(t, models.Cents(0), record.Amount, "OREZ re-priced rent to 0")
 	assert.Equal(t, "paid", record.Status)
 	assert.Equal(t, "waived", *record.Method)
 
@@ -542,7 +542,7 @@ func TestPrepayRentWithCoupon_ENO(t *testing.T) {
 		ID:     uuid.New().String(),
 		Code:   "ENO",
 		Type:   "percent",
-		Value:  1,
+		Value:  10,
 		Active: true,
 	}).Error)
 
@@ -596,7 +596,7 @@ func TestPrepayRentWithCoupon_ENO(t *testing.T) {
 	// Payment record re-priced to 1% of 100 = 1.0, pending real payment.
 	var record models.OrderPaymentRecord
 	require.NoError(t, db.Where("out_trade_no = ?", resp.Data.Data.OutTradeNo).First(&record).Error)
-	assert.InDelta(t, 1.0, record.Amount, 0.001, "ENO re-priced rent to 1%")
+	assert.Equal(t, models.Cents(100), record.Amount, "ENO re-priced rent to 1% of 100 yuan = 100 cents")
 	assert.Equal(t, "pending", record.Status)
 	assert.Equal(t, "jsapi", *record.Method)
 }

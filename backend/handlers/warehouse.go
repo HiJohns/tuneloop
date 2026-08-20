@@ -587,7 +587,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		notificationTitle = "归还验收有损坏"
 		notificationContent = fmt.Sprintf("您的订单 %s 验收发现损坏，赔偿金额 ¥%.2f。请在订单详情中确认接受或拒绝。定损理由：%s", orderID[:8], req.DamageAmount, req.Notes)
 		actionType = "damage_accept_reject"
-		actionData = strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, order.Deposit.ToYuan(), orderID))
+		actionData = strPtr(fmt.Sprintf(`{"damage_amount":%d,"deposit":%d,"order_id":"%s"}`, int64(models.FromYuan(req.DamageAmount)), int64(order.Deposit), orderID))
 		// Point to the damage report (created above) so MessageDetail can
 		// render the accept/reject buttons (ref_type=damage_report,
 		// ref_id=damage_report.ID) (#1607, L-04).
@@ -744,7 +744,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 		RefID:      damageReport.ID,
 		RefType:    "damage_report",
 		ActionType: "damage_accept_reject",
-		ActionData: strPtr(fmt.Sprintf(`{"damage_amount":%.2f,"overdue_fee":%.2f,"total_deduction":%.2f,"deposit":%.2f,"order_id":"%s"}`, req.DamageAmount, overdueFee, totalDeduction, order.Deposit.ToYuan(), orderID)),
+		ActionData: strPtr(fmt.Sprintf(`{"damage_amount":%d,"overdue_fee":%d,"total_deduction":%d,"deposit":%d,"order_id":"%s"}`, int64(models.FromYuan(req.DamageAmount)), int64(models.FromYuan(overdueFee)), int64(models.FromYuan(totalDeduction)), int64(order.Deposit), orderID)),
 		Status:     "unread",
 	}
 	if err := db.Create(&notification).Error; err != nil {

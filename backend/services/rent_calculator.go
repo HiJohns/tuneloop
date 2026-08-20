@@ -244,8 +244,35 @@ func getPromoPlanEffectiveRate(db *gorm.DB, planID string) float64 {
 	return minRate
 }
 
+// FormatPricingBreakdownJSON 序列化定价明细为 JSONB 存储字符串。
+// #1728 P3：JSONB 内部金额一律存分（元 ×100 round）——与 Cents 存储对齐，
+// 前端按分解析（API 输出分）。比例/折扣字段（deposit_ratio/discount/rate）
+// 保持小数，不转换。
 func FormatPricingBreakdownJSON(p *PricingBreakdown) string {
-	b, _ := json.Marshal(p)
+	q := *p
+	toCents := func(v float64) float64 { return math.Round(v * 100) }
+	q.BaseDailyRent = toCents(p.BaseDailyRent)
+	q.FinalDailyRent = toCents(p.FinalDailyRent)
+	q.TotalAmount = toCents(p.TotalAmount)
+	q.Deposit = toCents(p.Deposit)
+	q.TotalPrice = toCents(p.TotalPrice)
+	q.ShippingFee = toCents(p.ShippingFee)
+	if p.PricingTiers != nil {
+		q.PricingTiers = make([]PricingTierConfig, len(p.PricingTiers))
+		for i, t := range p.PricingTiers {
+			q.PricingTiers[i] = t
+			q.PricingTiers[i].DailyRate = toCents(t.DailyRate)
+		}
+	}
+	if p.TierSegments != nil {
+		q.TierSegments = make([]TierSegment, len(p.TierSegments))
+		for i, s := range p.TierSegments {
+			q.TierSegments[i] = s
+			q.TierSegments[i].Rate = toCents(s.Rate)
+			q.TierSegments[i].Subtotal = toCents(s.Subtotal)
+		}
+	}
+	b, _ := json.Marshal(q)
 	return string(b)
 }
 

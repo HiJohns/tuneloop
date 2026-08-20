@@ -36,7 +36,8 @@ func parsePricingBreakdown(pbJSON *string) (map[string]interface{}, float64, err
 		return result, 0, err
 	}
 	finalDaily, _ := result["final_daily_rent"].(float64)
-	return result, finalDaily, nil
+	// #1728 P3：JSONB 金额为分，计算链按元 → /100。
+	return result, finalDaily / 100, nil
 }
 
 func parsePointsPolicySnapshot(ppsJSON *string) (map[string]interface{}, float64, float64) {
@@ -293,7 +294,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 
 		breakdownJSON, _ := json.Marshal(result.Breakdown)
 
-		settlement := models.Settlement{
+		settlement = &models.Settlement{
 			ID:                  uuid.New().String(),
 			OrderID:             order.ID,
 			ActualRentDays:      result.ActualDays,
@@ -310,7 +311,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			UpdatedAt:           time.Now(),
 		}
 
-		if err := tx.Create(&settlement).Error; err != nil {
+		if err := tx.Create(settlement).Error; err != nil {
 			return nil, fmt.Errorf("failed to create settlement: %w", err)
 		}
 
@@ -552,7 +553,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
 			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-				finalDailyRent = v
+				finalDailyRent = v / 100
 			}
 		}
 	}
@@ -565,6 +566,10 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		}
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
 			tierSegments = pb.TierSegments
+			for i := range tierSegments {
+				tierSegments[i].Rate /= 100
+				tierSegments[i].Subtotal /= 100
+			}
 		}
 	}
 
@@ -635,7 +640,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
 			if v, ok := pb["total_amount"].(float64); ok {
-				totalRentPaid = v
+				totalRentPaid = v / 100
 			}
 		}
 	}
@@ -723,30 +728,39 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		cashRefundable = 0
 	}
 
+	// #1728 P3：breakdown JSONB 金额存分（元 ×100）；比例（pay_ratio）保持小数。
+	c := func(v float64) int64 { return int64(math.Round(v*100 + 0.5)) }
+	tierSegsCents := make([]map[string]interface{}, 0, len(tierSegments))
+	for _, ts := range tierSegments {
+		tierSegsCents = append(tierSegsCents, map[string]interface{}{
+			"tier": ts.Tier, "days": ts.Days,
+			"rate": c(ts.Rate), "discount": ts.Discount, "subtotal": c(ts.Subtotal),
+		})
+	}
 	breakdown := map[string]interface{}{
-		"original_total":            order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed,
-		"total_rent_paid":           totalRentPaid,
-		"deposit":                   order.Deposit,
-		"deposit_deducted_overdue":  overdueFee,
-		"deposit_deducted_damage":   damageDeducted,
-		"deposit_deducted_shipping": shippingFee,
-		"remaining_deposit":         remainingDeposit,
-		"damage_deducted":           damageDeducted,
-		"overdue_fee":               overdueFee,
+		"original_total":            int64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
+		"total_rent_paid":           c(totalRentPaid),
+		"deposit":                   int64(order.Deposit),
+		"deposit_deducted_overdue":  c(overdueFee),
+		"deposit_deducted_damage":   c(damageDeducted),
+		"deposit_deducted_shipping": c(shippingFee),
+		"remaining_deposit":         c(remainingDeposit),
+		"damage_deducted":           c(damageDeducted),
+		"overdue_fee":               c(overdueFee),
 		"overdue_days":              reportOverdue.OverdueDays,
-		"early_return_rebate":       earlyReturnRebate,
-		"rent_payable":              rentPayable,
-		"actual_rent_amount":        rentPayable, // backward-compatible alias
+		"early_return_rebate":       c(earlyReturnRebate),
+		"rent_payable":              c(rentPayable),
+		"actual_rent_amount":        c(rentPayable), // backward-compatible alias
 		"actual_rent_days":          actualDays,
-		"final_daily_rent":          finalDailyRent,
-		"total_refund":              totalRefund,
-		"cash_refundable":           cashRefundable,
-		"gift_points_used":          order.GiftPointsUsed,
-		"gift_cap":                  a1,
-		"gift_points_refunded":      giftPointsRefunded,
-		"cash_paid":                 order.CashPaid,
+		"final_daily_rent":          c(finalDailyRent),
+		"total_refund":              c(totalRefund),
+		"cash_refundable":           c(cashRefundable),
+		"gift_points_used":          int64(order.GiftPointsUsed),
+		"gift_cap":                  int64(a1),
+		"gift_points_refunded":      c(giftPointsRefunded),
+		"cash_paid":                 int64(order.CashPaid),
 		"pay_ratio":                 payRatio,
-		"tier_segments":             tierSegments,
+		"tier_segments":             tierSegsCents,
 	}
 
 	// C1 = R1 − min(A1, A0): the cash portion of the adjusted payable rent.

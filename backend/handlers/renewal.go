@@ -285,7 +285,7 @@ func ConfirmRenewal(c *gin.Context) {
 	result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 		OutTradeNo:  outTradeNo,
 		OpenID:      req.OpenID,
-		TotalAmount: cfg.AmountToCents(totalAmount),
+		TotalAmount: int64(models.FromYuan(totalAmount)),
 		Description: fmt.Sprintf("TuneLoop 续期 %s", orderID[:8]),
 		NotifyURL:   cfg.NotifyURL,
 	})

@@ -301,27 +301,29 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	var points struct {
 		GiftUsed float64 `json:"gift_used"`
 	}
+	// #1728 P3：raw_response gift_used 为分，扣点按元。
 	if err := json.Unmarshal([]byte(*record.RawResponse), &points); err != nil {
 		return nil // silently ignore malformed raw_response
 	}
-	if points.GiftUsed <= 0 {
+	giftUsedYuan := points.GiftUsed / 100
+	if giftUsedYuan <= 0 {
 		return nil
 	}
 	if err := tx.Model(&models.User{}).Where("iam_sub = ?", record.UserID).
 		Updates(map[string]interface{}{
-			"promo_points": gorm.Expr("GREATEST(promo_points - ?, 0)", points.GiftUsed),
+			"promo_points": gorm.Expr("GREATEST(promo_points - ?, 0)", giftUsedYuan),
 			"updated_at":   now,
 		}).Error; err != nil {
 		return fmt.Errorf("deduct user points: %w", err)
 	}
 	if record.OrderID != nil {
 		updates := map[string]interface{}{
-			"gift_points_used": points.GiftUsed,
+			"gift_points_used": giftUsedYuan,
 		}
 		// Deduct gift points from cash_paid so settlement does not double
 		// count them (L-06). cash_paid was set to the full total at order
 		// creation; the gift-covered portion is not cash.
-		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", points.GiftUsed)
+		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", giftUsedYuan)
 		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
 			Updates(updates).Error; err != nil {
 			return fmt.Errorf("update order points: %w", err)
@@ -338,7 +340,7 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		Type:        "gift_used",
 		Amount:      models.FromYuan(points.GiftUsed),
 		OrderID:     record.OrderID,
-		Description: fmt.Sprintf("订单支付使用赠送点数: gift=%.2f", points.GiftUsed),
+		Description: fmt.Sprintf("订单支付使用赠送点数: gift=%.2f", giftUsedYuan),
 		CreatedAt:   now,
 	}
 	if err := tx.Create(&pt).Error; err != nil {

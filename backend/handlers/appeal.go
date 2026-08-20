@@ -295,7 +295,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 			payDiff := models.FromYuan(req.AdjustAmount) - order.Deposit
 			outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
-			notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%.2f,"out_trade_no":"%s"}`, payDiff.ToYuan(), outTradeNo)
+			notifActionData = fmt.Sprintf(`{"payment_required":true,"amount":%d,"out_trade_no":"%s"}`, int64(payDiff), outTradeNo)
 		}
 		damageReport.Status = "resolved"
 
@@ -390,7 +390,7 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 	}
 
 	// Create notification
-	notifActionData = fmt.Sprintf(`{"final_amount":%.2f,"deposit":%.2f,"order_id":"%s","membership":true}`, finalAmount, order.Deposit.ToYuan(), order.ID)
+	notifActionData = fmt.Sprintf(`{"final_amount":%d,"deposit":%d,"order_id":"%s","membership":true}`, int64(models.FromYuan(finalAmount)), int64(order.Deposit), order.ID)
 
 	// If the order completed (refund triggered), enhance the customer
 	// notification with the standard receipt breakdown (#1603) + thank-you
@@ -695,7 +695,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 
 	// Create notification
-	ad := fmt.Sprintf(`{"damage_amount":%.2f,"deposit":%.2f,"order_id":"%s"}`, damageAmount.ToYuan(), order.Deposit.ToYuan(), order.ID)
+	ad := fmt.Sprintf(`{"damage_amount":%d,"deposit":%d,"order_id":"%s"}`, int64(damageAmount), int64(order.Deposit), order.ID)
 	notification := models.Notification{
 		TenantID:   tenantID,
 		OrgID:      middleware.GetOrgID(ctx),

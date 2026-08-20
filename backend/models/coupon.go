@@ -1,6 +1,7 @@
 package models
 
-// Coupon is a membership-fee discount code applied at prepay time
+// Coupon is a discount code applied at prepay time (#1719 通用化)。
+// percent 类型的 Value 为千分比（1000 = 1%，#1728）。
 // (#1664). Type waive = full waiver (amount 0), percent = the value is a
 // percentage of the base membership fee (ENO → 1%).
 type Coupon struct {

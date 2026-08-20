@@ -27,25 +27,16 @@ func FromYuan(yuan float64) Cents {
 	return Cents(math.Round(yuan*100 + 0.5) - 0.5)
 }
 
-// MarshalJSON：P1 输出元（12.34）——API 契约暂不变，前端无需改动。
+// MarshalJSON：P3（#1728）起输出分（int64）——API 契约改分，前端自行 /100 显示。
 func (c Cents) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.ToYuan())
+	return json.Marshal(int64(c))
 }
 
-// UnmarshalJSON：接受元（数字，如 12.34 或 12）→ ×100；或分（整数）。
-// P1 期间前端/调用方提交元；分输入兼容 JSONB 内部整数金额。
+// UnmarshalJSON：按分（int64）解析。P1 兼容的元输入已移除（#1728 breaking）。
 func (c *Cents) UnmarshalJSON(b []byte) error {
 	s := strings.TrimSpace(string(b))
 	if s == "null" || s == "" {
 		*c = 0
-		return nil
-	}
-	if strings.Contains(s, ".") || strings.ContainsAny(s, "eE") {
-		var yuan float64
-		if err := json.Unmarshal(b, &yuan); err != nil {
-			return fmt.Errorf("cents: invalid yuan amount %s: %w", s, err)
-		}
-		*c = FromYuan(yuan)
 		return nil
 	}
 	var cents int64

@@ -123,7 +123,7 @@ func PrepayOrder(c *gin.Context) {
 
 	// Store gift points usage on the payment record for callback consumption
 	if req.GiftUsed > 0 {
-		raw := fmt.Sprintf(`{"gift_used":%.2f}`, req.GiftUsed)
+		raw := fmt.Sprintf(`{"gift_used":%d}`, int64(models.FromYuan(req.GiftUsed)))
 		record.RawResponse = &raw
 	}
 
@@ -178,7 +178,7 @@ func PrepayOrder(c *gin.Context) {
 		case "waive":
 			baseAmount = 0
 		case "percent":
-			baseAmount = models.FromYuan(math.Round(baseAmount.ToYuan()*coupon.Value/100*100) / 100)
+			baseAmount = models.FromYuan(math.Round(baseAmount.ToYuan()*coupon.Value/1000*100) / 100)
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
 			return
@@ -188,7 +188,7 @@ func PrepayOrder(c *gin.Context) {
 	record.Amount = baseAmount // server-priced; never trust the client amount
 
 	if sessionFlow {
-		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": session.Amount.ToYuan()}
+		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": int64(session.Amount)}
 		if couponApplied != "" {
 			sessionRaw["coupon_code"] = couponApplied
 		}

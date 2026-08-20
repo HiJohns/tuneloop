@@ -135,9 +135,9 @@ func TestSettlementFlow(t *testing.T) {
 	var order models.Order
 	require.NoError(t, db.Where("id = ?", orderID).First(&order).Error)
 	require.Equal(t, models.OrderStatusReserved, order.Status)
-	assert.Equal(t, 500.0, order.Deposit, "deposit from instrument pricing")
+	assert.Equal(t, models.Cents(50000), order.Deposit, "deposit from instrument pricing")
 	// Upfront payment = rent (30 × 100) + deposit (500) = 3500.
-	assert.Equal(t, 3500.0, order.CashPaid, "rent 3000 + deposit 500 (no points, no discount)")
+	assert.Equal(t, models.Cents(350000), order.CashPaid, "rent 3000 + deposit 500 (no points, no discount)")
 
 	// ------------------------------------------------------------------
 	// Step 2: Customer pays.
@@ -237,11 +237,11 @@ func TestSettlementFlow(t *testing.T) {
 	// Rent payable = tier 1 (30 days × 100) = 3000; the 31st day has no
 	// segment → not charged.
 	require.Equal(t, 31, settlement.ActualRentDays)
-	require.Equal(t, 3000.0, settlement.ActualRentAmount)
+	require.Equal(t, models.Cents(300000), settlement.ActualRentAmount)
 	// No overdue fee (returned on end date), no damage.
-	require.Equal(t, 0.0, settlement.OverdueChargesTotal)
+	require.Equal(t, models.Cents(0), settlement.OverdueChargesTotal)
 	// Cash refund = totalRentPaid (3000) + remainingDeposit (500) - rentPayable (3000) = 500.
-	require.Equal(t, 500.0, settlement.CashRefundable, "deposit refund only for full-term on-time return")
+	require.Equal(t, models.Cents(50000), settlement.CashRefundable, "deposit refund only for full-term on-time return")
 
 	// Refund record created in the real flow and submitted to WeChat Pay:
 	// the refund record stays "pending" until the REFUND.SUCCESS callback
@@ -249,9 +249,11 @@ func TestSettlementFlow(t *testing.T) {
 	var refundRecord models.OrderRefundRecord
 	require.NoError(t, db.Where("tenant_id = ?", tenantID).Order("created_at desc").First(&refundRecord).Error)
 	assert.Equal(t, "pending", refundRecord.Status)
-	assert.Equal(t, 500.0, refundRecord.Amount)
+	assert.Equal(t, models.Cents(50000), refundRecord.Amount)
 	require.NotEmpty(t, refundRecord.RefundID, "refund submitted to WeChat Pay (stub)")
-	require.Equal(t, "refunding", settlement.RefundStatus)
+	var settlementReload models.Settlement
+	require.NoError(t, db.Where("order_id = ?", orderID).First(&settlementReload).Error)
+	require.Equal(t, "refunding", settlementReload.RefundStatus)
 
 	// Order marked deposit refunded.
 	require.NoError(t, db.Where("id = ?", orderID).First(&order).Error)
