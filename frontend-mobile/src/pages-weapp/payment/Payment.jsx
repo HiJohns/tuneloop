@@ -98,8 +98,8 @@ export default function Payment() {
   const isRefund = ['refund', 'deposit-refund'].includes(pType)
 
   // Coupon applies a preview discount (final price is server-authoritative at
-  // prepay); OREZ waives the fee entirely (¥0).
-  const displayAmount = pType === 'membership' && appliedCoupon ? couponAmount : data.amount
+  // prepay); OREZ waives the fee entirely (¥0). #1719: all payment types.
+  const displayAmount = appliedCoupon ? couponAmount : data.amount
 
   const cashAmount = isRefund
     ? data.amount
@@ -122,7 +122,7 @@ export default function Payment() {
       })
       if (!code) { Taro.showToast({ title: '请输入优惠码', icon: 'none' }); return }
       if (code === 'OREZ') {
-        setAppliedCoupon({ code, hint: '已应用，会员费全额免除' })
+        setAppliedCoupon({ code, hint: '已应用，全额免除' })
         setCouponAmount(0)
       } else if (code === 'ENO') {
         setAppliedCoupon({ code, hint: '已应用，优惠后金额 ¥' + Number(pAmount * 0.01).toFixed(2) })
@@ -262,6 +262,15 @@ export default function Payment() {
         const d = result.data
         if (d.data?.prepay_id) {
           setPrepayData(d)
+        } else if (d.success) {
+          // Waive 记账成功（优惠码 OREZ → 后端 amount=0 直接记账，无 prepay_id）。
+          if (pType === 'membership' && pSessionId) {
+            Taro.showToast({ title: '会员已激活，赠点已到账', icon: 'success' })
+            setTimeout(finishMembershipFlow, 2000)
+          } else {
+            Taro.showToast({ title: '支付成功', icon: 'success' })
+            setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+          }
         } else {
           Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
         }
