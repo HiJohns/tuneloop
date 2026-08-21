@@ -13,10 +13,11 @@ import (
 )
 
 type activityEvent struct {
-	Event    string `json:"event"`
-	Time     string `json:"time"`
-	Operator string `json:"operator"`
-	Media    []struct {
+	Event     string `json:"event"`
+	StatusKey string `json:"status_key"`
+	Time      string `json:"time"`
+	Operator  string `json:"operator"`
+	Media     []struct {
 		URL       string `json:"url"`
 		BatchType string `json:"batch_type"`
 		FileType  string `json:"file_type"`
@@ -141,10 +142,11 @@ func GetInstrumentActivityLog(c *gin.Context) {
 			}
 
 			events = append(events, activityEvent{
-				Event:    eventName,
-				Time:     h.ChangedAt.Format(time.RFC3339),
-				Operator: operator,
-				Media:    mediaItems,
+				Event:     eventName,
+				StatusKey: h.StatusFrom + " → " + h.StatusTo,
+				Time:      h.ChangedAt.Format(time.RFC3339),
+				Operator:  operator,
+				Media:     mediaItems,
 			})
 		}
 

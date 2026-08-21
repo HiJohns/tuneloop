@@ -14,7 +14,10 @@ const eventLabels = {
   'pending_shipment → shipped': '寄出乐器',
   'shipped → in_lease': '租赁开始',
   'in_lease → returning': '申请归还',
+  'returning → pending_damage_response': '归还定损',
+  'pending_damage_response → assessed': '定损确认',
   'returning → returned': '收到归还',
+  'returning → completed': '订单完成',
   'returned → assessed': '定损',
   'assessed → maintenance': '维修中',
   'maintenance → repaired': '完成维修',
@@ -22,12 +25,13 @@ const eventLabels = {
   ' → paid': '已支付',
   ' → pending_shipment': '待发货',
   ' → cancelled': '已取消',
+  'paid → cancelled': '订单取消',
 }
 
 function formatActivityTime(timeStr) {
   if (!timeStr) return ''
   const d = new Date(timeStr)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 function parsePricing(pricing) {
@@ -320,7 +324,7 @@ export default function StaffInstrumentDetail() {
             {sessions.map((session) => (
               <View key={session.order_id}>
                 {session.events?.map((event, ei) => {
-                  const label = eventLabels[event.event] || event.event
+                  const label = eventLabels[event.status_key || event.event] || event.event
                   return (
                     <View key={ei} className="relative pl-6 pb-4 border-l-2 border-zinc-200 last:border-transparent">
                       <View className="text-sm">
