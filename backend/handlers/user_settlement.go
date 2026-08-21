@@ -805,6 +805,7 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	db.Model(&models.OrderPaymentRecord{}).
 		Where("order_id = ? AND order_type = ? AND status = ? AND type = ?", order.ID, "renewal", "paid", "payment").
 		Select("COALESCE(SUM(amount),0)").Scan(&renewalTotal)
+	renewalTotal = renewalTotal / 100 // #1728 P3：SUM 为分 → 收据按元展示
 
 	// Instrument SN (category) for the receipt header (L-06)
 	instrumentLabel := ""

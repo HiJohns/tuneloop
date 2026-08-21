@@ -201,9 +201,9 @@ export default function StaffReceiveConfirm() {
 
       {/* Submit Button */}
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
-        <Button onClick={handleConfirmReceive} disabled={submitting}
+        <Button onClick={handleConfirmReceive} disabled={submitting || photoFiles.length === 0}
           className="w-full py-3 bg-green-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-50">
-          <CheckCircle size={20} />{submitting ? '处理中...' : '确认接收'}
+          <CheckCircle size={20} />{submitting ? '处理中...' : (photoFiles.length === 0 ? '请先拍照存档' : '确认接收')}
         </Button>
       </View>
     </View>

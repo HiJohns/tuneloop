@@ -226,7 +226,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	var req struct {
 		DeliveredAt time.Time `json:"delivered_at" binding:"required"`
-		Photos      []string  `json:"photos"`
+		Photos      []string  `json:"photos" binding:"required"` // #1720 收货必须上传照片
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -376,7 +376,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		ScanTime     time.Time `json:"scan_time" binding:"required"`
 		Condition    string    `json:"condition" binding:"required"`
 		Notes        string    `json:"notes"`
-		Photos       []string  `json:"photos"`
+		Photos       []string  `json:"photos" binding:"required"` // #1720 验收必须上传照片
 		DamageAmount float64   `json:"damage_amount"` // staff-set compensation (#1544)
 	}
 

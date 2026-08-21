@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -1125,8 +1126,9 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	var req struct {
-		ReturnMethod   string `json:"return_method"`
-		ReturnTracking string `json:"return_tracking"`
+		ReturnMethod   string   `json:"return_method"`
+		ReturnTracking string   `json:"return_tracking"`
+		Photos         []string `json:"photos" binding:"required"` // #1720 归还必须上传照片
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -1162,6 +1164,30 @@ func (h *UserRentalHandler) ReturnRental(c *gin.Context) {
 	if err := db.Save(&leaseSession).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update rental: " + err.Error()})
 		return
+	}
+
+	// #1720 归还照片落库（batch_type=return，is_display=false 流程记录图）
+	if len(req.Photos) > 0 && leaseSession.InstrumentID != "" {
+		batchID := uuid.New().String()
+		for i, photoURL := range req.Photos {
+			media := models.InstrumentMedia{
+				ID:           uuid.New().String(),
+				TenantID:     effectiveTenantID,
+				OrgID:        strVal(leaseSession.OrgID),
+				InstrumentID: &leaseSession.InstrumentID,
+				BatchID:      batchID,
+				BatchType:    "return",
+				FileName:     fmt.Sprintf("return_%d.jpg", i+1),
+				FileType:     "image",
+				StorageKey:   photoURL,
+				IsDisplay:    false,
+				SortOrder:    i,
+				CreatedAt:    time.Now(),
+			}
+			if err := db.Create(&media).Error; err != nil {
+				log.Printf("[ReturnRental] Failed to save photo %d: %v", i, err)
+			}
+		}
 	}
 
 	respData := map[string]interface{}{

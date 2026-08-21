@@ -308,6 +308,7 @@ func TestReturnRental(t *testing.T) {
 		ID:           leaseID,
 		TenantID:     tenantID,
 		UserID:       userID,
+		OrderID:      uuid.New().String(),
 		InstrumentID: uuid.New().String(),
 		StartDate:    time.Now(),
 		EndDate:      time.Now().AddDate(0, 1, 0),
@@ -329,6 +330,7 @@ func TestReturnRental(t *testing.T) {
 	reqBody := map[string]interface{}{
 		"return_method":   "courier",
 		"return_tracking": "SF654321",
+		"photos":          []string{"/uploads/media/return-test.jpg"},
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest("POST", "/api/user/rentals/"+leaseID+"/return", bytes.NewBuffer(jsonBody))

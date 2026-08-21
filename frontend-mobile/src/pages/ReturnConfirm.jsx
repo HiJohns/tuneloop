@@ -258,9 +258,9 @@ export default function ReturnConfirm() {
       {/* Submit Button */}
       <View className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 safe-area-pb shadow-2xl">
         <Button onClick={handleSubmitReturn}
-          disabled={submitting || !courierCompany.trim() || !trackingNumber.trim()}
-          style={{ width: '100%', margin: 0, backgroundColor: '#f97316', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || !courierCompany.trim() || !trackingNumber.trim() ? 0.5 : 1 }}>
-          {submitting ? '处理中...' : '提交归还'}
+          disabled={submitting || !courierCompany.trim() || !trackingNumber.trim() || photoFiles.length === 0}
+          style={{ width: '100%', margin: 0, backgroundColor: '#f97316', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || !courierCompany.trim() || !trackingNumber.trim() || photoFiles.length === 0 ? 0.5 : 1 }}>
+          {submitting ? '处理中...' : (photoFiles.length === 0 ? '请先拍照存档' : '提交归还')}
         </Button>
       </View>
     </View>

@@ -231,7 +231,7 @@ export default function ReceiveConfirm() {
           disabled={submitting || photoFiles.length === 0}
           style={{ width: '100%', margin: 0, backgroundColor: '#16a34a', color: '#fff', fontWeight: '800', fontSize: 16, height: 48, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', letterSpacing: '0.05em', opacity: submitting || photoFiles.length === 0 ? 0.5 : 1 }}
         >
-          {submitting ? '处理中...' : '确认收货'}
+          {submitting ? '处理中...' : (photoFiles.length === 0 ? '请先拍照存档' : '确认收货')}
         </Button>
       </View>
     </View>

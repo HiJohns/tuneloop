@@ -184,7 +184,7 @@ func TestSettlementFlow(t *testing.T) {
 	// ------------------------------------------------------------------
 	// Step 4: Staff confirms delivery.
 	// ------------------------------------------------------------------
-	deliverBody := map[string]interface{}{"delivered_at": deliveredAt}
+	deliverBody := map[string]interface{}{"delivered_at": deliveredAt, "photos": []string{"/uploads/media/deliver-test.jpg"}}
 	jsonBody, _ = json.Marshal(deliverBody)
 	req = httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/delivery", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")

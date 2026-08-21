@@ -377,7 +377,7 @@ func TestInspectReturn_OverdueFee(t *testing.T) {
 		LeaseTerm:        20,
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
-		PricingBreakdown: strPtr(`{"base_daily_rent":1000}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100000}`),
 	}).Error)
 	require.NoError(t, db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("pricing", pricing).Error)
 
@@ -387,7 +387,7 @@ func TestInspectReturn_OverdueFee(t *testing.T) {
 		"scan_time":     time.Now(),
 		"condition":     "good",
 		"notes":         "overdue return test",
-		"photos":        []string{},
+		"photos":        []string{"/uploads/media/e2e-test.jpg"},
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
@@ -437,14 +437,14 @@ func TestInspectReturn_NoOverdue(t *testing.T) {
 		LeaseTerm:        15,
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
-		PricingBreakdown: strPtr(`{"base_daily_rent":1000}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":100000}`),
 	}).Error)
 
 	reqBody := map[string]interface{}{
 		"instrument_sn": "TEST-SN2",
 		"scan_time":     time.Now(),
 		"condition":     "good",
-		"photos":        []string{},
+		"photos":        []string{"/uploads/media/e2e-test.jpg"},
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
@@ -500,10 +500,10 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 		LeaseTerm:         12,
 		Status:            models.OrderStatusReturning,
 		Deposit:           models.FromYuan(500),
-		CashPaid:          300,
-		PrepaidPointsUsed: 200,
+		CashPaid:          30000,
+		PrepaidPointsUsed: 20000,
 		ReturnedAt:        &now,
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"total_amount":1200,"tier_segments":[{"days":12,"rate":100,"tier":1,"discount":1,"subtotal":1200}]}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"total_amount":120000,"tier_segments":[{"days":12,"rate":10000,"tier":1,"discount":1,"subtotal":120000}]}`),
 	}).Error)
 
 	// Payment record for the cash portion
@@ -524,7 +524,7 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 		"instrument_sn": "REFUND-SN",
 		"scan_time":     time.Now(),
 		"condition":     "good",
-		"photos":        []string{},
+		"photos":        []string{"/uploads/media/e2e-test.jpg"},
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
@@ -538,8 +538,8 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	var settlement models.Settlement
 	require.NoError(t, db.Where("order_id = ?", orderID).First(&settlement).Error)
 	require.GreaterOrEqual(t, settlement.ActualRentDays, 1, "actual days >= 1")
-	require.Equal(t, float64(settlement.ActualRentDays)*100, settlement.ActualRentAmount, "rent = actual days × 100")
-	require.Equal(t, 0.0, settlement.PrepaidRefunded, "prepaid refunded = 0 (prepaid removed #1531)")
+	require.Equal(t, models.FromYuan(float64(settlement.ActualRentDays)*100), settlement.ActualRentAmount, "rent = actual days × 100 (cents)")
+	require.Equal(t, models.Cents(0), settlement.PrepaidRefunded, "prepaid refunded = 0 (prepaid removed #1531)")
 	require.True(t, settlement.CashRefundable > 0, "cash refund for remaining deposit + rent overpayment")
 
 	// Order marked deposit refunded
@@ -550,7 +550,7 @@ func TestInspectReturn_Good_ExecutesRefund(t *testing.T) {
 	// User prepaid points unchanged (prepaid removed #1531)
 	var user models.User
 	require.NoError(t, db.First(&user, "id = ?", userID).Error)
-	require.Equal(t, 1000.0, user.PrepaidPoints, "prepaid unchanged (no prepaid refund)")
+	require.Equal(t, models.Cents(1000), user.PrepaidPoints, "prepaid unchanged (no prepaid refund)")
 	// Idempotent: second inspect attempt must not double-refund
 	req2 := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/return-inspect", bytes.NewBuffer(jsonBody))
 	req2.Header.Set("Content-Type", "application/json")
@@ -584,7 +584,7 @@ func TestComputeSettlement_CashPaidExcludesDeposit(t *testing.T) {
 		EndDate:           &end,
 		ReturnedAt:        &now,
 		Status:            "completed",
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"tier_segments":[{"days":30,"rate":10000,"tier":1,"discount":1,"subtotal":300000}]}`),
 	}
 
 	result := computeSettlement(order, db)
@@ -619,7 +619,7 @@ func TestComputeSettlement_EarlyReturn(t *testing.T) {
 		EndDate:           &end,
 		ReturnedAt:        &now,
 		Status:            "completed",
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"tier_segments":[{"days":30,"rate":10000,"tier":1,"discount":1,"subtotal":300000}]}`),
 	}
 
 	result := computeSettlement(order, db)
@@ -665,7 +665,7 @@ func TestComputeSettlement_DamageAccept(t *testing.T) {
 		EndDate:           &end,
 		ReturnedAt:        &now,
 		Status:            "completed",
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"tier_segments":[{"days":30,"rate":10000,"tier":1,"discount":1,"subtotal":300000}]}`),
 	}
 
 	result := computeSettlement(order, db)
@@ -708,7 +708,7 @@ func TestComputeSettlement_LateReturn(t *testing.T) {
 		EndDate:           &end,
 		ReturnedAt:        &now,
 		Status:            "completed",
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":35,"rate":100,"tier":1,"discount":1,"subtotal":3500}]}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"tier_segments":[{"days":35,"rate":10000,"tier":1,"discount":1,"subtotal":350000}]}`),
 	}
 
 	result := computeSettlement(order, db)
@@ -821,7 +821,7 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 		EndDate:           &end,
 		ReturnedAt:        &now,
 		Status:            "completed",
-		PricingBreakdown:  strPtr(`{"base_daily_rent":100,"final_daily_rent":100,"tier_segments":[{"days":30,"rate":100,"tier":1,"discount":1,"subtotal":3000}]}`),
+		PricingBreakdown:  strPtr(`{"base_daily_rent":10000,"final_daily_rent":10000,"tier_segments":[{"days":30,"rate":10000,"tier":1,"discount":1,"subtotal":300000}]}`),
 	}
 
 	tx := db.Begin()

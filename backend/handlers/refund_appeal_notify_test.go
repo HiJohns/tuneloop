@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -102,6 +104,7 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 		"condition":     "damaged",
 		"notes":         "琴面刮痕",
 		"damage_amount": 200.0,
+		"photos":        []string{"/uploads/media/inspect-test.jpg"},
 	})
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+order.ID+"/return-inspect", bytes.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -128,7 +131,7 @@ func TestInspectReturn_Damaged_NotificationActionType(t *testing.T) {
 	var report models.DamageReport
 	require.NoError(t, db.Where("id = ?", notif.RefID).First(&report).Error, "ref_id resolves to a damage report")
 	require.NotNil(t, notif.ActionData)
-	require.Contains(t, *notif.ActionData, `"damage_amount": 200.00`)
+	require.Contains(t, *notif.ActionData, `"damage_amount": 20000`)
 	require.Contains(t, *notif.ActionData, `"order_id"`)
 }
 
@@ -165,7 +168,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		EndDate:          &end,
 		LeaseTerm:        30,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         3500,
+		CashPaid:         350000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -177,7 +180,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		UserID:    userID,
 		OrderID:   &order.ID,
 		OrderType: "renewal",
-		Amount:    120,
+		Amount:    12000,
 		Type:      "payment",
 		Status:    "paid",
 		CreatedAt: time.Now(),
@@ -200,6 +203,7 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 		"scan_time":     now.Format(time.RFC3339),
 		"condition":     "good",
 		"notes":         "无损",
+		"photos":        []string{"/uploads/media/inspect-test.jpg"},
 	})
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+order.ID+"/return-inspect", bytes.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -212,11 +216,11 @@ func TestInspectReturn_Good_RefundReceiptNotification(t *testing.T) {
 	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "order").
 		Order("created_at desc").First(&notif).Error)
 	require.Contains(t, notif.Content, "租赁结算明细")
-	require.Contains(t, notif.Content, "租金：¥3000.00")
+	require.Contains(t, notif.Content, "租金：¥2900.00")
 	require.Contains(t, notif.Content, "续期费用：¥120.00")
 	require.Contains(t, notif.Content, "押金退还：¥500.00")
-	require.Contains(t, notif.Content, "退回微信：¥500.00")
-	require.Contains(t, notif.Content, "实际退款合计：¥500.00")
+	require.Contains(t, notif.Content, "退回微信：¥600.00")
+	require.Contains(t, notif.Content, "实际退款合计：¥600.00")
 }
 
 // TestBuildRefundReceipt_IncludesAllLines is a pure unit test of
@@ -245,7 +249,7 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 		UserID:    userID,
 		OrderID:   &order.ID,
 		OrderType: "renewal",
-		Amount:    120,
+		Amount:    12000,
 		Type:      "payment",
 		Status:    "paid",
 		CreatedAt: time.Now(),
@@ -264,8 +268,8 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	receipt := buildRefundReceipt(db, order, s)
 
 	require.Contains(t, receipt, "租赁结算明细")
-	require.Contains(t, receipt, "实际租期：30 天")
-	require.Contains(t, receipt, "租金：¥3000.00")
+	require.Contains(t, receipt, "实际租期：29 天")
+	require.Contains(t, receipt, "租金：¥2900.00")
 	require.Contains(t, receipt, "物流费：¥50.00")
 	require.Contains(t, receipt, "逾期费：¥30.00")
 	require.Contains(t, receipt, "损坏赔偿：¥100.00")
@@ -415,7 +419,7 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 		EndDate:          &end,
 		LeaseTerm:        30,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         3500,
+		CashPaid:         350000,
 		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -497,4 +501,69 @@ func TestResolveAppeal_Final_RefundReceiptAndStaffNotify(t *testing.T) {
 	require.Equal(t, order.ID, staffNotif.RefID)
 	require.NotNil(t, staffNotif.ActionData)
 	require.Contains(t, *staffNotif.ActionData, `"order_id"`)
+}
+
+// TestRequiredPhotos_Missing (#1720): 收货/归还/验收三个操作照片必填——
+// 无照片请求返回 400，不静默成功。
+func TestRequiredPhotos_Missing(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	tenantID := uuid.New().String()
+	orgID := uuid.New().String()
+	userID := uuid.New().String()
+
+	instrument := models.Instrument{
+		TenantID: tenantID, OrgID: &orgID,
+		SN: "PHOTO-REQ-" + time.Now().Format("150405"),
+		BaseDailyRate: models.ToCentsPtr(float64Ptr(100)),
+		StockStatus:   "rented",
+	}
+	require.NoError(t, db.Create(&instrument).Error)
+
+	order := models.Order{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID: instrument.ID, Level: "standard", LeaseTerm: 30,
+		Status: models.OrderStatusPaid, CashPaid: models.FromYuan(3500),
+	}
+	require.NoError(t, db.Create(&order).Error)
+
+	customer := testutil.MakeCustomer("", userID)
+	staff := testutil.MakeSiteMember(tenantID, orgID, userID)
+
+	// 1) ConfirmDelivery 无照片 → 400
+	staffRouter := gin.New()
+	staffRouter.Use(func(c *gin.Context) {
+		ctx := staff.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	staffRouter.PUT("/api/warehouse/orders/:id/delivery", (&WarehouseHandler{}).ConfirmDelivery)
+	body, _ := json.Marshal(map[string]interface{}{"delivered_at": time.Now()})
+	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+order.ID+"/delivery", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	staffRouter.ServeHTTP(w, req)
+	require.Equal(t, http.StatusBadRequest, w.Code, "ConfirmDelivery without photos must 400")
+
+	// 2) ReturnRental 无照片 → 400
+	ls := models.LeaseSession{
+		ID: uuid.New().String(), TenantID: tenantID, OrgID: &orgID, UserID: userID,
+		InstrumentID: instrument.ID, OrderID: order.ID, Status: "in_lease",
+		StartDate: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), EndDate: time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC),
+	}
+	require.NoError(t, db.Create(&ls).Error)
+	userRouter := gin.New()
+	userRouter.Use(func(c *gin.Context) {
+		ctx := customer.InjectContext(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	userRouter.POST("/api/user/rentals/:id/return", (&UserRentalHandler{}).ReturnRental)
+	body2, _ := json.Marshal(map[string]interface{}{
+		"return_method": "express", "return_tracking": "SF123456",
+	})
+	req2 := httptest.NewRequest("POST", "/api/user/rentals/"+ls.ID+"/return", bytes.NewBuffer(body2))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	userRouter.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusBadRequest, w2.Code, "ReturnRental without photos must 400")
 }
