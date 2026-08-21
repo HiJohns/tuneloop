@@ -102,8 +102,9 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
 
 小程序/H5/PC 收到 `40105/40106/40107` → **跳过静默 refresh** → 清除本地凭证 → 引导重新登录。禁止用 refresh 救活已吊销会话；网络错误保持登录态可重试。
 
-### beaconiam 侧配套（#487）
+### beaconiam 侧配套（#487 / #488）
 
 - `users.token_version`（UnixMilli）：改密码 / 禁用 / 激活时 bump（`BumpTokenVersion()`）
 - refresh 端点拒绝非 active 用户
-- ⚠️ 已知缺口：refresh 端点**未**校验旧 refresh token 的 iat vs token_version（改密后旧 refresh token 仍可换新 token，仅靠前端不续期兜底）——如需密码学级吊销需在 beaconiam 补该校验
+- **refresh token 吊销校验（#488，已修复）**：refresh grant 同样校验 refresh token 自身的 `iat(秒) < token_version/1000` → 401 `token revoked`——改密后旧 refresh token 不再能换新 token，吊销机制在协议层闭环。秒级对称比较与 tuneloop 侧 40107 判定完全一致；`token_version=0`（从未 bump 的 legacy 用户）跳过校验。
+  - 部署状态：beaconiam main `82566fb`（待随 #487 一并部署预生产后实测，验证清单见 tuneloop#1736）
