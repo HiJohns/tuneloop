@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -22,6 +23,7 @@ type IAMClient struct {
 	namespace    string
 	httpClient   *http.Client
 	tokenCache   *clientTokenCache
+	authCache    *userAuthCache
 }
 
 type clientTokenCache struct {
@@ -34,6 +36,53 @@ func (c *clientTokenCache) reset() {
 	c.mu.Lock()
 	c.accessToken = ""
 	c.expiresAt = time.Time{}
+	c.mu.Unlock()
+}
+
+// ErrUserNotFound (#1735): returned when IAM reports the subject does not
+// exist (HTTP 404). Use errors.Is to distinguish a deleted account from a
+// transient IAM failure — deleted accounts must get an explicit 401, while
+// transient failures fail open.
+var ErrUserNotFound = errors.New("user not found")
+
+// userAuthState (#1735): IAM-authoritative subject validity snapshot used by
+// the auth middleware (token_version + account status).
+type userAuthState struct {
+	TokenVersion int64
+	Status       string
+}
+
+type userAuthCacheEntry struct {
+	state     userAuthState
+	expiresAt time.Time
+}
+
+// userAuthCache: short-TTL process-local cache so the per-request subject
+// check does not call IAM every time. TTL bounds revocation propagation
+// delay (a bump takes effect on resource servers within ~30s).
+type userAuthCache struct {
+	mu      sync.RWMutex
+	entries map[string]userAuthCacheEntry
+}
+
+const userAuthStateTTL = 30 * time.Second
+
+func (c *userAuthCache) get(userID string) (userAuthState, bool) {
+	c.mu.RLock()
+	entry, ok := c.entries[userID]
+	c.mu.RUnlock()
+	if !ok || time.Now().After(entry.expiresAt) {
+		return userAuthState{}, false
+	}
+	return entry.state, true
+}
+
+func (c *userAuthCache) set(userID string, state userAuthState) {
+	c.mu.Lock()
+	if c.entries == nil {
+		c.entries = make(map[string]userAuthCacheEntry)
+	}
+	c.entries[userID] = userAuthCacheEntry{state: state, expiresAt: time.Now().Add(userAuthStateTTL)}
 	c.mu.Unlock()
 }
 
@@ -71,6 +120,7 @@ func NewIAMClient() *IAMClient {
 		namespace:    namespace,
 		httpClient:   &http.Client{Timeout: 15 * time.Second},
 		tokenCache:   &clientTokenCache{},
+		authCache:    &userAuthCache{entries: make(map[string]userAuthCacheEntry)},
 	}
 }
 
@@ -84,6 +134,7 @@ func NewIAMClientWithCredentials(clientID, clientSecret string) *IAMClient {
 		namespace:    os.Getenv("IAM_NAMESPACE"),
 		httpClient:   &http.Client{Timeout: 15 * time.Second},
 		tokenCache:   &clientTokenCache{},
+		authCache:    &userAuthCache{entries: make(map[string]userAuthCacheEntry)},
 	}
 }
 
@@ -345,14 +396,15 @@ type OrgRelation struct {
 
 // User represents an IAM user
 type User struct {
-	ID               string        `json:"id"`
-	Name             string        `json:"name"`
-	Username         string        `json:"username"`
-	Email            string        `json:"email"`
-	Phone            string        `json:"phone"`
-	Status           string        `json:"status"`
-	OrgID            string        `json:"org_id"`
-	Role             string        `json:"role"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Username         string `json:"username"`
+	Email            string `json:"email"`
+	Phone            string `json:"phone"`
+	Status           string `json:"status"`
+	OrgID            string `json:"org_id"`
+	Role             string `json:"role"`
+	TokenVersion     int64  `json:"token_version"` // #1735: bumped on password change / deactivate — JWTs with iat before this are revoked
 	EmailSentAt      *time.Time    `json:"email_sent_at,omitempty"`
 	EmailConfirmedAt *time.Time    `json:"email_confirmed_at,omitempty"`
 	Organizations    []OrgRelation `json:"organizations,omitempty"`
@@ -707,6 +759,11 @@ func (c *IAMClient) GetUser(userID string) (*User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetUser request failed: %w", err)
 	}
+	if statusCode == http.StatusNotFound {
+		// #1735: distinguish a deleted subject from transient failures so the
+		// auth middleware can return an explicit account_not_found 401.
+		return nil, fmt.Errorf("GetUser returned status %d: %w", statusCode, ErrUserNotFound)
+	}
 	if statusCode != http.StatusOK {
 		return nil, fmt.Errorf("GetUser returned status %d: %s", statusCode, string(respBody))
 	}
@@ -724,6 +781,23 @@ func (c *IAMClient) GetUser(userID string) (*User, error) {
 		return result.Data, nil
 	}
 	return nil, fmt.Errorf("GetUser: user %s not found in response", userID)
+}
+
+// GetUserAuthState (#1735) returns the IAM-authoritative subject validity
+// (token_version + status) for userID, backed by a short-TTL process-local
+// cache. Errors are returned unwrapped so callers can use errors.Is against
+// ErrUserNotFound; negative results are not cached.
+func (c *IAMClient) GetUserAuthState(userID string) (int64, string, error) {
+	if state, ok := c.authCache.get(userID); ok {
+		return state.TokenVersion, state.Status, nil
+	}
+	u, err := c.GetUser(userID)
+	if err != nil {
+		return 0, "", err
+	}
+	state := userAuthState{TokenVersion: u.TokenVersion, Status: u.Status}
+	c.authCache.set(userID, state)
+	return state.TokenVersion, state.Status, nil
 }
 
 // GetUserEmailStatus fetches email confirmation timestamps from IAM

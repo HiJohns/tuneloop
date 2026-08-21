@@ -220,6 +220,18 @@ async function request(endpoint, options = {}, retryCount = 0) {
   // Handle 401 Unauthorized
   // 统一处理：调用通用认证错误处理函数
   if (response.status === 401) {
+    // #1735: semantic auth-invalid codes — account deleted (40105) /
+    // deactivated (40106) / token revoked by credential change (40107).
+    // Skip refresh: a revoked session must not mint new tokens.
+    const body = await response.clone().json().catch(() => null)
+    if (body && [40105, 40106, 40107].includes(body.code)) {
+      console.warn('[AUTH] Session invalid (code ' + body.code + ') → clearing tokens → re-login required')
+      Logger.warn('AUTH', 'Auth invalid code ' + body.code + ', clearing session')
+      clearTokens()
+      localStorage.setItem('logout_reason', 'auth_failed')
+      window.location.href = '/logout'
+      return []
+    }
     const result = await handleAuthError(token, retryCount, endpoint, options)
     if (result && result.__authFailed) {
       // 认证失败，已经跳转，直接返回

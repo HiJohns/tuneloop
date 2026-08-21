@@ -79,3 +79,31 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
   → 用户确认邮箱 → AcceptTasks 统一执行                          → 用户确认邮箱 → AcceptTasks 统一执行
 ```
 依赖 beaconiam #323（SetUserCustomerPermissions 入队支持）。
+
+## JWT 主体校验与会话吊销（#1735，配合 beaconiam#487）
+
+> 2026-08-21 起，tuneloop 在 JWT 签名校验通过后增加一层**主体有效性校验**，以 beaconiam 为权威（本地 `users` 仅是缓存）。解决「删号/禁用/改密后旧 token 静默回落路人」问题。
+
+### 校验规则（`backend/middleware/iam.go: enforceSubjectValidity`）
+
+按优先级，签名校验通过后执行（GUEST token 跳过）：
+
+| 条件 | 响应 | 语义 |
+|------|------|------|
+| IAM 查不到用户 | `40105 account_not_found` | 账户已删除 |
+| `status != "active"` | `40106 account_inactive` | 账户已禁用 |
+| `iat(秒) < token_version/1000` | `40107 token_revoked` | 改密码/禁用后签发的旧 token 已吊销 |
+
+- **数据来源**：`IAMClient.GetUserAuthState(userID)` → beaconiam `GET /api/v1/users/:id` 的 `token_version` + `status` 字段（beaconiam#487 提供），进程内 TTL 缓存 30s（tuneloop 无 Redis）。
+- **秒粒度比较**：JWT `iat` 是秒级 NumericDate、`token_version` 是毫秒——统一折算到秒比较，避免同秒内签发的合法 token 被误杀。
+- **fail-open**：beaconiam 网络/5xx 故障时放行（日志告警），避免抖动导致全员登出；下个请求重试。
+
+### 前端清 token 语义
+
+小程序/H5/PC 收到 `40105/40106/40107` → **跳过静默 refresh** → 清除本地凭证 → 引导重新登录。禁止用 refresh 救活已吊销会话；网络错误保持登录态可重试。
+
+### beaconiam 侧配套（#487）
+
+- `users.token_version`（UnixMilli）：改密码 / 禁用 / 激活时 bump（`BumpTokenVersion()`）
+- refresh 端点拒绝非 active 用户
+- ⚠️ 已知缺口：refresh 端点**未**校验旧 refresh token 的 iat vs token_version（改密后旧 refresh token 仍可换新 token，仅靠前端不续期兜底）——如需密码学级吊销需在 beaconiam 补该校验

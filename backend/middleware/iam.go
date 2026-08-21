@@ -85,6 +85,68 @@ func isPublicRoute(path string) bool {
 	return false
 }
 
+// enforceSubjectValidity (#1735): after signature validation passes, verify
+// with beaconiam (authoritative source) that the subject still exists, is
+// active, and that the token was not issued before a token_version bump.
+// Responses use dedicated semantic codes so frontends can clear stale tokens:
+//   - 40105 account_not_found — user deleted in IAM
+//   - 40106 account_inactive  — user deactivated in IAM
+//   - 40107 token_revoked     — token issued before a token_version bump
+//
+// Transient IAM failures fail OPEN (log + allow) to avoid mass logouts on
+// beaconiam hiccups; the next request retries the check.
+// Returns true when the request may proceed.
+func enforceSubjectValidity(c *gin.Context, iamClient *services.IAMClient, claims *services.JWTClaims) bool {
+	// GUEST tokens are issued locally for anonymous visitors — there is no
+	// backing IAM user to validate.
+	if iamClient == nil || claims == nil || claims.UserID == "" || claims.Role == "GUEST" {
+		return true
+	}
+
+	tokenVersion, status, err := iamClient.GetUserAuthState(claims.UserID)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			log.Printf("[IAM] Subject rejected: user %s not found in IAM (account deleted)", claims.UserID)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    40105,
+				"message": "account_not_found",
+			})
+			return false
+		}
+		log.Printf("[IAM WARNING] Subject check unavailable for user %s, failing open: %v", claims.UserID, err)
+		return true
+	}
+
+	if status != "" && status != "active" {
+		log.Printf("[IAM] Subject rejected: user %s has status %q", claims.UserID, status)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"code":    40106,
+			"message": "account_inactive",
+		})
+		return false
+	}
+
+	// Compare at SECOND granularity: JWT iat (NumericDate) has second
+	// precision while token_version is stored in milliseconds. Millisecond
+	// comparison would falsely reject tokens legitimately issued in the same
+	// second as a bump (truncated iat looks older). Tokens issued within the
+	// bump second stay valid — the exposure window is <1s.
+	iatSec := int64(0)
+	if claims.IssuedAt != nil {
+		iatSec = claims.IssuedAt.Time.Unix()
+	}
+	if tokenVersion > 0 && iatSec < tokenVersion/1000 {
+		log.Printf("[IAM] Subject rejected: token for user %s predates token_version bump (iat=%d s < tv=%d ms)", claims.UserID, iatSec, tokenVersion)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"code":    40107,
+			"message": "token_revoked",
+		})
+		return false
+	}
+
+	return true
+}
+
 func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
@@ -141,6 +203,12 @@ func IAMInterceptor(iamService *services.IAMService, iamClient *services.IAMClie
 				"code":    40102,
 				"message": "invalid token issuer",
 			})
+			return
+		}
+
+		// #1735: subject validity check against beaconiam (deleted/inactive
+		// accounts and pre-bump tokens get explicit 40105/40106/40107).
+		if !enforceSubjectValidity(c, iamClient, claims) {
 			return
 		}
 
@@ -263,6 +331,13 @@ func OptionalIAMInterceptor(iamService *services.IAMService, iamClient *services
 				"code":    40102,
 				"message": "invalid token issuer",
 			})
+			return
+		}
+
+		// #1735: token valid but subject dead (deleted/deactivated/pre-bump)
+		// must surface as an explicit 401 — NOT anonymous pass-through — so
+		// the frontend learns it must clear the stale token and re-login.
+		if !enforceSubjectValidity(c, iamClient, claims) {
 			return
 		}
 

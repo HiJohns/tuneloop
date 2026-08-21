@@ -301,6 +301,16 @@ export function getTokenFromCookie() {
   return cookie.get('token')
 }
 
+// #1735: semantic 401 codes from the backend auth chain. The account is
+// gone (40105), deactivated (40106) or the token predates a credential
+// change (40107). These must NOT be rescued via silent refresh — the
+// session is irrecoverable and the user must re-login.
+const AUTH_INVALID_CODES = [40105, 40106, 40107]
+
+function isAuthInvalidCode(code) {
+  return AUTH_INVALID_CODES.includes(code)
+}
+
 async function refreshAccessToken() {
   const refreshToken = storage.getItem('refresh_token')
   if (!refreshToken) throw new Error('No refresh token')
@@ -373,6 +383,11 @@ export async function request(endpoint, options = {}) {
     try {
       const body = await response.clone().json()
       if (body.code === 40104) return []
+      if (isAuthInvalidCode(body.code)) {
+        // #1735: skip refresh — a revoked session must not mint new tokens.
+        degradeToGuest()
+        return []
+      }
     } catch {}
     try {
       const newToken = await refreshAccessToken()
@@ -434,10 +449,15 @@ export async function apiFetch(url, options = {}) {
     if (isPublicRoute()) {
       throw new Error('Unauthorized')
     }
-    try {
-      const body = await response.clone().json()
+    const body = await response.clone().json().catch(() => null)
+    if (body) {
       if (body.code === 40104) return response
-    } catch {}
+      if (isAuthInvalidCode(body.code)) {
+        // #1735: session irrecoverable — clear credentials, no refresh.
+        degradeToGuest()
+        throw new Error('Unauthorized')
+      }
+    }
     try {
       const newToken = await refreshAccessToken()
       headers['Authorization'] = `Bearer ${newToken}`
