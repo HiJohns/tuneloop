@@ -425,10 +425,12 @@ function SingleCheckout({ id, navigate }) {
               <Text className="text-brand-primary font-black text-lg flex-shrink-0 ml-auto whitespace-nowrap">¥{(totalAmount / 100).toFixed(2)}</Text>
             </View>
             <Text className="text-[10px] text-zinc-400 text-right mt-1">租金 ¥{(totalRent / 100).toFixed(2)} + 押金 ¥{((deposit || 0) / 100).toFixed(2)}</Text>
-            {depositWaived ? (
-              <Text className="block text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，寄出时将选用顺丰到付，请注意查收哦谢谢。</Text>
+            {effectiveDeposit === 0 ? (
+              // #1732: 0 押金订单（乐器本身 0 押金或免押金）→ 快递到付文案
+              <Text className="block text-red-500 text-[13px] font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时我们将选择快递到付且保价，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
             ) : (
-              <Text className="block text-xs text-red-500 font-medium mt-2">乐器往返物流费需由您承担，届时将从押金中扣除，望知悉谢谢。</Text>
+              // #1732: 已付押金订单 → 押金扣除文案
+              <Text className="block text-red-500 text-[13px] font-medium mt-2 leading-relaxed">尊敬的顾客您好，乐器往返物流费需您承担，乐器寄出时的物流费届时将从您的押金中扣除，请注意查收并检验乐器状态，谢谢您，祝您使用愉快！</Text>
             )}
           </View>
         </View>
