@@ -124,7 +124,7 @@ func MigrateJSONBCentsWithMode(dryRun, reverse bool) (int, error) {
 // moneyKeys 是 JSONB 内的金额键白名单（单位：元）——迁移时 ×100 转分。
 // 比例/折扣键（pay_ratio/rent_ratio/discount 等）不属于金额，不转换。
 var moneyKeys = map[string]bool{
-	"base_daily_rate": true, "daily_rate": true, "rate": true,
+	"base_daily_rate": true, "base_daily_rent": true, "daily_rate": true, "rate": true,
 	"deposit": true, "shipping_fee": true, "total_price": true,
 	"total_amount": true, "rent_amount": true, "subtotal": true, "total": true,
 	"overdue_daily_fee": true, "overdue_fee": true,

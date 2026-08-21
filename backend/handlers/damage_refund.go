@@ -53,7 +53,9 @@ func computeDamageRefund(db *gorm.DB, order models.Order, damageYuan float64) (r
 				days = 1
 			}
 			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-				actualRent = math.Round(v/100*float64(days)*100) / 100 // JSONB 分为分（P3）
+				// #1734: 统一分语义（存量元残留归一），再 /100 得元。
+				bdr := resolveBaseDailyRentCents(db, &order, v)
+				actualRent = math.Round(bdr/100*float64(days)*100) / 100
 			}
 		}
 	}

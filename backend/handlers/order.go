@@ -356,7 +356,9 @@ func GetOrder(c *gin.Context) {
 				// Daily rate from the pricing breakdown when available.
 				if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
 					if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-						actualRentAmount = math.Round(v*float64(days)*100) / 100
+						// #1734: 快照 bdr 统一分语义（存量元残留经 helper 归一）。
+						bdr := resolveBaseDailyRentCents(db, &order, v)
+						actualRentAmount = math.Round(bdr/100*float64(days)*100) / 100
 					}
 				}
 			}

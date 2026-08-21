@@ -84,12 +84,14 @@ func parseDatePtr(s *string) time.Time {
 	return time.Now().Truncate(24 * time.Hour)
 }
 
-func loadRenewalPricing(order *models.Order) (baseRate float64, pricingTiers []services.PricingTierConfig, cumulativeDiscount float64) {
+func loadRenewalPricing(db *gorm.DB, order *models.Order) (baseRate float64, pricingTiers []services.PricingTierConfig, cumulativeDiscount float64) {
 	var pb services.PricingBreakdown
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		json.Unmarshal([]byte(*order.PricingBreakdown), &pb)
 	}
-	baseRate = pb.BaseDailyRent
+	// #1734: 快照 base_daily_rent 存量为元语义（迁移遗漏），P3 后为分——
+	// 统一走 helper 归一为分。
+	baseRate = resolveBaseDailyRentCents(db, order, pb.BaseDailyRent)
 	if baseRate <= 0 && order.MonthlyRent > 0 {
 		baseRate = order.MonthlyRent.ToYuan() / 30
 	}
@@ -166,7 +168,7 @@ func CalculateRenewal(c *gin.Context) {
 
 	baseDate := endDate
 	newEndDate := baseDate.AddDate(0, 0, req.AdditionalDays)
-	baseRate, pricingTiers, cumDisc := loadRenewalPricing(order)
+	baseRate, pricingTiers, cumDisc := loadRenewalPricing(db, order)
 
 	renewalCost, tierBreakdown := services.CalculateRenewalPricing(
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
@@ -228,7 +230,7 @@ func ConfirmRenewal(c *gin.Context) {
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
-	baseRate, pricingTiers, cumDisc := loadRenewalPricing(order)
+	baseRate, pricingTiers, cumDisc := loadRenewalPricing(db, order)
 
 	// Minimum renewal days: must cover the overdue period (continuous).
 	if today.After(endDate) {

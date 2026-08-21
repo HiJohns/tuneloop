@@ -553,7 +553,8 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
 			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-				finalDailyRent = v / 100
+				// #1734: 统一分语义（存量元残留归一），再 /100 得元。
+				finalDailyRent = resolveBaseDailyRentCents(db, &order, v) / 100
 			}
 		}
 	}
