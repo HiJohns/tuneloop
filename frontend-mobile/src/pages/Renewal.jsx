@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, ScrollView, Image } from '@tarojs/components'
-import { apiFetch, getToken, resolveErrorMessage } from '../services/api'
+import { apiFetch, resolveErrorMessage } from '../services/api'
 import { env } from '../platform'
 import { ArrowLeft } from 'lucide-react'
 
@@ -73,10 +73,10 @@ export default function Renewal() {
     if (submitting || !calcResult) return
     setSubmitting(true)
     try {
-      const token = getToken()
-      const resp = await fetch(`${baseUrl}/orders/${orderId}/renewal/confirm`, {
+      // #1722: 裸 fetch 在 weapp 不存在（ReferenceError "fetch is not defined"）→
+      // 改用 apiFetch（platformRequest 跨端适配 + 自动带 Authorization）。
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/renewal/confirm`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ additional_days: days, open_id: '' }),
       })
       const result = await resp.json()
