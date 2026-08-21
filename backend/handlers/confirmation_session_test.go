@@ -185,6 +185,7 @@ func TestConfirmationSessionHandler_Get(t *testing.T) {
 		UserID:         "55555555-5555-5555-5555-555555555555",
 		ConfirmType:    "email",
 		ConfirmTarget:  "test@example.com",
+		MerchantID:     "00000000-0000-0000-0000-000000000000", // uuid 列不接受空串
 		ActionType:     "site_manager",
 		ActionTargetID: "33333333-3333-3333-3333-333333333333",
 		Status:         "waiting",
@@ -224,7 +225,7 @@ func TestConfirmationSessionHandler_Get(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
 		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
-		c.Params = []gin.Param{{Key: "id", Value: "non-existent-id"}}
+		c.Params = []gin.Param{{Key: "id", Value: "99999999-9999-9999-9999-999999999999"}}
 
 		handler.Get(c)
 
@@ -260,6 +261,7 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 			UserID:         testUser.ID,
 			ConfirmType:    "email",
 			ConfirmTarget:  testUser.Email,
+			MerchantID:     "00000000-0000-0000-0000-000000000000", // uuid 列不接受空串
 			ActionType:     "site_staff",
 			ActionTargetID: "33333333-3333-3333-3333-333333333333",
 			Status:         "waiting",
@@ -341,15 +343,18 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 	t.Run("ConfirmConfirmationSession_Expired", func(t *testing.T) {
 		// Create expired session
 		expiredSession := models.ConfirmationSession{
-			ID:            uuid.New().String(),
-			TenantID:      "11111111-1111-1111-1111-111111111111",
-			UserID:        "55555555-5555-5555-5555-555555555555",
-			ConfirmType:   "email",
-			ConfirmTarget: "test@example.com",
-			ActionType:    "site_manager",
-			Status:        "waiting",
-			Token:         "expired-token",
-			ExpiresAt:     time.Now().Add(-1 * time.Hour), // Already expired
+			ID:             uuid.New().String(),
+			TenantID:       "11111111-1111-1111-1111-111111111111",
+			OrgID:          "22222222-2222-2222-2222-222222222222",
+			UserID:         "55555555-5555-5555-5555-555555555555",
+			ConfirmType:    "email",
+			ConfirmTarget:  "test@example.com",
+			MerchantID:     "00000000-0000-0000-0000-000000000000",
+			ActionType:     "site_manager",
+			ActionTargetID: "33333333-3333-3333-3333-333333333333",
+			Status:         "waiting",
+			Token:          "expired-token",
+			ExpiresAt:      time.Now().Add(-1 * time.Hour), // Already expired
 		}
 		err := db.Create(&expiredSession).Error
 		assert.NoError(t, err)
