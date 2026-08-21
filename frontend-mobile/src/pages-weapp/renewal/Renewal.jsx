@@ -15,6 +15,9 @@ export default function Renewal() {
   const params = Taro.getCurrentInstance()?.router?.params || {}
   const orderId = params.id
   const baseUrl = env.apiBaseUrl
+  // #1733: weapp <Image> 相对路径 src 被当作包内路径 → 补全域名前缀
+  const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
+  const fixImg = (url) => !url || url.startsWith('http') || url.startsWith('data:') ? url : IMG_BASE + url
 
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
@@ -121,7 +124,7 @@ export default function Renewal() {
 
         {instrument && (
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }} onClick={() => Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` })}>
-            {(instrument.cover_image || instrument.images?.[0]) && <Image src={instrument.cover_image || instrument.images?.[0]} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 12, backgroundColor: '#f4f4f5' }} mode="aspectFill" />}
+            {(instrument.cover_image || instrument.images?.[0]) && <Image src={fixImg(instrument.cover_image || instrument.images?.[0])} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 12, backgroundColor: '#f4f4f5' }} mode="aspectFill" />}
             <Text style={{ fontSize: 14, fontWeight: '700', marginBottom: 8 }}>{instrument.category_name || '乐器'}</Text>
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>SN</Text><Text style={{ fontSize: 12, color: '#000' }}>{instrument.sn || '-'}</Text></View>
             <View style={{ display: 'flex', flexDirection: 'row', marginBottom: 4 }}><Text style={{ fontSize: 12, color: '#a1a1aa', width: 80 }}>下单日</Text><Text style={{ fontSize: 12, color: '#000' }}>{formatDate(order.created_at)}</Text></View>

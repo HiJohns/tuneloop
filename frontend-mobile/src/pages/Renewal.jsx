@@ -21,6 +21,9 @@ export default function Renewal() {
   const orderId = searchParams.get('order_id') || searchParams.get('orderId') || pathOrderId || ''
   const navigate = useNavigate()
   const baseUrl = env.apiBaseUrl
+  // #1733: weapp <Image> 相对路径 src 被当作包内路径 → 补全域名前缀
+  const IMG_BASE = env.apiBaseUrl.replace(/\/api$/, '')
+  const fixImg = (url) => !url || url.startsWith('http') || url.startsWith('data:') ? url : IMG_BASE + url
 
   const [order, setOrder] = useState(null)
   const [instrument, setInstrument] = useState(null)
@@ -113,7 +116,7 @@ export default function Renewal() {
         {instrument && (
           <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ cursor: 'pointer' }} onClick={() => navigate(`/instrument/${instrument.id}`)}>
             {(instrument.cover_image || instrument.images?.[0]) && (
-              <Image src={instrument.cover_image || instrument.images?.[0]} className="w-full h-40 object-cover rounded-lg bg-zinc-100 mb-3" mode="aspectFill" />
+              <Image src={fixImg(instrument.cover_image || instrument.images?.[0])} className="w-full h-40 object-cover rounded-lg bg-zinc-100 mb-3" mode="aspectFill" />
             )}
             <View className="text-base font-bold mb-2"><Text>{instrument.category_name || '乐器'}</Text></View>
             <View className="flex flex-row text-sm mb-1"><Text className="text-gray-500 w-24">SN</Text><Text className="text-black font-medium">{instrument.sn || '-'}</Text></View>
