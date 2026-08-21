@@ -61,11 +61,13 @@ func TestComputeSysPermBitmap(t *testing.T) {
 }
 
 func TestGetRoleTemplateSysPerm(t *testing.T) {
-	// namespace_admin should have all bits 0-24 set
+	// namespace_admin: assert against the live template definition (bits
+	// 5-9 + 15-19) — the previous hardcoded "all bits 0-24" expectation went
+	// stale when the template was trimmed.
 	sysPerm := GetRoleTemplateSysPerm("namespace_admin")
 	var expected int64
-	for i := 0; i <= 24; i++ {
-		expected |= 1 << i
+	for _, b := range AllRoleTemplates["namespace_admin"].SysPermBits {
+		expected |= 1 << b
 	}
 	if sysPerm != expected {
 		t.Errorf("GetRoleTemplateSysPerm('namespace_admin') = %b, want %b", sysPerm, expected)

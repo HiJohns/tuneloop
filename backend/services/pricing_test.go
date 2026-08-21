@@ -15,11 +15,13 @@ func TestCalculatePricing_Deposit(t *testing.T) {
 		}
 	})
 
-	t.Run("total_price = 0 uses baseDailyRate × deposit_multiplier", func(t *testing.T) {
+	t.Run("total_price = 0 yields zero deposit in ratio mode", func(t *testing.T) {
+		// #1438: deposit modes reduced to ratio + custom — the old
+		// baseDailyRate×deposit_multiplier formula no longer exists;
+		// without a total_price there is nothing to ratio against.
 		result := CalculatePricing(100, 0, config, "{}")
-		expected := 100.0 * 7
-		if result.Deposit != expected {
-			t.Errorf("expected deposit %.0f, got %.0f (baseDailyRate×multiplier)", expected, result.Deposit)
+		if result.Deposit != 0 {
+			t.Errorf("expected deposit 0 (no total_price), got %.0f", result.Deposit)
 		}
 	})
 
@@ -32,28 +34,28 @@ func TestCalculatePricing_Deposit(t *testing.T) {
 		}
 	})
 
-	t.Run("total_price = 0 custom deposit_multiplier", func(t *testing.T) {
+	t.Run("total_price = 0 custom ratio also yields zero", func(t *testing.T) {
 		cfg := `{"deposit_mode":"ratio","deposit_ratio":0.1,"deposit_multiplier":3}`
 		result := CalculatePricing(100, 0, cfg, "{}")
-		expected := 100.0 * 3
-		if result.Deposit != expected {
-			t.Errorf("expected deposit %.0f, got %.0f (custom multiplier)", expected, result.Deposit)
+		if result.Deposit != 0 {
+			t.Errorf("expected deposit 0 (no total_price), got %.0f", result.Deposit)
 		}
 	})
 
-	t.Run("zero ratio yields zero deposit", func(t *testing.T) {
+	t.Run("zero ratio defaults to full amount (#1436)", func(t *testing.T) {
 		cfg := `{"deposit_mode":"ratio","deposit_ratio":0,"deposit_multiplier":0}`
 		result := CalculatePricing(100, 50000, cfg, "{}")
-		if result.Deposit != 0 {
-			t.Errorf("expected deposit 0 (zero ratio), got %.0f", result.Deposit)
+		if result.Deposit != 50000 {
+			t.Errorf("expected deposit 50000 (ratio 0 → default 1.0), got %.0f", result.Deposit)
 		}
 	})
 
-	t.Run("deposit_mode = fixed uses fixed value", func(t *testing.T) {
-		cfg := `{"deposit_mode":"fixed","deposit_fixed":2000}`
-		result := CalculatePricing(100, 50000, cfg, "{}")
-		if result.Deposit != 2000 {
-			t.Errorf("expected deposit 2000, got %.0f (fixed mode)", result.Deposit)
+	t.Run("deposit_mode = custom uses override only", func(t *testing.T) {
+		// #1438: fixed/standard/free modes removed — only ratio + custom.
+		cfg := `{"deposit_mode":"custom"}`
+		result := CalculatePricing(100, 50000, cfg, `{"deposit":1500}`)
+		if result.Deposit != 1500 {
+			t.Errorf("expected deposit 1500 (custom override), got %.0f", result.Deposit)
 		}
 	})
 

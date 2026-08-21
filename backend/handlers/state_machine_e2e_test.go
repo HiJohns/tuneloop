@@ -377,7 +377,7 @@ func TestInspectReturn_OverdueFee(t *testing.T) {
 		LeaseTerm:        20,
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
-		PricingBreakdown: strPtr(`{"base_daily_rent":10}`),
+		PricingBreakdown: strPtr(`{"base_daily_rent":1000}`),
 	}).Error)
 	require.NoError(t, db.Model(&models.Instrument{}).Where("id = ?", instrumentID).Update("pricing", pricing).Error)
 
@@ -437,7 +437,7 @@ func TestInspectReturn_NoOverdue(t *testing.T) {
 		LeaseTerm:        15,
 		Status:           models.OrderStatusReturning,
 		Deposit:          models.FromYuan(500),
-		PricingBreakdown: strPtr(`{"base_daily_rent":10}`),
+		PricingBreakdown: strPtr(`{"base_daily_rent":1000}`),
 	}).Error)
 
 	reqBody := map[string]interface{}{

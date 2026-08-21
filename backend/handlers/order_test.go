@@ -51,8 +51,8 @@ func setupTestData(t *testing.T, db *gorm.DB, tenantID string) (categoryID, inst
 		categoryID, tenantID, now)
 
 	instrumentID = uuid.New().String()
-	db.Exec(`INSERT INTO instruments (id, name, tenant_id, org_id, category_id, brand, level, stock_status, images, specifications, pricing, created_at, updated_at) 
-		VALUES (?, 'Test Piano', ?, ?, ?, 'Yamaha', 'standard', 'available', '[]', '{}', '{}', ?, ?)`,
+	db.Exec(`INSERT INTO instruments (id, tenant_id, org_id, category_id, level, stock_status, images, specifications, pricing, created_at, updated_at) 
+		VALUES (?, ?, ?, ?, 'standard', 'available', '[]', '{}', '{}', ?, ?)`,
 		instrumentID, tenantID, tenantID, categoryID, now, now)
 
 	return categoryID, instrumentID, userID

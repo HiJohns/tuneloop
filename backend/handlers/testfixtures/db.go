@@ -22,6 +22,7 @@ var allTables = []interface{}{
 	&models.Instrument{},
 	&models.Order{},
 	&models.LeaseSession{},
+	&models.Notification{},
 	&models.OrderLog{},
 	&models.OrderStatusHistory{},
 	&models.AuditLog{},
@@ -45,6 +46,7 @@ var allTables = []interface{}{
 	&models.DiscountPolicy{},
 	&models.DiscountCode{},
 	&models.DiscountCodeUsage{},
+	&models.ConfirmationSession{},
 }
 
 // SetupTestDB connects to the test database, drops and recreates all
@@ -60,7 +62,15 @@ func SetupTestDB(t *testing.T) *gorm.DB {
 	}
 	database.SetDB(db)
 
-	_ = db.Migrator().DropTable(allTables...)
+	// #1721: DropTable 按序删除会被外键阻止（残留导致 CreateTable 报 already
+	// exists）——用 CASCADE 原生清理全部业务表。
+	var tables []string
+	db.Raw(`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`).Scan(&tables)
+	for _, tb := range tables {
+		if err := db.Exec(`DROP TABLE IF EXISTS "` + tb + `" CASCADE`).Error; err != nil {
+			t.Logf("warning: drop table %s: %v", tb, err)
+		}
+	}
 	for _, table := range allTables {
 		require.NoError(t, db.Migrator().CreateTable(table))
 	}

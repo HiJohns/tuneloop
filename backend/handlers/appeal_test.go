@@ -50,10 +50,14 @@ func TestListAppeals(t *testing.T) {
 	damageID := uuid.New().String()
 	orgID := uuid.New().String()
 	appealReason := "Test appeal"
+	zeroUUID := "00000000-0000-0000-0000-000000000000"
 	appeal := models.Appeal{
 		ID:             uuid.New().String(),
 		TenantID:       tenantID,
 		OrgID:          orgID,
+		SiteID:         zeroUUID, // uuid 列不接受空串（22P02），显式零 UUID
+		ObjectID:       zeroUUID,
+		AppellantID:    zeroUUID,
 		DamageReportID: &damageID,
 		UserID:         &userID,
 		AppealReason:   &appealReason,

@@ -40,8 +40,8 @@ func TestGetInventoryRentSetting(t *testing.T) {
 	// Create test instrument with pricing
 	instrumentID := uuid.New()
 	pricingJSON := `{"daily_rent":100.00,"monthly_rent":2500.00,"deposit":5000.00}`
-	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, site_id, pricing, tenant_id, org_id, stock_status, name, level, created_at, updated_at) 
-		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, ?, 'available', '测试钢琴', 'professional', ?, ?)`,
+	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, site_id, pricing, tenant_id, org_id, stock_status, created_at, updated_at) 
+		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, ?, 'available', ?, ?)`,
 		instrumentID, siteID, pricingJSON, tenantID, tenantID, now, now)
 
 	// Setup route
@@ -107,8 +107,8 @@ func TestBatchUpdateRent(t *testing.T) {
 	// Create test instrument with initial pricing
 	instrumentID := uuid.New()
 	pricingJSON := `{"daily_rent":100.00}`
-	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, pricing, tenant_id, org_id, stock_status, name, level, created_at, updated_at) 
-		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, 'available', '测试钢琴', 'professional', ?, ?)`,
+	db.Exec(`INSERT INTO instruments (id, sn, category_name, level_name, pricing, tenant_id, org_id, stock_status, created_at, updated_at) 
+		VALUES (?, 'SN123456', '钢琴', '专业级', ?, ?, ?, 'available', ?, ?)`,
 		instrumentID, pricingJSON, tenantID, tenantID, now, now)
 
 	// Setup route

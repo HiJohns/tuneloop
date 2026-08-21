@@ -635,7 +635,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 	rentPayable = math.Round(rentPayable*100) / 100
 
-	totalRentPaid := (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed - order.Deposit - order.ShippingFee).ToYuan()
+	// #1621/#1721：快递费只从押金扣除（totalDepositDeducted 含 shippingFee），
+	// 已付租金侧不再扣减——此前双扣导致有快递费订单少退快递费金额。
+	totalRentPaid := (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed - order.Deposit).ToYuan()
 	if totalRentPaid == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {

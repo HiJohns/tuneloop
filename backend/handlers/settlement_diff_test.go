@@ -43,9 +43,9 @@ func TestRefundDiff_PointsOverCap(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         2000,
-		GiftPointsUsed:   1000,
-		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
+		CashPaid:         200000,
+		GiftPointsUsed:   100000,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	// Create the instrument the order references
@@ -97,9 +97,9 @@ func TestRefundDiff_PointsWithinCap(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         2500,
-		GiftPointsUsed:   500,
-		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
+		CashPaid:         250000,
+		GiftPointsUsed:   50000,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -143,9 +143,9 @@ func TestRefundDiff_TotalSpendingC1(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         2000,
-		GiftPointsUsed:   1000,
-		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
+		CashPaid:         200000,
+		GiftPointsUsed:   100000,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -187,9 +187,9 @@ func TestRefundDiff_RebatePoints(t *testing.T) {
 		Status:           models.OrderStatusCompleted,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         2000,
-		GiftPointsUsed:   1000,
-		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
+		CashPaid:         200000,
+		GiftPointsUsed:   100000,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -233,9 +233,9 @@ func TestConfirmSettlement_ClosesOrder(t *testing.T) {
 		Status:           models.OrderStatusDepositRefunding,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         2000,
-		GiftPointsUsed:   1000,
-		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
+		CashPaid:         200000,
+		GiftPointsUsed:   100000,
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 	require.NoError(t, db.Create(&models.Instrument{
@@ -270,9 +270,9 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 		InstrumentID:     uuid.New().String(),
 		Status:           models.OrderStatusPaid,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         3000, // full total at creation
+		CashPaid:         300000, // full total at creation
 		GiftPointsUsed:   0,
-		PricingBreakdown: strPtr(`{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`),
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
 	}
 	require.NoError(t, db.Create(&order).Error)
 
@@ -286,4 +286,51 @@ func TestPaymentCallback_NoDoubleCount(t *testing.T) {
 	var updated models.Order
 	require.NoError(t, db.Where("id = ?", order.ID).First(&updated).Error)
 	require.Equal(t, 2000.0, updated.CashPaid, "cash_paid reduced by gift_used")
+}
+
+// TestSettlement_ShippingFeeSingleDeduction (#1721): shipping fee is deducted
+// from the deposit exactly once — previously it was subtracted from both
+// totalRentPaid (paid-rent side) and totalDepositDeducted (deposit side),
+// under-refunding the customer by the shipping fee.
+func TestSettlement_ShippingFeeSingleDeduction(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := "00000000-0000-4000-8000-0000000000b1"
+	orgID := "00000000-0000-4000-8000-0000000000b2"
+	userID := "00000000-0000-4000-8000-0000000000b3"
+
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
+		Username: "shippingfee", Status: "active", MembershipLevelID: intPtr(1),
+	}).Error)
+
+	// Rent 3000 (30d × 100), deposit 500, shipping fee 12.50, full term on-time.
+	returnedAt := time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC)
+	order := models.Order{
+		TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID:   uuid.New().String(),
+		StartDate:      strPtr("2026-08-01"),
+		EndDate:        strPtr("2026-08-30"),
+		LeaseTerm:      30,
+		Status:         models.OrderStatusCompleted,
+		ReturnedAt:     &returnedAt,
+		Deposit:        models.FromYuan(500),
+		CashPaid:       models.FromYuan(3500), // rent 3000 + deposit 500; shipping billed at dispatch
+		ShippingFee:    models.FromYuan(12.50),
+		PricingBreakdown: strPtr(`{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SHIP-ONCE", BaseDailyRate: models.ToCentsPtr(float64Ptr(100)), StockStatus: "rented",
+	}).Error)
+
+	result := computeSettlement(order, db)
+
+	// Rent 3000, deposit 500, shipping 12.50 (deducted from deposit once):
+	// totalRefund = totalRentPaid(3000) + remainingDeposit(500−12.50) − rent(3000)
+	//             = 487.50 — shipping deducted exactly once.
+	require.Equal(t, 3000.0, result.RentPayable, "R1 = 30×100")
+	require.Equal(t, 487.50, result.TotalRefund, "refund = rent + (deposit − shipping) − rent; shipping once")
+	require.Equal(t, 0.0, result.DepositDeductedOverdue+result.DamageDeducted, "no overdue/damage in this case")
 }

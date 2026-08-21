@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"tuneloop-backend/database"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
 
@@ -21,18 +23,18 @@ func setupConfirmationSessionTest(t *testing.T) *gorm.DB {
 	db := database.GetDB()
 
 	// Clean up any existing test data
-	db.Where("tenant_id = ?", "test-tenant-id").Delete(&models.ConfirmationSession{})
-	db.Where("tenant_id = ?", "test-tenant-id").Delete(&models.User{})
-	db.Where("tenant_id = ?", "test-tenant-id").Delete(&models.SiteMember{})
+	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.ConfirmationSession{})
+	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.User{})
+	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.SiteMember{})
 
 	return db
 }
 
 // cleanupConfirmationSessionTest removes test data
 func cleanupConfirmationSessionTest(db *gorm.DB) {
-	db.Where("tenant_id = ?", "test-tenant-id").Delete(&models.ConfirmationSession{})
-	db.Where("tenant_id = ?", "test-tenant-id").Delete(&models.User{})
-	db.Where("tenant_id = ?", "test-tenant-id").Delete(&models.SiteMember{})
+	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.ConfirmationSession{})
+	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.User{})
+	db.Where("tenant_id = ?", "11111111-1111-1111-1111-111111111111").Delete(&models.SiteMember{})
 }
 
 func TestConfirmationSessionHandler_Create(t *testing.T) {
@@ -46,8 +48,8 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 		testUser := models.User{
 			ID:       uuid.New().String(),
 			IAMSub:   "test-sub-1",
-			TenantID: "test-tenant-id",
-			OrgID:    "test-org-id",
+			TenantID: "11111111-1111-1111-1111-111111111111",
+			OrgID:    "22222222-2222-2222-2222-222222222222",
 			Name:     "Test User",
 			Email:    "test@example.com",
 			Phone:    "13800000000",
@@ -61,9 +63,9 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 			"user_id":          testUser.ID,
 			"confirm_type":     "email",
 			"confirm_target":   testUser.Email,
-			"merchant_id":      "test-merchant-id",
+			"merchant_id":      "44444444-4444-4444-4444-444444444444",
 			"action_type":      "site_manager",
-			"action_target_id": "test-site-id",
+			"action_target_id": "33333333-3333-3333-3333-333333333333",
 		}
 
 		bodyBytes, _ := json.Marshal(reqBody)
@@ -73,8 +75,9 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
-		c.Set("org_id", "test-org-id")
+		ctx := context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111")
+		ctx = context.WithValue(ctx, middleware.ContextKeyOrgID, "22222222-2222-2222-2222-222222222222")
+		c.Request = c.Request.WithContext(ctx)
 
 		// Execute handler
 		handler.Create(c)
@@ -106,11 +109,11 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 
 	t.Run("CreateConfirmationSession_UserNotFound", func(t *testing.T) {
 		reqBody := map[string]interface{}{
-			"user_id":          "non-existent-user",
+			"user_id":          "99999999-9999-9999-9999-999999999999", // 合法 UUID 但不存在
 			"confirm_type":     "email",
 			"confirm_target":   "test@example.com",
 			"action_type":      "merchant_admin",
-			"action_target_id": "test-merchant-id",
+			"action_target_id": "44444444-4444-4444-4444-444444444444",
 		}
 
 		bodyBytes, _ := json.Marshal(reqBody)
@@ -120,7 +123,7 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 
 		handler.Create(c)
 
@@ -137,8 +140,8 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 		testUser := models.User{
 			ID:       uuid.New().String(),
 			IAMSub:   "test-sub-2",
-			TenantID: "test-tenant-id",
-			OrgID:    "test-org-id",
+			TenantID: "11111111-1111-1111-1111-111111111111",
+			OrgID:    "22222222-2222-2222-2222-222222222222",
 			Name:     "Test User 2",
 			Email:    "test2@example.com",
 			Status:   "active",
@@ -159,7 +162,8 @@ func TestConfirmationSessionHandler_Create(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = req
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 
 		handler.Create(c)
 
@@ -176,13 +180,13 @@ func TestConfirmationSessionHandler_Get(t *testing.T) {
 	// Create test session
 	testSession := models.ConfirmationSession{
 		ID:             uuid.New().String(),
-		TenantID:       "test-tenant-id",
-		OrgID:          "test-org-id",
-		UserID:         "test-user-id",
+		TenantID:       "11111111-1111-1111-1111-111111111111",
+		OrgID:          "22222222-2222-2222-2222-222222222222",
+		UserID:         "55555555-5555-5555-5555-555555555555",
 		ConfirmType:    "email",
 		ConfirmTarget:  "test@example.com",
 		ActionType:     "site_manager",
-		ActionTargetID: "test-site-id",
+		ActionTargetID: "33333333-3333-3333-3333-333333333333",
 		Status:         "waiting",
 		Token:          "test-token-12345",
 		ExpiresAt:      time.Now().Add(24 * time.Hour),
@@ -196,7 +200,7 @@ func TestConfirmationSessionHandler_Get(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 		c.Params = []gin.Param{{Key: "id", Value: testSession.ID}}
 
 		handler.Get(c)
@@ -219,7 +223,7 @@ func TestConfirmationSessionHandler_Get(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 		c.Params = []gin.Param{{Key: "id", Value: "non-existent-id"}}
 
 		handler.Get(c)
@@ -239,8 +243,8 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		testUser := models.User{
 			ID:       uuid.New().String(),
 			IAMSub:   "test-sub-confirm",
-			TenantID: "test-tenant-id",
-			OrgID:    "test-org-id",
+			TenantID: "11111111-1111-1111-1111-111111111111",
+			OrgID:    "22222222-2222-2222-2222-222222222222",
 			Name:     "Test User Confirm",
 			Email:    "confirm@example.com",
 			Status:   "pending", // Start with pending status
@@ -251,13 +255,13 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		// Create test session
 		testSession := models.ConfirmationSession{
 			ID:             uuid.New().String(),
-			TenantID:       "test-tenant-id",
-			OrgID:          "test-org-id",
+			TenantID:       "11111111-1111-1111-1111-111111111111",
+			OrgID:          "22222222-2222-2222-2222-222222222222",
 			UserID:         testUser.ID,
 			ConfirmType:    "email",
 			ConfirmTarget:  testUser.Email,
 			ActionType:     "site_staff",
-			ActionTargetID: "test-site-id",
+			ActionTargetID: "33333333-3333-3333-3333-333333333333",
 			Status:         "waiting",
 			Token:          "confirm-token-12345",
 			ExpiresAt:      time.Now().Add(24 * time.Hour),
@@ -271,7 +275,7 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 		c.Params = []gin.Param{{Key: "id", Value: testSession.ID}}
 
 		handler.Confirm(c)
@@ -299,7 +303,7 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 
 		// Verify site member was created
 		var siteMember models.SiteMember
-		err = db.Where("user_id = ? AND site_id = ?", testUser.ID, "test-site-id").First(&siteMember).Error
+		err = db.Where("user_id = ? AND site_id = ?", testUser.ID, "33333333-3333-3333-3333-333333333333").First(&siteMember).Error
 		assert.NoError(t, err)
 		assert.Equal(t, "Staff", siteMember.Role)
 	})
@@ -308,8 +312,8 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		// Create test session
 		testSession := models.ConfirmationSession{
 			ID:            uuid.New().String(),
-			TenantID:      "test-tenant-id",
-			UserID:        "test-user-id",
+			TenantID:      "11111111-1111-1111-1111-111111111111",
+			UserID:        "55555555-5555-5555-5555-555555555555",
 			ConfirmType:   "email",
 			ConfirmTarget: "test@example.com",
 			ActionType:    "merchant_admin",
@@ -326,7 +330,7 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 		c.Params = []gin.Param{{Key: "id", Value: testSession.ID}}
 
 		handler.Confirm(c)
@@ -338,8 +342,8 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		// Create expired session
 		expiredSession := models.ConfirmationSession{
 			ID:            uuid.New().String(),
-			TenantID:      "test-tenant-id",
-			UserID:        "test-user-id",
+			TenantID:      "11111111-1111-1111-1111-111111111111",
+			UserID:        "55555555-5555-5555-5555-555555555555",
 			ConfirmType:   "email",
 			ConfirmTarget: "test@example.com",
 			ActionType:    "site_manager",
@@ -356,7 +360,7 @@ func TestConfirmationSessionHandler_Confirm(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = req
-		c.Set("tenant_id", "test-tenant-id")
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), middleware.ContextKeyTenantID, "11111111-1111-1111-1111-111111111111"))
 		c.Params = []gin.Param{{Key: "id", Value: expiredSession.ID}}
 
 		handler.Confirm(c)
