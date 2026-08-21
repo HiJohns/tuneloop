@@ -137,6 +137,9 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 	now := time.Now()
 	record.Status = "paid"
 	record.TransactionID = &result.TransactionID
+	// #1731: persist the payer.openid from the payment callback — the
+	// authoritative source for later upload_shipping_info / notify_confirm_receive.
+	record.OpenID = result.OpenID
 	record.UpdatedAt = now
 
 	raw, _ := json.Marshal(result)
@@ -192,7 +195,12 @@ func reportVirtualGoodsShipping(db *gorm.DB, record *models.OrderPaymentRecord) 
 	case "repair":
 		itemDesc = "维修服务费"
 	}
-	openid := openidOfUser(db, record.UserID)
+	// #1731: prefer the payer.openid persisted on this record (callback) —
+	// users.wx_openid cache is only a fallback.
+	openid := record.OpenID
+	if openid == "" {
+		openid = openidOfUser(db, record.UserID)
+	}
 	if openid == "" {
 		log.Printf("[WechatShipping] virtual goods %s: no openid for user %s", record.OrderType, record.UserID)
 	}

@@ -496,6 +496,20 @@ curl POST "https://api.weixin.qq.com/wxa/sec/order/get_order_detail_path?access_
 2. `notify_confirm_receive` 同链路（`10060014 参数错误` 同上根因）。
 3. 上报失败按设计不阻塞业务（非致命），但资金解冻/结算会受影响，日志需监控 `[WechatShipping]` 前缀。
 
+### Phase 6 补充：实物发货同步 openid 权威来源 + notify 请求体（#1731）
+
+**问题**：用户反馈"发货后微信后台订单管理仍需手动点发货"——`upload_shipping_info` / `notify_confirm_receive` 实际失败（预生产日志 `10060031 支付单不属于 openid 指定的用户` / `10060014 参数错误`）。
+
+**根因与修复**：
+1. **openid 来源不可靠**：发货上报原用 `openidOfUser` 读本地 `users.wx_openid` 缓存（生产仅 5/35 用户有值）→ 微信报 `10060031`。**权威来源改为支付回调的 `payer.openid`**：
+   - 回调解析（`wechatpay/real.go` `transactionResult.Payer.OpenID` → `CallbackResult.OpenID`）
+   - 回调处理时持久化到 `order_payment_records.openid`（迁移 `20260821001_add_payment_openid`）
+   - `reportWechatShipping` / `reportVirtualGoodsShipping` 优先用 `record.OpenID`，`users.wx_openid` 仅兜底
+2. **notify_confirm_receive 请求体结构错误**：原发 `{merchant_trade_no, received_time}` 顶层字段 → 微信报 `10060014`。微信要求 `order_key` 对象（`order_number_type` + `mchid` + `out_trade_no`）+ `received_time`，已修复。
+3. **成功日志**：`[WechatShipping] uploaded shipping info for order ...`（排查用，失败日志原本已有）。
+
+**排查关键字**：`journalctl -u tuneloop | grep WechatShipping`——成功：`uploaded shipping info`；失败：`upload_shipping_info failed` / `notify_confirm_receive failed`。
+
 ---
 
 ## 八、2026-07-17 生产上线调试日志

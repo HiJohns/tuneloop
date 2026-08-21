@@ -837,11 +837,18 @@ func reportWechatShipping(db *gorm.DB, order models.Order, openid, company, trac
 	if record.TransactionID != nil {
 		transactionID = *record.TransactionID
 	}
+	// #1731: the payer.openid persisted at payment callback is the
+	// authoritative source; the users.wx_openid cache is only a fallback.
+	if openid == "" {
+		openid = record.OpenID
+	}
 	itemDesc := fmt.Sprintf("乐器租赁 %s", order.ID[:8])
 	go func() {
 		if err := services.UploadShippingInfo(openid, *record.OutTradeNo, transactionID, trackingNumber, company, itemDesc, 1); err != nil {
 			log.Printf("[WechatShipping] upload_shipping_info failed for order %s: %v", order.ID, err)
+			return
 		}
+		log.Printf("[WechatShipping] uploaded shipping info for order %s (out_trade_no=%s)", order.ID, *record.OutTradeNo)
 	}()
 }
 

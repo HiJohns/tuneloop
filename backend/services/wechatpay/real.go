@@ -255,6 +255,11 @@ type transactionResult struct {
 	Amount        struct {
 		Total int64 `json:"total"`
 	} `json:"amount"`
+	// Payer carries the mini-program openid of the actual payer (#1731) —
+	// the authoritative source for later upload_shipping_info calls.
+	Payer struct {
+		OpenID string `json:"openid"`
+	} `json:"payer"`
 }
 
 type refundCallbackResult struct {
@@ -305,6 +310,7 @@ func (c *realClient) VerifyPaymentCallback(ctx context.Context, body []byte, sig
 		result.OutTradeNo = txn.OutTradeNo
 		result.TransactionID = txn.TransactionID
 		result.Amount = txn.Amount.Total
+		result.OpenID = txn.Payer.OpenID
 
 	case "REFUND.SUCCESS":
 		result.EventType = "REFUND.SUCCESS"

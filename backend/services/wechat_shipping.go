@@ -138,21 +138,32 @@ func UploadShippingInfo(openid, outTradeNo, transactionID, trackingNo, courierCo
 }
 
 type notifyConfirmReceiveRequest struct {
-	MerchantTradeNo string `json:"merchant_trade_no"`
-	ReceivedTime    int64  `json:"received_time"`
+	OrderKey     shippingOrderKey `json:"order_key"`
+	ReceivedTime int64            `json:"received_time"`
 }
 
 // NotifyConfirmReceive reminds WeChat that the goods were signed (courier
 // receipt) so the platform can settle funds; one call per order.
+// The request body must carry the order_key object (order_number_type +
+// mchid + out_trade_no) — a flat merchant_trade_no field is rejected with
+// errcode 10060014 (#1731).
 func NotifyConfirmReceive(outTradeNo string, receivedTime time.Time) error {
 	token, err := GetWxAccessToken()
 	if err != nil {
 		return fmt.Errorf("get access token: %w", err)
 	}
 
+	orderKey := shippingOrderKey{
+		OrderNumberType: 1, // merchant-side out_trade_no form
+		OutTradeNo:      outTradeNo,
+	}
+	if cfg := wechatpay.GetConfig(); cfg != nil {
+		orderKey.Mchid = cfg.MchID
+	}
+
 	reqBody := notifyConfirmReceiveRequest{
-		MerchantTradeNo: outTradeNo,
-		ReceivedTime:    receivedTime.Unix(),
+		OrderKey:     orderKey,
+		ReceivedTime: receivedTime.Unix(),
 	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {

@@ -57,6 +57,7 @@ type CallbackResult struct {
 	EventType     string `json:"event_type"`    // TRANSACTION.SUCCESS / REFUND.SUCCESS
 	OutRefundNo   string `json:"out_refund_no"` // 退款单号（仅退款回调有值）
 	RefundID      string `json:"refund_id"`     // 微信退款单号（仅退款回调有值）
+	OpenID        string `json:"openid"`        // payer.openid（仅 TRANSACTION.SUCCESS 有值，#1731）
 }
 
 type RefundParams struct {
