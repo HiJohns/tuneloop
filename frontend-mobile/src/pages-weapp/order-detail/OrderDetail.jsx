@@ -253,14 +253,15 @@ export default function OrderDetail() {
 
   // 定损接受/拒绝（#1707）：复用通知详情页的 appealsApi.agree + 申诉流程
   const handleDamageAccept = async (damage) => {
+    // #1724：补缴/退还按 refund 公式（damage − refund / refund − damage）
     const amt = Number(damage.damage_amount || 0)
-    const dep = Number(damage.deposit || 0)
+    const rf = Number(damage.refund || 0)
     const ok = await new Promise(resolve => {
       Taro.showModal({
         title: '确认接受定损',
-        content: amt < dep
-          ? `定损金额 ¥${(amt / 100).toFixed(2)}，押金 ¥${(dep / 100).toFixed(2)}，将退还差额 ¥${((dep - amt) / 100).toFixed(2)}`
-          : `定损金额 ¥${(amt / 100).toFixed(2)}，押金 ¥${(dep / 100).toFixed(2)}，需补缴 ¥${((amt - dep) / 100).toFixed(2)}`,
+        content: amt > rf
+          ? `定损金额 ¥${(amt / 100).toFixed(2)}，应退 ¥${(rf / 100).toFixed(2)}，需补缴 ¥${((amt - rf) / 100).toFixed(2)}`
+          : `定损金额 ¥${(amt / 100).toFixed(2)}，应退 ¥${(rf / 100).toFixed(2)}，将退还差额 ¥${((rf - amt) / 100).toFixed(2)}`,
         success: res => resolve(res.confirm),
         fail: () => resolve(false),
       })

@@ -56,7 +56,9 @@ export default function MessageDetail() {
   const order = ref?.order
 
   const damageAmount = actionData.damage_amount || damageReport?.damage_amount || 0
+  // #1724：补缴/退还按 refund 公式（damage − refund / refund − damage），非押金对比
   const deposit = actionData.deposit || order?.deposit || 0
+  const refund = order?.damage?.refund ?? 0
 
   const goBack = () => {
     if (env.isMiniProgram) {
@@ -68,14 +70,14 @@ export default function MessageDetail() {
 
   const handleAccept = async () => {
     const ok = await dialog.confirm(
-      damageAmount < deposit
-        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，押金 ¥${(deposit / 100).toFixed(2)}，将退还差额 ¥${((deposit - damageAmount) / 100).toFixed(2)}`
-        : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，押金 ¥${(deposit / 100).toFixed(2)}，需补缴 ¥${((damageAmount - deposit) / 100).toFixed(2)}`
+      damageAmount > refund
+        ? `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，需补缴 ¥${((damageAmount - refund) / 100).toFixed(2)}`
+        : `定损金额 ¥${(damageAmount / 100).toFixed(2)}，应退 ¥${(refund / 100).toFixed(2)}，将退还差额 ¥${((refund - damageAmount) / 100).toFixed(2)}`
     )
     if (!ok) return
     try {
       await appealsApi.agree(damageReport.id)
-      if (damageAmount < deposit) {
+      if (damageAmount <= refund) {
         dialog.toast('已接受定损，押金退还流程将开始')
         goBack()
       } else {
@@ -84,7 +86,7 @@ export default function MessageDetail() {
         } else {
           navigate('/payment-complete', {
             state: {
-              paymentAmount: damageAmount - deposit,
+              paymentAmount: damageAmount - refund,
               damageAmount,
               deposit,
               merchantName: ref?.order?.merchant_name || '商户',

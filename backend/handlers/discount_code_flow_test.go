@@ -130,7 +130,7 @@ func TestDiscountCodeFlow(t *testing.T) {
 		// Rent 10 days × 100 = 1000, discount 10% → 900; + deposit 500 = 1400.
 		var order models.Order
 		require.NoError(t, db.Where("id = ?", resp.Data.OrderID).First(&order).Error)
-		require.Equal(t, 1400.0, order.CashPaid, "cash = discounted rent 900 + deposit 500")
+		require.Equal(t, models.Cents(140000), order.CashPaid, "cash = discounted rent 900 + deposit 500")
 
 		// Pricing breakdown reflects the 0.9 discount factor.
 		require.NotNil(t, order.PricingBreakdown)
@@ -183,7 +183,7 @@ func TestDiscountCodeFlow(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		var order models.Order
 		require.NoError(t, db.Where("id = ?", resp.Data.OrderID).First(&order).Error)
-		require.Equal(t, 1500.0, order.CashPaid, "full price when code exhausted")
+		require.Equal(t, models.Cents(150000), order.CashPaid, "full price when code exhausted")
 	})
 
 	// ------------------------------------------------------------------
@@ -201,7 +201,7 @@ func TestDiscountCodeFlow(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		var order models.Order
 		require.NoError(t, db.Where("id = ?", resp.Data.OrderID).First(&order).Error)
-		require.Equal(t, 1500.0, order.CashPaid, "full price when code invalid")
+		require.Equal(t, models.Cents(150000), order.CashPaid, "full price when code invalid")
 	})
 
 	// ------------------------------------------------------------------
@@ -232,7 +232,7 @@ func TestDiscountCodeFlow(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		var order models.Order
 		require.NoError(t, db.Where("id = ?", resp.Data.OrderID).First(&order).Error)
-		require.Equal(t, 1500.0, order.CashPaid, "full price when code expired")
+		require.Equal(t, models.Cents(150000), order.CashPaid, "full price when code expired")
 	})
 }
 

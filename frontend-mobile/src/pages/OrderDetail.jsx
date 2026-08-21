@@ -251,12 +251,13 @@ export default function OrderDetail() {
     }
   }
   const handleDamageAccept = async (damage) => {
+    // #1724：补缴/退还按 refund 公式（damage − refund / refund − damage），非押金对比
     const amt = Number(damage.damage_amount || 0)
-    const dep = Number(damage.deposit || 0)
+    const rf = Number(damage.refund || 0)
     const ok = await dialog.confirm(
-      amt < dep
-        ? `定损金额 ¥${(amt / 100).toFixed(2)}，押金 ¥${(dep / 100).toFixed(2)}，将退还差额 ¥${((dep - amt) / 100).toFixed(2)}`
-        : `定损金额 ¥${(amt / 100).toFixed(2)}，押金 ¥${(dep / 100).toFixed(2)}，需补缴 ¥${((amt - dep) / 100).toFixed(2)}`
+      amt > rf
+        ? `定损金额 ¥${(amt / 100).toFixed(2)}，应退 ¥${(rf / 100).toFixed(2)}，需补缴 ¥${((amt - rf) / 100).toFixed(2)}`
+        : `定损金额 ¥${(amt / 100).toFixed(2)}，应退 ¥${(rf / 100).toFixed(2)}，将退还差额 ¥${((rf - amt) / 100).toFixed(2)}`
     )
     if (!ok) return
     setActionLoading(true)

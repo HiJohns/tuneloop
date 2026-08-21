@@ -33,7 +33,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 	require.NoError(t, db.Create(&instrument).Error)
 
 	// 30-day lease at tier 0 (30 days, no discount): total = 100×30 = 3000
-	pricingBreakdown := `{"base_daily_rent":100,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":30,"rate":100,"discount":1,"subtotal":3000}],"total_amount":3000}`
+	pricingBreakdown := `{"base_daily_rent":10000,"rent_days":30,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}],"total_amount":300000}`
 	startDate := "2026-07-01"
 	endDate := "2026-07-30"
 	returnedAt := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
@@ -49,7 +49,7 @@ func TestSettlement_EarlyReturnRebate(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         3500, // rent 3000 + deposit 500 (production contract: CashPaid includes deposit)
+		CashPaid:         350000, // rent 3000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -87,7 +87,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&instrument).Error)
 
-	pricingBreakdown := `{"base_daily_rent":100,"rent_days":10,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":10,"rate":100,"discount":1,"subtotal":1000}],"total_amount":1000}`
+	pricingBreakdown := `{"base_daily_rent":10000,"rent_days":10,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":10,"rate":10000,"discount":1,"subtotal":100000}],"total_amount":100000}`
 	startDate := "2026-08-01"
 	endDate := "2026-08-10"
 	returnedAt := time.Date(2026, 8, 15, 12, 0, 0, 0, time.UTC)
@@ -103,7 +103,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
+		CashPaid:         150000, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -120,7 +120,7 @@ func TestSettlement_OverdueFeeDeducted(t *testing.T) {
 		Condition:    "good",
 		Status:       "completed",
 		OverdueDays:  5,
-		OverdueFee:   75,
+		OverdueFee:   7500,
 	}).Error)
 
 	result := computeSettlement(order, db)
@@ -153,7 +153,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&instrument).Error)
 
-	pricingBreakdown := `{"base_daily_rent":100,"rent_days":10,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":100}],"tier_segments":[{"tier":1,"days":10,"rate":100,"discount":1,"subtotal":1000}],"total_amount":1000}`
+	pricingBreakdown := `{"base_daily_rent":10000,"rent_days":10,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":10000}],"tier_segments":[{"tier":1,"days":10,"rate":10000,"discount":1,"subtotal":100000}],"total_amount":100000}`
 	startDate := "2026-09-01"
 	endDate := "2026-09-10"
 	returnedAt := time.Date(2026, 9, 12, 12, 0, 0, 0, time.UTC)
@@ -169,7 +169,7 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		Status:           models.OrderStatusReturned,
 		ReturnedAt:       &returnedAt,
 		Deposit:          models.FromYuan(500),
-		CashPaid:         1500, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
+		CashPaid:         150000, // rent 1000 + deposit 500 (production contract: CashPaid includes deposit)
 		PricingBreakdown: &pricingBreakdown,
 	}
 	require.NoError(t, db.Create(&order).Error)
@@ -184,11 +184,11 @@ func TestSettlement_DamagePlusOverdue(t *testing.T) {
 		InstrumentID:    instrument.ID,
 		UserID:          userID,
 		DamageAmount:    models.ToCentsPtr(&damageAmount),
-		DepositDeducted: 100,
+		DepositDeducted: 10000,
 		Status:          "accepted",
 		Condition:       "damaged",
 		OverdueDays:     2,
-		OverdueFee:      30,
+		OverdueFee:      3000,
 	}).Error)
 
 	result := computeSettlement(order, db)

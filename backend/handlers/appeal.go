@@ -457,12 +457,18 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Verify damage report exists and belongs to user
+	// #1724: customer JWT 无 tid——按 #688 规则不能用 GetTenantID 过滤。
 	var damageReport models.DamageReport
-	if err := db.Where("id = ? AND tenant_id = ? AND user_id = ?", req.DamageReportID, tenantID, userID).First(&damageReport).Error; err != nil {
+	if err := db.Where("id = ? AND user_id = ?", req.DamageReportID, userID).First(&damageReport).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "damage report not found"})
 		return
 	}
+	var submitOrder models.Order
+	if err := db.Where("id = ?", damageReport.LeaseID).First(&submitOrder).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
+		return
+	}
+	tenantID = submitOrder.TenantID
 
 	// Update damage report status
 	damageReport.Status = "appealed"
@@ -471,7 +477,7 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 	}
 
 	// Update order status to damage_appealing
-	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ?", damageReport.LeaseID, tenantID).
+	if err := db.Model(&models.Order{}).Where("id = ?", damageReport.LeaseID).
 		Update("status", models.OrderStatusDamageAppealing).Error; err != nil {
 		log.Printf("[SubmitAppeal] Failed to update order status: %v", err)
 	}
@@ -570,21 +576,22 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Verify damage report exists and belongs to user
+	// #1724: customer (USER) JWT 无 tid——按 #688 规则不能用 GetTenantID 过滤，
+	// report/order 只按 id+user 查询，tenant 从 order 推导。
 	var damageReport models.DamageReport
-	if err := db.Where("id = ? AND tenant_id = ? AND user_id = ?", damageID, tenantID, userID).First(&damageReport).Error; err != nil {
+	if err := db.Where("id = ? AND user_id = ?", damageID, userID).First(&damageReport).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "damage report not found"})
 		return
 	}
 
 	// Get associated order (DamageReport.LeaseID stores orderID)
 	var order models.Order
-	if err := db.Where("id = ? AND tenant_id = ?", damageReport.LeaseID, tenantID).First(&order).Error; err != nil {
+	if err := db.Where("id = ?", damageReport.LeaseID).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
 		return
 	}
+	tenantID = order.TenantID
 
-	// Compare damage amount vs deposit
 	damageAmount := models.Cents(0)
 	if damageReport.DamageAmount != nil {
 		damageAmount = *damageReport.DamageAmount
@@ -596,22 +603,26 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	var nextOrderStatus string
 	var notifType, notifTitle, notifContent, notifActionType string
 
-	if damageAmount < order.Deposit {
-		// Deposit refund: damage < deposit
+	// #1724：补缴/退还按 refund 公式（damage − refund / refund − damage），
+	// 非押金对比——提前归还/剩余租金已折算进 actualRent 与 paidTotal。
+	damageYuan := damageAmount.ToYuan()
+	refund, actualRent, _ := computeDamageRefund(db, order, damageYuan)
+	if damageYuan <= refund {
+		// 押金/余额退还：退 refund − damage
 		nextOrderStatus = models.OrderStatusDepositRefunding
 		damageReport.DepositDeducted = damageAmount
 		notifType = "refund"
 		notifActionType = "info"
 		notifTitle = "押金退还通知"
-		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，将退还差额 ¥%.2f", damageAmount.ToYuan(), order.Deposit.ToYuan(), order.Deposit.ToYuan()-damageAmount.ToYuan())
+		notifContent = fmt.Sprintf("定损金额 ¥%.2f，应退 ¥%.2f，将退还差额 ¥%.2f", damageYuan, refund, refund-damageYuan)
 	} else {
-		// Payment needed: damage >= deposit
+		// 需补缴：damage − refund
 		nextOrderStatus = order.Status // keep current status, wait for payment
-		damageReport.DepositDeducted = order.Deposit
+		damageReport.DepositDeducted = damageAmount
 		notifType = "payment"
 		notifActionType = "payment"
 		notifTitle = "定损付款通知"
-		notifContent = fmt.Sprintf("定损金额 ¥%.2f，押金 ¥%.2f，需支付差额 ¥%.2f", damageAmount.ToYuan(), order.Deposit.ToYuan(), damageAmount.ToYuan()-order.Deposit.ToYuan())
+		notifContent = fmt.Sprintf("定损金额 ¥%.2f，应退 ¥%.2f，需补缴 ¥%.2f（实际租期租金 ¥%.2f）", damageYuan, refund, damageYuan-refund, actualRent)
 	}
 
 	// Update damage report
@@ -625,9 +636,9 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		log.Printf("[AgreeDamage] Failed to update order status: %v", err)
 	}
 
-	// For payment-needed damage, create payment record
-	if damageAmount >= order.Deposit && damageAmount > 0 {
-		payDiff := damageAmount - order.Deposit
+	// For payment-needed damage, create payment record（#1724：补缴 = damage − refund）
+	if damageYuan > refund && damageAmount > 0 {
+		payDiff := damageAmount - models.FromYuan(refund)
 		outTradeNo := fmt.Sprintf("dm_%s_%d", order.ID[:8], time.Now().Unix())
 
 		record := models.OrderPaymentRecord{
@@ -668,7 +679,7 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 
 	// Execute final settlement + refund (#1530): damage >= deposit completes
 	// the order when no additional payment is needed.
-	if damageAmount >= order.Deposit {
+	if damageYuan > refund {
 		var completedOrder models.Order
 		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err != nil {
 			log.Printf("[AgreeDamage] Failed to reload order for settlement: %v", err)
@@ -694,11 +705,15 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 		log.Printf("[AgreeDamage] Failed to record status history: %v", err)
 	}
 
-	// Create notification
+	// Create notification（#1724：customer 无 org → OrgID 用 order.OrgID，空串 uuid 报 22P02）
 	ad := fmt.Sprintf(`{"damage_amount":%d,"deposit":%d,"order_id":"%s"}`, int64(damageAmount), int64(order.Deposit), order.ID)
+	notifOrgID := middleware.GetOrgID(ctx)
+	if notifOrgID == "" {
+		notifOrgID = order.OrgID
+	}
 	notification := models.Notification{
 		TenantID:   tenantID,
-		OrgID:      middleware.GetOrgID(ctx),
+		OrgID:      notifOrgID,
 		UserID:     userID,
 		Type:       notifType,
 		Title:      notifTitle,
