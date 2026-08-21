@@ -108,7 +108,8 @@ export default function Renewal() {
         <Text className="text-lg font-black text-black">续期</Text>
       </View>
 
-      <ScrollView className="p-4">
+      <ScrollView className="w-full flex-1">
+        <View className="px-4 box-border">
         {instrument && (
           <View className="bg-white rounded-2xl p-4 shadow-sm mb-3" style={{ cursor: 'pointer' }} onClick={() => navigate(`/instrument/${instrument.id}`)}>
             {(instrument.cover_image || instrument.images?.[0]) && (
@@ -186,6 +187,7 @@ export default function Renewal() {
           onClick={submitting ? undefined : handleSubmit}
           className={`w-full py-3 rounded-2xl font-black text-center text-white ${submitting ? 'bg-gray-400' : 'bg-black'}`}>
           <Text>{submitting ? '处理中...' : `确认续期 ¥${((calcResult?.total_amount || 0) / 100).toFixed(2)}`}</Text>
+        </View>
         </View>
       </ScrollView>
     </View>

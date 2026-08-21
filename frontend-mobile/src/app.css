@@ -2,5 +2,10 @@
 @tailwind utilities;
 
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+/* #1722: 全站主背景浅杏色（docs/ui.md §1.3）——weapp page 默认背景为浅灰，
+   H5 body 默认白，统一兜底；各页面自身背景 class 覆盖此值。 */
+page { background-color: #FDFBF7; }
+body { background-color: #FDFBF7; }
 /* RichText (content pages) image constraints */
 img { max-width: 100%; height: auto; }
