@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, ScrollView, Input, Button, Image } from '@tarojs/components'
-import { apiFetch, getToken } from '../../services/api'
+import { apiFetch, resolveErrorMessage } from '../../services/api'
 import { env } from '../../platform'
 
 function formatDate(raw) {
@@ -68,10 +68,10 @@ export default function Renewal() {
     if (submitting || !calcResult) return
     setSubmitting(true)
     try {
-      const token = getToken()
-      const resp = await fetch(`${baseUrl}/orders/${orderId}/renewal/confirm`, {
+      // #1722: 裸 fetch 在 weapp 不存在（ReferenceError "fetch is not defined"）→
+      // 改用 apiFetch（platformRequest 跨端适配 + 自动带 Authorization）。
+      const resp = await apiFetch(`${baseUrl}/orders/${orderId}/renewal/confirm`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ additional_days: days }),
       })
       const result = await resp.json()
