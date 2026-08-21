@@ -113,10 +113,11 @@ export default function Renewal() {
   const minDays = calcResult?.min_additional_days || 0
 
   return (
-    <View style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+    <View style={{ minHeight: '100vh', backgroundColor: '#FDFBF7' }}>
       {/* Title bar removed — native navigation bar shows 续期 (#1511) */}
 
-      <ScrollView style={{ padding: 16 }}>
+      <ScrollView>
+        <View style={{ padding: 16, boxSizing: 'border-box' }}>
 
         {instrument && (
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12 }} onClick={() => Taro.navigateTo({ url: `/pages-weapp/detail/index?id=${instrument.id}` })}>
@@ -198,6 +199,7 @@ export default function Renewal() {
         <View onClick={submitting ? undefined : handleSubmit}
           style={submitting ? { ...btnStyle('#9ca3af') } : btnStyle('#000')}>
           <Text>{submitting ? '处理中...' : `确认续期 ¥${((calcResult?.total_amount || 0) / 100).toFixed(2)}`}</Text>
+        </View>
         </View>
       </ScrollView>
     </View>
