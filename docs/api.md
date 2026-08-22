@@ -37,7 +37,12 @@
 
 > **用户可见文案（#1675）**：后端 `message` 为机器可读标识（英文为主），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`）翻译为用户友好中文。三层回退：L1 message 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 code 家族映射（如 40400 → 「未找到相关数据」）→ L3 调用点业务 fallback。完整错误码分类见 [`docs/backend_api_error_codes_report.md`](./backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`。
 
-### 1.4 分页参数
+### 1.4 时间戳契约（#1759）
+- 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）
+- DB 存储为 `timestamptz`（迁移 `20260824002_timestamptz`：存量北京数值 → 正确 UTC）；业务时区 = Asia/Shanghai（Go 启动时显式 `time.Local`）
+- 前端一律本地化显示（`new Date()` / dayjs 自动按设备时区解析 Z 后缀），禁止按 UTC 字符串直接展示
+
+### 1.5 分页参数
 所有列表接口支持:
 - `page`: 页码 (默认: 1)
 - `pageSize`: 每页数量 (默认: 20, 最大: 100)

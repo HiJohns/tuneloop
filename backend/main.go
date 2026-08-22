@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers"
 	"tuneloop-backend/internal/tasks"
@@ -768,6 +769,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 }
 
 func main() {
+	// #1759: 显式声明业务时区为北京——服务器本地依赖隐式成立，但必须
+	// 显式化防部署环境漂移。DB 迁移到 timestamptz 后，time.Now() 写入
+	// 自动转 UTC 存储，JSON 输出带 Z，前端本地化显示。
+	if loc, err := time.LoadLocation("Asia/Shanghai"); err == nil {
+		time.Local = loc
+	} else {
+		log.Printf("[WARN] failed to load Asia/Shanghai tz: %v (fallback UTC)", err)
+	}
+
 	// Parse command line flags
 	var envFile string
 	flag.StringVar(&envFile, "env", "", "Path to .env file to load")
