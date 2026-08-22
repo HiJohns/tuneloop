@@ -95,10 +95,18 @@ func loadRenewalPricing(db *gorm.DB, order *models.Order) (baseRate float64, pri
 	// 统一走 helper 归一为分。
 	baseRate = resolveBaseDailyRentCents(db, order, pb.BaseDailyRent)
 	if baseRate <= 0 && order.MonthlyRent > 0 {
-		baseRate = order.MonthlyRent.ToYuan() / 30
+		// #1761: monthly rent is Cents (分) — daily = monthly/30, cents.
+		// Previously this returned yuan (ToYuan()/30), breaking the cent
+		// contract and showing ¥0.50/day for a ¥0.01/day instrument.
+		baseRate = float64(order.MonthlyRent) / 30
 	}
 	if baseRate <= 0 {
-		baseRate = 50
+		// #1761: final fallback — the instrument's own base_daily_rate
+		// (cents). Previously a hardcoded 50 (¥0.50) masked real pricing.
+		var inst models.Instrument
+		if err := db.Select("base_daily_rate").Where("id = ?", order.InstrumentID).First(&inst).Error; err == nil && inst.BaseDailyRate != nil && *inst.BaseDailyRate > 0 {
+			baseRate = float64(*inst.BaseDailyRate)
+		}
 	}
 	disc := 1.0
 	for _, p := range pb.AppliedPolicies {
@@ -132,11 +140,22 @@ func CalculateRenewal(c *gin.Context) {
 	today := time.Now().Truncate(24 * time.Hour)
 
 	// consumedDays = original lease term (not up to today)
+	// #1761/#1762: lease_term may be stale when end_date was miscomputed at
+	// order creation — prefer pricing_breakdown.rent_days (same covered-days
+	// semantics as settlement C, #1743), falling back to lease_term.
 	leaseTerm := order.LeaseTerm
 	if leaseTerm <= 0 {
 		leaseTerm = services.CalculateDays(startDate, endDate)
 	}
 	consumedDays := leaseTerm
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb struct {
+			RentDays int `json:"rent_days"`
+		}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil && pb.RentDays > 0 {
+			consumedDays = pb.RentDays
+		}
+	}
 	if consumedDays < 0 {
 		consumedDays = 0
 	}
