@@ -573,22 +573,24 @@ steps:
 ## 三路径总览
 | 路径 | 触发 | 退款发起 | 汇聚点 |
 |------|------|---------|--------|
-| (1) 无损坏 | 验收 good | 系统自动（InspectReturn 内） | seq 8 收据 |
-| (2) 损坏-用户接受 | 定损通知 → 接受 | 员工订单详情点退款 | seq 8 收据 |
-| (3) 损坏-用户申诉 | 定损通知 → 拒绝 → 申诉 → 经理终审 | 员工订单详情点退款 | seq 8 收据 |
+| (1) 无损坏 | 验收 good | 系统自动（InspectReturn 内 executeRefund） | seq 8 收据 |
+| (2) 损坏-用户接受 | 定损通知 → 接受 | 系统自动（AgreeDamage → deposit_refunding → 5min scheduler 自动退款） | seq 8 收据 |
+| (3) 损坏-用户申诉 | 定损通知 → 拒绝 → 申诉 → 经理终审 | 系统自动（ResolveAppeal 内 executeRefund） | seq 8 收据 |
 
 ## 流程
 1. 员工验收 damaged → 订单 pending_damage_response，乐器进维修 → 通知顾客
 2. 顾客在通知详情选择：
-   - **接受** → 订单 deposit_refunding → 系统通知员工
+   - **接受** → 系统自动结算：付款足够 → deposit_refunding → 自动退款；不足 → 补缴（L-04C）
    - **拒绝** → 申诉创建页（填写原因/照片）→ 订单 damage_appealing
 3. 申诉 → 网点或商户管理员在 PC 申诉管理页打开 → 修改赔偿额（可选）→ 提交终审 → 系统通知顾客与员工
-4. 员工收到通知 → 点击链接跳订单详情 → 点击退款 → 执行差额结算（L-06）→ 跳转支付页收据
-5. 三路径最终都呈现标准退款收据（seq 8），差额 = 最初实付 − 实需付款
+4. 终审后系统自动执行差额结算（L-06）：付款足够 → 自动退款 + 退款通知（感谢 + 收据明细）；不足 → 补缴通知（L-04C）
+5. 三路径最终都呈现标准退款收据（seq 8），差额 = 最初实付 − 实需付款；**三路径退款/补缴通知统一含感谢语 + 收据明细（颗粒度 = 订单详情费用明细：实付金额 / 实际租期与租金 / 结算行（原始租金、实收租金、实际天数、可退现金、退款方式状态）/ 收支明细）**
 
 ## 关键规则
-- 押金足以覆盖定损：接受后进入 deposit_refunding 待员工退款；不足：用户先补付再走退款
-- 员工退款按钮仅在 `deposit_refunding` 状态显示（订单详情）
+- **退款分流判定（#1745）**：应付总额（实际租金 + 物流费 + 逾期费 + 损坏赔偿）vs 已付总额（现金实付 + 赠点抵扣 + 押金可抵）：
+  - 应付 ≤ 已付 → **自动退款**（差额退回，L-06 分账）
+  - 应付 > 已付（**含免押金/优惠码少付场景**）→ **补缴**（L-04C），差额 = 应付 − 已付
+- 员工退款按钮保留为 `deposit_refunding` 状态的兜底入口（自动流程失败时人工触发，POST /orders/:id/refund）
 - 终审后通知**同时**发顾客（结果）与员工（待退款链接）
 - 支付页收据必须含「乐器 SN（分类）」行与赠点/现金分账明细（L-06）
 - 退款执行后订单关单 `completed`（已完成/done），累计花销按 C1 累计（L-06）
@@ -602,7 +604,8 @@ steps:
   - **静态检查必须验证数据源而非仅 JSX**：displays 的"定损照片"需交叉核对 GetOrder 的 photos 组装（两个来源），防止"前端有渲染、后端无数据"的脱节
 
 ## 验收
-- `go test` 覆盖：路径(2) 接受 → deposit_refunding → 员工 POST /orders/:id/refund → settlement 生成 + 通知；路径(3) 申诉 → resolve → 员工退款 → 收据含 SN 行
+- `go test` 覆盖：路径(2) 接受 → 自动结算（AgreeDamage → deposit_refunding → scheduler 自动退款 → settlement 生成 + 退款通知）；路径(3) 申诉 → resolve → 自动退款 → 收据含 SN 行
+- `go test` 覆盖：退款分流判定（应付 ≤ 已付 → 退款 / 应付 > 已付 → 补缴，含免押金场景）
 - `go test` 覆盖：GetOrder 待回应定损态返回 `damage` 对象（TestGetOrder_DamagePanel：金额/描述/照片/退款公式）
 - checklist-verify.py：L-04 seq 2（订单详情入口）+ seq 3/4/7/8 的 displays 与 MessageDetail/OrderDetail/Payment JSX 交叉验证
 
@@ -621,6 +624,58 @@ steps:
 - 支付完成回调 → 订单 completed → instrument 恢复 available
 
 **验收**：prepay damage 无 open_id 可支付；OREZ/ENO 优惠码生效；回调后订单完成。
+
+---
+
+### L-04C 总账补缴（payment shortfall，全退款路径通用）
+
+> 补充 L-04 退款分流判定的「不足」分支（L-04B 仅覆盖定损补差；本用例覆盖**总账**：实际租金+物流+逾期+赔偿 vs 已付总额，含免押金/优惠码少付场景）。
+
+**触发条件**（三路径任一结算时判定）：应付总额（实际租金 + 物流费 + 逾期费 + 损坏赔偿）> 已付总额（现金实付 + 赠点抵扣 + 押金可抵）。
+
+**流程**：
+1. 结算判定不足 → 生成补缴记录（payment record，order_type=payment_shortfall，amount=应付−已付，status=pending，含超时时间戳 created_at）
+2. **补缴通知**（action=payment_shortfall，结构化数据）：
+   - content：情况说明（「您的订单实际费用超出已付金额，需补缴 ¥xx.xx」）+ 收据明细（颗粒度 = 订单详情费用明细）
+   - action_data（结构化 JSON，MessageDetail 渲染用）：`{shortfall_amount, order_id, out_trade_no, breakdown: {rent, shipping_fee, overdue_fee, damage_amount, paid_total}}`
+   - 按钮：「去补缴」→ 支付确认页 `/payment?type=payment_shortfall&id=:order_id`
+3. **支付确认页**：显示完整明细（应付各项 + 已付总额 + 补缴差额）→ 确认支付（支持赠点/优惠码，服务端重算）
+4. 支付成功回调 → 订单 completed → 结算闭环（executeRefund 幂等）
+5. 未支付 → 订单保持当前状态（等待补缴）
+
+**关键规则**：
+- 补缴金额 = 应付 − 已付，服务端计算（禁止前端自算）
+- 补缴记录唯一（同一订单未完成补缴时不重复生成；重复支付防重由 out_trade_no 幂等）
+- OREZ 全免 / ENO 优惠码对补缴同样生效（服务端重算，waive 走记账路径）
+- 补缴完成前订单不关单（completed）
+
+**验收**：
+- `go test`：判定公式（应付 vs 已付，含免押金/优惠码少付/正常退款三场景）；补缴通知 action_data 结构化字段；回调结算闭环
+- checklist-verify.py：L-04C 的 displays（补缴通知明细 + 支付确认页明细）与 MessageDetail/Payment JSX 交叉验证
+
+---
+
+### L-04D 补缴超时催缴（24h 线下催缴）
+
+**前置条件**：存在超过 24 小时仍未完成补缴的订单（补缴记录 pending 且 created_at < now-24h）。
+
+**流程**：
+1. 每日维护事务（Ticker 服务，复用 audit_log_cleaner/deposit_refund_scheduler 模式，周期 1h 内扫描）：
+   - 扫描 `order_payment_records`（type=payment_shortfall, status=pending, created_at < now-24h）未完成补缴
+2. 生成**催缴报警通知**（action=collect_reminder）：
+   - 通知对象：商户管理员（merchant_admin）+ 网点管理员（site_admin）
+   - content：顾客/订单/补缴金额/超时时长/联系方式
+   - 员工端可见 → 进入**线下催缴**环节（人工联系顾客）
+3. 报警幂等：同一订单只报一次（或每 24h 重复提醒——本期只报一次，标记 reminded_at）
+
+**关键规则**：
+- 催缴不自动改订单状态（订单保持等待补缴）
+- 补缴完成后报警记录标记已处理（或自动忽略：扫描跳过已补缴订单）
+- 日志留痕（order_logs：补缴超时催缴事件）
+
+**验收**：
+- `go test`：扫描查询正确（24h 阈值/状态过滤）；报警通知创建（顾客 id 解析）；幂等（不重复报警）
+- checklist-verify.py：L-04D 报警通知 displays 与 MessageDetail JSX 交叉验证
 
 ---
 
