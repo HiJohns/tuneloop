@@ -444,7 +444,7 @@ func GetOrder(c *gin.Context) {
 		}
 		paymentEntries = append(paymentEntries, paymentEntry{
 			ID:        pr.ID,
-			Amount:    pr.Amount.ToYuan(),
+			Amount:    float64(pr.Amount), // #1743: Cents（分），前端统一 /100 显示，禁止双重 ÷100
 			Method:    method,
 			Status:    pr.Status,
 			CreatedAt: pr.CreatedAt,
@@ -466,11 +466,11 @@ func GetOrder(c *gin.Context) {
 	for _, s := range settlements {
 		refundEntries = append(refundEntries, refundEntry{
 			ID:     s.ID,
-			Amount: (s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded).ToYuan(),
+			Amount: float64(s.CashRefundable + s.PrepaidRefunded + s.GiftPointsRefunded), // #1743: 分契约
 			Breakdown: map[string]float64{
-				"cash":    s.CashRefundable.ToYuan(),
-				"prepaid": s.PrepaidRefunded.ToYuan(),
-				"gift":    s.GiftPointsRefunded.ToYuan(),
+				"cash":    float64(s.CashRefundable),
+				"prepaid": float64(s.PrepaidRefunded),
+				"gift":    float64(s.GiftPointsRefunded),
 			},
 			Method:    s.RefundMethod,
 			Status:    s.RefundStatus,

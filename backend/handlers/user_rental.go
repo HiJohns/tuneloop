@@ -91,20 +91,10 @@ func (h *UserRentalHandler) ListInstruments(c *gin.Context) {
 
 	var response []InstrumentResponse
 	for _, inst := range instruments {
-		// Parse pricing for calculations (object format, #1487)
-		var pricing map[string]interface{}
-		if inst.Pricing != "" {
-			json.Unmarshal([]byte(inst.Pricing), &pricing)
-		}
-
-		dailyRent := 0.0
-		deposit := 0.0
-		if v, ok := pricing["daily_rent"].(float64); ok {
-			dailyRent = v
-		}
-		if v, ok := pricing["deposit"].(float64); ok {
-			deposit = v
-		}
+		// Parse pricing for calculations (object format, #1487; #1743 统一解析器)
+		pf := services.ParseInstrumentPricing(inst.Pricing)
+		dailyRent := pf.DailyRent
+		deposit := pf.Deposit
 
 		resp := InstrumentResponse{
 			Instrument:  inst,
@@ -150,18 +140,10 @@ func (h *UserRentalHandler) GetInstrument(c *gin.Context) {
 		Deposit     float64 `json:"deposit"`
 	}
 
-	var pricing map[string]interface{}
-	dailyRent := 0.0
-	deposit := 0.0
-	if instrument.Pricing != "" {
-		json.Unmarshal([]byte(instrument.Pricing), &pricing)
-		if v, ok := pricing["daily_rent"].(float64); ok {
-			dailyRent = v
-		}
-		if v, ok := pricing["deposit"].(float64); ok {
-			deposit = v
-		}
-	}
+	// #1743 统一解析器（元语义）
+	pf := services.ParseInstrumentPricing(instrument.Pricing)
+	dailyRent := pf.DailyRent
+	deposit := pf.Deposit
 
 	response := InstrumentDetail{
 		Instrument:  instrument,

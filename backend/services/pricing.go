@@ -2,6 +2,8 @@ package services
 
 import (
 	"encoding/json"
+
+	"tuneloop-backend/models"
 )
 
 type TierConfig struct {
@@ -127,6 +129,46 @@ func ResolvePricingConfig(tenantID string) ([]TierConfig, error) {
 	}, nil // simplified: returns system defaults; full merchant lookup deferred to sub-task
 }
 
+// InstrumentPricingFields — authoritative parser for the instruments.pricing
+// JSONB. All monetary fields there are stored in YUAN (元), unlike
+// pricing_breakdown (分, #1728). Reading them directly at each call site
+// caused repeated unit mix-ups (e.g. an overdue fee written as yuan into a
+// Cents column, #1743). Use this everywhere a handler needs pricing JSON
+// values; call ToCents() when persisting into Cents columns.
+type InstrumentPricingFields struct {
+	DailyRent       float64
+	Deposit         float64
+	ShippingFee     float64
+	OverdueDailyFee float64
+	Raw             map[string]interface{}
+}
+
+// ParseInstrumentPricing parses the pricing JSONB (yuan semantics). No
+// fallback is applied — consumers decide their own (e.g. loadOverdueDailyRate
+// falls back to baseRate×1.5, inventory RentSettings falls back to daily_rent).
+func ParseInstrumentPricing(pricingJSON string) InstrumentPricingFields {
+	f := InstrumentPricingFields{Raw: map[string]interface{}{}}
+	if pricingJSON == "" {
+		return f
+	}
+	if err := json.Unmarshal([]byte(pricingJSON), &f.Raw); err != nil {
+		return f
+	}
+	f.DailyRent = getFloat(f.Raw, "daily_rent")
+	f.Deposit = getFloat(f.Raw, "deposit")
+	f.ShippingFee = getFloat(f.Raw, "shipping_fee")
+	f.OverdueDailyFee = getFloat(f.Raw, "overdue_daily_fee")
+	return f
+}
+
+// ToCents converts the yuan fields to Cents (分) for Cents-column writes.
+func (f InstrumentPricingFields) ToCents() (dailyRent, deposit, shippingFee, overdueDailyFee models.Cents) {
+	return models.FromYuan(f.DailyRent),
+		models.FromYuan(f.Deposit),
+		models.FromYuan(f.ShippingFee),
+		models.FromYuan(f.OverdueDailyFee)
+}
+
 // CalculatePricing computes instrument pricing from base rate and merchant config
 func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON string, overridesJSON string, instrumentPricingJSON ...string) *InstrumentPricing {
 	var config map[string]interface{}
@@ -203,18 +245,14 @@ func CalculatePricing(baseDailyRate float64, totalPrice float64, configJSON stri
 	}
 
 	// Fallback: read pricing fields from instrument's Pricing JSONB
+	// (#1743 统一解析器：元语义)
 	if len(instrumentPricingJSON) > 0 && instrumentPricingJSON[0] != "" {
-		var ip map[string]interface{}
-		json.Unmarshal([]byte(instrumentPricingJSON[0]), &ip)
-		if result.ShippingFee == 0 {
-			if fee, ok := ip["shipping_fee"].(float64); ok && fee > 0 {
-				result.ShippingFee = fee
-			}
+		pf := ParseInstrumentPricing(instrumentPricingJSON[0])
+		if result.ShippingFee == 0 && pf.ShippingFee > 0 {
+			result.ShippingFee = pf.ShippingFee
 		}
-		if result.Deposit == 0 {
-			if d, ok := ip["deposit"].(float64); ok && d > 0 {
-				result.Deposit = d
-			}
+		if result.Deposit == 0 && pf.Deposit > 0 {
+			result.Deposit = pf.Deposit
 		}
 	}
 

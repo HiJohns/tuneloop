@@ -377,7 +377,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		Condition    string    `json:"condition" binding:"required"`
 		Notes        string    `json:"notes"`
 		Photos       []string  `json:"photos" binding:"required"` // #1720 验收必须上传照片
-		DamageAmount float64   `json:"damage_amount"` // staff-set compensation (#1544)
+		DamageAmount float64   `json:"damage_amount"`             // staff-set compensation (#1544)
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -495,27 +495,55 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		log.Printf("[InspectReturn] failed to write order log: %v", err)
 	}
 
-	// Overdue fee calculation (#1493): charged once at return inspection.
-	// overdueDays counts from endDate+1 to the return scan time.
+	// Overdue fee calculation (#1493 + #1743 business rule): the lease
+	// covers C = ΣC0..Cn days (pricing_breakdown.rent_days, accumulated by
+	// renewals); actual days Ca = CalculateLeaseDays(delivered → scan time).
+	// When Ca > C the overdue fee applies to the excess: Ro × (Ca − C),
+	// charged once at return inspection.
 	overdueDays := 0
 	overdueDailyRate := 0.0
 	overdueFee := 0.0
-	if endDate := parseDatePtr(order.EndDate); req.ScanTime.After(endDate) {
-		start := endDate.AddDate(0, 0, 1)
-		overdueDays = services.CalculateDays(start, req.ScanTime)
-		if overdueDays < 0 {
-			overdueDays = 0
+	coverDays := 0
+	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var pb struct {
+			RentDays int `json:"rent_days"`
 		}
+		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+			coverDays = pb.RentDays
+		}
+	}
+	if coverDays > 0 {
+		caStart := parseDatePtr(order.StartDate)
+		if order.DeliveredAt != nil {
+			caStart = *order.DeliveredAt
+		}
+		actualDays := services.CalculateLeaseDays(caStart, req.ScanTime)
+		if actualDays > coverDays {
+			overdueDays = actualDays - coverDays
+		}
+	} else {
+		// Legacy orders without pricing_breakdown: fall back to the old
+		// end_date-based counting.
+		if endDate := parseDatePtr(order.EndDate); req.ScanTime.After(endDate) {
+			start := endDate.AddDate(0, 0, 1)
+			overdueDays = services.CalculateDays(start, req.ScanTime)
+			if overdueDays < 0 {
+				overdueDays = 0
+			}
+		}
+	}
+	if overdueDays > 0 {
 		overdueDailyRate = loadOverdueDailyRate(db, order.InstrumentID, order)
-		if overdueDays > 0 {
-			overdueFee = math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
-		}
+		overdueFee = math.Round(overdueDailyRate*float64(overdueDays)*100) / 100
 	}
 
 	// Persist overdue days/fee on the damage report for staged refund settlement.
+	// #1743: OverdueFee is a Cents column — store 分 (×100), not yuan. The
+	// settlement reads it via .ToYuan(), so writing yuan here silently shrank
+	// the fee by 100×.
 	if overdueDays > 0 || overdueFee > 0 {
 		db.Model(&models.DamageReport{}).Where("id = ?", report.ID).
-			Updates(map[string]interface{}{"overdue_days": overdueDays, "overdue_fee": overdueFee})
+			Updates(map[string]interface{}{"overdue_days": overdueDays, "overdue_fee": models.FromYuan(overdueFee)})
 	}
 
 	// Update instrument status
@@ -770,12 +798,10 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 // renewal). Used by return inspection (#1493).
 func loadOverdueDailyRate(db *gorm.DB, instrumentID string, order models.Order) float64 {
 	var instPricing struct{ Value string }
-	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", instrumentID).Scan(&instPricing).Error; err == nil && instPricing.Value != "" {
-		var ip map[string]interface{}
-		if json.Unmarshal([]byte(instPricing.Value), &ip) == nil {
-			if fee, ok := ip["overdue_daily_fee"].(float64); ok && fee > 0 {
-				return fee
-			}
+	if err := db.Raw("SELECT COALESCE(pricing, '{}') AS value FROM instruments WHERE id = ?", instrumentID).Scan(&instPricing).Error; err == nil {
+		// #1743 统一解析器（元语义 + overdue fallback to daily_rent）
+		if fee := services.ParseInstrumentPricing(instPricing.Value).OverdueDailyFee; fee > 0 {
+			return fee
 		}
 	}
 	baseRate := 0.0

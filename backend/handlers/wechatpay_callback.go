@@ -221,7 +221,13 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 
 	switch record.OrderType {
 	case "rent":
-		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusPaid).Error; err != nil {
+		// #1743: record.Amount is the server-recomputed discounted actual
+		// payment (coupon codes applied at prepay) — write it back to
+		// cash_paid so settlement uses the real paid base, not the pre-order
+		// full-price snapshot. gift_points_used stays untouched. Renewal has
+		// its own accumulation logic (renewal.go) — never touch it here.
+		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).
+			Updates(map[string]interface{}{"status": models.OrderStatusPaid, "cash_paid": record.Amount}).Error; err != nil {
 			return err
 		}
 		// Order timeline (order_logs) — payment must be visible to customer

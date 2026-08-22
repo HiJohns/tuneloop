@@ -565,9 +565,14 @@ export default function OrderDetail() {
               {order.settlement.refund_status && (
                 <Row
                   label="退款状态"
-                  value={order.settlement.refund_status === 'completed' ? '已退款' : order.settlement.refund_status === 'pending' ? '处理中' : order.settlement.refund_status}
+                  value={order.settlement.refund_status === 'completed'
+                    ? (((Number(order.settlement.cash_refundable) || 0) + (Number(order.settlement.prepaid_refunded) || 0) + (Number(order.settlement.gift_points_refunded) || 0)) > 0 ? '已退款' : '无需退款')
+                    : order.settlement.refund_status === 'pending' ? '处理中' : order.settlement.refund_status}
                   color={order.settlement.refund_status === 'completed' ? '#16a34a' : '#f59e0b'}
                 />
+              )}
+              {Number(order.settlement.payable_shortfall) > 0 && (
+                <Row label="需补缴" value={`¥${((Number(order.settlement.payable_shortfall) || 0) / 100).toFixed(2)}`} color="#dc2626" />
               )}
             </View>
           )}

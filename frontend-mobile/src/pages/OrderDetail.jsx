@@ -753,8 +753,16 @@ export default function OrderDetail() {
           <View className="flex justify-between text-sm">
             <Text className="text-zinc-500 font-medium">退款状态</Text>
             <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${settlement.refund_status === 'completed' ? 'text-green-600' : 'text-orange-500'}`}>
-              {settlement.refund_status === 'completed' ? '已退款' : settlement.refund_status === 'pending' ? '处理中' : settlement.refund_status}
+              {settlement.refund_status === 'completed'
+                ? (((Number(settlement.cash_refundable) || 0) + (Number(settlement.prepaid_refunded) || 0) + (Number(settlement.gift_points_refunded) || 0)) > 0 ? '已退款' : '无需退款')
+                : settlement.refund_status === 'pending' ? '处理中' : settlement.refund_status}
             </Text>
+          </View>
+          )}
+          {settlement.payable_shortfall > 0 && (
+          <View className="flex justify-between text-sm">
+            <Text className="text-zinc-500 font-medium">需补缴</Text>
+            <Text className="text-red-500 font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{((settlement.payable_shortfall || 0) / 100).toFixed(2)}</Text>
           </View>
           )}
         </View>

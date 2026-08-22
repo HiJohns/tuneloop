@@ -9,6 +9,7 @@ import (
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -312,29 +313,14 @@ func (h *InventoryHandler) GetRentSetting(c *gin.Context) {
 	var items []RentSettingItem
 
 	for _, inst := range instruments {
-		// Parse pricing JSONB
-		var pricing map[string]interface{}
-		if inst.Pricing != "" {
-			json.Unmarshal([]byte(inst.Pricing), &pricing)
-		}
-
-		dailyRent := 0.0
-		deposit := 0.0
-		shippingFee := 0.0
-		overdueDailyFee := 0.0
-		if v, ok := pricing["daily_rent"].(float64); ok {
-			dailyRent = v
-		}
-		if v, ok := pricing["deposit"].(float64); ok {
-			deposit = v
-		}
-		if v, ok := pricing["shipping_fee"].(float64); ok {
-			shippingFee = v
-		}
-		if v, ok := pricing["overdue_daily_fee"].(float64); ok {
-			overdueDailyFee = v
-		} else if dailyRent > 0 {
-			overdueDailyFee = dailyRent
+		// Parse pricing JSONB (#1743 统一解析器：元语义)
+		pf := services.ParseInstrumentPricing(inst.Pricing)
+		dailyRent := pf.DailyRent
+		deposit := pf.Deposit
+		shippingFee := pf.ShippingFee
+		overdueDailyFee := pf.OverdueDailyFee
+		if overdueDailyFee <= 0 && dailyRent > 0 {
+			overdueDailyFee = dailyRent // legacy fallback kept explicit
 		}
 
 		// Get site name

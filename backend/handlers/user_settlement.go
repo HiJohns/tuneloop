@@ -373,6 +373,13 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		}
 	}
 
+	// #1743: nothing cash-refundable → the settlement is DONE. Leaving
+	// "pending" kept the customer UI on 处理中 forever. (Guarded: the
+	// existingFound retry path has no fresh settlement row here.)
+	if result.CashRefundable <= 0 && settlement != nil {
+		settlement.RefundStatus = "completed"
+	}
+
 	// Cash refund via WeChat Pay
 	if result.CashRefundable > 0 {
 		cfg := wechatpay.GetConfig()
@@ -585,6 +592,7 @@ type settlementResult struct {
 	DamageDeducted         float64
 	TotalRefund            float64
 	CashRefundable         float64
+	PayableShortfall       float64 // #1743: 补缴金额（totalRefund<0 时，需顾客补付）
 	GiftPointsRefunded     float64
 	OverdueChargesTotal    float64
 	ActualDays             int
@@ -608,11 +616,14 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	_, capRate, snapPayRatio := parsePointsPolicySnapshot(order.PointsPolicySnapshot)
 
 	var tierSegments []services.TierSegment
+	coverDays := 0
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		var pb struct {
+			RentDays     int                    `json:"rent_days"`
 			TierSegments []services.TierSegment `json:"tier_segments"`
 		}
 		if err := json.Unmarshal([]byte(*order.PricingBreakdown), &pb); err == nil {
+			coverDays = pb.RentDays
 			tierSegments = pb.TierSegments
 			for i := range tierSegments {
 				tierSegments[i].Rate /= 100
@@ -687,11 +698,22 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	// #1621/#1721：快递费只从押金扣除（totalDepositDeducted 含 shippingFee），
 	// 已付租金侧不再扣减——此前双扣导致有快递费订单少退快递费金额。
 	totalRentPaid := (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed - order.Deposit).ToYuan()
-	if totalRentPaid == 0 && order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
-		var pb map[string]interface{}
-		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
-			if v, ok := pb["total_amount"].(float64); ok {
-				totalRentPaid = v / 100
+	// #1743: the snapshot fallback must only apply to orders with NO payment
+	// data at all (legacy/never-paid). A coupon-waived order (T2 wrote
+	// cash_paid=0 or cash_paid==deposit-only) is a real paid state — it must
+	// NOT be re-priced from the snapshot.
+	if totalRentPaid == 0 && order.CashPaid == 0 && order.GiftPointsUsed == 0 && order.PrepaidPointsUsed == 0 &&
+		order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
+		var paidCount int64
+		db.Model(&models.OrderPaymentRecord{}).
+			Where("order_id = ? AND status = ? AND type = ?", order.ID, "paid", "payment").
+			Count(&paidCount)
+		if paidCount == 0 {
+			var pb map[string]interface{}
+			if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
+				if v, ok := pb["total_amount"].(float64); ok {
+					totalRentPaid = v / 100
+				}
 			}
 		}
 	}
@@ -716,10 +738,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		remainingDeposit = 0
 	}
 
-	totalRefund := totalRentPaid + remainingDeposit - rentPayable
-	if totalRefund < 0 {
-		totalRefund = 0
-	}
+	// #1743 业务终稿：退款/补缴 = 已付总额 − 应付合计。
+	// 已付总额 = totalRentPaid(含押金已剔除) + Deposit；应付合计 =
+	// rentPayable + 扣项(逾期+定损+物流)。合并后：
+	//   totalRefund = Pa − 扣项 − Re，其中 Pa = CashPaid+Prepaid+Gift。
+	// 押金不足覆盖扣项时缺口照扣（不再 clamp 到 remainingDeposit），
+	// 负值 = 补缴（透传，不截断 0）。
+	totalRefund := totalRentPaid + order.Deposit.ToYuan() - totalDepositDeducted - rentPayable
 
 	// Early-return rebate: rent paid for days not actually used.
 	earlyReturnRebate := totalRentPaid - rentPayable
@@ -765,6 +790,13 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		a1 = 0
 	}
 
+	// #1743: totalRefund<0 时无钱可退，负值 = 补缴（现金/赠点都不退）。
+	payableShortfall := 0.0
+	if totalRefund < 0 {
+		payableShortfall = -totalRefund
+		totalRefund = 0
+	}
+
 	var giftPointsRefunded, cashRefundable float64
 	if a1 < a0 {
 		giftPointsRefunded = (a0 - a1).ToYuan()
@@ -799,6 +831,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"damage_deducted":           c(damageDeducted),
 		"overdue_fee":               c(overdueFee),
 		"overdue_days":              reportOverdue.OverdueDays,
+		"cover_days":                coverDays, // #1743: C = ΣC0..Cn 总覆盖天数（P=Period(C) 的输入）
 		"early_return_rebate":       c(earlyReturnRebate),
 		"rent_payable":              c(rentPayable),
 		"actual_rent_amount":        c(rentPayable), // backward-compatible alias
@@ -806,6 +839,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"final_daily_rent":          c(finalDailyRent),
 		"total_refund":              c(totalRefund),
 		"cash_refundable":           c(cashRefundable),
+		"payable_shortfall":         c(payableShortfall), // #1743: 补缴金额（应付 > 已付）
 		"gift_points_used":          int64(order.GiftPointsUsed),
 		"gift_cap":                  int64(a1),
 		"gift_points_refunded":      c(giftPointsRefunded),
@@ -834,6 +868,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		DamageDeducted:         damageDeducted,
 		TotalRefund:            totalRefund,
 		CashRefundable:         cashRefundable,
+		PayableShortfall:       payableShortfall,
 		GiftPointsRefunded:     giftPointsRefunded,
 		OverdueChargesTotal:    overdueFee,
 		ActualDays:             actualDays,

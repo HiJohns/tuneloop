@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -414,16 +413,13 @@ func GetPublicInstrumentPricingV2(c *gin.Context) {
 
 	// Fallback: extract base_daily_rate from JSONB pricing field (object format).
 	// Legacy array format is no longer produced (#1487).
+	// #1743 统一解析：pricing JSONB 为元语义；元 → Cents(分) 必须 ×100，
+	// 直接 ToCentsPtr 会把元值当分存（100 倍错误）。
 	if instrument.BaseDailyRate == nil {
-		var dailyRent float64
-		var pricing map[string]interface{}
-		if err := json.Unmarshal([]byte(instrument.Pricing), &pricing); err == nil {
-			if v, ok := pricing["daily_rent"].(float64); ok && v > 0 {
-				dailyRent = v
-			}
-		}
-		if dailyRent > 0 {
-			instrument.BaseDailyRate = models.ToCentsPtr(&dailyRent)
+		pf := services.ParseInstrumentPricing(instrument.Pricing)
+		if pf.DailyRent > 0 {
+			dailyRentCents := models.FromYuan(pf.DailyRent)
+			instrument.BaseDailyRate = &dailyRentCents
 		}
 	}
 

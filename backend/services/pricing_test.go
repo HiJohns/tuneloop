@@ -181,3 +181,42 @@ func TestCalculatePricing_NoTiersNoOverrideRegression(t *testing.T) {
 		t.Errorf("expected base rate 100, got %.2f", result.BaseDailyRate)
 	}
 }
+
+// #1743: instruments.pricing JSONB 统一解析器——元语义 + 容错。
+func TestParseInstrumentPricing_YuanSemantics(t *testing.T) {
+	pf := ParseInstrumentPricing(`{"daily_rent":100.0,"deposit":500.0,"shipping_fee":30.0,"overdue_daily_fee":15.0}`)
+	if pf.DailyRent != 100.0 {
+		t.Fatalf("daily_rent = %v, want 100 (yuan)", pf.DailyRent)
+	}
+	if pf.Deposit != 500.0 {
+		t.Fatalf("deposit = %v, want 500", pf.Deposit)
+	}
+	if pf.ShippingFee != 30.0 {
+		t.Fatalf("shipping_fee = %v, want 30", pf.ShippingFee)
+	}
+	if pf.OverdueDailyFee != 15.0 {
+		t.Fatalf("overdue_daily_fee = %v, want 15", pf.OverdueDailyFee)
+	}
+}
+
+func TestParseInstrumentPricing_EmptyAndPartial(t *testing.T) {
+	pf := ParseInstrumentPricing("")
+	if pf.DailyRent != 0 || pf.Deposit != 0 {
+		t.Fatal("empty pricing must yield zeros")
+	}
+	pf = ParseInstrumentPricing(`{"daily_rent":36.0}`)
+	if pf.DailyRent != 36.0 || pf.Deposit != 0 {
+		t.Fatalf("partial parse wrong: %+v", pf)
+	}
+}
+
+func TestParseInstrumentPricing_ToCents(t *testing.T) {
+	pf := ParseInstrumentPricing(`{"daily_rent":36.0,"overdue_daily_fee":15.0}`)
+	daily, _, _, overdue := pf.ToCents()
+	if daily != 3600 {
+		t.Fatalf("daily cents = %v, want 3600 (36 元 × 100)", daily)
+	}
+	if overdue != 1500 {
+		t.Fatalf("overdue cents = %v, want 1500", overdue)
+	}
+}
