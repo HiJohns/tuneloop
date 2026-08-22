@@ -198,6 +198,13 @@ func PrepayOrder(c *gin.Context) {
 		case "waive":
 			baseAmount = 0
 		case "percent":
+			// #1751: guard against misconfigured permille values — a value
+			// outside 1..1000‰ would silently over/under-charge (ENO was
+			// seeded 1‰ = 1/10 of the intended 1% discount).
+			if coupon.Value < 1 || coupon.Value > 1000 {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码配置异常，请联系客服"})
+				return
+			}
 			// Integer math (audit #1726 R7): coupon.Value is permille (‰),
 			// amount in cents — 分 × ‰ / 1000, no float round-trip.
 			baseAmount = baseAmount * models.Cents(coupon.Value) / 1000
