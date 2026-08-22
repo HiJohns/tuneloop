@@ -279,6 +279,14 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		return
 	}
 
+	// Restore instrument stock_status to available (#1767)
+	if err := tx.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusAvailable).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to restore instrument status"})
+		return
+	}
+
 	tx.Commit()
 
 	// #1738 P2: audit the confirm-time recomputation (inputs + final numbers).
@@ -1198,6 +1206,12 @@ func (h *UserSettlementHandler) StaffRefundOrder(c *gin.Context) {
 	if err := db.Model(&models.Order{}).Where("id = ?", orderID).
 		Update("status", models.OrderStatusCompleted).Error; err != nil {
 		log.Printf("[StaffRefundOrder] failed to close order %s: %v", orderID, err)
+	}
+
+	// Restore instrument stock_status to available (#1767)
+	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
+		Update("stock_status", models.StockStatusAvailable).Error; err != nil {
+		log.Printf("[StaffRefundOrder] failed to restore instrument status %s: %v", order.InstrumentID, err)
 	}
 
 	receipt := buildRefundReceipt(db, order, result)
