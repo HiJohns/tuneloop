@@ -265,29 +265,33 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	endDate, err := time.Parse("2006-01-02", req.EndDate)
-	if err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format"})
-		return
-	}
-
-	if endDate.Before(startDate) {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date must be after start_date"})
-		return
+	// #1762: server-authoritative end_date. When rent_days is provided, the
+	// server recomputes end_date = start + (rent_days − 1) and overrides the
+	// client-supplied value — the frontend never decides the lease window.
+	// The old mismatch-rejection branch is removed: with server-side
+	// recomputation there is nothing to reject, the value is simply trusted.
+	var endDate time.Time
+	if req.RentDays > 0 {
+		endDate = services.CalculateEndDate(startDate, req.RentDays)
+		req.EndDate = endDate.Format("2006-01-02")
+	} else {
+		// Legacy path (no rent_days): derive days from the submitted dates.
+		endDate, err = time.Parse("2006-01-02", req.EndDate)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format"})
+			return
+		}
+		if endDate.Before(startDate) {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date must be after start_date"})
+			return
+		}
 	}
 
 	// Calculate rental amount
 	days := services.CalculateDays(startDate, endDate)
 	months := days / 30
-
-	// Validate rent_days against date-derived days (audit integrity)
-	if req.RentDays > 0 && req.RentDays != days {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("rent_days mismatch: request %d, date range %d", req.RentDays, days)})
-		return
-	}
 
 	// Compute pricing via CalculatePricing (merchant defaults as fallback)
 	var merchantConfigJSON string
@@ -825,17 +829,24 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 			return
 		}
 
-		endDate, err := time.Parse("2006-01-02", item.EndDate)
-		if err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format for " + item.InstrumentID})
-			return
-		}
-
-		if endDate.Before(startDate) {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date before start_date for " + item.InstrumentID})
-			return
+		// #1762: server-authoritative end_date — rent_qty overrides the
+		// client-supplied end_date (same rule as CreateOrder).
+		var endDate time.Time
+		if item.RentDays > 0 {
+			endDate = services.CalculateEndDate(startDate, item.RentDays)
+			item.EndDate = endDate.Format("2006-01-02")
+		} else {
+			endDate, err = time.Parse("2006-01-02", item.EndDate)
+			if err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid end_date format for " + item.InstrumentID})
+				return
+			}
+			if endDate.Before(startDate) {
+				tx.Rollback()
+				c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "end_date before start_date for " + item.InstrumentID})
+				return
+			}
 		}
 
 		// Lock and verify instrument
@@ -851,13 +862,6 @@ func (h *UserRentalHandler) BatchCreateOrder(c *gin.Context) {
 		// Calculate pricing
 		days := services.CalculateDays(startDate, endDate)
 		months := days / 30
-
-		// Validate rent_days against date-derived days (audit integrity)
-		if item.RentDays > 0 && item.RentDays != days {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": fmt.Sprintf("rent_days mismatch for %s: request %d, date range %d", item.InstrumentID, item.RentDays, days)})
-			return
-		}
 
 		baseRate := 0.0
 		if lockedInstrument.BaseDailyRate != nil {

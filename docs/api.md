@@ -1496,10 +1496,13 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
   "instrument_id": "instr-001",
   "start_date": "2026-03-21",
   "end_date": "2026-06-21",
+  "rent_days": 92,
   "delivery_address": {},
   "notes": ""
 }
 ```
+
+> **#1762: `end_date` 由服务端按 `rent_days` 权威重算**——`rent_days > 0` 时服务端以 `end_date = start_date + (rent_days − 1)` 覆盖前端提交值（前端 end_date 仅供参考，不信任）；`rent_days = 0` 时按提交的 start/end 推导天数（legacy 兼容）。批量下单（6.3）同规则（按每项 `rent_days`）。
 
 **响应**:
 ```json

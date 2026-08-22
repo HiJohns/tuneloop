@@ -165,8 +165,8 @@ function SingleCheckout({ id, navigate }) {
   // Shipping fee is not determined at order time (#1570): staff fills the
   // actual fee at dispatch, not charged at checkout.
   const totalAmount = totalRent + effectiveDeposit
-  const startDate = new Date().toISOString().slice(0, 10)
-  const returnDate = calculateEndDate(new Date(), days).toISOString().slice(0, 10)
+  const startDate = dayjs().format('YYYY-MM-DD')
+  const returnDate = dayjs(calculateEndDate(new Date(), days)).format('YYYY-MM-DD')
 
   const handleDaysChange = (value) => {
     setDays(Math.max(1, Math.min(730, parseInt(value) || 1)))
