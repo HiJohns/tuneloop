@@ -1131,6 +1131,11 @@ func main() {
 	depositRefundScheduler.Start()
 	defer depositRefundScheduler.Stop()
 
+	// #1749 L-04D: 补缴超时催缴（每小时扫描，24h 阈值）
+	collectionReminderScheduler := services.NewCollectionReminderScheduler()
+	collectionReminderScheduler.Start()
+	defer collectionReminderScheduler.Stop()
+
 	logisticsMonitor := handlers.NewLogisticsMonitor()
 	logisticsMonitor.Start()
 	defer logisticsMonitor.Stop()

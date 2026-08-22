@@ -333,6 +333,7 @@ type OrderPaymentRecord struct {
 	CodeURL       *string   `gorm:"type:text" json:"code_url"`
 	FailReason    *string   `gorm:"type:text" json:"fail_reason"`
 	RawResponse   *string   `gorm:"type:jsonb" json:"raw_response"`
+	RemindedAt    *time.Time `gorm:"type:timestamp" json:"reminded_at,omitempty"` // #1749 L-04D: 催缴幂等标记
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

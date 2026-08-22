@@ -106,18 +106,53 @@ func NotifyTechniciansOfSite(db *gorm.DB, tenantID, siteID, ntype, title, conten
 }
 
 // NotifyMerchantAdmins sends a notification to all merchant admin users within a tenant.
-func NotifyMerchantAdmins(db *gorm.DB, tenantID, ntype, title, content, refID, refType string) {
+// Optional variadic args (mirroring Notify): actionType string, actionData *string.
+func NotifyMerchantAdmins(db *gorm.DB, tenantID, ntype, title, content, refID, refType string, action ...interface{}) {
 	var admins []struct {
-		ID string
+		ID    string
+		OrgID string
 	}
 	if err := db.Table("users").
-		Select("id").
+		Select("id, org_id").
 		Where("tenant_id = ? AND role IN ?", tenantID, []string{"OWNER", "ADMIN"}).
 		Find(&admins).Error; err != nil {
 		log.Printf("[NotifyMerchantAdmins] Failed to query admins for tenant %s: %v", tenantID, err)
 		return
 	}
+	actionType := "info"
+	var actionData *string
+	if len(action) > 0 {
+		if v, ok := action[0].(string); ok && v != "" {
+			actionType = v
+		}
+	}
+	if len(action) > 1 {
+		if v, ok := action[1].(*string); ok {
+			actionData = v
+		}
+	}
 	for _, a := range admins {
-		Notify(db, tenantID, a.ID, ntype, title, content, refID, refType)
+		orgID := a.OrgID
+		if orgID == "" {
+			orgID = "00000000-0000-0000-0000-000000000000"
+		}
+		notif := models.Notification{
+			ID:         uuid.New().String(),
+			TenantID:   tenantID,
+			OrgID:      orgID,
+			UserID:     a.ID,
+			Type:       ntype,
+			Title:      title,
+			Content:    content,
+			RefID:      refID,
+			RefType:    refType,
+			ActionType: actionType,
+			ActionData: actionData,
+			Status:     "unread",
+			CreatedAt:  time.Now(),
+		}
+		if err := db.Create(&notif).Error; err != nil {
+			log.Printf("[NotifyMerchantAdmins] Failed to create notification for user %s: %v", a.ID, err)
+		}
 	}
 }
