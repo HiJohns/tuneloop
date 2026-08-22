@@ -1652,6 +1652,12 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "transfer_progress": 66.7,
     "transfer_eligible": false, // 是否满足转售条件
     "merchant_name": "北京音乐之家", // #1764 商户名（按订单 tenant_id 查 merchants；无记录为空，前端 fallback 云租吧）
+    "fee_summary": { // #1756 费用三区块（服务端计算，前端只读；金额全部分）
+      "paid": { "initial": [{"item":"rent","amount":400}], "renewal": [], "subtotal": 400 },
+      "payable": { "items": [{"item":"rent","amount":300},{"item":"shipping_fee","amount":100}], "subtotal": 400 },
+      "expected": { "direction": "refund", "amount": 0 }, // 未终态显示；settled 时为 null
+      "settled": false
+    }
     "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）
       "report_id": "uuid",
       "damage_amount": 100.00,    // 定损金额（迁移后统一来自 damage_reports，见 #1708/#1711）

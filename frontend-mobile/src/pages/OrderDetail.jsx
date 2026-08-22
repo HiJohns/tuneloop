@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { apiFetch, getToken , resolveErrorMessage } from '../services/api'
-import { formatDeliveryAddress, formatDisplayDate, formatLogTime } from '../utils/format'
+import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../utils/format'
 import { dialog, env, previewImage } from '../platform'
 import { calculateDays, calculateEndDate } from '../utils/daycalc'
 import InstrumentInfo from '../components/InstrumentInfo'
@@ -477,13 +477,63 @@ export default function OrderDetail() {
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
         <Text className="text-base font-black text-black mb-4">费用信息</Text>
         <View className="space-y-2">
-          {/* ① 实付金额 */}
-          {order.payment_records?.length > 0 && (
+          {/* #1756: fee_summary 三区块（服务端计算，前端只读） */}
+          {order.fee_summary && (
+            <>
+              {/* ① 实付部分 */}
+              <Text className="text-xs font-bold text-zinc-400 mt-3">实付部分</Text>
+              {order.fee_summary.paid.initial?.map((it, i) => (
+                <View key={`init-${i}`} className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">{it.item === 'rent' ? '租金（含押金）' : it.item}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(it.amount) / 100).toFixed(2)}</Text>
+                </View>
+              ))}
+              {order.fee_summary.paid.renewal?.map((it, i) => (
+                <View key={`ren-${i}`} className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">续期租金</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(it.amount) / 100).toFixed(2)}</Text>
+                </View>
+              ))}
+              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                <Text className="text-zinc-500 font-medium">实付合计</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_summary.paid.subtotal || 0) / 100).toFixed(2)}</Text>
+              </View>
+
+              {/* ② 应付部分 */}
+              <Text className="text-xs font-bold text-zinc-400 mt-3">应付部分</Text>
+              {order.fee_summary.payable.items?.map((it, i) => (
+                <View key={`pay-${i}`} className="flex justify-between text-sm">
+                  <Text className="text-zinc-500 font-medium">{it.item === 'rent' ? '实际租金' : it.item === 'shipping_fee' ? '物流费' : it.item === 'damage' ? '赔偿金' : it.item}</Text>
+                  <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(it.amount) / 100).toFixed(2)}</Text>
+                </View>
+              ))}
+              <View className="flex justify-between text-sm border-t border-zinc-100 pt-1">
+                <Text className="text-zinc-500 font-medium">应付合计</Text>
+                <Text className="text-black font-black flex-shrink-0 ml-auto whitespace-nowrap">¥{(Number(order.fee_summary.payable.subtotal || 0) / 100).toFixed(2)}</Text>
+              </View>
+
+              {/* ③ 预期退款/补缴 — 仅未终态 */}
+              {!order.fee_summary.settled && order.fee_summary.expected && (
+                <>
+                  <Text className="text-xs font-bold text-zinc-400 mt-3">预期退款 / 预期补缴</Text>
+                  <View className="flex justify-between text-sm">
+                    <Text className="text-zinc-500 font-medium">{order.fee_summary.expected.direction === 'refund' ? '预期退款' : '预期补缴'}</Text>
+                    <Text className={`font-black flex-shrink-0 ml-auto whitespace-nowrap ${order.fee_summary.expected.direction === 'refund' ? 'text-green-600' : 'text-red-500'}`}>
+                      ¥{(Math.abs(Number(order.fee_summary.expected.amount)) / 100).toFixed(2)}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ① 实付金额（fallback：无 fee_summary 的旧订单/异常） */}
+          {!order.fee_summary && order.payment_records?.length > 0 && (
             <>
               <Text className="text-xs font-bold text-zinc-400 mt-3">实付金额</Text>
               {order.payment_records.map(pr => (
                 <View key={pr.id} className="flex justify-between text-sm">
-                  <Text className="text-zinc-500 font-medium">{pr.method || '支付'}</Text>
+                  <Text className="text-zinc-500 font-medium">{formatPayMethod(pr.method)}</Text>
                   <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
                   <Text className="text-black font-black flex-shrink-0 whitespace-nowrap">¥{(Number(pr.amount) / 100).toFixed(2)}</Text>
                 </View>
@@ -779,7 +829,7 @@ export default function OrderDetail() {
                 <Text className="text-xs font-bold text-zinc-400">支付记录</Text>
                 {order.payment_records.map(pr => (
                   <View key={pr.id} className="flex justify-between text-sm">
-                    <Text className="text-zinc-500 font-medium">{pr.method || '支付'}</Text>
+                    <Text className="text-zinc-500 font-medium">{formatPayMethod(pr.method)}</Text>
                     <Text className="text-zinc-400 text-xs flex-shrink-0 ml-auto mr-2">{pr.created_at ? String(pr.created_at).slice(5, 16) : ''}</Text>
                     <Text className="text-black font-black flex-shrink-0 whitespace-nowrap">¥{(Number(pr.amount) / 100).toFixed(2)}</Text>
                   </View>

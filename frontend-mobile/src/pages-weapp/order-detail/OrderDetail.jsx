@@ -3,7 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, ScrollView, Image, Button } from '@tarojs/components'
 import { apiFetch, getToken } from '../../services/api'
 import { env, uploadFile } from '../../platform'
-import { formatDeliveryAddress, formatDisplayDate, formatLogTime } from '../../utils/format'
+import { formatDeliveryAddress, formatDisplayDate, formatLogTime, formatPayMethod } from '../../utils/format'
 import { calculateDays, calculateEndDate } from '../../utils/daycalc'
 import LeaseInfo from '../../components/LeaseInfo'
 
@@ -498,12 +498,43 @@ export default function OrderDetail() {
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 16 }}>费用明细</Text>
 
-          {/* ① 实付金额 */}
-          {order.payment_records?.length > 0 && (
+          {/* #1756: fee_summary 三区块（服务端计算，前端只读） */}
+          {order.fee_summary && (
+            <>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付部分</Text>
+              {(order.fee_summary.paid.initial || []).map((it, i) => (
+                <Row key={`init-${i}`} label={it.item === 'rent' ? '租金（含押金）' : it.item} value={`¥${(Number(it.amount) / 100).toFixed(2)}`} />
+              ))}
+              {(order.fee_summary.paid.renewal || []).map((it, i) => (
+                <Row key={`ren-${i}`} label="续期租金" value={`¥${(Number(it.amount) / 100).toFixed(2)}`} />
+              ))}
+              <Row label="实付合计" value={`¥${(Number(order.fee_summary.paid.subtotal || 0) / 100).toFixed(2)}`} />
+
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>应付部分</Text>
+              {(order.fee_summary.payable.items || []).map((it, i) => (
+                <Row key={`pay-${i}`} label={it.item === 'rent' ? '实际租金' : it.item === 'shipping_fee' ? '物流费' : it.item === 'damage' ? '赔偿金' : it.item} value={`¥${(Number(it.amount) / 100).toFixed(2)}`} />
+              ))}
+              <Row label="应付合计" value={`¥${(Number(order.fee_summary.payable.subtotal || 0) / 100).toFixed(2)}`} />
+
+              {!order.fee_summary.settled && order.fee_summary.expected && (
+                <>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 8, marginBottom: 4 }}>预期退款 / 预期补缴</Text>
+                  <Row
+                    label={order.fee_summary.expected.direction === 'refund' ? '预期退款' : '预期补缴'}
+                    value={`¥${(Math.abs(Number(order.fee_summary.expected.amount)) / 100).toFixed(2)}`}
+                    color={order.fee_summary.expected.direction === 'refund' ? '#16a34a' : '#ef4444'}
+                  />
+                </>
+              )}
+            </>
+          )}
+
+          {/* ① 实付金额（fallback：无 fee_summary 的旧订单/异常） */}
+          {!order.fee_summary && order.payment_records?.length > 0 && (
             <>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginTop: 12, marginBottom: 4 }}>实付金额</Text>
               {order.payment_records.map(pr => (
-                <Row key={pr.id} label={`${pr.method || '支付'}`} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
+                <Row key={pr.id} label={formatPayMethod(pr.method)} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
               ))}
               <Row label="实付合计" value={`¥${(order.payment_records.reduce((s, p) => s + Number(p.amount || 0), 0) / 100).toFixed(2)}`} />
             </>
@@ -582,7 +613,7 @@ export default function OrderDetail() {
             <View style={{ borderTop: '1px dashed #e4e4e7', marginTop: 8, paddingTop: 8 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#a1a1aa', marginBottom: 4 }}>收支记录</Text>
               {(order.payment_records || []).map(pr => (
-                <Row key={pr.id} label={`支付 · ${pr.method || ''}`.trim()} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
+                <Row key={pr.id} label={`支付 · ${formatPayMethod(pr.method)}`.trim()} value={`¥${(Number(pr.amount) / 100).toFixed(2)}`} />
               ))}
               {(order.refund_records || []).map(rf => (
                 <Row key={rf.id} label={`退款 · ${rf.method === 'prepaid' ? '预付点' : rf.method === 'cash_withdrawal' ? '现金' : '微信'}`} value={`-¥${(Number(rf.amount) / 100).toFixed(2)}`} color="#16a34a" />

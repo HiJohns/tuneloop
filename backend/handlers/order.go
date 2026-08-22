@@ -545,6 +545,79 @@ func GetOrder(c *gin.Context) {
 	orderData["actual_rent_days"] = allRentDays
 	orderData["actual_rent_amount"] = allRentCents
 
+	// #1756: fee_summary — three blocks, all cents, server-computed:
+	//   paid: initial (rent/deposit at order creation) + renewal records,
+	//         grouped by order_type from paid payment records
+	//   payable: actual rent + shipping fee + damage (if any)
+	//   expected: paid − payable (refund / shortfall) — only while NOT
+	//             settled (returning / pending_damage_response /
+	//             damage_appealing / deposit_refunding ...); null when settled
+	buildFeeSummary := func() map[string]interface{} {
+		paidInitial := []map[string]interface{}{}
+		paidRenewal := []map[string]interface{}{}
+		// 实付 = paid payment records (type=payment). Initial rent order
+		// (order_type=rent) covers rent+deposit as one record; renewal
+		// records (order_type=renewal) listed separately.
+		paidSubtotal := int64(0)
+		for _, pr := range paymentRecords {
+			item := map[string]interface{}{
+				"item":   pr.OrderType,
+				"amount": int64(pr.Amount),
+			}
+			paidSubtotal += int64(pr.Amount)
+			if pr.OrderType == "renewal" {
+				paidRenewal = append(paidRenewal, item)
+			} else {
+				paidInitial = append(paidInitial, item)
+			}
+		}
+		// Payable block: actual rent (cents) + shipping + damage (if any).
+		payableItems := []map[string]interface{}{
+			{"item": "rent", "amount": allRentCents},
+			{"item": "shipping_fee", "amount": int64(order.ShippingFee)},
+		}
+		payableSubtotal := allRentCents + int64(order.ShippingFee)
+		if damageData != nil {
+			if v, ok := damageData["damage_amount"].(float64); ok && v > 0 {
+				payableItems = append(payableItems, map[string]interface{}{"item": "damage", "amount": int64(math.Round(v * 100))})
+				payableSubtotal += int64(math.Round(v * 100))
+			}
+		}
+		// Expected block: only for unsettled statuses.
+		unsettled := map[string]bool{
+			models.OrderStatusReturning:             true,
+			models.OrderStatusPendingDamageResponse: true,
+			models.OrderStatusDamageAppealing:       true,
+			"deposit_refunding":                     true,
+		}
+		var expected interface{}
+		if unsettled[order.Status] {
+			diff := paidSubtotal - payableSubtotal
+			direction := "refund"
+			if diff < 0 {
+				direction = "shortfall"
+			}
+			expected = map[string]interface{}{
+				"direction": direction,
+				"amount":    diff,
+			}
+		}
+		return map[string]interface{}{
+			"paid": map[string]interface{}{
+				"initial":  paidInitial,
+				"renewal":  paidRenewal,
+				"subtotal": paidSubtotal,
+			},
+			"payable": map[string]interface{}{
+				"items":    payableItems,
+				"subtotal": payableSubtotal,
+			},
+			"expected": expected,
+			"settled":  !unsettled[order.Status],
+		}
+	}
+	orderData["fee_summary"] = buildFeeSummary()
+
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {
 		orderData["transit_info"] = map[string]string{

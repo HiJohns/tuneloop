@@ -52,3 +52,17 @@ export function formatDeliveryAddress(raw) {
     return raw
   }
 }
+
+// #1756: payment method codes → user-facing labels. Unknown values fall
+// back to the raw code so no information is hidden.
+export const PAY_METHOD_LABEL = {
+  jsapi: '微信支付',
+  native: '扫码支付',
+  waived: '优惠码免付',
+  mock: '测试支付',
+}
+
+export function formatPayMethod(method) {
+  if (!method) return '支付'
+  return PAY_METHOD_LABEL[method] || method
+}
