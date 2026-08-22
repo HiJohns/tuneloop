@@ -316,6 +316,45 @@ export default function MessageDetail() {
             )}
             </>
           )}
+
+          {notification.action_type === 'payment_shortfall' && (
+            <>
+            <View className="mt-4 rounded-xl bg-zinc-50 p-3">
+              <View className="text-xs text-zinc-400 font-bold mb-2">结算明细（服务端计算）</View>
+              {actionData.breakdown?.rent !== undefined && (
+                <Row label="租金" value={`¥${(Number(actionData.breakdown.rent) / 100).toFixed(2)}`} />
+              )}
+              {Number(actionData.breakdown?.shipping_fee) > 0 && (
+                <Row label="物流费" value={`¥${(Number(actionData.breakdown.shipping_fee) / 100).toFixed(2)}`} />
+              )}
+              {Number(actionData.breakdown?.overdue_fee) > 0 && (
+                <Row label="逾期费" value={`¥${(Number(actionData.breakdown.overdue_fee) / 100).toFixed(2)}`} />
+              )}
+              {Number(actionData.breakdown?.damage_amount) > 0 && (
+                <Row label="损坏赔偿" value={`¥${(Number(actionData.breakdown.damage_amount) / 100).toFixed(2)}`} />
+              )}
+              {actionData.breakdown?.paid_total !== undefined && (
+                <Row label="已付总额" value={`¥${(Number(actionData.breakdown.paid_total) / 100).toFixed(2)}`} />
+              )}
+              <View className="border-t border-zinc-200 mt-2 pt-2">
+                <Row label="需补缴" value={`¥${(Number(actionData.shortfall_amount) / 100).toFixed(2)}`} color="#dc2626" bold />
+              </View>
+            </View>
+            <Button
+              onClick={() => {
+                const orderId = actionData.order_id || notification.ref_id || ''
+                if (env.isMiniProgram) {
+                  Taro.redirectTo({ url: `/pages-weapp/payment/index?type=payment_shortfall&id=${orderId}` })
+                } else {
+                  navigate(`/payment?type=payment_shortfall&id=${orderId}`)
+                }
+              }}
+              className="w-full mt-6 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium"
+            >
+              去补缴
+            </Button>
+            </>
+          )}
         </View>
       </View>
 

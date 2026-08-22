@@ -617,6 +617,27 @@ function renderDetailsBlock(details, type) {
       </View>
     )
   }
+  if (type === 'payment_shortfall') {
+    // #1748 L-04C 流程 3: 补缴支付确认页明细（服务端 calculate）。
+    return (
+      <View>
+        <Row label="实际租金" value={`¥${(Number(details.rent || 0) / 100).toFixed(2)}`} />
+        {Number(details.shipping_fee || 0) > 0 && (
+          <Row label="物流费" value={`¥${(Number(details.shipping_fee) / 100).toFixed(2)}`} />
+        )}
+        {Number(details.overdue_fee || 0) > 0 && (
+          <Row label="逾期费" value={`¥${(Number(details.overdue_fee) / 100).toFixed(2)}`} />
+        )}
+        {Number(details.damage_amount || 0) > 0 && (
+          <Row label="损坏赔偿" value={`¥${(Number(details.damage_amount) / 100).toFixed(2)}`} />
+        )}
+        <Row label="已付总额" value={`¥${(Number(details.paid_total || 0) / 100).toFixed(2)}`} />
+        <View style={{ borderTop: '1px solid #f4f4f5', paddingTop: 8, marginTop: 4 }}>
+          <Row label="需补缴" value={`¥${(Number(details.shortfall_amount || 0) / 100).toFixed(2)}`} bold color="#dc2626" />
+        </View>
+      </View>
+    )
+  }
   return null
 }
 

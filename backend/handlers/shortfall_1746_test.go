@@ -336,3 +336,83 @@ func TestRefundReceipt_ThankYouAndPayments(t *testing.T) {
 	require.Contains(t, ad, `"payments"`)
 	require.Contains(t, ad, `"amount_cents":10000`, "action_data 收支明细为分")
 }
+
+// TestCalculatePayment_Shortfall (#1748 L-04C 流程 3): /pay/calculate
+// payment_shortfall 返回差额 + 明细（服务端计算）。
+func TestCalculatePayment_Shortfall(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
+		Username: "shortfall-calc", Status: "active",
+	}).Error)
+
+	order := models.Order{
+		TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID:     uuid.New().String(),
+		StartDate:        strPtr("2026-08-01"),
+		EndDate:          strPtr("2026-09-05"),
+		LeaseTerm:        35,
+		Status:           models.OrderStatusReturning,
+		ReturnedAt:       timePtr1743(time.Date(2026, 9, 5, 12, 0, 0, 0, time.UTC)),
+		Deposit:          0,
+		CashPaid:         models.FromYuan(200),
+		ShippingFee:      models.FromYuan(10),
+		PricingBreakdown: strPtr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":1000}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-SHORTFALL-CALC", StockStatus: "rented",
+	}).Error)
+
+	// 生成补缴记录（结算触发）
+	_, err := executeRefund(db, order)
+	require.NoError(t, err)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, middleware.ContextKeyTenantID, tenantID)
+		ctx = context.WithValue(ctx, middleware.ContextKeyUserID, userID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	router.POST("/api/pay/calculate", CalculatePayment)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"type": "payment_shortfall",
+		"id":   order.ID,
+	})
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/api/pay/calculate", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Type    string  `json:"type"`
+			Title   string  `json:"title"`
+			Amount  float64 `json:"amount"`
+			Details struct {
+				ShortfallAmount float64 `json:"shortfall_amount"`
+				Rent            float64 `json:"rent"`
+				PaidTotal       float64 `json:"paid_total"`
+			} `json:"details"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 20000, resp.Code)
+	require.Equal(t, "payment_shortfall", resp.Data.Type)
+	require.Equal(t, "补缴差额", resp.Data.Title)
+	require.Equal(t, 150.0, resp.Data.Amount, "差额 150 元")
+	require.Equal(t, 150.0, resp.Data.Details.ShortfallAmount)
+	require.Equal(t, 340.0, resp.Data.Details.Rent, "租金 340 元")
+	require.Equal(t, 200.0, resp.Data.Details.PaidTotal, "已付 200 元")
+}

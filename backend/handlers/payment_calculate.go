@@ -68,6 +68,8 @@ func CalculatePayment(c *gin.Context) {
 		loadDepositRefund(db, req.ID, &resp)
 	case "renewal":
 		loadRenewalPayment(db, req.ID, &resp)
+	case "payment_shortfall":
+		loadShortfallPayment(db, req.ID, &resp)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid type"})
 		return
@@ -302,4 +304,32 @@ func loadRenewalPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) 
 	}
 	resp.Title = "续期支付"
 	resp.Amount = record.Amount.ToYuan()
+}
+
+// loadShortfallPayment (#1746/#1748 L-04C 流程 3)：总账补缴支付确认页数据。
+// 金额与明细全部来自服务端（补缴记录 + computeSettlement），前端禁止自算。
+func loadShortfallPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
+	var order models.Order
+	if err := db.Where("id = ?", id).First(&order).Error; err != nil {
+		return
+	}
+	var record models.OrderPaymentRecord
+	if err := db.Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "payment_shortfall", "pending").
+		Order("created_at desc").First(&record).Error; err != nil {
+		return
+	}
+	result := computeSettlement(order, db)
+	if result.PayableShortfall <= 0 {
+		return
+	}
+	resp.Title = "补缴差额"
+	resp.Amount = record.Amount.ToYuan()
+	resp.Details = map[string]interface{}{
+		"shortfall_amount": record.Amount.ToYuan(),
+		"rent":             result.RentPayable,
+		"shipping_fee":     order.ShippingFee.ToYuan(),
+		"overdue_fee":      result.OverdueChargesTotal,
+		"damage_amount":    result.DamageDeducted,
+		"paid_total":       (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed).ToYuan(),
+	}
 }

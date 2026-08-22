@@ -80,7 +80,7 @@ export default function Payment() {
       <div className="bg-gradient-to-b from-[#FDF4E7] to-white px-4 py-3 flex items-center">
         <span className="text-xl font-bold text-black cursor-pointer" onClick={() => navigate(-1)}>❮</span>
         <span className="text-lg font-bold flex-1 text-center">
-          {pType === 'appeal' ? '申诉结果确认' : isRefund ? '退款确认' : '支付确认'}
+          {pType === 'appeal' ? '申诉结果确认' : pType === 'payment_shortfall' ? '补缴确认' : isRefund ? '退款确认' : '支付确认'}
         </span>
         <span className="w-6" />
       </div>
@@ -405,6 +405,27 @@ function renderDetailsBlock(details, type) {
         )}
         <div className="border-t border-zinc-100 pt-2 mt-1">
           <Row label="退款金额" value={`¥${(Number(details.cash_refundable || 0) / 100).toFixed(2)}`} bold color="#3b82f6" />
+        </div>
+      </div>
+    )
+  }
+  if (type === 'payment_shortfall') {
+    // #1748 L-04C 流程 3: 补缴支付确认页明细（全部来自服务端 calculate）。
+    return (
+      <div>
+        <Row label="实际租金" value={`¥${(Number(details.rent || 0) / 100).toFixed(2)}`} />
+        {Number(details.shipping_fee || 0) > 0 && (
+          <Row label="物流费" value={`¥${(Number(details.shipping_fee) / 100).toFixed(2)}`} />
+        )}
+        {Number(details.overdue_fee || 0) > 0 && (
+          <Row label="逾期费" value={`¥${(Number(details.overdue_fee) / 100).toFixed(2)}`} />
+        )}
+        {Number(details.damage_amount || 0) > 0 && (
+          <Row label="损坏赔偿" value={`¥${(Number(details.damage_amount) / 100).toFixed(2)}`} />
+        )}
+        <Row label="已付总额" value={`¥${(Number(details.paid_total || 0) / 100).toFixed(2)}`} />
+        <div className="border-t border-zinc-100 pt-2 mt-1">
+          <Row label="需补缴" value={`¥${(Number(details.shortfall_amount || 0) / 100).toFixed(2)}`} bold color="#dc2626" />
         </div>
       </div>
     )
