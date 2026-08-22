@@ -165,7 +165,7 @@ func processPaymentCallback(c *gin.Context, result *wechatpay.CallbackResult) bo
 	// #1730: virtual/service goods (no physical delivery) must report
 	// shipping info (logistics_type=3) so WeChat settles the frozen funds.
 	switch record.OrderType {
-	case "membership", "renewal", "damage", "repair":
+	case "membership", "renewal", "damage", "repair", "payment_shortfall":
 		reportVirtualGoodsShipping(db, &record)
 	}
 
@@ -192,6 +192,8 @@ func reportVirtualGoodsShipping(db *gorm.DB, record *models.OrderPaymentRecord) 
 		itemDesc = "租赁续费"
 	case "damage":
 		itemDesc = "定损赔付"
+	case "payment_shortfall":
+		itemDesc = "补缴差额"
 	case "repair":
 		itemDesc = "维修服务费"
 	}
@@ -295,6 +297,26 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 			if err := tx.Where("id = ?", *record.OrderID).First(&completedOrder).Error; err != nil {
 				log.Printf("[applySideEffects] Failed to reload order for settlement: %v", err)
 			} else {
+				if _, err := executeRefund(tx, completedOrder); err != nil {
+					log.Printf("[applySideEffects] Settlement failed for order %s: %v", *record.OrderID, err)
+				}
+			}
+		}
+		return nil
+	case "payment_shortfall":
+		// #1746 L-04C 流程 4/5：补缴支付成功 → 订单 completed → 结算闭环。
+		// settlement 已存在（shortfall 时创建，pending）→ 标记完成
+		// （此时已付 ≥ 应付，无退款/走幂等 executeRefund）。
+		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
+			return err
+		}
+		if record.OrderID != nil {
+			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *record.OrderID).
+				Update("refund_status", "completed").Error; err != nil {
+				log.Printf("[applySideEffects] Failed to complete settlement for order %s: %v", *record.OrderID, err)
+			}
+			var completedOrder models.Order
+			if err := tx.Where("id = ?", *record.OrderID).First(&completedOrder).Error; err == nil {
 				if _, err := executeRefund(tx, completedOrder); err != nil {
 					log.Printf("[applySideEffects] Settlement failed for order %s: %v", *record.OrderID, err)
 				}
@@ -460,6 +482,9 @@ func processPendingRecord(db *gorm.DB, rec *models.OrderPaymentRecord) {
 		}
 	case "renewal":
 		// renewal payment timeout — close the record, order state unchanged
+	case "payment_shortfall":
+		// #1746: 补缴超时 → 记录关闭，订单保持 returning（等待重新补缴，
+		// 不关单不催缴——催缴属 #1749 Ticker 职责）
 	}
 
 	log.Printf("[PaymentScheduler] closed timed-out payment: %s", *rec.OutTradeNo)

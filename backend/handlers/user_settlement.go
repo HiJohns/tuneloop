@@ -373,10 +373,47 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		}
 	}
 
-	// #1743: nothing cash-refundable → the settlement is DONE. Leaving
-	// "pending" kept the customer UI on 处理中 forever. (Guarded: the
-	// existingFound retry path has no fresh settlement row here.)
-	if result.CashRefundable <= 0 && settlement != nil {
+	// #1746 L-04C 总账补缴分流：应付 > 已付（含免押金/优惠码少付）→
+	// 不静默 clamp——生成补缴记录（pending），订单回退等待补缴，
+	// settlement 保持 pending 直至补缴支付回调闭环（L-04 关键规则：
+	// 补缴完成前订单不关单）。
+	if result.PayableShortfall > 0 {
+		if settlement != nil {
+			settlement.RefundStatus = "pending"
+		}
+		// 幂等：同一订单未完成补缴不重复生成（out_trade_no 由 prepay 生成唯一）
+		var shortfallCount int64
+		tx.Model(&models.OrderPaymentRecord{}).
+			Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "payment_shortfall", "pending").
+			Count(&shortfallCount)
+		if shortfallCount == 0 {
+			shortfallRecord := models.OrderPaymentRecord{
+				ID:        uuid.New().String(),
+				TenantID:  order.TenantID,
+				OrgID:     &order.OrgID,
+				UserID:    order.UserID,
+				OrderID:   &order.ID,
+				OrderType: "payment_shortfall",
+				Amount:    models.FromYuan(result.PayableShortfall),
+				Type:      "payment",
+				Status:    "pending",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			if err := tx.Create(&shortfallRecord).Error; err != nil {
+				log.Printf("[executeRefund] failed to create shortfall record for %s: %v", order.ID, err)
+			}
+		}
+		// 补缴完成前订单不关单：completed → returning（等待补缴的
+		// 统一中间态；三路径均从 returning 系触发）
+		if order.Status == models.OrderStatusCompleted {
+			tx.Model(&models.Order{}).Where("id = ?", order.ID).
+				Update("status", models.OrderStatusReturning)
+		}
+	} else if result.CashRefundable <= 0 && settlement != nil {
+		// #1743: nothing cash-refundable → the settlement is DONE. Leaving
+		// "pending" kept the customer UI on 处理中 forever. (Guarded: the
+		// existingFound retry path has no fresh settlement row here.)
 		settlement.RefundStatus = "completed"
 	}
 

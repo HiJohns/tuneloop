@@ -53,9 +53,9 @@ func PrepayOrder(c *gin.Context) {
 		return
 	}
 
-	validTypes := map[string]bool{"rent": true, "repair": true, "damage": true, "renewal": true, "membership": true}
+	validTypes := map[string]bool{"rent": true, "repair": true, "damage": true, "renewal": true, "membership": true, "payment_shortfall": true}
 	if !validTypes[req.OrderType] {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/damage/renewal/membership"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid order_type, must be rent/repair/damage/renewal/membership/payment_shortfall"})
 		return
 	}
 
@@ -278,7 +278,7 @@ func PrepayOrder(c *gin.Context) {
 	client := wechatpay.GetClient()
 
 	switch req.OrderType {
-	case "rent", "repair", "damage":
+	case "rent", "repair", "damage", "payment_shortfall":
 		// #1684: backfill openid from the local users cache (wx_openid bound
 		// at registration) — the weapp Payment.jsx no longer sends open_id
 		// (#1678), so mini-program rent payments must resolve it server-side.
