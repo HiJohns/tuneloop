@@ -406,6 +406,7 @@ func validateDatabaseSchema(db *gorm.DB) error {
 		&models.Order{},
 		&models.MerchantSettlementConfig{},
 		&models.Settlement{},
+		&models.SettlementCalculation{},
 		&models.OverdueCharge{},
 		&models.OrderLog{},
 		&models.PaymentSession{},

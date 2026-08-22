@@ -48,10 +48,8 @@ func computeDamageRefund(db *gorm.DB, order models.Order, damageYuan float64) (r
 	}
 	if actualRentDays == 0 && actualRent == 0 {
 		if order.DeliveredAt != nil && order.ReturnedAt != nil {
-			days := services.CalculateDays(*order.DeliveredAt, *order.ReturnedAt)
-			if days < 1 {
-				days = 1
-			}
+			// #1738 P3: same lease-day rule as settlement money math.
+			days := services.CalculateLeaseDays(*order.DeliveredAt, *order.ReturnedAt)
 			if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
 				// #1734: 统一分语义（存量元残留归一），再 /100 得元。
 				bdr := resolveBaseDailyRentCents(db, &order, v)

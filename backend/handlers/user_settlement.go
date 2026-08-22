@@ -64,10 +64,54 @@ func (h *UserSettlementHandler) CalculateSettlement(c *gin.Context) {
 
 	result := computeSettlement(order, db)
 
+	// #1738 P2: persist the preview computation and respond with exactly the
+	// persisted bytes — what the client sees is what the audit trail stores.
+	breakdownJSON, _ := json.Marshal(result.Breakdown)
+	recordSettlementCalculation(db, &order, "preview", result.ActualDays, breakdownJSON)
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
-		"data": result.Breakdown,
+		"data": json.RawMessage(breakdownJSON),
 	})
+}
+
+// recordSettlementCalculation (#1738 P2): append-only audit row capturing
+// the order input snapshot and the computed result. Best-effort: a failed
+// insert is logged loudly but never blocks the settlement flow itself.
+func recordSettlementCalculation(db *gorm.DB, order *models.Order, trigger string, actualDays int, breakdownJSON []byte) {
+	inputs, err := json.Marshal(map[string]interface{}{
+		"order_id":                  order.ID,
+		"status":                    order.Status,
+		"start_date":                order.StartDate,
+		"end_date":                  order.EndDate,
+		"delivered_at":              order.DeliveredAt,
+		"returned_at":               order.ReturnedAt,
+		"cash_paid_cents":           int64(order.CashPaid),
+		"prepaid_points_used_cents": int64(order.PrepaidPointsUsed),
+		"gift_points_used_cents":    int64(order.GiftPointsUsed),
+		"deposit_cents":             int64(order.Deposit),
+		"shipping_fee_cents":        int64(order.ShippingFee),
+		"pricing_breakdown":         order.PricingBreakdown,
+	})
+	if err != nil {
+		log.Printf("[SettlementAudit] input snapshot marshal failed for order %s: %v", order.ID, err)
+		return
+	}
+	snap := string(inputs)
+	res := string(breakdownJSON)
+	row := models.SettlementCalculation{
+		ID:            uuid.New().String(),
+		OrderID:       order.ID,
+		TenantID:      order.TenantID,
+		Trigger:       trigger,
+		InputSnapshot: &snap,
+		Result:        &res,
+		ActualDays:    actualDays,
+		CreatedAt:     time.Now(),
+	}
+	if err := db.Create(&row).Error; err != nil {
+		log.Printf("[SettlementAudit] FAILED to persist calculation (trigger=%s) for order %s: %v", trigger, order.ID, err)
+	}
 }
 
 func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
@@ -236,6 +280,9 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	// #1738 P2: audit the confirm-time recomputation (inputs + final numbers).
+	recordSettlementCalculation(db, &order, "confirm", result.ActualDays, breakdownJSON)
 
 	// Check and upgrade membership level after settlement
 	if err := services.CheckAndUpgradeLevel(userID, nil); err != nil {
@@ -605,8 +652,9 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		actualLeaseStart = order.DeliveredAt
 	}
 	if actualLeaseStart != nil && actualLeaseEnd != nil {
-		hours := actualLeaseEnd.Sub(*actualLeaseStart).Hours()
-		actualDays = int(math.Ceil(hours / 24))
+		// #1738 P3: single lease-day rule (ceil hours/24, min 1) shared with
+		// order detail and damage refund previews.
+		actualDays = services.CalculateLeaseDays(*actualLeaseStart, *actualLeaseEnd)
 	}
 	if actualDays < 1 {
 		actualDays = 1

@@ -248,6 +248,21 @@ type Settlement struct {
 	UpdatedAt           time.Time `json:"updated_at"`
 }
 
+// SettlementCalculation (#1738 P2): append-only audit trail of every
+// settlement computation (preview via GET calculate, confirm via POST).
+// Stores the order input snapshot and the computed result (cents JSONB)
+// so any displayed amount can be traced to a persisted calculation.
+type SettlementCalculation struct {
+	ID            string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID       string    `gorm:"type:uuid;index;not null" json:"order_id"`
+	TenantID      string    `gorm:"type:uuid;index" json:"tenant_id"`
+	Trigger       string    `gorm:"type:varchar(20);not null" json:"trigger"` // preview | confirm
+	InputSnapshot *string   `gorm:"type:jsonb" json:"input_snapshot,omitempty"`
+	Result        *string   `gorm:"type:jsonb" json:"result,omitempty"`
+	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
 type OverdueCharge struct {
 	ID                  string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	OrderID             string    `gorm:"type:uuid;not null;index" json:"order_id"`

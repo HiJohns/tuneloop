@@ -179,10 +179,8 @@ func deriveActualRent(db *gorm.DB, order *models.Order, settlementData map[strin
 	}
 	if actualRentDays == 0 && actualRentCents == 0 {
 		if order.DeliveredAt != nil && order.ReturnedAt != nil {
-			days := services.CalculateDays(*order.DeliveredAt, *order.ReturnedAt)
-			if days < 1 {
-				days = 1
-			}
+			// #1738 P3: same lease-day rule as settlement money math.
+			days := services.CalculateLeaseDays(*order.DeliveredAt, *order.ReturnedAt)
 			actualRentDays = days
 			// Daily rate from the pricing breakdown when available.
 			if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
