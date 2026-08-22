@@ -914,7 +914,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 	}
 
 	// #1728 P3：breakdown JSONB 金额存分（元 ×100）；比例（pay_ratio）保持小数。
-	c := func(v float64) int64 { return int64(math.Round(v*100 + 0.5)) }
+	c := func(v float64) int64 { return int64(math.Round(v * 100)) }
 	tierSegsCents := make([]map[string]interface{}, 0, len(tierSegments))
 	for _, ts := range tierSegments {
 		tierSegsCents = append(tierSegsCents, map[string]interface{}{
