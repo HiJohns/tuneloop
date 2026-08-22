@@ -175,7 +175,7 @@ export default function ReturnConfirm() {
 
       {/* #1732: 归还物流提醒（所有订单） */}
       <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-        <Text className="block text-red-500 text-[13px] font-medium leading-relaxed">尊敬的顾客您好，感谢您选择云租吧的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！</Text>
+        <Text className="block text-red-500 text-[13px] font-medium leading-relaxed">尊敬的顾客您好，感谢您选择{order?.merchant_name || '云租吧'}的乐器，乐器寄回时请优先选择顺丰快递且保价，还原初始包装保护乐器，为保障您的权益，我们将第一时间查收并检验乐器状态，谢谢您，祝您生活愉快！</Text>
       </View>
 
       {/* Return Address — preferred: transit_info (controlled), fallback: instrument.site_* */}

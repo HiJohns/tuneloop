@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
-import { env, navigation, dialog } from '../platform'
+import { env } from '../platform'
 
 export default function ReturnSettlement() {
   const [searchParams] = useSearchParams()
@@ -12,7 +12,7 @@ export default function ReturnSettlement() {
   const [loading, setLoading] = useState(true)
   const [settlement, setSettlement] = useState(null)
   const [orderDeposit, setOrderDeposit] = useState(null)
-  const [confirming, setConfirming] = useState(false)
+  const [merchantName, setMerchantName] = useState('')
 
   const fetchSettlement = async (orderID) => {
     try {
@@ -26,45 +26,11 @@ export default function ReturnSettlement() {
       // 押金在订单上（Settlement 无 deposit 字段）——收据明细完整性
       if (orderResp?.code === 20000) {
         setOrderDeposit(orderResp.data?.deposit ?? null)
+        // #1764: 商户名动态（GetOrder 带 merchant_name，fallback 云租吧）
+        setMerchantName(orderResp.data?.merchant_name || '云租吧')
       }
     } catch {}
     setLoading(false)
-  }
-
-  const handleConfirmRefund = async () => {
-    if (!orderId) return
-    setConfirming(true)
-    try {
-      const resp = await api.post(`/user/settlements/${orderId}`, { refund_method: 'cash_withdrawal' })
-      if (resp?.code === 20000) {
-        // H5 has no Taro runtime — use platform dialog (#1615)
-        if (env.isMiniProgram) {
-          Taro.showToast({ title: '退款已确认', icon: 'success' })
-        } else {
-          dialog.toast('退款已确认')
-        }
-        setTimeout(() => {
-          if (env.isMiniProgram) {
-            Taro.redirectTo({ url: '/pages-weapp/my-leases/index' })
-          } else {
-            navigation.redirect('/my-leases')
-          }
-        }, 800)
-      } else {
-        if (env.isMiniProgram) {
-          Taro.showModal({ title: '确认失败', content: resolveErrorMessage(resp, '请重试'), showCancel: false })
-        } else {
-          dialog.alert('确认失败: ' + (resolveErrorMessage(resp, '请重试')))
-        }
-      }
-    } catch (err) {
-      if (env.isMiniProgram) {
-        Taro.showModal({ title: '确认失败', content: err.message || '网络错误', showCancel: false })
-      } else {
-        dialog.alert('确认失败: ' + (err.message || '网络错误'))
-      }
-    }
-    setConfirming(false)
   }
 
   useEffect(() => {
@@ -77,6 +43,25 @@ export default function ReturnSettlement() {
 
   const num = (v) => (v != null ? (Number(v) / 100).toFixed(2) : '0.00')
   const s = settlement || {}
+
+  // #1764: fee_items 逐项方向化——服务端输出 {item, direction, amount}（分），
+  // 前端只读禁止自算；amount=0 隐藏；refund=待退（绿）/pay=待补缴（红）。
+  const feeItemBaseLabels = {
+    rent: '租金',
+    deposit: '押金',
+    shipping_fee: '物流费',
+    overdue_fee: '逾期费',
+    damage: '损坏赔偿',
+  }
+  const feeItems = (s?.fee_items || [])
+    .filter((it) => it && Number(it.amount) !== 0)
+    .map((it) => {
+      const base = feeItemBaseLabels[it.item] || it.item
+      return {
+        ...it,
+        label: it.direction === 'refund' ? `待退${base}` : `待补缴${base}`,
+      }
+    })
 
   if (loading) {
     return (
@@ -93,7 +78,7 @@ export default function ReturnSettlement() {
         <View className="text-6xl mb-4">🎉</View>
         <Text className="text-xl font-black text-black text-center block mb-2">归还申请已提交</Text>
         <Text className="text-sm text-zinc-500 text-center leading-relaxed block">
-          感谢您选择乐音琴行，您的乐器已在归还途中。
+          感谢您选择了{merchantName}，您的乐器已在归还途中。
           网点收到乐器并完成验收定损后，将为您结算租金并退还押金，请留意到账通知。
           期待与您再次相遇，祝您演奏愉快！🎵
         </Text>
@@ -101,13 +86,28 @@ export default function ReturnSettlement() {
 
       {/* Rent estimate notice */}
       <View className="mx-4 mt-6 bg-white rounded-2xl p-4 shadow-sm">
-        <View><Text className="text-sm font-black text-black">租金预估</Text></View>
+        <View><Text className="text-sm font-black text-black">费用更新（预估）</Text></View>
         <View className="space-y-2 text-sm mt-3">
+          {feeItems.length > 0 ? (
+            feeItems.map((it) => (
+              <View key={it.item} className={`flex justify-between ${it.direction === 'refund' ? 'text-green-600' : 'text-red-500'}`}>
+                <Text className="font-medium">{it.label}</Text>
+                <Text className="font-bold">{it.direction === 'refund' ? `+¥${num(it.amount)}` : `¥${num(Math.abs(it.amount))}`}</Text>
+              </View>
+            ))
+          ) : (
+            <View className="flex justify-between">
+              <Text className="text-zinc-400">暂无差额</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥0.00</Text>
+            </View>
+          )}
+          {s?.actual_rent_days > 0 && (
+            <View className="flex justify-between border-t pt-2">
+              <Text className="text-zinc-400">实际租期</Text>
+              <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">{s?.actual_rent_days || 0} 天</Text>
+            </View>
+          )}
           <View className="flex justify-between">
-            <Text className="text-zinc-400">实际租期</Text>
-            <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">{s?.actual_rent_days || 0} 天</Text>
-          </View>
-          <View className="flex justify-between border-t pt-2">
             <Text className="text-zinc-900 font-bold">实际租金</Text>
             <Text className="font-bold text-blue-600">¥{num(s?.actual_rent_amount)}</Text>
           </View>
@@ -117,67 +117,40 @@ export default function ReturnSettlement() {
               <Text className="font-black text-black flex-shrink-0 whitespace-nowrap">¥{num(orderDeposit)}</Text>
             </View>
           )}
-          {s?.early_return_rebate > 0 && (
-            <View className="flex justify-between text-green-600">
-              <Text className="font-medium">提前归还退费</Text>
-              <Text className="font-bold">-¥{num(s?.early_return_rebate)}</Text>
-            </View>
-          )}
-          {s?.overdue_charges_total > 0 && (
-            <View className="flex justify-between text-red-500">
-              <Text className="font-medium">逾期费用</Text>
-              <Text className="font-bold">¥{num(s?.overdue_charges_total)}</Text>
-            </View>
-          )}
-          {s?.damage_deducted > 0 && (
-            <View className="flex justify-between text-red-500">
-              <Text className="font-medium">损坏赔偿</Text>
-              <Text className="font-bold">-¥{num(s?.damage_deducted)}</Text>
-            </View>
-          )}
         </View>
         <View className="mt-3 bg-amber-50 rounded-xl p-3">
           <Text className="text-xs text-amber-600 leading-relaxed block">
-            以上为租金预估。由于乐器尚未完成验收定损，此处不显示退款金额；
+            以上为费用更新（预估）。由于乐器尚未完成验收定损，此处不显示退款金额；
             最终结算与退款（含押金、超期费与定损扣款）以网点验收定损结果为准。
           </Text>
         </View>
       </View>
 
-      {/* Confirm button */}
+      {/* Back button — pure navigation (#1764/#1765): 未定损态禁止任何
+          后台操作（结算/退款），按钮仅返回订单详情。 */}
       <View className="px-4 mt-8 pb-10">
-        {s?.damage_deducted > 0 ? (
-          <View
-            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
-            style={{ opacity: confirming ? 0.5 : 1 }}
-            onClick={confirming ? undefined : handleConfirmRefund}
-          >
-            <Text className="text-white">{confirming ? '处理中...' : '确认退款'}</Text>
-          </View>
-        ) : (
-          <View
-            className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
-            onClick={() => {
-              // 返回订单详情页（#1702）：归还物流页已在提交时 redirectTo 替换
-              // 掉，页面栈为 [order-detail, return-settlement]——navigateBack
-              // 直接回订单详情；深链/异常入口（倒数第 2 页非 return-confirm）
-              // 时 fallback redirectTo 订单详情。
-              if (env.isMiniProgram) {
-                const pages = Taro.getCurrentPages()
-                const prev = pages.length >= 2 ? pages[pages.length - 2] : null
-                if (prev && String(prev.route || '').includes('return-confirm')) {
-                  Taro.navigateBack()
-                } else {
-                  Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
-                }
+        <View
+          className="w-full bg-blue-500 text-white py-4 rounded-2xl text-lg font-black flex items-center justify-center"
+          onClick={() => {
+            // 返回订单详情页（#1702）：归还物流页已在提交时 redirectTo 替换
+            // 掉，页面栈为 [order-detail, return-settlement]——navigateBack
+            // 直接回订单详情；深链/异常入口（倒数第 2 页非 return-confirm）
+            // 时 fallback redirectTo 订单详情。
+            if (env.isMiniProgram) {
+              const pages = Taro.getCurrentPages()
+              const prev = pages.length >= 2 ? pages[pages.length - 2] : null
+              if (prev && String(prev.route || '').includes('return-confirm')) {
+                Taro.navigateBack()
               } else {
-                navigate(`/order/${orderId}`, { replace: true })
+                Taro.redirectTo({ url: `/pages-weapp/order-detail/index?id=${orderId}` })
               }
-            }}
-          >
-            <Text className="text-white">知道了，返回订单详情</Text>
-          </View>
-        )}
+            } else {
+              navigate(`/order/${orderId}`, { replace: true })
+            }
+          }}
+        >
+          <Text className="text-white">返回</Text>
+        </View>
       </View>
     </View>
   )

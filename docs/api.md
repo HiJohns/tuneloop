@@ -1643,6 +1643,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "accumulated_months": 8,
     "transfer_progress": 66.7,
     "transfer_eligible": false, // 是否满足转售条件
+    "merchant_name": "北京音乐之家", // #1764 商户名（按订单 tenant_id 查 merchants；无记录为空，前端 fallback 云租吧）
     "damage": { // #1707/#1708：仅待回应定损/定损申诉态返回（pending_damage_response / damage_appealing）
       "report_id": "uuid",
       "damage_amount": 100.00,    // 定损金额（迁移后统一来自 damage_reports，见 #1708/#1711）
@@ -2739,6 +2740,9 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 结算预览（不创建记录）。金额均为**分**（#1728 P3 契约，前端 /100 显示）。公式见 docs/cases.md §2.7（#1743 业务口径：Re 按覆盖天数 C 封顶、逾期 = Ro×(Ca−C)、退款 = 应退原价 × 优惠比例 r、补缴 = 原价差额）。
 
+> #1764: `fee_items` 为逐项方向化金额（分），前端只读禁止自算：
+> 每项 amount = 该项目「已付/可抵 − 应付」；>0 → `direction: "refund"`（待退，绿），<0 → `direction: "pay"`（待补缴，红），=0 前端隐藏。总方向与 `total_refund`/`payable_shortfall` 判定一致（#1745 L-04C）。
+
 **响应**:
 ```json
 {
@@ -2756,7 +2760,14 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
     "payable_shortfall": 0,      // #1743 补缴金额（分；应付 > 已付时 > 0）
     "cover_days": 30,            // #1743 C = 总覆盖天数（含续期）
     "overdue_charges_total": 0,
-    "breakdown": { "tier_segments": [{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}] }
+    "breakdown": { "tier_segments": [{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}] },
+    "fee_items": [               // #1764 逐项方向化（amount 分）
+      {"item": "rent", "direction": "refund", "amount": 5000},        // 实付租金 − 应付租金（正=待退）
+      {"item": "deposit", "direction": "refund", "amount": 10000},    // 押金 −（逾期+损坏+物流）（正=待退）
+      {"item": "shipping_fee", "direction": "pay", "amount": 2000},   // −物流费（负=待补缴）
+      {"item": "overdue_fee", "direction": "pay", "amount": 0},       // −逾期费（0 前端隐藏）
+      {"item": "damage", "direction": "pay", "amount": 0}             // −损坏赔偿（0 前端隐藏）
+    ]
   }
 }
 ```

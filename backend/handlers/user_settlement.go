@@ -922,6 +922,28 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 			"rate": c(ts.Rate), "discount": ts.Discount, "subtotal": c(ts.Subtotal),
 		})
 	}
+	// #1764: fee_items — per-item directionized amounts (cents).
+	// Each amount = (paid / creditable) − (payable) for that item:
+	//   positive → refund (待退), negative → pay (待补缴), zero → hidden.
+	// Total direction matches the aggregate refund/shortfall judgement (#1745
+	// L-04C): driven by totalRefund vs payableShortfall above.
+	feeItem := func(item string, v float64) map[string]interface{} {
+		direction := "pay"
+		if v > 0 {
+			direction = "refund"
+		}
+		return map[string]interface{}{"item": item, "direction": direction, "amount": c(v)}
+	}
+	// Rent: paid rent minus payable rent. Deposit: deposit minus all
+	// deductions (overdue + damage + shipping). The deduction items are
+	// negative (incurred but unpaid/not yet deducted) per the spec.
+	feeItems := []map[string]interface{}{
+		feeItem("rent", totalRentPaid-rentPayable),
+		feeItem("deposit", order.Deposit.ToYuan()-(overdueFee+damageDeducted+shippingFee)),
+		feeItem("shipping_fee", -shippingFee),
+		feeItem("overdue_fee", -overdueFee),
+		feeItem("damage", -damageDeducted),
+	}
 	breakdown := map[string]interface{}{
 		"original_total":            int64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
 		"total_rent_paid":           c(totalRentPaid),
@@ -948,6 +970,7 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		"cash_paid":                 int64(order.CashPaid),
 		"pay_ratio":                 payRatio,
 		"tier_segments":             tierSegsCents,
+		"fee_items":                 feeItems,
 	}
 
 	// C1 = R1 − min(A1, A0): the cash portion of the adjusted payable rent.

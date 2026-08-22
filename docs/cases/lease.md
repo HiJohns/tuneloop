@@ -349,8 +349,15 @@ steps:
         role: [customer]
         gate: "订单状态 = returning"
         reach: "归还提交 → ReturnSettlement"
-        controls: [确认按钮]
-        displays: [实际租期, 实际租金, 提前归还退费, 逾期费用, 损坏赔偿]
+        controls: [返回按钮]
+        # #1764: 费用更新页逐项方向化——fee_items 逐项（租金/押金/物流费/
+        # 逾期费/损坏赔偿）按方向显示：amount>0 → 待退{项目}（绿），
+        # amount<0 → 待补缴{项目}（红），amount=0 隐藏；服务端输出
+        # {item, direction, amount}，前端只读禁止自算；总方向与
+        # #1745 L-04C 分流判定一致（总应付>总已付 → 补缴；< → 退回）。
+        # 感谢语商户名动态（GetOrder.merchant_name，fallback 云租吧）。
+        # 按钮纯导航「返回」→ 订单详情（未定损态禁止任何后台操作，#1765）。
+        displays: [费用更新（预估）, fee_items 逐项（待退租金/待退押金/待补缴物流费/待补缴逾期费/待补缴损坏赔偿）, 实际租期, 实际租金, 押金]
         ops: []
     api: {method: GET, path: /user/settlements/:id/calculate, params: []}
 ---

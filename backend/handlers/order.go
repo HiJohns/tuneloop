@@ -554,6 +554,14 @@ func GetOrder(c *gin.Context) {
 		}
 	}
 
+	// #1764: merchant (tenant) name for the return settlement thank-you line
+	// — resolved by order tenant_id, empty when the merchant record is absent.
+	var merchantName string
+	if err := db.Table("merchants").Select("name").Where("tenant_id = ?", order.TenantID).Scan(&merchantName).Error; err != nil {
+		log.Printf("[GetOrder] merchant lookup failed for tenant=%s: %v", order.TenantID, err)
+	}
+	orderData["merchant_name"] = merchantName
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": orderData,
