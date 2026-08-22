@@ -196,9 +196,13 @@ export default function Payment() {
     const body = {
       order_id: pId,
       order_type: pType,
-      amount: payAmount,
+      // #1758: calculate/URL amounts are cents; prepay expects yuan
+      // (server FromYuan). Divide by 100 — sending cents as yuan overcharged
+      // 100× (7d5cadd7: ¥0.04 charged as ¥3.01).
+      amount: payAmount / 100,
       open_id: '',
-      gift_used: appliedCoupon ? 0 : (pType === 'membership' ? 0 : giftUsed),
+      // gift_used likewise cents → yuan (server FromYuan).
+      gift_used: appliedCoupon ? 0 : (pType === 'membership' ? 0 : giftUsed / 100),
     }
     if (pType === 'membership' && pSessionId) {
       body.session_id = pSessionId

@@ -126,16 +126,18 @@ func loadRentPayment(db *gorm.DB, userID, id string, resp *PaymentCalculateRespo
 		var pb map[string]interface{}
 		if json.Unmarshal([]byte(*order.PricingBreakdown), &pb) == nil {
 			if v, ok := pb["total_amount"].(float64); ok {
-				resp.Amount = v
+				resp.Amount = v // cents (P3 契约)
 			}
 		}
 	}
-	resp.Amount += order.Deposit.ToYuan() + order.ShippingFee.ToYuan()
+	// #1758: Deposit/ShippingFee are Cents — add directly (cents), never
+	// ToYuan() (yuan) which mixed units (3 分 + 0.01 元 = 3.01 元 → 多扣).
+	resp.Amount += float64(order.Deposit + order.ShippingFee)
 	if order.PricingBreakdown != nil && *order.PricingBreakdown != "" {
 		resp.Details = map[string]interface{}{
 			"pricing_breakdown": *order.PricingBreakdown,
-			"deposit":           order.Deposit.ToYuan(),
-			"shipping_fee":      order.ShippingFee.ToYuan(),
+			"deposit":           float64(order.Deposit),
+			"shipping_fee":      float64(order.ShippingFee),
 			"total":             resp.Amount,
 		}
 	}
@@ -160,7 +162,8 @@ func loadRepairPayment(db *gorm.DB, id, ptype string, resp *PaymentCalculateResp
 		if req.PaidAmount != nil {
 			paid = *req.PaidAmount
 		}
-		resp.Amount = math.Max(0, (newTotal - paid).ToYuan())
+		// #1758: cents contract (previously ToYuan → yuan mixed units).
+		resp.Amount = math.Max(0, float64(newTotal-paid))
 		resp.Details = map[string]interface{}{}
 
 		// Old quote (the previously accepted quote, before the requote) for
@@ -170,20 +173,21 @@ func loadRepairPayment(db *gorm.DB, id, ptype string, resp *PaymentCalculateResp
 			Order("created_at DESC").First(&oldQuote).Error; err == nil {
 			oldTotal := oldQuote.MaterialFee + oldQuote.ServiceFee + oldQuote.LogisticsFee
 			resp.Details["old_quote"] = map[string]interface{}{
-				"material_fee":  oldQuote.MaterialFee,
-				"service_fee":   oldQuote.ServiceFee,
-				"logistics_fee": oldQuote.LogisticsFee,
-				"total":         oldTotal,
+				"material_fee":  float64(oldQuote.MaterialFee),
+				"service_fee":   float64(oldQuote.ServiceFee),
+				"logistics_fee": float64(oldQuote.LogisticsFee),
+				"total":         float64(oldTotal),
 			}
 		}
 	} else {
 		resp.Title = "报修支付"
-		resp.Amount = (quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee).ToYuan()
+		// #1758: cents contract (previously ToYuan → yuan).
+		resp.Amount = float64(quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee)
 		resp.Details = map[string]interface{}{}
 	}
-	resp.Details["material_fee"] = quote.MaterialFee
-	resp.Details["service_fee"] = quote.ServiceFee
-	resp.Details["logistics_fee"] = quote.LogisticsFee
+	resp.Details["material_fee"] = float64(quote.MaterialFee)
+	resp.Details["service_fee"] = float64(quote.ServiceFee)
+	resp.Details["logistics_fee"] = float64(quote.LogisticsFee)
 	resp.Details["total"] = resp.Amount
 }
 
@@ -213,18 +217,20 @@ func loadDamagePayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		}
 	}
 
-	payAmount := math.Max(0, (damageAmount - order.Deposit).ToYuan())
+	// #1758: cents contract — damageAmount/Deposit are Cents; the payable
+	// excess and every breakdown field stay in cents (frontend /100).
+	payAmount := math.Max(0, float64(damageAmount-order.Deposit))
 	resp.Title = "定损赔偿"
 	resp.Amount = payAmount
 	resp.Details = map[string]interface{}{
 		"paid_breakdown": map[string]float64{
 			"rent_subtotal": rentSubtotal,
-			"deposit":       order.Deposit.ToYuan(),
-			"shipping_fee":  order.ShippingFee.ToYuan(),
-			"paid_total":    rentSubtotal + order.Deposit.ToYuan() + order.ShippingFee.ToYuan(),
+			"deposit":       float64(order.Deposit),
+			"shipping_fee":  float64(order.ShippingFee),
+			"paid_total":    rentSubtotal + float64(order.Deposit) + float64(order.ShippingFee),
 		},
-		"damage_amount":     damageAmount.ToYuan(),
-		"deposit_deduction": math.Min(order.Deposit.ToYuan(), damageAmount.ToYuan()),
+		"damage_amount":     float64(damageAmount),
+		"deposit_deduction": math.Min(float64(order.Deposit), float64(damageAmount)),
 		"pay_amount":        payAmount,
 	}
 }
@@ -238,11 +244,12 @@ func loadRefundPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		return
 	}
 	resp.Title = "结算退款"
-	resp.Amount = settlement.CashRefundable.ToYuan()
+	// #1758: cents contract (previously ToYuan → yuan).
+	resp.Amount = float64(settlement.CashRefundable)
 	details := map[string]interface{}{
-		"cash_refundable":  settlement.CashRefundable.ToYuan(),
-		"prepaid_refunded": settlement.PrepaidRefunded.ToYuan(),
-		"gift_refunded":    settlement.GiftPointsRefunded.ToYuan(),
+		"cash_refundable":  float64(settlement.CashRefundable),
+		"prepaid_refunded": float64(settlement.PrepaidRefunded),
+		"gift_refunded":    float64(settlement.GiftPointsRefunded),
 	}
 	// Pass through gift policy info from the settlement breakdown for
 	// receipt display: A1 (gift cap at refund time) and pay_ratio (L-06).
@@ -268,18 +275,19 @@ func loadCancelledOrderRefund(db *gorm.DB, id string, resp *PaymentCalculateResp
 	if err := db.Where("id = ? AND status = ?", id, models.OrderStatusCancelled).First(&order).Error; err != nil {
 		return
 	}
-	total := (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed).ToYuan()
+	// #1758: cents contract — all payment fields stay cents (frontend /100).
+	total := float64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed)
 	resp.Title = "取消订单退款"
 	resp.Amount = total
 	resp.Details = map[string]interface{}{
 		"total_paid":       total,
-		"cash_paid":        order.CashPaid.ToYuan(),
-		"prepaid_used":     order.PrepaidPointsUsed.ToYuan(),
-		"gift_used":        order.GiftPointsUsed.ToYuan(),
+		"cash_paid":        float64(order.CashPaid),
+		"prepaid_used":     float64(order.PrepaidPointsUsed),
+		"gift_used":        float64(order.GiftPointsUsed),
 		"total_refund":     total,
-		"cash_refundable":  order.CashPaid.ToYuan(),
-		"prepaid_refunded": order.PrepaidPointsUsed.ToYuan(),
-		"gift_refunded":    order.GiftPointsUsed.ToYuan(),
+		"cash_refundable":  float64(order.CashPaid),
+		"prepaid_refunded": float64(order.PrepaidPointsUsed),
+		"gift_refunded":    float64(order.GiftPointsUsed),
 		"cancel_refund":    true,
 	}
 }
@@ -290,9 +298,10 @@ func loadDepositRefund(db *gorm.DB, id string, resp *PaymentCalculateResponse) {
 		return
 	}
 	resp.Title = "押金退款"
-	resp.Amount = order.Deposit.ToYuan()
+	// #1758: cents contract (previously ToYuan → yuan).
+	resp.Amount = float64(order.Deposit)
 	resp.Details = map[string]interface{}{
-		"deposit":  order.Deposit.ToYuan(),
+		"deposit":  float64(order.Deposit),
 		"refunded": order.DepositRefunded,
 	}
 }
@@ -303,7 +312,8 @@ func loadRenewalPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse) 
 		return
 	}
 	resp.Title = "续期支付"
-	resp.Amount = record.Amount.ToYuan()
+	// #1758: record.Amount is Cents — pass through as cents (frontend /100).
+	resp.Amount = float64(record.Amount)
 }
 
 // loadShortfallPayment (#1746/#1748 L-04C 流程 3)：总账补缴支付确认页数据。
@@ -323,13 +333,15 @@ func loadShortfallPayment(db *gorm.DB, id string, resp *PaymentCalculateResponse
 		return
 	}
 	resp.Title = "补缴差额"
-	resp.Amount = record.Amount.ToYuan()
+	// #1758: cents contract — record.Amount and settlement fields are Cents;
+	// payable shortfall from computeSettlement is yuan → convert to cents.
+	resp.Amount = float64(record.Amount)
 	resp.Details = map[string]interface{}{
-		"shortfall_amount": record.Amount.ToYuan(),
-		"rent":             result.RentPayable,
-		"shipping_fee":     order.ShippingFee.ToYuan(),
-		"overdue_fee":      result.OverdueChargesTotal,
-		"damage_amount":    result.DamageDeducted,
-		"paid_total":       (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed).ToYuan(),
+		"shortfall_amount": float64(record.Amount),
+		"rent":             result.RentPayable * 100,
+		"shipping_fee":     float64(order.ShippingFee),
+		"overdue_fee":      result.OverdueChargesTotal * 100,
+		"damage_amount":    result.DamageDeducted * 100,
+		"paid_total":       float64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
 	}
 }

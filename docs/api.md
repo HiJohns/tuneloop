@@ -2603,20 +2603,42 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 }
 ```
 
-### 8.11.1 创建预付支付
+### 8.11.1 支付计算
+
+**接口**: `POST /api/pay/calculate`
+
+**说明**: 支付确认页数据（金额 + 钱包信息 + 明细）。**响应 `amount` 及明细金额均为分**（#1728 P3 / #1758 契约，前端 /100 显示；prepay 提交时再 /100 转元）。
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| type | string | rent / repair / requote / damage / refund / deposit-refund / renewal / payment_shortfall |
+| id | uuid | 订单/报修/定损/结算/补缴记录 ID |
+
+**响应 data**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| type | string | 同请求 |
+| title | string | 中文标题 |
+| amount | int64(分) | 应付/应退金额（前端 /100 显示） |
+| wallet | object | 赠点信息（promo_points / max_gift_ratio / max_gift_amount，均为分） |
+| details | object | 明细（各字段分契约；rent 含 pricing_breakdown、refund 含 cash_refundable 等） |
+
+### 8.11.2 创建预付支付
 
 **接口**: `POST /api/pay/prepay`
 
 **说明**: 创建预付支付记录。支持赠点抵扣，抵扣后仅支付现金差额。
-**金额单位**: 分（int64，1 元 = 100 分，#1728 P3 起 API 一律输出分；前端显示自行 /100）。
+
+> **#1758 单位契约**：请求 `amount` / `gift_used` 为**元**（decimal，服务端 `FromYuan` 转分——前端把 calculate 响应的分值 /100 后提交）；响应为**分**契约（#1728 P3，前端 /100 显示）。**禁止分当元提交**（曾致 7d5cadd7 多扣 100 倍）。
 
 **请求 Body**:
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | order_id | uuid | 订单 ID |
 | order_type | string | rent / repair / damage / renewal / membership |
-| amount | int64(分) | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
-| gift_used | decimal | 赠点抵扣金额（默认 0；优惠码场景前端传 0） |
+| amount | decimal(元) | 现金支付金额（总额 − 赠点；有优惠码时传原金额，后端重算） |
+| gift_used | decimal(元) | 赠点抵扣金额（默认 0；优惠码场景前端传 0） |
 | open_id | string | 微信 openid（仅 JSAPI 支付，可选；后端可按 iam_sub 回填） |
 | coupon_code | string | 优惠码（可选，#1719 所有支付类型通用：OREZ waive 全免 / ENO percent 1%） |
 

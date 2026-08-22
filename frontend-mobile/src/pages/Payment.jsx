@@ -272,7 +272,8 @@ export default function Payment() {
             body: JSON.stringify({
               order_id: pId,
               order_type: pType,
-              amount: data.amount,
+              // #1758: data.amount is cents; prepay expects yuan (FromYuan).
+              amount: data.amount / 100,
               gift_used: 0,
               coupon_code: appliedCoupon.code,
             }),
@@ -294,8 +295,11 @@ export default function Payment() {
         body: JSON.stringify({
           order_id: pId,
           order_type: pType,
-          amount: appliedCoupon ? data.amount : cashAmount,
-          gift_used: appliedCoupon ? 0 : giftUsed,
+          // #1758: cashAmount/giftUsed are cents; prepay expects yuan
+          // (server FromYuan) — sending cents as yuan overcharged 100×
+          // (7d5cadd7: ¥0.04 charged as ¥3.01).
+          amount: (appliedCoupon ? data.amount : cashAmount) / 100,
+          gift_used: appliedCoupon ? 0 : giftUsed / 100,
           ...(appliedCoupon ? { coupon_code: appliedCoupon.code } : {}),
         }),
       })

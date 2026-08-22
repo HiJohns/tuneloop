@@ -411,8 +411,9 @@ func TestCalculatePayment_Shortfall(t *testing.T) {
 	require.Equal(t, 20000, resp.Code)
 	require.Equal(t, "payment_shortfall", resp.Data.Type)
 	require.Equal(t, "补缴差额", resp.Data.Title)
-	require.Equal(t, 150.0, resp.Data.Amount, "差额 150 元")
-	require.Equal(t, 150.0, resp.Data.Details.ShortfallAmount)
-	require.Equal(t, 340.0, resp.Data.Details.Rent, "租金 340 元")
-	require.Equal(t, 200.0, resp.Data.Details.PaidTotal, "已付 200 元")
+	// #1758: calculate output is cents (frontend /100) — 150 元 = 15000 分.
+	require.Equal(t, 15000.0, resp.Data.Amount, "差额 150 元 = 15000 分")
+	require.Equal(t, 15000.0, resp.Data.Details.ShortfallAmount)
+	require.Equal(t, 34000.0, resp.Data.Details.Rent, "租金 340 元 = 34000 分")
+	require.Equal(t, 20000.0, resp.Data.Details.PaidTotal, "已付 200 元 = 20000 分")
 }
