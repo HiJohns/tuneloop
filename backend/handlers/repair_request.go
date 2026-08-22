@@ -1189,12 +1189,41 @@ func (h *RepairRequestHandler) Requote(c *gin.Context) {
 		return
 	}
 
-	// Notify customer of requote
+	// Notify customer of requote (#1740: total computed server-side, visible
+	// in both content and action_data so the notification list shows the amount)
+	newQuoteTotal := quote.MaterialFee + quote.ServiceFee + quote.LogisticsFee
+	if req.MerchantType == models.MerchantTypeControlled {
+		var transitOrder models.RepairTransitOrder
+		db.Where("repair_request_id = ?", req.ID).Limit(1).Find(&transitOrder)
+		if transitOrder.TransitServiceFee != nil {
+			newQuoteTotal += *transitOrder.TransitServiceFee
+		}
+		if transitOrder.TransitLogisticsFee != nil {
+			newQuoteTotal += *transitOrder.TransitLogisticsFee
+		}
+	}
 	var customerUser models.User
 	if err := database.GetDB().Where("iam_sub = ?", req.UserID).First(&customerUser).Error; err == nil {
 		title := "维修师傅重新报价"
-		content := "维修师傅给出了新的报价，请查看并确认。"
-		services.Notify(db, req.TenantID, customerUser.ID, "requote", title, content, req.ID, "repair_request", "repair_request")
+		content := fmt.Sprintf("维修师傅给出了新的报价，合计 ¥%.2f，请查看并确认。", newQuoteTotal.ToYuan())
+		actionData := fmt.Sprintf(`{"repair_request_id":"%s","new_quote_total":%d}`, req.ID, int64(newQuoteTotal))
+		actionType := "repair_request"
+		notif := models.Notification{
+			TenantID:   req.TenantID,
+			UserID:     customerUser.ID,
+			Type:       "requote",
+			Title:      title,
+			Content:    content,
+			RefID:      req.ID,
+			RefType:    "repair_request",
+			ActionType: actionType,
+			ActionData: &actionData,
+			Status:     "unread",
+			CreatedAt:  time.Now(),
+		}
+		if err := db.Create(&notif).Error; err != nil {
+			log.Printf("[Requote] Failed to create notification for user %s: %v", customerUser.ID, err)
+		}
 	}
 
 	createRepairRecord(db, id, middleware.GetUserID(ctx), "requoted", "师傅重新报价", nil)

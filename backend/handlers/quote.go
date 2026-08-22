@@ -137,6 +137,19 @@ func ListQuotes(c *gin.Context) {
 		query.Find(&quotes)
 	}
 
+	// Server-side quote total (#1740): customers must never sum fees client-side.
+	// Transit fees live on the repair's transit order (same source as the
+	// detail endpoint's transit_service_fee/transit_logistics_fee).
+	var transitOrder models.RepairTransitOrder
+	db.Where("repair_request_id = ?", repairRequestID).Limit(1).Find(&transitOrder)
+	var transitServiceFee, transitLogisticsFee models.Cents
+	if transitOrder.TransitServiceFee != nil {
+		transitServiceFee = *transitOrder.TransitServiceFee
+	}
+	if transitOrder.TransitLogisticsFee != nil {
+		transitLogisticsFee = *transitOrder.TransitLogisticsFee
+	}
+
 	// Desensitize for controlled: strip worker/site identity for USER
 	acceptedQuote := findAcceptedQuote(db, repairRequestID, "")
 	if isControlled && role == "USER" {
@@ -152,13 +165,43 @@ func ListQuotes(c *gin.Context) {
 				"comment":       q.Comment,
 				"status":        q.Status,
 				"created_at":    q.CreatedAt,
+				"total_amount":  quoteTotalAmount(q, isControlled, transitServiceFee, transitLogisticsFee),
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": desensitized, "accepted_quote": acceptedQuote}})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": quotes, "accepted_quote": acceptedQuote}})
+	items := make([]gin.H, len(quotes))
+	for i, q := range quotes {
+		items[i] = gin.H{
+			"id":               q.ID,
+			"repair_request_id": q.RepairRequestID,
+			"site_id":          q.SiteID,
+			"worker_id":        q.WorkerID,
+			"quote_no":         q.QuoteNo,
+			"material_fee":     q.MaterialFee,
+			"service_fee":      q.ServiceFee,
+			"logistics_fee":    q.LogisticsFee,
+			"duration":         q.Duration,
+			"comment":          q.Comment,
+			"is_renegotiation": q.IsRenegotiation,
+			"status":           q.Status,
+			"created_at":       q.CreatedAt,
+			"total_amount":     quoteTotalAmount(q, isControlled, transitServiceFee, transitLogisticsFee),
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": items, "accepted_quote": acceptedQuote}})
+}
+
+// quoteTotalAmount computes the customer-facing quote total server-side (#1740):
+// material + service + logistics (+ transit service/logistics for controlled requests).
+func quoteTotalAmount(q models.RepairQuote, isControlled bool, transitServiceFee, transitLogisticsFee models.Cents) models.Cents {
+	total := q.MaterialFee + q.ServiceFee + q.LogisticsFee
+	if isControlled {
+		total += transitServiceFee + transitLogisticsFee
+	}
+	return total
 }
 
 // findAcceptedQuote returns the latest accepted quote of a repair request

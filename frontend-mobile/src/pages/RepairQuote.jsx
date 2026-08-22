@@ -67,7 +67,7 @@ export default function RepairQuote() {
   const logisticsFee = acceptedQuote?.logistics_fee || 0
   const transitServiceFee = request?.transit_service_fee || 0
   const transitLogisticsFee = request?.transit_logistics_fee || 0
-  const total = materialFee + serviceFee + logisticsFee + (isControlled ? transitServiceFee + transitLogisticsFee : 0)
+  const total = acceptedQuote?.total_amount ?? acceptedQuote?.total ?? 0
 
   return (
     <View className="flex flex-col h-screen bg-[#FDFBF7]">
