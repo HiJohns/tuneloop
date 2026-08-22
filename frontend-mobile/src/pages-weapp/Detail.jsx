@@ -526,12 +526,14 @@ export default function Detail() {
                   超期 {calculateDays(new Date(activeOrder.end_date), new Date())} 天
                 </Text>
               )}
-              <View
-                onClick={() => nav(`/pages-weapp/return-confirm/index?order_id=${activeOrder.order_id}&instrument=${id}`)}
-                style={{ width: '100%', paddingTop: 8, paddingBottom: 8, backgroundColor: '#f97316', color: '#fff', borderRadius: 8, fontWeight: '500', textAlign: 'center', marginTop: 8 }}
-              >
-                <Text>归还乐器</Text>
-              </View>
+              {isCustomer && (
+                <View
+                  onClick={() => nav(`/pages-weapp/return-confirm/index?order_id=${activeOrder.order_id}&instrument=${id}`)}
+                  style={{ width: '100%', paddingTop: 8, paddingBottom: 8, backgroundColor: '#f97316', color: '#fff', borderRadius: 8, fontWeight: '500', textAlign: 'center', marginTop: 8 }}
+                >
+                  <Text>归还乐器</Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={{ padding: 12, backgroundColor: '#ecfeff', borderRadius: 8, marginBottom: 8, textAlign: 'center' }}>

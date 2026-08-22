@@ -541,12 +541,14 @@ export default function Detail() {
                   超期 {calculateDays(new Date(activeOrder.end_date), new Date())} 天
                 </Text>
               )}
-              <View
-                onClick={() => navigate(`/return?order_id=${activeOrder.order_id}&instrument=${id}`)}
-                className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
-              >
-                <Text>归还乐器</Text>
-              </View>
+              {isCustomer && (
+                <View
+                  onClick={() => navigate(`/return?order_id=${activeOrder.order_id}&instrument=${id}`)}
+                  className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-center"
+                >
+                  <Text>归还乐器</Text>
+                </View>
+              )}
             </View>
           ) : (
             <View className="p-3 bg-cyan-50 rounded-lg text-center space-y-2">
