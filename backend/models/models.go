@@ -213,6 +213,8 @@ type Order struct {
 	PointsPolicySnapshot    *string    `gorm:"type:jsonb" json:"points_policy_snapshot"`
 	RequestSnapshot         *string    `gorm:"type:jsonb" json:"request_snapshot"`
 	PricingConfigSnapshot   *string    `gorm:"type:jsonb" json:"pricing_config_snapshot"`
+	CouponCode              *string    `gorm:"type:varchar(32)" json:"coupon_code,omitempty"`
+	CouponDiscount          Cents      `gorm:"type:bigint;not null;default:0" json:"coupon_discount"` // #1744: 优惠码折扣金额（分）
 	CurrentPaymentSessionID *string    `gorm:"type:uuid" json:"current_payment_session_id,omitempty"`
 	PaymentDeadline         *time.Time `json:"payment_deadline"`
 	CreatedAt               time.Time  `json:"created_at"`

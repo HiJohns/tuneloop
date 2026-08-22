@@ -188,6 +188,22 @@ func PrepayOrder(c *gin.Context) {
 	}
 	record.Amount = baseAmount // server-priced; never trust the client amount
 
+	// #1744: 优惠码使用订单快照 — prepay 服务端重算后回写订单，
+	// 优惠事实（码 + 折扣金额分）落库可审计/对账重现。
+	// 仅非 session 流程（有 order_id）；幂等（重复 prepay 覆盖写同值）；
+	// 失败仅 log 不阻断支付主流程（事后对账可发现）。
+	if couponApplied != "" && effectiveOrderID != "" {
+		originalAmount := models.FromYuan(req.Amount) // 优惠前（服务端语义，元→分）
+		discount := originalAmount - baseAmount       // OREZ 全免 → 原价；ENO → 原价−折后
+		if discount < 0 {
+			discount = 0
+		}
+		if err := db.Model(&models.Order{}).Where("id = ?", effectiveOrderID).
+			Updates(map[string]interface{}{"coupon_code": couponApplied, "coupon_discount": int64(discount)}).Error; err != nil {
+			log.Printf("[PrepayOrder] failed to write coupon snapshot for order %s: %v", effectiveOrderID, err)
+		}
+	}
+
 	if sessionFlow {
 		sessionRaw := map[string]interface{}{"session_id": req.SessionID, "original_amount": int64(session.Amount)}
 		if couponApplied != "" {

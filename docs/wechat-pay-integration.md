@@ -320,6 +320,7 @@ WECHAT_PAY_PRIVATE_KEY_PATH=      # 商户私钥文件路径（apiclient_key.pem
 
 - 真实小额支付（微信 JSAPI 拉起付款，回调完成订单）
 - 支付页优惠码（所有支付类型通用）：`OREZ` 全免（走 waive 记账，不调微信）、`ENO` 折至 1%（走真实 JSAPI）——金额由后端 coupons 表服务端重算
+- **优惠快照落库（#1744）**：prepay 应用优惠码后回写订单 `orders.coupon_code`（码）与 `orders.coupon_discount`（分，优惠前金额 − 折后实付；waive = 原价全额），无码订单保持 NULL/0——对账/审计可还原实付构成（af3f8cf2 类订单：ENO → coupon_code='ENO'、discount=3564 分）
 
 ---
 

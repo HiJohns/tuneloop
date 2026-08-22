@@ -519,6 +519,8 @@ func GetOrder(c *gin.Context) {
 		"status":              order.Status,
 		"start_date":          order.StartDate,
 		"end_date":            order.EndDate,
+		"coupon_code":         order.CouponCode,     // #1744 优惠码快照（无码为 null）
+		"coupon_discount":     order.CouponDiscount, // #1744 折扣金额（分，无码 0）
 		"tracking_number":     order.TrackingNumber,
 		"courier_company":     order.CourierCompany,
 		"shipped_at":          order.ShippedAt,

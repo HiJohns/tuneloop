@@ -2619,6 +2619,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **优惠码行为**（#1719 通用化，服务端权威）:
 - `waive`（OREZ）：金额重算为 0 → 直接记账 `paid`（method=`waived`）并执行副作用（applySideEffects），不调微信
 - `percent`（ENO）：比例 = value / 1000（千分比，10‰ = 1%，#1728）→ 金额 = round(原金额 × 比例) → 走正常微信 JSAPI/Native
+- **优惠快照（#1744）**：优惠码应用后回写订单 `orders.coupon_code` / `orders.coupon_discount`（分 = 优惠前金额 − 折后实付；waive 全额）——非 session 流程（有 order_id）才回写，幂等覆盖，无码订单保持 NULL/0
 - 模拟支付已移除（#1719）：运行时一律真实微信支付
 
 **响应**:
