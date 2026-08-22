@@ -575,11 +575,11 @@ func TestComputeSettlement_CashPaidExcludesDeposit(t *testing.T) {
 		ID:                "tdd-order-1",
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            "00000000-0000-0000-0000-000000000000",
-		CashPaid:          6030, // ¥3000 rent + ¥3000 deposit + ¥30 shipping
+		CashPaid:          603000, // ¥3000 rent + ¥3000 deposit + ¥30 shipping
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
 		Deposit:           models.FromYuan(3000),
-		ShippingFee:       30,
+		ShippingFee:       3000,
 		StartDate:         &start,
 		EndDate:           &end,
 		ReturnedAt:        &now,
@@ -610,11 +610,11 @@ func TestComputeSettlement_EarlyReturn(t *testing.T) {
 		ID:                "tdd-early-return",
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            "00000000-0000-0000-0000-000000000000",
-		CashPaid:          6030,
+		CashPaid:          603000,
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
 		Deposit:           models.FromYuan(3000),
-		ShippingFee:       30,
+		ShippingFee:       3000,
 		StartDate:         &start,
 		EndDate:           &end,
 		ReturnedAt:        &now,
@@ -656,11 +656,11 @@ func TestComputeSettlement_DamageAccept(t *testing.T) {
 		ID:                orderID,
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            "00000000-0000-0000-0000-000000000000",
-		CashPaid:          6030,
+		CashPaid:          603000,
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
 		Deposit:           models.FromYuan(3000),
-		ShippingFee:       30,
+		ShippingFee:       3000,
 		StartDate:         &start,
 		EndDate:           &end,
 		ReturnedAt:        &now,
@@ -699,11 +699,11 @@ func TestComputeSettlement_LateReturn(t *testing.T) {
 		ID:                orderID,
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            "00000000-0000-0000-0000-000000000000",
-		CashPaid:          6030,
+		CashPaid:          603000,
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
 		Deposit:           models.FromYuan(3000),
-		ShippingFee:       30,
+		ShippingFee:       3000,
 		StartDate:         &start,
 		EndDate:           &end,
 		ReturnedAt:        &now,
@@ -812,11 +812,11 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 		ID:                "00000000-0000-0000-0000-00000000aa03",
 		TenantID:          "00000000-0000-0000-0000-000000000000",
 		UserID:            userID,
-		CashPaid:          6030,
+		CashPaid:          603000,
 		PrepaidPointsUsed: 0,
 		GiftPointsUsed:    0,
 		Deposit:           models.FromYuan(3000),
-		ShippingFee:       30,
+		ShippingFee:       3000,
 		StartDate:         &start,
 		EndDate:           &end,
 		ReturnedAt:        &now,
@@ -836,6 +836,6 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 
 	// Points transaction recorded
 	var pt models.PointsTransaction
-	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "loyalty").First(&pt).Error)
-	require.Equal(t, 150.0, pt.Amount)
+	require.NoError(t, db.Where("user_id = ? AND type = ?", userID, "refund_rebate").First(&pt).Error)
+	require.Equal(t, models.Cents(15000), pt.Amount) // P3: 分
 }

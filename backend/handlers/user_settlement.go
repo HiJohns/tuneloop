@@ -387,10 +387,15 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			Where("order_id = ? AND order_type = ? AND status = ?", order.ID, "payment_shortfall", "pending").
 			Count(&shortfallCount)
 		if shortfallCount == 0 {
+			// 空 OrgID 防御（uuid 列不可为空串，参照 prepay 零 uuid 惯例）
+			shortfallOrgID := order.OrgID
+			if shortfallOrgID == "" {
+				shortfallOrgID = "00000000-0000-0000-0000-000000000000"
+			}
 			shortfallRecord := models.OrderPaymentRecord{
 				ID:        uuid.New().String(),
 				TenantID:  order.TenantID,
-				OrgID:     &order.OrgID,
+				OrgID:     &shortfallOrgID,
 				UserID:    order.UserID,
 				OrderID:   &order.ID,
 				OrderType: "payment_shortfall",
@@ -402,6 +407,47 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			}
 			if err := tx.Create(&shortfallRecord).Error; err != nil {
 				log.Printf("[executeRefund] failed to create shortfall record for %s: %v", order.ID, err)
+			}
+			// #1747 L-04C 流程 2：补缴通知（结构化 action_data，
+			// MessageDetail 渲染「去补缴」按钮）。out_trade_no 在 prepay
+			// 时生成并回写记录——通知携带 order_id 由前端走 prepay。
+			shortfallContent := fmt.Sprintf(
+				"您的订单实际费用超出已付金额，需补缴 ¥%.2f。补缴完成后订单将自动完成结算。\n%s",
+				result.PayableShortfall,
+				buildShortfallBreakdownText(order, &result),
+			)
+			shortfallAD := map[string]interface{}{
+				"shortfall_amount": int64(models.FromYuan(result.PayableShortfall)),
+				"order_id":         order.ID,
+				"breakdown": map[string]interface{}{
+					"rent":          int64(models.FromYuan(result.RentPayable)),
+					"shipping_fee":  int64(order.ShippingFee),
+					"overdue_fee":   int64(models.FromYuan(result.OverdueChargesTotal)),
+					"damage_amount": int64(models.FromYuan(result.DamageDeducted)),
+					"paid_total":    int64(order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed),
+				},
+			}
+			adJSON, _ := json.Marshal(shortfallAD)
+			notifOrgID := order.OrgID
+			if notifOrgID == "" {
+				notifOrgID = "00000000-0000-0000-0000-000000000000"
+			}
+			notif := models.Notification{
+				TenantID:   order.TenantID,
+				OrgID:      notifOrgID,
+				UserID:     order.UserID,
+				Type:       "payment_shortfall",
+				Title:      "订单需补缴",
+				Content:    shortfallContent,
+				RefID:      order.ID,
+				RefType:    "order",
+				ActionType: "payment_shortfall",
+				ActionData: strPtr(string(adJSON)),
+				Status:     "unread",
+				CreatedAt:  time.Now(),
+			}
+			if err := tx.Create(&notif).Error; err != nil {
+				log.Printf("[executeRefund] failed to create shortfall notification for %s: %v", order.ID, err)
 			}
 		}
 		// 补缴完成前订单不关单：completed → returning（等待补缴的
@@ -984,13 +1030,119 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	sb.WriteString(fmt.Sprintf("现金应付：¥%.2f\n", s.CashBasis))
 	sb.WriteString(fmt.Sprintf("已收（含押金）：¥%.2f\n", (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed + order.Deposit).ToYuan()))
 	sb.WriteString(fmt.Sprintf("押金退还：¥%.2f\n", s.RemainingDeposit))
+	// #1747 L-04 流程 5：收支明细（支付记录/退款记录逐条，颗粒度 = 订单详情）
+	var payments []struct {
+		Amount models.Cents
+		Method *string
+	}
+	db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND status = ? AND type = ?", order.ID, "paid", "payment").
+		Order("created_at ASC").Find(&payments)
+	for _, p := range payments {
+		m := "支付"
+		if p.Method != nil && *p.Method != "" {
+			m = *p.Method
+		}
+		sb.WriteString(fmt.Sprintf("实付（%s）：¥%.2f\n", m, p.Amount.ToYuan()))
+	}
+	var refunds []struct {
+		Amount models.Cents
+	}
+	db.Model(&models.OrderRefundRecord{}).
+		Where("order_id = ?", order.ID).Order("created_at ASC").Find(&refunds)
+	for _, r := range refunds {
+		sb.WriteString(fmt.Sprintf("退款：¥%.2f\n", r.Amount.ToYuan()))
+	}
 	sb.WriteString("——\n")
 	if s.GiftPointsRefunded > 0 {
 		sb.WriteString(fmt.Sprintf("退回赠点：%.0f 点\n", s.GiftPointsRefunded))
 	}
 	sb.WriteString(fmt.Sprintf("退回微信：¥%.2f\n", s.CashRefundable))
 	sb.WriteString(fmt.Sprintf("实际退款合计：¥%.2f\n", s.CashRefundable+s.GiftPointsRefunded))
-	sb.WriteString("返点赠点到账：详见会员中心")
+	sb.WriteString("返点赠点到账：详见会员中心\n")
+	// #1747 L-04 流程 5：三路径通知统一含感谢语
+	sb.WriteString("感谢您的租赁，欢迎再次光临！")
+	return sb.String()
+}
+
+// buildRefundActionData (#1747 L-04 流程 5)：三路径退款通知的结构化
+// action_data——保留兼容字段（order_id/membership）+ 收支明细（分）。
+// result 可空（调用方无结算结果时仅出收支明细）。
+func buildRefundActionData(db *gorm.DB, order models.Order, s *settlementResult) string {
+	ad := map[string]interface{}{
+		"order_id":   order.ID,
+		"membership": true,
+	}
+	if s != nil {
+		ad["refund_cents"] = int64(models.FromYuan(s.CashRefundable))
+		ad["gift_refund_cents"] = int64(models.FromYuan(s.GiftPointsRefunded))
+	}
+	ad["payments"] = buildPaymentRecordsJSON(db, order.ID)
+	ad["refunds"] = buildRefundRecordsJSON(db, order.ID)
+	b, _ := json.Marshal(ad)
+	return string(b)
+}
+
+func buildPaymentRecordsJSON(db *gorm.DB, orderID string) []map[string]interface{} {
+	var records []struct {
+		Amount models.Cents
+		Method *string
+		Status string
+	}
+	db.Model(&models.OrderPaymentRecord{}).
+		Where("order_id = ? AND status = ? AND type = ?", orderID, "paid", "payment").
+		Order("created_at ASC").Find(&records)
+	out := make([]map[string]interface{}, 0, len(records))
+	for _, r := range records {
+		out = append(out, map[string]interface{}{
+			"amount_cents": int64(r.Amount),
+			"method":       nilStr(r.Method),
+		})
+	}
+	return out
+}
+
+func buildRefundRecordsJSON(db *gorm.DB, orderID string) []map[string]interface{} {
+	var records []struct {
+		Amount models.Cents
+		Status string
+	}
+	db.Model(&models.OrderRefundRecord{}).
+		Where("order_id = ?", orderID).Order("created_at ASC").Find(&records)
+	out := make([]map[string]interface{}, 0, len(records))
+	for _, r := range records {
+		out = append(out, map[string]interface{}{
+			"amount_cents": int64(r.Amount),
+			"status":       r.Status,
+		})
+	}
+	return out
+}
+
+func nilStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// buildShortfallBreakdownText (#1747 L-04C)：补缴通知文本明细（元展示）。
+func buildShortfallBreakdownText(order models.Order, s *settlementResult) string {
+	var sb strings.Builder
+	sb.WriteString("结算明细：\n")
+	sb.WriteString(fmt.Sprintf("租金：¥%.2f\n", s.RentPayable))
+	if order.ShippingFee > 0 {
+		sb.WriteString(fmt.Sprintf("物流费：¥%.2f\n", order.ShippingFee.ToYuan()))
+	}
+	if s.OverdueChargesTotal > 0 {
+		sb.WriteString(fmt.Sprintf("逾期费：¥%.2f\n", s.OverdueChargesTotal))
+	}
+	if s.DamageDeducted > 0 {
+		sb.WriteString(fmt.Sprintf("损坏赔偿：¥%.2f\n", s.DamageDeducted))
+	}
+	sb.WriteString(fmt.Sprintf("应付合计：¥%.2f\n", s.RentPayable+s.OverdueChargesTotal+s.DamageDeducted+order.ShippingFee.ToYuan()))
+	sb.WriteString(fmt.Sprintf("已付总额：¥%.2f\n", (order.CashPaid + order.PrepaidPointsUsed + order.GiftPointsUsed).ToYuan()))
+	sb.WriteString(fmt.Sprintf("需补缴：¥%.2f", s.PayableShortfall))
 	return sb.String()
 }
 

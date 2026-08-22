@@ -569,10 +569,10 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	// Execute final settlement + refund (#1530): good condition completes
 	// the order, so compute actual rent and refund the difference.
 	notificationContent := ""
+	var completedOrder models.Order
 	if req.Condition == "good" {
 		// Re-read the order so computeSettlement sees the completed status
 		// and updated returned_at.
-		var completedOrder models.Order
 		if err := db.Where("id = ?", orderID).First(&completedOrder).Error; err != nil {
 			log.Printf("[InspectReturn] Failed to reload order for settlement: %v", err)
 		} else {
@@ -624,8 +624,8 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		}
 	} else {
 		// Completion notification (L-06): thank-you + membership center link
-		notificationContent = notificationContent + "\n感谢您的租赁，欢迎再次光临！"
-		actionData = strPtr(fmt.Sprintf(`{"order_id":"%s","membership":true}`, orderID))
+		// (#1747: 感谢语统一进 buildRefundReceipt；action_data 结构化收支明细)
+		actionData = strPtr(buildRefundActionData(db, completedOrder, nil))
 	}
 	notification := models.Notification{
 		TenantID:   tenantID,

@@ -394,12 +394,14 @@ func (h *AppealHandler) ResolveAppeal(c *gin.Context) {
 
 	// If the order completed (refund triggered), enhance the customer
 	// notification with the standard receipt breakdown (#1603) + thank-you
-	// + membership link (L-06).
+	// + membership link (L-06). #1747: 感谢语统一进 buildRefundReceipt，
+	// action_data 升级结构化收支明细。
 	if nextOrderStatus == models.OrderStatusCompleted {
 		var completedOrder models.Order
 		if err := db.Where("id = ?", order.ID).First(&completedOrder).Error; err == nil {
 			if result, err := executeRefund(db, completedOrder); err == nil {
-				notifContent = buildRefundReceipt(db, completedOrder, result) + "\n感谢您的租赁，欢迎再次光临！"
+				notifContent = buildRefundReceipt(db, completedOrder, result)
+				notifActionData = buildRefundActionData(db, completedOrder, result)
 			}
 		}
 	}
