@@ -262,6 +262,15 @@ export default function Payment() {
     }
   }
 
+  // #1753: 支付成功后跳转。membership → 个人中心；其他 → 成功页。
+  function afterPaySuccess(orderIdForSuccess) {
+    if (pType === 'membership') {
+      navigate('/profile', { replace: true })
+    } else {
+      navigate(`/success?order_id=${orderIdForSuccess}`, { replace: true })
+    }
+  }
+
   async function doPay(cashAmount) {
     if (cashAmount <= 0) {
       if (appliedCoupon) {
@@ -279,13 +288,13 @@ export default function Payment() {
             }),
           })
           const result = await resp.json()
-          if (result.code === 20000) { dialog.alert('支付成功'); navigate(`/success?order_id=${pId}`, { replace: true }) }
+          if (result.code === 20000) { dialog.alert('支付成功'); afterPaySuccess(pId) }
           else dialog.alert('支付失败: ' + resolveErrorMessage(result))
         } catch (err) { dialog.alert('支付失败: ' + err.message) }
         return
       }
       dialog.alert('支付成功')
-      navigate(`/success?order_id=${pId}`, { replace: true })
+      afterPaySuccess(pId)
       return
     }
 

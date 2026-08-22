@@ -227,6 +227,24 @@ export default function Payment() {
     return resp.json()
   }
 
+  // #1753: 支付成功后跳转。已登录 membership → 个人中心；其他 → 成功页；
+  // 跳转失败 fallback 首页（不静默停留支付页）。
+  const afterPaySuccess = (orderIdForSuccess) => {
+    setTimeout(() => {
+      if (pType === 'membership') {
+        Taro.switchTab({
+          url: '/pages-weapp/profile/index',
+          fail: () => Taro.switchTab({ url: '/pages-weapp/home/index' }),
+        })
+        return
+      }
+      Taro.redirectTo({
+        url: `/pages-weapp/success/index?order_id=${orderIdForSuccess}`,
+        fail: () => Taro.switchTab({ url: '/pages-weapp/home/index' }),
+      })
+    }, 2000)
+  }
+
   // doRealPay: 拉起微信支付。prepay 成功后 handlePay 会立即自动调用（一次点击
   // 直达支付，避免两段式「发起支付→微信支付」两次点击）；按钮点击时作为兜底。
   const doRealPay = async (payData = prepayData) => {
@@ -244,7 +262,7 @@ export default function Payment() {
           setTimeout(finishMembershipFlow, 1500)
         } else {
           Taro.showToast({ title: params.type === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
-          setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${params.id}` }), 2000)
+          afterPaySuccess(params.id)
         }
       },
       fail: (err) => Taro.showModal({ title: '支付失败', content: err.errMsg || '请重试', showCancel: false }),
@@ -270,7 +288,7 @@ export default function Payment() {
               setTimeout(finishMembershipFlow, 2000)
             } else {
               Taro.showToast({ title: '支付成功', icon: 'success' })
-              setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+              afterPaySuccess(pId)
             }
           } else {
             Taro.showModal({ title: '支付失败', content: result.message, showCancel: false })
@@ -283,7 +301,7 @@ export default function Payment() {
         return
       }
       Taro.showToast({ title: pType === 'membership' ? '会员已激活，赠点已到账' : '支付成功', icon: 'success' })
-      setTimeout(() => Taro.switchTab({ url: '/pages-weapp/home/index' }), 2000)
+      afterPaySuccess(pId)
       return
     }
 
@@ -304,7 +322,7 @@ export default function Payment() {
             setTimeout(finishMembershipFlow, 2000)
           } else {
             Taro.showToast({ title: '支付成功', icon: 'success' })
-            setTimeout(() => Taro.redirectTo({ url: `/pages-weapp/success/index?order_id=${pId}` }), 2000)
+            afterPaySuccess(pId)
           }
         } else {
           Taro.showModal({ title: '支付失败', content: '无法获取支付参数', showCancel: false })
