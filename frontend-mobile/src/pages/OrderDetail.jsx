@@ -863,32 +863,7 @@ export default function OrderDetail() {
       </View>
       )}
 
-      {/* Logistics */}
-      {(order.tracking_number || order.courier_company) && (
-        <View className="bg-white mx-4 mt-3 rounded-2xl shadow-sm p-4">
-          <Text className="text-base font-black text-black mb-3">物流信息</Text>
-          <View className="space-y-3">
-            {order.courier_company && (
-            <View className="flex items-start gap-3">
-              <Truck size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">物流公司</Text>
-                <Text className="text-sm font-black text-black">{order.courier_company}</Text>
-              </View>
-            </View>
-            )}
-            {order.tracking_number && (
-            <View className="flex items-start gap-3">
-              <Package size={18} className="text-zinc-400 mt-0.5" />
-              <View className="flex items-start flex-1 min-w-0">
-                <Text className="text-xs font-bold text-zinc-400 w-16 flex-shrink-0">物流单号</Text>
-                <Text className="text-sm font-mono font-black text-black">{order.tracking_number}</Text>
-              </View>
-            </View>
-            )}
-          </View>
-        </View>
-      )}
+
       </ScrollView>
 
       {/* 定损信息面板（#1707）：待回应定损/定损申诉态展示 + 接受/拒绝入口 */}
