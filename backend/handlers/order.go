@@ -148,6 +148,55 @@ func GetOrders(c *gin.Context) {
 	})
 }
 
+// deriveActualRent resolves the authoritative actual rent figures (#1739):
+// settlement values first, then pricing breakdown actual_* fields, then
+// delivered_at→returned_at × base daily rent (#1734 snapshot bdr normalized).
+// Amount is always returned in CENTS (settlement column and pb actual_* are
+// both cents per the P3 convention — see damage_refund.go). Shared by the
+// damage panel and the all-status order response.
+func deriveActualRent(db *gorm.DB, order *models.Order, settlementData map[string]interface{}, pricingBreakdownData interface{}) (int, int64) {
+	actualRentDays := 0
+	actualRentCents := int64(0)
+	if settlementData != nil {
+		if v, ok := settlementData["actual_rent_days"].(int); ok {
+			actualRentDays = v
+		}
+		// ActualRentAmount is models.Cents (named int64) — assert the named
+		// type; a float64/int64 assertion silently fails here.
+		if v, ok := settlementData["actual_rent_amount"].(models.Cents); ok {
+			actualRentCents = int64(v)
+		}
+	}
+	if actualRentDays == 0 && actualRentCents == 0 {
+		if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
+			if v, ok := pb["actual_rent_days"].(float64); ok {
+				actualRentDays = int(v)
+			}
+			if v, ok := pb["actual_rent_amount"].(float64); ok {
+				actualRentCents = int64(v) // JSONB 为分（P3）
+			}
+		}
+	}
+	if actualRentDays == 0 && actualRentCents == 0 {
+		if order.DeliveredAt != nil && order.ReturnedAt != nil {
+			days := services.CalculateDays(*order.DeliveredAt, *order.ReturnedAt)
+			if days < 1 {
+				days = 1
+			}
+			actualRentDays = days
+			// Daily rate from the pricing breakdown when available.
+			if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
+				if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
+					// #1734: 快照 bdr 统一分语义（存量元残留经 helper 归一）。
+					bdr := resolveBaseDailyRentCents(db, order, v)
+					actualRentCents = int64(math.Round(bdr * float64(days)))
+				}
+			}
+		}
+	}
+	return actualRentDays, actualRentCents
+}
+
 // GetOrder retrieves a single order by ID
 func GetOrder(c *gin.Context) {
 	orderID := c.Param("id")
@@ -326,43 +375,9 @@ func GetOrder(c *gin.Context) {
 
 		// Actual rent days/amount: settlement if present, else derive from the
 		// pricing breakdown (actual tier fields) or delivered_at→returned_at.
-		actualRentDays := 0
-		actualRentAmount := 0.0
-		if settlementData != nil {
-			if v, ok := settlementData["actual_rent_days"].(int); ok {
-				actualRentDays = v
-			}
-			if v, ok := settlementData["actual_rent_amount"].(float64); ok {
-				actualRentAmount = v
-			}
-		}
-		if actualRentDays == 0 && actualRentAmount == 0 {
-			if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
-				if v, ok := pb["actual_rent_days"].(float64); ok {
-					actualRentDays = int(v)
-				}
-				if v, ok := pb["actual_rent_amount"].(float64); ok {
-					actualRentAmount = v
-				}
-			}
-		}
-		if actualRentDays == 0 && actualRentAmount == 0 {
-			if order.DeliveredAt != nil && order.ReturnedAt != nil {
-				days := services.CalculateDays(*order.DeliveredAt, *order.ReturnedAt)
-				if days < 1 {
-					days = 1
-				}
-				actualRentDays = days
-				// Daily rate from the pricing breakdown when available.
-				if pb, ok := pricingBreakdownData.(map[string]interface{}); ok {
-					if v, ok := pb["base_daily_rent"].(float64); ok && v > 0 {
-						// #1734: 快照 bdr 统一分语义（存量元残留经 helper 归一）。
-						bdr := resolveBaseDailyRentCents(db, &order, v)
-						actualRentAmount = math.Round(bdr/100*float64(days)*100) / 100
-					}
-				}
-			}
-		}
+		// Helper returns cents; the refund formula below works in yuan.
+		actualRentDays, actualRentCents := deriveActualRent(db, &order, settlementData, pricingBreakdownData)
+		actualRentAmount := float64(actualRentCents) / 100
 
 		// Refund = paid total - damage - actual rent - shipping fee (#1707).
 		paidTotal := 0.0
@@ -396,7 +411,7 @@ func GetOrder(c *gin.Context) {
 			"status":             status,
 			"photos":             photos,
 			"actual_rent_days":   actualRentDays,
-			"actual_rent_amount": actualRentAmount,
+			"actual_rent_amount": actualRentCents,
 			"shipping_fee":       order.ShippingFee,
 			"deposit":            order.Deposit,
 			"paid_total":         paidTotal,
@@ -522,6 +537,13 @@ func GetOrder(c *gin.Context) {
 		"refund_records":      refundEntries,
 		"damage":              damageData,
 	}
+
+	// #1739: expose actual rent figures for ALL statuses so the detail page
+	// renders server-computed values and never sums/derives amounts client-side.
+	// Amount unit is cents, matching settlement.actual_rent_amount.
+	allRentDays, allRentCents := deriveActualRent(db, &order, settlementData, pricingBreakdownData)
+	orderData["actual_rent_days"] = allRentDays
+	orderData["actual_rent_amount"] = allRentCents
 
 	transitInfo := GetMerchantTransitInfo(c.Request.Context(), order.TenantID)
 	if transitInfo != nil && transitInfo.MerchantType == models.MerchantTypeControlled {

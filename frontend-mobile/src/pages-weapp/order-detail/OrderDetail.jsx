@@ -349,9 +349,9 @@ export default function OrderDetail() {
   ].includes(status)
   const pb = order.pricing_breakdown
   const dailyRate = (pb && (pb.final_daily_rent || pb.base_daily_rent)) || order.base_daily_rate || 0
-  const actualRentDays = order.returned_at && order.start_date
-    ? calculateDays(new Date(order.start_date), new Date(order.returned_at))
-    : 0
+  // Actual rent days come from the server for ALL statuses (#1739):
+  // GetOrder derives them from settlement → pricing breakdown → delivered→returned.
+  const actualRentDays = order.actual_rent_days ?? 0
 
   const isOverdue = (status === 'expired' || status === 'in_lease') && endDate !== '-' && new Date(order.end_date) < new Date()
   const overdueDaysCalc = isOverdue ? calculateDays(new Date(order.end_date), new Date()) : 0

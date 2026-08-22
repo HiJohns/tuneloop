@@ -365,30 +365,12 @@ export default function OrderDetail() {
 
    const settlement = order.settlement
 
-   // Actual rental figures: settlement is authoritative once created; before
-   // that (returning status with returned_at set) compute from breakdown (#1635).
+   // Actual rental figures come from the server for ALL statuses (#1739):
+   // GetOrder returns actual_rent_days / actual_rent_amount (cents) derived
+   // from settlement → pricing breakdown → delivered_at→returned_at × rent.
    const actualReturnedAt = order.returned_at
-   const actualDays = settlement?.actual_rent_days != null ? settlement.actual_rent_days
-     : ((order.start_date && actualReturnedAt) ? calculateDays(new Date(order.start_date), new Date(actualReturnedAt)) : 0)
-   const actualRent = settlement?.actual_rent_amount != null ? settlement.actual_rent_amount
-     : (() => {
-         if (actualDays < 1) return 0
-         const pbO = order.pricing_breakdown
-         const segs = pbO?.tier_segments || []
-         if (segs.length > 0) {
-           let rent = 0
-           let cursor = 1
-           for (const seg of segs) {
-             if (cursor > actualDays) break
-             const segDays = Math.min(seg.days, actualDays - cursor + 1)
-             if (segDays > 0) rent += segDays * (seg.rate || 0) * (seg.discount ?? 1)
-             cursor += seg.days
-           }
-           return Math.round(rent * 100) / 100
-         }
-         const rate = pbO?.final_daily_rent || pbO?.base_daily_rent || 0
-         return Math.round(rate * actualDays * 100) / 100
-       })()
+   const actualDays = order.actual_rent_days ?? 0
+   const actualRent = order.actual_rent_amount ?? 0
    const showActualRent = (settlement && settlement.actual_rent_amount !== undefined) || (!settlement && !!actualReturnedAt)
 
    const isOverdue = (status === 'expired' || status === 'in_lease') && order.end_date && order.end_date.slice(0, 10) <= new Date().toISOString().slice(0, 10)
