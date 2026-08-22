@@ -940,37 +940,52 @@ flowchart TD
    - 向顾客发送"续期成功"通知
 4. 支付失败：向顾客发通知
 
-### 2.7 归还退款结算（含逾期与提前归还）
+### 2.7 归还退款结算（含逾期、提前归还与优惠码）
+
+> 来源：#1737/#1738/#1743 架构与业务裁决。**所有金额计算在服务端，输入输出全量落库**（SettlementCalculation audit 表），前端只显示。
 
 #### 变量定义
 
 | 符号 | 含义 | 数据来源 |
 |------|------|---------|
-| Dd | 定损赔付额 | 定损记录（`damage_reports.deposit_deducted`） |
-| De | 押金 | `orders.deposit` |
-| Dri | 第 i 阶梯上的实际租借天数 | `pricing_breakdown.tier_segments[i].days`（按实际归还日截断） |
-| O | 逾期费 | 归还验收时计算（`damage_assessments.overdue_fee`，#1493） |
-| Re | 应付租金总额 | `Σ Dri × 基准日租金 × 阶梯折扣`（按实际使用天数） |
-| Ra | 实付租金总额 | 所有支付记录之和（不含押金、物流费） |
-| R | 应退金额 | `Ra + De - Dd - O - Re`（最小为 0） |
+| Ca | 实际租赁天数 | `CalculateLeaseDays(delivered_at → returned_at)`，ceil(hours/24)、**基数 1**（当天收货当天归还 = 1 天，#1665/#1738 统一口径）；已归还订单用 delivered_at 起算，否则 start_date |
+| C | 总覆盖天数 = C0 + C1…Cn（初始租期 + 各次续期） | `pricing_breakdown.rent_days`（renewal 累加并重算 tier_segments） |
+| P = Period(C) | 按 C 展开的阶梯向量 (P0, P1, P2) | 订单快照 `pricing_breakdown.tier_segments`（**完整快照，模板改价不影响**，#1744） |
+| Rn | 各阶梯价格 | 快照 tiers（rate = 基准价，discount = 折扣系数） |
+| Re | 应付租金 | `Σ Pn × Rn`，**按 C 封顶**：Ca < C 时按实际天截断折算（提前归还）；Ca > C 时封顶在 C（超出走逾期费，绝不按 Ca 展开） |
+| O | 逾期费 | `Ro × max(0, Ca − C)`，验收时一次性计算（#1743：**Ca−C 口径**，非 endDate+1）持久化 `damage_reports.overdue_fee` |
+| Dd | 定损赔付额 | `damage_reports.deposit_deducted` |
+| S | 物流费 | `orders.shipping_fee` |
+| T | 原价总额（优惠前） | `实付总额 + coupon_discount`（#1744 快照） |
+| r | 优惠比例 | `实付总额 / T`（无码 = 1；OREZ = 0；ENO = 千分比） |
+| due | 应付合计 | `Re + O + Dd + S`（原价空间） |
+
+#### 优惠码规则（#1744 业务裁决）
+
+- **优惠码适用于整单所有费用**（租金 + 押金 + 物流 + 逾期 + 定损），统一折扣：
+  - `waive`（OREZ）：整单全免 → 实付 0
+  - `percent`（ENO）：整单 × value‰
+- **每次支付手动输入**（初期、续期各自输入）：可不同码、可不用（不用无优惠）
+- 快照落库：`orders.coupon_code` / `orders.coupon_discount`（分 = 原价 − 折后实付），创建后不可改
 
 #### 计算步骤
 
-1. 从 `pricing_breakdown.tier_segments` 读取各阶梯信息（`Dri`, 日租金, 折扣率）
-2. 按实际归还日截断各阶梯天数（`actual_days`）
-3. 对每个阶梯 i：`应付租金_i = Dri × 基准日租金 × 阶梯折扣率`
-4. 汇总：`Re = Σ 应付租金_i`
-5. 逾期费 `O`：归还验收时计算（`overdue_days × overdue_daily_fee`），从押金扣除
-6. 应退金额：`R = Ra + De - Dd - O - Re`（最小为 0）
-7. **提前归还退费**：实付租期 > 实际使用天数时，`early_return_rebate = Ra - Re`（按阶梯折算退回）
-8. **退款顺序**（#1537）：赠点超 cap 部分先退回 `promo_points` → 剩余现金退回 `order_refund_records`
+1. 读快照：tier_segments（P 向量）、rent_days（C）、coupon 快照
+2. 实际天数：`Ca = CalculateLeaseDays(delivered, returned)`（min 1）
+3. 应付租金：`Re = Σ Pn × Rn`（Ca < C 截断折算；Ca > C 封顶 C）
+4. 逾期费：`O = Ro × max(0, Ca − C)`（验收时算，持久化 damage_reports）
+5. 应退原价：`应退原价 = T − due`（due = Re + O + Dd + S）
+6. **实退金额 = max(0, 应退原价) × r**（优惠比例折算；OREZ → 0 完全不退）
+7. **补缴 = max(0, −应退原价)**（原价空间，补缴时顾客可再输优惠码）
+8. 退款顺序（#1537）：赠点超 cap 部分先退回 `promo_points` → 剩余现金退回 `order_refund_records`
+9. 全量审计：输入快照 + Ca/C/P 向量 + Re/O/due + 退款/补缴 → `settlement_calculations`（#1738）
 
 #### 分阶段流程（#1494）
 
 **阶段1（顾客点归还）**：`ReturnOrder` 更新订单为 `returning`，前端跳转结算通知页（预估明细 + 感谢语，**不立即退款**）
-**阶段2（网点验收+定损）**：`InspectReturn` 计算超期费并持久化到 `damage_assessments`；damaged 时走申诉 → `ResolveAppeal`/`AgreeDamage`
+**阶段2（网点验收+定损）**：`InspectReturn` 计算逾期费（Ca−C）并持久化到 `damage_reports`；damaged 时走申诉 → `ResolveAppeal`/`AgreeDamage`
 **阶段3（最终退款）**：订单进入 `completed` 时**自动触发**（#1537）：
-  - 引擎：`computeSettlement` 计算实际开销（实际租期 × tier 阶梯 + 损坏赔偿）→ 退款 = 付款 - 开销
+  - 引擎：`computeSettlement` 按上述公式计算 → 退款（×r）或补缴
   - 退款顺序：赠点超 cap 部分 → 剩余退现金
   - 创建 `settlements` + `points_transactions`，`deposit_refunded=true`
   - 触发路径：`InspectReturn`(good)、`ResolveAppeal`/`AgreeDamage`(completed)、damage 支付回调
@@ -978,19 +993,27 @@ flowchart TD
 
 #### 示例
 
+**例 1（无码，正常还）**：押金 De=¥3000，阶梯 30天@¥50 + 5天@¥47.5，租期 35 天（C=35），实付 T=¥3400（3000 押金 + 400 租金），实际 35 天，无逾期无定损无物流
 ```
-押金 De = ¥3000
-定损 Dd = ¥200
-阶梯: Tier1: 30天 @ ¥50/天 (0%折扣), Tier2: 150天 @ ¥47.5/天 (5%折扣), Tier3: 365天 @ ¥45/天 (10%折扣)
-租期: 40天 (Tier1: 30天 + Tier2: 10天)
-逾期: 5天 (逾期费 = 5 × ¥75 = ¥375，从押金扣)
-实付租金 Ra = ¥1975 (Tier1: ¥1500 + Tier2: ¥475)
-
-应付租金 Re = 30×¥50 + 10×¥47.5 = ¥1500 + ¥475 = ¥1975
-应退 R = 1975 + 3000 - 200 - 375 - 1975 = ¥2425
+Re = 30×50 + 5×47.5 = ¥1712.5
+due = 1712.5；应退原价 = 3400 − 1712.5 = 1687.5（r=1）→ 实退 ¥1687.5
 ```
 
-> 注：逾期费按归还验收时的一次性计算（`overdue_days × overdue_daily_fee`），从押金扣除；剩余押金（`De - O - Dd`）参与退款。提前归还时（实际天数 < 租期），`Re` 按实际天数折算，`Ra - Re` 为退费。
+**例 2（ENO 1%，提前归还）**：租期 20 天原价租金 ¥1000（无押金无物流），ENO 实付 ¥10，实际 10 天
+```
+C=20，Ca=10 → Re = 10×50 = ¥500；T = 10 + 990 = 1000；r = 10/1000 = 0.01
+应退原价 = 1000 − 500 = 500 → 实退 = 500 × 1% = ¥5
+```
+
+**例 3（OREZ，完全免除）**：同例 2 用 OREZ → 实付 0 → r = 0 → 实退 = 500 × 0 = **¥0**（完全不退）
+
+**例 4（无码，逾期补缴）**：租期 35 天（30@¥10 + 5@¥8 → 合同 ¥340），实付 ¥340，实际 40 天，逾期费 Ro=¥15/天，物流 ¥100
+```
+Ca=40 > C=35 → Re 封顶 340（非 380）；O = 15×5 = 75
+due = 340 + 75 + 100 = 515；应退原价 = 340 − 515 = −175 → 补缴 ¥175（原价，可再输码）
+```
+
+> 注：逾期费按 `Ro × (Ca − C)` 在归还验收时一次性计算（#1743 口径），持久化到 `damage_reports.overdue_fee`（Cents 列，分）。提前归还时 Re 按实际天数截断折算。退款按优惠比例 r 折算，OREZ（r=0）完全不退。
 
 ### 2.8 订单详情页展示原则 — 合同快照 vs 实际结算分离
 
@@ -1005,7 +1028,7 @@ flowchart TD
 1. 合同租期始终来自 `pricing_breakdown.rent_days`
 2. 阶梯定价明细始终展示合同版本 —— 这是用户下单时看到的定价
 3. 当实际租期 ≠ 合同租期时，订单详情仅附加灰色提示行：「实际租期 X天（提前归还）」，不替换合同数据
-4. 实际天数计算：已归还订单用 `CalculateDays(start_date, returned_at)`，忽略时间分量避免时区偏移
+4. 实际天数计算：已归还订单用 `CalculateLeaseDays(delivered_at, returned_at)`（ceil、基数 1，#1738 统一口径，与结算/定损预览一致）
 5. 所有退/补款逻辑（赠点退回、现金退回）仅在 ReturnSettlement 页展示
 
 
@@ -1755,6 +1778,7 @@ checkRule() - 权限位过滤
 
 #### 退款侧差额结算
 - 调整后应付：`R1`（含阶梯折算/逾期费/损坏赔偿/续期）
+- **优惠码折算（#1743）**：实退金额 = 应退原价 × r（r = 实付/原价总额，整单折扣含押金）；OREZ（r=0）完全不退；补缴 = 应退原价负值（原价，可再输码）
 - 重算赠点上限：`A1 = floor(R1 × 当前级别 pay_ratio)`
 - 分账规则：
   - `A1 < A0`：退 `A0−A1` 回赠点账户；退 `C0−C1` 回微信（`C1 = R1 − A1`）

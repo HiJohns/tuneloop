@@ -1631,6 +1631,8 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
     "deposit": 0,
     "deposit_refunded": false,
     "status": "active",
+    "coupon_code": "ENO",            // #1744 优惠码快照（无码为 null）
+    "coupon_discount": 3564,         // #1744 折扣金额（分；无码 0）
     "created_at": "2026-03-21T10:30:00Z",
     "start_date": "2026-03-21",
     "end_date": "2027-03-21",
@@ -2731,7 +2733,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **接口**: `GET /api/user/settlements/:orderId/calculate`
 
-**说明**: 结算预览（不创建记录）
+**说明**: 结算预览（不创建记录）。金额均为**分**（#1728 P3 契约，前端 /100 显示）。公式见 docs/cases.md §2.7（#1743 业务口径：Re 按覆盖天数 C 封顶、逾期 = Ro×(Ca−C)、退款 = 应退原价 × 优惠比例 r、补缴 = 原价差额）。
 
 **响应**:
 ```json
@@ -2739,15 +2741,18 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
   "code": 20000,
   "data": {
     "actual_rent_days": 15,
-    "final_daily_rent": 50.00,
-    "actual_rent_amount": 750.00,
-    "gift_points_used": 200.00,
-    "gift_cap": 75.00,
-    "gift_points_refunded": 125.00,
-    "cash_paid": 1000.00,
-    "total_refund": 450.00,
-    "cash_refundable": 450.00,
-    "overdue_charges_total": 0.00
+    "final_daily_rent": 5000,
+    "actual_rent_amount": 75000,
+    "gift_points_used": 20000,
+    "gift_cap": 7500,
+    "gift_points_refunded": 12500,
+    "cash_paid": 100000,
+    "total_refund": 45000,
+    "cash_refundable": 45000,
+    "payable_shortfall": 0,      // #1743 补缴金额（分；应付 > 已付时 > 0）
+    "cover_days": 30,            // #1743 C = 总覆盖天数（含续期）
+    "overdue_charges_total": 0,
+    "breakdown": { "tier_segments": [{"tier":1,"days":30,"rate":10000,"discount":1,"subtotal":300000}] }
   }
 }
 ```
