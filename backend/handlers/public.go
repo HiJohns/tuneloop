@@ -161,26 +161,27 @@ func GetPublicInstruments(c *gin.Context) {
 		}
 
 		responseInstruments = append(responseInstruments, map[string]interface{}{
-			"id":              instrument.ID,
-			"sn":              instrument.SN,
-			"category_id":     instrument.CategoryID,
-			"category_name":   instrument.CategoryName,
-			"level_name":      instrument.LevelName,
-			"level_id":        instrument.LevelID,
-			"images":          instrument.Images,
-			"cover_image":     coverURL,
-			"pricing":         instrument.Pricing,
-			"base_daily_rate": instrument.BaseDailyRate,
-			"total_price":     instrument.TotalPrice,
-			"stock_status":    instrument.StockStatus,
-			"tenant_id":       instrument.TenantID,
-			"tenant_name":     tenantName,
-			"site_id":         instrument.SiteID,
-			"site_name":       siteName,
-			"site_address":    siteAddress,
-			"site_phone":      sitePhone,
-			"description":     instrument.Description,
-			"thumbnail":       thumbMap[instrument.ID],
+			"id":               instrument.ID,
+			"sn":               instrument.SN,
+			"category_id":      instrument.CategoryID,
+			"category_name":    instrument.CategoryName,
+			"level_name":       instrument.LevelName,
+			"level_id":         instrument.LevelID,
+			"images":           instrument.Images,
+			"cover_image":      coverURL,
+			"pricing":          instrument.Pricing,
+			"base_daily_rate":  instrument.BaseDailyRate,
+			"daily_rate_cents": resolveDailyRateCents(instrument), // #1750: 分契约统一字段（前端 /100 显示）
+			"total_price":      instrument.TotalPrice,
+			"stock_status":     instrument.StockStatus,
+			"tenant_id":        instrument.TenantID,
+			"tenant_name":      tenantName,
+			"site_id":          instrument.SiteID,
+			"site_name":        siteName,
+			"site_address":     siteAddress,
+			"site_phone":       sitePhone,
+			"description":      instrument.Description,
+			"thumbnail":        thumbMap[instrument.ID],
 		})
 	}
 
@@ -193,6 +194,22 @@ func GetPublicInstruments(c *gin.Context) {
 			"pageSize": pageSize,
 		},
 	})
+}
+
+// resolveDailyRateCents (#1750): 服务端单点解析乐器日租金（分）。
+// 优先 instruments.base_daily_rate（Cents 列权威，无单位歧义）；
+// 缺失时从 pricing JSONB daily_rent（元语义）归一兜底。
+func resolveDailyRateCents(instrument models.Instrument) int64 {
+	if instrument.BaseDailyRate != nil && *instrument.BaseDailyRate > 0 {
+		return int64(*instrument.BaseDailyRate)
+	}
+	if instrument.Pricing != "" {
+		pf := services.ParseInstrumentPricing(instrument.Pricing)
+		if pf.DailyRent > 0 {
+			return int64(models.FromYuan(pf.DailyRent))
+		}
+	}
+	return 0
 }
 
 func GetPublicInstrumentByID(c *gin.Context) {
@@ -238,28 +255,29 @@ func GetPublicInstrumentByID(c *gin.Context) {
 	tenantName := resolveTenantName(db, instrument.TenantID)
 
 	response := map[string]interface{}{
-		"id":              instrument.ID,
-		"sn":              instrument.SN,
-		"category_id":     instrument.CategoryID,
-		"category_name":   instrument.CategoryName,
-		"level_name":      instrument.LevelName,
-		"level_id":        instrument.LevelID,
-		"images":          instrument.Images,
-		"cover_image":     instrument.CoverImage,
-		"video":           instrument.Video,
-		"poster":          instrument.Poster,
-		"pricing":         instrument.Pricing,
-		"base_daily_rate": instrument.BaseDailyRate,
-		"total_price":     instrument.TotalPrice,
-		"stock_status":    instrument.StockStatus,
-		"tenant_id":       instrument.TenantID,
-		"tenant_name":     tenantName,
-		"site_id":         instrument.SiteID,
-		"site_name":       siteName,
-		"site_address":    siteAddress,
-		"site_phone":      sitePhone,
-		"description":     instrument.Description,
-		"specifications":  instrument.Specifications,
+		"id":               instrument.ID,
+		"sn":               instrument.SN,
+		"category_id":      instrument.CategoryID,
+		"category_name":    instrument.CategoryName,
+		"level_name":       instrument.LevelName,
+		"level_id":         instrument.LevelID,
+		"images":           instrument.Images,
+		"cover_image":      instrument.CoverImage,
+		"video":            instrument.Video,
+		"poster":           instrument.Poster,
+		"pricing":          instrument.Pricing,
+		"base_daily_rate":  instrument.BaseDailyRate,
+		"daily_rate_cents": resolveDailyRateCents(instrument), // #1750: 分契约统一字段
+		"total_price":      instrument.TotalPrice,
+		"stock_status":     instrument.StockStatus,
+		"tenant_id":        instrument.TenantID,
+		"tenant_name":      tenantName,
+		"site_id":          instrument.SiteID,
+		"site_name":        siteName,
+		"site_address":     siteAddress,
+		"site_phone":       sitePhone,
+		"description":      instrument.Description,
+		"specifications":   instrument.Specifications,
 	}
 
 	// Fetch first DISPLAY image for thumbnail (#1099 分层: 封面/缩略图必须
@@ -754,24 +772,26 @@ func SearchInstruments(c *gin.Context) {
 	}
 
 	type SearchResult struct {
-		ID            string   `json:"id"`
-		SN            string   `json:"sn"`
-		CategoryName  string   `json:"category_name"`
-		LevelName     string   `json:"level_name"`
-		StockStatus   string   `json:"stock_status"`
-		BaseDailyRate *float64 `json:"base_daily_rate"`
-		CoverImage    string   `json:"cover_image"`
+		ID             string   `json:"id"`
+		SN             string   `json:"sn"`
+		CategoryName   string   `json:"category_name"`
+		LevelName      string   `json:"level_name"`
+		StockStatus    string   `json:"stock_status"`
+		BaseDailyRate  *float64 `json:"base_daily_rate"` // #1750: 分契约（P3），与列表接口一致
+		DailyRateCents int64    `json:"daily_rate_cents"`
+		CoverImage     string   `json:"cover_image"`
 	}
 	list := make([]SearchResult, len(instruments))
 	for i, inst := range instruments {
 		list[i] = SearchResult{
-			ID:            inst.ID,
-			SN:            inst.SN,
-			CategoryName:  inst.CategoryName,
-			LevelName:     inst.LevelName,
-			StockStatus:   inst.StockStatus,
-			BaseDailyRate: models.ToYuanPtr(inst.BaseDailyRate),
-			CoverImage:    inst.CoverImage,
+			ID:             inst.ID,
+			SN:             inst.SN,
+			CategoryName:   inst.CategoryName,
+			LevelName:      inst.LevelName,
+			StockStatus:    inst.StockStatus,
+			BaseDailyRate:  models.ToYuanPtr(inst.BaseDailyRate),
+			DailyRateCents: resolveDailyRateCents(inst),
+			CoverImage:     inst.CoverImage,
 		}
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list}})

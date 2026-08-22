@@ -435,6 +435,8 @@
         "images": ["url1", "url2"],
         "pricing": {},
         "stock_status": "available", // available/rented/maintenance/archived/lost
+        "base_daily_rate": 10000,   // 分（P3 契约）
+        "daily_rate_cents": 10000,  // #1750 日租金（分）——前端展示一律用此字段 /100，勿读 pricing.daily_rent（元/分历史混写）
         "tenant_id": "uuid",
         "site_id": "uuid",
         "site_name": "网点名",
@@ -447,6 +449,8 @@
   }
 }
 ```
+
+> **金额单位契约矩阵（#1750）**：`base_daily_rate`（分）、`daily_rate_cents`（分，权威展示字段）、`pricing` JSONB（元语义，历史写入可能为分——勿用于金额计算）、`pricing-v2`（元）、`search` 的 `daily_rate_cents`（分）。前端展示价格一律消费 `daily_rate_cents / 100`。
 
 ### 3.2 乐器详情
 

@@ -18,20 +18,11 @@ function parseImages(images) {
   return []
 }
 
+// #1750: 服务端统一返回 daily_rate_cents（分），前端仅 /100 显示。
+// 禁止再读 pricing.daily_rent（元/分混写历史）或 base_daily_rate（分）自行判断单位。
 function getDailyRate(instrument) {
-  const pricing = instrument.pricing
-  if (!pricing) return instrument.base_daily_rate || 0
-  if (typeof pricing === 'object' && !Array.isArray(pricing)) {
-    return pricing.daily_rent || instrument.base_daily_rate || 0
-  }
-  if (typeof pricing === 'string') {
-    try {
-      const parsed = JSON.parse(pricing)
-      if (Array.isArray(parsed)) return parsed[0]?.daily_rent || instrument.base_daily_rate || 0
-      return parsed.daily_rent || instrument.base_daily_rate || 0
-    } catch { return instrument.base_daily_rate || 0 }
-  }
-  return instrument.base_daily_rate || 0
+  const cents = Number(instrument.daily_rate_cents) || 0
+  return cents > 0 ? cents / 100 : 0
 }
 
 function InstrumentCard({ instrument, onClick }) {

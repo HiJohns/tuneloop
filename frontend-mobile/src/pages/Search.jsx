@@ -73,7 +73,7 @@ export default function Search() {
               <Text className="text-base font-black text-black">{item.category_name}</Text>
               <Text className="text-xs text-zinc-500 mt-1 font-medium">SN: {item.sn}</Text>
               <Text className="text-xs text-zinc-500 font-medium">{item.level_name}</Text>
-              <Text className="text-sm font-black text-[#C21838] mt-2">{Math.round(item.base_daily_rate || 0)}/日</Text>
+              <Text className="text-sm font-black text-[#C21838] mt-2">{Math.round((item.daily_rate_cents || 0) / 100)}/日</Text>
             </View>
           </View>
         ))}

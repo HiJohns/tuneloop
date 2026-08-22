@@ -651,9 +651,11 @@ func ExecuteBatchImport(c *gin.Context) {
 							merged[k] = v
 						}
 					}
-					merged["daily_rent"] = *instrument.BaseDailyRate
+					// #1750: pricing JSONB 金额为元语义——BaseDailyRate 是 Cents(分)，
+					// 必须 ToYuan 再写（此前分直写导致首页列表价格 100 倍错）。
+					merged["daily_rent"] = (*instrument.BaseDailyRate).ToYuan()
 					if _, hasOverdue := merged["overdue_daily_fee"]; !hasOverdue {
-						merged["overdue_daily_fee"] = *instrument.BaseDailyRate // fallback = daily rent
+						merged["overdue_daily_fee"] = (*instrument.BaseDailyRate).ToYuan() // fallback = daily rent
 					}
 					pricingJSON, _ := json.Marshal(merged)
 					tx.Model(&instrument).Update("pricing", string(pricingJSON))
