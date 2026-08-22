@@ -162,6 +162,8 @@ func PrepayOrder(c *gin.Context) {
 	// 服务端定价（#1719 优惠码通用化）：金额基础值 = session 价（membership
 	// 两阶段）或客户端金额（其余 order type）。优惠码对所有支付类型通用：
 	// waive（OREZ）→ 0；percent（ENO）→ 按 value 比例。客户端金额不可信。
+	// #1744 业务修正：优惠码适用【整单所有费用】（租金+押金+物流+逾期+定损），
+	// 整单统一折扣——OREZ 全免（实付 0）、ENO 整单 × 比例。
 	baseAmount := models.FromYuan(req.Amount)
 	if sessionFlow {
 		baseAmount = session.Amount
@@ -192,6 +194,7 @@ func PrepayOrder(c *gin.Context) {
 	// 优惠事实（码 + 折扣金额分）落库可审计/对账重现。
 	// 仅非 session 流程（有 order_id）；幂等（重复 prepay 覆盖写同值）；
 	// 失败仅 log 不阻断支付主流程（事后对账可发现）。
+	// 折扣 = 整单原价 − 整单折后实付（含押金）。
 	if couponApplied != "" && effectiveOrderID != "" {
 		originalAmount := models.FromYuan(req.Amount) // 优惠前（服务端语义，元→分）
 		discount := originalAmount - baseAmount       // OREZ 全免 → 原价；ENO → 原价−折后

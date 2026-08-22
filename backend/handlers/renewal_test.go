@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,8 +12,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"tuneloop-backend/database"
+	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 )
@@ -155,4 +158,52 @@ func TestRenewal_NotOverdue_NoMinDays(t *testing.T) {
 	require.Zero(t, resp.Data.MinAdditionalDays, "non-overdue renewal has no minimum")
 	expectedEnd := time.Now().AddDate(0, 0, 6).Format("2006-01-02")
 	require.Equal(t, expectedEnd, resp.Data.NewEndDate)
+}
+
+// TestRenewal_CouponSnapshot (#1744 修正): 续期支付手动输入优惠码 →
+// 服务端折扣 + 订单快照回写。ENO 1% → totalAmount 折后、coupon_code/discount 落库。
+func TestRenewal_CouponSnapshot(t *testing.T) {
+	cleanup := setupMockIAMAndDB(t)
+	defer cleanup()
+	testfixtures.SetupWechatPayMock(t)
+
+	db := database.GetDB()
+	_ = db.Migrator().DropTable(&models.Coupon{})
+	require.NoError(t, db.Migrator().CreateTable(&models.Coupon{}))
+	require.NoError(t, db.Create(&models.Coupon{
+		ID: uuid.New().String(), Code: "ENO", Type: "percent", Value: 10, Active: true,
+	}).Error)
+
+	tenantID := "00000000-0000-0000-0000-0000000000b1"
+	userID := "00000000-0000-0000-0000-0000000000b2"
+	orgID := "00000000-0000-0000-0000-0000000000b3"
+	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 0)
+
+	router := renewalRouter(tenantID, userID)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"additional_days": 5,
+		"coupon_code":     "ENO",
+	})
+	req := httptest.NewRequest("POST", "/api/orders/"+orderID+"/renewal/confirm", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	// 快照回写：ENO + 折扣 = 原价 − 折后（分）
+	var after models.Order
+	require.NoError(t, db.Where("id = ?", orderID).First(&after).Error)
+	require.NotNil(t, after.CouponCode)
+	require.Equal(t, "ENO", *after.CouponCode)
+	require.True(t, after.CouponDiscount > 0, "coupon_discount must be written (cents)")
+
+	// ENO 1%：折后支付 = 1% 原价 → 折扣 = 原价 − 1% = 原价 × 99%
+	// 从支付记录可推导原价 = amount + discount
+	var rec models.OrderPaymentRecord
+	require.NoError(t, db.Where("order_id = ? AND order_type = ?", orderID, "renewal").
+		Order("created_at desc").First(&rec).Error)
+	original := rec.Amount + after.CouponDiscount
+	require.InDelta(t, int64(original)*99/100, int64(after.CouponDiscount), 2,
+		"discount ≈ 99% of original renewal cost")
 }

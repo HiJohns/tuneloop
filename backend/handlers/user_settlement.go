@@ -738,13 +738,24 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		remainingDeposit = 0
 	}
 
-	// #1743 业务终稿：退款/补缴 = 已付总额 − 应付合计。
-	// 已付总额 = totalRentPaid(含押金已剔除) + Deposit；应付合计 =
-	// rentPayable + 扣项(逾期+定损+物流)。合并后：
-	//   totalRefund = Pa − 扣项 − Re，其中 Pa = CashPaid+Prepaid+Gift。
-	// 押金不足覆盖扣项时缺口照扣（不再 clamp 到 remainingDeposit），
-	// 负值 = 补缴（透传，不截断 0）。
-	totalRefund := totalRentPaid + order.Deposit.ToYuan() - totalDepositDeducted - rentPayable
+	// #1743 业务终稿（第四轮修正）：优惠码适用整单所有费用（含押金），
+	// 退款 = 应退原价 × 优惠比例 r。
+	//   paid = 实付总额（整单折后）     T = paid + coupon_discount（原价）
+	//   r = paid / T                     due = Re + 逾期 + 定损 + 物流（原价）
+	//   应退原价 = T − due → 实退 = max(0, 应退原价) × r；负值 = 补缴（原价）
+	// 例：ENO 1000→10、实际租金 500 → 退 (1000−500)×0.01 = 5；OREZ → 0。
+	paidTotal := totalRentPaid + order.Deposit.ToYuan() // 实付总额（含押金）
+	originalTotal := paidTotal + order.CouponDiscount.ToYuan()
+	couponRatio := 1.0
+	if originalTotal > 0 {
+		couponRatio = paidTotal / originalTotal
+	}
+	dueTotal := rentPayable + overdueFee + damageDeducted + shippingFee
+	refundOriginal := originalTotal - dueTotal
+	totalRefund := refundOriginal * couponRatio
+	if totalRefund < 0 {
+		totalRefund = 0
+	}
 
 	// Early-return rebate: rent paid for days not actually used.
 	earlyReturnRebate := totalRentPaid - rentPayable
@@ -790,11 +801,11 @@ func computeSettlement(order models.Order, db *gorm.DB) settlementResult {
 		a1 = 0
 	}
 
-	// #1743: totalRefund<0 时无钱可退，负值 = 补缴（现金/赠点都不退）。
+	// #1743: 补缴 = 应退原价 < 0 的部分（原价，补缴时顾客可再输优惠码）。
+	// totalRefund 已按 ×r 折算并 clamp ≥ 0。
 	payableShortfall := 0.0
-	if totalRefund < 0 {
-		payableShortfall = -totalRefund
-		totalRefund = 0
+	if refundOriginal < 0 {
+		payableShortfall = -refundOriginal
 	}
 
 	var giftPointsRefunded, cashRefundable float64

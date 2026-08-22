@@ -264,9 +264,9 @@ func TestGetOrder_PaymentRecordsCentsContract(t *testing.T) {
 	require.Equal(t, 36.0, resp.Data.PaymentRecords[0].Amount, "amount must be raw Cents, NOT converted to yuan")
 }
 
-// TestSettlement_UserScenarioA_CouponWaiveDepositOnly (#1743 用户验证例 A):
-// OREZ 全免租金，实付=押金 10000；实际 10 天 → Re=100，物流 100 →
-// 退款 = 10000 − 100 − 100 = 9800。
+// TestSettlement_UserScenarioA_CouponWaiveDepositOnly (#1743 第四轮修正):
+// OREZ 整单全免（含押金）→ 实付 0、r=0 → 完全不退。
+// （第二轮例 A 的「押金 10000 实付、退 9800」已被第三轮「OREZ 完全不退」推翻）
 func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 
@@ -278,7 +278,7 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 		Username: "scen-a", Status: "active",
 	}).Error)
 
-	// T2 回写后: cash_paid = 实付 10000（押金，OREZ 免租金）, Deposit=10000
+	// T2 回写后: cash_paid = 0（OREZ 整单免），coupon_discount = 原价
 	order := models.Order{
 		TenantID: tenantID, OrgID: orgID, UserID: userID,
 		InstrumentID: uuid.New().String(),
@@ -288,8 +288,11 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 		Status:       models.OrderStatusReturned,
 		ReturnedAt:   timePtr1743(time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)),
 		Deposit:      models.FromYuan(10000),
-		CashPaid:     models.FromYuan(10000),
-		ShippingFee:  models.FromYuan(100),
+		CashPaid:     0,
+		CouponCode:   str1743Ptr("OREZ"),
+		// 原价总额 = 押金 10000 + 租金 340 + 物流 100 = 10440
+		CouponDiscount: models.FromYuan(10440),
+		ShippingFee:    models.FromYuan(100),
 		// 阶梯: 30 天 @10 元 + 5 天 @8 元 → 合同租金 340
 		PricingBreakdown: str1743Ptr(`{"base_daily_rent":1000,"rent_days":35,"tiers":[{"days_max":30,"discount_percent":0,"daily_rate":1000},{"days_max":35,"discount_percent":20,"daily_rate":800}],"tier_segments":[{"tier":1,"days":30,"rate":1000,"discount":1,"subtotal":30000},{"tier":2,"days":5,"rate":1000,"discount":0.8,"subtotal":4000}],"total_amount":34000}`),
 	}
@@ -303,7 +306,48 @@ func TestSettlement_UserScenarioA_CouponWaiveDepositOnly(t *testing.T) {
 
 	// 实际 10 天 → Re = 10 × 10 = 100
 	require.Equal(t, 100.0, result.RentPayable, "Re for 10 actual days")
-	require.Equal(t, 9800.0, result.TotalRefund, "refund = 10000 − 100 − 100")
+	require.Equal(t, 0.0, result.TotalRefund, "OREZ → 完全不退")
+	require.Equal(t, 0.0, result.PayableShortfall)
+}
+
+// TestSettlement_CouponRefundRatio (#1743 第三轮修正): ENO 1000→10 实付、
+// 实际租金 500 → 应退 500 原价 × 1% = 5 元。
+func TestSettlement_CouponRefundRatio(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantID := uuid.New().String()
+	orgID := tenantID
+	userID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
+		Username: "scen-eno", Status: "active",
+	}).Error)
+
+	order := models.Order{
+		TenantID: tenantID, OrgID: orgID, UserID: userID,
+		InstrumentID: uuid.New().String(),
+		StartDate:    str1743Ptr("2026-08-01"),
+		EndDate:      str1743Ptr("2026-08-20"), // 租期 20 天，原价租金 1000（无押金无物流）
+		LeaseTerm:    20,
+		Status:       models.OrderStatusReturned,
+		ReturnedAt:   timePtr1743(time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)), // 实际 10 天
+		Deposit:      0,
+		CashPaid:     models.FromYuan(10), // ENO 1% → 实付 10
+		CouponCode:   str1743Ptr("ENO"),
+		CouponDiscount: models.FromYuan(990), // 原价 1000 − 实付 10
+		PricingBreakdown: str1743Ptr(`{"base_daily_rent":5000,"rent_days":20,"tiers":[{"days_max":20,"discount_percent":0,"daily_rate":5000}],"tier_segments":[{"tier":1,"days":20,"rate":5000,"discount":1,"subtotal":100000}],"total_amount":100000}`),
+	}
+	require.NoError(t, db.Create(&order).Error)
+	require.NoError(t, db.Create(&models.Instrument{
+		ID: order.InstrumentID, TenantID: tenantID, OrgID: &orgID,
+		SN: "SN-SCEN-ENO", StockStatus: "rented",
+	}).Error)
+
+	result := computeSettlement(order, db)
+
+	// 实际 10 天 → Re = 10 × 50 = 500（原价）
+	require.Equal(t, 500.0, result.RentPayable)
+	require.Equal(t, 5.0, result.TotalRefund, "refund = (1000 − 500) × 1% = 5")
 	require.Equal(t, 0.0, result.PayableShortfall)
 }
 

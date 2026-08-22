@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -38,6 +39,7 @@ type RenewalCalculateResponse struct {
 type RenewalConfirmRequest struct {
 	AdditionalDays int    `json:"additional_days" binding:"required,min=1"`
 	OpenID         string `json:"open_id,omitempty"`
+	CouponCode     string `json:"coupon_code,omitempty"` // #1744: 每次支付手动输入，可不同可不用
 }
 
 type RenewalConfirmResponse struct {
@@ -250,7 +252,39 @@ func ConfirmRenewal(c *gin.Context) {
 		baseRate, pricingTiers, consumedDays, req.AdditionalDays, cumDisc,
 	)
 
+	// #1744: 续期支付可手动输入优惠码（可不同、可不用）——服务端整单折扣，
+	// 同 prepay 语义（waive 全免 / percent 按千分比）。
 	totalAmount := renewalCost
+	couponApplied := ""
+	if req.CouponCode != "" {
+		var coupon models.Coupon
+		if err := db.Where("code = ? AND active = ?", strings.ToUpper(req.CouponCode), true).First(&coupon).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid coupon code"})
+			return
+		}
+		switch coupon.Type {
+		case "waive":
+			totalAmount = 0
+		case "percent":
+			totalAmount = math.Round(renewalCost*float64(coupon.Value)/1000*100) / 100
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "unsupported coupon type"})
+			return
+		}
+		couponApplied = coupon.Code
+	}
+	// 优惠快照回写（#1744）：记录最近一次支付使用的码 + 折扣（分）。
+	if couponApplied != "" {
+		discountCents := models.FromYuan(renewalCost) - models.FromYuan(totalAmount)
+		if discountCents < 0 {
+			discountCents = 0
+		}
+		if err := db.Model(&models.Order{}).Where("id = ?", orderID).
+			Updates(map[string]interface{}{"coupon_code": couponApplied, "coupon_discount": int64(discountCents)}).Error; err != nil {
+			log.Printf("[ConfirmRenewal] failed to write coupon snapshot for order %s: %v", orderID, err)
+		}
+	}
+
 	cfg := wechatpay.GetConfig()
 	outTradeNo := fmt.Sprintf("renewal%s%d", uuid.New().String()[:8], time.Now().Unix())
 
