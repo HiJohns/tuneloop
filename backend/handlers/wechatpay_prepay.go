@@ -141,6 +141,25 @@ func PrepayOrder(c *gin.Context) {
 		return
 	}
 
+	// #1752: duplicate-membership-payment guard — a logged-in (non-session)
+	// membership prepay must be rejected when the user already paid or is
+	// already activated. The check-create race is acceptable: WeChat
+	// out_trade_no uniqueness is the backstop.
+	if req.OrderType == "membership" && !sessionFlow {
+		var paidCount int64
+		if err := db.Model(&models.OrderPaymentRecord{}).
+			Where("user_id = ? AND order_type = ? AND status = ?", userID, "membership", "paid").
+			Count(&paidCount).Error; err == nil && paidCount > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "会员已激活，无需重复支付"})
+			return
+		}
+		var u models.User
+		if err := db.Select("membership_level_id").Where("id = ?", userID).First(&u).Error; err == nil && u.MembershipLevelID != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "会员已激活，无需重复支付"})
+			return
+		}
+	}
+
 	var session models.RegistrationSession
 	if sessionFlow {
 		if err := db.Where("id = ? AND status = ?", req.SessionID, "pending").First(&session).Error; err != nil {
