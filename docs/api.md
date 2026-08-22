@@ -455,7 +455,7 @@
 }
 ```
 
-> **金额单位契约矩阵（#1750）**：`base_daily_rate`（分）、`daily_rate_cents`（分，权威展示字段）、`pricing` JSONB（元语义，历史写入可能为分——勿用于金额计算）、`pricing-v2`（元）、`search` 的 `daily_rate_cents`（分）。前端展示价格一律消费 `daily_rate_cents / 100`。
+> **金额单位契约矩阵（#1750/#1755）**：`base_daily_rate`（分）、`daily_rate_cents`（分，权威展示字段）、`pricing` JSONB（元语义，历史写入可能为分——勿用于金额计算）、`pricing-v2`（**分**，#1755 迁移：base_daily_rate/tiers.daily_rate/deposit/shipping_fee 均为分）、`search` 的 `daily_rate_cents`（分）。前端展示价格一律消费分字段 `/100`。
 
 ### 3.2 乐器详情
 
@@ -834,6 +834,8 @@
 ### 5.5.1 阶梯定价方案 V2（含分阶段计价）
 
 **接口**: `GET /api/public/instruments/:id/pricing-v2`
+
+> **#1755 单位**：响应金额字段（`base_daily_rate` / `tiers[].daily_rate` / `deposit` / `shipping_fee`）为**分**（P3 契约，前端 /100 显示）。
 
 **响应**:
 ```json

@@ -434,8 +434,10 @@ export default function InstrumentDetail() {
                     setEditingPricing(true)
                      setEditValues(prev => ({
                        ...prev,
-                       base_daily_rate: pricingV2?.base_daily_rate || '',
-                       deposit: pricingV2?.deposit || '',
+                       // #1755: pricing-v2 returns cents — /100 for the
+                       // yuan editing/display; submit keeps yuan semantics.
+                       base_daily_rate: pricingV2?.base_daily_rate != null ? Number(pricingV2.base_daily_rate) / 100 : '',
+                       deposit: pricingV2?.deposit != null ? Number(pricingV2.deposit) / 100 : '',
                        overdue_daily_fee: overdueDailyFee || '',
                     }))
                   }} />}
@@ -485,8 +487,9 @@ export default function InstrumentDetail() {
                     </div>
                   ) : (
                   <Descriptions column={2} bordered size="small">
-                    <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate || '-'}/天</Descriptions.Item>
-                    <Descriptions.Item label="押金">¥{pricingV2?.deposit || '-'}</Descriptions.Item>
+                    {/* #1755: pricing-v2 cents → display yuan (/100) */}
+                    <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate != null ? Number(pricingV2.base_daily_rate) / 100 : '-'}/天</Descriptions.Item>
+                    <Descriptions.Item label="押金">¥{pricingV2?.deposit != null ? Number(pricingV2.deposit) / 100 : '-'}</Descriptions.Item>
                     <Descriptions.Item label="押金模式">{pricingV2?.deposit_mode || 'ratio'}</Descriptions.Item>
                     <Descriptions.Item label="逾期日费">¥{overdueDailyFee || '-'}</Descriptions.Item>
                   </Descriptions>
@@ -501,7 +504,7 @@ export default function InstrumentDetail() {
                       size="small"
                       columns={[
                         { title: '天数上限', dataIndex: 'days_max', render: v => v < 0 ? '无上限' : `${v}天` },
-                        { title: '日租金', dataIndex: 'daily_rate', render: v => `¥${v}` },
+                        { title: '日租金', dataIndex: 'daily_rate', render: v => `¥${(Number(v) / 100).toFixed(2)}` }, // #1755: cents → yuan
                       ]}
                     />
                   </Card>

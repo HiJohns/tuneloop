@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"math"
 
 	"tuneloop-backend/models"
 )
@@ -290,15 +291,26 @@ func GetDefaultMerchantTiers() string {
 	return string(b)
 }
 
+// FormatPricingResult renders the V2 pricing payload. #1755: all money
+// fields are cents (P3 contract) — yuan inputs ×100, math.Round (NO +0.5,
+// #1763 lesson). Consumers (mobile) display ÷100.
 func FormatPricingResult(p *InstrumentPricing) map[string]interface{} {
+	toCents := func(v float64) float64 { return math.Round(v * 100) }
+	tiers := make([]map[string]interface{}, 0, len(p.Tiers))
+	for _, t := range p.Tiers {
+		tiers = append(tiers, map[string]interface{}{
+			"days_max":   t.DaysMax,
+			"daily_rate": toCents(t.DailyRate),
+		})
+	}
 	result := map[string]interface{}{
-		"base_daily_rate": p.BaseDailyRate,
-		"tiers":           p.Tiers,
-		"deposit":         p.Deposit,
+		"base_daily_rate": toCents(p.BaseDailyRate),
+		"tiers":           tiers,
+		"deposit":         toCents(p.Deposit),
 		"deposit_mode":    p.DepositMode,
 	}
 	if p.ShippingFee > 0 {
-		result["shipping_fee"] = p.ShippingFee
+		result["shipping_fee"] = toCents(p.ShippingFee)
 	}
 	return result
 }
