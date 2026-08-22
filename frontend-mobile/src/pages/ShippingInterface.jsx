@@ -321,7 +321,7 @@ export default function ShippingInterface() {
               <View>
                 <Text className="text-xs font-bold text-zinc-500 mb-1">物流费（元）</Text>
                 <Input
-                  type="number"
+                  type="digit" // #1754: weapp number 键盘无小数点 → digit
                   value={logistics.shippingFee}
                   onInput={e => setLogistics({ ...logistics, shippingFee: getInputValue(e) })}
                   placeholder="请输入物流费"

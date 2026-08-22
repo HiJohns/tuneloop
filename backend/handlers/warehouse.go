@@ -145,7 +145,8 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 		"status":          targetStatus,
 	}
 	if req.ShippingFee > 0 {
-		updateFields["shipping_fee"] = req.ShippingFee
+		// #1754: staff enters yuan; Cents column stores cents.
+		updateFields["shipping_fee"] = models.FromYuan(req.ShippingFee)
 	}
 	if err := db.Model(&models.Order{}).Where("id = ? AND tenant_id = ? AND status = ?", orderID, tenantID, models.OrderStatusPaid).Updates(updateFields).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update shipping: " + err.Error()})

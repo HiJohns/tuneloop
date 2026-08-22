@@ -117,6 +117,7 @@ func TestUpdateShipping(t *testing.T) {
 		"tracking_number": "SF123456",
 		"company":         "顺丰",
 		"shipped_at":      time.Now(),
+		"shipping_fee":    1.0, // #1754: 填 1 元 → 100 分
 	}
 	jsonBody, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest("PUT", "/api/warehouse/orders/"+orderID+"/shipping", bytes.NewBuffer(jsonBody))
@@ -132,6 +133,12 @@ func TestUpdateShipping(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 20000, response.Code)
+
+	// #1754: 1 元 → shipping_fee = 100 分（非 1 分）。
+	var after models.Order
+	require.NoError(t, db.Where("id = ?", orderID).First(&after).Error)
+	assert.Equal(t, models.Cents(100), after.ShippingFee, "shipping fee 1 元 → 100 分")
+
 	db.Exec("DELETE FROM orders WHERE tenant_id = ?", tenantID)
 	db.Exec("DELETE FROM order_status_history WHERE tenant_id = ?", tenantID)
 }
