@@ -182,7 +182,7 @@ func (h *UserSettlementHandler) ConfirmSettlement(c *gin.Context) {
 		var user models.User
 		if err := tx.Where("id = ?", userID).First(&user).Error; err == nil {
 			if err := tx.Model(&user).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", result.GiftPointsRefunded),
+				"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(result.GiftPointsRefunded)),
 				"updated_at":   time.Now(),
 			}).Error; err != nil {
 				tx.Rollback()
@@ -373,7 +373,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 		// Refund gift points (over cap portion) to promo_points
 		if result.GiftPointsRefunded > 0 {
 			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", result.GiftPointsRefunded),
+				"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(result.GiftPointsRefunded)),
 				"updated_at":   time.Now(),
 			}).Error; err != nil {
 				return nil, fmt.Errorf("failed to refund gift points: %w", err)
@@ -584,8 +584,11 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			}
 		}
 		if rebatePoints > 0 {
+			// #1757: promo_points in cents — rebatePoints computed in yuan
+			// (CashBasis × ratio) must be converted to cents on write.
+			rebateCents := models.FromYuan(rebatePoints)
 			if err := tx.Model(&models.User{}).Where("id = ?", order.UserID).Updates(map[string]interface{}{
-				"promo_points": gorm.Expr("promo_points + ?", rebatePoints),
+				"promo_points": gorm.Expr("promo_points + ?", rebateCents),
 				"updated_at":   time.Now(),
 			}).Error; err != nil {
 				log.Printf("[executeRefund] rebate points credit failed for %s: %v", order.UserID, err)
@@ -595,7 +598,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 					UserID:      order.UserID,
 					TenantID:    order.TenantID,
 					Type:        "refund_rebate",
-					Amount:      models.FromYuan(rebatePoints),
+					Amount:      rebateCents,
 					OrderID:     &order.ID,
 					Description: rebateDesc,
 					CreatedAt:   time.Now(),
@@ -615,8 +618,10 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 			if refRatio > 0 {
 				refPoints := math.Floor(result.RentPayable * refRatio)
 				if refPoints > 0 {
+					// #1757: promo_points cents — yuan-computed points ×100.
+					refCents := models.FromYuan(refPoints)
 					if err := tx.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-						"promo_points": gorm.Expr("promo_points + ?", refPoints),
+						"promo_points": gorm.Expr("promo_points + ?", refCents),
 						"updated_at":   time.Now(),
 					}).Error; err != nil {
 						log.Printf("[executeRefund] referral points credit failed for %s: %v", referrer.ID, err)
@@ -626,7 +631,7 @@ func executeRefund(tx *gorm.DB, order models.Order) (*settlementResult, error) {
 							UserID:      referrer.ID,
 							TenantID:    order.TenantID,
 							Type:        "referral",
-							Amount:      models.FromYuan(refPoints),
+							Amount:      refCents,
 							OrderID:     &order.ID,
 							Description: fmt.Sprintf("介绍人返赠点: 被介绍人订单租金 ¥%.2f × %.2f%%", result.RentPayable, refRatio*100),
 							CreatedAt:   time.Now(),

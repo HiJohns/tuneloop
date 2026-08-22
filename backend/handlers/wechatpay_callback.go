@@ -337,29 +337,29 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 	var points struct {
 		GiftUsed float64 `json:"gift_used"`
 	}
-	// #1728 P3：raw_response gift_used 为分，扣点按元。
+	// #1728 P3：raw_response gift_used 为分；#1757：promo_points 分运算。
 	if err := json.Unmarshal([]byte(*record.RawResponse), &points); err != nil {
 		return nil // silently ignore malformed raw_response
 	}
-	giftUsedYuan := points.GiftUsed / 100
-	if giftUsedYuan <= 0 {
+	giftUsedCents := points.GiftUsed
+	if giftUsedCents <= 0 {
 		return nil
 	}
 	if err := tx.Model(&models.User{}).Where("iam_sub = ?", record.UserID).
 		Updates(map[string]interface{}{
-			"promo_points": gorm.Expr("GREATEST(promo_points - ?, 0)", giftUsedYuan),
+			"promo_points": gorm.Expr("GREATEST(promo_points - ?, 0)", giftUsedCents),
 			"updated_at":   now,
 		}).Error; err != nil {
 		return fmt.Errorf("deduct user points: %w", err)
 	}
 	if record.OrderID != nil {
 		updates := map[string]interface{}{
-			"gift_points_used": giftUsedYuan,
+			"gift_points_used": giftUsedCents,
 		}
 		// Deduct gift points from cash_paid so settlement does not double
 		// count them (L-06). cash_paid was set to the full total at order
 		// creation; the gift-covered portion is not cash.
-		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", giftUsedYuan)
+		updates["cash_paid"] = gorm.Expr("GREATEST(cash_paid - ?, 0)", giftUsedCents)
 		if err := tx.Model(&models.Order{}).Where("id = ?", *record.OrderID).
 			Updates(updates).Error; err != nil {
 			return fmt.Errorf("update order points: %w", err)
@@ -374,9 +374,9 @@ func deductPointsFromRecord(tx *gorm.DB, record *models.OrderPaymentRecord, now 
 		UserID:      localUserID,
 		TenantID:    record.TenantID,
 		Type:        "gift_used",
-		Amount:      models.FromYuan(points.GiftUsed),
+		Amount:      models.Cents(giftUsedCents),
 		OrderID:     record.OrderID,
-		Description: fmt.Sprintf("订单支付使用赠送点数: gift=%.2f", giftUsedYuan),
+		Description: fmt.Sprintf("订单支付使用赠送点数: gift=%.2f", giftUsedCents/100),
 		CreatedAt:   now,
 	}
 	if err := tx.Create(&pt).Error; err != nil {

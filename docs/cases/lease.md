@@ -750,6 +750,7 @@ steps:
 - **分会员级别独立设置**：默认级别兜底（level_id=0 或 is_default 行）
 - 归并旧体系：`points_policies.max_pay_ratio` 与 `membership_gift_ratios.SelfSpendRatio` 迁移至本策略，旧表废弃
 - 修改后仅影响**新发生的支付/退款**，历史订单快照不变
+- **#1757 单位契约**：赠点账户（`users.promo_points`）与交易记录（`points_transactions.amount`）为**分**（1 点 = 1 分）；比例（pay_ratio/refund_ratio）为 0~1 小数，基数分运算（抵扣 = floor(应付分 × pay_ratio)；返点 = floor(实付现金分 × refund_ratio)）
 
 ## 数据模型
 ```sql

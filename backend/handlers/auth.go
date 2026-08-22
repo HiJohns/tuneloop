@@ -416,8 +416,9 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 				refCode := newUser.ID[:8]
 				h.db.Model(&newUser).Update("ref_code", refCode)
 				// Membership registration gift points (#1533): credit
-				// promo_points on registration completion (default 99,
+				// promo_points on registration completion (default 99 元,
 				// configurable via system_settings membership_gift_points).
+				// #1757: promo_points stored in cents (1 点 = 1 分) → ×100.
 				giftPoints := 99.0
 				var giftSetting models.SystemSetting
 				if err := h.db.Where("setting_key = ?", "membership_gift_points").First(&giftSetting).Error; err == nil {
@@ -426,13 +427,14 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 					}
 				}
 				if giftPoints > 0 {
-					h.db.Model(&newUser).Update("promo_points", gorm.Expr("promo_points + ?", giftPoints))
+					giftPointsCents := models.FromYuan(giftPoints)
+					h.db.Model(&newUser).Update("promo_points", gorm.Expr("promo_points + ?", giftPointsCents))
 					h.db.Create(&models.PointsTransaction{
 						ID:          uuid.New().String(),
 						UserID:      newUser.ID,
 						TenantID:    newUser.TenantID,
 						Type:        "registration",
-						Amount:      models.FromYuan(giftPoints),
+						Amount:      giftPointsCents,
 						Description: "会员注册赠点",
 						CreatedAt:   time.Now(),
 					})
@@ -451,7 +453,7 @@ func (h *AuthHandler) PostRegister(c *gin.Context) {
 						if referrer.MembershipLevelID != nil {
 							if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
 								h.db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-									"promo_points": gorm.Expr("promo_points + ?", ratios.ReferralRegPoints),
+									"promo_points": gorm.Expr("promo_points + ?", models.FromYuan(ratios.ReferralRegPoints)),
 									"updated_at":   time.Now(),
 								})
 								h.db.Create(&models.PointsTransaction{

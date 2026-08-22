@@ -123,6 +123,7 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 		updates["membership_level_id"] = *req.MembershipLevelID
 	}
 	if req.PromoPoints != nil {
+		// #1757: admin edits in cents (1 点 = 1 分) — stored as-is.
 		updates["promo_points"] = *req.PromoPoints
 	}
 	if req.Status != nil {

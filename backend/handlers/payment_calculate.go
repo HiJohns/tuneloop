@@ -29,9 +29,9 @@ type PaymentCalculateResponse struct {
 }
 
 type WalletInfo struct {
-	PromoPoints   float64 `json:"promo_points"`
-	MaxGiftRatio  float64 `json:"max_gift_ratio"`
-	MaxGiftAmount float64 `json:"max_gift_amount"`
+	PromoPoints   float64 `json:"promo_points"`    // cents (1 点 = 1 分, #1757)
+	MaxGiftRatio  float64 `json:"max_gift_ratio"`  // ratio, unchanged
+	MaxGiftAmount float64 `json:"max_gift_amount"` // cents
 }
 
 func CalculatePayment(c *gin.Context) {
@@ -101,7 +101,7 @@ func getWalletInfo(db *gorm.DB, userID, tenantID string, amount float64) (*Walle
 	}
 
 	return &WalletInfo{
-		PromoPoints:   user.PromoPoints,
+		PromoPoints:   float64(user.PromoPoints),
 		MaxGiftRatio:  maxGiftRatio,
 		MaxGiftAmount: math.Floor(amount * maxGiftRatio * 100 / 100),
 	}, nil

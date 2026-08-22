@@ -2561,16 +2561,18 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ### 8.11 点数钱包
 
+> **#1757 赠点单位契约**：`promo_points` / `points_transactions.amount` 均为**分**（1 点 = 1 分）。注册赠点 99 元 → `promo_points = 9900`；前端显示「9900 点」。支付抵扣（`gift_used`）、退款返点、推荐奖励全链路分运算。策略配置（`pay_ratio` / `refund_ratio`）为比例，不受单位影响。
+
 **接口**: `GET /api/user/points/balance`
 
-**说明**: 查询当前用户点数余额
+**说明**: 查询当前用户点数余额（分）
 
 **响应**:
 ```json
 {
   "code": 20000,
   "data": {
-    "promo_points": 100.00
+    "promo_points": 9900
   }
 }
 ```

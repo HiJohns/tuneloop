@@ -428,7 +428,8 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 				return
 			}
 		}
-		if req.GiftPointsUsed > userWallet.PromoPoints {
+		// #1757: wallet balance is cents; request is yuan (legacy client).
+		if models.FromYuan(req.GiftPointsUsed) > userWallet.PromoPoints {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "insufficient gift points"})
 			return
 		}
@@ -560,12 +561,14 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 	}
 
-	// Deduct gift points from wallet (inside transaction)
+	// Deduct gift points from wallet (inside transaction). #1757: wallet
+	// balance is cents; the request value is yuan (legacy client) → convert.
 	if req.GiftPointsUsed > 0 {
+		giftUsedCents := models.FromYuan(req.GiftPointsUsed)
 		updates := map[string]interface{}{
 			"updated_at": time.Now(),
 		}
-		updates["promo_points"] = gorm.Expr("promo_points - ?", req.GiftPointsUsed)
+		updates["promo_points"] = gorm.Expr("promo_points - ?", giftUsedCents)
 		if err := tx.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to deduct points"})
@@ -573,15 +576,15 @@ func (h *UserRentalHandler) CreateOrder(c *gin.Context) {
 		}
 
 		// Create points_transaction record
-		newPromo := userWallet.PromoPoints - req.GiftPointsUsed
+		newPromo := userWallet.PromoPoints - giftUsedCents
 
 		pt := models.PointsTransaction{
 			ID:                uuid.New().String(),
 			UserID:            userID,
 			TenantID:          effectiveTenantID,
 			Type:              "order_deduct",
-			Amount:            models.FromYuan(-req.GiftPointsUsed),
-			BalanceAfterPromo: newPromo,
+			Amount:            -giftUsedCents,
+			BalanceAfterPromo: float64(newPromo),
 			OrderID:           &order.ID,
 			Description:       "订单赠送点数抵扣",
 			CreatedAt:         time.Now(),
@@ -1416,18 +1419,19 @@ func (h *UserRentalHandler) CalculateRental(c *gin.Context) {
 	giftPointsBalance := float64(0)
 	prepaidPointsBalance := float64(0)
 	if localUser.ID != "" {
-		giftPointsBalance = localUser.PromoPoints
+		giftPointsBalance = float64(localUser.PromoPoints)
 		prepaidPointsBalance = localUser.PrepaidPoints.ToYuan()
 	}
 
-	// Gift points max = min(balance, total × max_pay_ratio)
+	// Gift points max = min(balance, total × max_pay_ratio) — cents contract
+	// (#1757): balance is cents; total (yuan) × ratio converted to cents.
 	var pointsPolicy models.PointsPolicy
 	giftPointsMax := float64(0)
 	totalPay := pricingResult.TotalRent + deposit + shippingFee
 	if err := db.Where("is_active = ?", true).First(&pointsPolicy).Error; err == nil {
 		giftPointsMax = giftPointsBalance
 		if pointsPolicy.MaxPayRatio > 0 {
-			maxByRatio := totalPay * pointsPolicy.MaxPayRatio
+			maxByRatio := totalPay * pointsPolicy.MaxPayRatio * 100
 			if maxByRatio < giftPointsMax {
 				giftPointsMax = maxByRatio
 			}

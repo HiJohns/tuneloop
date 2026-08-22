@@ -144,13 +144,15 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 		}
 	}
 	if giftPoints > 0 {
-		db.Model(user).Update("promo_points", gorm.Expr("promo_points + ?", giftPoints))
+		// #1757: promo_points in cents (1 点 = 1 分).
+		giftPointsCents := models.FromYuan(giftPoints)
+		db.Model(user).Update("promo_points", gorm.Expr("promo_points + ?", giftPointsCents))
 		db.Create(&models.PointsTransaction{
 			ID:          uuid.New().String(),
 			UserID:      user.ID,
 			TenantID:    user.TenantID,
 			Type:        "registration",
-			Amount:      models.FromYuan(giftPoints),
+			Amount:      giftPointsCents,
 			Description: "会员注册赠点",
 			CreatedAt:   time.Now(),
 		})
@@ -168,8 +170,9 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 			})
 			if referrer.MembershipLevelID != nil {
 				if ratios := services.GetGiftRatios(*referrer.MembershipLevelID); ratios != nil && ratios.ReferralRegPoints > 0 {
+					regCents := models.FromYuan(ratios.ReferralRegPoints)
 					db.Model(&models.User{}).Where("id = ?", referrer.ID).Updates(map[string]interface{}{
-						"promo_points": gorm.Expr("promo_points + ?", ratios.ReferralRegPoints),
+						"promo_points": gorm.Expr("promo_points + ?", regCents),
 						"updated_at":   time.Now(),
 					})
 					db.Create(&models.PointsTransaction{
@@ -177,7 +180,7 @@ func grantRegistrationRewards(db *gorm.DB, user *models.User, form *registerForm
 						UserID:      referrer.ID,
 						TenantID:    referrer.TenantID,
 						Type:        "referral_reg",
-						Amount:      models.FromYuan(ratios.ReferralRegPoints),
+						Amount:      regCents,
 						Description: fmt.Sprintf("介绍新用户注册奖励 %s", user.Username),
 						CreatedAt:   time.Now(),
 					})

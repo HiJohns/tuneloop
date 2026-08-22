@@ -31,7 +31,7 @@ type User struct {
 	MembershipLevelID   *int       `gorm:"type:int" json:"membership_level_id"`
 	TotalSpending       Cents      `gorm:"type:bigint;default:0" json:"total_spending"`
 	PrepaidPoints       Cents      `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
-	PromoPoints         float64    `gorm:"type:decimal;default:0" json:"promo_points"`
+	PromoPoints         Cents      `gorm:"type:bigint;default:0" json:"promo_points"` // #1757: cents (1 点 = 1 分)
 	OnboardingCompleted bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront        *string    `gorm:"type:varchar(500)" json:"id_photo_front"`
 	IdPhotoBack         *string    `gorm:"type:varchar(500)" json:"id_photo_back"`
