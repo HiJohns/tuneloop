@@ -336,6 +336,18 @@ func ConfirmRenewal(c *gin.Context) {
 		return
 	}
 
+	// #1760: resolve openid server-side when the client omits it — the
+	// frontend cannot be trusted to know the payer's openid (prepay
+	// backfills it per #1678; renewal/confirm was the only missing path).
+	// Empty after fallback → explicit 40002, never a 500 from WeChat.
+	if req.OpenID == "" {
+		req.OpenID = openidOfUser(db, userID)
+	}
+	if req.OpenID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "未绑定微信，请先绑定后继续"})
+		return
+	}
+
 	client := wechatpay.GetClient()
 	result, err := client.CreateJSAPIOrder(ctx, wechatpay.JSAPIParams{
 		OutTradeNo:  outTradeNo,

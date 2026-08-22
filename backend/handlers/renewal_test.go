@@ -177,6 +177,13 @@ func TestRenewal_CouponSnapshot(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-0000000000b1"
 	userID := "00000000-0000-0000-0000-0000000000b2"
 	orgID := "00000000-0000-0000-0000-0000000000b3"
+	// #1760: ConfirmRenewal resolves openid server-side; give the test user a
+	// wx_openid so the JSAPI order path is reached (empty openid would now
+	// return 40002 未绑定微信).
+	require.NoError(t, database.GetDB().Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: orgID,
+		Username: "rn-coupon", WxOpenid: "mock-openid-coupon", Status: "active",
+	}).Error)
 	_, orderID := setupRenewalOrder(t, tenantID, userID, orgID, 0)
 
 	router := renewalRouter(tenantID, userID)
