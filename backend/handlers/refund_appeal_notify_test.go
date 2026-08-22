@@ -289,10 +289,17 @@ func TestSubmitAppeal_StaffNotification(t *testing.T) {
 	db := setupRefundNotifyTables(t)
 	tenantID := uuid.New().String()
 	orgID := uuid.New().String()
-	userID := uuid.New().String()
+	userID := uuid.New().String() // JWT sub (IAM-side id)
 	siteID := uuid.New()
 	staffAdmin := uuid.New().String()
 	staffMember := uuid.New().String()
+
+	// #1742: business rows store the LOCAL users.id; JWT sub maps to it via
+	// iam_sub. Create the local user the customer identity resolves to.
+	localUserID := uuid.New().String()
+	require.NoError(t, db.Exec(`INSERT INTO users (id, iam_sub, tenant_id, org_id, name, email, phone, credit_score, is_shadow, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 600, false, NOW(), NOW())`,
+		localUserID, userID, tenantID, orgID, "Appeal User", "appeal@example.com", "13900139000").Error)
 
 	instrument := models.Instrument{
 		TenantID:      tenantID,
@@ -321,7 +328,7 @@ func TestSubmitAppeal_StaffNotification(t *testing.T) {
 		OrgID:             orgID,
 		LeaseID:           order.ID,
 		InstrumentID:      instrument.ID,
-		UserID:            userID,
+		UserID:            localUserID,
 		DamageAmount:      models.ToCentsPtr(&damageAmount),
 		DamageDescription: "琴面刮痕",
 		Status:            "pending",
@@ -381,6 +388,15 @@ func TestSubmitAppeal_StaffNotification(t *testing.T) {
 		require.NotNil(t, notif.ActionData)
 		require.Contains(t, *notif.ActionData, `"appeal_id"`)
 	}
+
+	// #1742: the customer's own notification must be keyed by the LOCAL
+	// users.id (resolvable by GET /notifications), NOT the JWT sub.
+	var customerNotif models.Notification
+	require.NoError(t, db.Where("user_id = ? AND title = ?", localUserID, "申诉已提交").First(&customerNotif).Error)
+	require.Equal(t, resp.Data.ID, customerNotif.RefID)
+	var jwtKeyed int64
+	db.Model(&models.Notification{}).Where("user_id = ? AND title = ?", userID, "申诉已提交").Count(&jwtKeyed)
+	require.Zero(t, jwtKeyed, "no customer notification may carry the raw JWT sub as user_id")
 }
 
 // TestResolveAppeal_Final_RefundReceiptAndStaffNotify verifies #1603+#1604:

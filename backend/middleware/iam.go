@@ -574,6 +574,25 @@ func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
 	return user.ID, nil
 }
 
+// LocalUserID resolves the local users.id for the JWT-authenticated user by
+// reverse lookup on iam_sub (#1742). Read-only: unlike EnsureLocalUser it
+// never creates a shadow record — notification/query read paths must not
+// write. Returns ("", nil) when no local user exists.
+func LocalUserID(ctx context.Context, db *gorm.DB) (string, error) {
+	iamSub := GetUserID(ctx)
+	if iamSub == "" {
+		return "", fmt.Errorf("no user ID in context")
+	}
+	var user models.User
+	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to query user: %w", err)
+	}
+	return user.ID, nil
+}
+
 func GetBusinessRole(ctx context.Context) string {
 	role := GetRole(ctx)
 	tid := GetTenantID(ctx)

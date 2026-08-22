@@ -13,17 +13,30 @@ import (
 
 func GetNotifications(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := middleware.GetUserID(ctx)
 
 	db := database.GetDB().WithContext(ctx)
 
-	var notifications []models.Notification
-	if err := db.Where("user_id = ?", userID).Order("created_at DESC").Find(&notifications).Error; err != nil {
+	// #1742: notifications.user_id stores the LOCAL users.id; the JWT sub is
+	// the IAM-side id. Resolve via read-only reverse lookup. No local record
+	// → empty list (never a shadow-user write on a read path).
+	userID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "Failed to fetch notifications",
+			"message": "Failed to resolve user",
 		})
 		return
+	}
+
+	notifications := []models.Notification{}
+	if userID != "" {
+		if err := db.Where("user_id = ?", userID).Order("created_at DESC").Find(&notifications).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to fetch notifications",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -36,17 +49,28 @@ func GetNotifications(c *gin.Context) {
 
 func GetUnreadCount(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := middleware.GetUserID(ctx)
 
 	db := database.GetDB().WithContext(ctx)
 
-	var count int64
-	if err := db.Model(&models.Notification{}).Where("user_id = ? AND status = ?", userID, "unread").Count(&count).Error; err != nil {
+	// #1742: resolve local id (see GetNotifications).
+	userID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "Failed to count unread notifications",
+			"message": "Failed to resolve user",
 		})
 		return
+	}
+
+	count := int64(0)
+	if userID != "" {
+		if err := db.Model(&models.Notification{}).Where("user_id = ? AND status = ?", userID, "unread").Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to count unread notifications",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -59,16 +83,28 @@ func GetUnreadCount(c *gin.Context) {
 
 func MarkAllNotificationsRead(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := middleware.GetUserID(ctx)
 
 	db := database.GetDB().WithContext(ctx)
 
-	if err := db.Model(&models.Notification{}).Where("user_id = ? AND status = ?", userID, "unread").Update("status", "read").Error; err != nil {
+	// #1742: resolve local id (see GetNotifications). No local record →
+	// nothing to mark; respond idempotent success.
+	userID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "Failed to mark all notifications as read",
+			"message": "Failed to resolve user",
 		})
 		return
+	}
+
+	if userID != "" {
+		if err := db.Model(&models.Notification{}).Where("user_id = ? AND status = ?", userID, "unread").Update("status", "read").Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to mark all notifications as read",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -80,9 +116,23 @@ func MarkAllNotificationsRead(c *gin.Context) {
 func GetNotificationDetail(c *gin.Context) {
 	notificationID := c.Param("id")
 	ctx := c.Request.Context()
-	userID := middleware.GetUserID(ctx)
 
 	db := database.GetDB().WithContext(ctx)
+
+	// #1742: resolve local id (see GetNotifications).
+	userID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to resolve user",
+		})
+		return
+	}
+
+	if userID == "" {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "notification not found"})
+		return
+	}
 
 	var notification models.Notification
 	if err := db.Where("id = ? AND user_id = ?", notificationID, userID).First(&notification).Error; err != nil {
@@ -134,18 +184,30 @@ func GetNotificationDetail(c *gin.Context) {
 }
 
 func MarkNotificationRead(c *gin.Context) {
-	ctx := c.Request.Context()
 	notificationID := c.Param("id")
-	userID := middleware.GetUserID(ctx)
+	ctx := c.Request.Context()
 
 	db := database.GetDB().WithContext(ctx)
 
-	if err := db.Model(&models.Notification{}).Where("id = ? AND user_id = ?", notificationID, userID).Update("status", "read").Error; err != nil {
+	// #1742: resolve local id (see GetNotifications). No local record →
+	// nothing to mark; respond idempotent success.
+	userID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "Failed to mark notification as read",
+			"message": "Failed to resolve user",
 		})
 		return
+	}
+
+	if userID != "" {
+		if err := db.Model(&models.Notification{}).Where("id = ? AND user_id = ?", notificationID, userID).Update("status", "read").Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to mark notification as read",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

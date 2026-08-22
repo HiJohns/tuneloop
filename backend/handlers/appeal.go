@@ -457,9 +457,19 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
+	// #1742: business rows (damage_reports/notifications) store the LOCAL
+	// users.id while the JWT sub is the IAM-side id — resolve via read-only
+	// reverse lookup. appeal.user_id itself keeps storing the JWT sub
+	// (#1742 观察项，单独评估).
+	localUserID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resolve user"})
+		return
+	}
+
 	// #1724: customer JWT 无 tid——按 #688 规则不能用 GetTenantID 过滤。
 	var damageReport models.DamageReport
-	if err := db.Where("id = ? AND user_id = ?", req.DamageReportID, userID).First(&damageReport).Error; err != nil {
+	if err := db.Where("id = ? AND user_id = ?", req.DamageReportID, localUserID).First(&damageReport).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "damage report not found"})
 		return
 	}
@@ -531,21 +541,26 @@ func (h *AppealHandler) SubmitAppeal(c *gin.Context) {
 		return
 	}
 
-	// Create notification
-	notification := models.Notification{
-		TenantID:   tenantID,
-		OrgID:      middleware.GetOrgID(ctx),
-		UserID:     userID,
-		Type:       "appeal",
-		Title:      "申诉已提交",
-		Content:    fmt.Sprintf("您的申诉已提交，等待处理。申诉原因：%s", req.AppealReason),
-		RefID:      appeal.ID,
-		RefType:    "appeal",
-		ActionType: "info",
-		Status:     "unread",
-	}
-	if err := db.Create(&notification).Error; err != nil {
-		log.Printf("[SubmitAppeal] Failed to create notification: %v", err)
+	// Create notification (#1742: notification.user_id must be the LOCAL id
+	// so the customer query side can see it; skip when no local user exists).
+	if localUserID != "" {
+		notification := models.Notification{
+			TenantID:   tenantID,
+			OrgID:      middleware.GetOrgID(ctx),
+			UserID:     localUserID,
+			Type:       "appeal",
+			Title:      "申诉已提交",
+			Content:    fmt.Sprintf("您的申诉已提交，等待处理。申诉原因：%s", req.AppealReason),
+			RefID:      appeal.ID,
+			RefType:    "appeal",
+			ActionType: "info",
+			Status:     "unread",
+		}
+		if err := db.Create(&notification).Error; err != nil {
+			log.Printf("[SubmitAppeal] Failed to create notification: %v", err)
+		}
+	} else {
+		log.Printf("[SubmitAppeal] no local user for iam_sub %s — skip customer notification", userID)
 	}
 
 	// Notify site staff of the new appeal so they can review it
@@ -576,10 +591,18 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
+	// #1742: resolve LOCAL user id — damage_reports.user_id and
+	// notification.user_id store the local users.id, not the JWT sub.
+	localUserID, err := middleware.LocalUserID(ctx, db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resolve user"})
+		return
+	}
+
 	// #1724: customer (USER) JWT 无 tid——按 #688 规则不能用 GetTenantID 过滤，
 	// report/order 只按 id+user 查询，tenant 从 order 推导。
 	var damageReport models.DamageReport
-	if err := db.Where("id = ? AND user_id = ?", damageID, userID).First(&damageReport).Error; err != nil {
+	if err := db.Where("id = ? AND user_id = ?", damageID, localUserID).First(&damageReport).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "damage report not found"})
 		return
 	}
@@ -706,26 +729,32 @@ func (h *AppealHandler) AgreeDamage(c *gin.Context) {
 	}
 
 	// Create notification（#1724：customer 无 org → OrgID 用 order.OrgID，空串 uuid 报 22P02）
+	// #1742: notification.user_id must be the LOCAL users.id so the customer
+	// query side resolves it; skip when no local user exists.
 	ad := fmt.Sprintf(`{"damage_amount":%d,"deposit":%d,"order_id":"%s"}`, int64(damageAmount), int64(order.Deposit), order.ID)
 	notifOrgID := middleware.GetOrgID(ctx)
 	if notifOrgID == "" {
 		notifOrgID = order.OrgID
 	}
-	notification := models.Notification{
-		TenantID:   tenantID,
-		OrgID:      notifOrgID,
-		UserID:     userID,
-		Type:       notifType,
-		Title:      notifTitle,
-		Content:    notifContent,
-		RefID:      order.ID,
-		RefType:    "order",
-		ActionType: notifActionType,
-		ActionData: &ad,
-		Status:     "unread",
-	}
-	if err := db.Create(&notification).Error; err != nil {
-		log.Printf("[AgreeDamage] Failed to create notification: %v", err)
+	if localUserID != "" {
+		notification := models.Notification{
+			TenantID:   tenantID,
+			OrgID:      notifOrgID,
+			UserID:     localUserID,
+			Type:       notifType,
+			Title:      notifTitle,
+			Content:    notifContent,
+			RefID:      order.ID,
+			RefType:    "order",
+			ActionType: notifActionType,
+			ActionData: &ad,
+			Status:     "unread",
+		}
+		if err := db.Create(&notification).Error; err != nil {
+			log.Printf("[AgreeDamage] Failed to create notification: %v", err)
+		}
+	} else {
+		log.Printf("[AgreeDamage] no local user for iam_sub %s — skip customer notification", userID)
 	}
 
 	// L-04 path 2: customer accepted damage (deposit_refunding) → notify

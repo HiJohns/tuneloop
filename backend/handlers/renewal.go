@@ -434,20 +434,31 @@ func applyRenewalSideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now
 		instrumentLabel = orderID[:8]
 	}
 
-	tx.Create(&models.Notification{
-		TenantID:   record.TenantID,
-		OrgID:      order.OrgID,
-		UserID:     record.UserID,
-		Type:       "renewal",
-		Title:      "续期成功",
-		Content:    fmt.Sprintf("乐器 %s 续期 %d 天成功，新到期日：%s", instrumentLabel, meta.AdditionalDays, newEndDateStr),
-		RefID:      orderID,
-		RefType:    "order",
-		ActionType: "order",
-		ActionData: strPtr(fmt.Sprintf(`{"order_id":"%s"}`, orderID)),
-		Status:     "unread",
-		CreatedAt:  now,
-	})
+	// #1742: record.UserID stores the JWT sub (prepay-time GetUserID), but
+	// notification.user_id must be the LOCAL users.id — reverse lookup via
+	// iam_sub; skip the notification when no local user exists.
+	notified := false
+	var renewalUser models.User
+	if err := tx.Where("iam_sub = ?", record.UserID).First(&renewalUser).Error; err == nil {
+		tx.Create(&models.Notification{
+			TenantID:   record.TenantID,
+			OrgID:      order.OrgID,
+			UserID:     renewalUser.ID,
+			Type:       "renewal",
+			Title:      "续期成功",
+			Content:    fmt.Sprintf("乐器 %s 续期 %d 天成功，新到期日：%s", instrumentLabel, meta.AdditionalDays, newEndDateStr),
+			RefID:      orderID,
+			RefType:    "order",
+			ActionType: "order",
+			ActionData: strPtr(fmt.Sprintf(`{"order_id":"%s"}`, orderID)),
+			Status:     "unread",
+			CreatedAt:  now,
+		})
+		notified = true
+	}
+	if !notified {
+		log.Printf("[applyRenewalSideEffects] no local user for iam_sub %s — skip renewal notification", record.UserID)
+	}
 
 	// Re-evaluate membership level after renewal payment
 	if err := services.CheckAndUpgradeLevel(record.UserID, nil); err != nil {
