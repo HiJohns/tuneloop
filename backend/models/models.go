@@ -324,7 +324,7 @@ type OrderPaymentRecord struct {
 	OrderType     string    `gorm:"type:varchar(20);not null" json:"order_type"`
 	OutTradeNo    *string   `gorm:"type:varchar(32);uniqueIndex" json:"out_trade_no"`
 	TransactionID *string   `gorm:"type:varchar(64)" json:"transaction_id"`
-	OpenID        string    `gorm:"type:varchar(128)" json:"openid"` // payer.openid from payment callback (#1731)
+	OpenID        string    `gorm:"column:openid;type:varchar(128)" json:"openid"` // payer.openid from payment callback (#1731)
 	Amount        Cents     `gorm:"type:bigint;not null" json:"amount"`
 	Type          string    `gorm:"type:varchar(20);not null;default:'payment'" json:"type"`
 	Status        string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
