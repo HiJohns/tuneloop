@@ -445,10 +445,10 @@ export default function OrderDetail() {
           </View>
         </View>
 
-        {/* Delivery + Logistics (合并) */}
+        {/* Delivery Info (#1766: 移除物流子块，仅保留下单人+地址) */}
         <View style={{ backgroundColor: '#fff', margin: 16, borderRadius: 16, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>配送物流</Text>
-          <View style={{ marginBottom: 8 }}>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: '#000', marginBottom: 12 }}>配送信息</Text>
+          <View>
             <View style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
               <Text style={{ fontSize: 13, color: '#a1a1aa', width: 60 }}>👤 下单人</Text>
               <View>
@@ -471,13 +471,6 @@ export default function OrderDetail() {
               </View>
             )}
           </View>
-          {(order.courier_company || order.tracking_number || order.shipped_at) && (
-            <View style={{ borderTop: '1px dashed #e4e4e7', paddingTop: 8 }}>
-              {order.courier_company && <Row label="物流公司" value={order.courier_company} />}
-              {order.tracking_number && <Row label="物流单号" value={order.tracking_number} mono />}
-              {order.shipped_at && <Row label="发货时间" value={formatDisplayDate(order.shipped_at)} />}
-            </View>
-          )}
         </View>
 
         {/* Order Info (合并归还信息：归还日期/实际租期由 LeaseInfo 显示) */}
