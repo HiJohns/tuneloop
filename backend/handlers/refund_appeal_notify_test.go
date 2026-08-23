@@ -268,14 +268,17 @@ func TestBuildRefundReceipt_IncludesAllLines(t *testing.T) {
 	receipt := buildRefundReceipt(db, order, s)
 
 	require.Contains(t, receipt, "租赁结算明细")
-	require.Contains(t, receipt, "实际租期：29 天")
-	require.Contains(t, receipt, "租金：¥2900.00")
-	require.Contains(t, receipt, "物流费：¥50.00")
+	// Assertions match the fixture data under the cents contract:
+	// ActualDays=30, RentPayable=3000 (yuan field), ShippingFee=50 cents,
+	// CashPaid=3500c + GiftPointsUsed=100c + Deposit=50000c.
+	require.Contains(t, receipt, "实际租期：30 天")
+	require.Contains(t, receipt, "租金：¥3000.00")
+	require.Contains(t, receipt, "物流费：¥0.50")
 	require.Contains(t, receipt, "逾期费：¥30.00")
 	require.Contains(t, receipt, "损坏赔偿：¥100.00")
 	require.Contains(t, receipt, "续期费用：¥120.00")
 	require.Contains(t, receipt, "应付合计：¥3530.00")
-	require.Contains(t, receipt, "已收（含押金）：¥4100.00")
+	require.Contains(t, receipt, "已收（含押金）：¥536.00")
 	require.Contains(t, receipt, "押金退还：¥500.00")
 	require.Contains(t, receipt, "退回微信：¥400.00")
 	require.Contains(t, receipt, "实际退款合计：¥400.00")

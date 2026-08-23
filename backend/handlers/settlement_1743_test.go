@@ -168,7 +168,12 @@ func TestExecuteRefund_ZeroCashRefund_CompletesSettlement(t *testing.T) {
 	require.Equal(t, "completed", settlement.RefundStatus, "zero cash refund must complete the settlement")
 
 	var refundCount int64
-	db.Model(&models.OrderRefundRecord{}).Where("order_id = ?", order.ID).Count(&refundCount)
+	// OrderRefundRecord links via payment_record_id → order_payment_records
+	// (#1747 audit: previous `WHERE order_id` referenced a non-existent
+	// column and always counted 0 — a vacuous pass).
+	db.Model(&models.OrderRefundRecord{}).
+		Where("payment_record_id IN (SELECT id FROM order_payment_records WHERE order_id = ?)", order.ID).
+		Count(&refundCount)
 	require.Zero(t, refundCount, "no refund record may be created when there is nothing to refund")
 }
 

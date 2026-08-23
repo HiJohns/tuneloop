@@ -1084,10 +1084,17 @@ func buildRefundReceipt(db *gorm.DB, order models.Order, s *settlementResult) st
 	var refunds []struct {
 		Amount models.Cents
 	}
-	db.Model(&models.OrderRefundRecord{}).
-		Where("order_id = ?", order.ID).Order("created_at ASC").Find(&refunds)
-	for _, r := range refunds {
-		sb.WriteString(fmt.Sprintf("退款：¥%.2f\n", r.Amount.ToYuan()))
+	// OrderRefundRecord links to orders via payment_record_id (#1747 audit:
+	// the previous `WHERE order_id` referenced a non-existent column and
+	// silently swallowed the SQL error, so refund lines never rendered).
+	if err := db.Model(&models.OrderRefundRecord{}).
+		Where("payment_record_id IN (SELECT id FROM order_payment_records WHERE order_id = ?)", order.ID).
+		Order("created_at ASC").Find(&refunds).Error; err != nil {
+		log.Printf("[buildRefundReceipt] refund records query failed for order %s: %v", order.ID, err)
+	} else {
+		for _, r := range refunds {
+			sb.WriteString(fmt.Sprintf("退款：¥%.2f\n", r.Amount.ToYuan()))
+		}
 	}
 	sb.WriteString("——\n")
 	if s.GiftPointsRefunded > 0 {
@@ -1143,8 +1150,14 @@ func buildRefundRecordsJSON(db *gorm.DB, orderID string) []map[string]interface{
 		Amount models.Cents
 		Status string
 	}
-	db.Model(&models.OrderRefundRecord{}).
-		Where("order_id = ?", orderID).Order("created_at ASC").Find(&records)
+	// OrderRefundRecord links to orders via payment_record_id (#1747 audit:
+	// same non-existent-column defect as buildRefundReceipt — fix + no
+	// silent error swallow).
+	if err := db.Model(&models.OrderRefundRecord{}).
+		Where("payment_record_id IN (SELECT id FROM order_payment_records WHERE order_id = ?)", orderID).
+		Order("created_at ASC").Find(&records).Error; err != nil {
+		log.Printf("[buildRefundRecordsJSON] refund records query failed for order %s: %v", orderID, err)
+	}
 	out := make([]map[string]interface{}, 0, len(records))
 	for _, r := range records {
 		out = append(out, map[string]interface{}{
