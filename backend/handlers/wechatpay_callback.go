@@ -310,6 +310,13 @@ func applySideEffects(tx *gorm.DB, record *models.OrderPaymentRecord, now time.T
 		if err := tx.Model(&models.Order{}).Where("id = ?", record.OrderID).Update("status", models.OrderStatusCompleted).Error; err != nil {
 			return err
 		}
+		// Restore instrument stock_status to available (#1767)
+		if record.OrderID != nil {
+			if err := tx.Model(&models.Instrument{}).Where("id = (SELECT instrument_id FROM orders WHERE id = ? LIMIT 1)", *record.OrderID).
+				Update("stock_status", models.StockStatusAvailable).Error; err != nil {
+				log.Printf("[applySideEffects] Failed to restore instrument status for order %s: %v", *record.OrderID, err)
+			}
+		}
 		if record.OrderID != nil {
 			if err := tx.Model(&models.Settlement{}).Where("order_id = ?", *record.OrderID).
 				Update("refund_status", "completed").Error; err != nil {
