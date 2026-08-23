@@ -829,10 +829,10 @@ func TestExecuteRefund_LoyaltyPoints(t *testing.T) {
 	require.NoError(t, err)
 	tx.Commit()
 
-	// Loyalty points = 3000 × 5% = 150
+	// Loyalty points = 3000 × 5% = 150 (分契约: 15000 分)
 	var user models.User
 	require.NoError(t, db.First(&user, "id = ?", userID).Error)
-	require.Equal(t, 150.0, user.PromoPoints, "loyalty points = 3000 × 5%")
+	require.Equal(t, models.Cents(15000), user.PromoPoints, "loyalty points = 3000 × 5%")
 
 	// Points transaction recorded
 	var pt models.PointsTransaction
