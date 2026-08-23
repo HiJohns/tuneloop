@@ -260,7 +260,10 @@ type SettlementCalculation struct {
 	TenantID      string    `gorm:"type:uuid;index" json:"tenant_id"`
 	Trigger       string    `gorm:"type:varchar(20);not null" json:"trigger"` // preview | confirm
 	InputSnapshot *string   `gorm:"type:jsonb" json:"input_snapshot,omitempty"`
-	Result        *string   `gorm:"type:jsonb" json:"result,omitempty"`
+	// Result is TEXT (not JSONB): #1738 audit contract requires the stored
+	// bytes to be byte-identical to what the handler responded — JSONB
+	// normalization (key reorder + whitespace) would break that guarantee.
+	Result        *string   `gorm:"type:text" json:"result,omitempty"`
 	ActualDays    int       `gorm:"not null;default:0" json:"actual_days"`
 	CreatedAt     time.Time `json:"created_at"`
 }
